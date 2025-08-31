@@ -3,7 +3,7 @@ import { supabaseServer } from '@/lib/supabase-server';
 
 export async function POST(req: Request, { params }: { params: { id: string }}) {
   const { lines } = await req.json(); // [{ merchandiseId: productId, quantity, band? }]
-  const sb = supabaseServer();
+  const sb = await supabaseServer();
 
   for (const l of lines ?? []) {
     const { error } = await sb.from('bookings').insert({

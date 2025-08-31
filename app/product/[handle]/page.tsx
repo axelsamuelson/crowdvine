@@ -172,7 +172,7 @@ export default async function ProductPage(props: { params: Promise<{ handle: str
                 </p>
               </div>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <Suspense fallback={<VariantSelectorSlots product={product} fallback />}>
+                <Suspense fallback={<div className="h-10 bg-muted animate-pulse rounded" />}>
                   <VariantSelectorSlots product={product} />
                 </Suspense>
 

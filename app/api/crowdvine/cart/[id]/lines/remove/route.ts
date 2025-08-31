@@ -3,7 +3,7 @@ import { supabaseServer } from '@/lib/supabase-server';
 
 export async function POST(req: Request, { params }: { params: { id: string }}) {
   const { lineIds } = await req.json(); // [bookingId1, bookingId2, ...]
-  const sb = supabaseServer();
+  const sb = await supabaseServer();
 
   for (const lineId of lineIds ?? []) {
     const { error } = await sb.from('bookings')
