@@ -1,7 +1,7 @@
-// Store catalog constants
+// Store catalog constants - now maps to Crowdvine campaigns
 export const storeCatalog = {
-  ids: 'lamps,miscellaneous,pillows,rugs,seats,featured,mens,womens,asdfasdf,top-seller',
-  rootCategoryId: 'joyco-root',
+  ids: 'crowdvine-campaigns',
+  rootCategoryId: 'all-wines', // Maps to all wines view
 };
 
 export const sortOptions = [
