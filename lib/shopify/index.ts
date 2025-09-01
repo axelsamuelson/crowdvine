@@ -2,15 +2,16 @@ import { TAGS } from '@/lib/constants';
 import type { Product, Collection, Cart } from './types';
 
 // Vår API-bas (Next API routes som läser Supabase)
+const API_BASE = process.env.APP_URL || 'http://localhost:3000';
 const API = {
-  products: '/api/crowdvine/products',
-  product: (handle: string) => `/api/crowdvine/products/${handle}`,
-  collections: '/api/crowdvine/collections',                 // mappar zoner/kampanjer
-  collectionProducts: (id: string) => `/api/crowdvine/collections/${id}/products`,
-  cartCreate: '/api/crowdvine/cart',
-  cartAdd: (id: string) => `/api/crowdvine/cart/${id}/lines/add`,
-  cartUpdate: (id: string) => `/api/crowdvine/cart/${id}/lines/update`,
-  cartRemove: (id: string) => `/api/crowdvine/cart/${id}/lines/remove`,
+  products: `${API_BASE}/api/crowdvine/products`,
+  product: (handle: string) => `${API_BASE}/api/crowdvine/products/${handle}`,
+  collections: `${API_BASE}/api/crowdvine/collections`,                 // mappar zoner/kampanjer
+  collectionProducts: (id: string) => `${API_BASE}/api/crowdvine/collections/${id}/products`,
+  cartCreate: `${API_BASE}/api/crowdvine/cart`,
+  cartAdd: (id: string) => `${API_BASE}/api/crowdvine/cart/${id}/lines/add`,
+  cartUpdate: (id: string) => `${API_BASE}/api/crowdvine/cart/${id}/lines/update`,
+  cartRemove: (id: string) => `${API_BASE}/api/crowdvine/cart/${id}/lines/remove`,
 };
 
 async function j<T>(res: Response): Promise<T> {
@@ -24,12 +25,12 @@ export async function getProducts(params?: {
   reverse?: boolean;
   query?: string;
 }): Promise<Product[]> {
-  const url = new URL(API.products, process.env.APP_URL);
+  const url = new URL(API.products);
   if (params?.limit) url.searchParams.set('limit', params.limit.toString());
   if (params?.query) url.searchParams.set('query', params.query);
   if (params?.sortKey) url.searchParams.set('sortKey', params.sortKey);
   if (params?.reverse) url.searchParams.set('reverse', params.reverse.toString());
-  
+
   return j(await fetch(url.toString(), { next: { tags: [TAGS.products] } }));
 }
 
@@ -58,12 +59,12 @@ export async function getCollectionProducts(params: {
   reverse?: boolean;
   query?: string;
 }): Promise<Product[]> {
-  const url = new URL(API.collectionProducts(params.collection), process.env.APP_URL);
+  const url = new URL(API.collectionProducts(params.collection));
   if (params?.limit) url.searchParams.set('limit', params.limit.toString());
   if (params?.query) url.searchParams.set('query', params.query);
   if (params?.sortKey) url.searchParams.set('sortKey', params.sortKey);
   if (params?.reverse) url.searchParams.set('reverse', params.reverse.toString());
-  
+
   return j(await fetch(url.toString(), { next: { tags: [TAGS.products] } }));
 }
 
