@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { signIn, signUp, resendConfirmationEmail, checkEmailSettings } from '@/lib/auth-client';
+import { adminLogin, createAdminAccount } from '@/lib/admin-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,58 +11,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [showResendButton, setShowResendButton] = useState(false);
-  const router = useRouter();
 
   const clearMessages = () => {
     setError('');
     setSuccess('');
-    setShowResendButton(false);
-  };
-
-  const handleCheckEmailSettings = async () => {
-    setLoading(true);
-    clearMessages();
-
-    try {
-      const { enabled, message } = await checkEmailSettings();
-      
-      if (enabled) {
-        setSuccess(`Email-inställningar: ${message}`);
-      } else {
-        setError(`Email-problem: ${message}`);
-      }
-    } catch (err) {
-      setError('Ett oväntat fel uppstod vid kontroll av email-inställningar.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResendConfirmation = async () => {
-    setLoading(true);
-    clearMessages();
-
-    try {
-      const { error, success, message } = await resendConfirmationEmail(email);
-      
-      if (error) {
-        setError(`Kunde inte skicka om bekräftelsemail: ${error.message}`);
-      } else if (success) {
-        setSuccess(message || 'Bekräftelsemail skickat! Kontrollera din inkorg.');
-        setShowResendButton(false);
-      } else {
-        setSuccess('Bekräftelsemail skickat! Kontrollera din inkorg.');
-        setShowResendButton(false);
-      }
-    } catch (err) {
-      setError('Ett oväntat fel uppstod vid omföljning av bekräftelsemail.');
-    } finally {
-      setLoading(false);
-    }
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -71,52 +25,32 @@ export default function AdminLogin() {
     setLoading(true);
     clearMessages();
 
-    // Validering
     if (!email || !password) {
       setError('Email och lösenord krävs');
       setLoading(false);
       return;
     }
 
-    if (password.length < 6) {
-      setError('Lösenordet måste vara minst 6 tecken långt');
-      setLoading(false);
-      return;
-    }
-
     try {
-      const { data, error } = await signIn(email, password);
+      console.log('Attempting admin login...');
       
-      if (error) {
-        console.error('Sign in error:', error);
-        
-        // Specifika felmeddelanden baserat på error code
-        switch (error.message) {
-          case 'Invalid login credentials':
-            setError('Felaktig email eller lösenord');
-            break;
-          case 'Email not confirmed':
-            setError('Email-adressen är inte bekräftad. Kontrollera din inkorg.');
-            setShowResendButton(true);
-            break;
-          case 'Too many requests':
-            setError('För många försök. Försök igen senare.');
-            break;
-          default:
-            setError(`Inloggning misslyckades: ${error.message}`);
-        }
-      } else if (data?.user) {
-        setSuccess('Inloggning lyckades! Omdirigerar...');
-        setTimeout(() => {
-          router.push('/admin');
-          router.refresh();
-        }, 1000);
-      } else {
-        setError('Inloggning misslyckades - inget användarkonto returnerades');
+      const result = await adminLogin(email, password);
+      
+      if (result?.error) {
+        console.error('Admin login error:', result.error);
+        setError(result.error);
       }
-    } catch (err) {
-      console.error('Unexpected error during sign in:', err);
-      setError('Ett oväntat fel uppstod. Kontrollera din internetanslutning och försök igen.');
+      // Om ingen error returnerades, redirect hanteras automatiskt av server action
+    } catch (err: any) {
+      // NEXT_REDIRECT är normalt för server actions - det betyder att redirect fungerade
+      if (err?.digest?.includes('NEXT_REDIRECT')) {
+        console.log('Admin login redirect successful');
+        setSuccess('Inloggning lyckades! Omdirigerar...');
+        // Redirect hanteras automatiskt av server action
+      } else {
+        console.error('Unexpected error during sign in:', err);
+        setError('Ett oväntat fel uppstod. Kontrollera din internetanslutning och försök igen.');
+      }
     } finally {
       setLoading(false);
     }
@@ -127,7 +61,6 @@ export default function AdminLogin() {
     setLoading(true);
     clearMessages();
 
-    // Validering
     if (!email || !password) {
       setError('Email och lösenord krävs');
       setLoading(false);
@@ -147,56 +80,28 @@ export default function AdminLogin() {
     }
 
     try {
-      console.log('Attempting to sign up:', email);
-      const { data, error } = await signUp(email, password, 'admin');
+      console.log('Creating admin account...');
       
-      if (error) {
-        console.error('Sign up error:', error);
-        console.error('Error object:', JSON.stringify(error, null, 2));
-        
-        // Specifika felmeddelanden baserat på error code
-        let errorMessage = error.message || 'Okänt fel';
-        
-        switch (errorMessage) {
-          case 'User already registered':
-            setError('En användare med denna email-adress finns redan. Använd "Sign In" istället.');
-            break;
-          case 'Ett konto med denna email finns redan och är bekräftat. Använd "Sign In" istället.':
-            setError(errorMessage);
-            break;
-          case 'Ett konto med denna email finns redan men är inte bekräftat. Kontrollera din inkorg eller begär nytt bekräftelsemail.':
-            setError(errorMessage);
-            setShowResendButton(true);
-            break;
-          case 'Password should be at least 6 characters':
-            setError('Lösenordet måste vara minst 6 tecken långt');
-            break;
-          case 'Unable to validate email address: invalid format':
-            setError('Ange en giltig email-adress');
-            break;
-          case 'Signup is disabled':
-            setError('Registrering är inaktiverat. Kontakta administratören.');
-            break;
-          default:
-            if (errorMessage.includes('profiles')) {
-              setError(`Database-fel: ${errorMessage}. Kontrollera att profiles-tabellen finns.`);
-            } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
-              setError('Nätverksfel. Kontrollera din internetanslutning.');
-            } else {
-              setError(`Registrering misslyckades: ${errorMessage}`);
-            }
+      const result = await createAdminAccount(email, password);
+      
+      if (result?.error) {
+        console.error('Create account error:', result.error);
+        if (result.error.includes('already been registered')) {
+          setError('Ett konto med denna email-adress finns redan. Logga in istället.');
+        } else {
+          setError(result.error);
         }
-      } else if (data?.user) {
-        setSuccess('Admin-konto skapat! Kontrollera din email för bekräftelse innan inloggning.');
+      } else {
+        console.log('Account created successfully:', result);
+        setSuccess('Admin-konto skapat framgångsrikt! Du kan nu logga in.');
+        
         // Rensa formuläret
         setEmail('');
         setPassword('');
-      } else {
-        setError('Registrering misslyckades - inget användarkonto returnerades');
       }
     } catch (err) {
       console.error('Unexpected error during sign up:', err);
-      setError(`Ett oväntat fel uppstod: ${err}`);
+      setError('Ett oväntat fel uppstod. Kontrollera din internetanslutning och försök igen.');
     } finally {
       setLoading(false);
     }
@@ -281,31 +186,7 @@ export default function AdminLogin() {
                     className="w-full"
                     disabled={loading}
                   >
-                    {loading ? 'Signing in...' : 'Sign in'}
-                  </Button>
-
-                  {showResendButton && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full"
-                      onClick={handleResendConfirmation}
-                      disabled={loading}
-                    >
-                      {loading ? 'Skickar...' : 'Skicka om bekräftelsemail'}
-                    </Button>
-                  )}
-
-                  {/* Debug-knapp för email-inställningar */}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="w-full text-xs text-gray-500"
-                    onClick={handleCheckEmailSettings}
-                    disabled={loading}
-                  >
-                    {loading ? 'Kontrollerar...' : 'Kontrollera email-inställningar'}
+                    {loading ? 'Signing in...' : 'Sign In'}
                   </Button>
                 </form>
               </CardContent>
@@ -317,7 +198,7 @@ export default function AdminLogin() {
               <CardHeader>
                 <CardTitle>Create Admin Account</CardTitle>
                 <CardDescription>
-                  Create a new admin account (first time setup)
+                  Create a new admin account (direct login, no email confirmation)
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -375,18 +256,6 @@ export default function AdminLogin() {
                   >
                     {loading ? 'Creating account...' : 'Create Admin Account'}
                   </Button>
-
-                  {showResendButton && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full"
-                      onClick={handleResendConfirmation}
-                      disabled={loading}
-                    >
-                      {loading ? 'Skickar...' : 'Skicka om bekräftelsemail'}
-                    </Button>
-                  )}
                 </form>
               </CardContent>
             </Card>
