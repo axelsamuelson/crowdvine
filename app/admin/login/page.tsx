@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn, signUp, resendConfirmationEmail } from '@/lib/auth-client';
+import { signIn, signUp, resendConfirmationEmail, checkEmailSettings } from '@/lib/auth-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,15 +24,37 @@ export default function AdminLogin() {
     setShowResendButton(false);
   };
 
+  const handleCheckEmailSettings = async () => {
+    setLoading(true);
+    clearMessages();
+
+    try {
+      const { enabled, message } = await checkEmailSettings();
+      
+      if (enabled) {
+        setSuccess(`Email-inställningar: ${message}`);
+      } else {
+        setError(`Email-problem: ${message}`);
+      }
+    } catch (err) {
+      setError('Ett oväntat fel uppstod vid kontroll av email-inställningar.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleResendConfirmation = async () => {
     setLoading(true);
     clearMessages();
 
     try {
-      const { error } = await resendConfirmationEmail(email);
+      const { error, success, message } = await resendConfirmationEmail(email);
       
       if (error) {
         setError(`Kunde inte skicka om bekräftelsemail: ${error.message}`);
+      } else if (success) {
+        setSuccess(message || 'Bekräftelsemail skickat! Kontrollera din inkorg.');
+        setShowResendButton(false);
       } else {
         setSuccess('Bekräftelsemail skickat! Kontrollera din inkorg.');
         setShowResendButton(false);
@@ -273,6 +295,18 @@ export default function AdminLogin() {
                       {loading ? 'Skickar...' : 'Skicka om bekräftelsemail'}
                     </Button>
                   )}
+
+                  {/* Debug-knapp för email-inställningar */}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-xs text-gray-500"
+                    onClick={handleCheckEmailSettings}
+                    disabled={loading}
+                  >
+                    {loading ? 'Kontrollerar...' : 'Kontrollera email-inställningar'}
+                  </Button>
                 </form>
               </CardContent>
             </Card>

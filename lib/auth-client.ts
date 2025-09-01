@@ -344,6 +344,24 @@ export async function resendConfirmationEmail(email: string) {
   try {
     console.log('Attempting to resend confirmation email to:', email);
     
+    // Först kontrollera om användaren finns och är bekräftad
+    try {
+      const { data: existingUser } = await supabase.auth.signInWithPassword({
+        email,
+        password: 'dummy-password-for-check'
+      });
+      
+      if (existingUser?.user?.email_confirmed_at) {
+        return {
+          error: { message: 'Denna email är redan bekräftad. Du kan logga in direkt.' }
+        };
+      }
+    } catch (checkError) {
+      // Detta är förväntat - vi kan inte logga in med dummy password
+      console.log('User not confirmed, proceeding with resend...');
+    }
+    
+    // Försök skicka om bekräftelsemail
     const { error } = await supabase.auth.resend({
       type: 'signup',
       email,
@@ -351,13 +369,101 @@ export async function resendConfirmationEmail(email: string) {
     
     if (error) {
       console.error('Resend confirmation error:', error);
-      return { error };
+      console.error('Error details:', {
+        message: error.message,
+        status: error.status,
+        name: error.name
+      });
+      
+      // Hantera specifika fel
+      let errorMessage = error.message || 'Okänt fel';
+      
+      if (errorMessage.includes('not found') || errorMessage.includes('does not exist')) {
+        return {
+          error: { message: 'Ingen användare hittades med denna email-adress. Kontrollera att du använde rätt email.' }
+        };
+      }
+      
+      if (errorMessage.includes('already confirmed') || errorMessage.includes('confirmed')) {
+        return {
+          error: { message: 'Denna email är redan bekräftad. Du kan logga in direkt.' }
+        };
+      }
+      
+      if (errorMessage.includes('too many requests') || errorMessage.includes('rate limit')) {
+        return {
+          error: { message: 'För många försök. Vänta några minuter innan du försöker igen.' }
+        };
+      }
+      
+      if (errorMessage.includes('disabled') || errorMessage.includes('not enabled')) {
+        return {
+          error: { message: 'Email-bekräftelse är inaktiverat. Kontakta administratören.' }
+        };
+      }
+      
+      return {
+        error: { message: `Kunde inte skicka om bekräftelsemail: ${errorMessage}` }
+      };
     }
     
     console.log('Confirmation email resent successfully');
-    return { error: null };
+    return { 
+      error: null,
+      success: true,
+      message: 'Bekräftelsemail skickat! Kontrollera din inkorg (och spam-mappen).'
+    };
   } catch (err) {
     console.error('Unexpected error in resendConfirmationEmail:', err);
-    return { error: { message: 'Ett oväntat fel uppstod vid omföljning av bekräftelsemail.' } };
+    return { 
+      error: { message: 'Ett oväntat fel uppstod vid omföljning av bekräftelsemail.' } 
+    };
+  }
+}
+
+// Funktion för att kontrollera email-inställningar
+export async function checkEmailSettings() {
+  try {
+    console.log('Checking email settings...');
+    
+    // Testa att skicka ett test-email (detta kommer att misslyckas men vi får felmeddelandet)
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: 'test@example.com',
+    });
+    
+    if (error) {
+      console.log('Email settings check result:', error.message);
+      
+      if (error.message.includes('disabled') || error.message.includes('not enabled')) {
+        return {
+          enabled: false,
+          message: 'Email-bekräftelse är inaktiverat i Supabase. Kontakta administratören för att aktivera det.'
+        };
+      }
+      
+      if (error.message.includes('not found')) {
+        return {
+          enabled: true,
+          message: 'Email-bekräftelse är aktiverat (test-email misslyckades som förväntat).'
+        };
+      }
+      
+      return {
+        enabled: true,
+        message: `Email-inställningar: ${error.message}`
+      };
+    }
+    
+    return {
+      enabled: true,
+      message: 'Email-bekräftelse är aktiverat.'
+    };
+  } catch (err) {
+    console.error('Error checking email settings:', err);
+    return {
+      enabled: false,
+      message: 'Kunde inte kontrollera email-inställningar.'
+    };
   }
 }
