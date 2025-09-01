@@ -1,0 +1,199 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { CreateProducerData, Producer } from '@/lib/actions/producers';
+
+interface ProducerFormProps {
+  producer?: Producer;
+  onSubmit: (data: CreateProducerData) => Promise<void>;
+}
+
+export default function ProducerForm({ producer, onSubmit }: ProducerFormProps) {
+  const [formData, setFormData] = useState<CreateProducerData>({
+    name: producer?.name || '',
+    region: producer?.region || '',
+    lat: producer?.lat || 0,
+    lon: producer?.lon || 0,
+    country_code: producer?.country_code || '',
+    address_street: producer?.address_street || '',
+    address_city: producer?.address_city || '',
+    address_postcode: producer?.address_postcode || '',
+    short_description: producer?.short_description || '',
+    logo_image_path: producer?.logo_image_path || '',
+  });
+
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      await onSubmit(formData);
+      router.push('/admin/producers');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChange = (field: keyof CreateProducerData, value: string | number) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{producer ? 'Edit Producer' : 'Add Producer'}</CardTitle>
+        <CardDescription>
+          {producer ? 'Update producer information' : 'Create a new wine producer'}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => handleChange('name', e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="region">Region *</Label>
+              <Input
+                id="region"
+                value={formData.region}
+                onChange={(e) => handleChange('region', e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="lat">Latitude *</Label>
+              <Input
+                id="lat"
+                type="number"
+                step="0.0001"
+                value={formData.lat}
+                onChange={(e) => handleChange('lat', parseFloat(e.target.value) || 0)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="lon">Longitude *</Label>
+              <Input
+                id="lon"
+                type="number"
+                step="0.0001"
+                value={formData.lon}
+                onChange={(e) => handleChange('lon', parseFloat(e.target.value) || 0)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="country_code">Country Code *</Label>
+              <Input
+                id="country_code"
+                value={formData.country_code}
+                onChange={(e) => handleChange('country_code', e.target.value)}
+                placeholder="FR"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="address_street">Street Address *</Label>
+            <Input
+              id="address_street"
+              value={formData.address_street}
+              onChange={(e) => handleChange('address_street', e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="address_city">City *</Label>
+              <Input
+                id="address_city"
+                value={formData.address_city}
+                onChange={(e) => handleChange('address_city', e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="address_postcode">Postal Code *</Label>
+              <Input
+                id="address_postcode"
+                value={formData.address_postcode}
+                onChange={(e) => handleChange('address_postcode', e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="short_description">Description</Label>
+            <Textarea
+              id="short_description"
+              value={formData.short_description}
+              onChange={(e) => handleChange('short_description', e.target.value)}
+              rows={3}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="logo_image_path">Logo Image URL</Label>
+            <Input
+              id="logo_image_path"
+              type="url"
+              value={formData.logo_image_path}
+              onChange={(e) => handleChange('logo_image_path', e.target.value)}
+              placeholder="https://example.com/image.jpg"
+            />
+          </div>
+
+          <div className="flex justify-end space-x-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.back()}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? 'Saving...' : (producer ? 'Update Producer' : 'Create Producer')}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}

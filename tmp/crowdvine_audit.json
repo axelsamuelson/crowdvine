@@ -1,0 +1,130 @@
+{
+  "stack": {
+    "nextVersion": "15.2.4",
+    "appRouter": true,
+    "typescript": true,
+    "tailwind": true,
+    "shadcn": true,
+    "deps": {
+      "supabase": true,
+      "stripe": true,
+      "reactQueryOrSWR": "react-query"
+    },
+    "env": {
+      "supabase": true,
+      "stripe": true
+    }
+  },
+  "adapter": {
+    "shopifyIndexPointsToCrowdvine": true,
+    "leftoverShopifyFetches": []
+  },
+  "apiRoutes": {
+    "crowdvine": [
+      "GET /api/crowdvine/products",
+      "GET /api/crowdvine/products/[handle]",
+      "GET /api/crowdvine/collections",
+      "GET /api/crowdvine/collections/[id]/products",
+      "POST /api/crowdvine/cart",
+      "POST /api/crowdvine/cart/[id]/lines/add",
+      "POST /api/crowdvine/cart/[id]/lines/update",
+      "POST /api/crowdvine/cart/[id]/lines/remove"
+    ],
+    "stripe": [
+      "POST /api/checkout/setup"
+    ]
+  },
+  "dataModel": {
+    "tables": {
+      "producers": true,
+      "pallet_zones": true,
+      "pallet_zone_members": false,
+      "campaigns": true,
+      "campaign_items": {
+        "exists": true,
+        "generatedTierPrices": true
+      },
+      "bookings": {
+        "exists": true,
+        "band": true,
+        "tolerance": false
+      }
+    },
+    "rlsPolicies": false
+  },
+  "frontend": {
+    "publicPages": [
+      "/",
+      "/shop",
+      "/shop/[collection]",
+      "/product/[handle]"
+    ],
+    "adminPages": [],
+    "producerPages": [],
+    "cartShimToBookings": true,
+    "imageFieldMapping": "label_image_path"
+  },
+  "stripe": {
+    "checkoutSetupRoute": true,
+    "webhookRoute": false
+  },
+  "adminGaps": {
+    "producers": {
+      "list": false,
+      "create": false,
+      "update": false,
+      "delete": false,
+      "geocode": false,
+      "zoneMembership": false
+    },
+    "palletZones": {
+      "list": false,
+      "create": false,
+      "update": false
+    },
+    "campaigns": {
+      "list": false,
+      "create": false,
+      "update": false,
+      "statusTransitions": false
+    },
+    "campaignItems": {
+      "list": false,
+      "create": false,
+      "update": false,
+      "handleUnique": false
+    },
+    "collections": {
+      "mapping": "campaign",
+      "needsTaxonomy": false
+    },
+    "bookings": {
+      "adminRead": false
+    },
+    "auth": {
+      "adminGuard": false,
+      "producerGuard": false
+    }
+  },
+  "notes": [
+    "Migration from Shopify to Crowdvine complete",
+    "All frontend components work with new backend",
+    "Cart functionality maps to Supabase bookings",
+    "No admin interface exists",
+    "Stripe URLs need https in production",
+    "Missing webhook handling for payments",
+    "No authentication system implemented"
+  ],
+  "recommendedNextSteps": [
+    "Fix Stripe URL validation for production",
+    "Implement Supabase Auth for user management",
+    "Create admin middleware for route protection",
+    "Build admin layout and navigation",
+    "Add producer CRUD operations",
+    "Add campaign CRUD operations",
+    "Add wine CRUD operations",
+    "Add booking management interface",
+    "Implement webhook handling for Stripe events",
+    "Add RLS policies for database security"
+  ]
+}
