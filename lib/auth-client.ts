@@ -117,6 +117,30 @@ export async function signUp(email: string, password: string, role: UserRole = '
                 return { data, error: null };
               }
               
+              // Om det är foreign key constraint error, vänta lite och försök igen
+              if (profileError.message?.includes('foreign key constraint') ||
+                  profileError.message?.includes('profiles_id_fkey')) {
+                console.log('Foreign key constraint error detected, waiting and retrying...');
+                
+                // Vänta 2 sekunder och försök igen
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                const { error: retryError } = await supabase.from('profiles').insert({
+                  id: data.user.id,
+                  role,
+                  email,
+                });
+                
+                if (retryError) {
+                  console.error('Retry failed:', retryError);
+                  // Fortsätt utan profile creation
+                  return { data, error: null };
+                } else {
+                  console.log('Profile created successfully on retry');
+                  return { data, error: null };
+                }
+              }
+              
               // Rensa upp användaren om profile creation misslyckas
               console.log('Attempting to clean up user after profile creation failure');
               try {
