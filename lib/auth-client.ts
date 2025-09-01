@@ -65,6 +65,8 @@ export async function signIn(email: string, password: string) {
 
 export async function signUp(email: string, password: string, role: UserRole = 'user') {
   try {
+    console.log('Starting sign up process for:', email);
+    
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -77,11 +79,20 @@ export async function signUp(email: string, password: string, role: UserRole = '
 
     if (error) {
       console.error('Supabase sign up error:', error);
+              console.error('Error details:', {
+          message: error.message,
+          status: error.status,
+          name: error.name
+        });
       return { data: null, error };
     }
 
+    console.log('Auth signup successful, user:', data?.user?.id);
+
     if (data.user && !error) {
       try {
+        console.log('Creating profile for user:', data.user.id);
+        
         // Skapa profile med role
         const { error: profileError } = await supabase.from('profiles').insert({
           id: data.user.id,
@@ -91,29 +102,71 @@ export async function signUp(email: string, password: string, role: UserRole = '
 
         if (profileError) {
           console.error('Profile creation error:', profileError);
+          console.error('Profile error details:', {
+            message: profileError.message,
+            details: profileError.details,
+            hint: profileError.hint,
+            code: profileError.code
+          });
+          
           // Rensa upp användaren om profile creation misslyckas
-          await supabase.auth.admin.deleteUser(data.user.id);
+          console.log('Attempting to clean up user after profile creation failure');
+          try {
+            await supabase.auth.admin.deleteUser(data.user.id);
+          } catch (cleanupError) {
+            console.error('Failed to cleanup user:', cleanupError);
+          }
+          
           return { 
             data: null, 
-            error: { message: 'Kunde inte skapa användarprofil. Försök igen.' } 
+            error: { 
+              message: `Kunde inte skapa användarprofil: ${profileError.message || 'Okänt fel'}` 
+            } 
           };
         }
+        
+        console.log('Profile created successfully');
       } catch (profileErr) {
         console.error('Profile creation unexpected error:', profileErr);
         return { 
           data: null, 
-          error: { message: 'Ett fel uppstod vid skapande av användarprofil.' } 
+          error: { message: `Ett fel uppstod vid skapande av användarprofil: ${profileErr}` } 
         };
       }
     }
 
+    console.log('Sign up process completed successfully');
     return { data, error: null };
   } catch (err) {
     console.error('Unexpected error in signUp:', err);
     return { 
       data: null, 
-      error: { message: 'Ett oväntat fel uppstod under registrering.' } 
+      error: { message: `Ett oväntat fel uppstod under registrering: ${err}` } 
     };
+  }
+}
+
+// Test function för att verifiera databasanslutning
+export async function testDatabaseConnection() {
+  try {
+    console.log('Testing database connection...');
+    
+    // Testa att hämta från profiles-tabellen
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('count')
+      .limit(1);
+    
+    if (error) {
+      console.error('Database connection test failed:', error);
+      return { success: false, error: error.message };
+    }
+    
+    console.log('Database connection successful');
+    return { success: true, data };
+  } catch (err) {
+    console.error('Database connection test error:', err);
+    return { success: false, error: err };
   }
 }
 

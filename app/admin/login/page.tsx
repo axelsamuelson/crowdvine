@@ -102,13 +102,17 @@ export default function AdminLogin() {
     }
 
     try {
+      console.log('Attempting to sign up:', email);
       const { data, error } = await signUp(email, password, 'admin');
       
       if (error) {
         console.error('Sign up error:', error);
+        console.error('Error object:', JSON.stringify(error, null, 2));
         
         // Specifika felmeddelanden baserat på error code
-        switch (error.message) {
+        let errorMessage = error.message || 'Okänt fel';
+        
+        switch (errorMessage) {
           case 'User already registered':
             setError('En användare med denna email-adress finns redan. Använd "Sign In" istället.');
             break;
@@ -122,7 +126,13 @@ export default function AdminLogin() {
             setError('Registrering är inaktiverat. Kontakta administratören.');
             break;
           default:
-            setError(`Registrering misslyckades: ${error.message}`);
+            if (errorMessage.includes('profiles')) {
+              setError(`Database-fel: ${errorMessage}. Kontrollera att profiles-tabellen finns.`);
+            } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+              setError('Nätverksfel. Kontrollera din internetanslutning.');
+            } else {
+              setError(`Registrering misslyckades: ${errorMessage}`);
+            }
         }
       } else if (data?.user) {
         setSuccess('Admin-konto skapat! Kontrollera din email för bekräftelse innan inloggning.');
@@ -134,7 +144,7 @@ export default function AdminLogin() {
       }
     } catch (err) {
       console.error('Unexpected error during sign up:', err);
-      setError('Ett oväntat fel uppstod. Kontrollera din internetanslutning och försök igen.');
+      setError(`Ett oväntat fel uppstod: ${err}`);
     } finally {
       setLoading(false);
     }
