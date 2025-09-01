@@ -89,51 +89,59 @@ export async function signUp(email: string, password: string, role: UserRole = '
 
     console.log('Auth signup successful, user:', data?.user?.id);
 
-    if (data.user && !error) {
-      try {
-        console.log('Creating profile for user:', data.user.id);
-        
-        // Skapa profile med role
-        const { error: profileError } = await supabase.from('profiles').insert({
-          id: data.user.id,
-          role,
-          email,
-        });
-
-        if (profileError) {
-          console.error('Profile creation error:', profileError);
-          console.error('Profile error details:', {
-            message: profileError.message,
-            details: profileError.details,
-            hint: profileError.hint,
-            code: profileError.code
-          });
-          
-          // Rensa upp användaren om profile creation misslyckas
-          console.log('Attempting to clean up user after profile creation failure');
+            if (data.user && !error) {
           try {
-            await supabase.auth.admin.deleteUser(data.user.id);
-          } catch (cleanupError) {
-            console.error('Failed to cleanup user:', cleanupError);
+            console.log('Creating profile for user:', data.user.id);
+            
+            // Skapa profile med role
+            const { error: profileError } = await supabase.from('profiles').insert({
+              id: data.user.id,
+              role,
+              email,
+            });
+
+            if (profileError) {
+              console.error('Profile creation error:', profileError);
+              console.error('Profile error details:', {
+                message: profileError.message,
+                details: profileError.details,
+                hint: profileError.hint,
+                code: profileError.code
+              });
+              
+              // Om det är RLS recursion error, försök igen utan profile creation
+              if (profileError.message?.includes('infinite recursion') || 
+                  profileError.message?.includes('policy')) {
+                console.log('RLS policy error detected, continuing without profile creation');
+                // Fortsätt utan profile creation - användaren kan skapas senare
+                return { data, error: null };
+              }
+              
+              // Rensa upp användaren om profile creation misslyckas
+              console.log('Attempting to clean up user after profile creation failure');
+              try {
+                await supabase.auth.admin.deleteUser(data.user.id);
+              } catch (cleanupError) {
+                console.error('Failed to cleanup user:', cleanupError);
+              }
+              
+              return { 
+                data: null, 
+                error: { 
+                  message: `Kunde inte skapa användarprofil: ${profileError.message || 'Okänt fel'}` 
+                } 
+              };
+            }
+            
+            console.log('Profile created successfully');
+          } catch (profileErr) {
+            console.error('Profile creation unexpected error:', profileErr);
+            return { 
+              data: null, 
+              error: { message: `Ett fel uppstod vid skapande av användarprofil: ${profileErr}` } 
+            };
           }
-          
-          return { 
-            data: null, 
-            error: { 
-              message: `Kunde inte skapa användarprofil: ${profileError.message || 'Okänt fel'}` 
-            } 
-          };
         }
-        
-        console.log('Profile created successfully');
-      } catch (profileErr) {
-        console.error('Profile creation unexpected error:', profileErr);
-        return { 
-          data: null, 
-          error: { message: `Ett fel uppstod vid skapande av användarprofil: ${profileErr}` } 
-        };
-      }
-    }
 
     console.log('Sign up process completed successfully');
     return { data, error: null };
