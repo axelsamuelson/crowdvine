@@ -9,6 +9,7 @@ import { DebugGrid } from "@/components/debug-grid"
 import { isDevelopment } from "@/lib/constants"
 import { getCollections } from "@/lib/shopify"
 import { Header } from "../components/layout/header"
+import { ConditionalHeader } from "../components/layout/header/conditional-header"
 import dynamic from "next/dynamic"
 import { V0Provider } from "../lib/context"
 import { cn } from "../lib/utils"
@@ -62,7 +63,7 @@ export default async function RootLayout({
           <CartProvider>
             <NuqsAdapter>
               <main data-vaul-drawer-wrapper="true">
-                <Header collections={collections} />
+                <ConditionalHeader collections={collections} />
                 {children}
               </main>
               {isDevelopment && <DebugGrid />}
