@@ -18,36 +18,114 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Client-side auth helpers
 export async function signIn(email: string, password: string) {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-  return { data, error };
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      console.error('Supabase sign in error:', error);
+      return { data: null, error };
+    }
+
+    if (data?.user) {
+      // Hämta user profile för att verifiera role
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profileError) {
+        console.error('Profile fetch error:', profileError);
+        return { 
+          data: null, 
+          error: { message: 'Kunde inte hämta användarprofil. Kontakta administratören.' } 
+        };
+      }
+
+      if (profile?.role !== 'admin') {
+        return { 
+          data: null, 
+          error: { message: 'Du har inte admin-behörighet. Kontakta administratören.' } 
+        };
+      }
+    }
+
+    return { data, error: null };
+  } catch (err) {
+    console.error('Unexpected error in signIn:', err);
+    return { 
+      data: null, 
+      error: { message: 'Ett oväntat fel uppstod under inloggning.' } 
+    };
+  }
 }
 
 export async function signUp(email: string, password: string, role: UserRole = 'user') {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        role,
-      },
-    },
-  });
-
-  if (data.user && !error) {
-    // Skapa profile med role
-    await supabase.from('profiles').insert({
-      id: data.user.id,
-      role,
+  try {
+    const { data, error } = await supabase.auth.signUp({
       email,
+      password,
+      options: {
+        data: {
+          role,
+        },
+      },
     });
-  }
 
-  return { data, error };
+    if (error) {
+      console.error('Supabase sign up error:', error);
+      return { data: null, error };
+    }
+
+    if (data.user && !error) {
+      try {
+        // Skapa profile med role
+        const { error: profileError } = await supabase.from('profiles').insert({
+          id: data.user.id,
+          role,
+          email,
+        });
+
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+          // Rensa upp användaren om profile creation misslyckas
+          await supabase.auth.admin.deleteUser(data.user.id);
+          return { 
+            data: null, 
+            error: { message: 'Kunde inte skapa användarprofil. Försök igen.' } 
+          };
+        }
+      } catch (profileErr) {
+        console.error('Profile creation unexpected error:', profileErr);
+        return { 
+          data: null, 
+          error: { message: 'Ett fel uppstod vid skapande av användarprofil.' } 
+        };
+      }
+    }
+
+    return { data, error: null };
+  } catch (err) {
+    console.error('Unexpected error in signUp:', err);
+    return { 
+      data: null, 
+      error: { message: 'Ett oväntat fel uppstod under registrering.' } 
+    };
+  }
 }
 
 export async function signOut() {
-  return await supabase.auth.signOut();
+  try {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error('Sign out error:', error);
+    }
+    return { error };
+  } catch (err) {
+    console.error('Unexpected error in signOut:', err);
+    return { error: { message: 'Ett oväntat fel uppstod under utloggning.' } };
+  }
 }

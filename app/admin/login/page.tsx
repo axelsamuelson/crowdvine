@@ -13,25 +13,65 @@ export default function AdminLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  const clearMessages = () => {
+    setError('');
+    setSuccess('');
+  };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    clearMessages();
+
+    // Validering
+    if (!email || !password) {
+      setError('Email och lösenord krävs');
+      setLoading(false);
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Lösenordet måste vara minst 6 tecken långt');
+      setLoading(false);
+      return;
+    }
 
     try {
-      const { error } = await signIn(email, password);
+      const { data, error } = await signIn(email, password);
       
       if (error) {
-        setError(error.message);
+        console.error('Sign in error:', error);
+        
+        // Specifika felmeddelanden baserat på error code
+        switch (error.message) {
+          case 'Invalid login credentials':
+            setError('Felaktig email eller lösenord');
+            break;
+          case 'Email not confirmed':
+            setError('Email-adressen är inte bekräftad. Kontrollera din inkorg.');
+            break;
+          case 'Too many requests':
+            setError('För många försök. Försök igen senare.');
+            break;
+          default:
+            setError(`Inloggning misslyckades: ${error.message}`);
+        }
+      } else if (data?.user) {
+        setSuccess('Inloggning lyckades! Omdirigerar...');
+        setTimeout(() => {
+          router.push('/admin');
+          router.refresh();
+        }, 1000);
       } else {
-        router.push('/admin');
-        router.refresh();
+        setError('Inloggning misslyckades - inget användarkonto returnerades');
       }
     } catch (err) {
-      setError('An unexpected error occurred');
+      console.error('Unexpected error during sign in:', err);
+      setError('Ett oväntat fel uppstod. Kontrollera din internetanslutning och försök igen.');
     } finally {
       setLoading(false);
     }
@@ -40,19 +80,61 @@ export default function AdminLogin() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    clearMessages();
+
+    // Validering
+    if (!email || !password) {
+      setError('Email och lösenord krävs');
+      setLoading(false);
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Lösenordet måste vara minst 6 tecken långt');
+      setLoading(false);
+      return;
+    }
+
+    if (!email.includes('@')) {
+      setError('Ange en giltig email-adress');
+      setLoading(false);
+      return;
+    }
 
     try {
-      const { error } = await signUp(email, password, 'admin');
+      const { data, error } = await signUp(email, password, 'admin');
       
       if (error) {
-        setError(error.message);
+        console.error('Sign up error:', error);
+        
+        // Specifika felmeddelanden baserat på error code
+        switch (error.message) {
+          case 'User already registered':
+            setError('En användare med denna email-adress finns redan. Använd "Sign In" istället.');
+            break;
+          case 'Password should be at least 6 characters':
+            setError('Lösenordet måste vara minst 6 tecken långt');
+            break;
+          case 'Unable to validate email address: invalid format':
+            setError('Ange en giltig email-adress');
+            break;
+          case 'Signup is disabled':
+            setError('Registrering är inaktiverat. Kontakta administratören.');
+            break;
+          default:
+            setError(`Registrering misslyckades: ${error.message}`);
+        }
+      } else if (data?.user) {
+        setSuccess('Admin-konto skapat! Kontrollera din email för bekräftelse innan inloggning.');
+        // Rensa formuläret
+        setEmail('');
+        setPassword('');
       } else {
-        router.push('/admin');
-        router.refresh();
+        setError('Registrering misslyckades - inget användarkonto returnerades');
       }
     } catch (err) {
-      setError('An unexpected error occurred');
+      console.error('Unexpected error during sign up:', err);
+      setError('Ett oväntat fel uppstod. Kontrollera din internetanslutning och försök igen.');
     } finally {
       setLoading(false);
     }
@@ -70,7 +152,7 @@ export default function AdminLogin() {
           </p>
         </div>
 
-        <Tabs defaultValue="signin" className="w-full">
+        <Tabs defaultValue="signin" className="w-full" onValueChange={clearMessages}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="signin">Sign In</TabsTrigger>
             <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -92,6 +174,12 @@ export default function AdminLogin() {
                     </Alert>
                   )}
 
+                  {success && (
+                    <Alert>
+                      <AlertDescription>{success}</AlertDescription>
+                    </Alert>
+                  )}
+
                   <div>
                     <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                       Email address
@@ -105,6 +193,7 @@ export default function AdminLogin() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="mt-1"
+                      disabled={loading}
                     />
                   </div>
 
@@ -121,6 +210,7 @@ export default function AdminLogin() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="mt-1"
+                      disabled={loading}
                     />
                   </div>
 
@@ -152,6 +242,12 @@ export default function AdminLogin() {
                     </Alert>
                   )}
 
+                  {success && (
+                    <Alert>
+                      <AlertDescription>{success}</AlertDescription>
+                    </Alert>
+                  )}
+
                   <div>
                     <label htmlFor="email-signup" className="block text-sm font-medium text-gray-700">
                       Email address
@@ -165,12 +261,13 @@ export default function AdminLogin() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="mt-1"
+                      disabled={loading}
                     />
                   </div>
 
                   <div>
                     <label htmlFor="password-signup" className="block text-sm font-medium text-gray-700">
-                      Password
+                      Password (minst 6 tecken)
                     </label>
                     <Input
                       id="password-signup"
@@ -181,6 +278,7 @@ export default function AdminLogin() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="mt-1"
+                      disabled={loading}
                     />
                   </div>
 
