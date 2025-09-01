@@ -77,15 +77,82 @@ export async function signUp(email: string, password: string, role: UserRole = '
       },
     });
 
-    if (error) {
-      console.error('Supabase sign up error:', error);
-              console.error('Error details:', {
-          message: error.message,
-          status: error.status,
-          name: error.name
-        });
-      return { data: null, error };
-    }
+            if (error) {
+          console.error('Supabase sign up error:', error);
+          console.error('Error details:', {
+            message: error.message,
+            status: error.status,
+            name: error.name
+          });
+          
+          // Hantera specifika felmeddelanden
+          let errorMessage = error.message || 'Okänt fel';
+          
+          switch (errorMessage) {
+            case 'User already registered':
+              // Kontrollera om användaren är bekräftad
+              try {
+                const { data: existingUser } = await supabase.auth.signInWithPassword({
+                  email,
+                  password: 'dummy-password-for-check' // Vi använder bara detta för att kolla status
+                });
+                
+                if (existingUser?.user?.email_confirmed_at) {
+                  return {
+                    data: null,
+                    error: { message: 'Ett konto med denna email finns redan och är bekräftat. Använd "Sign In" istället.' }
+                  };
+                } else {
+                  return {
+                    data: null,
+                    error: { message: 'Ett konto med denna email finns redan men är inte bekräftat. Kontrollera din inkorg eller begär nytt bekräftelsemail.' }
+                  };
+                }
+              } catch (checkError) {
+                // Om vi inte kan logga in, är användaren troligen inte bekräftad
+                return {
+                  data: null,
+                  error: { message: 'Ett konto med denna email finns redan men är inte bekräftat. Kontrollera din inkorg eller begär nytt bekräftelsemail.' }
+                };
+              }
+              
+            case 'Password should be at least 6 characters':
+              return {
+                data: null,
+                error: { message: 'Lösenordet måste vara minst 6 tecken långt' }
+              };
+              
+            case 'Unable to validate email address: invalid format':
+              return {
+                data: null,
+                error: { message: 'Ange en giltig email-adress' }
+              };
+              
+            case 'Signup is disabled':
+              return {
+                data: null,
+                error: { message: 'Registrering är inaktiverat. Kontakta administratören.' }
+              };
+              
+            default:
+              if (errorMessage.includes('profiles')) {
+                return {
+                  data: null,
+                  error: { message: `Database-fel: ${errorMessage}. Kontrollera att profiles-tabellen finns.` }
+                };
+              } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+                return {
+                  data: null,
+                  error: { message: 'Nätverksfel. Kontrollera din internetanslutning.' }
+                };
+              } else {
+                return {
+                  data: null,
+                  error: { message: `Registrering misslyckades: ${errorMessage}` }
+                };
+              }
+          }
+        }
 
     console.log('Auth signup successful, user:', data?.user?.id);
 
@@ -212,5 +279,28 @@ export async function signOut() {
   } catch (err) {
     console.error('Unexpected error in signOut:', err);
     return { error: { message: 'Ett oväntat fel uppstod under utloggning.' } };
+  }
+}
+
+// Funktion för att skicka om bekräftelsemail
+export async function resendConfirmationEmail(email: string) {
+  try {
+    console.log('Attempting to resend confirmation email to:', email);
+    
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+    });
+    
+    if (error) {
+      console.error('Resend confirmation error:', error);
+      return { error };
+    }
+    
+    console.log('Confirmation email resent successfully');
+    return { error: null };
+  } catch (err) {
+    console.error('Unexpected error in resendConfirmationEmail:', err);
+    return { error: { message: 'Ett oväntat fel uppstod vid omföljning av bekräftelsemail.' } };
   }
 }

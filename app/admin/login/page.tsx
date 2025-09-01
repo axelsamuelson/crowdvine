@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn, signUp } from '@/lib/auth-client';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { signIn, signUp, resendConfirmationEmail } from '@/lib/auth-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,11 +17,33 @@ export default function AdminLogin() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showResendButton, setShowResendButton] = useState(false);
   const router = useRouter();
 
   const clearMessages = () => {
     setError('');
     setSuccess('');
+    setShowResendButton(false);
+  };
+
+  const handleResendConfirmation = async () => {
+    setLoading(true);
+    clearMessages();
+
+    try {
+      const { error } = await resendConfirmationEmail(email);
+      
+      if (error) {
+        setError(`Kunde inte skicka om bekräftelsemail: ${error.message}`);
+      } else {
+        setSuccess('Bekräftelsemail skickat! Kontrollera din inkorg.');
+        setShowResendButton(false);
+      }
+    } catch (err) {
+      setError('Ett oväntat fel uppstod vid omföljning av bekräftelsemail.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -53,6 +77,7 @@ export default function AdminLogin() {
             break;
           case 'Email not confirmed':
             setError('Email-adressen är inte bekräftad. Kontrollera din inkorg.');
+            setShowResendButton(true);
             break;
           case 'Too many requests':
             setError('För många försök. Försök igen senare.');
@@ -115,6 +140,13 @@ export default function AdminLogin() {
         switch (errorMessage) {
           case 'User already registered':
             setError('En användare med denna email-adress finns redan. Använd "Sign In" istället.');
+            break;
+          case 'Ett konto med denna email finns redan och är bekräftat. Använd "Sign In" istället.':
+            setError(errorMessage);
+            break;
+          case 'Ett konto med denna email finns redan men är inte bekräftat. Kontrollera din inkorg eller begär nytt bekräftelsemail.':
+            setError(errorMessage);
+            setShowResendButton(true);
             break;
           case 'Password should be at least 6 characters':
             setError('Lösenordet måste vara minst 6 tecken långt');
@@ -231,6 +263,18 @@ export default function AdminLogin() {
                   >
                     {loading ? 'Signing in...' : 'Sign in'}
                   </Button>
+
+                  {showResendButton && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={handleResendConfirmation}
+                      disabled={loading}
+                    >
+                      {loading ? 'Skickar...' : 'Skicka om bekräftelsemail'}
+                    </Button>
+                  )}
                 </form>
               </CardContent>
             </Card>
@@ -299,6 +343,18 @@ export default function AdminLogin() {
                   >
                     {loading ? 'Creating account...' : 'Create Admin Account'}
                   </Button>
+
+                  {showResendButton && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={handleResendConfirmation}
+                      disabled={loading}
+                    >
+                      {loading ? 'Skickar...' : 'Skicka om bekräftelsemail'}
+                    </Button>
+                  )}
                 </form>
               </CardContent>
             </Card>
