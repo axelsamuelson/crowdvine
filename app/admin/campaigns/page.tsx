@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
-const statusColors = {
+const statusColors: Record<string, string> = {
   draft: 'bg-gray-100 text-gray-800',
   live: 'bg-green-100 text-green-800',
   triggered: 'bg-blue-100 text-blue-800',

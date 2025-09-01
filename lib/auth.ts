@@ -21,8 +21,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export async function getCurrentUser(): Promise<User | null> {
   const cookieStore = await cookies();
   const supabaseServer = createClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      get: (name: string) => cookieStore.get(name)?.value,
+    global: {
+      headers: {
+        cookie: cookieStore.toString(),
+      },
     },
   });
 

@@ -1,15 +1,16 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { searchParams } = new URL(request.url);
   const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 200;
   
+  const { id } = await params;
   const sb = await supabaseServer();
   const { data, error } = await sb
     .from('campaign_items')
     .select('id, handle, wine_name, vintage, label_image_path, price_t500_cents, price_t100_cents, campaign_id')
-    .eq('campaign_id', params.id)
+    .eq('campaign_id', id)
     .limit(limit);
   if (error) return NextResponse.json([], { status: 200 });
 

@@ -131,7 +131,6 @@ async function seed() {
     console.log('\n📋 Created:');
     console.log(`- Producer: ${producer.name}`);
     console.log(`- Zone: ${zone.name}`);
-    console.log(`- Membership: ${membership.name}`);
     console.log(`- Campaign: ${campaign.title}`);
     console.log(`- Wines: ${wines.length} items`);
     console.log('\n🔗 Test URLs:');
