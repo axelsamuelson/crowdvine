@@ -77,7 +77,7 @@ export async function signUp(email: string, password: string, role: UserRole = '
       },
     });
 
-            if (error) {
+                    if (error) {
           console.error('Supabase sign up error:', error);
           console.error('Error details:', {
             message: error.message,
@@ -88,34 +88,39 @@ export async function signUp(email: string, password: string, role: UserRole = '
           // Hantera specifika felmeddelanden
           let errorMessage = error.message || 'Okänt fel';
           
-          switch (errorMessage) {
-            case 'User already registered':
-              // Kontrollera om användaren är bekräftad
-              try {
-                const { data: existingUser } = await supabase.auth.signInWithPassword({
-                  email,
-                  password: 'dummy-password-for-check' // Vi använder bara detta för att kolla status
-                });
-                
-                if (existingUser?.user?.email_confirmed_at) {
-                  return {
-                    data: null,
-                    error: { message: 'Ett konto med denna email finns redan och är bekräftat. Använd "Sign In" istället.' }
-                  };
-                } else {
-                  return {
-                    data: null,
-                    error: { message: 'Ett konto med denna email finns redan men är inte bekräftat. Kontrollera din inkorg eller begär nytt bekräftelsemail.' }
-                  };
-                }
-              } catch (checkError) {
-                // Om vi inte kan logga in, är användaren troligen inte bekräftad
+          // Kontrollera om det är ett email-redan-existerar fel
+          if (errorMessage.includes('already registered') || 
+              errorMessage.includes('already exists') ||
+              errorMessage.includes('duplicate key')) {
+            
+            // Kontrollera om användaren är bekräftad genom att försöka logga in
+            try {
+              const { data: existingUser } = await supabase.auth.signInWithPassword({
+                email,
+                password: 'dummy-password-for-check' // Vi använder bara detta för att kolla status
+              });
+              
+              if (existingUser?.user?.email_confirmed_at) {
+                return {
+                  data: null,
+                  error: { message: 'Ett konto med denna email finns redan och är bekräftat. Använd "Sign In" istället.' }
+                };
+              } else {
                 return {
                   data: null,
                   error: { message: 'Ett konto med denna email finns redan men är inte bekräftat. Kontrollera din inkorg eller begär nytt bekräftelsemail.' }
                 };
               }
-              
+            } catch (checkError) {
+              // Om vi inte kan logga in, är användaren troligen inte bekräftad
+              return {
+                data: null,
+                error: { message: 'Ett konto med denna email finns redan men är inte bekräftat. Kontrollera din inkorg eller begär nytt bekräftelsemail.' }
+              };
+            }
+          }
+          
+          switch (errorMessage) {
             case 'Password should be at least 6 characters':
               return {
                 data: null,
@@ -175,6 +180,58 @@ export async function signUp(email: string, password: string, role: UserRole = '
                 hint: profileError.hint,
                 code: profileError.code
               });
+              
+              // Om det är duplicate key error (email redan finns), kontrollera status
+              if (profileError.message?.includes('duplicate key') && 
+                  profileError.message?.includes('profiles_email_key')) {
+                console.log('Duplicate email detected in profiles table, checking user status...');
+                
+                // Kontrollera om användaren är bekräftad
+                try {
+                  const { data: existingUser } = await supabase.auth.signInWithPassword({
+                    email,
+                    password: 'dummy-password-for-check'
+                  });
+                  
+                  if (existingUser?.user?.email_confirmed_at) {
+                    // Rensa upp den nya användaren och returnera fel
+                    try {
+                      await supabase.auth.admin.deleteUser(data.user.id);
+                    } catch (cleanupError) {
+                      console.error('Failed to cleanup user:', cleanupError);
+                    }
+                    
+                    return {
+                      data: null,
+                      error: { message: 'Ett konto med denna email finns redan och är bekräftat. Använd "Sign In" istället.' }
+                    };
+                  } else {
+                    // Rensa upp den nya användaren och returnera fel
+                    try {
+                      await supabase.auth.admin.deleteUser(data.user.id);
+                    } catch (cleanupError) {
+                      console.error('Failed to cleanup user:', cleanupError);
+                    }
+                    
+                    return {
+                      data: null,
+                      error: { message: 'Ett konto med denna email finns redan men är inte bekräftat. Kontrollera din inkorg eller begär nytt bekräftelsemail.' }
+                    };
+                  }
+                } catch (checkError) {
+                  // Om vi inte kan logga in, är användaren troligen inte bekräftad
+                  try {
+                    await supabase.auth.admin.deleteUser(data.user.id);
+                  } catch (cleanupError) {
+                    console.error('Failed to cleanup user:', cleanupError);
+                  }
+                  
+                  return {
+                    data: null,
+                    error: { message: 'Ett konto med denna email finns redan men är inte bekräftat. Kontrollera din inkorg eller begär nytt bekräftelsemail.' }
+                  };
+                }
+              }
               
               // Om det är RLS recursion error, försök igen utan profile creation
               if (profileError.message?.includes('infinite recursion') || 
