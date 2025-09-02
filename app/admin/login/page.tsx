@@ -39,14 +39,28 @@ export default function AdminLogin() {
       if (result?.error) {
         console.error('Admin login error:', result.error);
         setError(result.error);
+      } else if (result?.success) {
+        console.log('Admin login successful');
+        setSuccess('Inloggning lyckades! Omdirigerar...');
+        // Vänta lite och sedan omdirigera manuellt
+        setTimeout(() => {
+          window.location.href = '/admin';
+        }, 1000);
       }
-      // Om ingen error returnerades, redirect hanteras automatiskt av server action
     } catch (err: any) {
+      console.error('Login error details:', err);
+      
       // NEXT_REDIRECT är normalt för server actions - det betyder att redirect fungerade
       if (err?.digest?.includes('NEXT_REDIRECT')) {
         console.log('Admin login redirect successful');
         setSuccess('Inloggning lyckades! Omdirigerar...');
-        // Redirect hanteras automatiskt av server action
+        // Vänta lite och sedan omdirigera manuellt
+        setTimeout(() => {
+          window.location.href = '/admin';
+        }, 1000);
+      } else if (err?.message) {
+        console.error('Login error with message:', err.message);
+        setError(err.message);
       } else {
         console.error('Unexpected error during sign in:', err);
         setError('Ett oväntat fel uppstod. Kontrollera din internetanslutning och försök igen.');

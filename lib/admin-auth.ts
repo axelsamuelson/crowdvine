@@ -60,12 +60,12 @@ export async function adminLogin(email: string, password: string) {
       return { error: 'Du har inte admin-behörighet' };
     }
 
-    console.log('Admin role verified, redirecting to admin');
+    console.log('Admin role verified');
 
-    // Omdirigera till admin-sidan
-    redirect('/admin');
+    // Returnera success istället för att använda redirect
+    return { success: true };
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Unexpected error in admin login:', error);
     return { error: 'Ett oväntat fel uppstod' };
   }
