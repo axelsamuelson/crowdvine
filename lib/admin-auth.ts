@@ -100,6 +100,56 @@ export async function createAdminAccount(email: string, password: string) {
 
     if (authError) {
       console.error('Auth creation error:', authError);
+      
+      // Om användaren redan finns, försök att skapa profil istället
+      if (authError.message.includes('already been registered')) {
+        console.log('User already exists, attempting to create profile...');
+        
+        // Hitta den befintliga användaren
+        const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+        const existingUser = existingUsers.users.find(u => u.email === email);
+        
+        if (existingUser) {
+          // Kontrollera om profilen redan finns
+          const { data: existingProfile } = await supabaseAdmin
+            .from('profiles')
+            .select('*')
+            .eq('id', existingUser.id)
+            .single();
+          
+          if (!existingProfile) {
+            // Skapa profil för befintlig användare
+            const { error: profileError } = await supabaseAdmin
+              .from('profiles')
+              .insert({
+                id: existingUser.id,
+                email: existingUser.email,
+                role: 'admin',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              });
+
+            if (profileError) {
+              console.error('Profile creation error for existing user:', profileError);
+              return { error: `Kunde inte skapa profil för befintlig användare: ${profileError.message}` };
+            }
+
+            console.log('Profile created for existing user');
+            return {
+              success: true,
+              message: 'Profil skapad för befintlig användare! Du kan nu logga in.',
+              user: {
+                id: existingUser.id,
+                email: existingUser.email,
+                role: 'admin'
+              }
+            };
+          } else {
+            return { error: 'Användare finns redan och har en profil. Logga in istället.' };
+          }
+        }
+      }
+      
       return { error: `Kunde inte skapa användare: ${authError.message}` };
     }
 
