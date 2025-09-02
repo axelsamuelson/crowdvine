@@ -90,9 +90,19 @@ async function getOrCreateCartId(): Promise<string> {
     });
     const cart = await response.json();
     cartId = cart.id;
+    
+    // Set the new cart ID in cookie
+    if (cartId) {
+      cookieStore.set('cartId', cartId, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 30, // 30 days
+      });
+    }
   }
 
-  return cartId;
+  return cartId || '';
 }
 
 // Add item server action: returns adapted Cart
@@ -112,7 +122,9 @@ export async function addItem(variantId: string | undefined): Promise<Cart | nul
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to add item: ${response.status}`);
+      const errorData = await response.json();
+      console.error('Cart add error:', errorData);
+      throw new Error(`Failed to add item: ${response.status} - ${errorData.error || 'Unknown error'}`);
     }
 
     const cartData = await response.json();

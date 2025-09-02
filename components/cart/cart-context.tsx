@@ -203,9 +203,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         updateOptimisticCart({ type: 'ADD_ITEM', payload: { variant, product, previousQuantity } });
       });
       const fresh = await CartActions.addItem(variant.id);
-      if (fresh) setCart(fresh);
+      if (fresh) {
+        setCart(fresh);
+      } else {
+        // If add failed, revert optimistic update
+        setCart(cart);
+      }
     },
-    [updateOptimisticCart, optimisticCart]
+    [updateOptimisticCart, optimisticCart, cart]
   );
 
   const value = useMemo<UseCartReturn>(

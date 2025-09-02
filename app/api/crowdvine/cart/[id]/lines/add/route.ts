@@ -22,7 +22,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .single();
 
   if (cartError || !cart) {
-    return NextResponse.json({ error: 'Cart not found' }, { status: 404 });
+    return NextResponse.json({ error: 'Cart not found or does not belong to session' }, { status: 404 });
   }
 
   const addedItems = [];

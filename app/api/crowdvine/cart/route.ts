@@ -11,13 +11,6 @@ export async function POST(req: Request) {
   
   if (!sessionId) {
     sessionId = crypto.randomUUID();
-    // Set cookie for 30 days
-    cookieStore.set('cart_session_id', sessionId, { 
-      maxAge: 30 * 24 * 60 * 60,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax'
-    });
   }
 
   // Create new cart
@@ -31,7 +24,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json(cart);
+  // Set session cookie
+  const response = NextResponse.json(cart);
+  response.cookies.set('cart_session_id', sessionId, { 
+    maxAge: 30 * 24 * 60 * 60,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax'
+  });
+
+  return response;
 }
 
 export async function GET(req: NextRequest) {
