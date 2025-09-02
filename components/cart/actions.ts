@@ -121,6 +121,7 @@ export async function addItem(variantId: string | undefined): Promise<Cart | nul
     }
 
     const cart = await response.json();
+    console.log('Cart created:', cart);
     
     // Now add the item to the cart
     const addResponse = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart/${cart.id}/lines/add`, {
@@ -140,6 +141,7 @@ export async function addItem(variantId: string | undefined): Promise<Cart | nul
     }
 
     const cartData = await addResponse.json();
+    console.log('Cart data after add:', cartData);
     revalidateTag(TAGS.cart);
     return adaptCart(cartData);
   } catch (error) {
