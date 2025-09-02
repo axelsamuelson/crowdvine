@@ -40,12 +40,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   for (const line of lines ?? []) {
     const { merchandiseId: wineId, quantity = 1 } = line;
 
+    // Extract actual wine ID from variant ID (remove -default suffix)
+    const actualWineId = wineId.replace('-default', '');
+
     // Check if item already exists in cart
     const { data: existingItem } = await sb
       .from('cart_items')
       .select('id, quantity')
       .eq('cart_id', cartId)
-      .eq('wine_id', wineId)
+      .eq('wine_id', actualWineId)
       .single();
 
     if (existingItem) {
@@ -82,7 +85,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         .from('cart_items')
         .insert({
           cart_id: cartId,
-          wine_id: wineId,
+          wine_id: actualWineId,
           quantity: quantity
         })
         .select(`

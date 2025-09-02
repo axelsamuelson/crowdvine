@@ -109,21 +109,18 @@ async function getOrCreateCartId(): Promise<string> {
 export async function addItem(variantId: string | undefined): Promise<Cart | null> {
   if (!variantId) return null;
   
-  // Extract the actual wine ID from variantId (remove -default suffix)
-  const wineId = variantId.replace('-default', '');
-  
   try {
     // Get or create cart ID
     const cartId = await getOrCreateCartId();
     
-    // Now add the item to the cart
+    // Now add the item to the cart (API will handle variant ID conversion)
     const addResponse = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart/${cartId}/lines/add`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        lines: [{ merchandiseId: wineId, quantity: 1 }]
+        lines: [{ merchandiseId: variantId, quantity: 1 }]
       }),
     });
 
