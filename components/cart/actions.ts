@@ -3,12 +3,6 @@
 import { TAGS } from '@/lib/constants';
 import { revalidateTag } from 'next/cache';
 import { cookies } from 'next/headers';
-import {
-  createCart,
-  addCartLines,
-  updateCartLines,
-  removeCartLines,
-} from '@/lib/shopify';
 import type { Cart, CartItem } from '@/lib/shopify/types';
 
 // Local adapter utilities to return FE Cart (avoid cyclic deps)
@@ -18,29 +12,40 @@ function adaptCartLine(line: any): CartItem {
     quantity: line.quantity,
     cost: {
       totalAmount: {
-        amount: (parseFloat(line.price?.amount || '0') * line.quantity).toString(),
-        currencyCode: line.price?.currencyCode || 'SEK',
+        amount: line.cost?.totalAmount?.amount || '0',
+        currencyCode: line.cost?.totalAmount?.currencyCode || 'SEK',
       },
     },
     merchandise: {
-      id: line.merchandiseId,
-      title: line.title || 'Wine',
+      id: line.merchandise?.id || line.wine_id,
+      title: line.merchandise?.title || line.wines?.wine_name || 'Wine',
       selectedOptions: [],
       product: {
-        id: line.merchandiseId,
-        title: line.title || 'Wine',
-        handle: line.handle || '',
+        id: line.merchandise?.id || line.wine_id,
+        title: line.merchandise?.title || line.wines?.wine_name || 'Wine',
+        handle: line.merchandise?.id || line.wine_id,
         categoryId: undefined,
         description: '',
         descriptionHtml: '',
-        featuredImage: { url: '', altText: '', height: 0, width: 0 },
+        featuredImage: { 
+          url: line.merchandise?.product?.featuredImage?.url || line.wines?.label_image_path || '', 
+          altText: line.merchandise?.product?.featuredImage?.altText || line.wines?.wine_name || '',
+          height: 600,
+          width: 600
+        },
         currencyCode: 'SEK',
         priceRange: {
-          minVariantPrice: { amount: line.price?.amount || '0', currencyCode: 'SEK' },
-          maxVariantPrice: { amount: line.price?.amount || '0', currencyCode: 'SEK' },
+          minVariantPrice: { 
+            amount: line.merchandise?.product?.priceRange?.minVariantPrice?.amount || '0', 
+            currencyCode: 'SEK' 
+          },
+          maxVariantPrice: { 
+            amount: line.merchandise?.product?.priceRange?.maxVariantPrice?.amount || '0', 
+            currencyCode: 'SEK' 
+          },
         },
         compareAtPrice: undefined,
-        seo: { title: line.title || 'Wine', description: '' },
+        seo: { title: line.merchandise?.title || line.wines?.wine_name || 'Wine', description: '' },
         options: [],
         tags: [],
         variants: [],
@@ -54,33 +59,39 @@ function adaptCartLine(line: any): CartItem {
 function adaptCart(crowdvineCart: any): Cart | null {
   if (!crowdvineCart) return null;
 
-  const lines = (crowdvineCart.lines || []).map((line: any) => adaptCartLine(line));
+  const lines = (crowdvineCart.lines || []).map(adaptCartLine);
 
   return {
     id: crowdvineCart.id,
-    checkoutUrl: crowdvineCart.checkoutUrl,
+    checkoutUrl: crowdvineCart.checkoutUrl || '/checkout',
     cost: {
-      subtotalAmount: { amount: '0', currencyCode: 'SEK' },
-      totalAmount: { amount: '0', currencyCode: 'SEK' },
+      subtotalAmount: { 
+        amount: crowdvineCart.cost?.totalAmount?.amount || '0', 
+        currencyCode: 'SEK' 
+      },
+      totalAmount: { 
+        amount: crowdvineCart.cost?.totalAmount?.amount || '0', 
+        currencyCode: 'SEK' 
+      },
       totalTaxAmount: { amount: '0', currencyCode: 'SEK' },
     },
-    totalQuantity: lines.reduce((sum: number, line: CartItem) => sum + line.quantity, 0),
+    totalQuantity: crowdvineCart.totalQuantity || 0,
     lines,
-  } satisfies Cart;
+  };
 }
 
 async function getOrCreateCartId(): Promise<string> {
-  let cartId = (await cookies()).get('cartId')?.value;
+  const cookieStore = await cookies();
+  let cartId = cookieStore.get('cartId')?.value;
+
   if (!cartId) {
-    const newCart = await createCart();
-    cartId = newCart.id;
-    (await cookies()).set('cartId', cartId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 30,
+    const response = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart`, {
+      method: 'POST',
     });
+    const cart = await response.json();
+    cartId = cart.id;
   }
+
   return cartId;
 }
 
@@ -89,20 +100,24 @@ export async function addItem(variantId: string | undefined): Promise<Cart | nul
   if (!variantId) return null;
   try {
     const cartId = await getOrCreateCartId();
-    await addCartLines({ cartId, lines: [{ merchandiseId: variantId, quantity: 1 }] });
-    revalidateTag(TAGS.cart);
-    // For now, return a simple cart structure since we don't have getCart
-    return {
-      id: cartId,
-      checkoutUrl: '/checkout',
-      cost: {
-        subtotalAmount: { amount: '0', currencyCode: 'SEK' },
-        totalAmount: { amount: '0', currencyCode: 'SEK' },
-        totalTaxAmount: { amount: '0', currencyCode: 'SEK' },
+    
+    const response = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart/${cartId}/lines/add`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
-      totalQuantity: 1,
-      lines: [],
-    };
+      body: JSON.stringify({
+        lines: [{ merchandiseId: variantId, quantity: 1 }]
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to add item: ${response.status}`);
+    }
+
+    const cartData = await response.json();
+    revalidateTag(TAGS.cart);
+    return adaptCart(cartData);
   } catch (error) {
     console.error('Error adding item to cart:', error);
     return null;
@@ -112,28 +127,38 @@ export async function addItem(variantId: string | undefined): Promise<Cart | nul
 // Update item server action (quantity 0 removes): returns adapted Cart
 export async function updateItem({ lineId, quantity }: { lineId: string; quantity: number }): Promise<Cart | null> {
   try {
-    const cartId = (await cookies()).get('cartId')?.value;
-    if (!cartId) return null;
-
+    const cartId = await getOrCreateCartId();
+    
     if (quantity === 0) {
-      await removeCartLines({ cartId, lineIds: [lineId] });
+      // Remove item
+      const response = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart/${cartId}/lines/remove`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          lineIds: [lineId]
+        }),
+      });
     } else {
-      await updateCartLines({ cartId, lines: [{ id: lineId, quantity }] });
+      // Update quantity
+      const response = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart/${cartId}/lines/update`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          lines: [{ id: lineId, quantity }]
+        }),
+      });
     }
 
     revalidateTag(TAGS.cart);
-    // For now, return a simple cart structure
-    return {
-      id: cartId,
-      checkoutUrl: '/checkout',
-      cost: {
-        subtotalAmount: { amount: '0', currencyCode: 'SEK' },
-        totalAmount: { amount: '0', currencyCode: 'SEK' },
-        totalTaxAmount: { amount: '0', currencyCode: 'SEK' },
-      },
-      totalQuantity: 0,
-      lines: [],
-    };
+    
+    // Get updated cart
+    const cartResponse = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart`);
+    const cartData = await cartResponse.json();
+    return adaptCart(cartData);
   } catch (error) {
     console.error('Error updating item:', error);
     return null;
@@ -142,16 +167,11 @@ export async function updateItem({ lineId, quantity }: { lineId: string; quantit
 
 export async function createCartAndSetCookie() {
   try {
-    const newCart = await createCart();
-
-    (await cookies()).set('cartId', newCart.id, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 30, // 30 days
+    const response = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart`, {
+      method: 'POST',
     });
-
-    return newCart;
+    const cart = await response.json();
+    return cart;
   } catch (error) {
     console.error('Error creating cart:', error);
     return null;
@@ -160,24 +180,14 @@ export async function createCartAndSetCookie() {
 
 export async function getCart(): Promise<Cart | null> {
   try {
-    const cartId = (await cookies()).get('cartId')?.value;
-
-    if (!cartId) {
+    const response = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart`);
+    
+    if (!response.ok) {
       return null;
     }
     
-    // For now, return a simple cart structure since we don't have getCart
-    return {
-      id: cartId,
-      checkoutUrl: '/checkout',
-      cost: {
-        subtotalAmount: { amount: '0', currencyCode: 'SEK' },
-        totalAmount: { amount: '0', currencyCode: 'SEK' },
-        totalTaxAmount: { amount: '0', currencyCode: 'SEK' },
-      },
-      totalQuantity: 0,
-      lines: [],
-    };
+    const cartData = await response.json();
+    return adaptCart(cartData);
   } catch (error) {
     console.error('Error fetching cart:', error);
     return null;
