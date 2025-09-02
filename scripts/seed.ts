@@ -122,7 +122,7 @@ async function seed() {
         color: 'red',
         label_image_path: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop',
         base_price_cents: 14800, // 148 SEK
-        campaign_id: campaign.id
+        producer_id: producer.id
       },
       {
         id: randomUUID(),
@@ -133,7 +133,7 @@ async function seed() {
         color: 'white',
         label_image_path: 'https://images.unsplash.com/photo-1553361371-9b22f78e8b5d?w=600&h=600&fit=crop',
         base_price_cents: 17800, // 178 SEK
-        campaign_id: campaign.id
+        producer_id: producer.id
       },
       {
         id: randomUUID(),
@@ -144,7 +144,7 @@ async function seed() {
         color: 'rose',
         label_image_path: 'https://images.unsplash.com/photo-1553361371-9b22f78e8b5d?w=600&h=600&fit=crop',
         base_price_cents: 11800, // 118 SEK
-        campaign_id: campaign.id
+        producer_id: producer.id
       }
     ];
 

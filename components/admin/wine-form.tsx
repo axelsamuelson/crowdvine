@@ -81,8 +81,6 @@ export default function WineForm({ wine, producers }: WineFormProps) {
       const wineData = {
         ...formData,
         label_image_path: imagePaths.length > 0 ? imagePaths[0] : formData.label_image_path,
-        // Add additional images field if needed
-        additional_images: imagePaths.slice(1),
       };
 
       if (wine) {
