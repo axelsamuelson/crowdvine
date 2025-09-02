@@ -21,6 +21,20 @@ export interface CreatePalletZoneData {
   zone_type: 'delivery' | 'pickup';
 }
 
+export async function getDeliveryZones() {
+  await requireAuth('admin');
+  const sb = await supabaseServer();
+  
+  const { data, error } = await sb
+    .from('pallet_zones')
+    .select('*')
+    .eq('zone_type', 'delivery')
+    .order('name');
+    
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 export async function getPickupZones() {
   await requireAuth('admin');
   const sb = await supabaseServer();

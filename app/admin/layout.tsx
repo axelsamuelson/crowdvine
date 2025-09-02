@@ -41,6 +41,9 @@ export default async function AdminLayout({
               <Link href="/admin/zones" className="text-gray-700 hover:text-gray-900">
                 Zones
               </Link>
+              <Link href="/admin/pallets" className="text-gray-700 hover:text-gray-900">
+                Pallets
+              </Link>
               <Link href="/admin/bookings" className="text-gray-700 hover:text-gray-900">
                 Bookings
               </Link>
