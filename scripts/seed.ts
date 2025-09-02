@@ -46,7 +46,8 @@ async function seed() {
       name: 'Béziers 500 km',
       radius_km: 500,
       center_lat: 43.3444,
-      center_lon: 3.2169
+      center_lon: 3.2169,
+      zone_type: 'delivery'
     };
 
     const { error: zoneError } = await supabase
@@ -58,6 +59,38 @@ async function seed() {
       return;
     }
     console.log('✅ Zone created:', zone.name);
+
+    // 3. Create pickup zone
+    const pickupZone = {
+      id: randomUUID(),
+      name: 'Béziers Pickup Point',
+      radius_km: 50,
+      center_lat: 43.3444,
+      center_lon: 3.2169,
+      zone_type: 'pickup'
+    };
+
+    const { error: pickupZoneError } = await supabase
+      .from('pallet_zones')
+      .insert(pickupZone);
+
+    if (pickupZoneError) {
+      console.error('❌ Pickup zone error:', pickupZoneError);
+      return;
+    }
+    console.log('✅ Pickup zone created:', pickupZone.name);
+
+    // Update producer with pickup zone
+    const { error: updateProducerError } = await supabase
+      .from('producers')
+      .update({ pickup_zone_id: pickupZone.id })
+      .eq('id', producer.id);
+
+    if (updateProducerError) {
+      console.error('❌ Producer update error:', updateProducerError);
+      return;
+    }
+    console.log('✅ Producer updated with pickup zone');
 
     // 4. Create campaign
     const campaign = {
@@ -130,7 +163,8 @@ async function seed() {
     console.log('🎉 Seed completed successfully!');
     console.log('\n📋 Created:');
     console.log(`- Producer: ${producer.name}`);
-    console.log(`- Zone: ${zone.name}`);
+    console.log(`- Delivery Zone: ${zone.name}`);
+    console.log(`- Pickup Zone: ${pickupZone.name}`);
     console.log(`- Campaign: ${campaign.title}`);
     console.log(`- Wines: ${wines.length} items`);
     console.log('\n🔗 Test URLs:');

@@ -1,9 +1,9 @@
-import { getCampaigns } from '@/lib/actions/campaigns';
+import { getProducers } from '@/lib/actions/producers';
 import WineForm from '@/components/admin/wine-form';
 
 export default async function NewWinePage() {
-  const campaigns = await getCampaigns();
-
+  const producers = await getProducers();
+  
   return (
     <div className="space-y-6">
       <div>
@@ -11,7 +11,7 @@ export default async function NewWinePage() {
         <p className="text-gray-600">Create a new wine product</p>
       </div>
 
-      <WineForm campaigns={campaigns} />
+      <WineForm producers={producers} />
     </div>
   );
 }

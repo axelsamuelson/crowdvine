@@ -3,6 +3,7 @@ import { getWines } from '@/lib/actions/wines';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { DeleteWineButton } from '@/components/admin/delete-wine-button';
 
 const colorColors = {
   red: 'bg-red-100 text-red-800',
@@ -31,10 +32,10 @@ export default async function WinesPage() {
             <CardHeader>
               <div className="flex justify-between items-start">
                 <div>
-                  <CardTitle className="text-lg">{wine.wine_name}</CardTitle>
-                  <CardDescription>
-                    {wine.vintage} • {wine.campaign?.title || 'Unknown Campaign'}
-                  </CardDescription>
+                                  <CardTitle className="text-lg">{wine.wine_name}</CardTitle>
+                <CardDescription>
+                  {wine.vintage} • {wine.producer?.name || 'Unknown Producer'}
+                </CardDescription>
                 </div>
                 <Badge className={colorColors[wine.color as keyof typeof colorColors] || 'bg-gray-100 text-gray-800'}>
                   {wine.color}
@@ -60,6 +61,7 @@ export default async function WinesPage() {
                     <Link href={`/admin/wines/${wine.id}`}>
                       <Button variant="outline" size="sm">Edit</Button>
                     </Link>
+                    <DeleteWineButton wineId={wine.id} wineName={wine.wine_name} />
                   </div>
                 </div>
               </div>

@@ -13,7 +13,7 @@ export default async function AdminLayout({
   const user = await getCurrentUser();
   
   if (!user || user.role !== 'admin') {
-    redirect('/admin/login');
+    redirect('/admin-auth/login');
   }
 
   return (
@@ -56,7 +56,7 @@ export default async function AdminLayout({
               <form action={async () => {
                 'use server';
                 await signOut();
-                redirect('/admin/login');
+                redirect('/admin-auth/login');
               }}>
                 <Button variant="outline" size="sm" type="submit">
                   Sign Out

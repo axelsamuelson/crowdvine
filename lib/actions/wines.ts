@@ -13,9 +13,9 @@ export interface Wine {
   color: string;
   label_image_path: string;
   base_price_cents: number;
-  campaign_id: string;
-  campaign?: {
-    title: string;
+  producer_id: string;
+  producer?: {
+    name: string;
   };
 }
 
@@ -27,7 +27,7 @@ export interface CreateWineData {
   color: string;
   label_image_path: string;
   base_price_cents: number;
-  campaign_id: string;
+  producer_id: string;
 }
 
 export async function getWines() {
@@ -38,7 +38,7 @@ export async function getWines() {
     .from('campaign_items')
     .select(`
       *,
-      campaign:campaigns(title)
+      producer:producers(name)
     `)
     .order('wine_name');
     
@@ -54,7 +54,7 @@ export async function getWine(id: string) {
     .from('campaign_items')
     .select(`
       *,
-      campaign:campaigns(title)
+      producer:producers(name)
     `)
     .eq('id', id)
     .single();
@@ -72,7 +72,7 @@ export async function createWine(data: CreateWineData) {
     .insert(data)
     .select(`
       *,
-      campaign:campaigns(title)
+      producer:producers(name)
     `)
     .single();
     
@@ -92,7 +92,7 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
     .eq('id', id)
     .select(`
       *,
-      campaign:campaigns(title)
+      producer:producers(name)
     `)
     .single();
     

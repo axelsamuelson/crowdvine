@@ -3,6 +3,7 @@ import { getProducers } from '@/lib/actions/producers';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { DeleteProducerButton } from '@/components/admin/delete-producer-button';
 
 export default async function ProducersPage() {
   const producers = await getProducers();
@@ -46,6 +47,7 @@ export default async function ProducersPage() {
                     <Link href={`/admin/producers/${producer.id}`}>
                       <Button variant="outline" size="sm">Edit</Button>
                     </Link>
+                    <DeleteProducerButton producerId={producer.id} producerName={producer.name} />
                   </div>
                 </div>
               </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CreateProducerData, Producer, createProducer, updateProducer } from '@/lib/actions/producers';
+import { getPickupZones, PalletZone } from '@/lib/actions/zones';
 
 interface ProducerFormProps {
   producer?: Producer;
@@ -26,11 +27,25 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
     address_postcode: producer?.address_postcode || '',
     short_description: producer?.short_description || '',
     logo_image_path: producer?.logo_image_path || '',
+    pickup_zone_id: producer?.pickup_zone_id || '',
   });
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [pickupZones, setPickupZones] = useState<PalletZone[]>([]);
   const router = useRouter();
+
+  useEffect(() => {
+    const loadPickupZones = async () => {
+      try {
+        const zones = await getPickupZones();
+        setPickupZones(zones);
+      } catch (err) {
+        console.error('Failed to load pickup zones:', err);
+      }
+    };
+    loadPickupZones();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -181,6 +196,23 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
               onChange={(e) => handleChange('logo_image_path', e.target.value)}
               placeholder="https://example.com/image.jpg"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="pickup_zone_id">Pickup Zone</Label>
+            <select
+              id="pickup_zone_id"
+              value={formData.pickup_zone_id || ''}
+              onChange={(e) => handleChange('pickup_zone_id', e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-1 text-base transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm aria-[invalid=true]:border-red-500 aria-[invalid=true]:focus-visible:!ring-red-500"
+            >
+              <option value="">No pickup zone selected</option>
+              {pickupZones.map((zone) => (
+                <option key={zone.id} value={zone.id}>
+                  {zone.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="flex justify-end space-x-4">

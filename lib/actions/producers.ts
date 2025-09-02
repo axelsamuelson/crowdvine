@@ -16,6 +16,7 @@ export interface Producer {
   address_postcode: string;
   short_description: string;
   logo_image_path: string;
+  pickup_zone_id?: string;
 }
 
 export interface CreateProducerData {
@@ -29,6 +30,7 @@ export interface CreateProducerData {
   address_postcode: string;
   short_description: string;
   logo_image_path: string;
+  pickup_zone_id?: string;
 }
 
 export async function getProducers() {

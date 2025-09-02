@@ -3,6 +3,7 @@ import { getPalletZones } from '@/lib/actions/zones';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { DeleteZoneButton } from '@/components/admin/delete-zone-button';
 
 export default async function ZonesPage() {
   const zones = await getPalletZones();
@@ -49,6 +50,7 @@ export default async function ZonesPage() {
                     <Link href={`/admin/zones/${zone.id}`}>
                       <Button variant="outline" size="sm">Edit</Button>
                     </Link>
+                    <DeleteZoneButton zoneId={zone.id} zoneName={zone.name} />
                   </div>
                 </div>
               </div>

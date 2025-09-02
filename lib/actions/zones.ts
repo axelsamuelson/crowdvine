@@ -10,6 +10,7 @@ export interface PalletZone {
   radius_km: number;
   center_lat: number;
   center_lon: number;
+  zone_type: 'delivery' | 'pickup';
 }
 
 export interface CreatePalletZoneData {
@@ -17,6 +18,21 @@ export interface CreatePalletZoneData {
   radius_km: number;
   center_lat: number;
   center_lon: number;
+  zone_type: 'delivery' | 'pickup';
+}
+
+export async function getPickupZones() {
+  await requireAuth('admin');
+  const sb = await supabaseServer();
+  
+  const { data, error } = await sb
+    .from('pallet_zones')
+    .select('*')
+    .eq('zone_type', 'pickup')
+    .order('name');
+    
+  if (error) throw new Error(error.message);
+  return data;
 }
 
 export async function getPalletZones() {

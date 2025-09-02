@@ -10,14 +10,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CreateWineData, Wine, createWine, updateWine } from '@/lib/actions/wines';
-import { Campaign } from '@/lib/actions/campaigns';
+import { Producer } from '@/lib/actions/producers';
+import { ImageUpload } from '@/components/admin/image-upload';
 
 interface WineFormProps {
   wine?: Wine;
-  campaigns: Campaign[];
+  producers: Producer[];
 }
 
-export default function WineForm({ wine, campaigns }: WineFormProps) {
+export default function WineForm({ wine, producers }: WineFormProps) {
   const [formData, setFormData] = useState<CreateWineData>({
     handle: wine?.handle || '',
     wine_name: wine?.wine_name || '',
@@ -26,9 +27,10 @@ export default function WineForm({ wine, campaigns }: WineFormProps) {
     color: wine?.color || 'red',
     label_image_path: wine?.label_image_path || '',
     base_price_cents: wine?.base_price_cents || 0,
-    campaign_id: wine?.campaign_id || '',
+    producer_id: wine?.producer_id || '',
   });
 
+  const [images, setImages] = useState<File[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -38,15 +40,64 @@ export default function WineForm({ wine, campaigns }: WineFormProps) {
     setLoading(true);
     setError('');
 
+    // Validate required fields
+    const missingFields: string[] = [];
+    
+    if (!formData.wine_name.trim()) missingFields.push('Wine Name');
+    if (!formData.handle.trim()) missingFields.push('Handle');
+    if (!formData.vintage.trim()) missingFields.push('Vintage');
+    if (!formData.producer_id) missingFields.push('Producer');
+    if (formData.base_price_cents <= 0) missingFields.push('Base Price');
+
+    if (missingFields.length > 0) {
+      setError(`Please fill in the following required fields: ${missingFields.join(', ')}`);
+      setLoading(false);
+      return;
+    }
+
     try {
+      // Upload images if any
+      let imagePaths: string[] = [];
+      if (images.length > 0) {
+        const formDataUpload = new FormData();
+        images.forEach(image => {
+          formDataUpload.append('files', image);
+        });
+
+        const uploadResponse = await fetch('/api/upload', {
+          method: 'POST',
+          body: formDataUpload,
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error('Failed to upload images');
+        }
+
+        const uploadResult = await uploadResponse.json();
+        imagePaths = uploadResult.files;
+      }
+
+      // Use first image as main image if available
+      const wineData = {
+        ...formData,
+        label_image_path: imagePaths.length > 0 ? imagePaths[0] : formData.label_image_path,
+        // Add additional images field if needed
+        additional_images: imagePaths.slice(1),
+      };
+
       if (wine) {
-        await updateWine(wine.id, formData);
+        await updateWine(wine.id, wineData);
       } else {
-        await createWine(formData);
+        await createWine(wineData);
       }
       router.push('/admin/wines');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('Wine creation error:', err);
+      if (err instanceof Error) {
+        setError(`Failed to save wine: ${err.message}`);
+      } else {
+        setError('An unexpected error occurred while saving the wine');
+      }
     } finally {
       setLoading(false);
     }
@@ -137,18 +188,19 @@ export default function WineForm({ wine, campaigns }: WineFormProps) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="campaign_id">Campaign *</Label>
+              <Label htmlFor="producer_id">Producer *</Label>
               <Select
-                value={formData.campaign_id}
-                onValueChange={(value) => handleChange('campaign_id', value)}
+                value={formData.producer_id}
+                onValueChange={(value) => handleChange('producer_id', value)}
+                required
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a campaign" />
+                  <SelectValue placeholder="Select a producer" />
                 </SelectTrigger>
                 <SelectContent>
-                  {campaigns.map((campaign) => (
-                    <SelectItem key={campaign.id} value={campaign.id}>
-                      {campaign.title} ({campaign.status})
+                  {producers.map((producer) => (
+                    <SelectItem key={producer.id} value={producer.id}>
+                      {producer.name} ({producer.region})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -179,6 +231,11 @@ export default function WineForm({ wine, campaigns }: WineFormProps) {
               placeholder="https://example.com/wine-label.jpg"
             />
           </div>
+
+          <ImageUpload 
+            images={images}
+            onImagesChange={setImages}
+          />
 
           <div className="flex justify-end space-x-4">
             <Button

@@ -1,5 +1,6 @@
 import { getPalletZone } from '@/lib/actions/zones';
 import ZoneForm from '@/components/admin/zone-form';
+import { DeleteZoneButton } from '@/components/admin/delete-zone-button';
 import { notFound } from 'next/navigation';
 
 interface EditZonePageProps {
@@ -13,9 +14,12 @@ export default async function EditZonePage({ params }: EditZonePageProps) {
     
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Edit Zone</h1>
-          <p className="text-gray-600">Update zone configuration</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Edit Zone</h1>
+            <p className="text-gray-600">Update zone configuration</p>
+          </div>
+          <DeleteZoneButton zoneId={zone.id} zoneName={zone.name} />
         </div>
 
         <ZoneForm zone={zone} />
