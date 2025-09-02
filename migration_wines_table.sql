@@ -21,10 +21,18 @@ CREATE INDEX idx_wines_color ON wines(color);
 
 -- Migrate existing data
 INSERT INTO wines (id, handle, wine_name, vintage, grape_varieties, color, label_image_path, base_price_cents, producer_id, created_at, updated_at)
-SELECT ci.id, ci.handle, ci.wine_name, ci.vintage, ci.grape_varieties, ci.color, ci.label_image_path, ci.base_price_cents, COALESCE(ci.producer_id, c.producer_id), ci.created_at, ci.updated_at
+SELECT ci.id, ci.handle, ci.wine_name, ci.vintage, ci.grape_varieties, ci.color, ci.label_image_path, ci.base_price_cents, COALESCE(ci.producer_id, c.producer_id), ci.created_at, ci.created_at
 FROM campaign_items ci
 LEFT JOIN campaigns c ON ci.campaign_id = c.id;
 
+-- Update bookings table to reference wines instead of campaign_items
+ALTER TABLE bookings 
+DROP CONSTRAINT IF EXISTS bookings_item_id_fkey;
+
+ALTER TABLE bookings 
+ADD CONSTRAINT bookings_item_id_fkey 
+FOREIGN KEY (item_id) REFERENCES wines(id);
+
 -- Drop old tables
-DROP TABLE campaign_items;
-DROP TABLE campaigns;
+DROP TABLE campaign_items CASCADE;
+DROP TABLE campaigns CASCADE;

@@ -105,7 +105,7 @@ export function ImageUpload({ onImagesChange, images }: ImageUploadProps) {
           <p className="text-sm text-gray-500 mb-4">
             Supports JPG, PNG, GIF up to 10MB each
           </p>
-          <Button onClick={openFileDialog} variant="outline">
+          <Button onClick={openFileDialog} variant="outline" type="button">
             Choose Files
           </Button>
           <input
@@ -140,6 +140,7 @@ export function ImageUpload({ onImagesChange, images }: ImageUploadProps) {
                     <Button
                       size="sm"
                       variant="secondary"
+                      type="button"
                       onClick={() => {
                         const newWindow = window.open(URL.createObjectURL(image));
                         if (newWindow) newWindow.focus();
@@ -150,6 +151,7 @@ export function ImageUpload({ onImagesChange, images }: ImageUploadProps) {
                     <Button
                       size="sm"
                       variant="destructive"
+                      type="button"
                       onClick={() => removeImage(index)}
                     >
                       <X className="h-4 w-4" />
@@ -159,24 +161,26 @@ export function ImageUpload({ onImagesChange, images }: ImageUploadProps) {
                   {/* Move buttons */}
                   <div className="absolute top-2 left-2 space-y-1">
                     {index > 0 && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="h-6 w-6 p-0"
-                        onClick={() => moveImage(index, index - 1)}
-                      >
-                        ↑
-                      </Button>
+                                              <Button
+                          size="sm"
+                          variant="secondary"
+                          className="h-6 w-6 p-0"
+                          type="button"
+                          onClick={() => moveImage(index, index - 1)}
+                        >
+                          ↑
+                        </Button>
                     )}
                     {index < images.length - 1 && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="h-6 w-6 p-0"
-                        onClick={() => moveImage(index, index + 1)}
-                      >
-                        ↓
-                      </Button>
+                                              <Button
+                          size="sm"
+                          variant="secondary"
+                          className="h-6 w-6 p-0"
+                          type="button"
+                          onClick={() => moveImage(index, index + 1)}
+                        >
+                          ↓
+                        </Button>
                     )}
                   </div>
 

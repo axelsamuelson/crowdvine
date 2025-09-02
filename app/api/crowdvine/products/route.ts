@@ -7,8 +7,8 @@ export async function GET(request: Request) {
   
   const sb = await supabaseServer();
   const { data, error } = await sb
-    .from('campaign_items')
-    .select('id, handle, wine_name, vintage, label_image_path, price_t500_cents, price_t300_cents, price_t100_cents, campaign_id')
+    .from('wines')
+    .select('id, handle, wine_name, vintage, label_image_path, base_price_cents, producer_id')
     .limit(limit);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
@@ -20,18 +20,18 @@ export async function GET(request: Request) {
     descriptionHtml: '',
     handle: i.handle,
     productType: 'wine',
-    categoryId: i.campaign_id,
+    categoryId: i.producer_id,
     options: [],
     variants: [{
       id: `${i.id}-default`,
       title: '750 ml',
       availableForSale: true,
-      price: { amount: (i.price_t500_cents / 100).toFixed(2), currencyCode: 'SEK' },
+      price: { amount: (i.base_price_cents / 100).toFixed(2), currencyCode: 'SEK' },
       selectedOptions: [],
     }],
     priceRange: {
-      minVariantPrice: { amount: (i.price_t500_cents / 100).toFixed(2), currencyCode: 'SEK' },
-      maxVariantPrice: { amount: (i.price_t100_cents / 100).toFixed(2), currencyCode: 'SEK' },
+      minVariantPrice: { amount: (i.base_price_cents / 100).toFixed(2), currencyCode: 'SEK' },
+      maxVariantPrice: { amount: (i.base_price_cents / 100).toFixed(2), currencyCode: 'SEK' },
     },
     featuredImage: { 
       id: `${i.id}-img`, 
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
       width: 600,
       height: 600
     },
-    images: [{ id: `${i.id}-img`, url: i.label_image_path, altText: i.wine_name }],
+    images: [{ id: `${i.id}-img`, url: i.label_image_path, altText: i.wine_name, width: 600, height: 600 }],
     seo: { title: i.wine_name, description: '' },
     tags: [],
     availableForSale: true,
