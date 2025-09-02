@@ -108,29 +108,22 @@ async function getOrCreateCartId(): Promise<string> {
 // Add item server action: returns adapted Cart
 export async function addItem(variantId: string | undefined): Promise<Cart | null> {
   if (!variantId) return null;
+  
+  // Extract the actual wine ID from variantId (remove -default suffix)
+  const wineId = variantId.replace('-default', '');
+  
   try {
-    // Always create a new cart for now to avoid session issues
-    const response = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart`, {
-      method: 'POST',
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Cart creation error:', errorData);
-      throw new Error(`Failed to create cart: ${response.status} - ${errorData.error || 'Unknown error'}`);
-    }
-
-    const cart = await response.json();
-    console.log('Cart created:', cart);
+    // Get or create cart ID
+    const cartId = await getOrCreateCartId();
     
     // Now add the item to the cart
-    const addResponse = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart/${cart.id}/lines/add`, {
+    const addResponse = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart/${cartId}/lines/add`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        lines: [{ merchandiseId: variantId, quantity: 1 }]
+        lines: [{ merchandiseId: wineId, quantity: 1 }]
       }),
     });
 

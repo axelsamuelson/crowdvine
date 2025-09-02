@@ -9,8 +9,8 @@ interface ProductListProps {
 }
 
 export default async function ProductList({ collection, searchParams }: ProductListProps) {
-  const query = typeof searchParams?.q === 'string' ? searchParams.q : undefined;
-  const sort = typeof searchParams?.sort === 'string' ? searchParams.sort : undefined;
+  const query = typeof (await searchParams)?.q === 'string' ? (await searchParams).q : undefined;
+  const sort = typeof (await searchParams)?.sort === 'string' ? (await searchParams).sort : undefined;
   const isRootCollection = collection === 'joyco-root' || collection === 'all-wines' || !collection;
 
   const { sortKey, reverse } = isRootCollection ? mapSortKeys(sort, 'product') : mapSortKeys(sort, 'collection');
