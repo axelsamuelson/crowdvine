@@ -5,37 +5,32 @@ import { Suspense } from 'react';
 import ResultsControls from './components/results-controls';
 import { ProductGrid } from './components/product-grid';
 import { ProductCardSkeleton } from './components/product-card-skeleton';
-import { DebugCartButton } from '@/components/debug-cart-button';
 
 export const metadata: Metadata = {
-  title: 'ACME Store | Shop',
-  description: 'ACME Store, your one-stop shop for all your needs.',
+  title: 'Shop',
+  description: 'Shop for wines',
 };
 
 // Enable ISR with 1 minute revalidation
 export const revalidate = 60;
 
-export default async function Shop(props: {
-  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+export default async function ShopPage({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const searchParams = await props.searchParams;
-
   return (
     <>
       <Suspense
         fallback={
-          <>
-            <ResultsControls className="max-md:hidden" collections={[]} products={[]} />
-            <ProductGrid>
-              {Array.from({ length: 12 }).map((_, index) => (
-                <ProductCardSkeleton key={index} />
-              ))}
-            </ProductGrid>
-          </>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <ProductCardSkeleton />
+            <ProductCardSkeleton />
+            <ProductCardSkeleton />
+          </div>
         }
       >
         <ProductList collection={storeCatalog.rootCategoryId} searchParams={searchParams} />
-        <DebugCartButton />
       </Suspense>
     </>
   );

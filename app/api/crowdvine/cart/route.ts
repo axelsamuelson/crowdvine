@@ -4,33 +4,9 @@ import { cookies } from 'next/headers';
 
 export async function POST(req: Request) {
   const sb = await supabaseServer();
-  const cookieStore = await cookies();
   
-  // Get or create session ID
-  let sessionId = cookieStore.get('cartId')?.value;
-  
-  if (!sessionId) {
-    sessionId = crypto.randomUUID();
-  }
-
-  // Check if cart already exists for this session
-  const { data: existingCart } = await sb
-    .from('carts')
-    .select('id')
-    .eq('session_id', sessionId)
-    .single();
-
-  if (existingCart) {
-    // Return existing cart
-    const response = NextResponse.json(existingCart);
-    response.cookies.set('cartId', sessionId, { 
-      maxAge: 30 * 24 * 60 * 60,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax'
-    });
-    return response;
-  }
+  // Always create a new session ID
+  const sessionId = crypto.randomUUID();
 
   // Create new cart
   const { data: cart, error } = await sb

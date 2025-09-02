@@ -109,9 +109,21 @@ async function getOrCreateCartId(): Promise<string> {
 export async function addItem(variantId: string | undefined): Promise<Cart | null> {
   if (!variantId) return null;
   try {
-    const cartId = await getOrCreateCartId();
+    // Always create a new cart for now to avoid session issues
+    const response = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart`, {
+      method: 'POST',
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Cart creation error:', errorData);
+      throw new Error(`Failed to create cart: ${response.status} - ${errorData.error || 'Unknown error'}`);
+    }
+
+    const cart = await response.json();
     
-    const response = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart/${cartId}/lines/add`, {
+    // Now add the item to the cart
+    const addResponse = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart/${cart.id}/lines/add`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -121,13 +133,13 @@ export async function addItem(variantId: string | undefined): Promise<Cart | nul
       }),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
+    if (!addResponse.ok) {
+      const errorData = await addResponse.json();
       console.error('Cart add error:', errorData);
-      throw new Error(`Failed to add item: ${response.status} - ${errorData.error || 'Unknown error'}`);
+      throw new Error(`Failed to add item: ${addResponse.status} - ${errorData.error || 'Unknown error'}`);
     }
 
-    const cartData = await response.json();
+    const cartData = await addResponse.json();
     revalidateTag(TAGS.cart);
     return adaptCart(cartData);
   } catch (error) {
