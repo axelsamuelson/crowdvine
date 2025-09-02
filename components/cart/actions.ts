@@ -82,18 +82,18 @@ function adaptCart(crowdvineCart: any): Cart | null {
 
 async function getOrCreateCartId(): Promise<string> {
   const cookieStore = await cookies();
-  let cartId = cookieStore.get('cartId')?.value;
+  let sessionId = cookieStore.get('cartId')?.value;
 
-  if (!cartId) {
+  if (!sessionId) {
     const response = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart`, {
       method: 'POST',
     });
     const cart = await response.json();
-    cartId = cart.id;
+    sessionId = cart.id;
     
-    // Set the new cart ID in cookie
-    if (cartId) {
-      cookieStore.set('cartId', cartId, {
+    // Set the new session ID in cookie
+    if (sessionId) {
+      cookieStore.set('cartId', sessionId, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
@@ -102,7 +102,7 @@ async function getOrCreateCartId(): Promise<string> {
     }
   }
 
-  return cartId || '';
+  return sessionId || '';
 }
 
 // Add item server action: returns adapted Cart

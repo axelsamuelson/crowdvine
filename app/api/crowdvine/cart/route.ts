@@ -13,6 +13,25 @@ export async function POST(req: Request) {
     sessionId = crypto.randomUUID();
   }
 
+  // Check if cart already exists for this session
+  const { data: existingCart } = await sb
+    .from('carts')
+    .select('id')
+    .eq('session_id', sessionId)
+    .single();
+
+  if (existingCart) {
+    // Return existing cart
+    const response = NextResponse.json(existingCart);
+    response.cookies.set('cartId', sessionId, { 
+      maxAge: 30 * 24 * 60 * 60,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax'
+    });
+    return response;
+  }
+
   // Create new cart
   const { data: cart, error } = await sb
     .from('carts')

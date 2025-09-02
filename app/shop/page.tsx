@@ -5,6 +5,7 @@ import { Suspense } from 'react';
 import ResultsControls from './components/results-controls';
 import { ProductGrid } from './components/product-grid';
 import { ProductCardSkeleton } from './components/product-card-skeleton';
+import { DebugCartButton } from '@/components/debug-cart-button';
 
 export const metadata: Metadata = {
   title: 'ACME Store | Shop',
@@ -34,6 +35,7 @@ export default async function Shop(props: {
         }
       >
         <ProductList collection={storeCatalog.rootCategoryId} searchParams={searchParams} />
+        <DebugCartButton />
       </Suspense>
     </>
   );
