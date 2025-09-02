@@ -7,6 +7,8 @@ export async function POST(req: Request) {
   
   // Always create a new session ID
   const sessionId = crypto.randomUUID();
+  
+  console.log('Creating new cart with session ID:', sessionId);
 
   // Create new cart
   const { data: cart, error } = await sb
@@ -16,8 +18,11 @@ export async function POST(req: Request) {
     .single();
 
   if (error) {
+    console.log('Cart creation error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  console.log('Cart created successfully:', cart);
 
   // Set session cookie
   const response = NextResponse.json(cart);
@@ -27,6 +32,8 @@ export async function POST(req: Request) {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax'
   });
+
+  console.log('Cookie set:', sessionId);
 
   return response;
 }

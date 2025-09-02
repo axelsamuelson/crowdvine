@@ -9,20 +9,30 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const cookieStore = await cookies();
   const sessionId = cookieStore.get('cartId')?.value;
 
+  console.log('Cart add debug:', { cartId, sessionId, lines });
+
   if (!sessionId) {
+    console.log('No session found in cookies');
     return NextResponse.json({ error: 'No session found' }, { status: 400 });
   }
 
   // Verify cart belongs to session
   const { data: cart, error: cartError } = await sb
     .from('carts')
-    .select('id')
+    .select('id, session_id')
     .eq('id', cartId)
-    .eq('session_id', sessionId)
     .single();
 
+  console.log('Cart lookup result:', { cart, cartError });
+
   if (cartError || !cart) {
-    return NextResponse.json({ error: 'Cart not found or does not belong to session' }, { status: 404 });
+    console.log('Cart not found');
+    return NextResponse.json({ error: 'Cart not found' }, { status: 404 });
+  }
+
+  if (cart.session_id !== sessionId) {
+    console.log('Session mismatch:', { cartSessionId: cart.session_id, cookieSessionId: sessionId });
+    return NextResponse.json({ error: 'Cart does not belong to session' }, { status: 403 });
   }
 
   const addedItems = [];
@@ -140,6 +150,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       }
     }
   }));
+
+  console.log('Successfully added items:', transformedLines.length);
 
   return NextResponse.json({ 
     id: cartId, 
