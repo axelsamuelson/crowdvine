@@ -9,14 +9,12 @@ export default async function AdminDashboard() {
   // Hämta statistik
   const [
     { count: producersCount },
-    { count: campaignsCount },
     { count: winesCount },
     { count: bookingsCount },
     { count: zonesCount }
   ] = await Promise.all([
     sb.from('producers').select('*', { count: 'exact', head: true }),
-    sb.from('campaigns').select('*', { count: 'exact', head: true }),
-    sb.from('campaign_items').select('*', { count: 'exact', head: true }),
+    sb.from('wines').select('*', { count: 'exact', head: true }),
     sb.from('bookings').select('*', { count: 'exact', head: true }),
     sb.from('pallet_zones').select('*', { count: 'exact', head: true }),
   ]);
@@ -38,20 +36,6 @@ export default async function AdminDashboard() {
             <div className="text-2xl font-bold">{producersCount || 0}</div>
             <p className="text-xs text-muted-foreground">
               <Link href="/admin/producers" className="text-blue-600 hover:underline">
-                View all →
-              </Link>
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Campaigns</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{campaignsCount || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              <Link href="/admin/campaigns" className="text-blue-600 hover:underline">
                 View all →
               </Link>
             </p>
@@ -112,11 +96,6 @@ export default async function AdminDashboard() {
             <Link href="/admin/producers/new">
               <Button className="w-full" variant="outline">
                 Add Producer
-              </Button>
-            </Link>
-            <Link href="/admin/campaigns/new">
-              <Button className="w-full" variant="outline">
-                Create Campaign
               </Button>
             </Link>
             <Link href="/admin/wines/new">

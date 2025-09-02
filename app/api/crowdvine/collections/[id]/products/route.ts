@@ -8,9 +8,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const sb = await supabaseServer();
   const { data, error } = await sb
-    .from('campaign_items')
-    .select('id, handle, wine_name, vintage, label_image_path, price_t500_cents, price_t100_cents, campaign_id')
-    .eq('campaign_id', id)
+    .from('wines')
+    .select('id, handle, wine_name, vintage, label_image_path, base_price_cents, producer_id')
+    .eq('producer_id', id)
     .limit(limit);
   if (error) return NextResponse.json([], { status: 200 });
 
@@ -21,7 +21,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     descriptionHtml: '',
     handle: i.handle,
     productType: 'wine',
-    categoryId: i.campaign_id,
+    categoryId: i.producer_id,
     options: [],
     variants: [{
       id: `${i.id}-default`,

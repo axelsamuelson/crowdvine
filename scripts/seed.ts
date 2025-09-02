@@ -92,26 +92,7 @@ async function seed() {
     }
     console.log('✅ Producer updated with pickup zone');
 
-    // 4. Create campaign
-    const campaign = {
-      id: randomUUID(),
-      title: 'Languedoc Classics',
-      description: 'Discover the finest wines from Languedoc',
-      status: 'live',
-      producer_id: producer.id
-    };
-
-    const { error: campaignError } = await supabase
-      .from('campaigns')
-      .insert(campaign);
-
-    if (campaignError) {
-      console.error('❌ Campaign error:', campaignError);
-      return;
-    }
-    console.log('✅ Campaign created:', campaign.title);
-
-    // 5. Create 3 campaign items (wines)
+    // 4. Create wines directly (no campaigns needed)
     const wines = [
       {
         id: randomUUID(),
@@ -150,7 +131,7 @@ async function seed() {
 
     for (const wine of wines) {
       const { error: wineError } = await supabase
-        .from('campaign_items')
+        .from('wines')
         .insert(wine);
 
       if (wineError) {
@@ -165,7 +146,6 @@ async function seed() {
     console.log(`- Producer: ${producer.name}`);
     console.log(`- Delivery Zone: ${zone.name}`);
     console.log(`- Pickup Zone: ${pickupZone.name}`);
-    console.log(`- Campaign: ${campaign.title}`);
     console.log(`- Wines: ${wines.length} items`);
     console.log('\n🔗 Test URLs:');
     console.log(`- Shop: http://localhost:3000/shop`);

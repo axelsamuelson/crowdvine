@@ -35,9 +35,6 @@ export default async function AdminLayout({
               <Link href="/admin/producers" className="text-gray-700 hover:text-gray-900">
                 Producers
               </Link>
-              <Link href="/admin/campaigns" className="text-gray-700 hover:text-gray-900">
-                Campaigns
-              </Link>
               <Link href="/admin/wines" className="text-gray-700 hover:text-gray-900">
                 Wines
               </Link>

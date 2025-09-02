@@ -25,7 +25,7 @@ export async function getBookings() {
     .from('bookings')
     .select(`
       *,
-      wine:campaign_items(wine_name, vintage, handle)
+      wine:wines(wine_name, vintage, handle)
     `)
     .order('created_at', { ascending: false });
     
@@ -41,7 +41,7 @@ export async function getBookingsByStatus(status: string) {
     .from('bookings')
     .select(`
       *,
-      wine:campaign_items(wine_name, vintage, handle)
+      wine:wines(wine_name, vintage, handle)
     `)
     .eq('status', status)
     .order('created_at', { ascending: false });

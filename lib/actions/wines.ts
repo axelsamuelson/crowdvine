@@ -9,23 +9,25 @@ export interface Wine {
   handle: string;
   wine_name: string;
   vintage: string;
-  grape_varieties: string;
-  color: string;
-  label_image_path: string;
+  grape_varieties?: string;
+  color?: string;
+  label_image_path?: string;
   base_price_cents: number;
   producer_id: string;
   producer?: {
     name: string;
   };
+  created_at: string;
+  updated_at: string;
 }
 
 export interface CreateWineData {
   handle: string;
   wine_name: string;
   vintage: string;
-  grape_varieties: string;
-  color: string;
-  label_image_path: string;
+  grape_varieties?: string;
+  color?: string;
+  label_image_path?: string;
   base_price_cents: number;
   producer_id: string;
 }
@@ -35,7 +37,7 @@ export async function getWines() {
   const sb = await supabaseServer();
   
   const { data, error } = await sb
-    .from('campaign_items')
+    .from('wines')
     .select(`
       *,
       producer:producers(name)
@@ -51,7 +53,7 @@ export async function getWine(id: string) {
   const sb = await supabaseServer();
   
   const { data, error } = await sb
-    .from('campaign_items')
+    .from('wines')
     .select(`
       *,
       producer:producers(name)
@@ -68,7 +70,7 @@ export async function createWine(data: CreateWineData) {
   const sb = await supabaseServer();
   
   const { data: wine, error } = await sb
-    .from('campaign_items')
+    .from('wines')
     .insert(data)
     .select(`
       *,
@@ -87,7 +89,7 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
   const sb = await supabaseServer();
   
   const { data: wine, error } = await sb
-    .from('campaign_items')
+    .from('wines')
     .update(data)
     .eq('id', id)
     .select(`
@@ -108,7 +110,7 @@ export async function deleteWine(id: string) {
   const sb = await supabaseServer();
   
   const { error } = await sb
-    .from('campaign_items')
+    .from('wines')
     .delete()
     .eq('id', id);
     
