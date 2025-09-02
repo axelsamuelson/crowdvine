@@ -1,13 +1,18 @@
 import { thumbHashToDataURL } from 'thumbhash';
 import { ProductCollectionSortKey, ProductSortKey } from './types';
 
-// Format price utility
-export const formatPrice = (price: string, currencyCode: string): string => {
-  return new Intl.NumberFormat(undefined, {
+// Format price utility - consistent across server and client
+export const formatPrice = (price: string | number, currencyCode: string): string => {
+  const amount = typeof price === 'string' ? parseFloat(price) : price;
+  
+  // Use Swedish locale for consistent formatting
+  return new Intl.NumberFormat('sv-SE', {
     style: 'currency',
     currency: currencyCode,
     currencyDisplay: 'narrowSymbol',
-  }).format(parseFloat(price));
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
 };
 
 // Helper for returning the expected error state to actions instead of throwing.

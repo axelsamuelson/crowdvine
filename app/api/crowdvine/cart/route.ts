@@ -7,7 +7,7 @@ export async function POST(req: Request) {
   const cookieStore = await cookies();
   
   // Get or create session ID
-  let sessionId = cookieStore.get('cart_session_id')?.value;
+  let sessionId = cookieStore.get('cartId')?.value;
   
   if (!sessionId) {
     sessionId = crypto.randomUUID();
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
 
   // Set session cookie
   const response = NextResponse.json(cart);
-  response.cookies.set('cart_session_id', sessionId, { 
+  response.cookies.set('cartId', sessionId, { 
     maxAge: 30 * 24 * 60 * 60,
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
 export async function GET(req: NextRequest) {
   const sb = await supabaseServer();
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get('cart_session_id')?.value;
+  const sessionId = cookieStore.get('cartId')?.value;
 
   if (!sessionId) {
     return NextResponse.json({ id: null, lines: [], totalQuantity: 0 });
@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
   }
 
   // Transform to Shopify-like format
-  const lines = cart.cart_items?.map(item => ({
+  const lines = (cart.cart_items || []).map(item => ({
     id: item.id,
     quantity: item.quantity,
     merchandise: {
@@ -110,20 +110,13 @@ export async function GET(req: NextRequest) {
         currencyCode: 'SEK'
       }
     }
-  })) || [];
+  }));
 
   const totalQuantity = lines.reduce((sum, line) => sum + line.quantity, 0);
-  const totalAmount = lines.reduce((sum, line) => sum + parseFloat(line.cost.totalAmount.amount), 0);
 
-  return NextResponse.json({
-    id: cart.id,
-    lines,
-    totalQuantity,
-    cost: {
-      totalAmount: {
-        amount: totalAmount.toString(),
-        currencyCode: 'SEK'
-      }
-    }
+  return NextResponse.json({ 
+    id: cart.id, 
+    lines, 
+    totalQuantity 
   });
 }

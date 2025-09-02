@@ -7,10 +7,16 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatPrice(amount: string | number, currencyCode: string) {
-  return new Intl.NumberFormat('en-US', {
+  const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+  
+  // Use Swedish locale for consistent formatting
+  return new Intl.NumberFormat('sv-SE', {
     style: 'currency',
     currency: currencyCode,
-  }).format(Number(amount));
+    currencyDisplay: 'narrowSymbol',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(numAmount);
 }
 
 export function createUrl(pathname: string, params: URLSearchParams | string) {

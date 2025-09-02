@@ -7,7 +7,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const sb = await supabaseServer();
   const { id: cartId } = await params;
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get('cart_session_id')?.value;
+  const sessionId = cookieStore.get('cartId')?.value;
 
   if (!sessionId) {
     return NextResponse.json({ error: 'No session found' }, { status: 400 });
