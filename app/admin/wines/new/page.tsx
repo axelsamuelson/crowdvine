@@ -1,4 +1,3 @@
-import { createWine } from '@/lib/actions/wines';
 import { getCampaigns } from '@/lib/actions/campaigns';
 import WineForm from '@/components/admin/wine-form';
 
@@ -12,7 +11,7 @@ export default async function NewWinePage() {
         <p className="text-gray-600">Create a new wine product</p>
       </div>
 
-      <WineForm onSubmit={createWine} campaigns={campaigns} />
+      <WineForm campaigns={campaigns} />
     </div>
   );
 }

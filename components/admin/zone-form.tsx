@@ -7,14 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CreatePalletZoneData, PalletZone } from '@/lib/actions/zones';
+import { CreatePalletZoneData, PalletZone, createPalletZone, updatePalletZone } from '@/lib/actions/zones';
 
 interface ZoneFormProps {
   zone?: PalletZone;
-  onSubmit: (data: CreatePalletZoneData) => Promise<void>;
 }
 
-export default function ZoneForm({ zone, onSubmit }: ZoneFormProps) {
+export default function ZoneForm({ zone }: ZoneFormProps) {
   const [formData, setFormData] = useState<CreatePalletZoneData>({
     name: zone?.name || '',
     radius_km: zone?.radius_km || 500,
@@ -32,7 +31,11 @@ export default function ZoneForm({ zone, onSubmit }: ZoneFormProps) {
     setError('');
 
     try {
-      await onSubmit(formData);
+      if (zone) {
+        await updatePalletZone(zone.id, formData);
+      } else {
+        await createPalletZone(formData);
+      }
       router.push('/admin/zones');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');

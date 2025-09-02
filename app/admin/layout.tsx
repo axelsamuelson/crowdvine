@@ -2,18 +2,19 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { signOut } from '@/lib/admin-auth';
+import { getCurrentUser } from '@/lib/auth';
 
 export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Temporärt inaktivera auth-check för debugging
-  // const user = await getCurrentUser();
-  // 
-  // if (!user || user.role !== 'admin') {
-  //   redirect('/admin/login');
-  // }
+  // Aktivera auth-check igen
+  const user = await getCurrentUser();
+  
+  if (!user || user.role !== 'admin') {
+    redirect('/admin/login');
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -50,7 +51,7 @@ export default async function AdminLayout({
 
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">
-                Admin User
+                {user.email}
               </span>
               <form action={async () => {
                 'use server';

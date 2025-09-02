@@ -1,14 +1,15 @@
-import { getProducer, updateProducer } from '@/lib/actions/producers';
+import { getProducer } from '@/lib/actions/producers';
 import ProducerForm from '@/components/admin/producer-form';
 import { notFound } from 'next/navigation';
 
 interface EditProducerPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default async function EditProducerPage({ params }: EditProducerPageProps) {
   try {
-    const producer = await getProducer(params.id);
+    const { id } = await params;
+    const producer = await getProducer(id);
     
     return (
       <div className="space-y-6">
@@ -17,10 +18,7 @@ export default async function EditProducerPage({ params }: EditProducerPageProps
           <p className="text-gray-600">Update producer information</p>
         </div>
 
-        <ProducerForm 
-          producer={producer} 
-          onSubmit={(data) => updateProducer(params.id, data)} 
-        />
+        <ProducerForm producer={producer} />
       </div>
     );
   } catch (error) {

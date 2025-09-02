@@ -1,16 +1,17 @@
-import { getCampaign, updateCampaign } from '@/lib/actions/campaigns';
+import { getCampaign } from '@/lib/actions/campaigns';
 import { getProducers } from '@/lib/actions/producers';
 import CampaignForm from '@/components/admin/campaign-form';
 import { notFound } from 'next/navigation';
 
 interface EditCampaignPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default async function EditCampaignPage({ params }: EditCampaignPageProps) {
   try {
+    const { id } = await params;
     const [campaign, producers] = await Promise.all([
-      getCampaign(params.id),
+      getCampaign(id),
       getProducers(),
     ]);
     
@@ -24,7 +25,6 @@ export default async function EditCampaignPage({ params }: EditCampaignPageProps
         <CampaignForm 
           campaign={campaign} 
           producers={producers}
-          onSubmit={(data) => updateCampaign(params.id, data)} 
         />
       </div>
     );

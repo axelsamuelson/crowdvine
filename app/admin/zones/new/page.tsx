@@ -1,4 +1,3 @@
-import { createPalletZone } from '@/lib/actions/zones';
 import ZoneForm from '@/components/admin/zone-form';
 
 export default function NewZonePage() {
@@ -9,7 +8,7 @@ export default function NewZonePage() {
         <p className="text-gray-600">Create a new delivery zone</p>
       </div>
 
-      <ZoneForm onSubmit={createPalletZone} />
+      <ZoneForm />
     </div>
   );
 }

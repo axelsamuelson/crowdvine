@@ -1,4 +1,3 @@
-import { createProducer } from '@/lib/actions/producers';
 import ProducerForm from '@/components/admin/producer-form';
 
 export default function NewProducerPage() {
@@ -9,7 +8,7 @@ export default function NewProducerPage() {
         <p className="text-gray-600">Create a new wine producer</p>
       </div>
 
-      <ProducerForm onSubmit={createProducer} />
+      <ProducerForm />
     </div>
   );
 }

@@ -1,16 +1,17 @@
-import { getWine, updateWine } from '@/lib/actions/wines';
+import { getWine } from '@/lib/actions/wines';
 import { getCampaigns } from '@/lib/actions/campaigns';
 import WineForm from '@/components/admin/wine-form';
 import { notFound } from 'next/navigation';
 
 interface EditWinePageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default async function EditWinePage({ params }: EditWinePageProps) {
   try {
+    const { id } = await params;
     const [wine, campaigns] = await Promise.all([
-      getWine(params.id),
+      getWine(id),
       getCampaigns(),
     ]);
     
@@ -24,7 +25,6 @@ export default async function EditWinePage({ params }: EditWinePageProps) {
         <WineForm 
           wine={wine} 
           campaigns={campaigns}
-          onSubmit={(data) => updateWine(params.id, data)} 
         />
       </div>
     );

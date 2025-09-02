@@ -1,4 +1,3 @@
-import { createCampaign } from '@/lib/actions/campaigns';
 import { getProducers } from '@/lib/actions/producers';
 import CampaignForm from '@/components/admin/campaign-form';
 
@@ -12,7 +11,7 @@ export default async function NewCampaignPage() {
         <p className="text-gray-600">Create a new wine campaign</p>
       </div>
 
-      <CampaignForm onSubmit={createCampaign} producers={producers} />
+      <CampaignForm producers={producers} />
     </div>
   );
 }

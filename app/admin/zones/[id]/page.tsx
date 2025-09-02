@@ -1,14 +1,15 @@
-import { getPalletZone, updatePalletZone } from '@/lib/actions/zones';
+import { getPalletZone } from '@/lib/actions/zones';
 import ZoneForm from '@/components/admin/zone-form';
 import { notFound } from 'next/navigation';
 
 interface EditZonePageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default async function EditZonePage({ params }: EditZonePageProps) {
   try {
-    const zone = await getPalletZone(params.id);
+    const { id } = await params;
+    const zone = await getPalletZone(id);
     
     return (
       <div className="space-y-6">
@@ -17,10 +18,7 @@ export default async function EditZonePage({ params }: EditZonePageProps) {
           <p className="text-gray-600">Update zone configuration</p>
         </div>
 
-        <ZoneForm 
-          zone={zone} 
-          onSubmit={(data) => updatePalletZone(params.id, data)} 
-        />
+        <ZoneForm zone={zone} />
       </div>
     );
   } catch (error) {

@@ -9,16 +9,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CreateCampaignData, Campaign } from '@/lib/actions/campaigns';
+import { CreateCampaignData, Campaign, createCampaign, updateCampaign } from '@/lib/actions/campaigns';
 import { Producer } from '@/lib/actions/producers';
 
 interface CampaignFormProps {
   campaign?: Campaign;
   producers: Producer[];
-  onSubmit: (data: CreateCampaignData) => Promise<void>;
 }
 
-export default function CampaignForm({ campaign, producers, onSubmit }: CampaignFormProps) {
+export default function CampaignForm({ campaign, producers }: CampaignFormProps) {
   const [formData, setFormData] = useState<CreateCampaignData>({
     title: campaign?.title || '',
     description: campaign?.description || '',
@@ -36,7 +35,11 @@ export default function CampaignForm({ campaign, producers, onSubmit }: Campaign
     setError('');
 
     try {
-      await onSubmit(formData);
+      if (campaign) {
+        await updateCampaign(campaign.id, formData);
+      } else {
+        await createCampaign(formData);
+      }
       router.push('/admin/campaigns');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');

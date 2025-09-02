@@ -1,6 +1,8 @@
 # Cursor ignore file
 # This file tells Cursor which files to ignore
 
+
+
 # Node modules
 node_modules/
 

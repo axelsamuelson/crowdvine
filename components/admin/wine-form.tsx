@@ -9,16 +9,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CreateWineData, Wine } from '@/lib/actions/wines';
+import { CreateWineData, Wine, createWine, updateWine } from '@/lib/actions/wines';
 import { Campaign } from '@/lib/actions/campaigns';
 
 interface WineFormProps {
   wine?: Wine;
   campaigns: Campaign[];
-  onSubmit: (data: CreateWineData) => Promise<void>;
 }
 
-export default function WineForm({ wine, campaigns, onSubmit }: WineFormProps) {
+export default function WineForm({ wine, campaigns }: WineFormProps) {
   const [formData, setFormData] = useState<CreateWineData>({
     handle: wine?.handle || '',
     wine_name: wine?.wine_name || '',
@@ -40,7 +39,11 @@ export default function WineForm({ wine, campaigns, onSubmit }: WineFormProps) {
     setError('');
 
     try {
-      await onSubmit(formData);
+      if (wine) {
+        await updateWine(wine.id, formData);
+      } else {
+        await createWine(formData);
+      }
       router.push('/admin/wines');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');

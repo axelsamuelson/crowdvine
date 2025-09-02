@@ -8,14 +8,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CreateProducerData, Producer } from '@/lib/actions/producers';
+import { CreateProducerData, Producer, createProducer, updateProducer } from '@/lib/actions/producers';
 
 interface ProducerFormProps {
   producer?: Producer;
-  onSubmit: (data: CreateProducerData) => Promise<void>;
 }
 
-export default function ProducerForm({ producer, onSubmit }: ProducerFormProps) {
+export default function ProducerForm({ producer }: ProducerFormProps) {
   const [formData, setFormData] = useState<CreateProducerData>({
     name: producer?.name || '',
     region: producer?.region || '',
@@ -39,7 +38,11 @@ export default function ProducerForm({ producer, onSubmit }: ProducerFormProps) 
     setError('');
 
     try {
-      await onSubmit(formData);
+      if (producer) {
+        await updateProducer(producer.id, formData);
+      } else {
+        await createProducer(formData);
+      }
       router.push('/admin/producers');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
