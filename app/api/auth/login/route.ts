@@ -1,0 +1,54 @@
+import { NextResponse } from 'next/server';
+import { createClient } from '@/utils/supabase/server';
+
+export async function POST(request: Request) {
+  try {
+    const { email, password } = await request.json();
+    
+    if (!email || !password) {
+      return NextResponse.json(
+        { error: 'Email and password are required' },
+        { status: 400 }
+      );
+    }
+
+    const supabase = createClient();
+
+    // Sign in user with Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (authError) {
+      console.error('Auth login error:', authError);
+      return NextResponse.json(
+        { error: authError.message },
+        { status: 401 }
+      );
+    }
+
+    if (!authData.user) {
+      return NextResponse.json(
+        { error: 'Invalid email or password' },
+        { status: 401 }
+      );
+    }
+
+    return NextResponse.json({
+      message: 'Login successful',
+      user: {
+        id: authData.user.id,
+        email: authData.user.email,
+        full_name: authData.user.user_metadata?.full_name
+      }
+    });
+
+  } catch (error) {
+    console.error('Login error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

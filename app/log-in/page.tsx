@@ -22,14 +22,49 @@ export default function LogInPage() {
 
     try {
       if (isSignUp) {
-        // Simulate signup
+        // Real signup
+        const response = await fetch('/api/auth/signup', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email,
+            password,
+            fullName
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to create account');
+        }
+
         setSuccess('Account created successfully! You can now log in.');
         setEmail('');
         setPassword('');
         setFullName('');
         setIsSignUp(false);
       } else {
-        // Simulate login
+        // Real login
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email,
+            password
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Invalid email or password');
+        }
+
         setSuccess('Login successful! Redirecting to your profile...');
         setEmail('');
         setPassword('');
@@ -40,7 +75,7 @@ export default function LogInPage() {
         }, 1000);
       }
     } catch (err) {
-      setError(isSignUp ? 'Failed to create account. Please try again.' : 'Invalid email or password. Please try again.');
+      setError(err instanceof Error ? err.message : (isSignUp ? 'Failed to create account. Please try again.' : 'Invalid email or password. Please try again.'));
     } finally {
       setLoading(false);
     }
