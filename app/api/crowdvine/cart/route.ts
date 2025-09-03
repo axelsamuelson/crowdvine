@@ -44,7 +44,13 @@ export async function GET(req: NextRequest) {
   const sessionId = cookieStore.get('cartId')?.value;
 
   if (!sessionId) {
-    return NextResponse.json({ error: 'No session found' }, { status: 404 });
+    // Return empty cart instead of 404 so server action can create new one
+    return NextResponse.json({ 
+      id: null, 
+      session_id: null,
+      lines: [], 
+      totalQuantity: 0 
+    });
   }
 
   // Get cart with items

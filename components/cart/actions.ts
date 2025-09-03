@@ -122,7 +122,7 @@ export async function addItem(variantId: string | undefined): Promise<Cart | nul
       // Use existing cart
       const existingCart = await getResponse.json();
       
-      if (existingCart.id) {
+      if (existingCart.id && existingCart.session_id) {
         // Cart exists, use it
         cartId = existingCart.id;
         sessionId = existingCart.session_id;
