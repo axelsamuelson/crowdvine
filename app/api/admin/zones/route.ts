@@ -18,8 +18,30 @@ export async function GET(request: NextRequest) {
   const { data, error } = await query.order('name');
   
   if (error) {
+    console.error('Zones API error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json(data || []);
+  // Hämta pallets separat för att beräkna statistik
+  const { data: allPallets } = await sb
+    .from('pallets')
+    .select('id, name, bottle_capacity, pickup_zone_id, delivery_zone_id');
+
+  // Beräkna statistik för varje zone
+  const zonesWithStats = (data || []).map(zone => {
+    const pickupPallets = allPallets?.filter(p => p.pickup_zone_id === zone.id) || [];
+    const deliveryPallets = allPallets?.filter(p => p.delivery_zone_id === zone.id) || [];
+    const totalPallets = pickupPallets.length + deliveryPallets.length;
+    const totalCapacity = [...pickupPallets, ...deliveryPallets].reduce((sum, p) => sum + (p.bottle_capacity || 0), 0);
+    
+    return {
+      ...zone,
+      totalPallets,
+      totalCapacity,
+      pickupPallets: pickupPallets.length,
+      deliveryPallets: deliveryPallets.length
+    };
+  });
+
+  return NextResponse.json(zonesWithStats);
 }

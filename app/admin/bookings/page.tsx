@@ -25,9 +25,8 @@ export default async function BookingsPage() {
     .select(`
       id,
       quantity,
-      price_band,
+      band,
       created_at,
-      updated_at,
       wines(
         id,
         wine_name,
@@ -190,7 +189,7 @@ export default async function BookingsPage() {
                         <div className="flex items-center gap-2">
                           <DollarSign className="h-4 w-4 text-muted-foreground" />
                           <span className="text-muted-foreground">Price Band:</span>
-                          <span className="font-medium">{booking.price_band}</span>
+                          <span className="font-medium">{booking.band}</span>
                         </div>
                       </div>
                     </div>
@@ -274,7 +273,7 @@ export default async function BookingsPage() {
                       <td className="p-3">
                         <Badge variant="secondary">{booking.quantity} bottles</Badge>
                       </td>
-                      <td className="p-3">{booking.price_band}</td>
+                      <td className="p-3">{booking.band}</td>
                       <td className="p-3 font-medium">
                         {formatPrice((booking.wines?.base_price_cents || 0) * booking.quantity)}
                       </td>
