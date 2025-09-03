@@ -1,7 +1,6 @@
 'use server';
 
 import { supabaseServer } from '@/lib/supabase-server';
-import { supabaseServer } from '@/lib/supabase-server';
 
 export interface Booking {
   id: string;
