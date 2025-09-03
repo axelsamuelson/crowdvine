@@ -10,9 +10,62 @@ interface ReservationSuccess {
   message: string;
 }
 
+interface WineItem {
+  quantity: number;
+  price_band: string;
+  wines: {
+    id: string;
+    wine_name: string;
+    vintage: string;
+    grape_varieties: string;
+    color: string;
+    base_price_cents: number;
+    producers: {
+      name: string;
+      region: string;
+      country_code: string;
+    };
+  };
+}
+
+interface ReservationDetails {
+  reservation: {
+    id: string;
+    status: string;
+    created_at: string;
+    address: {
+      full_name: string;
+      email: string;
+      phone: string;
+      address_street: string;
+      address_postcode: string;
+      address_city: string;
+      country_code: string;
+    };
+    zones: {
+      pickup: { name: string; zone_type: string } | null;
+      delivery: { name: string; zone_type: string } | null;
+    } | null;
+    pallet: {
+      id: string;
+      name: string;
+      bottle_capacity: number;
+      currentBottles: number;
+      remainingBottles: number;
+    } | null;
+    tracking: {
+      code: string;
+      created_at: string;
+    } | null;
+  };
+  items: WineItem[];
+}
+
 export default function CheckoutSuccessPage() {
   const [reservationData, setReservationData] = useState<ReservationSuccess | null>(null);
+  const [reservationDetails, setReservationDetails] = useState<ReservationDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const [detailsLoading, setDetailsLoading] = useState(false);
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -27,9 +80,41 @@ export default function CheckoutSuccessPage() {
         reservationId,
         message: message || 'Reservation placed successfully'
       });
+      
+      // Fetch detailed reservation information
+      fetchReservationDetails(reservationId);
     }
     setLoading(false);
   }, [searchParams]);
+
+  const fetchReservationDetails = async (reservationId: string) => {
+    setDetailsLoading(true);
+    try {
+      const response = await fetch(`/api/reservation-details?reservationId=${reservationId}`);
+      if (response.ok) {
+        const details = await response.json();
+        setReservationDetails(details);
+      }
+    } catch (error) {
+      console.error('Failed to fetch reservation details:', error);
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
+
+  const formatPrice = (priceCents: number) => {
+    return new Intl.NumberFormat('sv-SE', {
+      style: 'currency',
+      currency: 'SEK'
+    }).format(priceCents / 100);
+  };
+
+  const calculateTotal = () => {
+    if (!reservationDetails?.items) return 0;
+    return reservationDetails.items.reduce((total, item) => {
+      return total + (item.wines.base_price_cents * item.quantity);
+    }, 0);
+  };
 
   if (loading) {
     return (
@@ -94,8 +179,125 @@ export default function CheckoutSuccessPage() {
             <span className="text-gray-600">Date:</span>
             <span>{new Date().toLocaleDateString('sv-SE')}</span>
           </div>
+          {reservationDetails?.reservation.tracking && (
+            <div className="flex justify-between">
+              <span className="text-gray-600">Tracking Code:</span>
+              <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">
+                {reservationDetails.reservation.tracking.code}
+              </span>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Wine Items */}
+      {detailsLoading ? (
+        <div className="bg-white rounded-lg p-6 mb-8">
+          <div className="animate-pulse">
+            <div className="h-6 bg-gray-200 rounded mb-4"></div>
+            <div className="space-y-3">
+              <div className="h-20 bg-gray-200 rounded"></div>
+              <div className="h-20 bg-gray-200 rounded"></div>
+            </div>
+          </div>
+        </div>
+      ) : reservationDetails?.items && reservationDetails.items.length > 0 ? (
+        <div className="bg-white rounded-lg p-6 mb-8">
+          <h2 className="text-xl font-semibold mb-4">Your Wines</h2>
+          <div className="space-y-4">
+            {reservationDetails.items.map((item, index) => (
+              <div key={index} className="border rounded-lg p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="font-medium text-gray-900">{item.wines.wine_name}</h3>
+                  <span className="text-lg font-semibold text-gray-900">
+                    {formatPrice(item.wines.base_price_cents * item.quantity)}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600 mb-2">
+                  {item.wines.vintage} • {item.wines.grape_varieties} • {item.wines.color}
+                </p>
+                <div className="flex justify-between items-center text-sm text-gray-500">
+                  <span>Producer: {item.wines.producers.name}</span>
+                  <span>Quantity: {item.quantity} bottles</span>
+                </div>
+                <div className="text-sm text-gray-500">
+                  <span>Region: {item.wines.producers.region}, {item.wines.producers.country_code}</span>
+                </div>
+              </div>
+            ))}
+            <div className="border-t pt-4">
+              <div className="flex justify-between items-center">
+                <span className="text-lg font-semibold">Total:</span>
+                <span className="text-xl font-bold text-gray-900">
+                  {formatPrice(calculateTotal())}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Zone and Pallet Information */}
+      {reservationDetails?.reservation.zones && (
+        <div className="bg-blue-50 rounded-lg p-6 mb-8">
+          <h2 className="text-xl font-semibold mb-4">Zone Information</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {reservationDetails.reservation.zones.pickup && (
+              <div className="bg-white rounded-lg p-4">
+                <h3 className="font-medium text-gray-900 mb-2">Pickup Zone</h3>
+                <p className="text-gray-600">{reservationDetails.reservation.zones.pickup.name}</p>
+              </div>
+            )}
+            {reservationDetails.reservation.zones.delivery && (
+              <div className="bg-white rounded-lg p-4">
+                <h3 className="font-medium text-gray-900 mb-2">Delivery Zone</h3>
+                <p className="text-gray-600">{reservationDetails.reservation.zones.delivery.name}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Pallet Information */}
+      {reservationDetails?.reservation.pallet && (
+        <div className="bg-green-50 rounded-lg p-6 mb-8">
+          <h2 className="text-xl font-semibold mb-4">Pallet Information</h2>
+          <div className="bg-white rounded-lg p-4">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-medium text-gray-900">{reservationDetails.reservation.pallet.name}</h3>
+              <span className="text-sm text-gray-500">
+                {reservationDetails.reservation.pallet.currentBottles} / {reservationDetails.reservation.pallet.bottle_capacity} bottles
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+              <div
+                className="bg-green-600 h-2.5 rounded-full"
+                style={{ width: `${(reservationDetails.reservation.pallet.currentBottles / reservationDetails.reservation.pallet.bottle_capacity) * 100}%` }}
+              ></div>
+            </div>
+            <p className="text-sm text-gray-600">
+              {reservationDetails.reservation.pallet.remainingBottles} bottles remaining to complete the pallet
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Delivery Address */}
+      {reservationDetails?.reservation.address && (
+        <div className="bg-gray-50 rounded-lg p-6 mb-8">
+          <h2 className="text-xl font-semibold mb-4">Delivery Address</h2>
+          <div className="bg-white rounded-lg p-4">
+            <p className="font-medium text-gray-900">{reservationDetails.reservation.address.full_name}</p>
+            <p className="text-gray-600">{reservationDetails.reservation.address.address_street}</p>
+            <p className="text-gray-600">
+              {reservationDetails.reservation.address.address_postcode} {reservationDetails.reservation.address.address_city}
+            </p>
+            <p className="text-gray-600">{reservationDetails.reservation.address.country_code}</p>
+            <p className="text-gray-600 mt-2">Phone: {reservationDetails.reservation.address.phone}</p>
+            <p className="text-gray-600">Email: {reservationDetails.reservation.address.email}</p>
+          </div>
+        </div>
+      )}
 
       {/* Next Steps */}
       <div className="bg-blue-50 rounded-lg p-6 mb-8">
