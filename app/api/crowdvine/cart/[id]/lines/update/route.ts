@@ -1,27 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
-import { cookies } from 'next/headers';
+import { getOrSetCartId } from '@/lib/cookies';
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }>}) {
   const { lines } = await req.json(); // [{ id: lineId, quantity }]
   const sb = await supabaseServer();
   const { id: cartId } = await params;
-  const cookieStore = await cookies();
-  const sessionId = cookieStore.get('cart_session_id')?.value;
+  const cookieCartId = await getOrSetCartId();
 
-  if (!sessionId) {
-    return NextResponse.json({ error: 'No session found' }, { status: 400 });
+  console.log('Updating lines in cart:', { cartId, cookieCartId, lines });
+
+  // Verify cart belongs to this session
+  if (cartId !== cookieCartId) {
+    console.log('Cart ID mismatch:', { cartId, cookieCartId });
+    return NextResponse.json({ error: 'Cart ID mismatch' }, { status: 400 });
   }
 
-  // Verify cart belongs to session
+  // Check if cart exists
   const { data: cart, error: cartError } = await sb
     .from('carts')
     .select('id')
     .eq('id', cartId)
-    .eq('session_id', sessionId)
     .single();
 
   if (cartError || !cart) {
+    console.log('Cart not found');
     return NextResponse.json({ error: 'Cart not found' }, { status: 404 });
   }
 
@@ -33,14 +36,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (quantity <= 0) {
       // Remove item
       await sb
-        .from('cart_items')
+        .from('cart_lines')
         .delete()
         .eq('id', lineId)
         .eq('cart_id', cartId);
     } else {
       // Update quantity
       const { data: updatedItem, error: updateError } = await sb
-        .from('cart_items')
+        .from('cart_lines')
         .update({ 
           quantity: quantity,
           updated_at: new Date().toISOString()
@@ -50,7 +53,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         .select(`
           id,
           quantity,
-          wine_id,
+          item_id,
           wines (
             id,
             wine_name,
@@ -82,13 +85,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     id: item.id,
     quantity: item.quantity,
     merchandise: {
-      id: item.wine_id,
+      id: item.item_id,
       title: `${item.wines.wine_name} ${item.wines.vintage}`,
       selectedOptions: [],
       product: {
-        id: item.wine_id,
+        id: item.item_id,
         title: `${item.wines.wine_name} ${item.wines.vintage}`,
-        handle: item.wine_id,
+        handle: item.item_id,
         featuredImage: { 
           url: item.wines.label_image_path || '', 
           altText: item.wines.wine_name,

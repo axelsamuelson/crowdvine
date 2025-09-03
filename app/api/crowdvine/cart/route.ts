@@ -1,19 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
-import { cookies } from 'next/headers';
+import { getOrSetCartId } from '@/lib/cookies';
 
 export async function POST(req: Request) {
+  const cartId = await getOrSetCartId();
   const sb = await supabaseServer();
   
-  // Always create a new session ID
-  const sessionId = crypto.randomUUID();
-  
-  console.log('Creating new cart with session ID:', sessionId);
+  console.log('Creating/retrieving cart with ID:', cartId);
+
+  // Check if cart already exists
+  const { data: existingCart, error: checkError } = await sb
+    .from('carts')
+    .select('id')
+    .eq('id', cartId)
+    .single();
+
+  if (existingCart) {
+    console.log('Cart already exists:', existingCart.id);
+    return NextResponse.json({ id: cartId, checkoutUrl: '/checkout' });
+  }
 
   // Create new cart
   const { data: cart, error } = await sb
     .from('carts')
-    .insert({ session_id: sessionId })
+    .insert({ id: cartId })
     .select()
     .single();
 
@@ -24,45 +34,25 @@ export async function POST(req: Request) {
 
   console.log('Cart created successfully:', cart);
 
-  // Set session cookie
-  const response = NextResponse.json(cart);
-  response.cookies.set('cartId', sessionId, { 
-    maxAge: 30 * 24 * 60 * 60,
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax'
-  });
-
-  console.log('Cookie set:', sessionId);
-
-  return response;
+  return NextResponse.json({ id: cartId, checkoutUrl: '/checkout' });
 }
 
 export async function GET(req: NextRequest) {
+  const cartId = await getOrSetCartId();
   const sb = await supabaseServer();
-  const cookieStore = await cookies();
-  const sessionId = cookieStore.get('cartId')?.value;
 
-  if (!sessionId) {
-    // Return empty cart instead of 404 so server action can create new one
-    return NextResponse.json({ 
-      id: null, 
-      session_id: null,
-      lines: [], 
-      totalQuantity: 0 
-    });
-  }
+  console.log('Getting cart with ID:', cartId);
 
   // Get cart with items
   const { data: cart, error: cartError } = await sb
     .from('carts')
     .select(`
       id,
-      session_id,
-      cart_items (
+      cart_lines (
         id,
         quantity,
-        wine_id,
+        item_id,
+        band,
         wines (
           id,
           wine_name,
@@ -72,33 +62,33 @@ export async function GET(req: NextRequest) {
         )
       )
     `)
-    .eq('session_id', sessionId)
+    .eq('id', cartId)
     .single();
 
   if (cartError || !cart) {
-    // Return empty cart instead of 404 so server action can reuse it
+    console.log('Cart not found, returning empty cart');
+    // Return empty cart instead of 404 so server action can create new one
     return NextResponse.json({ 
-      id: null, 
-      session_id: sessionId,
+      id: cartId, 
       lines: [], 
       totalQuantity: 0 
     });
   }
 
   // Transform to Shopify-like format
-  const lines = (cart.cart_items || []).map(item => {
+  const lines = (cart.cart_lines || []).map(item => {
     const wine = item.wines as any; // Type assertion to avoid TypeScript issues
     return {
       id: item.id,
       quantity: item.quantity,
       merchandise: {
-        id: item.wine_id,
+        id: item.item_id,
         title: `${wine?.wine_name || 'Unknown Wine'} ${wine?.vintage || ''}`,
         selectedOptions: [],
         product: {
-          id: item.wine_id,
+          id: item.item_id,
           title: `${wine?.wine_name || 'Unknown Wine'} ${wine?.vintage || ''}`,
-          handle: item.wine_id,
+          handle: item.item_id,
           featuredImage: { 
             url: wine?.label_image_path || '', 
             altText: wine?.wine_name || 'Wine',
@@ -130,7 +120,6 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({ 
     id: cart.id, 
-    session_id: cart.session_id,
     lines, 
     totalQuantity 
   });

@@ -1,49 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
-import { cookies } from 'next/headers';
+import { getOrSetCartId } from '@/lib/cookies';
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }>}) {
   const { lines } = await req.json(); // [{ merchandiseId: wineId, quantity }]
   const sb = await supabaseServer();
   const { id: cartId } = await params;
-  const cookieStore = await cookies();
+  const cookieCartId = await getOrSetCartId();
   
-  // Try to get session ID from cookies first, then from header
-  let sessionId = cookieStore.get('cartId')?.value;
-  
-  if (!sessionId) {
-    // Try to get from request header
-    const cookieHeader = req.headers.get('cookie');
-    if (cookieHeader) {
-      const cartIdMatch = cookieHeader.match(/cartId=([^;]+)/);
-      sessionId = cartIdMatch ? cartIdMatch[1] : undefined;
-    }
+  console.log('Adding lines to cart:', { cartId, cookieCartId, lines });
+
+  // Verify cart belongs to this session
+  if (cartId !== cookieCartId) {
+    console.log('Cart ID mismatch:', { cartId, cookieCartId });
+    return NextResponse.json({ error: 'Cart ID mismatch' }, { status: 400 });
   }
 
-  console.log('Cart add debug:', { cartId, sessionId, lines });
-
-  if (!sessionId) {
-    console.log('No session found in cookies or header');
-    return NextResponse.json({ error: 'No session found' }, { status: 400 });
-  }
-
-  // Verify cart belongs to session
+  // Check if cart exists
   const { data: cart, error: cartError } = await sb
     .from('carts')
-    .select('id, session_id')
+    .select('id')
     .eq('id', cartId)
     .single();
 
-  console.log('Cart lookup result:', { cart, cartError });
-
   if (cartError || !cart) {
-    console.log('Cart not found');
-    return NextResponse.json({ error: 'Cart not found' }, { status: 404 });
-  }
-
-  if (cart.session_id !== sessionId) {
-    console.log('Session mismatch:', { cartSessionId: cart.session_id, cookieSessionId: sessionId });
-    return NextResponse.json({ error: 'Cart does not belong to session' }, { status: 403 });
+    console.log('Cart not found, creating new cart');
+    const { data: newCart, error: createError } = await sb
+      .from('carts')
+      .insert({ id: cartId })
+      .select()
+      .single();
+    
+    if (createError) {
+      console.log('Cart creation error:', createError);
+      return NextResponse.json({ error: createError.message }, { status: 500 });
+    }
   }
 
   const addedItems = [];
@@ -56,16 +47,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     // Check if item already exists in cart
     const { data: existingItem } = await sb
-      .from('cart_items')
+      .from('cart_lines')
       .select('id, quantity')
       .eq('cart_id', cartId)
-      .eq('wine_id', actualWineId)
+      .eq('item_id', actualWineId)
       .single();
 
     if (existingItem) {
       // Update quantity
       const { data: updatedItem, error: updateError } = await sb
-        .from('cart_items')
+        .from('cart_lines')
         .update({ 
           quantity: existingItem.quantity + quantity,
           updated_at: new Date().toISOString()
@@ -74,7 +65,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         .select(`
           id,
           quantity,
-          wine_id,
+          item_id,
           wines (
             id,
             wine_name,
@@ -93,16 +84,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     } else {
       // Add new item
       const { data: newItem, error: insertError } = await sb
-        .from('cart_items')
+        .from('cart_lines')
         .insert({
           cart_id: cartId,
-          wine_id: actualWineId,
+          item_id: actualWineId,
           quantity: quantity
         })
         .select(`
           id,
           quantity,
-          wine_id,
+          item_id,
           wines (
             id,
             wine_name,
@@ -128,42 +119,45 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .eq('id', cartId);
 
   // Transform to Shopify-like format
-  const transformedLines = addedItems.map(item => ({
-    id: item.id,
-    quantity: item.quantity,
-    merchandise: {
-      id: item.wine_id,
-      title: `${item.wines.wine_name} ${item.wines.vintage}`,
-      selectedOptions: [],
-      product: {
-        id: item.wine_id,
-        title: `${item.wines.wine_name} ${item.wines.vintage}`,
-        handle: item.wine_id,
-        featuredImage: { 
-          url: item.wines.label_image_path || '', 
-          altText: item.wines.wine_name,
-          width: 600,
-          height: 600
-        },
-        priceRange: {
-          minVariantPrice: { 
-            amount: (item.wines.base_price_cents / 100).toString(), 
-            currencyCode: 'SEK' 
+  const transformedLines = addedItems.map(item => {
+    const wine = item.wines as any; // Type assertion to avoid TypeScript issues
+    return {
+      id: item.id,
+      quantity: item.quantity,
+      merchandise: {
+        id: item.item_id,
+        title: `${wine?.wine_name || 'Unknown Wine'} ${wine?.vintage || ''}`,
+        selectedOptions: [],
+        product: {
+          id: item.item_id,
+          title: `${wine?.wine_name || 'Unknown Wine'} ${wine?.vintage || ''}`,
+          handle: item.item_id,
+          featuredImage: { 
+            url: wine?.label_image_path || '', 
+            altText: wine?.wine_name || 'Wine',
+            width: 600,
+            height: 600
           },
-          maxVariantPrice: { 
-            amount: (item.wines.base_price_cents / 100).toString(), 
-            currencyCode: 'SEK' 
+          priceRange: {
+            minVariantPrice: { 
+              amount: ((wine?.base_price_cents || 0) / 100).toString(), 
+              currencyCode: 'SEK' 
+            },
+            maxVariantPrice: { 
+              amount: ((wine?.base_price_cents || 0) / 100).toString(), 
+              currencyCode: 'SEK' 
+            }
           }
         }
+      },
+      cost: {
+        totalAmount: {
+          amount: (((wine?.base_price_cents || 0) * item.quantity) / 100).toString(),
+          currencyCode: 'SEK'
+        }
       }
-    },
-    cost: {
-      totalAmount: {
-        amount: ((item.wines.base_price_cents * item.quantity) / 100).toString(),
-        currencyCode: 'SEK'
-      }
-    }
-  }));
+    };
+  });
 
   console.log('Successfully added items:', transformedLines.length);
 
