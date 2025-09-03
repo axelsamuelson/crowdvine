@@ -119,12 +119,40 @@ export async function POST(request: Request) {
     
     // Convert cart items to bookings
     console.log('Converting cart items to bookings');
+    
+    // Determine pickup and delivery zones first
+    console.log('Determining zones based on cart items and delivery address');
+    const zones = await determineZones(cart.lines, {
+      postcode: address.postcode,
+      city: address.city,
+      countryCode: address.countryCode
+    });
+    
+    console.log('Zones determined:', zones);
+    
+    // Find matching pallet for the zones
+    let palletId = null;
+    if (zones.pickupZoneId && zones.deliveryZoneId) {
+      const { data: matchingPallets, error: palletsError } = await sb
+        .from('pallets')
+        .select('id')
+        .eq('pickup_zone_id', zones.pickupZoneId)
+        .eq('delivery_zone_id', zones.deliveryZoneId)
+        .limit(1);
+      
+      if (!palletsError && matchingPallets && matchingPallets.length > 0) {
+        palletId = matchingPallets[0].id;
+        console.log('Found matching pallet:', palletId);
+      }
+    }
+    
     const bookings = cart.lines.map(line => ({
       user_id: currentUser?.id || null,
       item_id: line.merchandise.id,
       quantity: line.quantity,
       band: 'market',
       status: 'reserved'
+      // pallet_id will be added once the column exists in the database
     }));
     
     const { error: bookingsError } = await sb
@@ -137,16 +165,6 @@ export async function POST(request: Request) {
     }
     
     console.log('Bookings created');
-    
-    // Determine pickup and delivery zones
-    console.log('Determining zones based on cart items and delivery address');
-    const zones = await determineZones(cart.lines, {
-      postcode: address.postcode,
-      city: address.city,
-      countryCode: address.countryCode
-    });
-    
-    console.log('Zones determined:', zones);
     
     // Update reservation with zone information
     if (zones.pickupZoneId || zones.deliveryZoneId) {
