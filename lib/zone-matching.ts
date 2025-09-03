@@ -131,11 +131,11 @@ export async function determineZones(
     if (!palletsError && matchingPallets) {
       // Get current bottle count for each pallet
       for (const pallet of matchingPallets) {
-        // Temporary: Count all bookings as if they belong to this pallet
-        // This will be fixed once pallet_id column is added to bookings table
+        // Get current bottle count for each pallet using pallet_id
         const { data: bookings, error: bookingsError } = await sb
           .from('bookings')
-          .select('quantity');
+          .select('quantity')
+          .eq('pallet_id', pallet.id);
         
         const currentBottles = bookingsError ? 0 : 
           bookings?.reduce((sum, booking) => sum + booking.quantity, 0) || 0;

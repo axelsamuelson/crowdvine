@@ -151,8 +151,8 @@ export async function POST(request: Request) {
       item_id: line.merchandise.id,
       quantity: line.quantity,
       band: 'market',
-      status: 'reserved'
-      // pallet_id will be added once the column exists in the database
+      status: 'reserved',
+      pallet_id: palletId
     }));
     
     const { error: bookingsError } = await sb

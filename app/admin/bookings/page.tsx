@@ -175,14 +175,17 @@ export default async function BookingsPage() {
                         <div className="flex items-center gap-2">
                           <Package className="h-4 w-4 text-muted-foreground" />
                           <span className="text-muted-foreground">Pallet:</span>
-                          <span className="font-medium">{booking.pallets?.name || 'Unassigned'}</span>
+                          <span className="font-medium">{booking.pallets?.name || 'No Pallet Assigned'}</span>
                         </div>
                         
                         <div className="flex items-center gap-2">
                           <MapPin className="h-4 w-4 text-muted-foreground" />
                           <span className="text-muted-foreground">Route:</span>
                           <span className="font-medium">
-                            {booking.pallets?.pickup_zone?.name} → {booking.pallets?.delivery_zone?.name}
+                            {booking.pallets?.pickup_zone?.name && booking.pallets?.delivery_zone?.name 
+                              ? `${booking.pallets.pickup_zone.name} → ${booking.pallets.delivery_zone.name}`
+                              : 'No Route Assigned'
+                            }
                           </span>
                         </div>
                         
@@ -269,7 +272,7 @@ export default async function BookingsPage() {
                         </div>
                       </td>
                       <td className="p-3">{booking.wines?.producers?.name}</td>
-                      <td className="p-3">{booking.pallets?.name || 'Unassigned'}</td>
+                      <td className="p-3">{booking.pallets?.name || 'No Pallet Assigned'}</td>
                       <td className="p-3">
                         <Badge variant="secondary">{booking.quantity} bottles</Badge>
                       </td>
