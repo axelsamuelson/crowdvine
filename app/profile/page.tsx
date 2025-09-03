@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -59,10 +59,19 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const router = useRouter();
+  const hasRedirected = useRef(false);
 
   useEffect(() => {
     fetchUserReservations();
   }, []);
+
+  // Handle redirect for unauthenticated users
+  useEffect(() => {
+    if (isAuthenticated === false && !hasRedirected.current) {
+      hasRedirected.current = true;
+      router.push('/log-in');
+    }
+  }, [isAuthenticated, router]);
 
   const fetchUserReservations = async () => {
     try {
@@ -145,11 +154,6 @@ export default function ProfilePage() {
 
   // Show signup/login page for unauthenticated users
   if (isAuthenticated === false) {
-    // Use useEffect to handle redirect instead of doing it in render
-    useEffect(() => {
-      router.push('/log-in');
-    }, [router]);
-    
     return (
       <div className="max-w-6xl mx-auto p-6">
         <div className="text-center">
