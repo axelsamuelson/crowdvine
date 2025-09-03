@@ -21,3 +21,14 @@ export async function supabaseServer() {
     { cookies: { get: (name: string) => cookieStore.get(name)?.value } }
   );
 }
+
+export async function getCurrentUser() {
+  const supabase = await supabaseServer();
+  const { data: { user }, error } = await supabase.auth.getUser();
+
+  if (error) {
+    console.error('Error getting current user:', error);
+    return null;
+  }
+  return user;
+}

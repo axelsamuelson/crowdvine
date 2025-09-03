@@ -85,7 +85,7 @@ export class CartService {
       if (!cartItems || cartItems.length === 0) {
         console.log('No cart items found, returning empty cart');
         const emptyCart = {
-          id: cartId,
+          id: await this.ensureCart(), // Use the actual database cart ID
           checkoutUrl: '/checkout',
           cost: {
             subtotalAmount: { amount: '0.00', currencyCode: 'SEK' },
@@ -172,7 +172,7 @@ export class CartService {
       );
       
       const result = {
-        id: cartId,
+        id: await this.ensureCart(), // Use the actual database cart ID
         checkoutUrl: '/checkout',
         cost: {
           subtotalAmount: { amount: subtotal.toFixed(2), currencyCode: 'SEK' },
