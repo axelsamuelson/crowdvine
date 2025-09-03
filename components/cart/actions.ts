@@ -110,14 +110,26 @@ export async function addItem(variantId: string | undefined): Promise<Cart | nul
   if (!variantId) return null;
   
   try {
-    // Get or create cart ID
-    const cartId = await getOrCreateCartId();
+    // Create cart first to get session ID
+    const cartResponse = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart`, {
+      method: 'POST',
+    });
+
+    if (!cartResponse.ok) {
+      const errorData = await cartResponse.json();
+      console.error('Cart creation error:', errorData);
+      throw new Error(`Failed to create cart: ${cartResponse.status} - ${errorData.error || 'Unknown error'}`);
+    }
+
+    const cart = await cartResponse.json();
+    console.log('Cart created in server action:', cart);
     
     // Now add the item to the cart (API will handle variant ID conversion)
-    const addResponse = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart/${cartId}/lines/add`, {
+    const addResponse = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart/${cart.id}/lines/add`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Cookie': `cartId=${cart.session_id}`, // Pass session ID in header
       },
       body: JSON.stringify({
         lines: [{ merchandiseId: variantId, quantity: 1 }]

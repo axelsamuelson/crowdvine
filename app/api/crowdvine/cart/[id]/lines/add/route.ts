@@ -7,12 +7,23 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const sb = await supabaseServer();
   const { id: cartId } = await params;
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get('cartId')?.value;
+  
+  // Try to get session ID from cookies first, then from header
+  let sessionId = cookieStore.get('cartId')?.value;
+  
+  if (!sessionId) {
+    // Try to get from request header
+    const cookieHeader = req.headers.get('cookie');
+    if (cookieHeader) {
+      const cartIdMatch = cookieHeader.match(/cartId=([^;]+)/);
+      sessionId = cartIdMatch ? cartIdMatch[1] : undefined;
+    }
+  }
 
   console.log('Cart add debug:', { cartId, sessionId, lines });
 
   if (!sessionId) {
-    console.log('No session found in cookies');
+    console.log('No session found in cookies or header');
     return NextResponse.json({ error: 'No session found' }, { status: 400 });
   }
 
