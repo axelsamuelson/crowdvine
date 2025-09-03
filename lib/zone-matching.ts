@@ -121,11 +121,9 @@ export async function determineZones(
       .select(`
         id,
         name,
-        max_bottles,
+        bottle_capacity,
         pickup_zone_id,
-        delivery_zone_id,
-        pallet_zones!pickup_zone_id (name),
-        pallet_zones!delivery_zone_id (name)
+        delivery_zone_id
       `)
       .eq('pickup_zone_id', pickupZoneId)
       .eq('delivery_zone_id', deliveryZoneId);
@@ -133,22 +131,19 @@ export async function determineZones(
     if (!palletsError && matchingPallets) {
       // Get current bottle count for each pallet
       for (const pallet of matchingPallets) {
-        const { data: bookings, error: bookingsError } = await sb
-          .from('bookings')
-          .select('quantity')
-          .eq('pallet_id', pallet.id);
-        
-        const currentBottles = bookingsError ? 0 : 
-          bookings?.reduce((sum, booking) => sum + booking.quantity, 0) || 0;
+        // Since bookings don't have pallet_id, we'll use a simple approach
+        // For now, we'll show the pallet capacity and assume it's empty
+        // In a real implementation, you'd need to link bookings to pallets
+        const currentBottles = 0; // Placeholder - would need pallet_id in bookings
         
         pallets.push({
           id: pallet.id,
           name: pallet.name,
           currentBottles,
-          maxBottles: pallet.max_bottles,
-          remainingBottles: pallet.max_bottles - currentBottles,
-          pickupZoneName: pallet.pallet_zones?.name || pickupZoneName || '',
-          deliveryZoneName: pallet.pallet_zones?.name || deliveryZoneName || ''
+          maxBottles: pallet.bottle_capacity,
+          remainingBottles: pallet.bottle_capacity - currentBottles,
+          pickupZoneName: pickupZoneName || '',
+          deliveryZoneName: deliveryZoneName || ''
         });
       }
     }

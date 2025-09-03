@@ -16,7 +16,8 @@ export async function POST(request: Request) {
       pickupZoneId: zones.pickupZoneId,
       deliveryZoneId: zones.deliveryZoneId,
       pickupZoneName: zones.pickupZoneName,
-      deliveryZoneName: zones.deliveryZoneName
+      deliveryZoneName: zones.deliveryZoneName,
+      pallets: zones.pallets || []
     });
     
   } catch (error) {
