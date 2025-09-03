@@ -2,18 +2,20 @@ import { supabaseServer } from '@/lib/supabase-server';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { formatDistanceToNow } from 'date-fns';
 import { 
   Calendar, 
   Wine, 
   Users, 
   Package, 
-  TrendingUp, 
   DollarSign,
   MapPin,
   Clock,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Search,
+  Filter,
+  Download,
+  MoreHorizontal
 } from 'lucide-react';
 
 export default async function BookingsPage() {
@@ -54,7 +56,6 @@ export default async function BookingsPage() {
   const totalBookings = bookings?.length || 0;
   const totalBottles = bookings?.reduce((sum, b) => sum + b.quantity, 0) || 0;
   const totalValue = bookings?.reduce((sum, b) => sum + (b.quantity * (b.wines?.base_price_cents || 0)), 0) || 0;
-  const recentBookings = bookings?.slice(0, 5) || [];
 
   const formatPrice = (priceCents: number) => {
     return new Intl.NumberFormat('sv-SE', {
@@ -78,215 +79,147 @@ export default async function BookingsPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-start">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-4xl font-bold text-gray-900">Bookings Management</h1>
-          <p className="text-gray-600 mt-2">
-            Monitor customer reservations and wine allocations
+          <h1 className="text-2xl font-bold text-gray-900">Bookings</h1>
+          <p className="text-sm text-gray-600 mt-1">
+            Manage customer wine reservations
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+          <Button variant="outline" size="sm">
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Bookings</p>
-                <p className="text-3xl font-bold text-blue-600">{totalBookings}</p>
+                <p className="text-2xl font-bold text-blue-600">{totalBookings}</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Individual reservations
                 </p>
               </div>
-              <Calendar className="h-12 w-12 text-blue-600" />
+              <Calendar className="h-10 w-10 text-blue-600" />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Bottles</p>
-                <p className="text-3xl font-bold text-purple-600">{totalBottles}</p>
+                <p className="text-2xl font-bold text-purple-600">{totalBottles}</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Bottles reserved
                 </p>
               </div>
-              <Wine className="h-12 w-12 text-purple-600" />
+              <Wine className="h-10 w-10 text-purple-600" />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Value</p>
-                <p className="text-3xl font-bold text-green-600">{formatPrice(totalValue)}</p>
+                <p className="text-2xl font-bold text-green-600">{formatPrice(totalValue)}</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Estimated value
                 </p>
               </div>
-              <DollarSign className="h-12 w-12 text-green-600" />
+              <DollarSign className="h-10 w-10 text-green-600" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Recent Bookings */}
+      {/* Bookings Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Recent Bookings
-          </CardTitle>
-          <CardDescription>
-            Latest wine reservations and their details
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>All Bookings</CardTitle>
+              <CardDescription>
+                Complete list of all wine reservations
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search bookings..."
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <Button variant="outline" size="sm">
+                <Filter className="h-4 w-4 mr-2" />
+                Filter
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          {recentBookings.length > 0 ? (
-            <div className="space-y-4">
-              {recentBookings.map((booking) => (
-                <div key={booking.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <Wine className="h-5 w-5 text-purple-600" />
-                        <h3 className="font-semibold text-lg">
-                          {booking.wines?.wine_name} {booking.wines?.vintage}
-                        </h3>
-                        <Badge variant="outline" className={getStatusColor(booking)}>
-                          {getStatusText(booking)}
-                        </Badge>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-muted-foreground">Producer:</span>
-                          <span className="font-medium">{booking.wines?.producers?.name}</span>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <Package className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-muted-foreground">Pallet:</span>
-                          <span className="font-medium">{booking.pallets?.name || 'No Pallet Assigned'}</span>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-muted-foreground">Route:</span>
-                          <span className="font-medium">
-                            {booking.pallets?.pickup_zone?.name && booking.pallets?.delivery_zone?.name 
-                              ? `${booking.pallets.pickup_zone.name} → ${booking.pallets.delivery_zone.name}`
-                              : 'No Route Assigned'
-                            }
-                          </span>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <DollarSign className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-muted-foreground">Price Band:</span>
-                          <span className="font-medium">{booking.band}</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="text-right ml-4">
-                      <div className="text-2xl font-bold text-green-600">
-                        {booking.quantity}
-                      </div>
-                      <div className="text-sm text-muted-foreground">bottles</div>
-                      <div className="text-sm font-medium mt-1">
-                        {formatPrice((booking.wines?.base_price_cents || 0) * booking.quantity)}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span>ID: {booking.id.slice(0, 8)}...</span>
-                      <span>Created: {formatDistanceToNow(new Date(booking.created_at), { addSuffix: true })}</span>
-                    </div>
-                    
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
-                        View Details
-                      </Button>
-                      <Button size="sm">
-                        Edit
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <Calendar className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-medium mb-2">No bookings found</h3>
-              <p className="text-muted-foreground">
-                When customers make reservations, they will appear here.
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* All Bookings Table */}
-      {bookings && bookings.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>All Bookings</CardTitle>
-            <CardDescription>
-              Complete list of all wine reservations
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+          {bookings && bookings.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-3 font-medium">Wine</th>
-                    <th className="text-left p-3 font-medium">Producer</th>
-                    <th className="text-left p-3 font-medium">Pallet</th>
-                    <th className="text-left p-3 font-medium">Quantity</th>
-                    <th className="text-left p-3 font-medium">Price Band</th>
-                    <th className="text-left p-3 font-medium">Value</th>
-                    <th className="text-left p-3 font-medium">Date</th>
-                    <th className="text-left p-3 font-medium">Actions</th>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left p-3 font-medium text-sm text-gray-600">Wine</th>
+                    <th className="text-left p-3 font-medium text-sm text-gray-600">Producer</th>
+                    <th className="text-left p-3 font-medium text-sm text-gray-600">Pallet</th>
+                    <th className="text-left p-3 font-medium text-sm text-gray-600">Quantity</th>
+                    <th className="text-left p-3 font-medium text-sm text-gray-600">Price Band</th>
+                    <th className="text-left p-3 font-medium text-sm text-gray-600">Value</th>
+                    <th className="text-left p-3 font-medium text-sm text-gray-600">Date</th>
+                    <th className="text-left p-3 font-medium text-sm text-gray-600">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {bookings.map((booking) => (
-                    <tr key={booking.id} className="border-b hover:bg-muted/50">
+                    <tr key={booking.id} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="p-3">
                         <div>
-                          <div className="font-medium">{booking.wines?.wine_name} {booking.wines?.vintage}</div>
-                          <div className="text-sm text-muted-foreground">{booking.wines?.grape_varieties}</div>
+                          <div className="font-medium text-gray-900">{booking.wines?.wine_name} {booking.wines?.vintage}</div>
+                          <div className="text-sm text-gray-500">{booking.wines?.grape_varieties}</div>
                         </div>
                       </td>
-                      <td className="p-3">{booking.wines?.producers?.name}</td>
-                      <td className="p-3">{booking.pallets?.name || 'No Pallet Assigned'}</td>
+                      <td className="p-3 text-gray-900">{booking.wines?.producers?.name}</td>
+                      <td className="p-3 text-gray-900">{booking.pallets?.name || 'No Pallet Assigned'}</td>
                       <td className="p-3">
-                        <Badge variant="secondary">{booking.quantity} bottles</Badge>
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                          {booking.quantity} bottles
+                        </Badge>
                       </td>
-                      <td className="p-3">{booking.band}</td>
-                      <td className="p-3 font-medium">
+                      <td className="p-3 text-gray-900">{booking.band}</td>
+                      <td className="p-3 font-medium text-gray-900">
                         {formatPrice((booking.wines?.base_price_cents || 0) * booking.quantity)}
                       </td>
-                      <td className="p-3 text-sm text-muted-foreground">
+                      <td className="p-3 text-sm text-gray-500">
                         {new Date(booking.created_at).toLocaleDateString()}
                       </td>
                       <td className="p-3">
                         <div className="flex gap-2">
-                          <Button variant="outline" size="sm">View</Button>
-                          <Button size="sm">Edit</Button>
+                          <Button variant="outline" size="sm" className="text-xs">
+                            View
+                          </Button>
+                          <Button size="sm" className="text-xs">
+                            Edit
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -294,9 +227,17 @@ export default async function BookingsPage() {
                 </tbody>
               </table>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          ) : (
+            <div className="text-center py-12">
+              <Calendar className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+              <h3 className="text-lg font-medium mb-2 text-gray-900">No bookings found</h3>
+              <p className="text-gray-500">
+                When customers make reservations, they will appear here.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
