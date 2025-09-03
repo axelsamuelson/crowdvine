@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function LogInPage() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -11,6 +12,7 @@ export default function LogInPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +36,7 @@ export default function LogInPage() {
         
         // Simulate redirect after 2 seconds
         setTimeout(() => {
-          window.location.href = '/profile';
+          router.push('/profile');
         }, 2000);
       }
     } catch (err) {
