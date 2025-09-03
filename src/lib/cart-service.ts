@@ -1,220 +1,354 @@
-import { cookies } from 'next/headers';
-import { randomUUID } from 'crypto';
-import { supabaseServer } from '@/lib/supabase-server';
+import { supabaseServer } from '../../lib/supabase-server';
+import { getOrSetCartId, clearCartId } from './cookies';
+import type { Cart, CartItem } from '../../lib/shopify/types';
 
-// Unified cart service that works for both server actions and API routes
 export class CartService {
-  static async getOrCreateCartId(): Promise<string> {
-    const jar = await cookies();
-    let cartId = jar.get('cv_cart_id')?.value;
-
-    if (!cartId) {
-      cartId = randomUUID();
-      jar.set('cv_cart_id', cartId, {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 60*60*24*90
-      });
+  private static async ensureCart() {
+    console.log('=== CART SERVICE ENSURE CART START ===');
+    const cartId = await getOrSetCartId();
+    console.log('Cart ID from getOrSetCartId:', cartId);
+    
+    const sb = await supabaseServer();
+    console.log('Supabase client initialized for ensureCart');
+    
+    // Check if cart exists, create if not
+    console.log('Checking if cart exists with session_id:', cartId);
+    const { data: existingCart, error: checkError } = await sb
+      .from('carts')
+      .select('id')
+      .eq('session_id', cartId)
+      .single();
+    
+    console.log('Cart check result:', { existingCart, checkError });
+    
+    if (!existingCart) {
+      console.log('Cart does not exist, creating new cart');
+      const { data: newCart, error } = await sb
+        .from('carts')
+        .insert({ session_id: cartId })
+        .select('id')
+        .single();
+      
+      console.log('Create cart result:', { newCart, error });
+      
+      if (error) {
+        console.error('Failed to create cart:', error);
+        throw new Error('Failed to create cart');
+      }
+      
+      console.log('Created new cart with ID:', newCart.id);
+      console.log('=== CART SERVICE ENSURE CART END (CREATED) ===');
+      return newCart.id;
     }
-
-    return cartId;
+    
+    console.log('Cart exists with ID:', existingCart.id);
+    console.log('=== CART SERVICE ENSURE CART END (EXISTS) ===');
+    return existingCart.id;
   }
 
-  static async getCart() {
-    const cartId = await this.getOrCreateCartId();
-    const sb = await supabaseServer();
-
-    console.log('Getting cart with ID:', cartId);
-
-    const { data: cart, error: cartError } = await sb
-      .from('carts')
-      .select(`
-        id,
-        cart_lines (
+  static async getCart(): Promise<Cart | null> {
+    console.log('=== CART SERVICE GET CART START ===');
+    try {
+      console.log('CartService.getCart called');
+      const cartId = await getOrSetCartId();
+      console.log('Cart ID from getOrSetCartId:', cartId);
+      
+      const sb = await supabaseServer();
+      console.log('Supabase client initialized for getCart');
+      
+      console.log('Querying cart_items for cart_id:', cartId);
+      const { data: cartItems, error } = await sb
+        .from('cart_items')
+        .select(`
           id,
           quantity,
-          item_id,
-          band,
           wines (
             id,
+            handle,
             wine_name,
             vintage,
             label_image_path,
             base_price_cents
           )
-        )
-      `)
-      .eq('id', cartId)
-      .single();
-
-    if (cartError || !cart) {
-      console.log('Cart not found, returning empty cart');
-      return {
-        id: cartId,
-        lines: [],
-        totalQuantity: 0
-      };
-    }
-
-    // Transform to Shopify-like format
-    const lines = (cart.cart_lines || []).map(item => {
-      const wine = item.wines as any;
-      return {
+        `)
+        .eq('cart_id', (await this.ensureCart()))
+        .order('created_at', { ascending: false });
+      
+      console.log('Cart items query result:', { cartItems, error });
+      
+      if (error) {
+        console.error('Failed to get cart items:', error);
+        console.log('=== CART SERVICE GET CART END (ERROR) ===');
+        return null;
+      }
+      
+      if (!cartItems || cartItems.length === 0) {
+        console.log('No cart items found, returning empty cart');
+        const emptyCart = {
+          id: cartId,
+          checkoutUrl: '/checkout',
+          cost: {
+            subtotalAmount: { amount: '0.00', currencyCode: 'SEK' },
+            totalAmount: { amount: '0.00', currencyCode: 'SEK' },
+            totalTaxAmount: { amount: '0.00', currencyCode: 'SEK' }
+          },
+          totalQuantity: 0,
+          lines: []
+        };
+        console.log('Empty cart result:', emptyCart);
+        console.log('=== CART SERVICE GET CART END (EMPTY) ===');
+        return emptyCart;
+      }
+      
+      console.log('Processing', cartItems.length, 'cart items');
+      const lines: CartItem[] = cartItems.map(item => ({
         id: item.id,
         quantity: item.quantity,
+        cost: {
+          totalAmount: {
+            amount: ((item.wines.base_price_cents * item.quantity) / 100).toFixed(2),
+            currencyCode: 'SEK'
+          }
+        },
         merchandise: {
-          id: item.item_id,
-          title: `${wine?.wine_name || 'Unknown Wine'} ${wine?.vintage || ''}`,
+          id: item.wines.id,
+          title: `${item.wines.wine_name} ${item.wines.vintage}`,
           selectedOptions: [],
           product: {
-            id: item.item_id,
-            title: `${wine?.wine_name || 'Unknown Wine'} ${wine?.vintage || ''}`,
-            handle: item.item_id,
-            featuredImage: {
-              url: wine?.label_image_path || '',
-              altText: wine?.wine_name || 'Wine',
-              width: 600,
-              height: 600
-            },
+            id: item.wines.id,
+            title: `${item.wines.wine_name} ${item.wines.vintage}`,
+            handle: item.wines.handle,
+            description: '',
+            descriptionHtml: '',
+            productType: 'wine',
+            categoryId: '',
+            options: [],
+            variants: [{
+              id: `${item.wines.id}-default`,
+              title: '750 ml',
+              availableForSale: true,
+              price: {
+                amount: (item.wines.base_price_cents / 100).toFixed(2),
+                currencyCode: 'SEK'
+              },
+              selectedOptions: []
+            }],
             priceRange: {
               minVariantPrice: {
-                amount: ((wine?.base_price_cents || 0) / 100).toString(),
+                amount: (item.wines.base_price_cents / 100).toFixed(2),
                 currencyCode: 'SEK'
               },
               maxVariantPrice: {
-                amount: ((wine?.base_price_cents || 0) / 100).toString(),
+                amount: (item.wines.base_price_cents / 100).toFixed(2),
                 currencyCode: 'SEK'
               }
-            }
-          }
-        },
-        cost: {
-          totalAmount: {
-            amount: (((wine?.base_price_cents || 0) * item.quantity) / 100).toString(),
-            currencyCode: 'SEK'
+            },
+            featuredImage: {
+              id: `${item.wines.id}-img`,
+              url: item.wines.label_image_path,
+              altText: item.wines.wine_name,
+              width: 600,
+              height: 600
+            },
+            images: [{
+              id: `${item.wines.id}-img`,
+              url: item.wines.label_image_path,
+              altText: item.wines.wine_name,
+              width: 600,
+              height: 600
+            }],
+            seo: { title: item.wines.wine_name, description: '' },
+            tags: [],
+            availableForSale: true,
+            currencyCode: 'SEK',
+            updatedAt: new Date().toISOString(),
+            createdAt: new Date().toISOString()
           }
         }
+      }));
+      
+      const subtotal = lines.reduce((sum, line) => 
+        sum + parseFloat(line.cost.totalAmount.amount), 0
+      );
+      
+      const result = {
+        id: cartId,
+        checkoutUrl: '/checkout',
+        cost: {
+          subtotalAmount: { amount: subtotal.toFixed(2), currencyCode: 'SEK' },
+          totalAmount: { amount: subtotal.toFixed(2), currencyCode: 'SEK' },
+          totalTaxAmount: { amount: '0.00', currencyCode: 'SEK' }
+        },
+        totalQuantity: lines.reduce((sum, line) => sum + line.quantity, 0),
+        lines
       };
-    });
-
-    const totalQuantity = lines.reduce((sum, line) => sum + line.quantity, 0);
-
-    return {
-      id: cart.id,
-      lines,
-      totalQuantity
-    };
+      
+      console.log('Final cart result:', result);
+      console.log('=== CART SERVICE GET CART END (SUCCESS) ===');
+      return result;
+    } catch (error) {
+      console.error('=== CART SERVICE GET CART ERROR ===');
+      console.error('CartService.getCart error:', error);
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      console.error('=== CART SERVICE GET CART ERROR END ===');
+      return null;
+    }
   }
 
-  static async addItem(variantId: string, quantity: number = 1) {
-    if (!variantId) return null;
-
-    const cartId = await this.getOrCreateCartId();
-    const sb = await supabaseServer();
-
-    console.log('Server action - Cart ID:', cartId);
-
-    // First, ensure cart exists
-    const { data: existingCart } = await sb
-      .from('carts')
-      .select('id')
-      .eq('id', cartId)
-      .single();
-
-    if (!existingCart) {
-      // Create cart if it doesn't exist
-      await sb
-        .from('carts')
-        .insert({ id: cartId });
-    }
-
-    // Extract actual wine ID from variant ID (remove -default suffix)
-    const actualWineId = variantId.replace('-default', '');
-
-    // Check if item already exists in cart
-    const { data: existingItem } = await sb
-      .from('cart_lines')
-      .select('id, quantity')
-      .eq('cart_id', cartId)
-      .eq('item_id', actualWineId)
-      .single();
-
-    if (existingItem) {
-      // Update quantity
-      const { data: updatedItem, error: updateError } = await sb
-        .from('cart_lines')
-        .update({
-          quantity: existingItem.quantity + quantity,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', existingItem.id)
-        .select(`
-          id,
-          item_id,
-          quantity,
-          band,
-          wines (
-            id,
-            wine_name,
-            vintage,
-            label_image_path,
-            base_price_cents
-          )
-        `)
+  static async addItem(wineId: string, quantity: number = 1): Promise<Cart | null> {
+    console.log('=== CART SERVICE ADD ITEM START ===');
+    try {
+      console.log('CartService.addItem called with:', { wineId, quantity });
+      
+      const cartId = await this.ensureCart();
+      console.log('Cart ID from ensureCart:', cartId);
+      
+      const sb = await supabaseServer();
+      console.log('Supabase client initialized');
+      
+      // Check if item already exists in cart
+      console.log('Checking for existing item with wine_id:', wineId);
+      const { data: existingItem, error: checkError } = await sb
+        .from('cart_items')
+        .select('id, quantity')
+        .eq('cart_id', cartId)
+        .eq('wine_id', wineId)
         .single();
-
-      if (updateError) {
-        console.error('Update item error:', updateError);
-        throw new Error(`Failed to update item: ${updateError.message}`);
+      
+      console.log('Existing item check result:', { existingItem, checkError });
+      
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('Error checking for existing item:', checkError);
       }
-
-      console.log('Updated item:', updatedItem);
-    } else {
-      // Add new item
-      const { data: newItem, error: insertError } = await sb
-        .from('cart_lines')
-        .insert({
-          cart_id: cartId,
-          item_id: actualWineId,
-          quantity: quantity,
-          band: 'market'
-        })
-        .select(`
-          id,
-          item_id,
-          quantity,
-          band,
-          wines (
-            id,
-            wine_name,
-            vintage,
-            label_image_path,
-            base_price_cents
-          )
-        `)
-        .single();
-
-      if (insertError) {
-        console.error('Insert item error:', insertError);
-        throw new Error(`Failed to add item: ${insertError.message}`);
+      
+      console.log('Existing item result:', existingItem);
+      
+      if (existingItem) {
+        // Update quantity
+        console.log('Updating existing item quantity from', existingItem.quantity, 'to', existingItem.quantity + quantity);
+        const { data: updatedItem, error: updateError } = await sb
+          .from('cart_items')
+          .update({ quantity: existingItem.quantity + quantity })
+          .eq('id', existingItem.id)
+          .select('*')
+          .single();
+        
+        console.log('Update result:', { updatedItem, updateError });
+        
+        if (updateError) {
+          console.error('Failed to update cart item:', updateError);
+          throw new Error('Failed to update cart item');
+        }
+        console.log('Successfully updated item quantity');
+      } else {
+        // Add new item
+        console.log('Adding new item to cart:', { cart_id: cartId, wine_id: wineId, quantity });
+        const { data: newItem, error: insertError } = await sb
+          .from('cart_items')
+          .insert({
+            cart_id: cartId,
+            wine_id: wineId,
+            quantity
+          })
+          .select('*')
+          .single();
+        
+        console.log('Insert result:', { newItem, insertError });
+        
+        if (insertError) {
+          console.error('Failed to add cart item:', insertError);
+          throw new Error('Failed to add cart item');
+        }
+        console.log('Successfully added new item:', newItem);
       }
-
-      console.log('Added new item:', newItem);
+      
+      console.log('Calling getCart to return final cart...');
+      const cart = await this.getCart();
+      console.log('Final cart result:', cart);
+      console.log('=== CART SERVICE ADD ITEM END ===');
+      return cart;
+    } catch (error) {
+      console.error('=== CART SERVICE ADD ITEM ERROR ===');
+      console.error('CartService.addItem error:', error);
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      console.error('=== CART SERVICE ADD ITEM ERROR END ===');
+      return null;
     }
-
-    // Update cart timestamp
-    await sb
-      .from('carts')
-      .update({ updated_at: new Date().toISOString() })
-      .eq('id', cartId);
-
-    // Return the updated cart
-    return await this.getCart();
   }
-}
 
-// Export the old function for backward compatibility
-export async function getOrSetCartId() {
-  return await CartService.getOrCreateCartId();
+  static async updateItem(itemId: string, quantity: number): Promise<Cart | null> {
+    try {
+      const sb = await supabaseServer();
+      
+      if (quantity <= 0) {
+        // Remove item if quantity is 0 or negative
+        const { error } = await sb
+          .from('cart_items')
+          .delete()
+          .eq('id', itemId);
+        
+        if (error) {
+          console.error('Failed to remove cart item:', error);
+          throw new Error('Failed to remove cart item');
+        }
+      } else {
+        // Update quantity
+        const { error } = await sb
+          .from('cart_items')
+          .update({ quantity })
+          .eq('id', itemId);
+        
+        if (error) {
+          console.error('Failed to update cart item:', error);
+          throw new Error('Failed to update cart item');
+        }
+      }
+      
+      return await this.getCart();
+    } catch (error) {
+      console.error('CartService.updateItem error:', error);
+      return null;
+    }
+  }
+
+  static async removeItem(itemId: string): Promise<Cart | null> {
+    try {
+      const sb = await supabaseServer();
+      
+      const { error } = await sb
+        .from('cart_items')
+        .delete()
+        .eq('id', itemId);
+      
+      if (error) {
+        console.error('Failed to remove cart item:', error);
+        throw new Error('Failed to remove cart item');
+      }
+      
+      return await this.getCart();
+    } catch (error) {
+      console.error('CartService.removeItem error:', error);
+      return null;
+    }
+  }
+
+  static async clearCart(): Promise<void> {
+    try {
+      const cartId = await getOrSetCartId();
+      const sb = await supabaseServer();
+      
+      const { error } = await sb
+        .from('cart_items')
+        .delete()
+        .eq('cart_id', (await this.ensureCart()));
+      
+      if (error) {
+        console.error('Failed to clear cart:', error);
+        throw new Error('Failed to clear cart');
+      }
+    } catch (error) {
+      console.error('CartService.clearCart error:', error);
+      throw error;
+    }
+  }
 }
