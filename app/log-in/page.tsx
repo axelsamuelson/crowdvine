@@ -34,10 +34,10 @@ export default function LogInPage() {
         setEmail('');
         setPassword('');
         
-        // Simulate redirect after 2 seconds
+        // Redirect immediately after a short delay
         setTimeout(() => {
-          router.push('/profile');
-        }, 2000);
+          window.location.href = '/profile';
+        }, 1000);
       }
     } catch (err) {
       setError(isSignUp ? 'Failed to create account. Please try again.' : 'Invalid email or password. Please try again.');
