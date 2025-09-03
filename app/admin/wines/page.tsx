@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { getWines } from '@/lib/actions/wines';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,10 +33,10 @@ export default async function WinesPage() {
             <CardHeader>
               <div className="flex justify-between items-start">
                 <div>
-                                  <CardTitle className="text-lg">{wine.wine_name}</CardTitle>
-                <CardDescription>
-                  {wine.vintage} • {wine.producer?.name || 'Unknown Producer'}
-                </CardDescription>
+                  <CardTitle className="text-lg">{wine.wine_name}</CardTitle>
+                  <CardDescription>
+                    {wine.vintage} • {wine.producer?.name || 'Unknown Producer'}
+                  </CardDescription>
                 </div>
                 <Badge className={colorColors[wine.color as keyof typeof colorColors] || 'bg-gray-100 text-gray-800'}>
                   {wine.color}
@@ -43,6 +44,21 @@ export default async function WinesPage() {
               </div>
             </CardHeader>
             <CardContent>
+              {/* Wine Image */}
+              {wine.label_image_path && (
+                <div className="mb-4">
+                  <div className="relative w-full h-48 bg-gray-100 rounded-lg overflow-hidden">
+                    <Image
+                      src={wine.label_image_path}
+                      alt={`${wine.wine_name} ${wine.vintage}`}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    />
+                  </div>
+                </div>
+              )}
+              
               <div className="space-y-2">
                 <p className="text-sm text-gray-600">{wine.grape_varieties}</p>
                 <div className="flex justify-between items-center">
