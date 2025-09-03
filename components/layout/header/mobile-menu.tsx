@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { navItems } from './index';
+import { ProfileIcon } from './profile-icon';
 import { SidebarLinks } from '../sidebar/product-sidebar-links';
 import { ShopLinks } from '../shop-links';
 import { Collection } from '@/lib/shopify/types';
@@ -96,6 +97,17 @@ export default function MobileMenu({ collections }: MobileMenuProps) {
                       </Link>
                     </Button>
                   ))}
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={closeMobileMenu}
+                    className="justify-start uppercase bg-background/50"
+                    asChild
+                  >
+                    <Link href="/profile" prefetch>
+                      Profile
+                    </Link>
+                  </Button>
                 </nav>
 
                 <ShopLinks label="Categories" collections={collections} />
