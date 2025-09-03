@@ -70,7 +70,13 @@ export async function GET(req: NextRequest) {
     .single();
 
   if (cartError || !cart) {
-    return NextResponse.json({ error: 'Cart not found' }, { status: 404 });
+    // Return empty cart instead of 404 so server action can reuse it
+    return NextResponse.json({ 
+      id: null, 
+      session_id: sessionId,
+      lines: [], 
+      totalQuantity: 0 
+    });
   }
 
   // Transform to Shopify-like format

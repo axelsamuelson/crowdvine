@@ -121,9 +121,29 @@ export async function addItem(variantId: string | undefined): Promise<Cart | nul
     if (getResponse.ok) {
       // Use existing cart
       const existingCart = await getResponse.json();
-      cartId = existingCart.id;
-      sessionId = existingCart.session_id;
-      console.log('Using existing cart:', { cartId, sessionId });
+      
+      if (existingCart.id) {
+        // Cart exists, use it
+        cartId = existingCart.id;
+        sessionId = existingCart.session_id;
+        console.log('Using existing cart:', { cartId, sessionId });
+      } else {
+        // Cart doesn't exist, create new one
+        const cartResponse = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart`, {
+          method: 'POST',
+        });
+
+        if (!cartResponse.ok) {
+          const errorData = await cartResponse.json();
+          console.error('Cart creation error:', errorData);
+          throw new Error(`Failed to create cart: ${cartResponse.status} - ${errorData.error || 'Unknown error'}`);
+        }
+
+        const cart = await cartResponse.json();
+        cartId = cart.id;
+        sessionId = cart.session_id;
+        console.log('Created new cart:', { cartId, sessionId });
+      }
     } else {
       // Create new cart if none exists
       const cartResponse = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart`, {
