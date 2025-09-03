@@ -54,6 +54,17 @@ export default function CheckoutPage() {
         console.error('Failed to parse saved form data:', error);
       }
     }
+    
+    // Restore zone info from session storage
+    const savedZoneInfo = sessionStorage.getItem('checkoutZoneInfo');
+    if (savedZoneInfo) {
+      try {
+        const parsedZoneInfo = JSON.parse(savedZoneInfo);
+        setZoneInfo(parsedZoneInfo);
+      } catch (error) {
+        console.error('Failed to parse saved zone info:', error);
+      }
+    }
   }, [searchParams]);
 
   useEffect(() => {
@@ -87,11 +98,15 @@ export default function CheckoutPage() {
               
               if (zoneResponse.ok) {
                 const zoneData = await zoneResponse.json();
-                setZoneInfo({
+                const newZoneInfo = {
                   pickupZone: zoneData.pickupZoneName,
                   deliveryZone: zoneData.deliveryZoneName,
                   pallets: zoneData.pallets
-                });
+                };
+                setZoneInfo(newZoneInfo);
+                
+                // Save zone info to session storage
+                sessionStorage.setItem('checkoutZoneInfo', JSON.stringify(newZoneInfo));
               }
             } else {
               // Only show pickup zone if no complete delivery address
@@ -112,11 +127,15 @@ export default function CheckoutPage() {
               
               if (zoneResponse.ok) {
                 const zoneData = await zoneResponse.json();
-                setZoneInfo({
+                const newZoneInfo = {
                   pickupZone: zoneData.pickupZoneName,
                   deliveryZone: null, // Don't show delivery zone yet
                   pallets: zoneData.pallets
-                });
+                };
+                setZoneInfo(newZoneInfo);
+                
+                // Save zone info to session storage
+                sessionStorage.setItem('checkoutZoneInfo', JSON.stringify(newZoneInfo));
               }
             }
           }
@@ -129,7 +148,7 @@ export default function CheckoutPage() {
     }
 
     fetchCart();
-  }, []);
+  }, [formData]); // Add formData as dependency so it runs when formData changes
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -203,11 +222,16 @@ export default function CheckoutPage() {
       
       if (zoneResponse.ok) {
         const zoneData = await zoneResponse.json();
-        setZoneInfo({
+        const newZoneInfo = {
           pickupZone: zoneData.pickupZoneName,
           deliveryZone: hasCompleteAddress ? zoneData.deliveryZoneName : null,
           pallets: hasCompleteAddress ? zoneData.pallets : []
-        });
+        };
+        
+        setZoneInfo(newZoneInfo);
+        
+        // Save zone info to session storage
+        sessionStorage.setItem('checkoutZoneInfo', JSON.stringify(newZoneInfo));
       }
     } catch (error) {
       console.error('Failed to update zone info:', error);
@@ -493,8 +517,9 @@ export default function CheckoutPage() {
           <button
             type="submit"
             onClick={() => {
-              // Clear form data from session storage when placing reservation
+              // Clear form data and zone info from session storage when placing reservation
               sessionStorage.removeItem('checkoutFormData');
+              sessionStorage.removeItem('checkoutZoneInfo');
             }}
             className="w-full px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors"
           >
