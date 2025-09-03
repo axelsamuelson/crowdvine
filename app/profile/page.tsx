@@ -143,98 +143,13 @@ export default function ProfilePage() {
 
   // Show signup/login page for unauthenticated users
   if (isAuthenticated === false) {
+    // Redirect to login page instead of showing signup/login here
+    window.location.href = '/log-in';
     return (
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome to CrowdVine</h1>
-          <p className="text-lg text-gray-600">
-            Sign up or log in to view your reservations and manage your account
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Sign Up Section */}
-          <div className="bg-white rounded-lg shadow-md border p-8">
-            <div className="text-center mb-6">
-              <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                </svg>
-              </div>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-2">Create Account</h2>
-              <p className="text-gray-600">
-                Join CrowdVine to start reserving wines and tracking your orders
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <div className="bg-blue-50 rounded-lg p-4">
-                <h3 className="font-medium text-gray-900 mb-2">Benefits of signing up:</h3>
-                <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• View all your reservations in one place</li>
-                  <li>• Track pallet progress and delivery status</li>
-                  <li>• Save delivery addresses for quick checkout</li>
-                  <li>• Get notified when your pallet is ready</li>
-                  <li>• Access exclusive wine collections</li>
-                </ul>
-              </div>
-
-              <Link 
-                href="/auth/signup" 
-                className="w-full px-6 py-3 bg-blue-600 text-white text-center rounded-lg hover:bg-blue-700 transition-colors font-medium"
-              >
-                Sign Up Now
-              </Link>
-            </div>
-          </div>
-
-          {/* Login Section */}
-          <div className="bg-white rounded-lg shadow-md border p-8">
-            <div className="text-center mb-6">
-              <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                </svg>
-              </div>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-2">Already have an account?</h2>
-              <p className="text-gray-600">
-                Log in to access your reservations and account settings
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <div className="bg-green-50 rounded-lg p-4">
-                <h3 className="font-medium text-gray-900 mb-2">Quick access to:</h3>
-                <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• Your wine reservations</li>
-                  <li>• Pallet tracking information</li>
-                  <li>• Delivery address management</li>
-                  <li>• Order history</li>
-                  <li>• Account preferences</li>
-                </ul>
-              </div>
-
-              <Link 
-                href="/auth/login" 
-                className="w-full px-6 py-3 bg-green-600 text-white text-center rounded-lg hover:bg-green-700 transition-colors font-medium"
-              >
-                Log In
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* Continue Shopping */}
-        <div className="mt-8 text-center">
-          <p className="text-gray-600 mb-4">
-            Want to browse wines first? You can always create an account later.
-          </p>
-          <Link 
-            href="/shop" 
-            className="inline-block px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-          >
-            Browse Wines
-          </Link>
+      <div className="max-w-6xl mx-auto p-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold mb-4">Redirecting...</h1>
+          <p className="text-gray-600 mb-6">Taking you to the login page...</p>
         </div>
       </div>
     );
