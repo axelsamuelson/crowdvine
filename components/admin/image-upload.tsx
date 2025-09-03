@@ -127,7 +127,7 @@ export function ImageUpload({ onImagesChange, images }: ImageUploadProps) {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {images.map((image, index) => (
                 <div key={index} className="relative group">
-                  <div className="aspect-square rounded-lg border overflow-hidden bg-gray-100">
+                  <div className="w-16 h-16 rounded-lg border overflow-hidden bg-gray-100">
                     <img
                       src={URL.createObjectURL(image)}
                       alt={`Product image ${index + 1}`}
@@ -136,56 +136,58 @@ export function ImageUpload({ onImagesChange, images }: ImageUploadProps) {
                   </div>
                   
                   {/* Overlay with actions */}
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center space-x-2">
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center space-x-1">
                     <Button
                       size="sm"
                       variant="secondary"
                       type="button"
+                      className="h-6 w-6 p-0"
                       onClick={() => {
                         const newWindow = window.open(URL.createObjectURL(image));
                         if (newWindow) newWindow.focus();
                       }}
                     >
-                      <Eye className="h-4 w-4" />
+                      <Eye className="h-3 w-3" />
                     </Button>
                     <Button
                       size="sm"
                       variant="destructive"
                       type="button"
+                      className="h-6 w-6 p-0"
                       onClick={() => removeImage(index)}
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-3 w-3" />
                     </Button>
                   </div>
 
                   {/* Move buttons */}
-                  <div className="absolute top-2 left-2 space-y-1">
+                  <div className="absolute top-1 left-1 space-y-1">
                     {index > 0 && (
-                                              <Button
-                          size="sm"
-                          variant="secondary"
-                          className="h-6 w-6 p-0"
-                          type="button"
-                          onClick={() => moveImage(index, index - 1)}
-                        >
-                          ↑
-                        </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="h-4 w-4 p-0 text-xs"
+                        type="button"
+                        onClick={() => moveImage(index, index - 1)}
+                      >
+                        ↑
+                      </Button>
                     )}
                     {index < images.length - 1 && (
-                                              <Button
-                          size="sm"
-                          variant="secondary"
-                          className="h-6 w-6 p-0"
-                          type="button"
-                          onClick={() => moveImage(index, index + 1)}
-                        >
-                          ↓
-                        </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="h-4 w-4 p-0 text-xs"
+                        type="button"
+                        onClick={() => moveImage(index, index + 1)}
+                      >
+                        ↓
+                      </Button>
                     )}
                   </div>
 
                   {/* Position indicator */}
-                  <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                  <div className="absolute top-1 right-1 bg-black/70 text-white text-xs px-1 py-0.5 rounded text-[10px]">
                     {index + 1}
                   </div>
                 </div>

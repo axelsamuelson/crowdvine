@@ -234,12 +234,18 @@ export default function WineForm({ wine, producers }: WineFormProps) {
           {formData.label_image_path && (
             <div className="space-y-2">
               <Label>Current Image</Label>
-              <div className="relative w-full h-48 bg-gray-100 rounded-lg overflow-hidden">
-                <img
-                  src={formData.label_image_path}
-                  alt="Current wine label"
-                  className="w-full h-full object-cover"
-                />
+              <div className="flex gap-4">
+                <div className="relative w-16 h-16 bg-gray-100 rounded-lg overflow-hidden">
+                  <img
+                    src={formData.label_image_path}
+                    alt="Current wine label"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-gray-600 mb-2">Current wine label image</p>
+                  <p className="text-xs text-gray-500">This image will be replaced if you upload new images below</p>
+                </div>
               </div>
             </div>
           )}
