@@ -1,6 +1,5 @@
 'use server';
 
-import { requireAuth } from '@/lib/auth';
 import { supabaseServer } from '@/lib/supabase-server';
 import { revalidatePath } from 'next/cache';
 
@@ -34,7 +33,6 @@ export interface CreateProducerData {
 }
 
 export async function getProducers() {
-  await requireAuth('admin');
   const sb = await supabaseServer();
   
   const { data, error } = await sb
@@ -47,7 +45,6 @@ export async function getProducers() {
 }
 
 export async function getProducer(id: string) {
-  await requireAuth('admin');
   const sb = await supabaseServer();
   
   const { data, error } = await sb
@@ -61,7 +58,6 @@ export async function getProducer(id: string) {
 }
 
 export async function createProducer(data: CreateProducerData) {
-  await requireAuth('admin');
   const sb = await supabaseServer();
   
   const { data: producer, error } = await sb
@@ -77,7 +73,6 @@ export async function createProducer(data: CreateProducerData) {
 }
 
 export async function updateProducer(id: string, data: Partial<CreateProducerData>) {
-  await requireAuth('admin');
   const sb = await supabaseServer();
   
   const { data: producer, error } = await sb
@@ -95,7 +90,6 @@ export async function updateProducer(id: string, data: Partial<CreateProducerDat
 }
 
 export async function deleteProducer(id: string) {
-  await requireAuth('admin');
   const sb = await supabaseServer();
   
   const { error } = await sb

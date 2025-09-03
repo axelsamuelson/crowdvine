@@ -1,6 +1,6 @@
 'use server';
 
-import { requireAuth } from '@/lib/auth';
+import { supabaseServer } from '@/lib/supabase-server';
 import { supabaseServer } from '@/lib/supabase-server';
 import { revalidatePath } from 'next/cache';
 
@@ -33,7 +33,6 @@ export interface CreateWineData {
 }
 
 export async function getWines() {
-  await requireAuth('admin');
   const sb = await supabaseServer();
   
   const { data, error } = await sb
@@ -49,7 +48,6 @@ export async function getWines() {
 }
 
 export async function getWine(id: string) {
-  await requireAuth('admin');
   const sb = await supabaseServer();
   
   const { data, error } = await sb
@@ -66,7 +64,6 @@ export async function getWine(id: string) {
 }
 
 export async function createWine(data: CreateWineData) {
-  await requireAuth('admin');
   const sb = await supabaseServer();
   
   const { data: wine, error } = await sb
@@ -85,7 +82,6 @@ export async function createWine(data: CreateWineData) {
 }
 
 export async function updateWine(id: string, data: Partial<CreateWineData>) {
-  await requireAuth('admin');
   const sb = await supabaseServer();
   
   const { data: wine, error } = await sb
@@ -106,7 +102,6 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
 }
 
 export async function deleteWine(id: string) {
-  await requireAuth('admin');
   const sb = await supabaseServer();
   
   const { error } = await sb

@@ -1,6 +1,6 @@
 'use server';
 
-import { requireAuth } from '@/lib/auth';
+import { supabaseServer } from '@/lib/supabase-server';
 import { supabaseServer } from '@/lib/supabase-server';
 
 export interface Booking {
@@ -18,7 +18,6 @@ export interface Booking {
 }
 
 export async function getBookings() {
-  await requireAuth('admin');
   const sb = await supabaseServer();
   
   const { data, error } = await sb
@@ -34,7 +33,6 @@ export async function getBookings() {
 }
 
 export async function getBookingsByStatus(status: string) {
-  await requireAuth('admin');
   const sb = await supabaseServer();
   
   const { data, error } = await sb

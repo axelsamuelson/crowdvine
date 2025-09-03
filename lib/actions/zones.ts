@@ -1,6 +1,6 @@
 'use server';
 
-import { requireAuth } from '@/lib/auth';
+import { supabaseServer } from '@/lib/supabase-server';
 import { supabaseServer } from '@/lib/supabase-server';
 import { revalidatePath } from 'next/cache';
 
@@ -22,7 +22,6 @@ export interface CreatePalletZoneData {
 }
 
 export async function getDeliveryZones() {
-  await requireAuth('admin');
   const sb = await supabaseServer();
   
   const { data, error } = await sb
@@ -36,7 +35,6 @@ export async function getDeliveryZones() {
 }
 
 export async function getPickupZones() {
-  await requireAuth('admin');
   const sb = await supabaseServer();
   
   const { data, error } = await sb
@@ -50,7 +48,6 @@ export async function getPickupZones() {
 }
 
 export async function getPalletZones() {
-  await requireAuth('admin');
   const sb = await supabaseServer();
   
   const { data, error } = await sb
@@ -63,7 +60,6 @@ export async function getPalletZones() {
 }
 
 export async function getPalletZone(id: string) {
-  await requireAuth('admin');
   const sb = await supabaseServer();
   
   const { data, error } = await sb
@@ -77,7 +73,6 @@ export async function getPalletZone(id: string) {
 }
 
 export async function createPalletZone(data: CreatePalletZoneData) {
-  await requireAuth('admin');
   const sb = await supabaseServer();
   
   const { data: zone, error } = await sb
@@ -93,7 +88,6 @@ export async function createPalletZone(data: CreatePalletZoneData) {
 }
 
 export async function updatePalletZone(id: string, data: Partial<CreatePalletZoneData>) {
-  await requireAuth('admin');
   const sb = await supabaseServer();
   
   const { data: zone, error } = await sb
@@ -111,7 +105,6 @@ export async function updatePalletZone(id: string, data: Partial<CreatePalletZon
 }
 
 export async function deletePalletZone(id: string) {
-  await requireAuth('admin');
   const sb = await supabaseServer();
   
   const { error } = await sb
