@@ -182,6 +182,18 @@ export async function addItem(variantId: string | undefined): Promise<Cart | nul
 
     const cartData = await addResponse.json();
     console.log('Cart data after add:', cartData);
+    
+    // Set the session ID as cookie if we have one
+    if (sessionId) {
+      const cookieStore = await cookies();
+      cookieStore.set('cartId', sessionId, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 30, // 30 days
+      });
+    }
+    
     revalidateTag(TAGS.cart);
     return adaptCart(cartData);
   } catch (error) {
@@ -193,7 +205,32 @@ export async function addItem(variantId: string | undefined): Promise<Cart | nul
 // Update item server action (quantity 0 removes): returns adapted Cart
 export async function updateItem({ lineId, quantity }: { lineId: string; quantity: number }): Promise<Cart | null> {
   try {
-    const cartId = await getOrCreateCartId();
+    const cookieStore = await cookies();
+    let sessionId = cookieStore.get('cartId')?.value;
+    
+    if (!sessionId) {
+      // Create new cart if no session exists
+      const cartResponse = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart`, {
+        method: 'POST',
+      });
+      const cart = await cartResponse.json();
+      sessionId = cart.session_id;
+      
+      // Set the new session ID in cookie
+      if (sessionId) {
+        cookieStore.set('cartId', sessionId, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 30, // 30 days
+        });
+      }
+    }
+    
+    // Get cart ID from session
+    const cartResponse = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart`);
+    const cartData = await cartResponse.json();
+    const cartId = cartData.id;
     
     if (quantity === 0) {
       // Remove item
@@ -201,6 +238,7 @@ export async function updateItem({ lineId, quantity }: { lineId: string; quantit
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Cookie': `cartId=${sessionId}`,
         },
         body: JSON.stringify({
           lineIds: [lineId]
@@ -212,6 +250,7 @@ export async function updateItem({ lineId, quantity }: { lineId: string; quantit
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Cookie': `cartId=${sessionId}`,
         },
         body: JSON.stringify({
           lines: [{ id: lineId, quantity }]
@@ -222,9 +261,9 @@ export async function updateItem({ lineId, quantity }: { lineId: string; quantit
     revalidateTag(TAGS.cart);
     
     // Get updated cart
-    const cartResponse = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart`);
-    const cartData = await cartResponse.json();
-    return adaptCart(cartData);
+    const updatedCartResponse = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart`);
+    const updatedCartData = await updatedCartResponse.json();
+    return adaptCart(updatedCartData);
   } catch (error) {
     console.error('Error updating item:', error);
     return null;
@@ -246,6 +285,13 @@ export async function createCartAndSetCookie() {
 
 export async function getCart(): Promise<Cart | null> {
   try {
+    const cookieStore = await cookies();
+    const sessionId = cookieStore.get('cartId')?.value;
+    
+    if (!sessionId) {
+      return null; // No cart session exists
+    }
+    
     const response = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart`);
     
     if (!response.ok) {
