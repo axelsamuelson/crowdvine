@@ -1,211 +1,288 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 
 export default function TestCartPage() {
-  const [result, setResult] = useState<string>('');
-  const [wineId, setWineId] = useState<string>('');
+  const [results, setResults] = useState<any>({});
+  const [loading, setLoading] = useState(false);
 
   const getWineId = async () => {
+    setLoading(true);
     try {
       console.log('Getting wine ID...');
       const response = await fetch('/api/crowdvine/products');
-      const wines = await response.json();
-      
-      if (wines.length > 0) {
-        const firstWine = wines[0];
-        setWineId(firstWine.id);
-        setResult(`Found wine ID: ${firstWine.id} (${firstWine.title})`);
-      } else {
-        setResult('No wines found');
-      }
+      const data = await response.json();
+      const wineId = data.products?.[0]?.id;
+      console.log('Wine ID:', wineId);
+      setResults(prev => ({ ...prev, wineId }));
+      return wineId;
     } catch (error) {
       console.error('Error getting wine ID:', error);
-      setResult(`Error: ${error}`);
-    }
-  };
-
-  const testCartCreation = async () => {
-    try {
-      console.log('Testing cart creation...');
-      const response = await fetch('/api/crowdvine/cart', {
-        method: 'POST',
-      });
-      
-      const cart = await response.json();
-      console.log('Cart creation response:', cart);
-      setResult(`Cart created: ${JSON.stringify(cart, null, 2)}`);
-      
-      // Test adding item
-      if (cart.id && wineId) {
-        console.log('Testing add item with wine ID:', wineId);
-        const addResponse = await fetch(`/api/crowdvine/cart/${cart.id}/lines/add`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            lines: [{ merchandiseId: wineId, quantity: 1 }]
-          }),
-        });
-        
-        const addResult = await addResponse.json();
-        console.log('Add item response:', addResult);
-        setResult(prev => prev + '\n\nAdd item result: ' + JSON.stringify(addResult, null, 2));
-      } else {
-        setResult(prev => prev + '\n\nSkipping add item - no wine ID available');
-      }
-    } catch (error) {
-      console.error('Test error:', error);
-      setResult(`Error: ${error}`);
+      setResults(prev => ({ ...prev, wineIdError: error }));
+    } finally {
+      setLoading(false);
     }
   };
 
   const testCartGet = async () => {
+    setLoading(true);
     try {
       console.log('Testing cart get...');
       const response = await fetch('/api/crowdvine/cart');
-      const cart = await response.json();
-      console.log('Cart get response:', cart);
-      setResult(`Cart get: ${JSON.stringify(cart, null, 2)}`);
+      const data = await response.json();
+      console.log('Cart get response:', data);
+      setResults(prev => ({ ...prev, cartGet: data }));
     } catch (error) {
-      console.error('Test error:', error);
-      setResult(`Error: ${error}`);
+      console.error('Error getting cart:', error);
+      setResults(prev => ({ ...prev, cartGetError: error }));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const testCartCreation = async () => {
+    setLoading(true);
+    try {
+      console.log('Testing cart creation...');
+      const response = await fetch('/api/crowdvine/cart', { method: 'POST' });
+      const data = await response.json();
+      console.log('Cart creation response:', data);
+      setResults(prev => ({ ...prev, cartCreation: data }));
+    } catch (error) {
+      console.error('Error creating cart:', error);
+      setResults(prev => ({ ...prev, cartCreationError: error }));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const testAddItem = async (cartId: string, wineId: string) => {
+    setLoading(true);
+    try {
+      console.log('Testing add item...');
+      const response = await fetch(`/api/crowdvine/cart/${cartId}/lines/add`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lines: [{ merchandiseId: `${wineId}-default`, quantity: 1 }]
+        }),
+      });
+      const data = await response.json();
+      console.log('Add item response:', data);
+      setResults(prev => ({ ...prev, addItem: data }));
+    } catch (error) {
+      console.error('Error adding item:', error);
+      setResults(prev => ({ ...prev, addItemError: error }));
+    } finally {
+      setLoading(false);
     }
   };
 
   const testShopStyleAdd = async () => {
+    setLoading(true);
     try {
-      console.log('Testing shop-style add (with variant ID)...');
-      
-      // Simulate shop-style variant ID
-      const variantId = wineId + '-default';
-      console.log('Using variant ID:', variantId);
-      
-      // Test cart creation first
-      const cartResponse = await fetch('/api/crowdvine/cart', {
+      console.log('Testing shop-style add...');
+      const wineId = await getWineId();
+      if (!wineId) return;
+
+      // First get existing cart
+      const getResponse = await fetch('/api/crowdvine/cart');
+      const existingCart = await getResponse.json();
+      console.log('Existing cart:', existingCart);
+
+      let cartId: string;
+      let sessionId: string;
+
+      if (existingCart.id && existingCart.session_id) {
+        cartId = existingCart.id;
+        sessionId = existingCart.session_id;
+        console.log('Using existing cart:', { cartId, sessionId });
+      } else {
+        // Create new cart
+        const cartResponse = await fetch('/api/crowdvine/cart', { method: 'POST' });
+        const cart = await cartResponse.json();
+        cartId = cart.id;
+        sessionId = cart.session_id;
+        console.log('Created new cart:', { cartId, sessionId });
+      }
+
+      // Add item
+      const addResponse = await fetch(`/api/crowdvine/cart/${cartId}/lines/add`, {
         method: 'POST',
-      });
-      
-      const cart = await cartResponse.json();
-      console.log('Cart created for shop test:', cart);
-      
-      // Test adding with variant ID (like shop does)
-      const addResponse = await fetch(`/api/crowdvine/cart/${cart.id}/lines/add`, {
-        method: 'POST',
-        headers: {
+        headers: { 
           'Content-Type': 'application/json',
+          'Cookie': `cartId=${sessionId}`,
         },
         body: JSON.stringify({
-          lines: [{ merchandiseId: variantId, quantity: 1 }]
+          lines: [{ merchandiseId: `${wineId}-default`, quantity: 1 }]
         }),
       });
-      
-      const addResult = await addResponse.json();
-      console.log('Shop-style add result:', addResult);
-      setResult(`Shop-style test:\nCart: ${JSON.stringify(cart, null, 2)}\nAdd: ${JSON.stringify(addResult, null, 2)}`);
+      const addData = await addResponse.json();
+      console.log('Add result:', addData);
+
+      setResults(prev => ({ 
+        ...prev, 
+        shopStyleTest: {
+          cart: existingCart,
+          add: addData
+        }
+      }));
     } catch (error) {
-      console.error('Shop-style test error:', error);
-      setResult(`Shop-style test error: ${error}`);
+      console.error('Error in shop-style test:', error);
+      setResults(prev => ({ ...prev, shopStyleError: error }));
+    } finally {
+      setLoading(false);
     }
   };
 
   const testCookieDebug = async () => {
+    setLoading(true);
     try {
       console.log('Testing cookie debug...');
       
-      // Get current cookies
-      const cookies = document.cookie;
-      console.log('Current cookies:', cookies);
-      
-      // Test cart creation and cookie setting
-      const cartResponse = await fetch('/api/crowdvine/cart', {
-        method: 'POST',
-      });
-      
+      // Get cookies before cart creation
+      const beforeResponse = await fetch('/api/crowdvine/cart');
+      const beforeCart = await beforeResponse.json();
+      console.log('Before cart creation:', beforeCart);
+
+      // Create cart
+      const cartResponse = await fetch('/api/crowdvine/cart', { method: 'POST' });
       const cart = await cartResponse.json();
       console.log('Cart created:', cart);
-      
-      // Check cookies after creation
-      const cookiesAfter = document.cookie;
-      console.log('Cookies after cart creation:', cookiesAfter);
-      
-      setResult(`Cookie Debug:\nBefore: ${cookies}\nAfter: ${cookiesAfter}\nCart: ${JSON.stringify(cart, null, 2)}`);
+
+      // Get cookies after cart creation
+      const afterResponse = await fetch('/api/crowdvine/cart');
+      const afterCart = await afterResponse.json();
+      console.log('After cart creation:', afterCart);
+
+      setResults(prev => ({ 
+        ...prev, 
+        cookieDebug: {
+          before: beforeCart,
+          created: cart,
+          after: afterCart
+        }
+      }));
     } catch (error) {
-      console.error('Cookie debug error:', error);
-      setResult(`Cookie debug error: ${error}`);
+      console.error('Error in cookie debug:', error);
+      setResults(prev => ({ ...prev, cookieDebugError: error }));
+    } finally {
+      setLoading(false);
     }
   };
 
   const testServerActionSimulation = async () => {
+    setLoading(true);
     try {
       console.log('Testing server action simulation...');
       
-      // Simulate what server action does
-      const cartId = 'test-cart-id';
+      // Simulate the exact flow from server action
+      const getResponse = await fetch('/api/crowdvine/cart');
+      console.log('GET response status:', getResponse.status);
+      console.log('GET response ok:', getResponse.ok);
       
-      // Try to add item without proper session
-      const addResponse = await fetch(`/api/crowdvine/cart/${cartId}/lines/add`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          lines: [{ merchandiseId: wineId, quantity: 1 }]
-        }),
-      });
+      const existingCart = await getResponse.json();
+      console.log('Existing cart data:', existingCart);
       
-      const addResult = await addResponse.json();
-      console.log('Server action simulation result:', addResult);
-      setResult(`Server action simulation:\nResponse: ${JSON.stringify(addResult, null, 2)}`);
+      let cartId: string;
+      let sessionId: string;
+
+      if (existingCart.id && existingCart.session_id) {
+        cartId = existingCart.id;
+        sessionId = existingCart.session_id;
+        console.log('Using existing cart:', { cartId, sessionId });
+      } else {
+        console.log('Creating new cart because:', {
+          hasId: !!existingCart.id,
+          hasSessionId: !!existingCart.session_id,
+          cartData: existingCart
+        });
+        
+        const cartResponse = await fetch('/api/crowdvine/cart', { method: 'POST' });
+        const cart = await cartResponse.json();
+        cartId = cart.id;
+        sessionId = cart.session_id;
+        console.log('Created new cart:', { cartId, sessionId });
+      }
+
+      setResults(prev => ({ 
+        ...prev, 
+        serverActionSimulation: {
+          getResponse: { status: getResponse.status, ok: getResponse.ok },
+          existingCart,
+          decision: existingCart.id && existingCart.session_id ? 'use_existing' : 'create_new',
+          finalCart: { cartId, sessionId }
+        }
+      }));
     } catch (error) {
-      console.error('Server action simulation error:', error);
-      setResult(`Server action simulation error: ${error}`);
+      console.error('Error in server action simulation:', error);
+      setResults(prev => ({ ...prev, serverActionError: error }));
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="container mx-auto p-8">
-      <h1 className="text-2xl font-bold mb-4">Cart Test Page</h1>
+    <div className="p-8 max-w-4xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">Cart Test Page</h1>
       
-      <div className="space-y-4 mb-6">
-        <Button onClick={getWineId} variant="outline">
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <button 
+          onClick={getWineId} 
+          disabled={loading}
+          className="p-2 bg-blue-500 text-white rounded disabled:opacity-50"
+        >
           Get Wine ID
-        </Button>
-        <Button onClick={testCartCreation} disabled={!wineId}>
-          Test Cart Creation + Add Item
-        </Button>
-        <Button onClick={testCartGet} variant="outline">
+        </button>
+        
+        <button 
+          onClick={testCartGet} 
+          disabled={loading}
+          className="p-2 bg-green-500 text-white rounded disabled:opacity-50"
+        >
           Test Cart Get
-        </Button>
-        <Button onClick={testShopStyleAdd} disabled={!wineId} variant="outline">
-          Test Shop-Style Add (with variant ID)
-        </Button>
-        <Button onClick={testCookieDebug} variant="outline">
+        </button>
+        
+        <button 
+          onClick={testCartCreation} 
+          disabled={loading}
+          className="p-2 bg-purple-500 text-white rounded disabled:opacity-50"
+        >
+          Test Cart Creation
+        </button>
+        
+        <button 
+          onClick={testShopStyleAdd} 
+          disabled={loading}
+          className="p-2 bg-orange-500 text-white rounded disabled:opacity-50"
+        >
+          Test Shop-Style Add
+        </button>
+        
+        <button 
+          onClick={testCookieDebug} 
+          disabled={loading}
+          className="p-2 bg-red-500 text-white rounded disabled:opacity-50"
+        >
           Test Cookie Debug
-        </Button>
-        <Button onClick={testServerActionSimulation} disabled={!wineId} variant="outline">
+        </button>
+        
+        <button 
+          onClick={testServerActionSimulation} 
+          disabled={loading}
+          className="p-2 bg-yellow-500 text-white rounded disabled:opacity-50"
+        >
           Test Server Action Simulation
-        </Button>
+        </button>
       </div>
-      
-      <div className="p-4 border rounded bg-gray-50">
-        <h2 className="font-semibold mb-2">Result:</h2>
-        <pre className="text-sm whitespace-pre-wrap">{result}</pre>
-      </div>
-      
-      <div className="mt-4 p-4 border rounded">
-        <h2 className="font-semibold mb-2">Instructions:</h2>
-        <ol className="list-decimal list-inside space-y-1">
-          <li>Click "Get Wine ID" to fetch a real wine ID from the database</li>
-          <li>Click "Test Cart Creation + Add Item" to test the working flow</li>
-          <li>Click "Test Shop-Style Add" to simulate shop behavior</li>
-          <li>Click "Test Cookie Debug" to check cookie handling</li>
-          <li>Click "Test Server Action Simulation" to debug server action issues</li>
-          <li>Check browser console for detailed logs</li>
-          <li>Check browser dev tools → Application → Cookies for cartId</li>
-        </ol>
+
+      {loading && <div className="text-center p-4 bg-gray-100 rounded">Loading...</div>}
+
+      <div className="mt-6">
+        <h2 className="text-xl font-semibold mb-4">Results:</h2>
+        <pre className="bg-gray-100 p-4 rounded text-sm overflow-auto max-h-96">
+          {JSON.stringify(results, null, 2)}
+        </pre>
       </div>
     </div>
   );
