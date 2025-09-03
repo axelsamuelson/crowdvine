@@ -98,6 +98,10 @@ export async function determineZones(
         deliveryZoneName = deliveryZones[0].name;
       }
     }
+  } else {
+    // If no complete address, don't set delivery zone
+    deliveryZoneId = null;
+    deliveryZoneName = null;
   }
   
   console.log('Zone matching result:', {

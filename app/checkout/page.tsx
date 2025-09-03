@@ -66,28 +66,58 @@ export default function CheckoutPage() {
           
           // Fetch zone information if cart has items
           if (cartData.totalQuantity > 0) {
-            const zoneResponse = await fetch('/api/checkout/zones', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                cartItems: cartData.lines,
-                deliveryAddress: {
-                  postcode: formData.postcode || '11458', // Default for demo
-                  city: formData.city || 'Stockholm',
-                  countryCode: formData.countryCode || 'SE'
-                }
-              })
-            });
+            // Only fetch zone info if we have a complete delivery address
+            const hasCompleteAddress = formData.postcode && formData.city && formData.countryCode;
             
-            if (zoneResponse.ok) {
-                      const zoneData = await zoneResponse.json();
-        setZoneInfo({
-          pickupZone: zoneData.pickupZoneName,
-          deliveryZone: zoneData.deliveryZoneName,
-          pallets: zoneData.pallets
-        });
+            if (hasCompleteAddress) {
+              const zoneResponse = await fetch('/api/checkout/zones', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  cartItems: cartData.lines,
+                  deliveryAddress: {
+                    postcode: formData.postcode,
+                    city: formData.city,
+                    countryCode: formData.countryCode
+                  }
+                })
+              });
+              
+              if (zoneResponse.ok) {
+                const zoneData = await zoneResponse.json();
+                setZoneInfo({
+                  pickupZone: zoneData.pickupZoneName,
+                  deliveryZone: zoneData.deliveryZoneName,
+                  pallets: zoneData.pallets
+                });
+              }
+            } else {
+              // Only show pickup zone if no complete delivery address
+              const zoneResponse = await fetch('/api/checkout/zones', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  cartItems: cartData.lines,
+                  deliveryAddress: {
+                    postcode: '',
+                    city: '',
+                    countryCode: ''
+                  }
+                })
+              });
+              
+              if (zoneResponse.ok) {
+                const zoneData = await zoneResponse.json();
+                setZoneInfo({
+                  pickupZone: zoneData.pickupZoneName,
+                  deliveryZone: null, // Don't show delivery zone yet
+                  pallets: zoneData.pallets
+                });
+              }
             }
           }
         }
@@ -149,6 +179,9 @@ export default function CheckoutPage() {
     if (!cart || cart.totalQuantity === 0) return;
     
     try {
+      // Only fetch zone info if we have a complete delivery address
+      const hasCompleteAddress = currentFormData.postcode && currentFormData.city && currentFormData.countryCode;
+      
       const zoneResponse = await fetch('/api/checkout/zones', {
         method: 'POST',
         headers: {
@@ -156,10 +189,14 @@ export default function CheckoutPage() {
         },
         body: JSON.stringify({
           cartItems: cart.lines,
-          deliveryAddress: {
-            postcode: currentFormData.postcode || '11458',
-            city: currentFormData.city || 'Stockholm',
-            countryCode: currentFormData.countryCode || 'SE'
+          deliveryAddress: hasCompleteAddress ? {
+            postcode: currentFormData.postcode,
+            city: currentFormData.city,
+            countryCode: currentFormData.countryCode
+          } : {
+            postcode: '',
+            city: '',
+            countryCode: ''
           }
         })
       });
@@ -168,8 +205,8 @@ export default function CheckoutPage() {
         const zoneData = await zoneResponse.json();
         setZoneInfo({
           pickupZone: zoneData.pickupZoneName,
-          deliveryZone: zoneData.deliveryZoneName,
-          pallets: zoneData.pallets
+          deliveryZone: hasCompleteAddress ? zoneData.deliveryZoneName : null,
+          pallets: hasCompleteAddress ? zoneData.pallets : []
         });
       }
     } catch (error) {
