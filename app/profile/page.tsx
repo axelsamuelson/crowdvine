@@ -145,8 +145,11 @@ export default function ProfilePage() {
 
   // Show signup/login page for unauthenticated users
   if (isAuthenticated === false) {
-    // Redirect to login page instead of showing signup/login here
-    router.push('/log-in');
+    // Use useEffect to handle redirect instead of doing it in render
+    useEffect(() => {
+      router.push('/log-in');
+    }, [router]);
+    
     return (
       <div className="max-w-6xl mx-auto p-6">
         <div className="text-center">
