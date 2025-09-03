@@ -27,75 +27,91 @@ export default async function WinesPage() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {wines.map((wine) => (
-          <Card key={wine.id}>
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="text-lg">{wine.wine_name}</CardTitle>
-                  <CardDescription>
-                    {wine.vintage} • {wine.producer?.name || 'Unknown Producer'}
-                  </CardDescription>
-                </div>
-                <Badge className={colorColors[wine.color as keyof typeof colorColors] || 'bg-gray-100 text-gray-800'}>
-                  {wine.color}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {/* Wine Image */}
-              {wine.label_image_path && (
-                <div className="mb-4">
-                  <div className="relative w-full h-48 bg-gray-100 rounded-lg overflow-hidden">
-                    <Image
-                      src={wine.label_image_path}
-                      alt={`${wine.wine_name} ${wine.vintage}`}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    />
-                  </div>
-                </div>
-              )}
-              
-              <div className="space-y-2">
-                <p className="text-sm text-gray-600">{wine.grape_varieties}</p>
-                <div className="flex justify-between items-center">
-                  <div className="text-sm font-medium">
-                    {(wine.base_price_cents / 100).toFixed(2)} SEK
-                  </div>
-                  <div className="text-xs text-gray-400">
-                    Handle: {wine.handle}
-                  </div>
-                </div>
-                <div className="flex justify-between items-center pt-2">
-                  <div className="text-xs text-gray-400">
-                    ID: {wine.id.slice(0, 8)}...
-                  </div>
-                  <div className="flex space-x-2">
-                    <Link href={`/admin/wines/${wine.id}`}>
-                      <Button variant="outline" size="sm">Edit</Button>
-                    </Link>
-                    <DeleteWineButton wineId={wine.id} wineName={wine.wine_name} />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {/* Wines Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>All Wines</CardTitle>
+          <CardDescription>
+            Complete list of all wine products
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left p-3 font-medium text-sm text-gray-600">Image</th>
+                  <th className="text-left p-3 font-medium text-sm text-gray-600">Wine</th>
+                  <th className="text-left p-3 font-medium text-sm text-gray-600">Producer</th>
+                  <th className="text-left p-3 font-medium text-sm text-gray-600">Color</th>
+                  <th className="text-left p-3 font-medium text-sm text-gray-600">Price</th>
+                  <th className="text-left p-3 font-medium text-sm text-gray-600">Handle</th>
+                  <th className="text-left p-3 font-medium text-sm text-gray-600">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {wines.map((wine) => (
+                  <tr key={wine.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="p-3">
+                      <div className="relative w-16 h-16 bg-gray-100 rounded-lg overflow-hidden">
+                        {wine.label_image_path ? (
+                          <Image
+                            src={wine.label_image_path}
+                            alt={`${wine.wine_name} ${wine.vintage}`}
+                            fill
+                            className="object-cover"
+                            sizes="64px"
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center w-full h-full text-gray-400 text-xs">
+                            No Image
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      <div>
+                        <div className="font-medium text-gray-900">{wine.wine_name}</div>
+                        <div className="text-sm text-gray-500">{wine.vintage}</div>
+                        <div className="text-xs text-gray-400">{wine.grape_varieties}</div>
+                      </div>
+                    </td>
+                    <td className="p-3 text-gray-900">{wine.producer?.name || 'Unknown'}</td>
+                    <td className="p-3">
+                      <Badge className={colorColors[wine.color as keyof typeof colorColors] || 'bg-gray-100 text-gray-800'}>
+                        {wine.color}
+                      </Badge>
+                    </td>
+                    <td className="p-3 font-medium text-gray-900">
+                      {(wine.base_price_cents / 100).toFixed(2)} SEK
+                    </td>
+                    <td className="p-3 text-sm text-gray-500 font-mono">
+                      {wine.handle}
+                    </td>
+                    <td className="p-3">
+                      <div className="flex gap-2">
+                        <Link href={`/admin/wines/${wine.id}`}>
+                          <Button variant="outline" size="sm">Edit</Button>
+                        </Link>
+                        <DeleteWineButton wineId={wine.id} wineName={wine.wine_name} />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-      {wines.length === 0 && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <p className="text-gray-500 mb-4">No wines found</p>
-            <Link href="/admin/wines/new">
-              <Button>Add your first wine</Button>
-            </Link>
-          </CardContent>
-        </Card>
-      )}
+          {wines.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-gray-500 mb-4">No wines found</p>
+              <Link href="/admin/wines/new">
+                <Button>Add your first wine</Button>
+              </Link>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
