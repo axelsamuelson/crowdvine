@@ -9,7 +9,7 @@ export async function GET() {
       *,
       delivery_zone:pallet_zones!delivery_zone_id(id, name, zone_type),
       pickup_zone:pallet_zones!pickup_zone_id(id, name, zone_type),
-      bookings!inner(
+      bookings(
         quantity,
         wines(
           id,
