@@ -21,12 +21,13 @@ export default async function ZonesPage() {
   // Hämta zones med relaterad data
   const { data: zones } = await sb
     .from('pallet_zones')
-    .select(`
-      *,
-      pallets!pickup_zone_id(id, name, bottle_capacity),
-      pallets!delivery_zone_id(id, name, bottle_capacity)
-    `)
+    .select('*')
     .order('name');
+
+  // Hämta pallets separat för att beräkna statistik
+  const { data: allPallets } = await sb
+    .from('pallets')
+    .select('id, name, bottle_capacity, pickup_zone_id, delivery_zone_id');
 
   // Beräkna statistik
   const totalZones = zones?.length || 0;
@@ -35,10 +36,10 @@ export default async function ZonesPage() {
   
   // Beräkna pallet-statistik per zone
   const zonesWithStats = zones?.map(zone => {
-    const pickupPallets = zone.pallets?.filter(p => p.id) || [];
-    const deliveryPallets = zone.pallets?.filter(p => p.id) || [];
+    const pickupPallets = allPallets?.filter(p => p.pickup_zone_id === zone.id) || [];
+    const deliveryPallets = allPallets?.filter(p => p.delivery_zone_id === zone.id) || [];
     const totalPallets = pickupPallets.length + deliveryPallets.length;
-    const totalCapacity = [...pickupPallets, ...deliveryPallets].reduce((sum, p) => sum + p.bottle_capacity, 0);
+    const totalCapacity = [...pickupPallets, ...deliveryPallets].reduce((sum, p) => sum + (p.bottle_capacity || 0), 0);
     
     return {
       ...zone,
