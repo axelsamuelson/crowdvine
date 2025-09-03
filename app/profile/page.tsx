@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/utils/supabase/client';
 
 interface Reservation {
   id: string;
@@ -76,26 +77,32 @@ export default function ProfilePage() {
   const fetchUserReservations = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/user/reservations');
-      
-      if (response.status === 401) {
-        // User not authenticated
+      const supabase = createClient();
+      const { data: { user } = {} } = await supabase.auth.getUser();
+
+      if (!user) {
         setIsAuthenticated(false);
-        setError(null);
         return;
       }
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch reservations');
+
+      setIsAuthenticated(true);
+
+      const response = await fetch('/api/user/reservations');
+
+      if (response.status === 401) {
+        setIsAuthenticated(false);
+        return;
       }
-      
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
       setReservations(data.reservations || []);
-      setIsAuthenticated(true);
     } catch (err) {
       console.error('Error fetching reservations:', err);
       setError('Failed to load your reservations');
-      setIsAuthenticated(false);
     } finally {
       setLoading(false);
     }
