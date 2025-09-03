@@ -110,6 +110,11 @@ export async function addItem(variantId: string | undefined): Promise<Cart | nul
   if (!variantId) return null;
   
   try {
+    // Debug: Check cookies first
+    const cookieStore = await cookies();
+    const cookieSessionId = cookieStore.get('cartId')?.value;
+    console.log('Server action - Cookie session ID:', cookieSessionId);
+    
     // First try to get existing cart
     const getResponse = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart`, {
       method: 'GET',
@@ -121,6 +126,7 @@ export async function addItem(variantId: string | undefined): Promise<Cart | nul
     if (getResponse.ok) {
       // Use existing cart
       const existingCart = await getResponse.json();
+      console.log('Server action - GET response:', existingCart);
       
       if (existingCart.id && existingCart.session_id) {
         // Cart exists, use it
@@ -129,6 +135,12 @@ export async function addItem(variantId: string | undefined): Promise<Cart | nul
         console.log('Using existing cart:', { cartId, sessionId });
       } else {
         // Cart doesn't exist, create new one
+        console.log('Creating new cart because:', {
+          hasId: !!existingCart.id,
+          hasSessionId: !!existingCart.session_id,
+          cartData: existingCart
+        });
+        
         const cartResponse = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart`, {
           method: 'POST',
         });
@@ -146,6 +158,7 @@ export async function addItem(variantId: string | undefined): Promise<Cart | nul
       }
     } else {
       // Create new cart if none exists
+      console.log('GET response not ok, creating new cart');
       const cartResponse = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart`, {
         method: 'POST',
       });
