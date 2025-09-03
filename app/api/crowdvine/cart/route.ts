@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
   const sessionId = cookieStore.get('cartId')?.value;
 
   if (!sessionId) {
-    return NextResponse.json({ id: null, lines: [], totalQuantity: 0 });
+    return NextResponse.json({ error: 'No session found' }, { status: 404 });
   }
 
   // Get cart with items
@@ -52,6 +52,7 @@ export async function GET(req: NextRequest) {
     .from('carts')
     .select(`
       id,
+      session_id,
       cart_items (
         id,
         quantity,
@@ -68,56 +69,56 @@ export async function GET(req: NextRequest) {
     .eq('session_id', sessionId)
     .single();
 
-  if (cartError) {
-    return NextResponse.json({ id: null, lines: [], totalQuantity: 0 });
-  }
-
-  if (!cart) {
-    return NextResponse.json({ id: null, lines: [], totalQuantity: 0 });
+  if (cartError || !cart) {
+    return NextResponse.json({ error: 'Cart not found' }, { status: 404 });
   }
 
   // Transform to Shopify-like format
-  const lines = (cart.cart_items || []).map(item => ({
-    id: item.id,
-    quantity: item.quantity,
-    merchandise: {
-      id: item.wine_id,
-      title: `${item.wines.wine_name} ${item.wines.vintage}`,
-      selectedOptions: [],
-      product: {
+  const lines = (cart.cart_items || []).map(item => {
+    const wine = item.wines as any; // Type assertion to avoid TypeScript issues
+    return {
+      id: item.id,
+      quantity: item.quantity,
+      merchandise: {
         id: item.wine_id,
-        title: `${item.wines.wine_name} ${item.wines.vintage}`,
-        handle: item.wine_id,
-        featuredImage: { 
-          url: item.wines.label_image_path || '', 
-          altText: item.wines.wine_name,
-          width: 600,
-          height: 600
-        },
-        priceRange: {
-          minVariantPrice: { 
-            amount: (item.wines.base_price_cents / 100).toString(), 
-            currencyCode: 'SEK' 
+        title: `${wine?.wine_name || 'Unknown Wine'} ${wine?.vintage || ''}`,
+        selectedOptions: [],
+        product: {
+          id: item.wine_id,
+          title: `${wine?.wine_name || 'Unknown Wine'} ${wine?.vintage || ''}`,
+          handle: item.wine_id,
+          featuredImage: { 
+            url: wine?.label_image_path || '', 
+            altText: wine?.wine_name || 'Wine',
+            width: 600,
+            height: 600
           },
-          maxVariantPrice: { 
-            amount: (item.wines.base_price_cents / 100).toString(), 
-            currencyCode: 'SEK' 
+          priceRange: {
+            minVariantPrice: { 
+              amount: ((wine?.base_price_cents || 0) / 100).toString(), 
+              currencyCode: 'SEK' 
+            },
+            maxVariantPrice: { 
+              amount: ((wine?.base_price_cents || 0) / 100).toString(), 
+              currencyCode: 'SEK' 
+            }
           }
         }
+      },
+      cost: {
+        totalAmount: {
+          amount: (((wine?.base_price_cents || 0) * item.quantity) / 100).toString(),
+          currencyCode: 'SEK'
+        }
       }
-    },
-    cost: {
-      totalAmount: {
-        amount: ((item.wines.base_price_cents * item.quantity) / 100).toString(),
-        currencyCode: 'SEK'
-      }
-    }
-  }));
+    };
+  });
 
   const totalQuantity = lines.reduce((sum, line) => sum + line.quantity, 0);
 
   return NextResponse.json({ 
     id: cart.id, 
+    session_id: cart.session_id,
     lines, 
     totalQuantity 
   });

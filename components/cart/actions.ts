@@ -110,26 +110,44 @@ export async function addItem(variantId: string | undefined): Promise<Cart | nul
   if (!variantId) return null;
   
   try {
-    // Create cart first to get session ID
-    const cartResponse = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart`, {
-      method: 'POST',
+    // First try to get existing cart
+    const getResponse = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart`, {
+      method: 'GET',
     });
 
-    if (!cartResponse.ok) {
-      const errorData = await cartResponse.json();
-      console.error('Cart creation error:', errorData);
-      throw new Error(`Failed to create cart: ${cartResponse.status} - ${errorData.error || 'Unknown error'}`);
-    }
+    let cartId: string;
+    let sessionId: string;
 
-    const cart = await cartResponse.json();
-    console.log('Cart created in server action:', cart);
+    if (getResponse.ok) {
+      // Use existing cart
+      const existingCart = await getResponse.json();
+      cartId = existingCart.id;
+      sessionId = existingCart.session_id;
+      console.log('Using existing cart:', { cartId, sessionId });
+    } else {
+      // Create new cart if none exists
+      const cartResponse = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart`, {
+        method: 'POST',
+      });
+
+      if (!cartResponse.ok) {
+        const errorData = await cartResponse.json();
+        console.error('Cart creation error:', errorData);
+        throw new Error(`Failed to create cart: ${cartResponse.status} - ${errorData.error || 'Unknown error'}`);
+      }
+
+      const cart = await cartResponse.json();
+      cartId = cart.id;
+      sessionId = cart.session_id;
+      console.log('Created new cart:', { cartId, sessionId });
+    }
     
     // Now add the item to the cart (API will handle variant ID conversion)
-    const addResponse = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart/${cart.id}/lines/add`, {
+    const addResponse = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/crowdvine/cart/${cartId}/lines/add`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Cookie': `cartId=${cart.session_id}`, // Pass session ID in header
+        'Cookie': `cartId=${sessionId}`, // Pass session ID in header
       },
       body: JSON.stringify({
         lines: [{ merchandiseId: variantId, quantity: 1 }]
