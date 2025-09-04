@@ -108,7 +108,6 @@ RETURNS TABLE (
   producer_name VARCHAR,
   base_price_cents INTEGER,
   calculated_price_cents INTEGER,
-  band VARCHAR,
   handle VARCHAR,
   label_image_path TEXT,
   description TEXT,
@@ -127,7 +126,6 @@ BEGIN
     p.name as producer_name,
     w.base_price_cents,
     w.calculated_price_cents,
-    w.band,
     w.handle,
     w.label_image_path,
     w.description,
@@ -140,7 +138,7 @@ BEGIN
   LEFT JOIN grape_varieties gv ON wgv.grape_variety_id = gv.id
   WHERE w.id = wine_id
   GROUP BY w.id, w.wine_name, w.vintage, wc.name, wc.hex_color, p.name, 
-           w.base_price_cents, w.calculated_price_cents, w.band, w.handle, 
+           w.base_price_cents, w.calculated_price_cents, w.handle, 
            w.label_image_path, w.description, w.created_at, w.updated_at;
 END;
 $$ LANGUAGE plpgsql;
@@ -157,7 +155,6 @@ RETURNS TABLE (
   producer_name VARCHAR,
   base_price_cents INTEGER,
   calculated_price_cents INTEGER,
-  band VARCHAR,
   handle VARCHAR,
   label_image_path TEXT,
   description TEXT,
@@ -176,7 +173,6 @@ BEGIN
     p.name as producer_name,
     w.base_price_cents,
     w.calculated_price_cents,
-    w.band,
     w.handle,
     w.label_image_path,
     w.description,
@@ -188,7 +184,7 @@ BEGIN
   LEFT JOIN wine_grape_varieties wgv ON w.id = wgv.wine_id
   LEFT JOIN grape_varieties gv ON wgv.grape_variety_id = gv.id
   GROUP BY w.id, w.wine_name, w.vintage, wc.name, wc.hex_color, p.name, 
-           w.base_price_cents, w.calculated_price_cents, w.band, w.handle, 
+           w.base_price_cents, w.calculated_price_cents, w.handle, 
            w.label_image_path, w.description, w.created_at, w.updated_at
   ORDER BY w.created_at DESC;
 END;

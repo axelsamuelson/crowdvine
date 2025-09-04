@@ -30,7 +30,6 @@ export interface WineWithDetails {
   producer_name: string | null;
   base_price_cents: number;
   calculated_price_cents: number;
-  band: string;
   handle: string;
   label_image_path: string | null;
   description: string | null;
