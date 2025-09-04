@@ -84,7 +84,7 @@ export function PricingCalculator({ pricingData, onPricingChange }: PricingCalcu
       priceBeforeTax: priceBeforeTax.toFixed(2),
       priceAfterTax: priceAfterTax.toFixed(2),
       finalPrice: finalPrice.toFixed(2),
-      finalPriceCents: Math.round(finalPrice * 100)
+      finalPriceCents: Math.ceil(finalPrice * 100) // Round up to nearest cent
     };
   };
 

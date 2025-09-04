@@ -160,10 +160,28 @@ export async function getWine(id: string) {
 export async function createWine(data: CreateWineData) {
   const sb = await supabaseServer();
   
+  // Calculate price if pricing data is provided
+  let finalPriceCents = data.base_price_cents;
+  if (data.cost_amount && data.cost_amount > 0) {
+    const exchangeRate = data.exchange_rate || 1.0;
+    const costInSek = data.cost_amount * exchangeRate;
+    const priceBeforeTax = costInSek * (1 + (data.margin_percentage || 30) / 100);
+    const priceAfterTax = priceBeforeTax + ((data.alcohol_tax_cents || 0) / 100.0);
+    const finalPrice = (data.price_includes_vat !== false) ? priceAfterTax : priceAfterTax * 1.25;
+    finalPriceCents = Math.ceil(finalPrice * 100); // Round up to nearest cent
+  }
+  
+  // Prepare insert data
+  const insertData = {
+    ...data,
+    base_price_cents: finalPriceCents,
+    calculated_price_cents: finalPriceCents,
+  };
+  
   // First create the wine
   const { data: wine, error } = await sb
     .from('wines')
-    .insert(data)
+    .insert(insertData)
     .select(`
       id,
       handle,
@@ -257,10 +275,11 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
     const priceBeforeTax = costInSek * (1 + marginPercentage / 100);
     const priceAfterTax = priceBeforeTax + (alcoholTaxCents / 100.0);
     const finalPrice = priceIncludesVat ? priceAfterTax : priceAfterTax * 1.25;
-    const finalPriceCents = Math.round(finalPrice * 100);
+    const finalPriceCents = Math.ceil(finalPrice * 100); // Round up to nearest cent
     
     // Add calculated price to update data
     updateData.calculated_price_cents = finalPriceCents;
+    updateData.base_price_cents = finalPriceCents; // Also update base_price_cents for compatibility
   }
   
   // Update wine
