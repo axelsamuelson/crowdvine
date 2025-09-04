@@ -18,6 +18,18 @@ export interface Wine {
   };
   created_at: string;
   updated_at: string;
+  // New pricing fields
+  cost_currency: string;
+  cost_amount: number;
+  exchange_rate_source: string;
+  exchange_rate_date?: string;
+  exchange_rate_period_start?: string;
+  exchange_rate_period_end?: string;
+  exchange_rate?: number;
+  alcohol_tax_cents: number;
+  price_includes_vat: boolean;
+  margin_percentage: number;
+  calculated_price_cents: number;
 }
 
 export interface CreateWineData {
@@ -29,6 +41,17 @@ export interface CreateWineData {
   label_image_path?: string;
   base_price_cents: number;
   producer_id: string;
+  // New pricing fields
+  cost_currency: string;
+  cost_amount: number;
+  exchange_rate_source: string;
+  exchange_rate_date?: string;
+  exchange_rate_period_start?: string;
+  exchange_rate_period_end?: string;
+  exchange_rate?: number;
+  alcohol_tax_cents: number;
+  price_includes_vat: boolean;
+  margin_percentage: number;
 }
 
 export async function getWines() {

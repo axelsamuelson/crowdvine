@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CreateWineData, Wine, createWine, updateWine } from '@/lib/actions/wines';
 import { Producer } from '@/lib/actions/producers';
 import { ImageUpload } from '@/components/admin/image-upload';
+import { PricingCalculator } from '@/components/admin/pricing-calculator';
 
 interface WineFormProps {
   wine?: Wine;
@@ -28,6 +29,17 @@ export default function WineForm({ wine, producers }: WineFormProps) {
     label_image_path: wine?.label_image_path || '',
     base_price_cents: wine?.base_price_cents || 0,
     producer_id: wine?.producer_id || '',
+    // New pricing fields
+    cost_currency: wine?.cost_currency || 'EUR',
+    cost_amount: wine?.cost_amount || 0,
+    exchange_rate_source: wine?.exchange_rate_source || 'current',
+    exchange_rate_date: wine?.exchange_rate_date || undefined,
+    exchange_rate_period_start: wine?.exchange_rate_period_start || undefined,
+    exchange_rate_period_end: wine?.exchange_rate_period_end || undefined,
+    exchange_rate: wine?.exchange_rate || undefined,
+    alcohol_tax_cents: wine?.alcohol_tax_cents || 0,
+    price_includes_vat: wine?.price_includes_vat ?? true,
+    margin_percentage: wine?.margin_percentage || 30.00,
   });
 
   const [images, setImages] = useState<File[]>([]);
@@ -47,7 +59,6 @@ export default function WineForm({ wine, producers }: WineFormProps) {
     if (!formData.handle.trim()) missingFields.push('Handle');
     if (!formData.vintage.trim()) missingFields.push('Vintage');
     if (!formData.producer_id) missingFields.push('Producer');
-    if (formData.base_price_cents <= 0) missingFields.push('Base Price');
 
     if (missingFields.length > 0) {
       setError(`Please fill in the following required fields: ${missingFields.join(', ')}`);
@@ -204,20 +215,40 @@ export default function WineForm({ wine, producers }: WineFormProps) {
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="base_price_cents">Base Price (SEK) *</Label>
-              <Input
-                id="base_price_cents"
-                type="number"
-                step="0.01"
-                value={(formData.base_price_cents / 100).toFixed(2)}
-                onChange={(e) => handleChange('base_price_cents', Math.round(parseFloat(e.target.value) * 100) || 0)}
-                placeholder="148.00"
-                required
-              />
-            </div>
           </div>
+
+          {/* Pricing Calculator */}
+          <PricingCalculator
+            pricingData={{
+              cost_currency: formData.cost_currency,
+              cost_amount: formData.cost_amount,
+              exchange_rate_source: formData.exchange_rate_source,
+              exchange_rate_date: formData.exchange_rate_date,
+              exchange_rate_period_start: formData.exchange_rate_period_start,
+              exchange_rate_period_end: formData.exchange_rate_period_end,
+              exchange_rate: formData.exchange_rate,
+              alcohol_tax_cents: formData.alcohol_tax_cents,
+              price_includes_vat: formData.price_includes_vat,
+              margin_percentage: formData.margin_percentage,
+              calculated_price_cents: 0
+            }}
+            onPricingChange={(pricingData) => {
+              setFormData(prev => ({
+                ...prev,
+                cost_currency: pricingData.cost_currency,
+                cost_amount: pricingData.cost_amount,
+                exchange_rate_source: pricingData.exchange_rate_source,
+                exchange_rate_date: pricingData.exchange_rate_date,
+                exchange_rate_period_start: pricingData.exchange_rate_period_start,
+                exchange_rate_period_end: pricingData.exchange_rate_period_end,
+                exchange_rate: pricingData.exchange_rate,
+                alcohol_tax_cents: pricingData.alcohol_tax_cents,
+                price_includes_vat: pricingData.price_includes_vat,
+                margin_percentage: pricingData.margin_percentage,
+                base_price_cents: pricingData.finalPriceCents
+              }));
+            }}
+          />
 
           <div className="space-y-2">
             <Label htmlFor="label_image_path">Label Image URL</Label>
