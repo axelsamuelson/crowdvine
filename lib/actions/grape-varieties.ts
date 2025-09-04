@@ -51,19 +51,19 @@ export async function getGrapeVarieties(): Promise<GrapeVariety[]> {
   return data || [];
 }
 
-export async function createGrapeVariety(name: string, description?: string): Promise<GrapeVariety> {
+export async function createGrapeVariety(data: { name: string; description?: string }): Promise<GrapeVariety> {
   const sb = await supabaseServer();
   
-  const { data, error } = await sb
+  const { data: variety, error } = await sb
     .from('grape_varieties')
-    .insert({ name, description })
+    .insert({ name: data.name, description: data.description || '' })
     .select()
     .single();
     
   if (error) throw new Error(error.message);
   
   revalidatePath('/admin/grape-varieties');
-  return data;
+  return variety;
 }
 
 export async function updateGrapeVariety(id: string, name: string, description?: string): Promise<GrapeVariety> {
@@ -158,14 +158,11 @@ export async function getWineGrapeVarieties(wineId: string): Promise<string[]> {
   
   const { data, error } = await sb
     .from('wine_grape_varieties')
-    .select(`
-      grape_variety_id,
-      grape_varieties(name)
-    `)
+    .select('grape_variety_id')
     .eq('wine_id', wineId);
     
   if (error) throw new Error(error.message);
-  return data?.map(item => item.grape_varieties.name) || [];
+  return data?.map(item => item.grape_variety_id) || [];
 }
 
 export async function updateWineGrapeVarieties(wineId: string, grapeVarietyIds: string[]): Promise<void> {

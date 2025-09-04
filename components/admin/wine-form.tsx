@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,8 @@ import { CreateWineData, Wine, createWine, updateWine } from '@/lib/actions/wine
 import { Producer } from '@/lib/actions/producers';
 import { ImageUpload } from '@/components/admin/image-upload';
 import { PricingCalculator } from '@/components/admin/pricing-calculator';
+import GrapeVarietiesSelector from '@/components/admin/grape-varieties-selector';
+import { getGrapeVarieties, createGrapeVariety } from '@/lib/actions/grape-varieties';
 
 interface WineFormProps {
   wine?: Wine;
@@ -47,7 +49,63 @@ export default function WineForm({ wine, producers }: WineFormProps) {
   const [images, setImages] = useState<File[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [availableGrapeVarieties, setAvailableGrapeVarieties] = useState<any[]>([]);
+  const [selectedGrapeVarietyIds, setSelectedGrapeVarietyIds] = useState<string[]>([]);
   const router = useRouter();
+
+  // Load grape varieties on component mount
+  useEffect(() => {
+    const loadGrapeVarieties = async () => {
+      try {
+        const varieties = await getGrapeVarieties();
+        setAvailableGrapeVarieties(varieties);
+      } catch (error) {
+        console.error('Failed to load grape varieties:', error);
+      }
+    };
+    loadGrapeVarieties();
+  }, []);
+
+  // Load existing grape varieties for editing
+  useEffect(() => {
+    const loadExistingGrapeVarieties = async () => {
+      if (wine && wine.id) {
+        try {
+          const { getWineGrapeVarieties } = await import('@/lib/actions/grape-varieties');
+          const existingVarietyIds = await getWineGrapeVarieties(wine.id);
+          setSelectedGrapeVarietyIds(existingVarietyIds);
+        } catch (error) {
+          console.error('Failed to load existing grape varieties:', error);
+        }
+      }
+    };
+    
+    if (wine && availableGrapeVarieties.length > 0) {
+      loadExistingGrapeVarieties();
+    }
+  }, [wine, availableGrapeVarieties]);
+
+  const handleGrapeVarietiesChange = (varietyIds: string[]) => {
+    setSelectedGrapeVarietyIds(varietyIds);
+    // Update the formData grape_varieties field with comma-separated names
+    const varietyNames = availableGrapeVarieties
+      .filter(v => varietyIds.includes(v.id))
+      .map(v => v.name)
+      .join(', ');
+    setFormData(prev => ({ ...prev, grape_varieties: varietyNames }));
+  };
+
+  const handleAddNewGrapeVariety = async (name: string) => {
+    try {
+      const newVariety = await createGrapeVariety({ name, description: '' });
+      setAvailableGrapeVarieties(prev => [...prev, newVariety]);
+      // Automatically select the newly created variety
+      handleGrapeVarietiesChange([...selectedGrapeVarietyIds, newVariety.id]);
+    } catch (error) {
+      console.error('Failed to create grape variety:', error);
+      throw error;
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,11 +154,19 @@ export default function WineForm({ wine, producers }: WineFormProps) {
         label_image_path: imagePaths.length > 0 ? imagePaths[0] : formData.label_image_path,
       };
 
+      let savedWine;
       if (wine) {
-        await updateWine(wine.id, wineData);
+        savedWine = await updateWine(wine.id, wineData);
       } else {
-        await createWine(wineData);
+        savedWine = await createWine(wineData);
       }
+
+      // Update wine-grape varieties relationships
+      if (savedWine && selectedGrapeVarietyIds.length > 0) {
+        const { updateWineGrapeVarieties } = await import('@/lib/actions/grape-varieties');
+        await updateWineGrapeVarieties(savedWine.id, selectedGrapeVarietyIds);
+      }
+
       router.push('/admin/wines');
     } catch (err) {
       console.error('Wine creation error:', err);
@@ -187,15 +253,14 @@ export default function WineForm({ wine, producers }: WineFormProps) {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="grape_varieties">Grape Varieties</Label>
-            <Input
-              id="grape_varieties"
-              value={formData.grape_varieties}
-              onChange={(e) => handleChange('grape_varieties', e.target.value)}
-              placeholder="Syrah, Grenache, Mourvèdre"
-            />
-          </div>
+          {/* New Grape Varieties Selector */}
+          <GrapeVarietiesSelector
+            selectedVarieties={selectedGrapeVarietyIds}
+            onVarietiesChange={handleGrapeVarietiesChange}
+            availableVarieties={availableGrapeVarieties}
+            onAddNewVariety={handleAddNewGrapeVariety}
+            disabled={loading}
+          />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
