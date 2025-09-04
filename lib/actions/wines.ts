@@ -233,6 +233,36 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
   if (data.price_includes_vat !== undefined) updateData.price_includes_vat = data.price_includes_vat;
   if (data.margin_percentage !== undefined) updateData.margin_percentage = data.margin_percentage;
   
+  // Calculate price manually to avoid trigger loop
+  if (updateData.cost_amount !== undefined || updateData.exchange_rate !== undefined || 
+      updateData.alcohol_tax_cents !== undefined || updateData.price_includes_vat !== undefined || 
+      updateData.margin_percentage !== undefined) {
+    
+    // Get current wine data for calculation
+    const { data: currentWine } = await sb
+      .from('wines')
+      .select('cost_amount, exchange_rate, alcohol_tax_cents, price_includes_vat, margin_percentage')
+      .eq('id', id)
+      .single();
+    
+    // Use updated values or current values
+    const costAmount = updateData.cost_amount ?? currentWine?.cost_amount ?? 0;
+    const exchangeRate = updateData.exchange_rate ?? currentWine?.exchange_rate ?? 1.0;
+    const alcoholTaxCents = updateData.alcohol_tax_cents ?? currentWine?.alcohol_tax_cents ?? 0;
+    const priceIncludesVat = updateData.price_includes_vat ?? currentWine?.price_includes_vat ?? true;
+    const marginPercentage = updateData.margin_percentage ?? currentWine?.margin_percentage ?? 30;
+    
+    // Calculate price manually
+    const costInSek = costAmount * exchangeRate;
+    const priceBeforeTax = costInSek * (1 + marginPercentage / 100);
+    const priceAfterTax = priceBeforeTax + (alcoholTaxCents / 100.0);
+    const finalPrice = priceIncludesVat ? priceAfterTax : priceAfterTax * 1.25;
+    const finalPriceCents = Math.round(finalPrice * 100);
+    
+    // Add calculated price to update data
+    updateData.calculated_price_cents = finalPriceCents;
+  }
+  
   // Update wine
   const { data: wine, error } = await sb
     .from('wines')
