@@ -17,7 +17,8 @@ import {
   AlertCircle,
   Database,
   CreditCard,
-  Shield
+  Shield,
+  FileText
 } from 'lucide-react';
 
 export default async function AdminDashboard() {
@@ -309,7 +310,7 @@ export default async function AdminDashboard() {
           <CardDescription>Common administrative tasks</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <Button asChild variant="outline" className="h-auto p-4 flex-col">
               <Link href="/admin/producers">
                 <Users className="h-6 w-6 mb-2" />
@@ -335,6 +336,13 @@ export default async function AdminDashboard() {
               <Link href="/admin/bookings">
                 <Calendar className="h-6 w-6 mb-2" />
                 <span>View Bookings</span>
+              </Link>
+            </Button>
+
+            <Button asChild variant="outline" className="h-auto p-4 flex-col">
+              <Link href="/admin/content">
+                <FileText className="h-6 w-6 mb-2" />
+                <span>Content</span>
               </Link>
             </Button>
           </div>
