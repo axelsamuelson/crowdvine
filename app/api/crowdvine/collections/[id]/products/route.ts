@@ -27,12 +27,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       id: `${i.id}-default`,
       title: '750 ml',
       availableForSale: true,
-      price: { amount: (i.price_t500_cents / 100).toFixed(2), currencyCode: 'SEK' },
+      price: { amount: Math.ceil(i.base_price_cents / 100).toString(), currencyCode: 'SEK' },
       selectedOptions: [],
     }],
     priceRange: {
-      minVariantPrice: { amount: (i.price_t500_cents / 100).toFixed(2), currencyCode: 'SEK' },
-      maxVariantPrice: { amount: (i.price_t100_cents / 100).toFixed(2), currencyCode: 'SEK' },
+      minVariantPrice: { amount: Math.ceil(i.base_price_cents / 100).toString(), currencyCode: 'SEK' },
+      maxVariantPrice: { amount: Math.ceil(i.base_price_cents / 100).toString(), currencyCode: 'SEK' },
     },
     featuredImage: { 
       id: `${i.id}-img`, 

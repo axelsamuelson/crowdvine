@@ -9,14 +9,17 @@ export function cn(...inputs: ClassValue[]) {
 export function formatPrice(amount: string | number, currencyCode: string) {
   const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
   
-  // Use Swedish locale for consistent formatting
+  // Round up to nearest whole number
+  const roundedAmount = Math.ceil(numAmount);
+  
+  // Use Swedish locale for consistent formatting with 0 decimal places
   return new Intl.NumberFormat('sv-SE', {
     style: 'currency',
     currency: currencyCode,
     currencyDisplay: 'narrowSymbol',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(numAmount);
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(roundedAmount);
 }
 
 export function createUrl(pathname: string, params: URLSearchParams | string) {

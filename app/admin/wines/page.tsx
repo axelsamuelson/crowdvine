@@ -83,7 +83,7 @@ export default async function WinesPage() {
                       </Badge>
                     </td>
                     <td className="p-3 font-medium text-gray-900">
-                      {(wine.base_price_cents / 100).toFixed(2)} SEK
+                      {Math.ceil(wine.base_price_cents / 100)} SEK
                     </td>
                     <td className="p-3 text-sm text-gray-500 font-mono">
                       {wine.handle}

@@ -5,14 +5,17 @@ import { ProductCollectionSortKey, ProductSortKey } from './types';
 export const formatPrice = (price: string | number, currencyCode: string): string => {
   const amount = typeof price === 'string' ? parseFloat(price) : price;
   
-  // Use Swedish locale for consistent formatting
+  // Round up to nearest whole number
+  const roundedAmount = Math.ceil(amount);
+  
+  // Use Swedish locale for consistent formatting with 0 decimal places
   return new Intl.NumberFormat('sv-SE', {
     style: 'currency',
     currency: currencyCode,
     currencyDisplay: 'narrowSymbol',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(roundedAmount);
 };
 
 // Helper for returning the expected error state to actions instead of throwing.
