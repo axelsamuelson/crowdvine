@@ -60,7 +60,28 @@ export async function getWines() {
   const { data, error } = await sb
     .from('wines')
     .select(`
-      *,
+      id,
+      handle,
+      wine_name,
+      vintage,
+      grape_varieties,
+      color,
+      label_image_path,
+      base_price_cents,
+      producer_id,
+      cost_currency,
+      cost_amount,
+      exchange_rate_source,
+      exchange_rate_date,
+      exchange_rate_period_start,
+      exchange_rate_period_end,
+      exchange_rate,
+      alcohol_tax_cents,
+      price_includes_vat,
+      margin_percentage,
+      calculated_price_cents,
+      created_at,
+      updated_at,
       producer:producers(name)
     `)
     .order('wine_name');
@@ -75,7 +96,28 @@ export async function getWine(id: string) {
   const { data, error } = await sb
     .from('wines')
     .select(`
-      *,
+      id,
+      handle,
+      wine_name,
+      vintage,
+      grape_varieties,
+      color,
+      label_image_path,
+      base_price_cents,
+      producer_id,
+      cost_currency,
+      cost_amount,
+      exchange_rate_source,
+      exchange_rate_date,
+      exchange_rate_period_start,
+      exchange_rate_period_end,
+      exchange_rate,
+      alcohol_tax_cents,
+      price_includes_vat,
+      margin_percentage,
+      calculated_price_cents,
+      created_at,
+      updated_at,
       producer:producers(name)
     `)
     .eq('id', id)
@@ -92,7 +134,28 @@ export async function createWine(data: CreateWineData) {
     .from('wines')
     .insert(data)
     .select(`
-      *,
+      id,
+      handle,
+      wine_name,
+      vintage,
+      grape_varieties,
+      color,
+      label_image_path,
+      base_price_cents,
+      producer_id,
+      cost_currency,
+      cost_amount,
+      exchange_rate_source,
+      exchange_rate_date,
+      exchange_rate_period_start,
+      exchange_rate_period_end,
+      exchange_rate,
+      alcohol_tax_cents,
+      price_includes_vat,
+      margin_percentage,
+      calculated_price_cents,
+      created_at,
+      updated_at,
       producer:producers(name)
     `)
     .single();
@@ -111,7 +174,28 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
     .update(data)
     .eq('id', id)
     .select(`
-      *,
+      id,
+      handle,
+      wine_name,
+      vintage,
+      grape_varieties,
+      color,
+      label_image_path,
+      base_price_cents,
+      producer_id,
+      cost_currency,
+      cost_amount,
+      exchange_rate_source,
+      exchange_rate_date,
+      exchange_rate_period_start,
+      exchange_rate_period_end,
+      exchange_rate,
+      alcohol_tax_cents,
+      price_includes_vat,
+      margin_percentage,
+      calculated_price_cents,
+      created_at,
+      updated_at,
       producer:producers(name)
     `)
     .single();

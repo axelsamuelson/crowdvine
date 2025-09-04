@@ -26,8 +26,6 @@ export default function WineForm({ wine, producers }: WineFormProps) {
     vintage: wine?.vintage || '',
     grape_varieties: wine?.grape_varieties || '',
     color: wine?.color || 'red',
-    label_image_path: wine?.label_image_path || '',
-    base_price_cents: wine?.base_price_cents || 0,
     producer_id: wine?.producer_id || '',
     // New pricing fields
     cost_currency: wine?.cost_currency || 'EUR',
@@ -40,6 +38,10 @@ export default function WineForm({ wine, producers }: WineFormProps) {
     alcohol_tax_cents: wine?.alcohol_tax_cents || 0,
     price_includes_vat: wine?.price_includes_vat ?? true,
     margin_percentage: wine?.margin_percentage || 30.00,
+    // Keep base_price_cents for backward compatibility
+    base_price_cents: wine?.base_price_cents || 0,
+    // Remove label_image_path as it's handled by ImageUpload
+    label_image_path: '',
   });
 
   const [images, setImages] = useState<File[]>([]);
@@ -249,37 +251,6 @@ export default function WineForm({ wine, producers }: WineFormProps) {
               }));
             }}
           />
-
-          <div className="space-y-2">
-            <Label htmlFor="label_image_path">Label Image URL</Label>
-            <Input
-              id="label_image_path"
-              type="url"
-              value={formData.label_image_path}
-              onChange={(e) => handleChange('label_image_path', e.target.value)}
-              placeholder="https://example.com/wine-label.jpg"
-            />
-          </div>
-
-          {/* Current Image Display */}
-          {formData.label_image_path && (
-            <div className="space-y-2">
-              <Label>Current Image</Label>
-              <div className="flex gap-4">
-                <div className="relative w-16 h-16 bg-gray-100 rounded-lg overflow-hidden">
-                  <img
-                    src={formData.label_image_path}
-                    alt="Current wine label"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm text-gray-600 mb-2">Current wine label image</p>
-                  <p className="text-xs text-gray-500">This image will be replaced if you upload new images below</p>
-                </div>
-              </div>
-            </div>
-          )}
 
           <ImageUpload 
             images={images}
