@@ -13,18 +13,51 @@ export async function GET(_: Request, { params }: { params: { handle: string } }
     
   if (wineIdError || !wineIdData) return NextResponse.json({ error: 'not_found' }, { status: 404 });
 
-  // Use the new structured function to get wine with details
-  const { data, error } = await sb
-    .rpc('get_wine_with_details', { wine_id: wineIdData.id });
+  // Try the new structured function, fallback to old method
+  let data;
+  let error;
+  
+  try {
+    const result = await sb.rpc('get_wine_with_details', { wine_id: wineIdData.id });
+    data = result.data;
+    error = result.error;
+  } catch (e) {
+    // Fallback to old method if RPC function doesn't exist
+    const result = await sb
+      .from('wines')
+      .select(`
+        id,
+        wine_name,
+        vintage,
+        grape_varieties,
+        color,
+        handle,
+        base_price_cents,
+        label_image_path,
+        producer_id
+      `)
+      .eq('id', wineIdData.id)
+      .single();
+    data = result.data;
+    error = result.error;
+  }
     
-  if (error || !data || data.length === 0) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+  if (error || !data) return NextResponse.json({ error: 'not_found' }, { status: 404 });
 
-  const i = data[0];
+  const i = Array.isArray(data) ? data[0] : data;
+
+  // Parse grape varieties from string or use array
+  const grapeVarieties = Array.isArray(i.grape_varieties) 
+    ? i.grape_varieties 
+    : (i.grape_varieties ? i.grape_varieties.split(',').map((g: string) => g.trim()) : []);
+  
+  // Use color_name if available, otherwise use color
+  const colorName = i.color_name || i.color;
 
   const product = {
     id: i.id,
     title: `${i.wine_name} ${i.vintage}`,
-    description: (i.grape_varieties || []).join(', ') || '',
+    description: grapeVarieties.join(', ') || '',
     descriptionHtml: '',
     handle: i.handle,
     productType: 'wine',
@@ -34,13 +67,13 @@ export async function GET(_: Request, { params }: { params: { handle: string } }
       {
         id: 'grape-varieties',
         name: 'Grape Varieties',
-        values: i.grape_varieties || []
+        values: grapeVarieties
       },
       // Add color as an option
       {
         id: 'color',
         name: 'Color',
-        values: i.color_name ? [i.color_name] : []
+        values: colorName ? [colorName] : []
       }
     ],
     variants: [{
@@ -50,14 +83,14 @@ export async function GET(_: Request, { params }: { params: { handle: string } }
       price: { amount: Math.ceil(i.base_price_cents / 100).toString(), currencyCode: 'SEK' },
       selectedOptions: [
         // Add grape varieties to variant
-        ...(i.grape_varieties || []).map((grape: string) => ({
+        ...grapeVarieties.map((grape: string) => ({
           name: 'Grape Varieties',
           value: grape
         })),
         // Add color to variant
-        ...(i.color_name ? [{
+        ...(colorName ? [{
           name: 'Color',
-          value: i.color_name
+          value: colorName
         }] : [])
       ],
     }],
@@ -73,12 +106,12 @@ export async function GET(_: Request, { params }: { params: { handle: string } }
       height: 600
     },
     images: [{ id: `${i.id}-img`, url: i.label_image_path, altText: i.wine_name, width: 600, height: 600 }],
-    seo: { title: i.wine_name, description: (i.grape_varieties || []).join(', ') || '' },
+    seo: { title: i.wine_name, description: grapeVarieties.join(', ') || '' },
     tags: [
       // Add grape varieties as tags
-      ...(i.grape_varieties || []),
+      ...grapeVarieties,
       // Add color as tag
-      ...(i.color_name ? [i.color_name] : [])
+      ...(colorName ? [colorName] : [])
     ],
     availableForSale: true,
     currencyCode: 'SEK',
