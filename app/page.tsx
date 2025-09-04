@@ -13,14 +13,22 @@ export default async function Home() {
 
   try {
     if (collections.length > 0) {
-      featuredProducts = await getCollectionProducts({ collection: collections[0].handle });
+      // Use collection ID instead of handle for collection products
+      featuredProducts = await getCollectionProducts({ collection: collections[0].id });
     } else {
       const allProducts = await getProducts({});
       featuredProducts = allProducts.slice(0, 8);
     }
   } catch (error) {
     console.error('Error fetching featured products:', error);
-    featuredProducts = [];
+    // Fallback to all products if collection products fail
+    try {
+      const allProducts = await getProducts({});
+      featuredProducts = allProducts.slice(0, 8);
+    } catch (fallbackError) {
+      console.error('Error fetching fallback products:', fallbackError);
+      featuredProducts = [];
+    }
   }
 
   const [lastProduct, ...restProducts] = featuredProducts;

@@ -7,16 +7,12 @@ export async function GET(request: Request) {
   
   const sb = await supabaseServer();
   
-  // First try the new structured function, fallback to old method
+  // Use fallback method since RPC function might not be available yet
   let data;
   let error;
   
   try {
-    const result = await sb.rpc('get_all_wines_with_details');
-    data = result.data;
-    error = result.error;
-  } catch (e) {
-    // Fallback to old method if RPC function doesn't exist
+    // Try to get wines with basic query first
     const result = await sb
       .from('wines')
       .select(`
@@ -33,6 +29,9 @@ export async function GET(request: Request) {
       .limit(limit);
     data = result.data;
     error = result.error;
+  } catch (e) {
+    console.error('Error fetching wines:', e);
+    return NextResponse.json({ error: 'Failed to fetch wines' }, { status: 500 });
   }
     
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

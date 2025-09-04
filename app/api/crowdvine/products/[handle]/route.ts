@@ -13,16 +13,12 @@ export async function GET(_: Request, { params }: { params: { handle: string } }
     
   if (wineIdError || !wineIdData) return NextResponse.json({ error: 'not_found' }, { status: 404 });
 
-  // Try the new structured function, fallback to old method
+  // Use fallback method since RPC function might not be available yet
   let data;
   let error;
   
   try {
-    const result = await sb.rpc('get_wine_with_details', { wine_id: wineIdData.id });
-    data = result.data;
-    error = result.error;
-  } catch (e) {
-    // Fallback to old method if RPC function doesn't exist
+    // Try to get wine with basic query first
     const result = await sb
       .from('wines')
       .select(`
@@ -40,11 +36,14 @@ export async function GET(_: Request, { params }: { params: { handle: string } }
       .single();
     data = result.data;
     error = result.error;
+  } catch (e) {
+    console.error('Error fetching wine:', e);
+    return NextResponse.json({ error: 'Failed to fetch wine' }, { status: 500 });
   }
     
   if (error || !data) return NextResponse.json({ error: 'not_found' }, { status: 404 });
 
-  const i = Array.isArray(data) ? data[0] : data;
+  const i = data;
 
   // Parse grape varieties from string or use array
   const grapeVarieties = Array.isArray(i.grape_varieties) 
@@ -52,7 +51,7 @@ export async function GET(_: Request, { params }: { params: { handle: string } }
     : (i.grape_varieties ? i.grape_varieties.split(',').map((g: string) => g.trim()) : []);
   
   // Use color_name if available, otherwise use color
-  const colorName = i.color_name || i.color;
+  const colorName = i.color;
 
   const product = {
     id: i.id,
