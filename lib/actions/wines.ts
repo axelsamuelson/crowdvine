@@ -57,7 +57,8 @@ export interface CreateWineData {
 export async function getWines() {
   const sb = await supabaseServer();
   
-  const { data, error } = await sb
+  // Get all wines
+  const { data: wines, error } = await sb
     .from('wines')
     .select(`
       id,
@@ -81,19 +82,36 @@ export async function getWines() {
       margin_percentage,
       calculated_price_cents,
       created_at,
-      updated_at,
-      producer:producers(name)
+      updated_at
     `)
     .order('wine_name');
     
   if (error) throw new Error(error.message);
-  return data;
+  
+  // Get all producers for the wines
+  const producerIds = [...new Set(wines.map(wine => wine.producer_id))];
+  const { data: producers } = await sb
+    .from('producers')
+    .select('id, name')
+    .in('id', producerIds);
+  
+  // Create a map for quick lookup
+  const producerMap = new Map(producers?.map(p => [p.id, p]) || []);
+  
+  // Combine wines with their producers
+  const winesWithProducers = wines.map(wine => ({
+    ...wine,
+    producer: producerMap.get(wine.producer_id)
+  }));
+  
+  return winesWithProducers;
 }
 
 export async function getWine(id: string) {
   const sb = await supabaseServer();
   
-  const { data, error } = await sb
+  // First get the wine
+  const { data: wine, error } = await sb
     .from('wines')
     .select(`
       id,
@@ -117,19 +135,32 @@ export async function getWine(id: string) {
       margin_percentage,
       calculated_price_cents,
       created_at,
-      updated_at,
-      producer:producers(name)
+      updated_at
     `)
     .eq('id', id)
     .single();
     
   if (error) throw new Error(error.message);
-  return data;
+  
+  // Then get the producer information separately
+  const { data: producer } = await sb
+    .from('producers')
+    .select('name')
+    .eq('id', wine.producer_id)
+    .single();
+  
+  const wineWithProducer = {
+    ...wine,
+    producer: producer
+  };
+  
+  return wineWithProducer;
 }
 
 export async function createWine(data: CreateWineData) {
   const sb = await supabaseServer();
   
+  // First create the wine
   const { data: wine, error } = await sb
     .from('wines')
     .insert(data)
@@ -155,20 +186,32 @@ export async function createWine(data: CreateWineData) {
       margin_percentage,
       calculated_price_cents,
       created_at,
-      updated_at,
-      producer:producers(name)
+      updated_at
     `)
     .single();
     
   if (error) throw new Error(error.message);
   
+  // Then get the producer information separately
+  const { data: producer } = await sb
+    .from('producers')
+    .select('name')
+    .eq('id', wine.producer_id)
+    .single();
+  
+  const wineWithProducer = {
+    ...wine,
+    producer: producer
+  };
+  
   revalidatePath('/admin/wines');
-  return wine;
+  return wineWithProducer;
 }
 
 export async function updateWine(id: string, data: Partial<CreateWineData>) {
   const sb = await supabaseServer();
   
+  // First update the wine
   const { data: wine, error } = await sb
     .from('wines')
     .update(data)
@@ -195,16 +238,27 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
       margin_percentage,
       calculated_price_cents,
       created_at,
-      updated_at,
-      producer:producers(name)
+      updated_at
     `)
     .single();
     
   if (error) throw new Error(error.message);
   
+  // Then get the producer information separately
+  const { data: producer } = await sb
+    .from('producers')
+    .select('name')
+    .eq('id', wine.producer_id)
+    .single();
+  
+  const wineWithProducer = {
+    ...wine,
+    producer: producer
+  };
+  
   revalidatePath('/admin/wines');
   revalidatePath(`/admin/wines/${id}`);
-  return wine;
+  return wineWithProducer;
 }
 
 export async function deleteWine(id: string) {
