@@ -29,7 +29,7 @@ DECLARE
   wine_record RECORD;
   grape_names TEXT[];
   grape_name TEXT;
-  grape_variety_id UUID;
+  grape_variety_uuid UUID;
 BEGIN
   -- Loop through all wines
   FOR wine_record IN 
@@ -49,11 +49,11 @@ BEGIN
       -- Skip empty names
       IF grape_name != '' THEN
         -- Find or create grape variety
-        grape_variety_id := find_or_create_grape_variety(grape_name);
+        grape_variety_uuid := find_or_create_grape_variety(grape_name);
         
         -- Create wine-grape variety relationship
         INSERT INTO wine_grape_varieties (wine_id, grape_variety_id)
-        VALUES (wine_record.id, grape_variety_id)
+        VALUES (wine_record.id, grape_variety_uuid)
         ON CONFLICT (wine_id, grape_variety_id) DO NOTHING;
       END IF;
     END LOOP;
