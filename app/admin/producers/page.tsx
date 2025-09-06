@@ -1,9 +1,15 @@
-import Link from 'next/link';
-import { getProducers } from '@/lib/actions/producers';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { DeleteProducerButton } from '@/components/admin/delete-producer-button';
+import Link from "next/link";
+import { getProducers } from "@/lib/actions/producers";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { DeleteProducerButton } from "@/components/admin/delete-producer-button";
 
 export default async function ProducersPage() {
   const producers = await getProducers();
@@ -34,10 +40,14 @@ export default async function ProducersPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <p className="text-sm text-gray-600">{producer.short_description}</p>
+                <p className="text-sm text-gray-600">
+                  {producer.short_description}
+                </p>
                 <div className="text-sm text-gray-500">
                   <p>{producer.address_street}</p>
-                  <p>{producer.address_city}, {producer.address_postcode}</p>
+                  <p>
+                    {producer.address_city}, {producer.address_postcode}
+                  </p>
                 </div>
                 <div className="flex justify-between items-center pt-2">
                   <div className="text-xs text-gray-400">
@@ -45,9 +55,14 @@ export default async function ProducersPage() {
                   </div>
                   <div className="flex space-x-2">
                     <Link href={`/admin/producers/${producer.id}`}>
-                      <Button variant="outline" size="sm">Edit</Button>
+                      <Button variant="outline" size="sm">
+                        Edit
+                      </Button>
                     </Link>
-                    <DeleteProducerButton producerId={producer.id} producerName={producer.name} />
+                    <DeleteProducerButton
+                      producerId={producer.id}
+                      producerName={producer.name}
+                    />
                   </div>
                 </div>
               </div>

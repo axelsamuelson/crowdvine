@@ -1,10 +1,14 @@
-import { HomeSidebar } from '@/components/layout/sidebar/home-sidebar';
-import { PageLayout } from '@/components/layout/page-layout';
-import { LatestProductCard } from '@/components/products/latest-product-card';
-import { Badge } from '@/components/ui/badge';
-import { getCollectionProducts, getCollections, getProducts } from '@/lib/shopify';
-import { getLabelPosition } from '../lib/utils';
-import { Product } from '../lib/shopify/types';
+import { HomeSidebar } from "@/components/layout/sidebar/home-sidebar";
+import { PageLayout } from "@/components/layout/page-layout";
+import { LatestProductCard } from "@/components/products/latest-product-card";
+import { Badge } from "@/components/ui/badge";
+import {
+  getCollectionProducts,
+  getCollections,
+  getProducts,
+} from "@/lib/shopify";
+import { getLabelPosition } from "../lib/utils";
+import { Product } from "../lib/shopify/types";
 
 export default async function Home() {
   const collections = await getCollections();
@@ -13,20 +17,24 @@ export default async function Home() {
 
   try {
     if (collections.length > 0) {
-      // Use collection ID instead of handle for collection products
-      featuredProducts = await getCollectionProducts({ collection: collections[0].id });
+      // Get the 5 most recent products from all producers
+      featuredProducts = await getProducts({
+        limit: 5,
+        sortKey: "CREATED_AT",
+        reverse: true,
+      });
     } else {
       const allProducts = await getProducts({});
       featuredProducts = allProducts.slice(0, 8);
     }
   } catch (error) {
-    console.error('Error fetching featured products:', error);
+    console.error("Error fetching featured products:", error);
     // Fallback to all products if collection products fail
     try {
       const allProducts = await getProducts({});
       featuredProducts = allProducts.slice(0, 8);
     } catch (fallbackError) {
-      console.error('Error fetching fallback products:', fallbackError);
+      console.error("Error fetching fallback products:", fallbackError);
       featuredProducts = [];
     }
   }
@@ -47,7 +55,11 @@ export default async function Home() {
           </div>
           {featuredProducts.length > 0 && (
             <>
-              <LatestProductCard className="col-span-2" product={lastProduct} principal />
+              <LatestProductCard
+                className="col-span-2"
+                product={lastProduct}
+                principal
+              />
 
               {restProducts.map((product: any, index: number) => (
                 <LatestProductCard

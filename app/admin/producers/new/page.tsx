@@ -1,4 +1,4 @@
-import ProducerForm from '@/components/admin/producer-form';
+import ProducerForm from "@/components/admin/producer-form";
 
 export default function NewProducerPage() {
   return (

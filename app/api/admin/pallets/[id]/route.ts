@@ -1,19 +1,22 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabaseServer } from '@/lib/supabase-server';
+import { NextRequest, NextResponse } from "next/server";
+import { supabaseServer } from "@/lib/supabase-server";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const sb = await supabaseServer();
+  const resolvedParams = await params;
   const { data, error } = await sb
-    .from('pallets')
-    .select(`
+    .from("pallets")
+    .select(
+      `
       *,
       delivery_zone:pallet_zones!delivery_zone_id(id, name, zone_type),
       pickup_zone:pallet_zones!pickup_zone_id(id, name, zone_type)
-    `)
-    .eq('id', params.id)
+    `,
+    )
+    .eq("id", resolvedParams.id)
     .single();
 
   if (error) {
@@ -21,7 +24,7 @@ export async function GET(
   }
 
   if (!data) {
-    return NextResponse.json({ error: 'Pallet not found' }, { status: 404 });
+    return NextResponse.json({ error: "Pallet not found" }, { status: 404 });
   }
 
   return NextResponse.json(data);
@@ -29,15 +32,16 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const sb = await supabaseServer();
+  const resolvedParams = await params;
   const body = await request.json();
 
   const { data, error } = await sb
-    .from('pallets')
+    .from("pallets")
     .update({ ...body, updated_at: new Date().toISOString() })
-    .eq('id', params.id)
+    .eq("id", resolvedParams.id)
     .select()
     .single();
 
@@ -50,13 +54,14 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const sb = await supabaseServer();
+  const resolvedParams = await params;
   const { error } = await sb
-    .from('pallets')
+    .from("pallets")
     .delete()
-    .eq('id', params.id);
+    .eq("id", resolvedParams.id);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

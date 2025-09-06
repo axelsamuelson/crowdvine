@@ -1,14 +1,14 @@
-import { storeCatalog } from '@/lib/shopify/constants';
-import ProductList from './components/product-list';
-import { Metadata } from 'next';
-import { Suspense } from 'react';
-import ResultsControls from './components/results-controls';
-import { ProductGrid } from './components/product-grid';
-import { ProductCardSkeleton } from './components/product-card-skeleton';
+import { storeCatalog } from "@/lib/shopify/constants";
+import ProductList from "./components/product-list";
+import { Metadata } from "next";
+import { Suspense } from "react";
+import ResultsControls from "./components/results-controls";
+import { ProductGrid } from "./components/product-grid";
+import { ProductCardSkeleton } from "./components/product-card-skeleton";
 
 export const metadata: Metadata = {
-  title: 'Shop',
-  description: 'Shop for wines',
+  title: "Shop",
+  description: "Shop for wines",
 };
 
 // Enable ISR with 1 minute revalidation
@@ -30,7 +30,10 @@ export default async function ShopPage({
           </div>
         }
       >
-        <ProductList collection={storeCatalog.rootCategoryId} searchParams={searchParams} />
+        <ProductList
+          collection={storeCatalog.rootCategoryId}
+          searchParams={searchParams}
+        />
       </Suspense>
     </>
   );

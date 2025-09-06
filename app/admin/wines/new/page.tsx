@@ -1,9 +1,9 @@
-import { getProducers } from '@/lib/actions/producers';
-import WineForm from '@/components/admin/wine-form';
+import { getProducers } from "@/lib/actions/producers";
+import WineForm from "@/components/admin/wine-form";
 
 export default async function NewWinePage() {
   const producers = await getProducers();
-  
+
   return (
     <div className="space-y-6">
       <div>

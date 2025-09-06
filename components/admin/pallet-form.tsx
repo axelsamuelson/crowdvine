@@ -1,14 +1,26 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface PalletZone {
   id: string;
@@ -16,7 +28,7 @@ interface PalletZone {
   radius_km: number;
   center_lat: number;
   center_lon: number;
-  zone_type: 'delivery' | 'pickup';
+  zone_type: "delivery" | "pickup";
 }
 
 interface CreatePalletData {
@@ -48,17 +60,17 @@ interface PalletFormProps {
 
 export default function PalletForm({ pallet }: PalletFormProps) {
   const [formData, setFormData] = useState<CreatePalletData>({
-    name: pallet?.name || '',
-    description: pallet?.description || '',
-    delivery_zone_id: pallet?.delivery_zone_id || '',
-    pickup_zone_id: pallet?.pickup_zone_id || '',
+    name: pallet?.name || "",
+    description: pallet?.description || "",
+    delivery_zone_id: pallet?.delivery_zone_id || "",
+    pickup_zone_id: pallet?.pickup_zone_id || "",
     cost_cents: pallet?.cost_cents || 0,
     bottle_capacity: pallet?.bottle_capacity || 0,
   });
 
   const [deliveryZones, setDeliveryZones] = useState<PalletZone[]>([]);
   const [pickupZones, setPickupZones] = useState<PalletZone[]>([]);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -66,23 +78,23 @@ export default function PalletForm({ pallet }: PalletFormProps) {
     const loadZones = async () => {
       try {
         const [deliveryResponse, pickupResponse] = await Promise.all([
-          fetch('/api/admin/zones?type=delivery'),
-          fetch('/api/admin/zones?type=pickup')
+          fetch("/api/admin/zones?type=delivery"),
+          fetch("/api/admin/zones?type=pickup"),
         ]);
 
         if (deliveryResponse.ok && pickupResponse.ok) {
           const [delivery, pickup] = await Promise.all([
             deliveryResponse.json(),
-            pickupResponse.json()
+            pickupResponse.json(),
           ]);
           setDeliveryZones(delivery);
           setPickupZones(pickup);
         } else {
-          setError('Failed to load zones');
+          setError("Failed to load zones");
         }
       } catch (err) {
-        console.error('Failed to load zones:', err);
-        setError('Failed to load zones');
+        console.error("Failed to load zones:", err);
+        setError("Failed to load zones");
       }
     };
 
@@ -92,70 +104,77 @@ export default function PalletForm({ pallet }: PalletFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
 
     // Validate required fields
     const missingFields: string[] = [];
-    
-    if (!formData.name.trim()) missingFields.push('Name');
-    if (!formData.delivery_zone_id) missingFields.push('Delivery Zone');
-    if (!formData.pickup_zone_id) missingFields.push('Pickup Zone');
-    if (formData.cost_cents < 0) missingFields.push('Cost');
-    if (formData.bottle_capacity <= 0) missingFields.push('Bottle Capacity');
+
+    if (!formData.name.trim()) missingFields.push("Name");
+    if (!formData.delivery_zone_id) missingFields.push("Delivery Zone");
+    if (!formData.pickup_zone_id) missingFields.push("Pickup Zone");
+    if (formData.cost_cents < 0) missingFields.push("Cost");
+    if (formData.bottle_capacity <= 0) missingFields.push("Bottle Capacity");
 
     if (missingFields.length > 0) {
-      setError(`Please fill in the following required fields: ${missingFields.join(', ')}`);
+      setError(
+        `Please fill in the following required fields: ${missingFields.join(", ")}`,
+      );
       setLoading(false);
       return;
     }
 
     // Validate that delivery and pickup zones are different
     if (formData.delivery_zone_id === formData.pickup_zone_id) {
-      setError('Delivery zone and pickup zone must be different');
+      setError("Delivery zone and pickup zone must be different");
       setLoading(false);
       return;
     }
 
     try {
-      const url = pallet ? `/api/admin/pallets/${pallet.id}` : '/api/admin/pallets';
-      const method = pallet ? 'PUT' : 'POST';
-      
+      const url = pallet
+        ? `/api/admin/pallets/${pallet.id}`
+        : "/api/admin/pallets";
+      const method = pallet ? "PUT" : "POST";
+
       const response = await fetch(url, {
         method,
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to save pallet');
+        throw new Error(errorData.error || "Failed to save pallet");
       }
 
-      router.push('/admin/pallets');
+      router.push("/admin/pallets");
     } catch (err) {
-      console.error('Pallet creation error:', err);
+      console.error("Pallet creation error:", err);
       if (err instanceof Error) {
         setError(`Failed to save pallet: ${err.message}`);
       } else {
-        setError('An unexpected error occurred while saving the pallet');
+        setError("An unexpected error occurred while saving the pallet");
       }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (field: keyof CreatePalletData, value: string | number) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleChange = (
+    field: keyof CreatePalletData,
+    value: string | number,
+  ) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{pallet ? 'Edit Pallet' : 'Add Pallet'}</CardTitle>
+        <CardTitle>{pallet ? "Edit Pallet" : "Add Pallet"}</CardTitle>
         <CardDescription>
-          {pallet ? 'Update pallet information' : 'Create a new pallet'}
+          {pallet ? "Update pallet information" : "Create a new pallet"}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -171,7 +190,7 @@ export default function PalletForm({ pallet }: PalletFormProps) {
             <Input
               id="name"
               value={formData.name}
-              onChange={(e) => handleChange('name', e.target.value)}
+              onChange={(e) => handleChange("name", e.target.value)}
               placeholder="Standard Pallet"
               required
             />
@@ -182,7 +201,7 @@ export default function PalletForm({ pallet }: PalletFormProps) {
             <Textarea
               id="description"
               value={formData.description}
-              onChange={(e) => handleChange('description', e.target.value)}
+              onChange={(e) => handleChange("description", e.target.value)}
               placeholder="Description of the pallet..."
               rows={3}
             />
@@ -193,7 +212,9 @@ export default function PalletForm({ pallet }: PalletFormProps) {
               <Label htmlFor="delivery_zone_id">Delivery Zone *</Label>
               <Select
                 value={formData.delivery_zone_id}
-                onValueChange={(value) => handleChange('delivery_zone_id', value)}
+                onValueChange={(value) =>
+                  handleChange("delivery_zone_id", value)
+                }
                 required
               >
                 <SelectTrigger>
@@ -213,7 +234,7 @@ export default function PalletForm({ pallet }: PalletFormProps) {
               <Label htmlFor="pickup_zone_id">Pickup Zone *</Label>
               <Select
                 value={formData.pickup_zone_id}
-                onValueChange={(value) => handleChange('pickup_zone_id', value)}
+                onValueChange={(value) => handleChange("pickup_zone_id", value)}
                 required
               >
                 <SelectTrigger>
@@ -238,7 +259,12 @@ export default function PalletForm({ pallet }: PalletFormProps) {
                 type="number"
                 step="0.01"
                 value={(formData.cost_cents / 100).toFixed(2)}
-                onChange={(e) => handleChange('cost_cents', Math.round(parseFloat(e.target.value) * 100) || 0)}
+                onChange={(e) =>
+                  handleChange(
+                    "cost_cents",
+                    Math.round(parseFloat(e.target.value) * 100) || 0,
+                  )
+                }
                 placeholder="150.00"
                 required
               />
@@ -250,7 +276,9 @@ export default function PalletForm({ pallet }: PalletFormProps) {
                 id="bottle_capacity"
                 type="number"
                 value={formData.bottle_capacity}
-                onChange={(e) => handleChange('bottle_capacity', parseInt(e.target.value) || 0)}
+                onChange={(e) =>
+                  handleChange("bottle_capacity", parseInt(e.target.value) || 0)
+                }
                 placeholder="72"
                 required
               />
@@ -266,7 +294,11 @@ export default function PalletForm({ pallet }: PalletFormProps) {
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Saving...' : (pallet ? 'Update Pallet' : 'Create Pallet')}
+              {loading
+                ? "Saving..."
+                : pallet
+                  ? "Update Pallet"
+                  : "Create Pallet"}
             </Button>
           </div>
         </form>

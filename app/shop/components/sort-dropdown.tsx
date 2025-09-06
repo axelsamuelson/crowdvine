@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   Select,
@@ -9,26 +9,29 @@ import {
   SelectGroup,
   SelectLabel,
   SelectSeparator,
-} from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { useQueryState, parseAsString } from 'nuqs';
-import { cn } from '@/lib/utils';
-import { sortOptions } from '@/lib/shopify/constants';
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { useQueryState, parseAsString } from "nuqs";
+import { cn } from "@/lib/utils";
+import { sortOptions } from "@/lib/shopify/constants";
 
 interface SortDropdownProps {
   className?: string;
 }
 
 export function SortDropdown({ className }: SortDropdownProps) {
-  const [sort, setSort] = useQueryState('sort', parseAsString.withOptions({ shallow: false }));
+  const [sort, setSort] = useQueryState(
+    "sort",
+    parseAsString.withOptions({ shallow: false }),
+  );
 
   return (
     <Select value={sort ?? undefined} onValueChange={setSort}>
       <SelectTrigger
         size="sm"
         className={cn(
-          'justify-self-end -mr-3 font-medium bg-transparent border-none shadow-none md:w-32 hover:bg-muted/50',
-          className
+          "justify-self-end -mr-3 font-medium bg-transparent border-none shadow-none md:w-32 hover:bg-muted/50",
+          className,
         )}
       >
         <SelectValue placeholder="Sort by" />
@@ -48,7 +51,7 @@ export function SortDropdown({ className }: SortDropdownProps) {
             </Button>
           </div>
           <SelectSeparator />
-          {sortOptions.map(option => (
+          {sortOptions.map((option) => (
             <SelectItem key={option.value} value={option.value}>
               {option.label}
             </SelectItem>

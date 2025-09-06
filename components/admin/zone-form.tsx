@@ -1,13 +1,24 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CreatePalletZoneData, PalletZone, createPalletZone, updatePalletZone } from '@/lib/actions/zones';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  CreatePalletZoneData,
+  PalletZone,
+  createPalletZone,
+  updatePalletZone,
+} from "@/lib/actions/zones";
 
 interface ZoneFormProps {
   zone?: PalletZone;
@@ -15,21 +26,21 @@ interface ZoneFormProps {
 
 export default function ZoneForm({ zone }: ZoneFormProps) {
   const [formData, setFormData] = useState<CreatePalletZoneData>({
-    name: zone?.name || '',
+    name: zone?.name || "",
     radius_km: zone?.radius_km || 500,
     center_lat: zone?.center_lat || 0,
     center_lon: zone?.center_lon || 0,
-    zone_type: zone?.zone_type || 'delivery',
+    zone_type: zone?.zone_type || "delivery",
   });
 
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
       if (zone) {
@@ -37,24 +48,27 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
       } else {
         await createPalletZone(formData);
       }
-      router.push('/admin/zones');
+      router.push("/admin/zones");
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (field: keyof CreatePalletZoneData, value: string | number) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleChange = (
+    field: keyof CreatePalletZoneData,
+    value: string | number,
+  ) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{zone ? 'Edit Zone' : 'Add Zone'}</CardTitle>
+        <CardTitle>{zone ? "Edit Zone" : "Add Zone"}</CardTitle>
         <CardDescription>
-          {zone ? 'Update zone configuration' : 'Create a new delivery zone'}
+          {zone ? "Update zone configuration" : "Create a new delivery zone"}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -70,7 +84,7 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
             <Input
               id="name"
               value={formData.name}
-              onChange={(e) => handleChange('name', e.target.value)}
+              onChange={(e) => handleChange("name", e.target.value)}
               placeholder="Béziers 500 km"
               required
             />
@@ -81,7 +95,12 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
             <select
               id="zone_type"
               value={formData.zone_type}
-              onChange={(e) => handleChange('zone_type', e.target.value as 'delivery' | 'pickup')}
+              onChange={(e) =>
+                handleChange(
+                  "zone_type",
+                  e.target.value as "delivery" | "pickup",
+                )
+              }
               className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-1 text-base transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm aria-[invalid=true]:border-red-500 aria-[invalid=true]:focus-visible:!ring-red-500"
               required
             >
@@ -98,7 +117,9 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
                 type="number"
                 step="0.0001"
                 value={formData.center_lat}
-                onChange={(e) => handleChange('center_lat', parseFloat(e.target.value) || 0)}
+                onChange={(e) =>
+                  handleChange("center_lat", parseFloat(e.target.value) || 0)
+                }
                 placeholder="43.3444"
                 required
               />
@@ -111,7 +132,9 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
                 type="number"
                 step="0.0001"
                 value={formData.center_lon}
-                onChange={(e) => handleChange('center_lon', parseFloat(e.target.value) || 0)}
+                onChange={(e) =>
+                  handleChange("center_lon", parseFloat(e.target.value) || 0)
+                }
                 placeholder="3.2169"
                 required
               />
@@ -124,7 +147,9 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
                 type="number"
                 step="1"
                 value={formData.radius_km}
-                onChange={(e) => handleChange('radius_km', parseInt(e.target.value) || 0)}
+                onChange={(e) =>
+                  handleChange("radius_km", parseInt(e.target.value) || 0)
+                }
                 placeholder="500"
                 required
               />
@@ -140,7 +165,7 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Saving...' : (zone ? 'Update Zone' : 'Create Zone')}
+              {loading ? "Saving..." : zone ? "Update Zone" : "Create Zone"}
             </Button>
           </div>
         </form>

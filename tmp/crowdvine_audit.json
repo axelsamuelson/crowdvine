@@ -30,9 +30,7 @@
       "POST /api/crowdvine/cart/[id]/lines/update",
       "POST /api/crowdvine/cart/[id]/lines/remove"
     ],
-    "stripe": [
-      "POST /api/checkout/setup"
-    ]
+    "stripe": ["POST /api/checkout/setup"]
   },
   "dataModel": {
     "tables": {
@@ -53,12 +51,7 @@
     "rlsPolicies": false
   },
   "frontend": {
-    "publicPages": [
-      "/",
-      "/shop",
-      "/shop/[collection]",
-      "/product/[handle]"
-    ],
+    "publicPages": ["/", "/shop", "/shop/[collection]", "/product/[handle]"],
     "adminPages": [],
     "producerPages": [],
     "cartShimToBookings": true,

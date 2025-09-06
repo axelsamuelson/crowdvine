@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { usePathname } from 'next/navigation';
-import { Header } from './index';
-import { Collection } from '@/lib/shopify/types';
+import { usePathname } from "next/navigation";
+import { Header } from "./index";
+import { Collection } from "@/lib/shopify/types";
 
 interface ConditionalHeaderProps {
   collections: Collection[];
@@ -10,7 +10,7 @@ interface ConditionalHeaderProps {
 
 export function ConditionalHeader({ collections }: ConditionalHeaderProps) {
   const pathname = usePathname();
-  const isAdminRoute = pathname.startsWith('/admin');
+  const isAdminRoute = pathname.startsWith("/admin");
 
   if (isAdminRoute) {
     return null;

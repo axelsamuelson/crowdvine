@@ -1,27 +1,37 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ImageUpload } from '@/components/admin/image-upload';
-import { getSiteContent, updateSiteContent, SiteContent } from '@/lib/actions/content';
-import { FileText, Image, MapPin, Phone, Mail, Instagram } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ImageUpload } from "@/components/admin/image-upload";
+import {
+  getSiteContent,
+  updateSiteContent,
+  SiteContent,
+} from "@/lib/actions/content";
+import { FileText, Image, MapPin, Phone, Mail, Instagram } from "lucide-react";
 
 export default function ContentPage() {
   const [content, setContent] = useState<SiteContent[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [logoImages, setLogoImages] = useState<Record<string, File[]>>({
     header_logo: [],
-    footer_logo: []
+    footer_logo: [],
   });
 
   useEffect(() => {
@@ -32,22 +42,22 @@ export default function ContentPage() {
     try {
       const data = await getSiteContent();
       setContent(data);
-      
+
       // Initialize form data
       const initialData: Record<string, string> = {};
-      data.forEach(item => {
-        initialData[item.key] = item.value || '';
+      data.forEach((item) => {
+        initialData[item.key] = item.value || "";
       });
       setFormData(initialData);
     } catch (err) {
-      setError('Failed to load content');
+      setError("Failed to load content");
     } finally {
       setLoading(false);
     }
   };
 
   const handleInputChange = (key: string, value: string) => {
-    setFormData(prev => ({ ...prev, [key]: value }));
+    setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleLogoUpload = async (key: string) => {
@@ -56,28 +66,28 @@ export default function ContentPage() {
     setSaving(true);
     try {
       const formDataUpload = new FormData();
-      formDataUpload.append('files', logoImages[key][0]);
+      formDataUpload.append("files", logoImages[key][0]);
 
-      const uploadResponse = await fetch('/api/upload', {
-        method: 'POST',
+      const uploadResponse = await fetch("/api/upload", {
+        method: "POST",
         body: formDataUpload,
       });
 
       if (!uploadResponse.ok) {
-        throw new Error('Failed to upload image');
+        throw new Error("Failed to upload image");
       }
 
       const uploadResult = await uploadResponse.json();
       const imagePath = uploadResult.files[0];
 
       await updateSiteContent(key, imagePath);
-      setFormData(prev => ({ ...prev, [key]: imagePath }));
-      setSuccess(`${key.replace('_', ' ')} updated successfully!`);
-      
+      setFormData((prev) => ({ ...prev, [key]: imagePath }));
+      setSuccess(`${key.replace("_", " ")} updated successfully!`);
+
       // Clear the image upload
-      setLogoImages(prev => ({ ...prev, [key]: [] }));
+      setLogoImages((prev) => ({ ...prev, [key]: [] }));
     } catch (err) {
-      setError(`Failed to upload ${key.replace('_', ' ')}`);
+      setError(`Failed to upload ${key.replace("_", " ")}`);
     } finally {
       setSaving(false);
     }
@@ -87,16 +97,16 @@ export default function ContentPage() {
     setSaving(true);
     try {
       await updateSiteContent(key, formData[key]);
-      setSuccess('Content updated successfully!');
+      setSuccess("Content updated successfully!");
     } catch (err) {
-      setError('Failed to update content');
+      setError("Failed to update content");
     } finally {
       setSaving(false);
     }
   };
 
   const getContentByKey = (key: string) => {
-    return content.find(item => item.key === key);
+    return content.find((item) => item.key === key);
   };
 
   if (loading) {
@@ -121,7 +131,9 @@ export default function ContentPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Content Management</h1>
-        <p className="text-gray-600">Manage logos, text content, and contact information</p>
+        <p className="text-gray-600">
+          Manage logos, text content, and contact information
+        </p>
       </div>
 
       {error && (
@@ -181,13 +193,15 @@ export default function ContentPage() {
                 )}
                 <ImageUpload
                   images={logoImages.header_logo}
-                  onImagesChange={(images) => setLogoImages(prev => ({ ...prev, header_logo: images }))}
+                  onImagesChange={(images) =>
+                    setLogoImages((prev) => ({ ...prev, header_logo: images }))
+                  }
                 />
-                <Button 
-                  onClick={() => handleLogoUpload('header_logo')}
+                <Button
+                  onClick={() => handleLogoUpload("header_logo")}
                   disabled={saving || logoImages.header_logo.length === 0}
                 >
-                  {saving ? 'Uploading...' : 'Upload Header Logo'}
+                  {saving ? "Uploading..." : "Upload Header Logo"}
                 </Button>
               </CardContent>
             </Card>
@@ -215,13 +229,15 @@ export default function ContentPage() {
                 )}
                 <ImageUpload
                   images={logoImages.footer_logo}
-                  onImagesChange={(images) => setLogoImages(prev => ({ ...prev, footer_logo: images }))}
+                  onImagesChange={(images) =>
+                    setLogoImages((prev) => ({ ...prev, footer_logo: images }))
+                  }
                 />
-                <Button 
-                  onClick={() => handleLogoUpload('footer_logo')}
+                <Button
+                  onClick={() => handleLogoUpload("footer_logo")}
                   disabled={saving || logoImages.footer_logo.length === 0}
                 >
-                  {saving ? 'Uploading...' : 'Upload Footer Logo'}
+                  {saving ? "Uploading..." : "Upload Footer Logo"}
                 </Button>
               </CardContent>
             </Card>
@@ -243,16 +259,18 @@ export default function ContentPage() {
                   <Label htmlFor="homepage_title">Title</Label>
                   <Input
                     id="homepage_title"
-                    value={formData.homepage_title || ''}
-                    onChange={(e) => handleInputChange('homepage_title', e.target.value)}
+                    value={formData.homepage_title || ""}
+                    onChange={(e) =>
+                      handleInputChange("homepage_title", e.target.value)
+                    }
                     placeholder="Enter homepage title"
                   />
                 </div>
-                <Button 
-                  onClick={() => handleSave('homepage_title')}
+                <Button
+                  onClick={() => handleSave("homepage_title")}
                   disabled={saving}
                 >
-                  {saving ? 'Saving...' : 'Save Title'}
+                  {saving ? "Saving..." : "Save Title"}
                 </Button>
               </CardContent>
             </Card>
@@ -270,16 +288,18 @@ export default function ContentPage() {
                   <Label htmlFor="homepage_subtitle">Subtitle</Label>
                   <Input
                     id="homepage_subtitle"
-                    value={formData.homepage_subtitle || ''}
-                    onChange={(e) => handleInputChange('homepage_subtitle', e.target.value)}
+                    value={formData.homepage_subtitle || ""}
+                    onChange={(e) =>
+                      handleInputChange("homepage_subtitle", e.target.value)
+                    }
                     placeholder="Enter homepage subtitle"
                   />
                 </div>
-                <Button 
-                  onClick={() => handleSave('homepage_subtitle')}
+                <Button
+                  onClick={() => handleSave("homepage_subtitle")}
                   disabled={saving}
                 >
-                  {saving ? 'Saving...' : 'Save Subtitle'}
+                  {saving ? "Saving..." : "Save Subtitle"}
                 </Button>
               </CardContent>
             </Card>
@@ -297,17 +317,19 @@ export default function ContentPage() {
                   <Label htmlFor="homepage_description">Description</Label>
                   <Textarea
                     id="homepage_description"
-                    value={formData.homepage_description || ''}
-                    onChange={(e) => handleInputChange('homepage_description', e.target.value)}
+                    value={formData.homepage_description || ""}
+                    onChange={(e) =>
+                      handleInputChange("homepage_description", e.target.value)
+                    }
                     placeholder="Enter homepage description"
                     rows={4}
                   />
                 </div>
-                <Button 
-                  onClick={() => handleSave('homepage_description')}
+                <Button
+                  onClick={() => handleSave("homepage_description")}
                   disabled={saving}
                 >
-                  {saving ? 'Saving...' : 'Save Description'}
+                  {saving ? "Saving..." : "Save Description"}
                 </Button>
               </CardContent>
             </Card>
@@ -323,25 +345,25 @@ export default function ContentPage() {
                   <Phone className="h-5 w-5" />
                   Phone Number
                 </CardTitle>
-                <CardDescription>
-                  Contact phone number
-                </CardDescription>
+                <CardDescription>Contact phone number</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="phone_number">Phone</Label>
                   <Input
                     id="phone_number"
-                    value={formData.phone_number || ''}
-                    onChange={(e) => handleInputChange('phone_number', e.target.value)}
+                    value={formData.phone_number || ""}
+                    onChange={(e) =>
+                      handleInputChange("phone_number", e.target.value)
+                    }
                     placeholder="+46 70 123 45 67"
                   />
                 </div>
-                <Button 
-                  onClick={() => handleSave('phone_number')}
+                <Button
+                  onClick={() => handleSave("phone_number")}
                   disabled={saving}
                 >
-                  {saving ? 'Saving...' : 'Save Phone'}
+                  {saving ? "Saving..." : "Save Phone"}
                 </Button>
               </CardContent>
             </Card>
@@ -353,9 +375,7 @@ export default function ContentPage() {
                   <Mail className="h-5 w-5" />
                   Email Address
                 </CardTitle>
-                <CardDescription>
-                  Contact email address
-                </CardDescription>
+                <CardDescription>Contact email address</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -363,16 +383,13 @@ export default function ContentPage() {
                   <Input
                     id="email"
                     type="email"
-                    value={formData.email || ''}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    value={formData.email || ""}
+                    onChange={(e) => handleInputChange("email", e.target.value)}
                     placeholder="info@crowdvine.se"
                   />
                 </div>
-                <Button 
-                  onClick={() => handleSave('email')}
-                  disabled={saving}
-                >
-                  {saving ? 'Saving...' : 'Save Email'}
+                <Button onClick={() => handleSave("email")} disabled={saving}>
+                  {saving ? "Saving..." : "Save Email"}
                 </Button>
               </CardContent>
             </Card>
@@ -384,9 +401,7 @@ export default function ContentPage() {
                   <Instagram className="h-5 w-5" />
                   Instagram URL
                 </CardTitle>
-                <CardDescription>
-                  Instagram profile URL
-                </CardDescription>
+                <CardDescription>Instagram profile URL</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -394,16 +409,18 @@ export default function ContentPage() {
                   <Input
                     id="instagram_url"
                     type="url"
-                    value={formData.instagram_url || ''}
-                    onChange={(e) => handleInputChange('instagram_url', e.target.value)}
+                    value={formData.instagram_url || ""}
+                    onChange={(e) =>
+                      handleInputChange("instagram_url", e.target.value)
+                    }
                     placeholder="https://instagram.com/crowdvine"
                   />
                 </div>
-                <Button 
-                  onClick={() => handleSave('instagram_url')}
+                <Button
+                  onClick={() => handleSave("instagram_url")}
                   disabled={saving}
                 >
-                  {saving ? 'Saving...' : 'Save Instagram'}
+                  {saving ? "Saving..." : "Save Instagram"}
                 </Button>
               </CardContent>
             </Card>
@@ -412,25 +429,22 @@ export default function ContentPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Address</CardTitle>
-                <CardDescription>
-                  Company address
-                </CardDescription>
+                <CardDescription>Company address</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="address">Address</Label>
                   <Input
                     id="address"
-                    value={formData.address || ''}
-                    onChange={(e) => handleInputChange('address', e.target.value)}
+                    value={formData.address || ""}
+                    onChange={(e) =>
+                      handleInputChange("address", e.target.value)
+                    }
                     placeholder="Stockholm, Sverige"
                   />
                 </div>
-                <Button 
-                  onClick={() => handleSave('address')}
-                  disabled={saving}
-                >
-                  {saving ? 'Saving...' : 'Save Address'}
+                <Button onClick={() => handleSave("address")} disabled={saving}>
+                  {saving ? "Saving..." : "Save Address"}
                 </Button>
               </CardContent>
             </Card>
@@ -446,9 +460,7 @@ export default function ContentPage() {
                   <MapPin className="h-5 w-5" />
                   Latitude
                 </CardTitle>
-                <CardDescription>
-                  Latitude coordinate for map
-                </CardDescription>
+                <CardDescription>Latitude coordinate for map</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -457,16 +469,18 @@ export default function ContentPage() {
                     id="coordinates_lat"
                     type="number"
                     step="any"
-                    value={formData.coordinates_lat || ''}
-                    onChange={(e) => handleInputChange('coordinates_lat', e.target.value)}
+                    value={formData.coordinates_lat || ""}
+                    onChange={(e) =>
+                      handleInputChange("coordinates_lat", e.target.value)
+                    }
                     placeholder="59.3293"
                   />
                 </div>
-                <Button 
-                  onClick={() => handleSave('coordinates_lat')}
+                <Button
+                  onClick={() => handleSave("coordinates_lat")}
                   disabled={saving}
                 >
-                  {saving ? 'Saving...' : 'Save Latitude'}
+                  {saving ? "Saving..." : "Save Latitude"}
                 </Button>
               </CardContent>
             </Card>
@@ -478,9 +492,7 @@ export default function ContentPage() {
                   <MapPin className="h-5 w-5" />
                   Longitude
                 </CardTitle>
-                <CardDescription>
-                  Longitude coordinate for map
-                </CardDescription>
+                <CardDescription>Longitude coordinate for map</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -489,16 +501,18 @@ export default function ContentPage() {
                     id="coordinates_lng"
                     type="number"
                     step="any"
-                    value={formData.coordinates_lng || ''}
-                    onChange={(e) => handleInputChange('coordinates_lng', e.target.value)}
+                    value={formData.coordinates_lng || ""}
+                    onChange={(e) =>
+                      handleInputChange("coordinates_lng", e.target.value)
+                    }
                     placeholder="18.0686"
                   />
                 </div>
-                <Button 
-                  onClick={() => handleSave('coordinates_lng')}
+                <Button
+                  onClick={() => handleSave("coordinates_lng")}
                   disabled={saving}
                 >
-                  {saving ? 'Saving...' : 'Save Longitude'}
+                  {saving ? "Saving..." : "Save Longitude"}
                 </Button>
               </CardContent>
             </Card>

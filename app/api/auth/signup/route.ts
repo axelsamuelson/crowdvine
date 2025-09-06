@@ -1,18 +1,18 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
+import { NextResponse } from "next/server";
+import { supabaseServer } from "@/lib/supabase-server";
 
 export async function POST(request: Request) {
   try {
     const { email, password, fullName } = await request.json();
-    
+
     if (!email || !password || !fullName) {
       return NextResponse.json(
-        { error: 'Email, password, and full name are required' },
-        { status: 400 }
+        { error: "Email, password, and full name are required" },
+        { status: 400 },
       );
     }
 
-    const supabase = createClient();
+    const supabase = await supabaseServer();
 
     // 1. Create user in Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -21,22 +21,19 @@ export async function POST(request: Request) {
       options: {
         data: {
           full_name: fullName,
-        }
-      }
+        },
+      },
     });
 
     if (authError) {
-      console.error('Auth signup error:', authError);
-      return NextResponse.json(
-        { error: authError.message },
-        { status: 400 }
-      );
+      console.error("Auth signup error:", authError);
+      return NextResponse.json({ error: authError.message }, { status: 400 });
     }
 
     if (!authData.user) {
       return NextResponse.json(
-        { error: 'Failed to create user account' },
-        { status: 500 }
+        { error: "Failed to create user account" },
+        { status: 500 },
       );
     }
 
@@ -51,19 +48,18 @@ export async function POST(request: Request) {
     //   });
 
     return NextResponse.json({
-      message: 'User registered successfully',
+      message: "User registered successfully",
       user: {
         id: authData.user.id,
         email: authData.user.email,
-        full_name: fullName
-      }
+        full_name: fullName,
+      },
     });
-
   } catch (error) {
-    console.error('Signup error:', error);
+    console.error("Signup error:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: "Internal server error" },
+      { status: 500 },
     );
   }
 }

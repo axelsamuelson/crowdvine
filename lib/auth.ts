@@ -1,9 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createClient } from "@supabase/supabase-js";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 // Auth roles
-export type UserRole = 'admin' | 'producer' | 'user';
+export type UserRole = "admin" | "producer" | "user";
 
 export interface User {
   id: string;
@@ -22,60 +22,61 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export async function getCurrentUser(): Promise<User | null> {
   try {
     const cookieStore = await cookies();
-    const supabaseServer = createServerClient(
-      supabaseUrl,
-      supabaseAnonKey,
-      {
-        cookies: {
-          get: (name: string) => cookieStore.get(name)?.value,
-          set: (name: string, value: string, options: any) => {
-            cookieStore.set(name, value, options);
-          },
-          remove: (name: string, options: any) => {
-            cookieStore.set(name, '', options);
-          },
+    const supabaseServer = createServerClient(supabaseUrl, supabaseAnonKey, {
+      cookies: {
+        get: (name: string) => cookieStore.get(name)?.value,
+        set: (name: string, value: string, options: any) => {
+          cookieStore.set(name, value, options);
         },
-      }
-    );
+        remove: (name: string, options: any) => {
+          cookieStore.set(name, "", options);
+        },
+      },
+    });
 
-    const { data: { user }, error } = await supabaseServer.auth.getUser();
+    const {
+      data: { user },
+      error,
+    } = await supabaseServer.auth.getUser();
     if (error || !user) {
-      console.log('Auth error or no user:', error);
+      console.log("Auth error or no user:", error);
       return null;
     }
 
-    console.log('User found in auth:', user.id);
+    console.log("User found in auth:", user.id);
 
     // Hämta user profile med role
     const { data: profile, error: profileError } = await supabaseServer
-      .from('profiles')
-      .select('role, producer_id')
-      .eq('id', user.id)
+      .from("profiles")
+      .select("role, producer_id")
+      .eq("id", user.id)
       .single();
 
     if (profileError) {
-      console.log('Profile fetch error:', profileError);
+      console.log("Profile fetch error:", profileError);
       return null;
     }
 
-    console.log('Profile found:', profile);
+    console.log("Profile found:", profile);
 
     return {
       id: user.id,
       email: user.email!,
-      role: profile?.role || 'user',
+      role: profile?.role || "user",
       producer_id: profile?.producer_id,
     };
   } catch (error) {
-    console.error('Error in getCurrentUser:', error);
+    console.error("Error in getCurrentUser:", error);
     return null;
   }
 }
 
-export async function requireAuth(requiredRole: UserRole = 'user'): Promise<User> {
+export async function requireAuth(
+  requiredRole: UserRole = "user",
+): Promise<User> {
   const user = await getCurrentUser();
   if (!user) {
-    throw new Error('Authentication required');
+    throw new Error("Authentication required");
   }
 
   const roleHierarchy: Record<UserRole, number> = {
@@ -85,7 +86,9 @@ export async function requireAuth(requiredRole: UserRole = 'user'): Promise<User
   };
 
   if (roleHierarchy[user.role] < roleHierarchy[requiredRole]) {
-    throw new Error(`Insufficient permissions. Required: ${requiredRole}, Current: ${user.role}`);
+    throw new Error(
+      `Insufficient permissions. Required: ${requiredRole}, Current: ${user.role}`,
+    );
   }
 
   return user;
@@ -100,7 +103,11 @@ export async function signIn(email: string, password: string) {
   return { data, error };
 }
 
-export async function signUp(email: string, password: string, role: UserRole = 'user') {
+export async function signUp(
+  email: string,
+  password: string,
+  role: UserRole = "user",
+) {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -113,7 +120,7 @@ export async function signUp(email: string, password: string, role: UserRole = '
 
   if (data.user && !error) {
     // Skapa profile med role
-    await supabase.from('profiles').insert({
+    await supabase.from("profiles").insert({
       id: data.user.id,
       role,
       email,

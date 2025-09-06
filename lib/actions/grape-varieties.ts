@@ -1,7 +1,7 @@
-'use server';
+"use server";
 
-import { supabaseServer } from '@/lib/supabase-server';
-import { revalidatePath } from 'next/cache';
+import { supabaseServer } from "@/lib/supabase-server";
+import { revalidatePath } from "next/cache";
 
 export interface GrapeVariety {
   id: string;
@@ -40,176 +40,196 @@ export interface WineWithDetails {
 // Grape Varieties
 export async function getGrapeVarieties(): Promise<GrapeVariety[]> {
   const sb = await supabaseServer();
-  
+
   const { data, error } = await sb
-    .from('grape_varieties')
-    .select('*')
-    .order('name');
-    
+    .from("grape_varieties")
+    .select("*")
+    .order("name");
+
   if (error) throw new Error(error.message);
   return data || [];
 }
 
-export async function createGrapeVariety(data: { name: string; description?: string }): Promise<GrapeVariety> {
+export async function createGrapeVariety(data: {
+  name: string;
+  description?: string;
+}): Promise<GrapeVariety> {
   const sb = await supabaseServer();
-  
+
   const { data: variety, error } = await sb
-    .from('grape_varieties')
-    .insert({ name: data.name, description: data.description || '' })
+    .from("grape_varieties")
+    .insert({ name: data.name, description: data.description || "" })
     .select()
     .single();
-    
+
   if (error) throw new Error(error.message);
-  
-  revalidatePath('/admin/grape-varieties');
+
+  revalidatePath("/admin/grape-varieties");
   return variety;
 }
 
-export async function updateGrapeVariety(id: string, name: string, description?: string): Promise<GrapeVariety> {
+export async function updateGrapeVariety(
+  id: string,
+  name: string,
+  description?: string,
+): Promise<GrapeVariety> {
   const sb = await supabaseServer();
-  
+
   const { data, error } = await sb
-    .from('grape_varieties')
+    .from("grape_varieties")
     .update({ name, description, updated_at: new Date().toISOString() })
-    .eq('id', id)
+    .eq("id", id)
     .select()
     .single();
-    
+
   if (error) throw new Error(error.message);
-  
-  revalidatePath('/admin/grape-varieties');
+
+  revalidatePath("/admin/grape-varieties");
   return data;
 }
 
 export async function deleteGrapeVariety(id: string): Promise<void> {
   const sb = await supabaseServer();
-  
-  const { error } = await sb
-    .from('grape_varieties')
-    .delete()
-    .eq('id', id);
-    
+
+  const { error } = await sb.from("grape_varieties").delete().eq("id", id);
+
   if (error) throw new Error(error.message);
-  
-  revalidatePath('/admin/grape-varieties');
+
+  revalidatePath("/admin/grape-varieties");
 }
 
 // Wine Colors
 export async function getWineColors(): Promise<WineColor[]> {
   const sb = await supabaseServer();
-  
+
   const { data, error } = await sb
-    .from('wine_colors')
-    .select('*')
-    .order('name');
-    
+    .from("wine_colors")
+    .select("*")
+    .order("name");
+
   if (error) throw new Error(error.message);
   return data || [];
 }
 
-export async function createWineColor(name: string, hex_color: string, description?: string): Promise<WineColor> {
+export async function createWineColor(
+  name: string,
+  hex_color: string,
+  description?: string,
+): Promise<WineColor> {
   const sb = await supabaseServer();
-  
+
   const { data, error } = await sb
-    .from('wine_colors')
+    .from("wine_colors")
     .insert({ name, hex_color, description })
     .select()
     .single();
-    
+
   if (error) throw new Error(error.message);
-  
-  revalidatePath('/admin/wine-colors');
+
+  revalidatePath("/admin/wine-colors");
   return data;
 }
 
-export async function updateWineColor(id: string, name: string, hex_color: string, description?: string): Promise<WineColor> {
+export async function updateWineColor(
+  id: string,
+  name: string,
+  hex_color: string,
+  description?: string,
+): Promise<WineColor> {
   const sb = await supabaseServer();
-  
+
   const { data, error } = await sb
-    .from('wine_colors')
-    .update({ name, hex_color, description, updated_at: new Date().toISOString() })
-    .eq('id', id)
+    .from("wine_colors")
+    .update({
+      name,
+      hex_color,
+      description,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
     .select()
     .single();
-    
+
   if (error) throw new Error(error.message);
-  
-  revalidatePath('/admin/wine-colors');
+
+  revalidatePath("/admin/wine-colors");
   return data;
 }
 
 export async function deleteWineColor(id: string): Promise<void> {
   const sb = await supabaseServer();
-  
-  const { error } = await sb
-    .from('wine_colors')
-    .delete()
-    .eq('id', id);
-    
+
+  const { error } = await sb.from("wine_colors").delete().eq("id", id);
+
   if (error) throw new Error(error.message);
-  
-  revalidatePath('/admin/wine-colors');
+
+  revalidatePath("/admin/wine-colors");
 }
 
 // Wine Grape Varieties (Junction table)
 export async function getWineGrapeVarieties(wineId: string): Promise<string[]> {
   const sb = await supabaseServer();
-  
+
   const { data, error } = await sb
-    .from('wine_grape_varieties')
-    .select('grape_variety_id')
-    .eq('wine_id', wineId);
-    
+    .from("wine_grape_varieties")
+    .select("grape_variety_id")
+    .eq("wine_id", wineId);
+
   if (error) throw new Error(error.message);
-  return data?.map(item => item.grape_variety_id) || [];
+  return data?.map((item) => item.grape_variety_id) || [];
 }
 
-export async function updateWineGrapeVarieties(wineId: string, grapeVarietyIds: string[]): Promise<void> {
+export async function updateWineGrapeVarieties(
+  wineId: string,
+  grapeVarietyIds: string[],
+): Promise<void> {
   const sb = await supabaseServer();
-  
+
   // Delete existing associations
   const { error: deleteError } = await sb
-    .from('wine_grape_varieties')
+    .from("wine_grape_varieties")
     .delete()
-    .eq('wine_id', wineId);
-    
+    .eq("wine_id", wineId);
+
   if (deleteError) throw new Error(deleteError.message);
-  
+
   // Insert new associations
   if (grapeVarietyIds.length > 0) {
-    const associations = grapeVarietyIds.map(grapeVarietyId => ({
+    const associations = grapeVarietyIds.map((grapeVarietyId) => ({
       wine_id: wineId,
-      grape_variety_id: grapeVarietyId
+      grape_variety_id: grapeVarietyId,
     }));
-    
+
     const { error: insertError } = await sb
-      .from('wine_grape_varieties')
+      .from("wine_grape_varieties")
       .insert(associations);
-      
+
     if (insertError) throw new Error(insertError.message);
   }
-  
-  revalidatePath('/admin/wines');
-  revalidatePath('/admin/wines/[id]');
+
+  revalidatePath("/admin/wines");
+  revalidatePath("/admin/wines/[id]");
 }
 
 // Enhanced wine functions using the new structure
-export async function getWineWithDetails(wineId: string): Promise<WineWithDetails | null> {
+export async function getWineWithDetails(
+  wineId: string,
+): Promise<WineWithDetails | null> {
   const sb = await supabaseServer();
-  
-  const { data, error } = await sb
-    .rpc('get_wine_with_details', { wine_id: wineId });
-    
+
+  const { data, error } = await sb.rpc("get_wine_with_details", {
+    wine_id: wineId,
+  });
+
   if (error) throw new Error(error.message);
   return data?.[0] || null;
 }
 
 export async function getAllWinesWithDetails(): Promise<WineWithDetails[]> {
   const sb = await supabaseServer();
-  
-  const { data, error } = await sb
-    .rpc('get_all_wines_with_details');
-    
+
+  const { data, error } = await sb.rpc("get_all_wines_with_details");
+
   if (error) throw new Error(error.message);
   return data || [];
 }

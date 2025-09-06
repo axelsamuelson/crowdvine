@@ -1,7 +1,7 @@
-import { getPalletZone } from '@/lib/actions/zones';
-import ZoneForm from '@/components/admin/zone-form';
-import { DeleteZoneButton } from '@/components/admin/delete-zone-button';
-import { notFound } from 'next/navigation';
+import { getPalletZone } from "@/lib/actions/zones";
+import ZoneForm from "@/components/admin/zone-form";
+import { DeleteZoneButton } from "@/components/admin/delete-zone-button";
+import { notFound } from "next/navigation";
 
 interface EditZonePageProps {
   params: Promise<{ id: string }>;
@@ -11,7 +11,7 @@ export default async function EditZonePage({ params }: EditZonePageProps) {
   try {
     const { id } = await params;
     const zone = await getPalletZone(id);
-    
+
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">

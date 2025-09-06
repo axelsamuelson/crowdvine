@@ -119,6 +119,7 @@ export interface ShopifyCart {
 
 // Clean types for the new Shopify-only structure
 export type Collection = {
+  id: string;
   handle: string;
   title: string;
   description: string;
@@ -154,25 +155,25 @@ export type Product = {
 };
 
 export type ProductSortKey =
-  | 'RELEVANCE'
-  | 'BEST_SELLING'
-  | 'CREATED_AT'
-  | 'ID'
-  | 'PRICE'
-  | 'PRODUCT_TYPE'
-  | 'TITLE'
-  | 'UPDATED_AT'
-  | 'VENDOR';
+  | "RELEVANCE"
+  | "BEST_SELLING"
+  | "CREATED_AT"
+  | "ID"
+  | "PRICE"
+  | "PRODUCT_TYPE"
+  | "TITLE"
+  | "UPDATED_AT"
+  | "VENDOR";
 
 export type ProductCollectionSortKey =
-  | 'BEST_SELLING'
-  | 'COLLECTION_DEFAULT'
-  | 'CREATED'
-  | 'ID'
-  | 'MANUAL'
-  | 'PRICE'
-  | 'RELEVANCE'
-  | 'TITLE';
+  | "BEST_SELLING"
+  | "COLLECTION_DEFAULT"
+  | "CREATED"
+  | "ID"
+  | "MANUAL"
+  | "PRICE"
+  | "RELEVANCE"
+  | "TITLE";
 
 export type SelectedOptions = {
   name: string;

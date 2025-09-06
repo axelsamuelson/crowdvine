@@ -1,13 +1,25 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Calculator, TrendingUp, Calendar, BarChart3 } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Calculator, TrendingUp, Calendar, BarChart3 } from "lucide-react";
 
 interface PricingData {
   cost_currency: string;
@@ -28,63 +40,75 @@ interface PricingCalculatorProps {
   onPricingChange: (data: PricingData) => void;
 }
 
-export function PricingCalculator({ pricingData, onPricingChange }: PricingCalculatorProps) {
+export function PricingCalculator({
+  pricingData,
+  onPricingChange,
+}: PricingCalculatorProps) {
   const [currentRate, setCurrentRate] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
 
   const currencies = [
-    { code: 'EUR', name: 'Euro (EUR)' },
-    { code: 'USD', name: 'US Dollar (USD)' },
-    { code: 'GBP', name: 'British Pound (GBP)' },
-    { code: 'SEK', name: 'Swedish Krona (SEK)' }
+    { code: "EUR", name: "Euro (EUR)" },
+    { code: "USD", name: "US Dollar (USD)" },
+    { code: "GBP", name: "British Pound (GBP)" },
+    { code: "SEK", name: "Swedish Krona (SEK)" },
   ];
 
   const exchangeRateSources = [
-    { value: 'current', label: 'Current Rate', icon: TrendingUp },
-    { value: 'static_date', label: 'Static Date', icon: Calendar },
-    { value: 'period_average', label: 'Period Average', icon: BarChart3 }
+    { value: "current", label: "Current Rate", icon: TrendingUp },
+    { value: "static_date", label: "Static Date", icon: Calendar },
+    { value: "period_average", label: "Period Average", icon: BarChart3 },
   ];
 
   const updatePricingData = (field: keyof PricingData, value: any) => {
     onPricingChange({
       ...pricingData,
-      [field]: value
+      [field]: value,
     });
   };
 
   const fetchCurrentRate = async (currency: string) => {
-    if (currency === 'SEK') return;
-    
+    if (currency === "SEK") return;
+
     setLoading(true);
     try {
-      const response = await fetch(`/api/exchange-rates?from=${currency}&to=SEK`);
+      const response = await fetch(
+        `/api/exchange-rates?from=${currency}&to=SEK`,
+      );
       const data = await response.json();
       setCurrentRate(data.rate);
     } catch (error) {
-      console.error('Failed to fetch exchange rate:', error);
+      console.error("Failed to fetch exchange rate:", error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (pricingData.cost_currency && pricingData.exchange_rate_source === 'current') {
+    if (
+      pricingData.cost_currency &&
+      pricingData.exchange_rate_source === "current"
+    ) {
       fetchCurrentRate(pricingData.cost_currency);
     }
   }, [pricingData.cost_currency, pricingData.exchange_rate_source]);
 
   const calculatePriceBreakdown = () => {
-    const costInSek = pricingData.cost_amount * (currentRate || pricingData.exchange_rate || 1);
-    const priceBeforeTax = costInSek * (1 + pricingData.margin_percentage / 100);
-    const priceAfterTax = priceBeforeTax + (pricingData.alcohol_tax_cents / 100);
-    const finalPrice = pricingData.price_includes_vat ? priceAfterTax : priceAfterTax * 1.25;
-    
+    const costInSek =
+      pricingData.cost_amount * (currentRate || pricingData.exchange_rate || 1);
+    const priceBeforeTax =
+      costInSek * (1 + pricingData.margin_percentage / 100);
+    const priceAfterTax = priceBeforeTax + pricingData.alcohol_tax_cents / 100;
+    const finalPrice = pricingData.price_includes_vat
+      ? priceAfterTax
+      : priceAfterTax * 1.25;
+
     return {
       costInSek: costInSek.toFixed(2),
       priceBeforeTax: priceBeforeTax.toFixed(2),
       priceAfterTax: priceAfterTax.toFixed(2),
       finalPrice: finalPrice.toFixed(2),
-      finalPriceCents: Math.ceil(finalPrice * 100) // Round up to nearest cent
+      finalPriceCents: Math.ceil(finalPrice * 100), // Round up to nearest cent
     };
   };
 
@@ -98,7 +122,8 @@ export function PricingCalculator({ pricingData, onPricingChange }: PricingCalcu
           Pricing Calculator
         </CardTitle>
         <CardDescription>
-          Configure cost, exchange rates, taxes, and margins to calculate final price
+          Configure cost, exchange rates, taxes, and margins to calculate final
+          price
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -109,8 +134,8 @@ export function PricingCalculator({ pricingData, onPricingChange }: PricingCalcu
             <Select
               value={pricingData.cost_currency}
               onValueChange={(value) => {
-                updatePricingData('cost_currency', value);
-                if (pricingData.exchange_rate_source === 'current') {
+                updatePricingData("cost_currency", value);
+                if (pricingData.exchange_rate_source === "current") {
                   fetchCurrentRate(value);
                 }
               }}
@@ -135,7 +160,12 @@ export function PricingCalculator({ pricingData, onPricingChange }: PricingCalcu
               type="number"
               step="0.01"
               value={pricingData.cost_amount}
-              onChange={(e) => updatePricingData('cost_amount', parseFloat(e.target.value) || 0)}
+              onChange={(e) =>
+                updatePricingData(
+                  "cost_amount",
+                  parseFloat(e.target.value) || 0,
+                )
+              }
               placeholder="7.00"
             />
           </div>
@@ -152,19 +182,23 @@ export function PricingCalculator({ pricingData, onPricingChange }: PricingCalcu
                   key={source.value}
                   className={`p-4 border rounded-lg cursor-pointer transition-colors ${
                     pricingData.exchange_rate_source === source.value
-                      ? 'border-primary bg-primary/5'
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? "border-primary bg-primary/5"
+                      : "border-gray-200 hover:border-gray-300"
                   }`}
-                  onClick={() => updatePricingData('exchange_rate_source', source.value)}
+                  onClick={() =>
+                    updatePricingData("exchange_rate_source", source.value)
+                  }
                 >
                   <div className="flex items-center gap-2 mb-2">
                     <Icon className="h-4 w-4" />
                     <span className="font-medium">{source.label}</span>
                   </div>
                   <p className="text-sm text-gray-600">
-                    {source.value === 'current' && 'Use today\'s rate'}
-                    {source.value === 'static_date' && 'Use rate from specific date'}
-                    {source.value === 'period_average' && 'Use average over period'}
+                    {source.value === "current" && "Use today's rate"}
+                    {source.value === "static_date" &&
+                      "Use rate from specific date"}
+                    {source.value === "period_average" &&
+                      "Use average over period"}
                   </p>
                 </div>
               );
@@ -172,27 +206,34 @@ export function PricingCalculator({ pricingData, onPricingChange }: PricingCalcu
           </div>
 
           {/* Exchange Rate Date Fields */}
-          {pricingData.exchange_rate_source === 'static_date' && (
+          {pricingData.exchange_rate_source === "static_date" && (
             <div className="space-y-2">
               <Label htmlFor="exchange_rate_date">Exchange Rate Date</Label>
               <Input
                 id="exchange_rate_date"
                 type="date"
-                value={pricingData.exchange_rate_date || ''}
-                onChange={(e) => updatePricingData('exchange_rate_date', e.target.value)}
+                value={pricingData.exchange_rate_date || ""}
+                onChange={(e) =>
+                  updatePricingData("exchange_rate_date", e.target.value)
+                }
               />
             </div>
           )}
 
-          {pricingData.exchange_rate_source === 'period_average' && (
+          {pricingData.exchange_rate_source === "period_average" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="exchange_rate_period_start">Period Start</Label>
                 <Input
                   id="exchange_rate_period_start"
                   type="date"
-                  value={pricingData.exchange_rate_period_start || ''}
-                  onChange={(e) => updatePricingData('exchange_rate_period_start', e.target.value)}
+                  value={pricingData.exchange_rate_period_start || ""}
+                  onChange={(e) =>
+                    updatePricingData(
+                      "exchange_rate_period_start",
+                      e.target.value,
+                    )
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -200,8 +241,13 @@ export function PricingCalculator({ pricingData, onPricingChange }: PricingCalcu
                 <Input
                   id="exchange_rate_period_end"
                   type="date"
-                  value={pricingData.exchange_rate_period_end || ''}
-                  onChange={(e) => updatePricingData('exchange_rate_period_end', e.target.value)}
+                  value={pricingData.exchange_rate_period_end || ""}
+                  onChange={(e) =>
+                    updatePricingData(
+                      "exchange_rate_period_end",
+                      e.target.value,
+                    )
+                  }
                 />
               </div>
             </div>
@@ -209,13 +255,20 @@ export function PricingCalculator({ pricingData, onPricingChange }: PricingCalcu
 
           {/* Manual Exchange Rate */}
           <div className="space-y-2">
-            <Label htmlFor="exchange_rate">Manual Exchange Rate (optional)</Label>
+            <Label htmlFor="exchange_rate">
+              Manual Exchange Rate (optional)
+            </Label>
             <Input
               id="exchange_rate"
               type="number"
               step="0.000001"
-              value={pricingData.exchange_rate || ''}
-              onChange={(e) => updatePricingData('exchange_rate', parseFloat(e.target.value) || undefined)}
+              value={pricingData.exchange_rate || ""}
+              onChange={(e) =>
+                updatePricingData(
+                  "exchange_rate",
+                  parseFloat(e.target.value) || undefined,
+                )
+              }
               placeholder="11.25"
             />
           </div>
@@ -230,7 +283,12 @@ export function PricingCalculator({ pricingData, onPricingChange }: PricingCalcu
               type="number"
               step="0.01"
               value={(pricingData.alcohol_tax_cents / 100).toFixed(2)}
-              onChange={(e) => updatePricingData('alcohol_tax_cents', Math.round(parseFloat(e.target.value) * 100) || 0)}
+              onChange={(e) =>
+                updatePricingData(
+                  "alcohol_tax_cents",
+                  Math.round(parseFloat(e.target.value) * 100) || 0,
+                )
+              }
               placeholder="2.20"
             />
           </div>
@@ -242,7 +300,12 @@ export function PricingCalculator({ pricingData, onPricingChange }: PricingCalcu
               type="number"
               step="0.01"
               value={pricingData.margin_percentage}
-              onChange={(e) => updatePricingData('margin_percentage', parseFloat(e.target.value) || 0)}
+              onChange={(e) =>
+                updatePricingData(
+                  "margin_percentage",
+                  parseFloat(e.target.value) || 0,
+                )
+              }
               placeholder="30.00"
             />
           </div>
@@ -253,10 +316,14 @@ export function PricingCalculator({ pricingData, onPricingChange }: PricingCalcu
               <Switch
                 id="price_includes_vat"
                 checked={pricingData.price_includes_vat}
-                onCheckedChange={(checked) => updatePricingData('price_includes_vat', checked)}
+                onCheckedChange={(checked) =>
+                  updatePricingData("price_includes_vat", checked)
+                }
               />
               <Label htmlFor="price_includes_vat" className="text-sm">
-                {pricingData.price_includes_vat ? 'Including VAT' : 'Excluding VAT'}
+                {pricingData.price_includes_vat
+                  ? "Including VAT"
+                  : "Excluding VAT"}
               </Label>
             </div>
           </div>
@@ -274,7 +341,9 @@ export function PricingCalculator({ pricingData, onPricingChange }: PricingCalcu
             </div>
             <div className="flex justify-between">
               <span>Price before tax:</span>
-              <span className="font-medium">{breakdown.priceBeforeTax} SEK</span>
+              <span className="font-medium">
+                {breakdown.priceBeforeTax} SEK
+              </span>
             </div>
             <div className="flex justify-between">
               <span>Price after alcohol tax:</span>
@@ -290,9 +359,10 @@ export function PricingCalculator({ pricingData, onPricingChange }: PricingCalcu
         </Card>
 
         {/* Current Exchange Rate Display */}
-        {currentRate && pricingData.exchange_rate_source === 'current' && (
+        {currentRate && pricingData.exchange_rate_source === "current" && (
           <div className="text-sm text-gray-600">
-            Current exchange rate: 1 {pricingData.cost_currency} = {currentRate.toFixed(4)} SEK
+            Current exchange rate: 1 {pricingData.cost_currency} ={" "}
+            {currentRate.toFixed(4)} SEK
           </div>
         )}
       </CardContent>

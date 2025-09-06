@@ -1,6 +1,6 @@
-'use server';
+"use server";
 
-import { supabaseServer } from '@/lib/supabase-server';
+import { supabaseServer } from "@/lib/supabase-server";
 
 export interface Booking {
   id: string;
@@ -18,31 +18,35 @@ export interface Booking {
 
 export async function getBookings() {
   const sb = await supabaseServer();
-  
+
   const { data, error } = await sb
-    .from('bookings')
-    .select(`
+    .from("bookings")
+    .select(
+      `
       *,
       wine:wines(wine_name, vintage, handle)
-    `)
-    .order('created_at', { ascending: false });
-    
+    `,
+    )
+    .order("created_at", { ascending: false });
+
   if (error) throw new Error(error.message);
   return data;
 }
 
 export async function getBookingsByStatus(status: string) {
   const sb = await supabaseServer();
-  
+
   const { data, error } = await sb
-    .from('bookings')
-    .select(`
+    .from("bookings")
+    .select(
+      `
       *,
       wine:wines(wine_name, vintage, handle)
-    `)
-    .eq('status', status)
-    .order('created_at', { ascending: false });
-    
+    `,
+    )
+    .eq("status", status)
+    .order("created_at", { ascending: false });
+
   if (error) throw new Error(error.message);
   return data;
 }

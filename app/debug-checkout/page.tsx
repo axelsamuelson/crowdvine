@@ -1,23 +1,30 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
 
 export default function DebugCheckoutPage() {
-  const [result, setResult] = useState<string>('');
+  const [result, setResult] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
   const testCart = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/crowdvine/cart', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/crowdvine/cart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          lines: [{ merchandiseId: '1fc52e4d-a4b9-4c99-b00f-9f5678cd2f61-default', quantity: 1 }]
-        })
+          lines: [
+            {
+              merchandiseId: "1fc52e4d-a4b9-4c99-b00f-9f5678cd2f61-default",
+              quantity: 1,
+            },
+          ],
+        }),
       });
       const data = await response.json();
-      setResult(`Cart Test: ${response.status} - ${JSON.stringify(data, null, 2)}`);
+      setResult(
+        `Cart Test: ${response.status} - ${JSON.stringify(data, null, 2)}`,
+      );
     } catch (error) {
       setResult(`Cart Error: ${error}`);
     } finally {
@@ -28,27 +35,29 @@ export default function DebugCheckoutPage() {
   const testCheckout = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/checkout/confirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/checkout/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           address: {
-            fullName: 'Test User',
-            email: 'test@example.com',
-            phone: '123456789',
-            street: 'Test Street',
-            postcode: '12345',
-            city: 'Test City',
-            countryCode: 'SE'
-          }
-        })
+            fullName: "Test User",
+            email: "test@example.com",
+            phone: "123456789",
+            street: "Test Street",
+            postcode: "12345",
+            city: "Test City",
+            countryCode: "SE",
+          },
+        }),
       });
-      
+
       if (response.redirected) {
         setResult(`Checkout Redirected: ${response.url}`);
       } else {
         const data = await response.json();
-        setResult(`Checkout Test: ${response.status} - ${JSON.stringify(data, null, 2)}`);
+        setResult(
+          `Checkout Test: ${response.status} - ${JSON.stringify(data, null, 2)}`,
+        );
       }
     } catch (error) {
       setResult(`Checkout Error: ${error}`);
@@ -60,7 +69,7 @@ export default function DebugCheckoutPage() {
   return (
     <div className="max-w-4xl mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6">Debug Checkout</h1>
-      
+
       <div className="space-y-4 mb-6">
         <button
           onClick={testCart}
@@ -69,7 +78,7 @@ export default function DebugCheckoutPage() {
         >
           Test Cart
         </button>
-        
+
         <button
           onClick={testCheckout}
           disabled={loading}
@@ -80,7 +89,7 @@ export default function DebugCheckoutPage() {
       </div>
 
       {loading && <div className="text-blue-600">Loading...</div>}
-      
+
       {result && (
         <div className="bg-gray-100 p-4 rounded">
           <h2 className="font-bold mb-2">Result:</h2>

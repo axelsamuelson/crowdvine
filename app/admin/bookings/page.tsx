@@ -1,12 +1,18 @@
-import { supabaseServer } from '@/lib/supabase-server';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { 
-  Calendar, 
-  Wine, 
-  Users, 
-  Package, 
+import { supabaseServer } from "@/lib/supabase-server";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Calendar,
+  Wine,
+  Users,
+  Package,
   DollarSign,
   MapPin,
   Clock,
@@ -15,16 +21,17 @@ import {
   Search,
   Filter,
   Download,
-  MoreHorizontal
-} from 'lucide-react';
+  MoreHorizontal,
+} from "lucide-react";
 
 export default async function BookingsPage() {
   const sb = await supabaseServer();
 
   // Hämta alla bokningar med relaterad data
   const { data: bookings } = await sb
-    .from('bookings')
-    .select(`
+    .from("bookings")
+    .select(
+      `
       id,
       quantity,
       band,
@@ -49,33 +56,44 @@ export default async function BookingsPage() {
         delivery_zone:pallet_zones!delivery_zone_id(name),
         pickup_zone:pallet_zones!pickup_zone_id(name)
       )
-    `)
-    .order('created_at', { ascending: false });
+    `,
+    )
+    .order("created_at", { ascending: false });
 
   // Beräkna statistik
   const totalBookings = bookings?.length || 0;
   const totalBottles = bookings?.reduce((sum, b) => sum + b.quantity, 0) || 0;
-  const totalValue = bookings?.reduce((sum, b) => sum + (b.quantity * (b.wines?.base_price_cents || 0)), 0) || 0;
+  const totalValue =
+    bookings?.reduce(
+      (sum, b) => sum + b.quantity * (b.wines?.base_price_cents || 0),
+      0,
+    ) || 0;
 
   const formatPrice = (priceCents: number) => {
-    return new Intl.NumberFormat('sv-SE', {
-      style: 'currency',
-      currency: 'SEK'
+    return new Intl.NumberFormat("sv-SE", {
+      style: "currency",
+      currency: "SEK",
     }).format(priceCents / 100);
   };
 
   const getStatusColor = (booking: any) => {
-    const daysSinceCreated = Math.floor((Date.now() - new Date(booking.created_at).getTime()) / (1000 * 60 * 60 * 24));
-    if (daysSinceCreated < 1) return 'bg-green-100 text-green-800';
-    if (daysSinceCreated < 7) return 'bg-blue-100 text-blue-800';
-    return 'bg-gray-100 text-gray-800';
+    const daysSinceCreated = Math.floor(
+      (Date.now() - new Date(booking.created_at).getTime()) /
+        (1000 * 60 * 60 * 24),
+    );
+    if (daysSinceCreated < 1) return "bg-green-100 text-green-800";
+    if (daysSinceCreated < 7) return "bg-blue-100 text-blue-800";
+    return "bg-gray-100 text-gray-800";
   };
 
   const getStatusText = (booking: any) => {
-    const daysSinceCreated = Math.floor((Date.now() - new Date(booking.created_at).getTime()) / (1000 * 60 * 60 * 24));
-    if (daysSinceCreated < 1) return 'Recent';
-    if (daysSinceCreated < 7) return 'This Week';
-    return 'Older';
+    const daysSinceCreated = Math.floor(
+      (Date.now() - new Date(booking.created_at).getTime()) /
+        (1000 * 60 * 60 * 24),
+    );
+    if (daysSinceCreated < 1) return "Recent";
+    if (daysSinceCreated < 7) return "This Week";
+    return "Older";
   };
 
   return (
@@ -105,8 +123,12 @@ export default async function BookingsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Bookings</p>
-                <p className="text-2xl font-bold text-blue-600">{totalBookings}</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Total Bookings
+                </p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {totalBookings}
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Individual reservations
                 </p>
@@ -120,8 +142,12 @@ export default async function BookingsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Bottles</p>
-                <p className="text-2xl font-bold text-purple-600">{totalBottles}</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Total Bottles
+                </p>
+                <p className="text-2xl font-bold text-purple-600">
+                  {totalBottles}
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Bottles reserved
                 </p>
@@ -135,8 +161,12 @@ export default async function BookingsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Value</p>
-                <p className="text-2xl font-bold text-green-600">{formatPrice(totalValue)}</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Total Value
+                </p>
+                <p className="text-2xl font-bold text-green-600">
+                  {formatPrice(totalValue)}
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Estimated value
                 </p>
@@ -179,42 +209,79 @@ export default async function BookingsPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">Wine</th>
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">Producer</th>
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">Pallet</th>
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">Quantity</th>
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">Price Band</th>
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">Value</th>
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">Date</th>
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">Actions</th>
+                    <th className="text-left p-3 font-medium text-sm text-gray-600">
+                      Wine
+                    </th>
+                    <th className="text-left p-3 font-medium text-sm text-gray-600">
+                      Producer
+                    </th>
+                    <th className="text-left p-3 font-medium text-sm text-gray-600">
+                      Pallet
+                    </th>
+                    <th className="text-left p-3 font-medium text-sm text-gray-600">
+                      Quantity
+                    </th>
+                    <th className="text-left p-3 font-medium text-sm text-gray-600">
+                      Price Band
+                    </th>
+                    <th className="text-left p-3 font-medium text-sm text-gray-600">
+                      Value
+                    </th>
+                    <th className="text-left p-3 font-medium text-sm text-gray-600">
+                      Date
+                    </th>
+                    <th className="text-left p-3 font-medium text-sm text-gray-600">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {bookings.map((booking) => (
-                    <tr key={booking.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <tr
+                      key={booking.id}
+                      className="border-b border-gray-100 hover:bg-gray-50"
+                    >
                       <td className="p-3">
                         <div>
-                          <div className="font-medium text-gray-900">{booking.wines?.wine_name} {booking.wines?.vintage}</div>
-                          <div className="text-sm text-gray-500">{booking.wines?.grape_varieties}</div>
+                          <div className="font-medium text-gray-900">
+                            {booking.wines?.wine_name} {booking.wines?.vintage}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {booking.wines?.grape_varieties}
+                          </div>
                         </div>
                       </td>
-                      <td className="p-3 text-gray-900">{booking.wines?.producers?.name}</td>
-                      <td className="p-3 text-gray-900">{booking.pallets?.name || 'No Pallet Assigned'}</td>
+                      <td className="p-3 text-gray-900">
+                        {booking.wines?.producers?.name}
+                      </td>
+                      <td className="p-3 text-gray-900">
+                        {booking.pallets?.name || "No Pallet Assigned"}
+                      </td>
                       <td className="p-3">
-                        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                        <Badge
+                          variant="secondary"
+                          className="bg-blue-100 text-blue-800"
+                        >
                           {booking.quantity} bottles
                         </Badge>
                       </td>
                       <td className="p-3 text-gray-900">{booking.band}</td>
                       <td className="p-3 font-medium text-gray-900">
-                        {formatPrice((booking.wines?.base_price_cents || 0) * booking.quantity)}
+                        {formatPrice(
+                          (booking.wines?.base_price_cents || 0) *
+                            booking.quantity,
+                        )}
                       </td>
                       <td className="p-3 text-sm text-gray-500">
                         {new Date(booking.created_at).toLocaleDateString()}
                       </td>
                       <td className="p-3">
                         <div className="flex gap-2">
-                          <Button variant="outline" size="sm" className="text-xs">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs"
+                          >
                             View
                           </Button>
                           <Button size="sm" className="text-xs">
@@ -230,7 +297,9 @@ export default async function BookingsPage() {
           ) : (
             <div className="text-center py-12">
               <Calendar className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-              <h3 className="text-lg font-medium mb-2 text-gray-900">No bookings found</h3>
+              <h3 className="text-lg font-medium mb-2 text-gray-900">
+                No bookings found
+              </h3>
               <p className="text-gray-500">
                 When customers make reservations, they will appear here.
               </p>

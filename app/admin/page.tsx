@@ -1,25 +1,31 @@
-import { supabaseServer } from '@/lib/supabase-server';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { 
-  Users, 
-  Wine, 
-  Calendar, 
-  MapPin, 
-  Package, 
-  TrendingUp, 
-  Plus, 
+import { supabaseServer } from "@/lib/supabase-server";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import {
+  Users,
+  Wine,
+  Calendar,
+  MapPin,
+  Package,
+  TrendingUp,
+  Plus,
   Activity,
   CheckCircle,
   AlertCircle,
   Database,
   CreditCard,
   Shield,
-  FileText
-} from 'lucide-react';
+  FileText,
+} from "lucide-react";
 
 export default async function AdminDashboard() {
   const sb = await supabaseServer();
@@ -32,37 +38,57 @@ export default async function AdminDashboard() {
     { count: zonesCount },
     { count: palletsCount },
     { data: recentBookings },
-    { data: recentPallets }
+    { data: recentPallets },
   ] = await Promise.all([
-    sb.from('producers').select('*', { count: 'exact', head: true }),
-    sb.from('wines').select('*', { count: 'exact', head: true }),
-    sb.from('bookings').select('*', { count: 'exact', head: true }),
-    sb.from('pallet_zones').select('*', { count: 'exact', head: true }),
-    sb.from('pallets').select('*', { count: 'exact', head: true }),
-    sb.from('bookings').select(`
+    sb.from("producers").select("*", { count: "exact", head: true }),
+    sb.from("wines").select("*", { count: "exact", head: true }),
+    sb.from("bookings").select("*", { count: "exact", head: true }),
+    sb.from("pallet_zones").select("*", { count: "exact", head: true }),
+    sb.from("pallets").select("*", { count: "exact", head: true }),
+    sb
+      .from("bookings")
+      .select(
+        `
       id,
       quantity,
       created_at,
       wines(wine_name, vintage, producers(name))
-    `).order('created_at', { ascending: false }).limit(5),
-    sb.from('pallets').select(`
+    `,
+      )
+      .order("created_at", { ascending: false })
+      .limit(5),
+    sb
+      .from("pallets")
+      .select(
+        `
       id,
       name,
       bottle_capacity,
       bookings(quantity)
-    `).limit(5)
+    `,
+      )
+      .limit(5),
   ]);
 
   // Beräkna pallet statistik
-  const palletStats = recentPallets?.map(pallet => {
-    const totalBooked = pallet.bookings?.reduce((sum, b) => sum + b.quantity, 0) || 0;
-    const percentage = (totalBooked / pallet.bottle_capacity) * 100;
-    return { ...pallet, totalBooked, percentage };
-  }) || [];
+  const palletStats =
+    recentPallets?.map((pallet) => {
+      const totalBooked =
+        pallet.bookings?.reduce((sum, b) => sum + b.quantity, 0) || 0;
+      const percentage = (totalBooked / pallet.bottle_capacity) * 100;
+      return { ...pallet, totalBooked, percentage };
+    }) || [];
 
-  const totalBookedBottles = palletStats.reduce((sum, p) => sum + p.totalBooked, 0);
-  const totalCapacity = palletStats.reduce((sum, p) => sum + p.bottle_capacity, 0);
-  const overallCompletion = totalCapacity > 0 ? (totalBookedBottles / totalCapacity) * 100 : 0;
+  const totalBookedBottles = palletStats.reduce(
+    (sum, p) => sum + p.totalBooked,
+    0,
+  );
+  const totalCapacity = palletStats.reduce(
+    (sum, p) => sum + p.bottle_capacity,
+    0,
+  );
+  const overallCompletion =
+    totalCapacity > 0 ? (totalBookedBottles / totalCapacity) * 100 : 0;
 
   return (
     <div className="space-y-8">
@@ -96,8 +122,12 @@ export default async function AdminDashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Producers</p>
-                <p className="text-3xl font-bold text-blue-600">{producersCount || 0}</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Total Producers
+                </p>
+                <p className="text-3xl font-bold text-blue-600">
+                  {producersCount || 0}
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Wine producers in system
                 </p>
@@ -111,8 +141,12 @@ export default async function AdminDashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Wines</p>
-                <p className="text-3xl font-bold text-purple-600">{winesCount || 0}</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Total Wines
+                </p>
+                <p className="text-3xl font-bold text-purple-600">
+                  {winesCount || 0}
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Available wines
                 </p>
@@ -126,8 +160,12 @@ export default async function AdminDashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Bookings</p>
-                <p className="text-3xl font-bold text-green-600">{bookingsCount || 0}</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Total Bookings
+                </p>
+                <p className="text-3xl font-bold text-green-600">
+                  {bookingsCount || 0}
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Bottles reserved
                 </p>
@@ -144,7 +182,9 @@ export default async function AdminDashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Zones</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Zones
+                </p>
                 <p className="text-2xl font-bold">{zonesCount || 0}</p>
               </div>
               <MapPin className="h-8 w-8 text-orange-600" />
@@ -156,7 +196,9 @@ export default async function AdminDashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Pallets</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Pallets
+                </p>
                 <p className="text-2xl font-bold">{palletsCount || 0}</p>
               </div>
               <Package className="h-8 w-8 text-indigo-600" />
@@ -168,8 +210,12 @@ export default async function AdminDashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Completion</p>
-                <p className="text-2xl font-bold">{overallCompletion.toFixed(1)}%</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Completion
+                </p>
+                <p className="text-2xl font-bold">
+                  {overallCompletion.toFixed(1)}%
+                </p>
               </div>
               <TrendingUp className="h-8 w-8 text-emerald-600" />
             </div>
@@ -194,14 +240,20 @@ export default async function AdminDashboard() {
               <div key={pallet.id} className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">{pallet.name}</span>
-                  <Badge variant={pallet.percentage >= 100 ? "default" : "secondary"}>
+                  <Badge
+                    variant={pallet.percentage >= 100 ? "default" : "secondary"}
+                  >
                     {pallet.percentage.toFixed(1)}%
                   </Badge>
                 </div>
                 <Progress value={pallet.percentage} className="h-2" />
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{pallet.totalBooked} / {pallet.bottle_capacity} bottles</span>
-                  <span>{pallet.bottle_capacity - pallet.totalBooked} remaining</span>
+                  <span>
+                    {pallet.totalBooked} / {pallet.bottle_capacity} bottles
+                  </span>
+                  <span>
+                    {pallet.bottle_capacity - pallet.totalBooked} remaining
+                  </span>
                 </div>
               </div>
             ))}
@@ -218,15 +270,16 @@ export default async function AdminDashboard() {
               <Activity className="h-5 w-5" />
               Recent Bookings
             </CardTitle>
-            <CardDescription>
-              Latest wine reservations
-            </CardDescription>
+            <CardDescription>Latest wine reservations</CardDescription>
           </CardHeader>
           <CardContent>
             {recentBookings && recentBookings.length > 0 ? (
               <div className="space-y-3">
                 {recentBookings.map((booking) => (
-                  <div key={booking.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <div
+                    key={booking.id}
+                    className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                  >
                     <div>
                       <p className="font-medium text-sm">
                         {booking.wines?.wine_name} {booking.wines?.vintage}
@@ -236,7 +289,9 @@ export default async function AdminDashboard() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium text-sm">{booking.quantity} bottles</p>
+                      <p className="font-medium text-sm">
+                        {booking.quantity} bottles
+                      </p>
                       <p className="text-xs text-muted-foreground">
                         {new Date(booking.created_at).toLocaleDateString()}
                       </p>
@@ -260,9 +315,7 @@ export default async function AdminDashboard() {
               <Shield className="h-5 w-5" />
               System Status
             </CardTitle>
-            <CardDescription>
-              Platform health and connectivity
-            </CardDescription>
+            <CardDescription>Platform health and connectivity</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3">
@@ -276,7 +329,7 @@ export default async function AdminDashboard() {
                   Online
                 </Badge>
               </div>
-              
+
               <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                 <div className="flex items-center gap-3">
                   <CreditCard className="h-5 w-5 text-green-600" />
@@ -287,7 +340,7 @@ export default async function AdminDashboard() {
                   Connected
                 </Badge>
               </div>
-              
+
               <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                 <div className="flex items-center gap-3">
                   <Shield className="h-5 w-5 text-green-600" />
@@ -317,21 +370,21 @@ export default async function AdminDashboard() {
                 <span>Manage Producers</span>
               </Link>
             </Button>
-            
+
             <Button asChild variant="outline" className="h-auto p-4 flex-col">
               <Link href="/admin/wines">
                 <Wine className="h-6 w-6 mb-2" />
                 <span>Manage Wines</span>
               </Link>
             </Button>
-            
+
             <Button asChild variant="outline" className="h-auto p-4 flex-col">
               <Link href="/admin/pallets">
                 <Package className="h-6 w-6 mb-2" />
                 <span>Manage Pallets</span>
               </Link>
             </Button>
-            
+
             <Button asChild variant="outline" className="h-auto p-4 flex-col">
               <Link href="/admin/bookings">
                 <Calendar className="h-6 w-6 mb-2" />

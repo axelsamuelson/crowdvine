@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -8,16 +8,20 @@ const sb = createClient(supabaseUrl, supabaseKey);
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const reservationId = searchParams.get('reservationId');
+    const reservationId = searchParams.get("reservationId");
 
     if (!reservationId) {
-      return NextResponse.json({ error: 'Reservation ID is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Reservation ID is required" },
+        { status: 400 },
+      );
     }
 
     // Get reservation details
     const { data: reservation, error: reservationError } = await sb
-      .from('order_reservations')
-      .select(`
+      .from("order_reservations")
+      .select(
+        `
         *,
         user_addresses!inner (
           full_name,
@@ -28,18 +32,23 @@ export async function GET(request: Request) {
           address_city,
           country_code
         )
-      `)
-      .eq('id', reservationId)
+      `,
+      )
+      .eq("id", reservationId)
       .single();
 
     if (reservationError || !reservation) {
-      return NextResponse.json({ error: 'Reservation not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: "Reservation not found" },
+        { status: 404 },
+      );
     }
 
     // Get reservation items with wine details
     const { data: reservationItems, error: itemsError } = await sb
-      .from('order_reservation_items')
-      .select(`
+      .from("order_reservation_items")
+      .select(
+        `
         quantity,
         price_band,
         wines!inner (
@@ -55,25 +64,31 @@ export async function GET(request: Request) {
             country_code
           )
         )
-      `)
-      .eq('reservation_id', reservationId);
+      `,
+      )
+      .eq("reservation_id", reservationId);
 
     if (itemsError) {
-      console.error('Failed to fetch reservation items:', itemsError);
+      console.error("Failed to fetch reservation items:", itemsError);
     }
 
     // Get zone information
     let zones = null;
     if (reservation.pickup_zone_id || reservation.delivery_zone_id) {
       const { data: zoneData, error: zoneError } = await sb
-        .from('pallet_zones')
-        .select('id, name, zone_type')
-        .in('id', [reservation.pickup_zone_id, reservation.delivery_zone_id].filter(Boolean));
+        .from("pallet_zones")
+        .select("id, name, zone_type")
+        .in(
+          "id",
+          [reservation.pickup_zone_id, reservation.delivery_zone_id].filter(
+            Boolean,
+          ),
+        );
 
       if (!zoneError && zoneData) {
         zones = {
-          pickup: zoneData.find(z => z.id === reservation.pickup_zone_id),
-          delivery: zoneData.find(z => z.id === reservation.delivery_zone_id)
+          pickup: zoneData.find((z) => z.id === reservation.pickup_zone_id),
+          delivery: zoneData.find((z) => z.id === reservation.delivery_zone_id),
         };
       }
     }
@@ -82,40 +97,43 @@ export async function GET(request: Request) {
     let pallet = null;
     if (zones?.pickup && zones?.delivery) {
       const { data: palletData, error: palletError } = await sb
-        .from('pallets')
-        .select(`
+        .from("pallets")
+        .select(
+          `
           id,
           name,
           bottle_capacity,
           pickup_zone_id,
           delivery_zone_id
-        `)
-        .eq('pickup_zone_id', zones.pickup.id)
-        .eq('delivery_zone_id', zones.delivery.id)
+        `,
+        )
+        .eq("pickup_zone_id", zones.pickup.id)
+        .eq("delivery_zone_id", zones.delivery.id)
         .single();
 
       if (!palletError && palletData) {
         // Get current bottle count for this pallet
         const { data: bookings, error: bookingsError } = await sb
-          .from('bookings')
-          .select('quantity');
-        
-        const currentBottles = bookingsError ? 0 : 
-          bookings?.reduce((sum, booking) => sum + booking.quantity, 0) || 0;
+          .from("bookings")
+          .select("quantity");
+
+        const currentBottles = bookingsError
+          ? 0
+          : bookings?.reduce((sum, booking) => sum + booking.quantity, 0) || 0;
 
         pallet = {
           ...palletData,
           currentBottles,
-          remainingBottles: palletData.bottle_capacity - currentBottles
+          remainingBottles: palletData.bottle_capacity - currentBottles,
         };
       }
     }
 
     // Get tracking information
     const { data: tracking, error: trackingError } = await sb
-      .from('reservation_tracking')
-      .select('tracking_code, created_at')
-      .eq('reservation_id', reservationId)
+      .from("reservation_tracking")
+      .select("tracking_code, created_at")
+      .eq("reservation_id", reservationId)
       .single();
 
     return NextResponse.json({
@@ -126,17 +144,23 @@ export async function GET(request: Request) {
         address: reservation.user_addresses,
         zones,
         pallet,
-        tracking: tracking ? {
-          code: typeof tracking.tracking_code === 'string' ? tracking.tracking_code : 
-                tracking.tracking_code?.data || 'N/A',
-          created_at: tracking.created_at
-        } : null
+        tracking: tracking
+          ? {
+              code:
+                typeof tracking.tracking_code === "string"
+                  ? tracking.tracking_code
+                  : tracking.tracking_code?.data || "N/A",
+              created_at: tracking.created_at,
+            }
+          : null,
       },
-      items: reservationItems || []
+      items: reservationItems || [],
     });
-
   } catch (error) {
-    console.error('Error fetching reservation details:', error);
-    return NextResponse.json({ error: 'Failed to fetch reservation details' }, { status: 500 });
+    console.error("Error fetching reservation details:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch reservation details" },
+      { status: 500 },
+    );
   }
 }

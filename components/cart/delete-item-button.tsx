@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { CartItem } from '@/lib/shopify/types';
-import { Button } from '../ui/button';
-import { useCart } from './cart-context';
+import { CartItem } from "@/lib/shopify/types";
+import { Button } from "../ui/button";
+import { useCart } from "./cart-context";
 
 export function DeleteItemButton({ item }: { item: CartItem }) {
   const { updateItem } = useCart();
@@ -12,12 +12,18 @@ export function DeleteItemButton({ item }: { item: CartItem }) {
   return (
     <form
       className="-mr-1 -mb-1 opacity-70"
-      onSubmit={e => {
+      onSubmit={(e) => {
         e.preventDefault();
-        updateItem(lineId, merchandiseId, 0, 'delete');
+        updateItem(lineId, merchandiseId, 0, "delete");
       }}
     >
-      <Button type="submit" size="sm" variant="ghost" aria-label="Remove item" className="px-2 text-sm">
+      <Button
+        type="submit"
+        size="sm"
+        variant="ghost"
+        aria-label="Remove item"
+        className="px-2 text-sm"
+      >
         Remove
       </Button>
     </form>

@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { CartItem } from '@/lib/shopify/types';
-import { DEFAULT_OPTION } from '@/lib/constants';
-import { createUrl, getColorHex } from '@/lib/utils';
-import Image from 'next/image';
-import Link from 'next/link';
-import { DeleteItemButton } from './delete-item-button';
-import { EditItemQuantityButton } from './edit-item-quantity-button';
-import { formatPrice } from '@/lib/shopify/utils';
-import { ColorSwatch } from '@/components/ui/color-picker';
-import { useProductImages } from '../products/variant-selector';
+import { CartItem } from "@/lib/shopify/types";
+import { DEFAULT_OPTION } from "@/lib/constants";
+import { createUrl, getColorHex } from "@/lib/utils";
+import Image from "next/image";
+import Link from "next/link";
+import { DeleteItemButton } from "./delete-item-button";
+import { EditItemQuantityButton } from "./edit-item-quantity-button";
+import { formatPrice } from "@/lib/shopify/utils";
+import { ColorSwatch } from "@/components/ui/color-picker";
+import { useProductImages } from "../products/variant-selector";
 
 type MerchandiseSearchParams = {
   [key: string]: string;
@@ -31,28 +31,42 @@ export function CartItemCard({ item, onCloseCart }: CartItemProps) {
 
   const merchandiseUrl = createUrl(
     `/product/${item.merchandise.product.handle}`,
-    new URLSearchParams(merchandiseSearchParams)
+    new URLSearchParams(merchandiseSearchParams),
   );
 
   // Find color option if it exists
-  const colorOption = item.merchandise.selectedOptions.find(option => option.name.toLowerCase() === 'color');
+  const colorOption = item.merchandise.selectedOptions.find(
+    (option) => option.name.toLowerCase() === "color",
+  );
 
-  const imgs = useProductImages(item.merchandise.product, item.merchandise.selectedOptions);
+  const imgs = useProductImages(
+    item.merchandise.product,
+    item.merchandise.selectedOptions,
+  );
 
   const [renderImage] = imgs;
+
+  // Check if image is available
+  const hasImage = renderImage && renderImage.url;
 
   return (
     <div className="bg-popover rounded-lg p-2">
       <div className="flex flex-row gap-6">
         <div className="relative size-[120px] overflow-hidden rounded-sm shrink-0">
-          <Image
-            className="size-full object-cover"
-            width={240}
-            height={240}
-            blurDataURL={renderImage.url}
-            alt={renderImage.altText || item.merchandise.product.title}
-            src={renderImage.url}
-          />
+          {hasImage ? (
+            <Image
+              className="size-full object-cover"
+              width={240}
+              height={240}
+              blurDataURL={renderImage.url}
+              alt={renderImage.altText || item.merchandise.product.title}
+              src={renderImage.url}
+            />
+          ) : (
+            <div className="size-full bg-muted flex items-center justify-center">
+              <span className="text-muted-foreground text-xs">No image</span>
+            </div>
+          )}
 
           {/* Color pill overlay */}
           {colorOption && (
@@ -76,11 +90,21 @@ export function CartItemCard({ item, onCloseCart }: CartItemProps) {
           )}
         </div>
         <div className="flex flex-col gap-2 2xl:gap-3 flex-1">
-          <Link href={merchandiseUrl} onClick={onCloseCart} className="z-30 flex flex-col justify-center" prefetch>
-            <span className="2xl:text-lg font-semibold">{item.merchandise.product.title}</span>
+          <Link
+            href={merchandiseUrl}
+            onClick={onCloseCart}
+            className="z-30 flex flex-col justify-center"
+            prefetch
+          >
+            <span className="2xl:text-lg font-semibold">
+              {item.merchandise.product.title}
+            </span>
           </Link>
           <p className="2xl:text-lg font-semibold">
-            {formatPrice(item.cost.totalAmount.amount, item.cost.totalAmount.currencyCode)}
+            {formatPrice(
+              item.cost.totalAmount.amount,
+              item.cost.totalAmount.currencyCode,
+            )}
           </p>
           <div className="flex justify-between items-end mt-auto">
             <div className="flex h-8 flex-row items-center rounded-md border border-neutral-200">

@@ -5,19 +5,23 @@ En komplett admin-interface för Crowdvine med Supabase Auth, role guards och CR
 ## 🚀 Snabbstart
 
 ### 1. Kör migration
+
 ```bash
 npm run migrate
 ```
 
 ### 2. Skapa admin-användare
+
 Gå till `/admin/login` och skapa en användare med admin-roll.
 
 ### 3. Testa admin-interface
+
 Besök `/admin` för att komma åt admin-dashboard.
 
 ## 📋 Funktioner
 
 ### ✅ Implementerat
+
 - **Supabase Auth** med role-baserad åtkomst (admin, producer, user)
 - **Middleware** för route protection
 - **Admin Dashboard** med statistik och snabba åtgärder
@@ -31,6 +35,7 @@ Besök `/admin` för att komma åt admin-dashboard.
 - **RLS Policies** - databassäkerhet
 
 ### 🔧 Teknisk Stack
+
 - **Next.js 15** med App Router
 - **Supabase** för backend och auth
 - **TypeScript** för type safety
@@ -74,11 +79,13 @@ scripts/
 ## 🔐 Autentisering
 
 ### Roller
+
 - **admin** - Full åtkomst till alla admin-funktioner
 - **producer** - Begränsad åtkomst till producer-specifika funktioner
 - **user** - Endast publika funktioner
 
 ### Middleware
+
 - `/admin/*` - Kräver admin-roll
 - `/producer/*` - Kräver producer eller admin-roll
 - Automatisk redirect till login vid otillräckliga behörigheter
@@ -86,29 +93,35 @@ scripts/
 ## 🗄️ Databas
 
 ### Nya tabeller
+
 - `profiles` - Användarroller och metadata
 - `pallet_zone_members` - Zone membership för producers
 
 ### Uppdaterade tabeller
+
 - `bookings` - Lagt till `tolerance_cents` och `status` fält
 
 ### RLS Policies
+
 - Säker åtkomst till användardata
 - Admin-roll krävs för känsliga operationer
 
 ## 🚀 Deployment
 
 ### 1. Kör migration på produktion
+
 ```bash
 npm run migrate
 ```
 
 ### 2. Skapa admin-användare
+
 ```bash
 # Via Supabase Dashboard eller app
 ```
 
 ### 3. Verifiera funktionalitet
+
 - Testa alla CRUD-operationer
 - Verifiera auth och middleware
 - Kontrollera RLS policies
@@ -116,6 +129,7 @@ npm run migrate
 ## 🔧 Utveckling
 
 ### Lägg till ny entitet
+
 1. Skapa server actions i `lib/actions/`
 2. Skapa form-komponent i `components/admin/`
 3. Skapa sidor i `app/admin/`
@@ -123,6 +137,7 @@ npm run migrate
 5. Uppdatera dashboard statistik
 
 ### Styling
+
 - Använd shadcn/ui komponenter
 - Följ Tailwind CSS konventioner
 - Behåll konsistent design med resten av appen

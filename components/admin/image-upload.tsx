@@ -1,10 +1,16 @@
-'use client';
+"use client";
 
-import { useState, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Upload, X, Move, Eye } from 'lucide-react';
+import { useState, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Upload, X, Move, Eye } from "lucide-react";
 
 interface ImageUploadProps {
   onImagesChange: (images: File[]) => void;
@@ -13,7 +19,7 @@ interface ImageUploadProps {
 
 export function ImageUpload({ onImagesChange, images }: ImageUploadProps) {
   const [dragActive, setDragActive] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDrag = (e: React.DragEvent) => {
@@ -30,13 +36,13 @@ export function ImageUpload({ onImagesChange, images }: ImageUploadProps) {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    setError('');
+    setError("");
 
     const files = Array.from(e.dataTransfer.files);
-    const imageFiles = files.filter(file => file.type.startsWith('image/'));
-    
+    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+
     if (imageFiles.length !== files.length) {
-      setError('Some files are not images and were ignored');
+      setError("Some files are not images and were ignored");
     }
 
     if (imageFiles.length > 0) {
@@ -47,8 +53,8 @@ export function ImageUpload({ onImagesChange, images }: ImageUploadProps) {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const imageFiles = files.filter(file => file.type.startsWith('image/'));
-    
+    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+
     if (imageFiles.length > 0) {
       const newImages = [...images, ...imageFiles];
       onImagesChange(newImages);
@@ -89,9 +95,9 @@ export function ImageUpload({ onImagesChange, images }: ImageUploadProps) {
         {/* Upload Area */}
         <div
           className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-            dragActive 
-              ? 'border-primary bg-primary/5' 
-              : 'border-gray-300 hover:border-gray-400'
+            dragActive
+              ? "border-primary bg-primary/5"
+              : "border-gray-300 hover:border-gray-400"
           }`}
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
@@ -134,7 +140,7 @@ export function ImageUpload({ onImagesChange, images }: ImageUploadProps) {
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  
+
                   {/* Overlay with actions */}
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center space-x-1">
                     <Button
@@ -143,7 +149,9 @@ export function ImageUpload({ onImagesChange, images }: ImageUploadProps) {
                       type="button"
                       className="h-6 w-6 p-0"
                       onClick={() => {
-                        const newWindow = window.open(URL.createObjectURL(image));
+                        const newWindow = window.open(
+                          URL.createObjectURL(image),
+                        );
                         if (newWindow) newWindow.focus();
                       }}
                     >
@@ -193,7 +201,7 @@ export function ImageUpload({ onImagesChange, images }: ImageUploadProps) {
                 </div>
               ))}
             </div>
-            
+
             <div className="text-xs text-gray-500">
               <p>• First image will be the main product image</p>
               <p>• Drag and drop or use arrow buttons to reorder</p>

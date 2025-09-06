@@ -1,8 +1,8 @@
-import { getWine } from '@/lib/actions/wines';
-import { getProducers } from '@/lib/actions/producers';
-import WineForm from '@/components/admin/wine-form';
-import { DeleteWineButton } from '@/components/admin/delete-wine-button';
-import { notFound } from 'next/navigation';
+import { getWine } from "@/lib/actions/wines";
+import { getProducers } from "@/lib/actions/producers";
+import WineForm from "@/components/admin/wine-form";
+import { DeleteWineButton } from "@/components/admin/delete-wine-button";
+import { notFound } from "next/navigation";
 
 interface EditWinePageProps {
   params: Promise<{ id: string }>;
@@ -11,11 +11,8 @@ interface EditWinePageProps {
 export default async function EditWinePage({ params }: EditWinePageProps) {
   try {
     const { id } = await params;
-    const [wine, producers] = await Promise.all([
-      getWine(id),
-      getProducers(),
-    ]);
-    
+    const [wine, producers] = await Promise.all([getWine(id), getProducers()]);
+
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
@@ -26,10 +23,7 @@ export default async function EditWinePage({ params }: EditWinePageProps) {
           <DeleteWineButton wineId={wine.id} wineName={wine.wine_name} />
         </div>
 
-        <WineForm 
-          wine={wine} 
-          producers={producers}
-        />
+        <WineForm wine={wine} producers={producers} />
       </div>
     );
   } catch (error) {

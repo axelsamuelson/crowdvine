@@ -1,4 +1,4 @@
-import { supabaseServer } from '@/lib/supabase-server';
+import { supabaseServer } from "@/lib/supabase-server";
 
 export interface PalletZone {
   id: string;
@@ -6,7 +6,7 @@ export interface PalletZone {
   radius_km: number;
   center_lat: number;
   center_lon: number;
-  zone_type: 'delivery' | 'pickup';
+  zone_type: "delivery" | "pickup";
 }
 
 export interface Pallet {
@@ -35,13 +35,15 @@ export interface CreatePalletData {
 export async function getPallets(): Promise<Pallet[]> {
   const sb = await supabaseServer();
   const { data, error } = await sb
-    .from('pallets')
-    .select(`
+    .from("pallets")
+    .select(
+      `
       *,
       delivery_zone:pallet_zones!delivery_zone_id(id, name, zone_type),
       pickup_zone:pallet_zones!pickup_zone_id(id, name, zone_type)
-    `)
-    .order('created_at', { ascending: false });
+    `,
+    )
+    .order("created_at", { ascending: false });
 
   if (error) throw new Error(`Failed to fetch pallets: ${error.message}`);
   return data || [];
@@ -50,13 +52,15 @@ export async function getPallets(): Promise<Pallet[]> {
 export async function getPallet(id: string): Promise<Pallet | null> {
   const sb = await supabaseServer();
   const { data, error } = await sb
-    .from('pallets')
-    .select(`
+    .from("pallets")
+    .select(
+      `
       *,
       delivery_zone:pallet_zones!delivery_zone_id(id, name, zone_type),
       pickup_zone:pallet_zones!pickup_zone_id(id, name, zone_type)
-    `)
-    .eq('id', id)
+    `,
+    )
+    .eq("id", id)
     .single();
 
   if (error) throw new Error(`Failed to fetch pallet: ${error.message}`);
@@ -66,7 +70,7 @@ export async function getPallet(id: string): Promise<Pallet | null> {
 export async function createPallet(data: CreatePalletData): Promise<Pallet> {
   const sb = await supabaseServer();
   const { data: pallet, error } = await sb
-    .from('pallets')
+    .from("pallets")
     .insert(data)
     .select()
     .single();
@@ -75,12 +79,15 @@ export async function createPallet(data: CreatePalletData): Promise<Pallet> {
   return pallet;
 }
 
-export async function updatePallet(id: string, data: Partial<CreatePalletData>): Promise<Pallet> {
+export async function updatePallet(
+  id: string,
+  data: Partial<CreatePalletData>,
+): Promise<Pallet> {
   const sb = await supabaseServer();
   const { data: pallet, error } = await sb
-    .from('pallets')
+    .from("pallets")
     .update({ ...data, updated_at: new Date().toISOString() })
-    .eq('id', id)
+    .eq("id", id)
     .select()
     .single();
 
@@ -90,10 +97,7 @@ export async function updatePallet(id: string, data: Partial<CreatePalletData>):
 
 export async function deletePallet(id: string): Promise<void> {
   const sb = await supabaseServer();
-  const { error } = await sb
-    .from('pallets')
-    .delete()
-    .eq('id', id);
+  const { error } = await sb.from("pallets").delete().eq("id", id);
 
   if (error) throw new Error(`Failed to delete pallet: ${error.message}`);
 }

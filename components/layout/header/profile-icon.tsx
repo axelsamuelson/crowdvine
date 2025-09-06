@@ -1,17 +1,17 @@
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { User } from 'lucide-react';
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { User } from "lucide-react";
 
 interface ProfileIconProps {
   className?: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: "sm" | "md" | "lg";
 }
 
-export function ProfileIcon({ className = '', size = 'md' }: ProfileIconProps) {
+export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
   const sizeClasses = {
-    sm: 'h-4 w-4',
-    md: 'h-5 w-5',
-    lg: 'h-6 w-6'
+    sm: "h-4 w-4",
+    md: "h-5 w-5",
+    lg: "h-6 w-6",
   };
 
   return (

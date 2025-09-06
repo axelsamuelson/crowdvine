@@ -1,7 +1,7 @@
-'use server';
+"use server";
 
-import { supabaseServer } from '@/lib/supabase-server';
-import { revalidatePath } from 'next/cache';
+import { supabaseServer } from "@/lib/supabase-server";
+import { revalidatePath } from "next/cache";
 
 export interface Producer {
   id: string;
@@ -34,70 +34,67 @@ export interface CreateProducerData {
 
 export async function getProducers() {
   const sb = await supabaseServer();
-  
-  const { data, error } = await sb
-    .from('producers')
-    .select('*')
-    .order('name');
-    
+
+  const { data, error } = await sb.from("producers").select("*").order("name");
+
   if (error) throw new Error(error.message);
   return data;
 }
 
 export async function getProducer(id: string) {
   const sb = await supabaseServer();
-  
+
   const { data, error } = await sb
-    .from('producers')
-    .select('*')
-    .eq('id', id)
+    .from("producers")
+    .select("*")
+    .eq("id", id)
     .single();
-    
+
   if (error) throw new Error(error.message);
   return data;
 }
 
 export async function createProducer(data: CreateProducerData) {
   const sb = await supabaseServer();
-  
+
   const { data: producer, error } = await sb
-    .from('producers')
+    .from("producers")
     .insert(data)
     .select()
     .single();
-    
+
   if (error) throw new Error(error.message);
-  
-  revalidatePath('/admin/producers');
+
+  revalidatePath("/admin/producers");
   return producer;
 }
 
-export async function updateProducer(id: string, data: Partial<CreateProducerData>) {
+export async function updateProducer(
+  id: string,
+  data: Partial<CreateProducerData>,
+) {
   const sb = await supabaseServer();
-  
+
   const { data: producer, error } = await sb
-    .from('producers')
+    .from("producers")
     .update(data)
-    .eq('id', id)
+    .eq("id", id)
     .select()
     .single();
-    
+
   if (error) throw new Error(error.message);
-  
-  revalidatePath('/admin/producers');
+
+  revalidatePath("/admin/producers");
   revalidatePath(`/admin/producers/${id}`);
   return producer;
 }
 
 export async function deleteProducer(id: string) {
   const sb = await supabaseServer();
-  
-  const { error } = await sb
-    .from('producers')
-    .delete()
-    .eq('id', id);
-    
+
+  const { error } = await sb.from("producers").delete().eq("id", id);
+
   if (error) throw new Error(error.message);
-  
-  revalidatePath('/admin/producers');
+
+  revalidatePath("/admin/producers");
 }

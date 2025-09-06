@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { PlusCircleIcon } from 'lucide-react';
-import { Product, ProductVariant } from '@/lib/shopify/types';
-import { useMemo, useTransition } from 'react';
-import { useCart } from './cart-context';
-import { Button, ButtonProps } from '../ui/button';
-import { useSelectedVariant } from '@/components/products/variant-selector';
-import { useParams, useSearchParams } from 'next/navigation';
-import { ReactNode } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Loader } from '../ui/loader';
+import { PlusCircleIcon } from "lucide-react";
+import { Product, ProductVariant } from "@/lib/shopify/types";
+import { useMemo, useTransition } from "react";
+import { useCart } from "./cart-context";
+import { Button, ButtonProps } from "../ui/button";
+import { useSelectedVariant } from "@/components/products/variant-selector";
+import { useParams, useSearchParams } from "next/navigation";
+import { ReactNode } from "react";
+import { motion, AnimatePresence } from "motion/react";
+import { Loader } from "../ui/loader";
 
 interface AddToCartProps extends ButtonProps {
   product: Product;
@@ -55,24 +55,29 @@ export function AddToCartButton({
   }, [selectedVariant, product]);
 
   const getButtonText = () => {
-    if (!product.availableForSale) return 'Out Of Stock';
-    if (!resolvedVariant) return 'Select one';
-    return 'Add To Cart';
+    if (!product.availableForSale) return "Out Of Stock";
+    if (!resolvedVariant) return "Select one";
+    return "Add To Cart";
   };
 
   const isDisabled = !product.availableForSale || !resolvedVariant || isLoading;
 
   const getLoaderSize = () => {
     const buttonSize = buttonProps.size;
-    if (buttonSize === 'sm' || buttonSize === 'icon-sm' || buttonSize === 'icon') return 'sm';
-    if (buttonSize === 'icon-lg') return 'default';
-    if (buttonSize === 'lg') return 'lg';
-    return 'default';
+    if (
+      buttonSize === "sm" ||
+      buttonSize === "icon-sm" ||
+      buttonSize === "icon"
+    )
+      return "sm";
+    if (buttonSize === "icon-lg") return "default";
+    if (buttonSize === "lg") return "lg";
+    return "default";
   };
 
   return (
     <form
-      onSubmit={e => {
+      onSubmit={(e) => {
         e.preventDefault();
 
         if (resolvedVariant) {
@@ -85,26 +90,34 @@ export function AddToCartButton({
     >
       <Button
         type="submit"
-        aria-label={!resolvedVariant ? 'Select one' : 'Add to cart'}
+        aria-label={!resolvedVariant ? "Select one" : "Add to cart"}
         disabled={isDisabled}
-        className={iconOnly ? undefined : 'flex relative justify-between items-center w-full'}
+        className={
+          iconOnly
+            ? undefined
+            : "flex relative justify-between items-center w-full"
+        }
         {...buttonProps}
       >
         <AnimatePresence initial={false} mode="wait">
           {iconOnly ? (
             <motion.div
-              key={isLoading ? 'loading' : 'icon'}
+              key={isLoading ? "loading" : "icon"}
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               transition={{ duration: 0.15 }}
               className="flex justify-center items-center"
             >
-              {isLoading ? <Loader size={getLoaderSize()} /> : <span className="inline-block">{icon}</span>}
+              {isLoading ? (
+                <Loader size={getLoaderSize()} />
+              ) : (
+                <span className="inline-block">{icon}</span>
+              )}
             </motion.div>
           ) : (
             <motion.div
-              key={isLoading ? 'loading' : getButtonText()}
+              key={isLoading ? "loading" : getButtonText()}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -142,13 +155,21 @@ export function AddToCart({
   const hasNoVariants = variants.length === 0;
   const defaultVariantId = variants.length === 1 ? variants[0]?.id : undefined;
   const selectedVariantId = selectedVariant?.id || defaultVariantId;
-  const isTargetingProduct = pathname.handle === product.id || searchParams.get('pid') === product.id;
+  const isTargetingProduct =
+    pathname.handle === product.id || searchParams.get("pid") === product.id;
 
   const resolvedVariant = useMemo(() => {
     if (hasNoVariants) return getBaseProductVariant(product);
     if (!isTargetingProduct && !defaultVariantId) return undefined;
-    return variants.find(variant => variant.id === selectedVariantId);
-  }, [hasNoVariants, product, isTargetingProduct, defaultVariantId, variants, selectedVariantId]);
+    return variants.find((variant) => variant.id === selectedVariantId);
+  }, [
+    hasNoVariants,
+    product,
+    isTargetingProduct,
+    defaultVariantId,
+    variants,
+    selectedVariantId,
+  ]);
 
   return (
     <AddToCartButton

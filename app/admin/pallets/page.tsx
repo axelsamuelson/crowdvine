@@ -1,29 +1,35 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { 
-  Plus, 
-  Package, 
-  MapPin, 
-  DollarSign, 
-  Wine, 
-  TrendingUp, 
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import {
+  Plus,
+  Package,
+  MapPin,
+  DollarSign,
+  Wine,
+  TrendingUp,
   AlertCircle,
   CheckCircle,
   Clock,
   Users,
-  BarChart3
-} from 'lucide-react';
-import Link from 'next/link';
+  BarChart3,
+} from "lucide-react";
+import Link from "next/link";
 
 interface PalletZone {
   id: string;
   name: string;
-  zone_type: 'delivery' | 'pickup';
+  zone_type: "delivery" | "pickup";
 }
 
 interface WineSummary {
@@ -59,20 +65,20 @@ interface Pallet {
 export default function PalletsPage() {
   const [pallets, setPallets] = useState<Pallet[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const fetchPallets = async () => {
       try {
-        const response = await fetch('/api/admin/pallets');
+        const response = await fetch("/api/admin/pallets");
         if (response.ok) {
           const data = await response.json();
           setPallets(data);
         } else {
-          setError('Failed to load pallets');
+          setError("Failed to load pallets");
         }
       } catch (err) {
-        setError('Failed to load pallets');
+        setError("Failed to load pallets");
       } finally {
         setLoading(false);
       }
@@ -82,31 +88,34 @@ export default function PalletsPage() {
   }, []);
 
   const formatPrice = (priceCents: number) => {
-    return new Intl.NumberFormat('sv-SE', {
-      style: 'currency',
-      currency: 'SEK'
+    return new Intl.NumberFormat("sv-SE", {
+      style: "currency",
+      currency: "SEK",
     }).format(priceCents / 100);
   };
 
   const getStatusColor = (percentage: number) => {
-    if (percentage >= 100) return 'bg-green-500';
-    if (percentage >= 75) return 'bg-blue-500';
-    if (percentage >= 50) return 'bg-yellow-500';
-    return 'bg-red-500';
+    if (percentage >= 100) return "bg-green-500";
+    if (percentage >= 75) return "bg-blue-500";
+    if (percentage >= 50) return "bg-yellow-500";
+    return "bg-red-500";
   };
 
   const getStatusIcon = (pallet: Pallet) => {
-    if (pallet.is_complete) return <CheckCircle className="h-4 w-4 text-green-600" />;
-    if (pallet.completion_percentage >= 75) return <TrendingUp className="h-4 w-4 text-blue-600" />;
-    if (pallet.completion_percentage >= 50) return <Clock className="h-4 w-4 text-yellow-600" />;
+    if (pallet.is_complete)
+      return <CheckCircle className="h-4 w-4 text-green-600" />;
+    if (pallet.completion_percentage >= 75)
+      return <TrendingUp className="h-4 w-4 text-blue-600" />;
+    if (pallet.completion_percentage >= 50)
+      return <Clock className="h-4 w-4 text-yellow-600" />;
     return <AlertCircle className="h-4 w-4 text-red-600" />;
   };
 
   const getStatusText = (pallet: Pallet) => {
-    if (pallet.is_complete) return 'Complete';
-    if (pallet.completion_percentage >= 75) return 'Nearly Full';
-    if (pallet.completion_percentage >= 50) return 'In Progress';
-    return 'Needs Orders';
+    if (pallet.is_complete) return "Complete";
+    if (pallet.completion_percentage >= 75) return "Nearly Full";
+    if (pallet.completion_percentage >= 50) return "In Progress";
+    return "Needs Orders";
   };
 
   if (loading) {
@@ -153,9 +162,7 @@ export default function PalletsPage() {
             <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
             <h3 className="text-lg font-medium mb-2">Error Loading Pallets</h3>
             <p className="text-muted-foreground mb-4">{error}</p>
-            <Button onClick={() => window.location.reload()}>
-              Try Again
-            </Button>
+            <Button onClick={() => window.location.reload()}>Try Again</Button>
           </CardContent>
         </Card>
       </div>
@@ -186,33 +193,39 @@ export default function PalletsPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Pallets</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Total Pallets
+                </p>
                 <p className="text-2xl font-bold">{pallets.length}</p>
               </div>
               <Package className="h-8 w-8 text-blue-600" />
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Complete Pallets</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Complete Pallets
+                </p>
                 <p className="text-2xl font-bold text-green-600">
-                  {pallets.filter(p => p.is_complete).length}
+                  {pallets.filter((p) => p.is_complete).length}
                 </p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Bottles</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Total Bottles
+                </p>
                 <p className="text-2xl font-bold">
                   {pallets.reduce((sum, p) => sum + p.total_booked_bottles, 0)}
                 </p>
@@ -221,14 +234,16 @@ export default function PalletsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Needs Ordering</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Needs Ordering
+                </p>
                 <p className="text-2xl font-bold text-orange-600">
-                  {pallets.filter(p => p.needs_ordering).length}
+                  {pallets.filter((p) => p.needs_ordering).length}
                 </p>
               </div>
               <AlertCircle className="h-8 w-8 text-orange-600" />
@@ -240,7 +255,10 @@ export default function PalletsPage() {
       {/* Pallets Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {pallets.map((pallet) => (
-          <Card key={pallet.id} className="hover:shadow-lg transition-all duration-200 hover:scale-[1.02]">
+          <Card
+            key={pallet.id}
+            className="hover:shadow-lg transition-all duration-200 hover:scale-[1.02]"
+          >
             <CardHeader className="pb-4">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2">
@@ -258,7 +276,7 @@ export default function PalletsPage() {
                 </span>
               </CardDescription>
             </CardHeader>
-            
+
             <CardContent className="space-y-4">
               {/* Progress Bar */}
               <div className="space-y-2">
@@ -268,8 +286,8 @@ export default function PalletsPage() {
                     {pallet.total_booked_bottles} / {pallet.bottle_capacity}
                   </span>
                 </div>
-                <Progress 
-                  value={pallet.completion_percentage} 
+                <Progress
+                  value={pallet.completion_percentage}
                   className="h-2"
                 />
                 <div className="flex justify-between text-xs text-muted-foreground">
@@ -306,7 +324,9 @@ export default function PalletsPage() {
                   <div className="space-y-1 max-h-20 overflow-y-auto">
                     {pallet.wine_summary.slice(0, 3).map((wine, index) => (
                       <div key={index} className="text-xs bg-muted p-2 rounded">
-                        <div className="font-medium">{wine.wine_name} {wine.vintage}</div>
+                        <div className="font-medium">
+                          {wine.wine_name} {wine.vintage}
+                        </div>
                         <div className="text-muted-foreground">
                           {wine.total_quantity} bottles • {wine.producer}
                         </div>
@@ -348,7 +368,8 @@ export default function PalletsPage() {
             <Package className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium mb-2">No pallets found</h3>
             <p className="text-muted-foreground mb-4 text-center max-w-md">
-              Get started by creating your first pallet to manage wine allocations and track bottle capacity.
+              Get started by creating your first pallet to manage wine
+              allocations and track bottle capacity.
             </p>
             <Button asChild>
               <Link href="/admin/pallets/new">

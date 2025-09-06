@@ -1,8 +1,8 @@
-import { redirect } from 'next/navigation';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { signOut } from '@/lib/admin-auth';
-import { getCurrentUser } from '@/lib/auth';
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { signOut } from "@/lib/admin-auth";
+import { getCurrentUser } from "@/lib/auth";
 
 export default async function AdminLayout({
   children,
@@ -11,9 +11,9 @@ export default async function AdminLayout({
 }) {
   // Aktivera auth-check igen
   const user = await getCurrentUser();
-  
-  if (!user || user.role !== 'admin') {
-    redirect('/admin-auth/login');
+
+  if (!user || user.role !== "admin") {
+    redirect("/admin-auth/login");
   }
 
   return (
@@ -27,37 +27,58 @@ export default async function AdminLayout({
                 Crowdvine Admin
               </Link>
             </div>
-            
+
             <nav className="flex items-center space-x-8">
               <Link href="/admin" className="text-gray-700 hover:text-gray-900">
                 Dashboard
               </Link>
-              <Link href="/admin/producers" className="text-gray-700 hover:text-gray-900">
+              <Link
+                href="/admin/producers"
+                className="text-gray-700 hover:text-gray-900"
+              >
                 Producers
               </Link>
-              <Link href="/admin/wines" className="text-gray-700 hover:text-gray-900">
+              <Link
+                href="/admin/wines"
+                className="text-gray-700 hover:text-gray-900"
+              >
                 Wines
               </Link>
-              <Link href="/admin/zones" className="text-gray-700 hover:text-gray-900">
+              <Link
+                href="/admin/zones"
+                className="text-gray-700 hover:text-gray-900"
+              >
                 Zones
               </Link>
-              <Link href="/admin/pallets" className="text-gray-700 hover:text-gray-900">
+              <Link
+                href="/admin/pallets"
+                className="text-gray-700 hover:text-gray-900"
+              >
                 Pallets
               </Link>
-              <Link href="/admin/bookings" className="text-gray-700 hover:text-gray-900">
+              <Link
+                href="/admin/bookings"
+                className="text-gray-700 hover:text-gray-900"
+              >
                 Bookings
+              </Link>
+              <Link
+                href="/admin/wine-boxes"
+                className="text-gray-700 hover:text-gray-900"
+              >
+                Wine Boxes
               </Link>
             </nav>
 
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">
-                {user.email}
-              </span>
-              <form action={async () => {
-                'use server';
-                await signOut();
-                redirect('/admin-auth/login');
-              }}>
+              <span className="text-sm text-gray-600">{user.email}</span>
+              <form
+                action={async () => {
+                  "use server";
+                  await signOut();
+                  redirect("/admin-auth/login");
+                }}
+              >
                 <Button variant="outline" size="sm" type="submit">
                   Sign Out
                 </Button>

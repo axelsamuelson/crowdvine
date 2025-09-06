@@ -1,81 +1,87 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function LogInPage() {
   const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
 
     try {
       if (isSignUp) {
         // Real signup
-        const response = await fetch('/api/auth/signup', {
-          method: 'POST',
+        const response = await fetch("/api/auth/signup", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             email,
             password,
-            fullName
+            fullName,
           }),
         });
 
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.error || 'Failed to create account');
+          throw new Error(data.error || "Failed to create account");
         }
 
-        setSuccess('Account created successfully! You can now log in.');
-        setEmail('');
-        setPassword('');
-        setFullName('');
+        setSuccess("Account created successfully! You can now log in.");
+        setEmail("");
+        setPassword("");
+        setFullName("");
         setIsSignUp(false);
       } else {
         // Real login
-        const response = await fetch('/api/auth/login', {
-          method: 'POST',
+        const response = await fetch("/api/auth/login", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             email,
-            password
+            password,
           }),
         });
 
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.error || 'Invalid email or password');
+          throw new Error(data.error || "Invalid email or password");
         }
 
-        setSuccess('Login successful! Redirecting to your profile...');
-        setEmail('');
-        setPassword('');
-        
+        setSuccess("Login successful! Redirecting to your profile...");
+        setEmail("");
+        setPassword("");
+
         // Redirect immediately after a short delay
         setTimeout(() => {
-          window.location.href = '/profile';
+          window.location.href = "/profile";
         }, 1000);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : (isSignUp ? 'Failed to create account. Please try again.' : 'Invalid email or password. Please try again.'));
+      setError(
+        err instanceof Error
+          ? err.message
+          : isSignUp
+            ? "Failed to create account. Please try again."
+            : "Invalid email or password. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -86,13 +92,12 @@ export default function LogInPage() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
           <h2 className="text-3xl font-bold text-gray-900">
-            {isSignUp ? 'Create your account' : 'Welcome back'}
+            {isSignUp ? "Create your account" : "Welcome back"}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            {isSignUp 
-              ? 'Join CrowdVine to start reserving wines' 
-              : 'Sign in to your CrowdVine account'
-            }
+            {isSignUp
+              ? "Join CrowdVine to start reserving wines"
+              : "Sign in to your CrowdVine account"}
           </p>
         </div>
       </div>
@@ -102,7 +107,10 @@ export default function LogInPage() {
           <form className="space-y-6" onSubmit={handleSubmit}>
             {isSignUp && (
               <div>
-                <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="fullName"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Full Name
                 </label>
                 <div className="mt-1">
@@ -121,7 +129,10 @@ export default function LogInPage() {
             )}
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Email address
               </label>
               <div className="mt-1">
@@ -140,7 +151,10 @@ export default function LogInPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Password
               </label>
               <div className="mt-1">
@@ -153,7 +167,9 @@ export default function LogInPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder={isSignUp ? "Create a password" : "Enter your password"}
+                  placeholder={
+                    isSignUp ? "Create a password" : "Enter your password"
+                  }
                 />
               </div>
             </div>
@@ -175,15 +191,18 @@ export default function LogInPage() {
                 type="submit"
                 disabled={loading}
                 className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                  isSignUp 
-                    ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500' 
-                    : 'bg-green-600 hover:bg-green-700 focus:ring-green-500'
+                  isSignUp
+                    ? "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500"
+                    : "bg-green-600 hover:bg-green-700 focus:ring-green-500"
                 }`}
               >
-                {loading 
-                  ? (isSignUp ? 'Creating account...' : 'Signing in...') 
-                  : (isSignUp ? 'Sign up' : 'Sign in')
-                }
+                {loading
+                  ? isSignUp
+                    ? "Creating account..."
+                    : "Signing in..."
+                  : isSignUp
+                    ? "Sign up"
+                    : "Sign in"}
               </button>
             </div>
           </form>
@@ -195,7 +214,9 @@ export default function LogInPage() {
               </div>
               <div className="relative flex justify-center text-sm">
                 <span className="px-2 bg-white text-gray-500">
-                  {isSignUp ? 'Already have an account?' : "Don't have an account?"}
+                  {isSignUp
+                    ? "Already have an account?"
+                    : "Don't have an account?"}
                 </span>
               </div>
             </div>
@@ -204,15 +225,15 @@ export default function LogInPage() {
               <button
                 onClick={() => {
                   setIsSignUp(!isSignUp);
-                  setError('');
-                  setSuccess('');
-                  setEmail('');
-                  setPassword('');
-                  setFullName('');
+                  setError("");
+                  setSuccess("");
+                  setEmail("");
+                  setPassword("");
+                  setFullName("");
                 }}
                 className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
-                {isSignUp ? 'Sign in instead' : 'Create account'}
+                {isSignUp ? "Sign in instead" : "Create account"}
               </button>
             </div>
           </div>

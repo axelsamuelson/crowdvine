@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { createContext, useContext, ReactNode } from 'react';
+import { createContext, useContext, ReactNode } from "react";
 
 type V0ContextType = {
   isV0: boolean;
@@ -20,7 +20,7 @@ export const V0Provider = ({ children, isV0 }: V0ProviderProps) => {
 export const useIsV0 = (): boolean => {
   const context = useContext(V0Context);
   if (context === undefined) {
-    throw new Error('useIsV0 must be used within a V0Provider');
+    throw new Error("useIsV0 must be used within a V0Provider");
   }
   return context.isV0;
 };

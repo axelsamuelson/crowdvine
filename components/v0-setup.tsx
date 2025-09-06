@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { checkEnvs } from '@/lib/actions';
-import { SetupToolbar } from '@joycostudio/v0-setup';
+import { checkEnvs } from "@/lib/actions";
+import { SetupToolbar } from "@joycostudio/v0-setup";
 
 export const V0Setup = () => {
   return (

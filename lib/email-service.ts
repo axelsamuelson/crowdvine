@@ -1,7 +1,7 @@
 // Test email service som använder Ethereal Email (gratis för utveckling)
 // Gå till https://ethereal.email/create för att få test-credentials
 
-import { createTransport } from 'nodemailer';
+import { createTransport } from "nodemailer";
 
 interface EmailConfig {
   host: string;
@@ -34,42 +34,52 @@ interface ReservationEmailData {
   createdAt: string;
 }
 
+interface Transporter {
+  sendMail: (options: {
+    from: string;
+    to: string;
+    subject: string;
+    html: string;
+  }) => Promise<any>;
+}
+
 class EmailService {
-  private transporter: any;
+  private transporter: Transporter | null = null;
 
   constructor() {
     // För utveckling, använd Ethereal Email eller Gmail
     const emailConfig: EmailConfig = {
-      host: process.env.SMTP_HOST || 'smtp.ethereal.email',
-      port: parseInt(process.env.SMTP_PORT || '587'),
+      host: process.env.SMTP_HOST || "smtp.ethereal.email",
+      port: parseInt(process.env.SMTP_PORT || "587"),
       secure: false,
       auth: {
-        user: process.env.SMTP_USER || 'test@ethereal.email',
-        pass: process.env.SMTP_PASS || 'test-password'
-      }
+        user: process.env.SMTP_USER || "test@ethereal.email",
+        pass: process.env.SMTP_PASS || "test-password",
+      },
     };
 
     this.transporter = createTransport(emailConfig);
   }
 
-  async sendReservationConfirmation(data: ReservationEmailData): Promise<boolean> {
+  async sendReservationConfirmation(
+    data: ReservationEmailData,
+  ): Promise<boolean> {
     try {
       // För utveckling, logga email-innehållet istället för att skicka
-      if (!process.env.SMTP_USER || process.env.SMTP_USER === 'your-email@gmail.com') {
-        console.log('=== EMAIL WOULD BE SENT ===');
-        console.log('To:', data.customerEmail);
-        console.log('Subject: 🍷 Reservationsbekräftelse -', data.reservationId);
-        console.log('Tracking Code:', data.trackingCode);
-        console.log('Items:', data.items);
-        console.log('Total:', data.totalAmount, 'SEK');
-        console.log('Status URL:', `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/reservation-status?email=${encodeURIComponent(data.customerEmail)}&${data.trackingCode ? `trackingCode=${data.trackingCode}` : `reservationId=${data.reservationId}`}`);
-        console.log('=== EMAIL END ===');
+      if (
+        !process.env.SMTP_USER ||
+        process.env.SMTP_USER === "your-email@gmail.com"
+      ) {
+        // Email would be sent in production
         return true;
       }
 
-      const itemsList = data.items.map(item => 
-        `• ${item.wineName} ${item.vintage} - ${item.quantity} st - ${item.price} SEK`
-      ).join('\n');
+      const itemsList = data.items
+        .map(
+          (item) =>
+            `• ${item.wineName} ${item.vintage} - ${item.quantity} st - ${item.price} SEK`,
+        )
+        .join("\n");
 
       const emailContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -86,8 +96,8 @@ class EmailService {
             <div style="background-color: #ecf0f1; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <h3 style="color: #2c3e50; margin-top: 0;">📋 Reservationsdetaljer</h3>
               <p><strong>Reservations-ID:</strong> ${data.reservationId}</p>
-              ${data.trackingCode ? `<p><strong>Tracking-kod:</strong> <span style="font-family: monospace; font-weight: bold; color: #e74c3c;">${data.trackingCode}</span></p>` : ''}
-              <p><strong>Datum:</strong> ${new Date(data.createdAt).toLocaleDateString('sv-SE')}</p>
+              ${data.trackingCode ? `<p><strong>Tracking-kod:</strong> <span style="font-family: monospace; font-weight: bold; color: #e74c3c;">${data.trackingCode}</span></p>` : ""}
+              <p><strong>Datum:</strong> ${new Date(data.createdAt).toLocaleDateString("sv-SE")}</p>
               <p><strong>Status:</strong> <span style="color: #27ae60; font-weight: bold;">Placerad</span></p>
             </div>
             
@@ -123,7 +133,7 @@ class EmailService {
               <p style="color: #0c5460;">
                 Du kan kolla status på din reservation genom att besöka:
                 <br>
-                <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/reservation-status?email=${encodeURIComponent(data.customerEmail)}&${data.trackingCode ? `trackingCode=${data.trackingCode}` : `reservationId=${data.reservationId}`}" 
+                <a href="${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/reservation-status?email=${encodeURIComponent(data.customerEmail)}&${data.trackingCode ? `trackingCode=${data.trackingCode}` : `reservationId=${data.reservationId}`}" 
                    style="color: #17a2b8; text-decoration: none; font-weight: bold;">
                   Kolla reservationsstatus →
                 </a>
@@ -142,7 +152,7 @@ class EmailService {
       `;
 
       const mailOptions = {
-        from: `"CrowdVine" <${process.env.SMTP_USER || 'noreply@crowdvine.se'}>`,
+        from: `"CrowdVine" <${process.env.SMTP_USER || "noreply@crowdvine.se"}>`,
         to: data.customerEmail,
         subject: `🍷 Reservationsbekräftelse - ${data.reservationId}`,
         html: emailContent,
@@ -154,12 +164,12 @@ class EmailService {
           Din reservation har mottagits och behandlas nu.
           
           Reservations-ID: ${data.reservationId}
-          ${data.trackingCode ? `Tracking-kod: ${data.trackingCode}` : ''}
-          Datum: ${new Date(data.createdAt).toLocaleDateString('sv-SE')}
+          ${data.trackingCode ? `Tracking-kod: ${data.trackingCode}` : ""}
+          Datum: ${new Date(data.createdAt).toLocaleDateString("sv-SE")}
           Status: Placerad
           
           Beställda viner:
-          ${data.items.map(item => `- ${item.wineName} ${item.vintage} - ${item.quantity} st - ${item.price} SEK`).join('\n')}
+          ${data.items.map((item) => `- ${item.wineName} ${item.vintage} - ${item.quantity} st - ${item.price} SEK`).join("\n")}
           
           Totalt: ${data.totalAmount} SEK
           
@@ -175,17 +185,17 @@ class EmailService {
           - Vi meddelar dig via email när din pall är redo
           
           Kolla din reservationsstatus:
-          ${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/reservation-status?email=${encodeURIComponent(data.customerEmail)}&${data.trackingCode ? `trackingCode=${data.trackingCode}` : `reservationId=${data.reservationId}`}
+          ${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/reservation-status?email=${encodeURIComponent(data.customerEmail)}&${data.trackingCode ? `trackingCode=${data.trackingCode}` : `reservationId=${data.reservationId}`}
           
           Har du frågor? Kontakta oss på support@crowdvine.se
-        `
+        `,
       };
 
       const result = await this.transporter.sendMail(mailOptions);
-      console.log('Email sent successfully:', result.messageId);
+      console.log("Email sent successfully:", result.messageId);
       return true;
     } catch (error) {
-      console.error('Failed to send email:', error);
+      console.error("Failed to send email:", error);
       return false;
     }
   }
@@ -222,7 +232,7 @@ class EmailService {
               <p style="color: #0c5460;">
                 Du kan kolla status på din reservation genom att besöka:
                 <br>
-                <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/reservation-status?email=${encodeURIComponent(data.customerEmail)}&reservationId=${data.reservationId}" 
+                <a href="${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/reservation-status?email=${encodeURIComponent(data.customerEmail)}&reservationId=${data.reservationId}" 
                    style="color: #17a2b8; text-decoration: none; font-weight: bold;">
                   Kolla reservationsstatus →
                 </a>
@@ -241,17 +251,17 @@ class EmailService {
       `;
 
       const mailOptions = {
-        from: `"CrowdVine" <${process.env.SMTP_USER || 'noreply@crowdvine.se'}>`,
+        from: `"CrowdVine" <${process.env.SMTP_USER || "noreply@crowdvine.se"}>`,
         to: data.customerEmail,
         subject: `🍷 Statusuppdatering - ${data.reservationId}`,
-        html: emailContent
+        html: emailContent,
       };
 
       const result = await this.transporter.sendMail(mailOptions);
-      console.log('Status update email sent successfully:', result.messageId);
+      console.log("Status update email sent successfully:", result.messageId);
       return true;
     } catch (error) {
-      console.error('Failed to send status update email:', error);
+      console.error("Failed to send status update email:", error);
       return false;
     }
   }

@@ -1,6 +1,12 @@
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export default function UnauthorizedPage() {
   return (
@@ -24,9 +30,10 @@ export default function UnauthorizedPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-gray-600">
-              If you believe you should have access to this area, please contact your administrator.
+              If you believe you should have access to this area, please contact
+              your administrator.
             </p>
-            
+
             <div className="flex space-x-4">
               <Link href="/admin/login">
                 <Button variant="outline" className="w-full">

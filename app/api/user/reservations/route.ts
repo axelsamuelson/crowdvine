@@ -1,21 +1,28 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
+import { NextResponse } from "next/server";
+import { supabaseServer } from "@/lib/supabase-server";
 
 export async function GET() {
   try {
-    const supabase = createClient();
-    
+    const supabase = await supabaseServer();
+
     // Get current authenticated user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
     if (userError || !user) {
-      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 });
+      return NextResponse.json(
+        { error: "User not authenticated" },
+        { status: 401 },
+      );
     }
 
     // Fetch real reservations from database
     const { data: reservations, error: reservationsError } = await supabase
-      .from('order_reservations')
-      .select(`
+      .from("order_reservations")
+      .select(
+        `
         id,
         status,
         created_at,
@@ -51,13 +58,17 @@ export async function GET() {
           tracking_code,
           created_at
         )
-      `)
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+      `,
+      )
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
 
     if (reservationsError) {
-      console.error('Error fetching reservations:', reservationsError);
-      return NextResponse.json({ error: 'Failed to fetch reservations' }, { status: 500 });
+      console.error("Error fetching reservations:", reservationsError);
+      return NextResponse.json(
+        { error: "Failed to fetch reservations" },
+        { status: 500 },
+      );
     }
 
     // Transform the data to match the expected format
@@ -67,34 +78,34 @@ export async function GET() {
         let zones = null;
         if (reservation.pickup_zone_id || reservation.delivery_zone_id) {
           const zoneQueries = [];
-          
+
           if (reservation.pickup_zone_id) {
             zoneQueries.push(
               supabase
-                .from('pallet_zones')
-                .select('name, zone_type')
-                .eq('id', reservation.pickup_zone_id)
-                .single()
+                .from("pallet_zones")
+                .select("name, zone_type")
+                .eq("id", reservation.pickup_zone_id)
+                .single(),
             );
           }
-          
+
           if (reservation.delivery_zone_id) {
             zoneQueries.push(
               supabase
-                .from('pallet_zones')
-                .select('name, zone_type')
-                .eq('id', reservation.delivery_zone_id)
-                .single()
+                .from("pallet_zones")
+                .select("name, zone_type")
+                .eq("id", reservation.delivery_zone_id)
+                .single(),
             );
           }
-          
+
           const zoneResults = await Promise.all(zoneQueries);
           const pickupZone = zoneResults[0]?.data;
           const deliveryZone = zoneResults[1]?.data;
-          
+
           zones = {
             pickup: pickupZone,
-            delivery: deliveryZone
+            delivery: deliveryZone,
           };
         }
 
@@ -102,35 +113,40 @@ export async function GET() {
         let pallet = null;
         if (reservation.pickup_zone_id && reservation.delivery_zone_id) {
           const { data: pallets } = await supabase
-            .from('pallets')
-            .select(`
+            .from("pallets")
+            .select(
+              `
               id,
               name,
               bottle_capacity,
               pallet_zones!inner(id)
-            `)
-            .eq('pallet_zones.id', reservation.pickup_zone_id)
-            .eq('pallet_zones.id', reservation.delivery_zone_id)
+            `,
+            )
+            .eq("pallet_zones.id", reservation.pickup_zone_id)
+            .eq("pallet_zones.id", reservation.delivery_zone_id)
             .limit(1);
 
           if (pallets && pallets.length > 0) {
             const palletData = pallets[0];
-            
+
             // Calculate current bottles from bookings
             const { data: bookings } = await supabase
-              .from('bookings')
-              .select('quantity')
-              .eq('pallet_id', palletData.id);
-            
-            const currentBottles = bookings?.reduce((sum, booking) => sum + booking.quantity, 0) || 0;
-            const remainingBottles = palletData.bottle_capacity - currentBottles;
-            
+              .from("bookings")
+              .select("quantity")
+              .eq("pallet_id", palletData.id);
+
+            const currentBottles =
+              bookings?.reduce((sum, booking) => sum + booking.quantity, 0) ||
+              0;
+            const remainingBottles =
+              palletData.bottle_capacity - currentBottles;
+
             pallet = {
               id: palletData.id,
               name: palletData.name,
               bottle_capacity: palletData.bottle_capacity,
               currentBottles,
-              remainingBottles
+              remainingBottles,
             };
           }
         }
@@ -142,30 +158,36 @@ export async function GET() {
           address: reservation.user_addresses,
           zones,
           pallet,
-          items: reservation.order_reservation_items?.map(item => ({
-            quantity: item.quantity,
-            price_band: item.price_band,
-            wines: item.wines
-          })) || [],
-          tracking: reservation.reservation_tracking ? {
-            code: reservation.reservation_tracking.tracking_code,
-            created_at: reservation.reservation_tracking.created_at
-          } : null
+          items:
+            reservation.order_reservation_items?.map((item) => ({
+              quantity: item.quantity,
+              price_band: item.price_band,
+              wines: item.wines,
+            })) || [],
+          tracking: reservation.reservation_tracking
+            ? {
+                code: reservation.reservation_tracking.tracking_code,
+                created_at: reservation.reservation_tracking.created_at,
+              }
+            : null,
         };
-      })
+      }),
     );
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       reservations: transformedReservations,
-      message: 'User reservations fetched successfully',
+      message: "User reservations fetched successfully",
       user: {
         id: user.id,
         email: user.email,
-        full_name: user.user_metadata?.full_name
-      }
+        full_name: user.user_metadata?.full_name,
+      },
     });
   } catch (error) {
-    console.error('Error fetching user reservations:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Error fetching user reservations:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

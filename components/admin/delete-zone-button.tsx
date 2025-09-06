@@ -1,11 +1,21 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { deletePalletZone } from '@/lib/actions/zones';
-import { Trash2 } from 'lucide-react';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { deletePalletZone } from "@/lib/actions/zones";
+import { Trash2 } from "lucide-react";
 
 interface DeleteZoneButtonProps {
   zoneId: string;
@@ -22,8 +32,8 @@ export function DeleteZoneButton({ zoneId, zoneName }: DeleteZoneButtonProps) {
       await deletePalletZone(zoneId);
       router.refresh();
     } catch (error) {
-      console.error('Failed to delete zone:', error);
-      alert('Failed to delete zone. Please try again.');
+      console.error("Failed to delete zone:", error);
+      alert("Failed to delete zone. Please try again.");
     } finally {
       setIsDeleting(false);
     }
@@ -40,7 +50,8 @@ export function DeleteZoneButton({ zoneId, zoneName }: DeleteZoneButtonProps) {
         <AlertDialogHeader>
           <AlertDialogTitle>Delete Zone</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete the zone "{zoneName}"? This action cannot be undone.
+            Are you sure you want to delete the zone "{zoneName}"? This action
+            cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -50,7 +61,7 @@ export function DeleteZoneButton({ zoneId, zoneName }: DeleteZoneButtonProps) {
             disabled={isDeleting}
             className="bg-red-600 hover:bg-red-700"
           >
-            {isDeleting ? 'Deleting...' : 'Delete'}
+            {isDeleting ? "Deleting..." : "Delete"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

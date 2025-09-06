@@ -1,4 +1,4 @@
-import ZoneForm from '@/components/admin/zone-form';
+import ZoneForm from "@/components/admin/zone-form";
 
 export default function NewZonePage() {
   return (

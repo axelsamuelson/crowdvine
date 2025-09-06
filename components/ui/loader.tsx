@@ -1,31 +1,31 @@
-import * as React from 'react';
-import { cva, type VariantProps } from 'class-variance-authority';
-import { motion } from 'motion/react';
-import { cn } from '@/lib/utils';
+import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
+import { motion } from "motion/react";
+import { cn } from "@/lib/utils";
 
-const loaderVariants = cva('flex items-center justify-center', {
+const loaderVariants = cva("flex items-center justify-center", {
   variants: {
     size: {
-      sm: 'space-x-0.5',
-      default: 'space-x-1',
-      lg: 'space-x-1.5',
+      sm: "space-x-0.5",
+      default: "space-x-1",
+      lg: "space-x-1.5",
     },
   },
   defaultVariants: {
-    size: 'default',
+    size: "default",
   },
 });
 
-const squareVariants = cva('bg-current rounded-[1px]', {
+const squareVariants = cva("bg-current rounded-[1px]", {
   variants: {
     size: {
-      sm: 'size-1',
-      default: 'size-1.5',
-      lg: 'size-2',
+      sm: "size-1",
+      default: "size-1.5",
+      lg: "size-2",
     },
   },
   defaultVariants: {
-    size: 'default',
+    size: "default",
   },
 });
 
@@ -36,7 +36,7 @@ export interface LoaderProps extends VariantProps<typeof loaderVariants> {
 function Loader({ size, className }: LoaderProps) {
   return (
     <div className={cn(loaderVariants({ size }), className)}>
-      {[0, 1, 2].map(index => (
+      {[0, 1, 2].map((index) => (
         <motion.div
           key={index}
           className={cn(squareVariants({ size }))}
@@ -45,7 +45,7 @@ function Loader({ size, className }: LoaderProps) {
             duration: 0.8,
             repeat: Infinity,
             delay: index * 0.2,
-            ease: 'easeInOut',
+            ease: "easeInOut",
           }}
         />
       ))}
