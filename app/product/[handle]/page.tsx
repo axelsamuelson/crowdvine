@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { getCollection, getProduct, getProducts } from "@/lib/shopify";
+import { getCollection, getProduct, getProducts, getCollectionProducts } from "@/lib/shopify";
 import { HIDDEN_PRODUCT_TAG } from "@/lib/constants";
 import {
   Breadcrumb,

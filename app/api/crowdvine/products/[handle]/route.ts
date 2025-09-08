@@ -27,9 +27,9 @@ export async function GET(
       // Convert to Shopify-compatible product format
       const product = {
         id: calc.wineBoxId,
-        title: `Wine Box (${calc.bottleCount} bottles)`,
-        description: `Curated selection of ${calc.bottleCount} wines with ${calc.discountPercentage}% discount`,
-        descriptionHtml: `<p>Curated selection of ${calc.bottleCount} wines with ${calc.discountPercentage}% discount</p>`,
+        title: calc.name,
+        description: calc.description,
+        descriptionHtml: `<p>${calc.description}</p>`,
         handle: `wine-box-${calc.wineBoxId}`,
         productType: "wine-box",
         categoryId: "wine-boxes-collection",
@@ -45,16 +45,16 @@ export async function GET(
         },
         featuredImage: {
           id: `${calc.wineBoxId}-img`,
-          url: "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
-          altText: "Wine Box",
+          url: calc.imageUrl || "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
+          altText: calc.name,
           width: 600,
           height: 600,
         },
         images: [
           {
             id: `${calc.wineBoxId}-img`,
-            url: "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
-            altText: "Wine Box",
+            url: calc.imageUrl || "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
+            altText: calc.name,
             width: 600,
             height: 600,
           },
@@ -98,8 +98,8 @@ export async function GET(
         ],
         tags: [`${calc.bottleCount}-bottles`, `${calc.discountPercentage}-discount`],
         seo: { 
-          title: `Wine Box (${calc.bottleCount} bottles)`, 
-          description: `Curated selection of ${calc.bottleCount} wines with ${calc.discountPercentage}% discount` 
+          title: calc.name, 
+          description: calc.description 
         },
         availableForSale: true,
         currencyCode: "SEK",

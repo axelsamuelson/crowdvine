@@ -26,12 +26,10 @@ export async function GET(
 
       // Convert to Shopify-compatible product format
       const products = calculations.map((calc) => {
-        const wineBox = calc.wines[0]; // Get wine box info from first wine (we'll need to get box name separately)
-        
         return {
           id: calc.wineBoxId,
-          title: `Wine Box (${calc.bottleCount} bottles)`, // We'll get the actual name from the database
-          description: `Curated selection of ${calc.bottleCount} wines with ${calc.discountPercentage}% discount`,
+          title: calc.name,
+          description: calc.description,
           handle: `wine-box-${calc.wineBoxId}`,
           productType: "wine-box",
           categoryId: "wine-boxes-collection",
@@ -47,8 +45,8 @@ export async function GET(
           },
           images: [
             {
-              url: "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
-              altText: "Wine Box",
+              url: calc.imageUrl || "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
+              altText: calc.name,
             },
           ],
           variants: [

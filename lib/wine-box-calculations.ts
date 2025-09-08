@@ -2,6 +2,10 @@ import { supabaseServer } from "@/lib/supabase-server";
 
 export interface WineBoxCalculation {
   wineBoxId: string;
+  name: string;
+  description: string;
+  handle: string;
+  imageUrl: string;
   totalWinePrice: number; // Sum of individual wine prices
   marginAmount: number; // Margin amount in SEK
   finalPrice: number; // Final price with margin
@@ -27,6 +31,9 @@ export async function calculateWineBoxPrice(wineBoxId: string): Promise<WineBoxC
       .select(`
         id,
         name,
+        description,
+        handle,
+        image_url,
         margin_percentage,
         wine_box_items (
           id,
@@ -87,6 +94,10 @@ export async function calculateWineBoxPrice(wineBoxId: string): Promise<WineBoxC
 
     return {
       wineBoxId,
+      name: wineBoxData.name,
+      description: wineBoxData.description,
+      handle: wineBoxData.handle,
+      imageUrl: wineBoxData.image_url,
       totalWinePrice,
       marginAmount,
       finalPrice,
