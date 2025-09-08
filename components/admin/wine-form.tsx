@@ -29,7 +29,7 @@ import {
 } from "@/lib/actions/wines";
 import { Producer } from "@/lib/actions/producers";
 import { WineImageUpload } from "@/components/admin/wine-image-upload";
-import { WineImage } from "@/lib/actions/wine-images";
+import { WineImage } from "@/lib/types/wine-images";
 import { PricingCalculator } from "@/components/admin/pricing-calculator";
 import GrapeVarietiesSelector from "@/components/admin/grape-varieties-selector";
 import {

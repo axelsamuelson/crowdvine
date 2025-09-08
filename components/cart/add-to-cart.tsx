@@ -43,11 +43,6 @@ export function AddToCartButton({
   icon = <PlusCircleIcon />,
   ...buttonProps
 }: AddToCartButtonProps) {
-  // Ensure this component only runs on the client side
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
   const { addItem } = useCart();
   const [isLoading, startTransition] = useTransition();
 

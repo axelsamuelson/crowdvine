@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Upload, X, Move, Eye, Star, StarOff } from "lucide-react";
-import { WineImage } from "@/lib/actions/wine-images";
+import { WineImage } from "@/lib/types/wine-images";
 
 interface WineImageUploadProps {
   wineId?: string;

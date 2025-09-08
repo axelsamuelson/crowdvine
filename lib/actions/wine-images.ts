@@ -2,25 +2,9 @@
 
 import { supabaseServer } from "@/lib/supabase-server";
 import { revalidatePath } from "next/cache";
+import type { WineImage, CreateWineImageData } from "@/lib/types/wine-images";
 
-export interface WineImage {
-  id: string;
-  wine_id: string;
-  image_path: string;
-  alt_text?: string;
-  sort_order: number;
-  is_primary: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface CreateWineImageData {
-  wine_id: string;
-  image_path: string;
-  alt_text?: string;
-  sort_order?: number;
-  is_primary?: boolean;
-}
+export type { WineImage, CreateWineImageData };
 
 export async function getWineImages(wineId: string): Promise<WineImage[]> {
   const sb = await supabaseServer();
