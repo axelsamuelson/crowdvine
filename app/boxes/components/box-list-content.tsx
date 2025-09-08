@@ -1,6 +1,5 @@
 import { ProductGrid } from "@/app/shop/components/product-grid";
 import { ProductCardSkeleton } from "@/app/shop/components/product-card-skeleton";
-import { SortDropdown } from "@/app/shop/components/sort-dropdown";
 import { Suspense } from "react";
 import type { Product } from "@/lib/shopify/types";
 
@@ -24,14 +23,6 @@ export function BoxListContent({ boxes }: BoxListContentProps) {
             </p>
           </div>
 
-          {/* Sorting Controls */}
-          <div className="mb-6 flex justify-between items-center">
-            <div className="text-sm text-muted-foreground">
-              {boxes.length} {boxes.length === 1 ? 'box' : 'boxes'} available
-            </div>
-            <SortDropdown />
-          </div>
-
           <Suspense
             fallback={
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -48,9 +39,6 @@ export function BoxListContent({ boxes }: BoxListContentProps) {
               <div className="text-center py-12">
                 <p className="text-muted-foreground text-lg">
                   No wine boxes available at the moment.
-                </p>
-                <p className="text-muted-foreground text-sm mt-2">
-                  Check back soon for new curated collections!
                 </p>
               </div>
             )}

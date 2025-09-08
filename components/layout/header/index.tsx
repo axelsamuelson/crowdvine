@@ -17,7 +17,7 @@ export const navItems: NavItem[] = [
   },
   {
     label: "boxes",
-    href: "/boxes",
+    href: "/shop/wine-boxes",
   },
   {
     label: "shop all",
