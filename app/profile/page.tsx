@@ -59,17 +59,55 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
   const hasRedirected = useRef(false);
 
   const handleLogout = async () => {
+    if (isLoggingOut) return; // Prevent multiple clicks
+    
     try {
+      setIsLoggingOut(true);
+      console.log("Logout button clicked");
       const supabase = createClient();
-      await supabase.auth.signOut();
+      
+      // Clear any cached data
+      setReservations([]);
+      setLoading(true);
+      setError(null);
+      
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error("Supabase logout error:", error);
+        setError("Failed to logout. Please try again.");
+        setIsLoggingOut(false);
+        return;
+      }
+      
+      console.log("Successfully logged out");
+      
+      // Clear authentication state
       setIsAuthenticated(false);
+      
+      // Redirect to login page
+      console.log("Redirecting to /log-in");
       router.push("/log-in");
+      router.refresh(); // Force refresh
+      
+      // Backup redirect method
+      setTimeout(() => {
+        if (window.location.pathname === "/profile") {
+          console.log("Router redirect failed, using window.location");
+          window.location.href = "/log-in";
+        }
+      }, 1000);
+      
     } catch (error) {
       console.error("Error logging out:", error);
+      setError("An unexpected error occurred during logout.");
+      setIsLoggingOut(false);
     }
   };
 
@@ -329,7 +367,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-white border-b border-gray-200 pt-24">
         <div className="max-w-6xl mx-auto px-6 py-8">
           <div className="flex justify-between items-center">
             <div>
@@ -342,9 +380,14 @@ export default function ProfilePage() {
             </div>
             <button
               onClick={handleLogout}
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-md hover:border-gray-400 transition-colors"
+              disabled={isLoggingOut}
+              className={`px-4 py-2 text-sm border rounded-md transition-colors ${
+                isLoggingOut 
+                  ? 'text-gray-400 border-gray-200 cursor-not-allowed' 
+                  : 'text-gray-600 hover:text-gray-900 border-gray-300 hover:border-gray-400'
+              }`}
             >
-              Sign Out
+              {isLoggingOut ? 'Signing Out...' : 'Sign Out'}
             </button>
           </div>
         </div>
