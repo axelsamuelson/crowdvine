@@ -112,6 +112,13 @@ export async function GET(request: Request) {
     
     const wineDescriptionHtml = i.description_html || `<p>${wineDescription}</p>`;
 
+    // Debug logging
+    if (i.description) {
+      console.log(`Wine ${i.wine_name} has custom description:`, i.description);
+    } else {
+      console.log(`Wine ${i.wine_name} using auto-generated description`);
+    }
+
     return {
       id: i.id,
       title: `${i.wine_name} ${i.vintage}`,
