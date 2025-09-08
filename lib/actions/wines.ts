@@ -281,6 +281,8 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
     updateData.price_includes_vat = data.price_includes_vat;
   if (data.margin_percentage !== undefined)
     updateData.margin_percentage = data.margin_percentage;
+  if (data.description !== undefined) updateData.description = data.description;
+  if (data.description_html !== undefined) updateData.description_html = data.description_html;
 
   // Calculate price manually to avoid trigger loop
   if (
