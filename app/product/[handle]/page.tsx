@@ -23,13 +23,22 @@ import { PageLayout } from "@/components/layout/page-layout";
 import { VariantSelectorSlots } from "./components/variant-selector-slots";
 import { MobileGallerySlider } from "./components/mobile-gallery-slider";
 import { DesktopGallery } from "./components/desktop-gallery";
+import { WineBoxDiscountInfo } from "@/components/products/wine-box-discount-info";
 
 // Generate static params for all products at build time
 export async function generateStaticParams() {
   try {
     const products = await getProducts({ limit: 100 }); // Get first 100 products
+    
+    // Also get wine box products
+    const wineBoxProducts = await getCollectionProducts({ 
+      collection: "wine-boxes-collection", 
+      limit: 50 
+    });
 
-    return products.map((product) => ({
+    const allProducts = [...products, ...wineBoxProducts];
+
+    return allProducts.map((product) => ({
       handle: product.handle,
     }));
   } catch (error) {
@@ -142,7 +151,18 @@ export default async function ProductPage(props: {
                     </Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
-                {rootParentCategory && (
+                {product.productType === "wine-box" ? (
+                  <>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      <BreadcrumbLink asChild>
+                        <Link href="/shop/wine-boxes" prefetch>
+                          Wine Boxes
+                        </Link>
+                      </BreadcrumbLink>
+                    </BreadcrumbItem>
+                  </>
+                ) : rootParentCategory ? (
                   <>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
@@ -153,7 +173,7 @@ export default async function ProductPage(props: {
                       </BreadcrumbLink>
                     </BreadcrumbItem>
                   </>
-                )}
+                ) : null}
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
                   <BreadcrumbPage>{product.title}</BreadcrumbPage>
@@ -218,6 +238,8 @@ export default async function ProductPage(props: {
             className="col-span-full mb-auto opacity-70 max-md:order-3 max-md:my-6"
             html={product.descriptionHtml}
           />
+
+          <WineBoxDiscountInfo product={product} />
 
           <SidebarLinks className="flex-col-reverse max-md:hidden py-sides w-full max-w-[408px] pr-sides max-md:pr-0 max-md:py-0" />
         </div>

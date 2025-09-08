@@ -8,6 +8,124 @@ export async function GET(
   const sb = await supabaseServer();
   const resolvedParams = await params;
 
+  // Check if this is a wine box handle
+  if (resolvedParams.handle.startsWith("wine-box-")) {
+    const wineBoxId = resolvedParams.handle.replace("wine-box-", "");
+    
+    try {
+      // Get wine box calculations
+      const { getAllWineBoxCalculations } = await import("@/lib/wine-box-calculations");
+      const calculations = await getAllWineBoxCalculations();
+      
+      // Find the specific wine box
+      const calc = calculations.find(c => c.wineBoxId === wineBoxId);
+      
+      if (!calc) {
+        return NextResponse.json({ error: "not_found" }, { status: 404 });
+      }
+
+      // Convert to Shopify-compatible product format
+      const product = {
+        id: calc.wineBoxId,
+        title: `Wine Box (${calc.bottleCount} bottles)`,
+        description: `Curated selection of ${calc.bottleCount} wines with ${calc.discountPercentage}% discount`,
+        descriptionHtml: `<p>Curated selection of ${calc.bottleCount} wines with ${calc.discountPercentage}% discount</p>`,
+        handle: `wine-box-${calc.wineBoxId}`,
+        productType: "wine-box",
+        categoryId: "wine-boxes-collection",
+        priceRange: {
+          minVariantPrice: { 
+            amount: calc.finalPrice.toFixed(2), 
+            currencyCode: "SEK" 
+          },
+          maxVariantPrice: { 
+            amount: calc.finalPrice.toFixed(2), 
+            currencyCode: "SEK" 
+          },
+        },
+        featuredImage: {
+          id: `${calc.wineBoxId}-img`,
+          url: "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
+          altText: "Wine Box",
+          width: 600,
+          height: 600,
+        },
+        images: [
+          {
+            id: `${calc.wineBoxId}-img`,
+            url: "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
+            altText: "Wine Box",
+            width: 600,
+            height: 600,
+          },
+        ],
+        variants: [
+          {
+            id: `${calc.wineBoxId}-variant`,
+            title: `${calc.bottleCount} Bottles`,
+            availableForSale: true,
+            price: { 
+              amount: calc.finalPrice.toFixed(2), 
+              currencyCode: "SEK" 
+            },
+            selectedOptions: [
+              { name: "Size", value: `${calc.bottleCount} Bottles` },
+              { name: "Discount", value: `${calc.discountPercentage}% off` },
+            ],
+          },
+        ],
+        options: [
+          {
+            id: "size",
+            name: "Size",
+            values: [
+              {
+                id: `${calc.bottleCount}-bottles`,
+                name: `${calc.bottleCount} Bottles`,
+              },
+            ],
+          },
+          {
+            id: "discount",
+            name: "Discount",
+            values: [
+              {
+                id: `${calc.discountPercentage}-discount`,
+                name: `${calc.discountPercentage}% off`,
+              },
+            ],
+          },
+        ],
+        tags: [`${calc.bottleCount}-bottles`, `${calc.discountPercentage}-discount`],
+        seo: { 
+          title: `Wine Box (${calc.bottleCount} bottles)`, 
+          description: `Curated selection of ${calc.bottleCount} wines with ${calc.discountPercentage}% discount` 
+        },
+        availableForSale: true,
+        currencyCode: "SEK",
+        updatedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        // Add custom fields for discount information
+        discountInfo: {
+          originalPrice: calc.totalWinePrice,
+          discountAmount: calc.discountAmount,
+          discountPercentage: calc.discountPercentage,
+          finalPrice: calc.finalPrice,
+          wines: calc.wines,
+        },
+      };
+
+      return NextResponse.json(product);
+    } catch (error) {
+      console.error("Error fetching wine box:", error);
+      return NextResponse.json(
+        { error: "Failed to fetch wine box" },
+        { status: 500 },
+      );
+    }
+  }
+
+  // Handle regular wine products
   // First get the wine ID from handle
   const { data: wineIdData, error: wineIdError } = await sb
     .from("wines")
