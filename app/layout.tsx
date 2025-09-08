@@ -5,6 +5,7 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { CartProvider } from "@/components/cart/cart-context";
+import { CartDebug } from "@/components/cart/cart-debug";
 import { DebugGrid } from "@/components/debug-grid";
 import { isDevelopment } from "@/lib/constants";
 import { getCollections } from "@/lib/shopify";
@@ -71,6 +72,7 @@ export default async function RootLayout({
               <NuqsAdapter>
                 <main data-vaul-drawer-wrapper="true">
                   <ConditionalHeader collections={collections} />
+                  {isDevelopment && <CartDebug />}
                   {children}
                 </main>
                 {isDevelopment && <DebugGrid />}
