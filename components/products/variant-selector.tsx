@@ -11,7 +11,6 @@ import {
 import { startTransition, useMemo } from "react";
 import { useQueryState, parseAsString } from "nuqs";
 import { useParams, useSearchParams } from "next/navigation";
-import { ColorSwatch } from "@/components/ui/color-picker";
 import { Button } from "@/components/ui/button";
 import { getColorHex } from "@/lib/utils";
 
@@ -87,8 +86,6 @@ export function VariantOptionSelector({
       }))
     : [];
 
-  // Check if this is a color option
-  const isColorOption = optionNameLowerCase === "color";
   const isProductPage = pathname.handle === product.id;
   const isTargetingProduct = isProductPage || activeProductId === product.id;
 
@@ -96,8 +93,44 @@ export function VariantOptionSelector({
     <dl className={variantOptionSelectorVariants({ variant })}>
       <dt className="text-base font-semibold leading-7">{option.name}</dt>
       <dd className="flex flex-wrap gap-2">
-        {option.values.map((value) => {
-          const key = value.id || value.name;
+        {option.values.map((value, index) => {
+          // Create a unique key using index and value name/id
+          const key = `${option.id}-${value.id || value.name}-${index}`;
+          
+          // Check if this is a color or grape variety option (display only)
+          const isColorOption = optionNameLowerCase === "color";
+          const isGrapeVarietyOption = optionNameLowerCase === "grape variety" || optionNameLowerCase === "grape varieties";
+          const isDisplayOnlyOption = isColorOption || isGrapeVarietyOption;
+
+          // If this is a color option, show color display only
+          if (isColorOption) {
+            const color = getColorHex(value.name);
+            const name = value.name ? value.name.split("/") : ["Unknown"];
+
+            return (
+              <div key={key} className="flex items-center gap-2">
+                <div
+                  className="w-6 h-6 rounded-full border border-gray-300"
+                  style={{
+                    backgroundColor: Array.isArray(color) ? color[0] : color,
+                  }}
+                  title={value.name}
+                />
+                <span className="text-sm text-gray-700">{value.name}</span>
+              </div>
+            );
+          }
+
+          // If this is a grape variety option, show as text only
+          if (isGrapeVarietyOption) {
+            return (
+              <span key={key} className="text-sm text-gray-700">
+                {value.name}
+              </span>
+            );
+          }
+
+          // For other options, keep the interactive button behavior
           // Get current state for availability check
           const currentState = getCurrentSelectedOptions();
           const optionParams = {
@@ -123,48 +156,6 @@ export function VariantOptionSelector({
           // The option is active if it's the selected value
           const isActive = isTargetingProduct && selectedValue === value.name;
 
-          // If this is a color option, use ColorSwatch
-          if (isColorOption) {
-            const color = getColorHex(value.name);
-            const name = value.name ? value.name.split("/") : ["Unknown"];
-
-            return (
-              <ColorSwatch
-                key={key}
-                color={
-                  Array.isArray(color)
-                    ? [
-                        {
-                          name: name[0],
-                          value: color[0],
-                        },
-                        {
-                          name: name[1],
-                          value: color[1],
-                        },
-                      ]
-                    : {
-                        name: name[0],
-                        value: color,
-                      }
-                }
-                isSelected={isActive}
-                onColorChange={() => {
-                  startTransition(() => {
-                    setSelectedValue(value.name);
-
-                    if (!isProductPage) {
-                      setActiveProductId(product.id);
-                    }
-                  });
-                }}
-                size={variant === "condensed" ? "sm" : "md"}
-                atLeastOneColorSelected={!!selectedValue}
-              />
-            );
-          }
-
-          // Default button for non-color options
           return (
             <Button
               key={key}

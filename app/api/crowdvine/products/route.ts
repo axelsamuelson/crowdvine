@@ -44,6 +44,26 @@ export async function GET(request: Request) {
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
 
+  // Get wine images for all wines
+  const wineIds = data?.map((wine: any) => wine.id) || [];
+  let wineImagesMap = new Map();
+  
+  if (wineIds.length > 0) {
+    const { data: wineImages } = await sb
+      .from("wine_images")
+      .select("wine_id, image_path, alt_text, sort_order, is_primary")
+      .in("wine_id", wineIds)
+      .order("sort_order", { ascending: true });
+
+    // Group images by wine_id
+    wineImages?.forEach((image: any) => {
+      if (!wineImagesMap.has(image.wine_id)) {
+        wineImagesMap.set(image.wine_id, []);
+      }
+      wineImagesMap.get(image.wine_id).push(image);
+    });
+  }
+
   // Forma Product-minimum som UI:et använder
   const products = (data ?? []).map((i: any) => {
     // Parse grape varieties from string or use array
@@ -55,6 +75,34 @@ export async function GET(request: Request) {
 
     // Use color_name if available, otherwise use color
     const colorName = i.color_name || i.color;
+
+    // Get images for this wine
+    const wineImages = wineImagesMap.get(i.id) || [];
+    const images = wineImages.length > 0 
+      ? wineImages.map((img: any) => ({
+          id: `${i.id}-img-${img.sort_order}`,
+          url: img.image_path,
+          altText: img.alt_text || i.wine_name,
+          width: 600,
+          height: 600,
+        }))
+      : [
+          {
+            id: `${i.id}-img`,
+            url: i.label_image_path || "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
+            altText: i.wine_name,
+            width: 600,
+            height: 600,
+          },
+        ];
+
+    const featuredImage = images[0] || {
+      id: `${i.id}-img`,
+      url: i.label_image_path || "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
+      altText: i.wine_name,
+      width: 600,
+      height: 600,
+    };
 
     return {
       id: i.id,
@@ -115,22 +163,8 @@ export async function GET(request: Request) {
           currencyCode: "SEK",
         },
       },
-      featuredImage: {
-        id: `${i.id}-img`,
-        url: i.label_image_path,
-        altText: i.wine_name,
-        width: 600,
-        height: 600,
-      },
-      images: [
-        {
-          id: `${i.id}-img`,
-          url: i.label_image_path,
-          altText: i.wine_name,
-          width: 600,
-          height: 600,
-        },
-      ],
+      featuredImage,
+      images,
       seo: { title: i.wine_name, description: "" },
       tags: [
         // Add grape varieties as tags

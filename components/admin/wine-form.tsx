@@ -28,7 +28,8 @@ import {
   updateWine,
 } from "@/lib/actions/wines";
 import { Producer } from "@/lib/actions/producers";
-import { ImageUpload } from "@/components/admin/image-upload";
+import { WineImageUpload } from "@/components/admin/wine-image-upload";
+import { WineImage } from "@/lib/actions/wine-images";
 import { PricingCalculator } from "@/components/admin/pricing-calculator";
 import GrapeVarietiesSelector from "@/components/admin/grape-varieties-selector";
 import {
@@ -67,6 +68,7 @@ export default function WineForm({ wine, producers }: WineFormProps) {
   });
 
   const [images, setImages] = useState<File[]>([]);
+  const [existingImages, setExistingImages] = useState<WineImage[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [availableGrapeVarieties, setAvailableGrapeVarieties] = useState<any[]>(
@@ -110,6 +112,25 @@ export default function WineForm({ wine, producers }: WineFormProps) {
       loadExistingGrapeVarieties();
     }
   }, [wine, availableGrapeVarieties]);
+
+  // Load existing images for editing
+  useEffect(() => {
+    const loadExistingImages = async () => {
+      if (wine && wine.id) {
+        try {
+          const { getWineImages } = await import("@/lib/actions/wine-images");
+          const images = await getWineImages(wine.id);
+          setExistingImages(images);
+        } catch (error) {
+          console.error("Failed to load existing images:", error);
+        }
+      }
+    };
+
+    if (wine) {
+      loadExistingImages();
+    }
+  }, [wine]);
 
   const handleGrapeVarietiesChange = (varietyIds: string[]) => {
     setSelectedGrapeVarietyIds(varietyIds);
@@ -155,7 +176,7 @@ export default function WineForm({ wine, producers }: WineFormProps) {
     }
 
     try {
-      // Upload images if any new ones were added
+      // Upload new images if any were added
       let imagePaths: string[] = [];
       if (images.length > 0) {
         const formDataUpload = new FormData();
@@ -188,6 +209,21 @@ export default function WineForm({ wine, producers }: WineFormProps) {
         savedWine = await updateWine(wine.id, wineData);
       } else {
         savedWine = await createWine(wineData);
+      }
+
+      // Save new images to wine_images table
+      if (savedWine && imagePaths.length > 0) {
+        const { createWineImage } = await import("@/lib/actions/wine-images");
+        
+        for (let i = 0; i < imagePaths.length; i++) {
+          await createWineImage({
+            wine_id: savedWine.id,
+            image_path: imagePaths[i],
+            alt_text: `${savedWine.wine_name} ${savedWine.vintage}`,
+            sort_order: existingImages.length + i,
+            is_primary: i === 0 && existingImages.length === 0, // First image is primary if no existing images
+          });
+        }
       }
 
       // Update wine-grape varieties relationships
@@ -352,24 +388,13 @@ export default function WineForm({ wine, producers }: WineFormProps) {
             }}
           />
 
-          {/* Show current image if editing */}
-          {wine && wine.label_image_path && (
-            <div className="space-y-2">
-              <Label>Current Image</Label>
-              <div className="relative w-32 h-32 bg-gray-100 rounded-lg overflow-hidden">
-                <img
-                  src={wine.label_image_path}
-                  alt={`${wine.wine_name} ${wine.vintage}`}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <p className="text-sm text-gray-500">
-                Current image will be kept unless you upload a new one
-              </p>
-            </div>
-          )}
-
-          <ImageUpload images={images} onImagesChange={setImages} />
+          <WineImageUpload 
+            wineId={wine?.id}
+            existingImages={existingImages}
+            images={images}
+            onImagesChange={setImages}
+            onExistingImagesChange={setExistingImages}
+          />
 
           <div className="flex justify-end space-x-4">
             <Button

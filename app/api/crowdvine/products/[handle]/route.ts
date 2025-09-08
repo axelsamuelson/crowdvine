@@ -54,6 +54,13 @@ export async function GET(
   if (error || !data)
     return NextResponse.json({ error: "not_found" }, { status: 404 });
 
+  // Get wine images
+  const { data: wineImages } = await sb
+    .from("wine_images")
+    .select("image_path, alt_text, sort_order, is_primary")
+    .eq("wine_id", wineIdData.id)
+    .order("sort_order", { ascending: true });
+
   const i = data;
 
   // Parse grape varieties from string or use array
@@ -65,6 +72,33 @@ export async function GET(
 
   // Use color_name if available, otherwise use color
   const colorName = i.color;
+
+  // Get images for this wine
+  const images = wineImages && wineImages.length > 0 
+    ? wineImages.map((img: any) => ({
+        id: `${i.id}-img-${img.sort_order}`,
+        url: img.image_path,
+        altText: img.alt_text || i.wine_name,
+        width: 600,
+        height: 600,
+      }))
+    : [
+        {
+          id: `${i.id}-img`,
+          url: i.label_image_path || "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
+          altText: i.wine_name,
+          width: 600,
+          height: 600,
+        },
+      ];
+
+  const featuredImage = images[0] || {
+    id: `${i.id}-img`,
+    url: i.label_image_path || "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
+    altText: i.wine_name,
+    width: 600,
+    height: 600,
+  };
 
   const product = {
     id: i.id,
@@ -125,22 +159,8 @@ export async function GET(
         currencyCode: "SEK",
       },
     },
-    featuredImage: {
-      id: `${i.id}-img`,
-      url: i.label_image_path,
-      altText: i.wine_name,
-      width: 600,
-      height: 600,
-    },
-    images: [
-      {
-        id: `${i.id}-img`,
-        url: i.label_image_path,
-        altText: i.wine_name,
-        width: 600,
-        height: 600,
-      },
-    ],
+    featuredImage,
+    images,
     seo: { title: i.wine_name, description: grapeVarieties.join(", ") || "" },
     tags: [
       // Add grape varieties as tags
