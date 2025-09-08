@@ -65,6 +65,9 @@ export default function WineForm({ wine, producers }: WineFormProps) {
     base_price_cents: wine?.base_price_cents || 0,
     // Set the existing label_image_path if editing
     label_image_path: wine?.label_image_path || "",
+    // Description fields
+    description: wine?.description || "",
+    description_html: wine?.description_html || "",
   });
 
   const [images, setImages] = useState<File[]>([]);
@@ -351,6 +354,37 @@ export default function WineForm({ wine, producers }: WineFormProps) {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          {/* Description Fields */}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => handleChange("description", e.target.value)}
+                placeholder="Enter a custom description for this wine..."
+                rows={3}
+              />
+              <p className="text-sm text-muted-foreground">
+                Leave empty to use auto-generated description based on wine properties.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description_html">Description HTML</Label>
+              <Textarea
+                id="description_html"
+                value={formData.description_html}
+                onChange={(e) => handleChange("description_html", e.target.value)}
+                placeholder="Enter custom HTML description (optional)..."
+                rows={4}
+              />
+              <p className="text-sm text-muted-foreground">
+                Custom HTML for rich formatting. Leave empty to use auto-generated HTML from description.
+              </p>
             </div>
           </div>
 
