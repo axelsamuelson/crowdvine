@@ -87,7 +87,7 @@ export const ProductCard = ({ product }: { product: Product }) => {
               {isWineBox && discountInfo && (
                 <span className="text-base line-through opacity-30">
                   {formatPrice(
-                    discountInfo.originalPrice.toString(),
+                    discountInfo.totalWinePrice.toString(),
                     product.priceRange.minVariantPrice.currencyCode,
                   )}
                 </span>
