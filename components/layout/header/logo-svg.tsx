@@ -1,4 +1,96 @@
+"use client";
+
+import { useState, useEffect } from "react";
+
+// Cache för att undvika upprepade API-anrop
+let logoCache: { value: string | null; timestamp: number } | null = null;
+const CACHE_DURATION = 30 * 60 * 1000; // 30 minuter (längre cache)
+
+// Preload loggan när komponenten mountas första gången
+let hasPreloaded = false;
+
 export function LogoSvg({ className }: { className?: string }) {
+  const [headerLogo, setHeaderLogo] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Kontrollera cache först
+    if (logoCache && Date.now() - logoCache.timestamp < CACHE_DURATION) {
+      setHeaderLogo(logoCache.value);
+      setLoading(false);
+      return;
+    }
+
+    // Hämta header_logo från API med timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 sek timeout
+
+    fetch('/api/site-content/header_logo', {
+      signal: controller.signal,
+      cache: 'force-cache', // Använd browser cache
+    })
+      .then(res => res.json())
+      .then(data => {
+        const logoValue = data.value || null;
+        
+        // Uppdatera cache
+        logoCache = {
+          value: logoValue,
+          timestamp: Date.now()
+        };
+        
+        setHeaderLogo(logoValue);
+        setLoading(false);
+        
+        // Preload bilden för nästa gång
+        if (logoValue && !hasPreloaded) {
+          const img = new Image();
+          img.src = logoValue;
+          hasPreloaded = true;
+        }
+      })
+      .catch(err => {
+        console.error('Error fetching header logo:', err);
+        setLoading(false);
+      })
+      .finally(() => {
+        clearTimeout(timeoutId);
+      });
+  }, []);
+
+  // Om det laddas, visa en transparent placeholder för att undvika layout shift
+  if (loading) {
+    return (
+      <div 
+        className={className}
+        style={{ 
+          backgroundColor: 'transparent',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        {/* Invisible placeholder med samma storlek som loggan */}
+        <div style={{ width: '100%', height: '100%' }} />
+      </div>
+    );
+  }
+
+  // Om det finns en uppladdad logga, visa den
+  if (headerLogo) {
+    return (
+      <img
+        src={headerLogo}
+        alt="CrowdVine Logo"
+        className={className}
+        style={{ objectFit: 'contain' }}
+        loading="eager" // Ladda direkt
+        fetchPriority="high" // Hög prioritet
+      />
+    );
+  }
+
+  // Fallback till original SVG om ingen logga är uppladdad
   return (
     <svg
       width="292"

@@ -246,90 +246,118 @@ export default function ContentPage() {
 
         <TabsContent value="homepage" className="space-y-6">
           <div className="grid grid-cols-1 gap-6">
-            {/* Homepage Title */}
+            {/* Hero Title */}
             <Card>
               <CardHeader>
-                <CardTitle>Homepage Title</CardTitle>
+                <CardTitle>Hero Title</CardTitle>
                 <CardDescription>
-                  Main title displayed on the homepage
+                  Main hero title displayed on the homepage sidebar
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="homepage_title">Title</Label>
+                  <Label htmlFor="homepage_hero_title">Hero Title</Label>
                   <Input
-                    id="homepage_title"
-                    value={formData.homepage_title || ""}
+                    id="homepage_hero_title"
+                    value={formData.homepage_hero_title || ""}
                     onChange={(e) =>
-                      handleInputChange("homepage_title", e.target.value)
+                      handleInputChange("homepage_hero_title", e.target.value)
                     }
-                    placeholder="Enter homepage title"
+                    placeholder="Refined. Minimal. Never boring."
                   />
                 </div>
                 <Button
-                  onClick={() => handleSave("homepage_title")}
+                  onClick={() => handleSave("homepage_hero_title")}
                   disabled={saving}
                 >
-                  {saving ? "Saving..." : "Save Title"}
+                  {saving ? "Saving..." : "Save Hero Title"}
                 </Button>
               </CardContent>
             </Card>
 
-            {/* Homepage Subtitle */}
+            {/* Hero Subtitle */}
             <Card>
               <CardHeader>
-                <CardTitle>Homepage Subtitle</CardTitle>
+                <CardTitle>Hero Subtitle</CardTitle>
                 <CardDescription>
-                  Subtitle displayed below the main title
+                  First subtitle line displayed below the hero title
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="homepage_subtitle">Subtitle</Label>
+                  <Label htmlFor="homepage_hero_subtitle">Hero Subtitle</Label>
                   <Input
-                    id="homepage_subtitle"
-                    value={formData.homepage_subtitle || ""}
+                    id="homepage_hero_subtitle"
+                    value={formData.homepage_hero_subtitle || ""}
                     onChange={(e) =>
-                      handleInputChange("homepage_subtitle", e.target.value)
+                      handleInputChange("homepage_hero_subtitle", e.target.value)
                     }
-                    placeholder="Enter homepage subtitle"
+                    placeholder="Furniture that speaks softly, but stands out loud."
                   />
                 </div>
                 <Button
-                  onClick={() => handleSave("homepage_subtitle")}
+                  onClick={() => handleSave("homepage_hero_subtitle")}
                   disabled={saving}
                 >
-                  {saving ? "Saving..." : "Save Subtitle"}
+                  {saving ? "Saving..." : "Save Hero Subtitle"}
                 </Button>
               </CardContent>
             </Card>
 
-            {/* Homepage Description */}
+            {/* Hero Description Line 1 */}
             <Card>
               <CardHeader>
-                <CardTitle>Homepage Description</CardTitle>
+                <CardTitle>Hero Description Line 1</CardTitle>
                 <CardDescription>
-                  Main description text on the homepage
+                  Second description line on the homepage
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="homepage_description">Description</Label>
-                  <Textarea
-                    id="homepage_description"
-                    value={formData.homepage_description || ""}
+                  <Label htmlFor="homepage_hero_description_1">Description Line 1</Label>
+                  <Input
+                    id="homepage_hero_description_1"
+                    value={formData.homepage_hero_description_1 || ""}
                     onChange={(e) =>
-                      handleInputChange("homepage_description", e.target.value)
+                      handleInputChange("homepage_hero_description_1", e.target.value)
                     }
-                    placeholder="Enter homepage description"
-                    rows={4}
+                    placeholder="Clean lines, crafted with wit."
                   />
                 </div>
                 <Button
-                  onClick={() => handleSave("homepage_description")}
+                  onClick={() => handleSave("homepage_hero_description_1")}
                   disabled={saving}
                 >
-                  {saving ? "Saving..." : "Save Description"}
+                  {saving ? "Saving..." : "Save Description Line 1"}
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Hero Description Line 2 */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Hero Description Line 2</CardTitle>
+                <CardDescription>
+                  Third description line on the homepage
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="homepage_hero_description_2">Description Line 2</Label>
+                  <Input
+                    id="homepage_hero_description_2"
+                    value={formData.homepage_hero_description_2 || ""}
+                    onChange={(e) =>
+                      handleInputChange("homepage_hero_description_2", e.target.value)
+                    }
+                    placeholder="Elegance with a wink — style first"
+                  />
+                </div>
+                <Button
+                  onClick={() => handleSave("homepage_hero_description_2")}
+                  disabled={saving}
+                >
+                  {saving ? "Saving..." : "Save Description Line 2"}
                 </Button>
               </CardContent>
             </Card>

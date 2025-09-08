@@ -44,11 +44,33 @@ export async function updateSiteContent(
 ): Promise<void> {
   const sb = await supabaseServer();
 
-  const { error } = await sb
+  // First try to update existing record
+  const { data: existingData, error: selectError } = await sb
     .from("site_content")
-    .upsert({ key, value, updated_at: new Date().toISOString() });
+    .select("id")
+    .eq("key", key)
+    .single();
 
-  if (error) throw new Error(error.message);
+  if (selectError && selectError.code !== 'PGRST116') {
+    throw new Error(selectError.message);
+  }
+
+  if (existingData) {
+    // Update existing record
+    const { error: updateError } = await sb
+      .from("site_content")
+      .update({ value, updated_at: new Date().toISOString() })
+      .eq("key", key);
+
+    if (updateError) throw new Error(updateError.message);
+  } else {
+    // Insert new record
+    const { error: insertError } = await sb
+      .from("site_content")
+      .insert({ key, value, updated_at: new Date().toISOString() });
+
+    if (insertError) throw new Error(insertError.message);
+  }
 
   revalidatePath("/admin/content");
   revalidatePath("/"); // Revalidate homepage

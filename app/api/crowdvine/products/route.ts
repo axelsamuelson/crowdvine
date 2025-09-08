@@ -125,13 +125,19 @@ export async function GET(request: Request) {
         {
           id: "grape-varieties",
           name: "Grape Varieties",
-          values: grapeVarieties,
+          values: grapeVarieties.map((variety: string) => ({
+            id: variety.toLowerCase().replace(/\s+/g, '-'),
+            name: variety,
+          })),
         },
         // Add color as an option
         {
           id: "color",
           name: "Color",
-          values: colorName ? [colorName] : [],
+          values: colorName ? [{
+            id: colorName.toLowerCase().replace(/\s+/g, '-'),
+            name: colorName,
+          }] : [],
         },
       ],
       variants: [
