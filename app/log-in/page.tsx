@@ -69,9 +69,9 @@ export default function LogInPage() {
         setEmail("");
         setPassword("");
 
-        // Redirect immediately after a short delay
+        // Redirect using Next.js router
         setTimeout(() => {
-          window.location.href = "/profile";
+          router.push("/profile");
         }, 1000);
       }
     } catch (err) {
@@ -240,10 +240,10 @@ export default function LogInPage() {
 
           <div className="mt-6 text-center">
             <Link
-              href="/profile"
+              href="/"
               className="text-sm text-blue-600 hover:text-blue-500"
             >
-              ← Back to profile
+              ← Back to home
             </Link>
           </div>
         </div>

@@ -112,42 +112,73 @@ export async function GET() {
         // Fetch pallet information if we have both zones
         let pallet = null;
         if (reservation.pickup_zone_id && reservation.delivery_zone_id) {
-          const { data: pallets } = await supabase
-            .from("pallets")
-            .select(
-              `
-              id,
-              name,
-              bottle_capacity,
-              pallet_zones!inner(id)
-            `,
-            )
-            .eq("pallet_zones.id", reservation.pickup_zone_id)
-            .eq("pallet_zones.id", reservation.delivery_zone_id)
-            .limit(1);
+          try {
+            // Try to find a pallet that matches both zones
+            const { data: pallets, error: palletError } = await supabase
+              .from("pallets")
+              .select(
+                `
+                id,
+                name,
+                bottle_capacity,
+                created_at
+              `,
+              )
+              .eq("pickup_zone_id", reservation.pickup_zone_id)
+              .eq("delivery_zone_id", reservation.delivery_zone_id)
+              .limit(1);
 
-          if (pallets && pallets.length > 0) {
-            const palletData = pallets[0];
+            if (palletError) {
+              console.error("Error fetching pallet:", palletError);
+            } else if (pallets && pallets.length > 0) {
+              const palletData = pallets[0];
 
-            // Calculate current bottles from bookings
-            const { data: bookings } = await supabase
-              .from("bookings")
-              .select("quantity")
-              .eq("pallet_id", palletData.id);
+              // Calculate current bottles from bookings with timestamps
+              const { data: bookings, error: bookingError } = await supabase
+                .from("bookings")
+                .select("quantity, created_at")
+                .eq("pallet_id", palletData.id)
+                .order("created_at", { ascending: true });
 
-            const currentBottles =
-              bookings?.reduce((sum, booking) => sum + booking.quantity, 0) ||
-              0;
-            const remainingBottles =
-              palletData.bottle_capacity - currentBottles;
+              if (bookingError) {
+                console.error("Error fetching bookings:", bookingError);
+              }
 
-            pallet = {
-              id: palletData.id,
-              name: palletData.name,
-              bottle_capacity: palletData.bottle_capacity,
-              currentBottles,
-              remainingBottles,
-            };
+              const currentBottles =
+                bookings?.reduce((sum, booking) => sum + booking.quantity, 0) ||
+                0;
+
+              // Calculate estimated days remaining based on actual booking activity
+              let estimatedDaysRemaining = null;
+              if (currentBottles > 0 && bookings && bookings.length > 0) {
+                const firstBookingDate = new Date(bookings[0].created_at);
+                const lastBookingDate = new Date(bookings[bookings.length - 1].created_at);
+                const now = new Date();
+                
+                // Use the time span from first booking to now, or last booking to now if more recent
+                const activePeriodEnd = lastBookingDate > firstBookingDate ? lastBookingDate : now;
+                const daysSinceFirstBooking = Math.max(1, Math.floor((activePeriodEnd.getTime() - firstBookingDate.getTime()) / (1000 * 60 * 60 * 24)));
+                
+                const averageBottlesPerDay = currentBottles / daysSinceFirstBooking;
+                const remainingBottles = Math.max(0, palletData.bottle_capacity - currentBottles);
+                
+                if (averageBottlesPerDay > 0 && remainingBottles > 0) {
+                  estimatedDaysRemaining = Math.ceil(remainingBottles / averageBottlesPerDay);
+                }
+              }
+
+              pallet = {
+                id: palletData.id,
+                name: palletData.name,
+                bottle_capacity: palletData.bottle_capacity,
+                currentBottles,
+                remainingBottles: Math.max(0, palletData.bottle_capacity - currentBottles),
+                estimatedDaysRemaining,
+                created_at: palletData.created_at,
+              };
+            }
+          } catch (error) {
+            console.error("Error in pallet fetching:", error);
           }
         }
 

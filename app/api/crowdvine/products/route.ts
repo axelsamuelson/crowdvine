@@ -29,7 +29,8 @@ export async function GET(request: Request) {
         label_image_path,
         producer_id,
         description,
-        description_html
+        description_html,
+        producers!inner(name)
       `,
       )
       .limit(limit);
@@ -120,6 +121,7 @@ export async function GET(request: Request) {
       handle: i.handle,
       productType: "wine",
       categoryId: i.producer_id,
+      producerName: i.producers?.name || "Unknown Producer",
       options: [
         // Add grape varieties as an option
         {

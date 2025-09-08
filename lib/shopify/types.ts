@@ -152,6 +152,7 @@ export type Product = {
   variants: ProductVariant[];
   images: Image[];
   availableForSale: boolean;
+  producerName?: string;
 };
 
 export type ProductSortKey =

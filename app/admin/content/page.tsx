@@ -21,6 +21,8 @@ import {
   SiteContent,
 } from "@/lib/actions/content";
 import { FileText, Image, MapPin, Phone, Mail, Instagram } from "lucide-react";
+import { clearLogoCache } from "@/components/layout/header/logo-svg";
+import { clearFooterLogoCache } from "@/components/layout/footer-logo-svg";
 
 export default function ContentPage() {
   const [content, setContent] = useState<SiteContent[]>([]);
@@ -83,6 +85,13 @@ export default function ContentPage() {
       await updateSiteContent(key, imagePath);
       setFormData((prev) => ({ ...prev, [key]: imagePath }));
       setSuccess(`${key.replace("_", " ")} updated successfully!`);
+
+      // Rensa cache för att visa nya loggan direkt
+      if (key === "header_logo") {
+        clearLogoCache();
+      } else if (key === "footer_logo") {
+        clearFooterLogoCache();
+      }
 
       // Clear the image upload
       setLogoImages((prev) => ({ ...prev, [key]: [] }));
