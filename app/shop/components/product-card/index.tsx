@@ -7,6 +7,7 @@ import { VariantSelector } from "../variant-selector";
 import { ProductImage } from "./product-image";
 import { Button } from "@/components/ui/button";
 import { ArrowRightIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export const ProductCard = ({ product }: { product: Product }) => {
   const hasNoOptions = product.options.length === 0;
@@ -19,8 +20,21 @@ export const ProductCard = ({ product }: { product: Product }) => {
   const renderInCardAddToCart =
     hasNoOptions || hasOneOptionWithOneValue || justHasColorOption;
 
+  // Check if this is a wine box product
+  const isWineBox = product.productType === "wine-box";
+  const discountInfo = (product as any).discountInfo;
+
   return (
     <div className="relative w-full aspect-[3/4] md:aspect-square bg-muted group overflow-hidden">
+      {/* Discount Badge for Wine Boxes */}
+      {isWineBox && discountInfo && (
+        <div className="absolute top-2 left-2 z-10">
+          <Badge className="bg-green-100 text-green-800 border-green-200">
+            {discountInfo.discountPercentage}% OFF
+          </Badge>
+        </div>
+      )}
+      
       <Link
         href={`/product/${product.handle}`}
         className="block size-full focus-visible:outline-none"
@@ -43,7 +57,15 @@ export const ProductCard = ({ product }: { product: Product }) => {
               product.priceRange.minVariantPrice.amount,
               product.priceRange.minVariantPrice.currencyCode,
             )}
-            {product.compareAtPrice && (
+            {isWineBox && discountInfo && (
+              <span className="line-through opacity-30 text-xs">
+                {formatPrice(
+                  discountInfo.originalPrice.toString(),
+                  product.priceRange.minVariantPrice.currencyCode,
+                )}
+              </span>
+            )}
+            {product.compareAtPrice && !isWineBox && (
               <span className="line-through opacity-30">
                 {formatPrice(
                   product.compareAtPrice.amount,
@@ -62,7 +84,15 @@ export const ProductCard = ({ product }: { product: Product }) => {
                 product.priceRange.minVariantPrice.amount,
                 product.priceRange.minVariantPrice.currencyCode,
               )}
-              {product.compareAtPrice && (
+              {isWineBox && discountInfo && (
+                <span className="text-base line-through opacity-30">
+                  {formatPrice(
+                    discountInfo.originalPrice.toString(),
+                    product.priceRange.minVariantPrice.currencyCode,
+                  )}
+                </span>
+              )}
+              {product.compareAtPrice && !isWineBox && (
                 <span className="text-base line-through opacity-30">
                   {formatPrice(
                     product.compareAtPrice.amount,

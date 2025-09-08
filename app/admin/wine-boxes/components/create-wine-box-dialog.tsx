@@ -6,11 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { WineSelector } from "./wine-selector";
 
 interface CreateWineBoxDialogProps {
   isOpen: boolean;
   onClose: () => void;
+}
+
+interface SelectedWine {
+  wineId: string;
+  quantity: number;
 }
 
 export function CreateWineBoxDialog({ isOpen, onClose }: CreateWineBoxDialogProps) {
@@ -18,46 +23,70 @@ export function CreateWineBoxDialog({ isOpen, onClose }: CreateWineBoxDialogProp
     name: "",
     description: "",
     handle: "",
-    price_cents: "",
-    bottle_count: "",
-    box_type: "",
+    margin_percentage: "",
     image_url: "",
   });
+  const [selectedWines, setSelectedWines] = useState<SelectedWine[]>([]);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (selectedWines.length === 0) {
+      alert("Please select at least one wine for the box.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const response = await fetch("/api/admin/wine-boxes", {
+      // First create the wine box
+      const wineBoxResponse = await fetch("/api/admin/wine-boxes", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           ...formData,
-          price_cents: parseInt(formData.price_cents),
-          bottle_count: parseInt(formData.bottle_count),
+          margin_percentage: parseFloat(formData.margin_percentage),
         }),
       });
 
-      if (response.ok) {
-        onClose();
-        setFormData({
-          name: "",
-          description: "",
-          handle: "",
-          price_cents: "",
-          bottle_count: "",
-          box_type: "",
-          image_url: "",
-        });
-        // Refresh the page to show the new wine box
-        window.location.reload();
+      if (!wineBoxResponse.ok) {
+        throw new Error("Failed to create wine box");
       }
+
+      const wineBox = await wineBoxResponse.json();
+
+      // Then add the wine items
+      const wineItemsResponse = await fetch(`/api/admin/wine-boxes/${wineBox.id}/items`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          wineItems: selectedWines,
+        }),
+      });
+
+      if (!wineItemsResponse.ok) {
+        throw new Error("Failed to add wines to box");
+      }
+
+      onClose();
+      setFormData({
+        name: "",
+        description: "",
+        handle: "",
+        margin_percentage: "",
+        image_url: "",
+      });
+      setSelectedWines([]);
+      // Refresh the page to show the new wine box
+      window.location.reload();
     } catch (error) {
       console.error("Error creating wine box:", error);
+      alert("Failed to create wine box. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -81,12 +110,12 @@ export function CreateWineBoxDialog({ isOpen, onClose }: CreateWineBoxDialogProp
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Wine Box</DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="name">Name</Label>
@@ -122,61 +151,51 @@ export function CreateWineBoxDialog({ isOpen, onClose }: CreateWineBoxDialogProp
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="price_cents">Price (SEK)</Label>
+              <Label htmlFor="margin_percentage">Margin Percentage</Label>
               <Input
-                id="price_cents"
+                id="margin_percentage"
                 type="number"
-                value={formData.price_cents}
-                onChange={(e) => handleInputChange("price_cents", e.target.value)}
-                placeholder="450"
+                step="0.01"
+                min="0"
+                max="100"
+                value={formData.margin_percentage}
+                onChange={(e) => handleInputChange("margin_percentage", e.target.value)}
+                placeholder="15.00"
                 required
               />
             </div>
             <div>
-              <Label htmlFor="bottle_count">Bottle Count</Label>
+              <Label htmlFor="image_url">Image URL</Label>
               <Input
-                id="bottle_count"
-                type="number"
-                value={formData.bottle_count}
-                onChange={(e) => handleInputChange("bottle_count", e.target.value)}
-                placeholder="3"
+                id="image_url"
+                value={formData.image_url}
+                onChange={(e) => handleInputChange("image_url", e.target.value)}
+                placeholder="https://images.unsplash.com/..."
                 required
               />
-            </div>
-            <div>
-              <Label htmlFor="box_type">Box Type</Label>
-              <Select value={formData.box_type} onValueChange={(value) => handleInputChange("box_type", value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="organic">Organic</SelectItem>
-                  <SelectItem value="light-reds">Light Reds</SelectItem>
-                  <SelectItem value="pet-nat">Pet-Nat</SelectItem>
-                  <SelectItem value="premium-mixed">Premium Mixed</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
 
           <div>
-            <Label htmlFor="image_url">Image URL</Label>
-            <Input
-              id="image_url"
-              value={formData.image_url}
-              onChange={(e) => handleInputChange("image_url", e.target.value)}
-              placeholder="https://images.unsplash.com/..."
-              required
+            <Label>Select Wines</Label>
+            <WineSelector
+              selectedWines={selectedWines}
+              onWinesChange={setSelectedWines}
             />
+            {selectedWines.length > 0 && (
+              <div className="mt-2 text-sm text-muted-foreground">
+                Selected {selectedWines.length} wine(s) with {selectedWines.reduce((sum, w) => sum + w.quantity, 0)} total bottles
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading || selectedWines.length === 0}>
               {loading ? "Creating..." : "Create Wine Box"}
             </Button>
           </div>

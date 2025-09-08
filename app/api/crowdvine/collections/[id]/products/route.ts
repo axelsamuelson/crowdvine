@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase-server";
+import { getAllWineBoxCalculations } from "@/lib/wine-box-calculations";
 
 export async function GET(
   request: Request,
@@ -16,72 +17,82 @@ export async function GET(
   try {
     // Handle wine boxes collection
     if (resolvedParams.id === "wine-boxes-collection") {
-      const { data: wineBoxes, error } = await sb
-        .from("wine_boxes")
-        .select("*")
-        .eq("is_active", true)
-        .order("created_at", { ascending: false })
-        .limit(limit);
-
-      if (error) throw error;
+      // Get wine box calculations
+      const calculations = await getAllWineBoxCalculations();
+      
+      if (calculations.length === 0) {
+        return NextResponse.json([]);
+      }
 
       // Convert to Shopify-compatible product format
-      const products = (wineBoxes || []).map((box: any) => ({
-        id: box.id,
-        title: box.name,
-        description: box.description,
-        handle: box.handle,
-        productType: "wine-box",
-        categoryId: "wine-boxes-collection",
-        priceRange: {
-          minVariantPrice: { 
-            amount: (box.price_cents / 100).toFixed(2), 
-            currencyCode: "SEK" 
-          },
-          maxVariantPrice: { 
-            amount: (box.price_cents / 100).toFixed(2), 
-            currencyCode: "SEK" 
-          },
-        },
-        images: [
-          {
-            url: box.image_url,
-            altText: box.name,
-          },
-        ],
-        variants: [
-          {
-            id: `${box.id}-variant`,
-            title: `${box.bottle_count} Bottles`,
-            availableForSale: true,
-            price: { 
-              amount: (box.price_cents / 100).toFixed(2), 
+      const products = calculations.map((calc) => {
+        const wineBox = calc.wines[0]; // Get wine box info from first wine (we'll need to get box name separately)
+        
+        return {
+          id: calc.wineBoxId,
+          title: `Wine Box (${calc.bottleCount} bottles)`, // We'll get the actual name from the database
+          description: `Curated selection of ${calc.bottleCount} wines with ${calc.discountPercentage}% discount`,
+          handle: `wine-box-${calc.wineBoxId}`,
+          productType: "wine-box",
+          categoryId: "wine-boxes-collection",
+          priceRange: {
+            minVariantPrice: { 
+              amount: calc.finalPrice.toFixed(2), 
               currencyCode: "SEK" 
             },
-            selectedOptions: [
-              { name: "Size", value: `${box.bottle_count} Bottles` },
-              { name: "Type", value: box.box_type },
-            ],
+            maxVariantPrice: { 
+              amount: calc.finalPrice.toFixed(2), 
+              currencyCode: "SEK" 
+            },
           },
-        ],
-        options: [
-          {
-            id: "size",
-            name: "Size",
-            values: [`${box.bottle_count} Bottles`],
+          images: [
+            {
+              url: "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
+              altText: "Wine Box",
+            },
+          ],
+          variants: [
+            {
+              id: `${calc.wineBoxId}-variant`,
+              title: `${calc.bottleCount} Bottles`,
+              availableForSale: true,
+              price: { 
+                amount: calc.finalPrice.toFixed(2), 
+                currencyCode: "SEK" 
+              },
+              selectedOptions: [
+                { name: "Size", value: `${calc.bottleCount} Bottles` },
+                { name: "Discount", value: `${calc.discountPercentage}% off` },
+              ],
+            },
+          ],
+          options: [
+            {
+              id: "size",
+              name: "Size",
+              values: [`${calc.bottleCount} Bottles`],
+            },
+            {
+              id: "discount",
+              name: "Discount",
+              values: [`${calc.discountPercentage}% off`],
+            },
+          ],
+          tags: [`${calc.bottleCount}-bottles`, `${calc.discountPercentage}-discount`],
+          // Add custom fields for discount information
+          discountInfo: {
+            originalPrice: calc.totalWinePrice,
+            discountAmount: calc.discountAmount,
+            discountPercentage: calc.discountPercentage,
+            finalPrice: calc.finalPrice,
+            wines: calc.wines,
           },
-          {
-            id: "type",
-            name: "Type",
-            values: [box.box_type],
-          },
-        ],
-        tags: [box.box_type, `${box.bottle_count}-bottles`],
-        updatedAt: box.updated_at,
-        createdAt: box.created_at,
-      }));
+          updatedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+        };
+      });
 
-      return NextResponse.json(products);
+      return NextResponse.json(products.slice(0, limit));
     }
 
     // Get wines for the specific producer/collection

@@ -9,24 +9,16 @@ export const metadata: Metadata = {
 
 export default async function WineBoxesAdminPage() {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="base-grid py-sides">
-        <div className="col-span-12">
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className="text-4xl font-bold tracking-tight text-foreground mb-2">
-                Wine Boxes
-              </h1>
-              <p className="text-lg text-muted-foreground">
-                Manage curated wine packages and collections
-              </p>
-            </div>
-            <CreateWineBoxButton />
-          </div>
-
-          <WineBoxesList />
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Wine Boxes</h1>
+          <p className="text-gray-600">Manage curated wine packages</p>
         </div>
+        <CreateWineBoxButton />
       </div>
+
+      <WineBoxesList />
     </div>
   );
 }
