@@ -68,10 +68,10 @@ export async function GET(
               amount: calc.finalPrice.toFixed(2), 
               currencyCode: "SEK" 
             },
-            selectedOptions: [
-              { name: "Size", value: `${calc.bottleCount} Bottles` },
-              { name: "Discount", value: `${calc.discountPercentage}% off` },
-            ],
+              selectedOptions: [
+                { name: "Size", value: `${calc.bottleCount} Bottles` },
+                { name: "Discount", value: `${Math.round(calc.discountPercentage)}% off` },
+              ],
           },
         ],
         options: [
@@ -90,8 +90,8 @@ export async function GET(
             name: "Discount",
             values: [
               {
-                id: `${calc.discountPercentage}-discount`,
-                name: `${calc.discountPercentage}% off`,
+                id: `${Math.round(calc.discountPercentage)}-discount`,
+                name: `${Math.round(calc.discountPercentage)}% off`,
               },
             ],
           },

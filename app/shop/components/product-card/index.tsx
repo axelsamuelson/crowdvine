@@ -30,7 +30,7 @@ export const ProductCard = ({ product }: { product: Product }) => {
       {isWineBox && discountInfo && (
         <div className="absolute top-2 left-2 z-10">
           <Badge className="bg-green-100 text-green-800 border-green-200">
-            {discountInfo.discountPercentage}% OFF
+            {Math.round(discountInfo.discountPercentage)}% OFF
           </Badge>
         </div>
       )}

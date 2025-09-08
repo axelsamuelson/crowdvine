@@ -60,7 +60,7 @@ export async function GET(
               },
               selectedOptions: [
                 { name: "Size", value: `${calc.bottleCount} Bottles` },
-                { name: "Discount", value: `${calc.discountPercentage}% off` },
+                { name: "Discount", value: `${Math.round(calc.discountPercentage)}% off` },
               ],
             },
           ],
@@ -73,7 +73,7 @@ export async function GET(
             {
               id: "discount",
               name: "Discount",
-              values: [`${calc.discountPercentage}% off`],
+              values: [`${Math.round(calc.discountPercentage)}% off`],
             },
           ],
           tags: [`${calc.bottleCount}-bottles`, `${calc.discountPercentage}-discount`],

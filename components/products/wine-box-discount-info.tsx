@@ -23,7 +23,7 @@ export function WineBoxDiscountInfo({ product }: WineBoxDiscountInfoProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Badge variant="secondary" className="bg-green-100 text-green-800">
-            {discountInfo.discountPercentage}% OFF
+            {Math.round(discountInfo.discountPercentage)}% OFF
           </Badge>
           Discount Details
         </CardTitle>
