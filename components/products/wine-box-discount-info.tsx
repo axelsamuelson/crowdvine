@@ -31,9 +31,9 @@ export function WineBoxDiscountInfo({ product }: WineBoxDiscountInfoProps) {
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <span className="text-muted-foreground">Original Price:</span>
+            <span className="text-muted-foreground">Individual Price:</span>
             <div className="font-semibold">
-              {formatPrice(discountInfo.originalPrice.toFixed(2), "SEK")}
+              {formatPrice(discountInfo.totalWinePrice.toFixed(2), "SEK")}
             </div>
           </div>
           <div>
@@ -49,7 +49,7 @@ export function WineBoxDiscountInfo({ product }: WineBoxDiscountInfoProps) {
           <div className="mt-2 space-y-1">
             {wines.map((wine: any, index: number) => (
               <div key={index} className="text-sm">
-                • {wine.wine_name} {wine.vintage} - {formatPrice((wine.base_price_cents / 100).toFixed(2), "SEK")}
+                • {wine.wine_name} {wine.vintage} - {formatPrice(wine.price.toFixed(2), "SEK")}
               </div>
             ))}
           </div>

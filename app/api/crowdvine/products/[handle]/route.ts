@@ -107,7 +107,7 @@ export async function GET(
         createdAt: new Date().toISOString(),
         // Add custom fields for discount information
         discountInfo: {
-          originalPrice: calc.totalWinePrice,
+          totalWinePrice: calc.totalWinePrice,
           discountAmount: calc.discountAmount,
           discountPercentage: calc.discountPercentage,
           finalPrice: calc.finalPrice,

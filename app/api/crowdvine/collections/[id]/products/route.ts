@@ -79,7 +79,7 @@ export async function GET(
           tags: [`${calc.bottleCount}-bottles`, `${calc.discountPercentage}-discount`],
           // Add custom fields for discount information
           discountInfo: {
-            originalPrice: calc.totalWinePrice,
+            totalWinePrice: calc.totalWinePrice,
             discountAmount: calc.discountAmount,
             discountPercentage: calc.discountPercentage,
             finalPrice: calc.finalPrice,
