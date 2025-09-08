@@ -25,38 +25,60 @@ export interface CreateWineImageData {
 export async function getWineImages(wineId: string): Promise<WineImage[]> {
   const sb = await supabaseServer();
 
-  const { data: images, error } = await sb
-    .from("wine_images")
-    .select("*")
-    .eq("wine_id", wineId)
-    .order("sort_order", { ascending: true });
+  try {
+    const { data: images, error } = await sb
+      .from("wine_images")
+      .select("*")
+      .eq("wine_id", wineId)
+      .order("sort_order", { ascending: true });
 
-  if (error) throw new Error(error.message);
-  return images || [];
+    if (error) {
+      // If table doesn't exist, return empty array
+      if (error.code === 'PGRST205' || error.message.includes('wine_images')) {
+        console.warn("wine_images table not found, returning empty array");
+        return [];
+      }
+      throw new Error(error.message);
+    }
+    return images || [];
+  } catch (error) {
+    console.warn("Error fetching wine images:", error);
+    return [];
+  }
 }
 
 export async function createWineImage(data: CreateWineImageData): Promise<WineImage> {
   const sb = await supabaseServer();
 
-  // If this is set as primary, unset other primary images for this wine
-  if (data.is_primary) {
-    await sb
+  try {
+    // If this is set as primary, unset other primary images for this wine
+    if (data.is_primary) {
+      await sb
+        .from("wine_images")
+        .update({ is_primary: false })
+        .eq("wine_id", data.wine_id);
+    }
+
+    const { data: image, error } = await sb
       .from("wine_images")
-      .update({ is_primary: false })
-      .eq("wine_id", data.wine_id);
+      .insert(data)
+      .select("*")
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST205' || error.message.includes('wine_images')) {
+        throw new Error("wine_images table not found. Please create the table first.");
+      }
+      throw new Error(error.message);
+    }
+
+    revalidatePath(`/admin/wines/${data.wine_id}`);
+    revalidatePath(`/product/${data.wine_id}`);
+    return image;
+  } catch (error) {
+    console.error("Error creating wine image:", error);
+    throw error;
   }
-
-  const { data: image, error } = await sb
-    .from("wine_images")
-    .insert(data)
-    .select("*")
-    .single();
-
-  if (error) throw new Error(error.message);
-
-  revalidatePath(`/admin/wines/${data.wine_id}`);
-  revalidatePath(`/product/${data.wine_id}`);
-  return image;
 }
 
 export async function updateWineImage(id: string, data: Partial<CreateWineImageData>): Promise<WineImage> {
