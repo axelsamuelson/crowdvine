@@ -33,13 +33,13 @@ export function WineBoxDiscountInfo({ product }: WineBoxDiscountInfoProps) {
           <div>
             <span className="text-muted-foreground">Individual Price:</span>
             <div className="font-semibold">
-              {formatPrice(discountInfo.totalWinePrice.toFixed(2), "SEK")}
+              {formatPrice(Math.round(discountInfo.totalWinePrice).toString(), "SEK")}
             </div>
           </div>
           <div>
             <span className="text-muted-foreground">You Save:</span>
             <div className="font-semibold text-green-600">
-              {formatPrice(discountInfo.discountAmount.toFixed(2), "SEK")}
+              {formatPrice(Math.round(discountInfo.discountAmount).toString(), "SEK")}
             </div>
           </div>
         </div>

@@ -45,7 +45,8 @@ export async function calculateWineBoxPrice(wineBoxId: string): Promise<WineBoxC
             vintage,
             cost_amount,
             exchange_rate,
-            alcohol_tax_cents
+            alcohol_tax_cents,
+            base_price_cents
           )
         )
       `)
@@ -95,19 +96,14 @@ export async function calculateWineBoxPrice(wineBoxId: string): Promise<WineBoxC
     const marginAmount = totalWinePrice * (wineBoxData.margin_percentage / 100);
     const finalPrice = totalWinePrice + marginAmount;
 
-    // Calculate discount compared to individual wine prices (with individual margins)
-    // Individual wines have their own margin, so we need to calculate what they would cost individually
+    // Calculate discount compared to individual wine prices
+    // Use base_price_cents which already includes individual wine margins
     let totalIndividualWinePrice = 0;
     for (const item of wineBoxData.wine_box_items) {
       const wine = item.wines;
       
-      // Calculate individual wine cost in SEK
-      const costInSek = wine.cost_amount * (wine.exchange_rate || 1.0);
-      const winePriceWithTax = costInSek + (wine.alcohol_tax_cents || 0) / 100;
-      
-      // Apply individual wine margin (assuming 30% margin for individual wines)
-      const individualWineMargin = 0.30; // 30% margin for individual wines
-      const individualWinePrice = winePriceWithTax * (1 + individualWineMargin);
+      // Use base_price_cents which is the individual wine price (already includes margin)
+      const individualWinePrice = wine.base_price_cents / 100; // Convert to SEK
       
       totalIndividualWinePrice += individualWinePrice * item.quantity;
     }
