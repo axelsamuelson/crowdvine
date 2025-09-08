@@ -30,6 +30,9 @@ export interface Wine {
   price_includes_vat: boolean;
   margin_percentage: number;
   calculated_price_cents: number;
+  // Description fields
+  description?: string;
+  description_html?: string;
 }
 
 export interface CreateWineData {
@@ -52,6 +55,9 @@ export interface CreateWineData {
   alcohol_tax_cents: number;
   price_includes_vat: boolean;
   margin_percentage: number;
+  // Description fields
+  description?: string;
+  description_html?: string;
 }
 
 export async function getWines() {
@@ -82,6 +88,8 @@ export async function getWines() {
       price_includes_vat,
       margin_percentage,
       calculated_price_cents,
+      description,
+      description_html,
       created_at,
       updated_at
     `,
@@ -137,6 +145,8 @@ export async function getWine(id: string) {
       price_includes_vat,
       margin_percentage,
       calculated_price_cents,
+      description,
+      description_html,
       created_at,
       updated_at
     `,

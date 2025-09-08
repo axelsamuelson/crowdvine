@@ -27,7 +27,9 @@ export async function GET(request: Request) {
         handle,
         base_price_cents,
         label_image_path,
-        producer_id
+        producer_id,
+        description,
+        description_html
       `,
       )
       .limit(limit);
@@ -105,10 +107,10 @@ export async function GET(request: Request) {
     };
 
     // Use custom description or generate default one
-    const wineDescription = 
+    const wineDescription = i.description || 
       `This exceptional ${i.color || 'wine'} wine from ${i.vintage} showcases the unique characteristics of ${i.grape_varieties || 'carefully selected grapes'}. Crafted with precision and passion, this wine offers a perfect balance of flavors and aromas that will delight your palate.`;
     
-    const wineDescriptionHtml = `<p>${wineDescription}</p>`;
+    const wineDescriptionHtml = i.description_html || `<p>${wineDescription}</p>`;
 
     return {
       id: i.id,
