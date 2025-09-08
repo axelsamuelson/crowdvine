@@ -209,9 +209,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     CartAction
   >(cart, cartReducer);
 
+  // Initialize with empty cart to prevent undefined context
+  const [isInitialized, setIsInitialized] = useState(false);
+
   useEffect(() => {
     CartActions.getCart().then((cart) => {
       if (cart) setCart(cart);
+      setIsInitialized(true);
+    }).catch(() => {
+      // If cart fetch fails, still mark as initialized with empty cart
+      setIsInitialized(true);
     });
   }, []);
 
@@ -256,13 +263,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<UseCartReturn>(
     () => ({
-      cart: optimisticCart,
+      cart: optimisticCart || createEmptyCart(),
       addItem: add,
       updateItem: update,
       isPending,
     }),
     [optimisticCart, add, update, isPending],
   );
+
+  // Don't render children until cart is initialized
+  if (!isInitialized) {
+    return <div>Loading cart...</div>;
+  }
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
