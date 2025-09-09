@@ -57,23 +57,24 @@ export default function AccessRequestPage() {
   };
 
   return (
-    <div className="p-inset h-[100dvh] w-full">
-      <div className="relative h-full w-full">
-        <Background 
-          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/alt-g7Cv2QzqL3k6ey3igjNYkM32d8Fld7.mp4" 
-          placeholder="/alt-placeholder.png" 
-        />
-        <div className="flex overflow-hidden relative flex-col gap-4 justify-center items-center w-full h-full max-w-4xl z-10">
-        <motion.div
-          layout="position"
-          transition={{ duration: DURATION, ease: EASE_OUT }}
-        >
-          <h1 className="font-serif text-5xl italic sm:text-8xl lg:text-9xl text-white text-center">
-            CrowdVine®
-          </h1>
-        </motion.div>
+    <>
+      <div className="p-inset h-[100dvh] w-full">
+        <div className="relative h-full w-full">
+          <Background 
+            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/alt-g7Cv2QzqL3k6ey3igjNYkM32d8Fld7.mp4" 
+            placeholder="/alt-placeholder.png" 
+          />
+          <div className="flex overflow-hidden relative flex-col gap-4 justify-center items-center w-full h-full max-w-4xl z-10">
+            <motion.div
+              layout="position"
+              transition={{ duration: DURATION, ease: EASE_OUT }}
+            >
+              <h1 className="font-serif text-5xl italic sm:text-8xl lg:text-9xl text-white text-center">
+                CrowdVine®
+              </h1>
+            </motion.div>
 
-        <div className="flex flex-col items-center min-h-0 shrink">
+            <div className="flex flex-col items-center min-h-0 shrink">
           <AnimatePresence mode="popLayout" propagate>
             {!isOpen && (
               <motion.div
@@ -278,8 +279,9 @@ export default function AccessRequestPage() {
               </motion.div>
             )}
           </AnimatePresence>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
