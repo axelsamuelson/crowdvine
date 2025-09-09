@@ -193,6 +193,7 @@ export default function AccessRequestPage() {
               <Button
                 className={cn("relative px-8")}
                 onClick={() => setIsOpen(!isOpen)}
+                shine={!isOpen}
               >
                 <motion.span
                   animate={{ x: isOpen ? -16 : 0 }}
