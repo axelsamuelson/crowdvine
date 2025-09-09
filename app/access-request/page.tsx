@@ -279,6 +279,7 @@ export default function AccessRequestPage() {
               </motion.div>
             )}
           </AnimatePresence>
+            </div>
           </div>
         </div>
       </div>
