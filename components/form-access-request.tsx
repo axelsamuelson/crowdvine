@@ -140,24 +140,7 @@ export const FormAccessRequest = ({
           name="input"
           render={({ field }) => (
             <FormItem className="space-y-0">
-              <FormMessage>
-                {(error) => (
-                  <motion.div
-                    key={error}
-                    className={cn(
-                      alertVariants({ variant: "destructive" }),
-                      "absolute top-0 left-0 right-0 mx-auto w-max"
-                    )}
-                    initial={{ opacity: 0, y: 10, scale: 0.8 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.8 }}
-                    transition={SPRING}
-                  >
-                    <CrossCircledIcon />
-                    <AlertTitle>{error}</AlertTitle>
-                  </motion.div>
-                )}
-              </FormMessage>
+              <FormMessage />
               <FormControl>
                 <div className="relative">
                   {input({ ...field })}
