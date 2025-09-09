@@ -68,6 +68,7 @@
   --top-spacing: 5rem;
   --height-fold: 100vh;
   --height-fold: 100svh;
+  --inset: min(2vw, 1.5rem);
 
   @screen md {
     --sides: 1.5rem;

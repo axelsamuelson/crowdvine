@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { ArrowRightIcon, Cross1Icon, LockClosedIcon, LockOpen1Icon } from "@radix-ui/react-icons";
 import { inputVariants } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
+import { Background } from "@/components/background";
 
 const DURATION = 0.3;
 const DELAY = DURATION;
@@ -56,8 +57,13 @@ export default function AccessRequestPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
-      <div className="flex overflow-hidden relative flex-col gap-4 justify-center items-center w-full h-full max-w-4xl">
+    <main className="p-inset h-[100dvh] w-full">
+      <div className="relative h-full w-full">
+        <Background 
+          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/alt-g7Cv2QzqL3k6ey3igjNYkM32d8Fld7.mp4" 
+          placeholder="/alt-placeholder.png" 
+        />
+        <div className="flex overflow-hidden relative flex-col gap-4 justify-center items-center w-full h-full max-w-4xl z-10">
         <motion.div
           layout="position"
           transition={{ duration: DURATION, ease: EASE_OUT }}

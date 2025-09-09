@@ -81,6 +81,7 @@ const config = {
         "modal-sides": "var(--modal-sides)",
         "top-spacing": "var(--top-spacing)",
         fold: "var(--height-fold)",
+        inset: "var(--inset)",
       },
       fontSize: {
         xs: ["0.75rem", { lineHeight: "1.2", letterSpacing: "-0.015em" }],
