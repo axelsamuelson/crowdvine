@@ -68,6 +68,12 @@ export default async function AdminLayout({
               >
                 Wine Boxes
               </Link>
+              <Link
+                href="/admin/access-control"
+                className="text-gray-700 hover:text-gray-900"
+              >
+                Access Control
+              </Link>
             </nav>
 
             <div className="flex items-center space-x-4">
