@@ -81,6 +81,7 @@ const VideoWithPlaceholder = ({
       <video
         ref={videoRef}
         src={src}
+        autoPlay
         muted
         playsInline
         loop
