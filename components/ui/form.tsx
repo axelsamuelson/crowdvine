@@ -167,6 +167,20 @@ const FormMessage = React.forwardRef<
 });
 FormMessage.displayName = "FormMessage";
 
+export const FormStateMessage = ({
+  children,
+}: {
+  children: React.ReactNode
+}) => {
+  const { formState } = useFormContext()
+
+  if (Object.keys(formState.errors).length > 0) {
+    return null
+  }
+
+  return children
+}
+
 export {
   useFormField,
   Form,
@@ -176,4 +190,5 @@ export {
   FormDescription,
   FormMessage,
   FormField,
+  FormStateMessage,
 };
