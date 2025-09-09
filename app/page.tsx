@@ -11,7 +11,13 @@ import { getLabelPosition } from "../lib/utils";
 import { Product } from "../lib/shopify/types";
 
 export default async function Home() {
-  const collections = await getCollections();
+  let collections = [];
+  try {
+    collections = await getCollections();
+  } catch (error) {
+    console.warn('Failed to fetch collections in home page:', error);
+    collections = [];
+  }
 
   let featuredProducts: Product[] = [];
 

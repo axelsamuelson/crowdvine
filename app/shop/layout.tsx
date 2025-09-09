@@ -13,7 +13,13 @@ export default async function ShopLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const collections = await getCollections();
+  let collections = [];
+  try {
+    collections = await getCollections();
+  } catch (error) {
+    console.warn('Failed to fetch collections in shop layout:', error);
+    collections = [];
+  }
 
   return (
     <PageLayout>

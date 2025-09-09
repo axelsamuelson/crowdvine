@@ -4,7 +4,13 @@ import { SidebarLinks } from "./sidebar/product-sidebar-links";
 import { getCollections } from "@/lib/shopify";
 
 export async function Footer() {
-  const collections = await getCollections();
+  let collections = [];
+  try {
+    collections = await getCollections();
+  } catch (error) {
+    console.warn('Failed to fetch collections in footer:', error);
+    collections = [];
+  }
 
   return (
     <footer className="p-sides">
