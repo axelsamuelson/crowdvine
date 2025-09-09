@@ -20,16 +20,20 @@ CREATE INDEX IF NOT EXISTS profiles_producer_id_idx ON profiles(producer_id);
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for profiles
-CREATE POLICY IF NOT EXISTS "Allow all operations for admin" ON profiles
+DROP POLICY IF EXISTS "Allow all operations for admin" ON profiles;
+CREATE POLICY "Allow all operations for admin" ON profiles
     FOR ALL USING (role = 'admin');
 
-CREATE POLICY IF NOT EXISTS "Users can read own profile" ON profiles
+DROP POLICY IF EXISTS "Users can read own profile" ON profiles;
+CREATE POLICY "Users can read own profile" ON profiles
     FOR SELECT USING (auth.uid() = id);
 
-CREATE POLICY IF NOT EXISTS "Users can update own profile" ON profiles
+DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
+CREATE POLICY "Users can update own profile" ON profiles
     FOR UPDATE USING (auth.uid() = id);
 
-CREATE POLICY IF NOT EXISTS "Allow public to insert profiles" ON profiles
+DROP POLICY IF EXISTS "Allow public to insert profiles" ON profiles;
+CREATE POLICY "Allow public to insert profiles" ON profiles
     FOR INSERT WITH CHECK (true);
 
 -- Create a function to automatically create a profile when a user signs up
