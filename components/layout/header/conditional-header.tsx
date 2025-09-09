@@ -11,8 +11,9 @@ interface ConditionalHeaderProps {
 export function ConditionalHeader({ collections }: ConditionalHeaderProps) {
   const pathname = usePathname();
   const isAdminRoute = pathname.startsWith("/admin");
+  const isAccessRequestRoute = pathname === "/access-request";
 
-  if (isAdminRoute) {
+  if (isAdminRoute || isAccessRequestRoute) {
     return null;
   }
 
