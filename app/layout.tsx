@@ -52,13 +52,8 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  let collections = [];
-  try {
-    collections = await getCollections();
-  } catch (error) {
-    console.warn('Failed to fetch collections:', error);
-    collections = [];
-  }
+  // Temporarily disable collections fetching to prevent blocking
+  const collections = [];
 
   return (
     <html lang="en">
