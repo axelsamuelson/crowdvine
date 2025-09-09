@@ -55,7 +55,7 @@ CREATE POLICY "Allow admins to manage access requests" ON access_requests
     FOR ALL USING (
         EXISTS (
             SELECT 1 FROM profiles 
-            WHERE profiles.user_id = auth.uid() 
+            WHERE profiles.id = auth.uid() 
             AND profiles.role = 'admin'
         )
     );
@@ -71,7 +71,7 @@ CREATE POLICY "Allow admins to manage invitation codes" ON invitation_codes
     FOR ALL USING (
         EXISTS (
             SELECT 1 FROM profiles 
-            WHERE profiles.user_id = auth.uid() 
+            WHERE profiles.id = auth.uid() 
             AND profiles.role = 'admin'
         )
     );
@@ -84,7 +84,7 @@ CREATE POLICY "Allow admins to manage user access" ON user_access
     FOR ALL USING (
         EXISTS (
             SELECT 1 FROM profiles 
-            WHERE profiles.user_id = auth.uid() 
+            WHERE profiles.id = auth.uid() 
             AND profiles.role = 'admin'
         )
     );
