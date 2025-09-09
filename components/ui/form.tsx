@@ -167,7 +167,7 @@ const FormMessage = React.forwardRef<
 });
 FormMessage.displayName = "FormMessage";
 
-export const FormStateMessage = ({
+const FormStateMessage = ({
   children,
 }: {
   children: React.ReactNode
