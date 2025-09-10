@@ -1,26 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { getCurrentUser } from "@/lib/auth";
 
 export async function GET() {
   try {
+    // Check if user is authenticated
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const supabase = getSupabaseAdmin();
 
-    // Temporarily skip auth check for development
-    // TODO: Re-enable proper auth check when admin auth is implemented
-    // const { data: { user }, error: authError } = await supabase.auth.getUser();
-    // if (authError || !user) {
-    //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    // }
+    // Check if user has admin role
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
 
-    // const { data: profile } = await supabase
-    //   .from('profiles')
-    //   .select('role')
-    //   .eq('id', user.id)
-    //   .single();
-
-    // if (!profile || profile.role !== 'admin') {
-    //   return NextResponse.json({ error: "Admin access required" }, { status: 403 });
-    // }
+    if (!profile || profile.role !== 'admin') {
+      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+    }
 
     // Fetch all users with their profiles
     const { data: users, error } = await supabase
@@ -54,10 +55,24 @@ export async function PATCH(request: NextRequest) {
   try {
     const { userId, updates } = await request.json();
 
+    // Check if user is authenticated
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const supabase = getSupabaseAdmin();
 
-    // Temporarily skip auth check for development
-    // TODO: Re-enable proper auth check when admin auth is implemented
+    // Check if user has admin role
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile || profile.role !== 'admin') {
+      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+    }
 
     // Update user profile
     const { data, error } = await supabase
@@ -84,10 +99,24 @@ export async function DELETE(request: NextRequest) {
   try {
     const { userId } = await request.json();
 
+    // Check if user is authenticated
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const supabase = getSupabaseAdmin();
 
-    // Temporarily skip auth check for development
-    // TODO: Re-enable proper auth check when admin auth is implemented
+    // Check if user has admin role
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile || profile.role !== 'admin') {
+      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+    }
 
     // Delete user profile (this will cascade to related records)
     const { error } = await supabase

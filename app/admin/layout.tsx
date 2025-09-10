@@ -8,15 +8,26 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Temporärt inaktivera auth-check för att komma åt admin
-  // const user = await getCurrentUser();
+  // Get the current authenticated user
+  const user = await getCurrentUser();
 
-  // if (!user || user.role !== "admin") {
-  //   redirect("/admin-auth/login");
-  // }
+  if (!user) {
+    redirect("/admin-auth/login");
+  }
 
-  // Mock user för tillfället
-  const user = { email: "admin@crowdvine.com", role: "admin" };
+  // Get user profile to check role
+  const { getSupabaseAdmin } = await import("@/lib/supabase-admin");
+  const supabase = getSupabaseAdmin();
+  
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, email')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile || profile.role !== "admin") {
+    redirect("/admin-auth/login");
+  }
 
   async function handleSignOut() {
     "use server";
@@ -25,7 +36,7 @@ export default async function AdminLayout({
   }
 
   return (
-    <AdminLayoutClient userEmail={user.email} onSignOut={handleSignOut}>
+    <AdminLayoutClient userEmail={profile.email || user.email || "Unknown"} onSignOut={handleSignOut}>
       {children}
     </AdminLayoutClient>
   );
