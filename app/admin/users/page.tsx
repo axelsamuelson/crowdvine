@@ -7,10 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { CheckCircle, XCircle, Clock, Search, Edit, Trash2, UserPlus, Shield, Mail } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Search, Edit, Trash2, UserPlus, Shield, Mail, Key } from "lucide-react";
 import { toast } from "sonner";
 
 interface User {
@@ -24,6 +25,11 @@ interface User {
   updated_at: string;
 }
 
+interface EditForm {
+  role: string;
+  hasAccess: boolean;
+}
+
 export default function UsersAdmin() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,8 +37,9 @@ export default function UsersAdmin() {
   const [roleFilter, setRoleFilter] = useState("all");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editForm, setEditForm] = useState({
+  const [editForm, setEditForm] = useState<EditForm>({
     role: "",
+    hasAccess: false,
   });
 
   useEffect(() => {
@@ -55,14 +62,25 @@ export default function UsersAdmin() {
     }
   };
 
-  const updateUser = async (userId: string, updates: Partial<User>) => {
+  const updateUser = async (userId: string, updates: EditForm) => {
     try {
+      // Handle access_granted_at based on hasAccess toggle
+      const updateData: Partial<User> = {
+        role: updates.role,
+      };
+      
+      if (updates.hasAccess) {
+        updateData.access_granted_at = new Date().toISOString();
+      } else {
+        updateData.access_granted_at = null;
+      }
+
       const response = await fetch('/api/admin/users', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ userId, updates }),
+        body: JSON.stringify({ userId, updates: updateData }),
       });
 
       if (!response.ok) {
@@ -104,6 +122,7 @@ export default function UsersAdmin() {
     setSelectedUser(user);
     setEditForm({
       role: user.role,
+      hasAccess: !!user.access_granted_at,
     });
     setIsEditDialogOpen(true);
   };
@@ -297,6 +316,25 @@ export default function UsersAdmin() {
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
+              <div className="space-y-1">
+                <Label htmlFor="access" className="text-base font-medium flex items-center">
+                  <Key className="w-4 h-4 mr-2" />
+                  Platform Access
+                </Label>
+                <p className="text-sm text-gray-600">
+                  {editForm.hasAccess 
+                    ? "User has access to the platform" 
+                    : "User needs invitation code to access platform"
+                  }
+                </p>
+              </div>
+              <Switch
+                id="access"
+                checked={editForm.hasAccess}
+                onCheckedChange={(checked) => setEditForm({ ...editForm, hasAccess: checked })}
+              />
             </div>
             <div className="flex gap-3 pt-4">
               <Button
