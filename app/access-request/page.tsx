@@ -6,9 +6,10 @@ import { AccessRequestClient } from './access-request-client';
 export default async function AccessRequestPage({ 
   searchParams 
 }: { 
-  searchParams: { next?: string } 
+  searchParams: Promise<{ next?: string }> 
 }) {
-  const next = searchParams?.next || '/';
+  const params = await searchParams;
+  const next = params?.next || '/';
   const sb = await supabaseServer();
   const { data: { user } } = await sb.auth.getUser();
 
