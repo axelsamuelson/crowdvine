@@ -69,19 +69,12 @@ export default function AccessControlAdmin() {
 
   const fetchInvitationCodes = async () => {
     try {
-      // Temporärt mock data istället för API-anrop
-      const mockData = [
-        {
-          id: '1',
-          code: '12345678901234567890',
-          email: 'test@example.com',
-          created_by: 'admin',
-          is_active: true,
-          created_at: new Date().toISOString(),
-          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-        }
-      ];
-      setInvitationCodes(mockData);
+      const response = await fetch('/api/admin/invitation-codes');
+      if (!response.ok) {
+        throw new Error('Failed to fetch invitation codes');
+      }
+      const data = await response.json();
+      setInvitationCodes(data);
     } catch (error) {
       console.error('Error fetching invitation codes:', error);
       toast.error("Failed to fetch invitation codes");
@@ -107,21 +100,31 @@ export default function AccessControlAdmin() {
 
   const createInvitationCode = async () => {
     try {
-      // Temporärt mock - skapa nytt invitation code lokalt
-      const newCode = {
-        id: Date.now().toString(),
-        code: Math.random().toString(36).substring(2, 22).padEnd(20, '0'),
-        email: newCodeEmail || null,
-        created_by: 'admin',
-        is_active: true,
-        created_at: new Date().toISOString(),
-        expires_at: new Date(Date.now() + parseInt(newCodeExpiry) * 24 * 60 * 60 * 1000).toISOString()
-      };
-      
-      setInvitationCodes(prev => [newCode, ...prev]);
-      toast.success("Invitation code created");
-      setNewCodeEmail("");
-      setNewCodeExpiry("30");
+      const response = await fetch('/api/admin/invitation-codes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: newCodeEmail || null,
+          expiryDays: parseInt(newCodeExpiry),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create invitation code');
+      }
+
+      const result = await response.json();
+      if (result.success) {
+        toast.success("Invitation code created");
+        setNewCodeEmail("");
+        setNewCodeExpiry("30");
+        // Refresh the list
+        fetchInvitationCodes();
+      } else {
+        throw new Error(result.error || 'Failed to create invitation code');
+      }
     } catch (error) {
       console.error('Error creating invitation code:', error);
       toast.error("Failed to create invitation code");
