@@ -11,6 +11,14 @@ export default function CheckoutPage() {
   const [zoneInfo, setZoneInfo] = useState<{
     pickupZone: string | null;
     deliveryZone: string | null;
+    selectedDeliveryZoneId: string | null;
+    availableDeliveryZones?: Array<{
+      id: string;
+      name: string;
+      centerLat: number;
+      centerLon: number;
+      radiusKm: number;
+    }>;
     pallets?: Array<{
       id: string;
       name: string;
@@ -20,7 +28,7 @@ export default function CheckoutPage() {
       pickupZoneName: string;
       deliveryZoneName: string;
     }>;
-  }>({ pickupZone: null, deliveryZone: null });
+  }>({ pickupZone: null, deliveryZone: null, selectedDeliveryZoneId: null });
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -102,6 +110,8 @@ export default function CheckoutPage() {
                 const newZoneInfo = {
                   pickupZone: zoneData.pickupZoneName,
                   deliveryZone: zoneData.deliveryZoneName,
+                  selectedDeliveryZoneId: zoneData.deliveryZoneId,
+                  availableDeliveryZones: zoneData.availableDeliveryZones,
                   pallets: zoneData.pallets,
                 };
                 setZoneInfo(newZoneInfo);
@@ -134,6 +144,8 @@ export default function CheckoutPage() {
                 const newZoneInfo = {
                   pickupZone: zoneData.pickupZoneName,
                   deliveryZone: null, // Don't show delivery zone yet
+                  selectedDeliveryZoneId: null,
+                  availableDeliveryZones: [],
                   pallets: zoneData.pallets,
                 };
                 setZoneInfo(newZoneInfo);
@@ -205,6 +217,25 @@ export default function CheckoutPage() {
     }
   };
 
+  const handleDeliveryZoneChange = (zoneId: string) => {
+    const selectedZone = zoneInfo.availableDeliveryZones?.find(z => z.id === zoneId);
+    if (selectedZone) {
+      setZoneInfo(prev => ({
+        ...prev,
+        selectedDeliveryZoneId: zoneId,
+        deliveryZone: selectedZone.name,
+      }));
+      
+      // Update session storage
+      const updatedZoneInfo = {
+        ...zoneInfo,
+        selectedDeliveryZoneId: zoneId,
+        deliveryZone: selectedZone.name,
+      };
+      sessionStorage.setItem("checkoutZoneInfo", JSON.stringify(updatedZoneInfo));
+    }
+  };
+
   const updateZoneInfo = async (currentFormData: typeof formData) => {
     if (!cart || cart.totalQuantity === 0) return;
 
@@ -241,6 +272,8 @@ export default function CheckoutPage() {
         const newZoneInfo = {
           pickupZone: zoneData.pickupZoneName,
           deliveryZone: hasCompleteAddress ? zoneData.deliveryZoneName : null,
+          selectedDeliveryZoneId: hasCompleteAddress ? zoneData.deliveryZoneId : null,
+          availableDeliveryZones: hasCompleteAddress ? zoneData.availableDeliveryZones : [],
           pallets: hasCompleteAddress ? zoneData.pallets : [],
         };
 
@@ -347,7 +380,7 @@ export default function CheckoutPage() {
           </div>
 
           {/* Zone Information */}
-          {(zoneInfo.pickupZone || zoneInfo.deliveryZone) && (
+          {(zoneInfo.pickupZone || zoneInfo.deliveryZone || (formData.postcode && formData.city && formData.countryCode)) && (
             <div className="border-t pt-3 mt-3">
               <h3 className="text-sm font-semibold text-gray-700 mb-2">
                 Zone Information
@@ -359,12 +392,33 @@ export default function CheckoutPage() {
                     {zoneInfo.pickupZone}
                   </div>
                 )}
-                {zoneInfo.deliveryZone && (
+                {zoneInfo.availableDeliveryZones && zoneInfo.availableDeliveryZones.length > 1 ? (
+                  <div>
+                    <span className="font-medium">Delivery Zone:</span>
+                    <select
+                      value={zoneInfo.selectedDeliveryZoneId || ""}
+                      onChange={(e) => handleDeliveryZoneChange(e.target.value)}
+                      className="ml-2 px-2 py-1 border border-gray-300 rounded text-sm"
+                    >
+                      <option value="">Select delivery zone</option>
+                      {zoneInfo.availableDeliveryZones.map((zone) => (
+                        <option key={zone.id} value={zone.id}>
+                          {zone.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : zoneInfo.deliveryZone ? (
                   <div>
                     <span className="font-medium">Delivery Zone:</span>{" "}
                     {zoneInfo.deliveryZone}
                   </div>
-                )}
+                ) : formData.postcode && formData.city && formData.countryCode ? (
+                  <div className="text-red-600">
+                    <span className="font-medium">Delivery Zone:</span>{" "}
+                    No matching zone found
+                  </div>
+                ) : null}
               </div>
             </div>
           )}
@@ -404,6 +458,11 @@ export default function CheckoutPage() {
       </section>
 
       <form action="/api/checkout/confirm" method="post" className="space-y-6">
+        {/* Hidden field for selected delivery zone */}
+        {zoneInfo.selectedDeliveryZoneId && (
+          <input type="hidden" name="selectedDeliveryZoneId" value={zoneInfo.selectedDeliveryZoneId} />
+        )}
+        
         {/* Customer Details */}
         <section>
           <h2 className="text-lg font-semibold mb-4">Customer Details</h2>
@@ -591,7 +650,15 @@ export default function CheckoutPage() {
         <div className="pt-6">
           <button
             type="submit"
-            onClick={() => {
+            onClick={(e) => {
+              // Check if delivery zone is available
+              const hasCompleteAddress = formData.postcode && formData.city && formData.countryCode;
+              if (hasCompleteAddress && !zoneInfo.selectedDeliveryZoneId) {
+                e.preventDefault();
+                alert("No delivery zone matches your address. Please contact support or try a different address.");
+                return;
+              }
+              
               // Clear form data and zone info from session storage when placing reservation
               sessionStorage.removeItem("checkoutFormData");
               sessionStorage.removeItem("checkoutZoneInfo");

@@ -12,6 +12,8 @@ import { motion } from "framer-motion";
 
 const accessRequestSchema = z.object({
   input: z.string().min(1, "Please enter an email or invitation code"),
+  email: z.string().email().optional(),
+  password: z.string().min(6).optional(),
 });
 
 type AccessRequestSchema = z.infer<typeof accessRequestSchema>;
@@ -103,12 +105,27 @@ export const FormAccessRequest = ({
   async function onSubmit(values: AccessRequestSchema) {
     const input = values.input.trim();
     
-    // Check if input looks like an invitation code (20 digits)
-    const isInvitationCode = /^\d{20}$/.test(input);
+    console.log('Input received:', input);
+    console.log('Input length:', input.length);
+    
+    // Check if input looks like an invitation code (20 characters, no @ symbol)
+    const isInvitationCode = input.length === 20 && !input.includes('@');
+    console.log('Is invitation code:', isInvitationCode);
     
     if (isInvitationCode) {
-      // Handle invitation code
-      const state = await validateInvitationCode(input);
+      console.log('Processing as invitation code');
+      
+      // For invitation codes, prompt for email and password
+      const email = prompt('Please enter your email address:');
+      const password = prompt('Please enter a password (min 6 characters):');
+      
+      if (!email || !password || password.length < 6) {
+        form.setError("input", { message: "Email and password are required for invitation codes" });
+        return;
+      }
+      
+      // Handle invitation code with email and password
+      const state = await validateInvitationCodeWithCredentials(input, email, password);
       setSubmissionState(state);
       
       if (state.success === true) {
@@ -118,6 +135,7 @@ export const FormAccessRequest = ({
         form.setError("input", { message: state.message || "Invalid invitation code" });
       }
     } else {
+      console.log('Processing as email');
       // Handle email access request
       const state = await requestAccess(input);
       setSubmissionState(state);
@@ -161,18 +179,16 @@ export const FormAccessRequest = ({
 };
 
 // API functions
-async function validateInvitationCode(code: string): Promise<ActionResult<string>> {
+async function validateInvitationCodeWithCredentials(code: string, email: string, password: string): Promise<ActionResult<string>> {
   try {
-    const response = await fetch('/api/invitation-codes/validate', {
+    const response = await fetch('/api/invite/redeem', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ code }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, code }),
     });
-
-    const data = await response.json();
-
+    
+    const result = await response.json();
+    
     if (response.ok) {
       return {
         success: true,
@@ -182,7 +198,43 @@ async function validateInvitationCode(code: string): Promise<ActionResult<string
     } else {
       return {
         success: false,
-        message: data.error || "Invalid invitation code",
+        message: result.error || "Invalid invitation code",
+        id: Date.now().toString(),
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: "Network error. Please try again.",
+      id: Date.now().toString(),
+    };
+  }
+}
+
+async function validateInvitationCode(code: string): Promise<ActionResult<string>> {
+  try {
+    const response = await fetch('/api/invite/redeem', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        email: 'temp@example.com', // Will be replaced by actual email
+        password: 'temp123', // Will be replaced by actual password
+        code 
+      }),
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok) {
+      return {
+        success: true,
+        data: "Platform unlocked! Welcome to CrowdVine.",
+        id: Date.now().toString(),
+      };
+    } else {
+      return {
+        success: false,
+        message: result.error || "Invalid invitation code",
         id: Date.now().toString(),
       };
     }
@@ -199,24 +251,22 @@ async function requestAccess(email: string): Promise<ActionResult<string>> {
   try {
     const response = await fetch('/api/access-request', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
     });
-
-    const data = await response.json();
-
+    
+    const result = await response.json();
+    
     if (response.ok) {
       return {
         success: true,
-        data: "Access request submitted! We'll review your application soon.",
+        data: result.message || "Access request submitted! We'll review your application soon.",
         id: Date.now().toString(),
       };
     } else {
       return {
         success: false,
-        message: data.error || "Failed to submit request",
+        message: result.error || "Failed to submit request",
         id: Date.now().toString(),
       };
     }

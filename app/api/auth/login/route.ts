@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase-server";
+import { ensureAccessCookie } from "@/lib/access";
 
 export async function POST(request: Request) {
   try {
@@ -33,6 +34,18 @@ export async function POST(request: Request) {
       );
     }
 
+    // Check if user has access and set cookie if they do
+    const sb = await supabaseServer();
+    const { data: prof } = await sb
+      .from('profiles')
+      .select('access_granted_at')
+      .eq('id', authData.user.id)
+      .single();
+      
+    if (prof?.access_granted_at) {
+      ensureAccessCookie();
+    }
+
     return NextResponse.json({
       message: "Login successful",
       user: {
@@ -40,6 +53,7 @@ export async function POST(request: Request) {
         email: authData.user.email,
         full_name: authData.user.user_metadata?.full_name,
       },
+      hasAccess: !!prof?.access_granted_at,
     });
   } catch (error) {
     console.error("Login error:", error);

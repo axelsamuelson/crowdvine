@@ -109,6 +109,42 @@ export async function updatePalletZone(
 export async function deletePalletZone(id: string) {
   const sb = await supabaseServer();
 
+  // Check if zone is used in any reservations before deleting
+  const { data: reservations, error: reservationsError } = await sb
+    .from("order_reservations")
+    .select("id, status, created_at")
+    .or(`pickup_zone_id.eq.${id},delivery_zone_id.eq.${id}`)
+    .limit(5); // Get up to 5 reservations for more detailed error message
+
+  if (reservationsError) {
+    throw new Error(`Failed to check zone usage: ${reservationsError.message}`);
+  }
+
+  if (reservations && reservations.length > 0) {
+    const reservationDetails = reservations.map(r => 
+      `Reservation ${r.id.substring(0, 8)}... (${r.status}, created ${new Date(r.created_at).toLocaleDateString()})`
+    ).join(', ');
+    
+    throw new Error(`Cannot delete zone: This zone is currently used in ${reservations.length} existing reservation(s): ${reservationDetails}. You must first reassign or cancel these reservations before deleting the zone.`);
+  }
+
+  // Check if zone is used in any pallets before deleting
+  const { data: pallets, error: palletsError } = await sb
+    .from("pallets")
+    .select("id, name")
+    .or(`pickup_zone_id.eq.${id},delivery_zone_id.eq.${id}`)
+    .limit(5); // Get up to 5 pallets for more detailed error message
+
+  if (palletsError) {
+    throw new Error(`Failed to check pallet usage: ${palletsError.message}`);
+  }
+
+  if (pallets && pallets.length > 0) {
+    const palletDetails = pallets.map(p => `"${p.name}" (${p.id.substring(0, 8)}...)`).join(', ');
+    
+    throw new Error(`Cannot delete zone: This zone is currently used in ${pallets.length} existing pallet(s): ${palletDetails}. You must first remove or reassign these pallets before deleting the zone.`);
+  }
+
   const { error } = await sb.from("pallet_zones").delete().eq("id", id);
 
   if (error) throw new Error(error.message);

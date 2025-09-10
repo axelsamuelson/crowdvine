@@ -1,4 +1,6 @@
-import { supabaseServer } from "@/lib/supabase-server";
+"use client";
+
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -8,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Calendar,
   Wine,
@@ -22,43 +25,51 @@ import {
   Filter,
   Download,
   MoreHorizontal,
+  Trash2,
+  Edit,
+  Eye,
 } from "lucide-react";
 
-export default async function BookingsPage() {
-  const sb = await supabaseServer();
+export default function BookingsPage() {
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [reservations, setReservations] = useState<any[]>([]);
+  const [bookingsWithReservationInfo, setBookingsWithReservationInfo] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedBookings, setSelectedBookings] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // Hämta alla bokningar med relaterad data
-  const { data: bookings } = await sb
-    .from("bookings")
-    .select(
-      `
-      id,
-      quantity,
-      band,
-      created_at,
-      wines(
-        id,
-        wine_name,
-        vintage,
-        grape_varieties,
-        color,
-        base_price_cents,
-        producers(
-          name,
-          region,
-          country_code
-        )
-      ),
-      pallets(
-        id,
-        name,
-        bottle_capacity,
-        delivery_zone:pallet_zones!delivery_zone_id(name),
-        pickup_zone:pallet_zones!pickup_zone_id(name)
-      )
-    `,
-    )
-    .order("created_at", { ascending: false });
+  useEffect(() => {
+    fetchBookings();
+  }, []);
+
+  const fetchBookings = async () => {
+    try {
+      // Fetch bookings
+      const bookingsResponse = await fetch('/api/admin/bookings');
+      const bookingsData = await bookingsResponse.json();
+      setBookings(bookingsData.bookings || []);
+      setReservations(bookingsData.reservations || []);
+
+      // Koppla bookings till reservations baserat på user_id och datum
+      const bookingsWithReservationInfo = bookingsData.bookings?.map((booking: any) => {
+        const matchingReservation = bookingsData.reservations?.find((reservation: any) => 
+          reservation.user_id === booking.user_id &&
+          Math.abs(new Date(reservation.created_at).getTime() - new Date(booking.created_at).getTime()) < 24 * 60 * 60 * 1000
+        );
+        
+        return {
+          ...booking,
+          reservation: matchingReservation
+        };
+      }) || [];
+      
+      setBookingsWithReservationInfo(bookingsWithReservationInfo);
+    } catch (error) {
+      console.error('Failed to fetch bookings:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Beräkna statistik
   const totalBookings = bookings?.length || 0;
@@ -86,15 +97,59 @@ export default async function BookingsPage() {
     return "bg-gray-100 text-gray-800";
   };
 
-  const getStatusText = (booking: any) => {
-    const daysSinceCreated = Math.floor(
-      (Date.now() - new Date(booking.created_at).getTime()) /
-        (1000 * 60 * 60 * 24),
-    );
-    if (daysSinceCreated < 1) return "Recent";
-    if (daysSinceCreated < 7) return "This Week";
-    return "Older";
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedBookings(bookingsWithReservationInfo.map(booking => booking.id));
+    } else {
+      setSelectedBookings([]);
+    }
   };
+
+  const handleSelectBooking = (bookingId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedBookings(prev => [...prev, bookingId]);
+    } else {
+      setSelectedBookings(prev => prev.filter(id => id !== bookingId));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedBookings.length === 0) return;
+    
+    const confirmed = confirm(`Are you sure you want to delete ${selectedBookings.length} booking(s)? This action cannot be undone.`);
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch('/api/admin/bookings', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ bookingIds: selectedBookings }),
+      });
+
+      if (response.ok) {
+        setSelectedBookings([]);
+        fetchBookings(); // Refresh data
+      } else {
+        alert('Failed to delete bookings');
+      }
+    } catch (error) {
+      console.error('Error deleting bookings:', error);
+      alert('Failed to delete bookings');
+    }
+  };
+
+  const filteredBookings = bookingsWithReservationInfo.filter(booking => {
+    if (!searchTerm) return true;
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      booking.wines?.wine_name?.toLowerCase().includes(searchLower) ||
+      booking.wines?.producers?.name?.toLowerCase().includes(searchLower) ||
+      booking.reservation?.profiles?.email?.toLowerCase().includes(searchLower) ||
+      booking.reservation?.id?.toLowerCase().includes(searchLower)
+    );
+  });
 
   return (
     <div className="space-y-6">
@@ -107,6 +162,16 @@ export default async function BookingsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {selectedBookings.length > 0 && (
+            <Button 
+              variant="destructive" 
+              size="sm"
+              onClick={handleBulkDelete}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete ({selectedBookings.length})
+            </Button>
+          )}
           <Button variant="outline" size="sm">
             <Download className="h-4 w-4 mr-2" />
             Export
@@ -193,6 +258,8 @@ export default async function BookingsPage() {
                 <input
                   type="text"
                   placeholder="Search bookings..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -204,11 +271,31 @@ export default async function BookingsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {bookings && bookings.length > 0 ? (
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-2 text-gray-500">Loading bookings...</p>
+            </div>
+          ) : filteredBookings && filteredBookings.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200">
+                    <th className="text-left p-3 font-medium text-sm text-gray-600">
+                      <Checkbox
+                        checked={selectedBookings.length === filteredBookings.length && filteredBookings.length > 0}
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </th>
+                    <th className="text-left p-3 font-medium text-sm text-gray-600">
+                      Order ID
+                    </th>
+                    <th className="text-left p-3 font-medium text-sm text-gray-600">
+                      Customer
+                    </th>
+                    <th className="text-left p-3 font-medium text-sm text-gray-600">
+                      Status
+                    </th>
                     <th className="text-left p-3 font-medium text-sm text-gray-600">
                       Wine
                     </th>
@@ -236,11 +323,46 @@ export default async function BookingsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {bookings.map((booking) => (
+                  {filteredBookings.map((booking) => (
                     <tr
                       key={booking.id}
                       className="border-b border-gray-100 hover:bg-gray-50"
                     >
+                      <td className="p-3">
+                        <Checkbox
+                          checked={selectedBookings.includes(booking.id)}
+                          onCheckedChange={(checked) => handleSelectBooking(booking.id, checked as boolean)}
+                        />
+                      </td>
+                      <td className="p-3">
+                        <div className="font-mono text-sm text-gray-600">
+                          {booking.reservation?.id?.substring(0, 8) || "N/A"}
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <div>
+                          <div className="font-medium text-gray-900">
+                            {booking.reservation?.profiles?.email || "Unknown"}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {booking.reservation?.profiles?.role || "Customer"}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <Badge
+                          variant="secondary"
+                          className={
+                            booking.reservation?.status === "placed" 
+                              ? "bg-blue-100 text-blue-800"
+                              : booking.reservation?.status === "confirmed"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-gray-100 text-gray-800"
+                          }
+                        >
+                          {booking.reservation?.status || booking.status || "Unknown"}
+                        </Badge>
+                      </td>
                       <td className="p-3">
                         <div>
                           <div className="font-medium text-gray-900">
@@ -282,9 +404,11 @@ export default async function BookingsPage() {
                             size="sm"
                             className="text-xs"
                           >
+                            <Eye className="h-3 w-3 mr-1" />
                             View
                           </Button>
                           <Button size="sm" className="text-xs">
+                            <Edit className="h-3 w-3 mr-1" />
                             Edit
                           </Button>
                         </div>

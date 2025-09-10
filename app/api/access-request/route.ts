@@ -1,69 +1,46 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase-server";
 
-export async function POST(request: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const { email } = await request.json();
-
+    const { email } = await req.json();
+    
     if (!email || !email.includes('@')) {
-      return NextResponse.json(
-        { error: "Please provide a valid email address" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Valid email is required' }, { status: 400 });
     }
 
-    const supabase = await supabaseServer();
+    const sb = await supabaseServer();
 
-    // Check if request already exists
-    const { data: existingRequest } = await supabase
-      .from('access_requests')
-      .select('id, status')
-      .eq('email', email)
-      .single();
-
-    if (existingRequest) {
-      if (existingRequest.status === 'pending') {
-        return NextResponse.json(
-          { error: "Access request already pending for this email" },
-          { status: 409 }
-        );
-      } else if (existingRequest.status === 'approved') {
-        return NextResponse.json(
-          { error: "Access already granted for this email" },
-          { status: 409 }
-        );
-      }
-    }
-
-    // Create new access request
-    const { data, error } = await supabase
+    // Insert access request
+    const { data, error } = await sb
       .from('access_requests')
       .insert({
-        email: email.toLowerCase(),
-        status: 'pending',
+        email: email.toLowerCase().trim(),
+        status: 'pending'
       })
       .select()
       .single();
 
     if (error) {
+      // If email already exists, that's okay - don't show error
+      if (error.code === '23505') { // Unique constraint violation
+        return NextResponse.json({ 
+          success: true, 
+          message: "Access request submitted! We'll review your application soon." 
+        });
+      }
+      
       console.error('Error creating access request:', error);
-      return NextResponse.json(
-        { error: "Failed to submit access request" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'Failed to submit request' }, { status: 500 });
     }
 
-    return NextResponse.json({
-      success: true,
-      message: "Access request submitted successfully",
-      data: data,
+    return NextResponse.json({ 
+      success: true, 
+      message: "Access request submitted! We'll review your application soon." 
     });
 
   } catch (error) {
-    console.error('Access request error:', error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    console.error('Access request API error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

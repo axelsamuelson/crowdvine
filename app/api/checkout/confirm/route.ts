@@ -142,14 +142,21 @@ export async function POST(request: Request) {
 
     console.log("Zones determined:", zones);
 
+    // Use selected delivery zone if provided
+    let finalDeliveryZoneId = zones.deliveryZoneId;
+    if (formData.selectedDeliveryZoneId) {
+      finalDeliveryZoneId = formData.selectedDeliveryZoneId;
+      console.log("Using selected delivery zone:", finalDeliveryZoneId);
+    }
+
     // Find matching pallet for the zones
     let palletId = null;
-    if (zones.pickupZoneId && zones.deliveryZoneId) {
+    if (zones.pickupZoneId && finalDeliveryZoneId) {
       const { data: matchingPallets, error: palletsError } = await sb
         .from("pallets")
         .select("id")
         .eq("pickup_zone_id", zones.pickupZoneId)
-        .eq("delivery_zone_id", zones.deliveryZoneId)
+        .eq("delivery_zone_id", finalDeliveryZoneId)
         .limit(1);
 
       if (!palletsError && matchingPallets && matchingPallets.length > 0) {
@@ -180,12 +187,12 @@ export async function POST(request: Request) {
     console.log("Bookings created");
 
     // Update reservation with zone information
-    if (zones.pickupZoneId || zones.deliveryZoneId) {
+    if (zones.pickupZoneId || finalDeliveryZoneId) {
       const { error: updateError } = await sb
         .from("order_reservations")
         .update({
           pickup_zone_id: zones.pickupZoneId,
-          delivery_zone_id: zones.deliveryZoneId,
+          delivery_zone_id: finalDeliveryZoneId,
         })
         .eq("id", reservation.id);
 

@@ -1,62 +1,108 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase-server";
 
-export async function GET(request: NextRequest) {
-  const sb = await supabaseServer();
+export async function GET() {
+  try {
+    const sb = await supabaseServer();
 
-  // Hämta alla bokningar med relaterad data
-  const { data: bookings, error } = await sb
-    .from("bookings")
-    .select(
-      `
-      id,
-      quantity,
-      band,
-      created_at,
-      wines(
+    // Hämta alla bokningar med relaterad data
+    const { data: bookings, error: bookingsError } = await sb
+      .from("bookings")
+      .select(
+        `
         id,
-        wine_name,
-        vintage,
-        grape_varieties,
-        color,
-        base_price_cents,
-        producers(
+        quantity,
+        band,
+        status,
+        created_at,
+        user_id,
+        wines(
+          id,
+          wine_name,
+          vintage,
+          grape_varieties,
+          color,
+          base_price_cents,
+          producers(
+            name,
+            region,
+            country_code
+          )
+        ),
+        pallets(
+          id,
           name,
-          region,
-          country_code
+          bottle_capacity,
+          delivery_zone:pallet_zones!delivery_zone_id(name),
+          pickup_zone:pallet_zones!pickup_zone_id(name)
         )
-      ),
-      pallets(
-        id,
-        name,
-        bottle_capacity,
-        delivery_zone:pallet_zones!delivery_zone_id(name),
-        pickup_zone:pallet_zones!pickup_zone_id(name)
+      `,
       )
-    `,
-    )
-    .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false });
 
-  if (error) {
-    console.error("Bookings API error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    if (bookingsError) {
+      console.error("Error fetching bookings:", bookingsError);
+      return NextResponse.json({ error: "Failed to fetch bookings" }, { status: 500 });
+    }
+
+    // Hämta reservations för att få kundinformation och order ID
+    const { data: reservations, error: reservationsError } = await sb
+      .from("order_reservations")
+      .select(`
+        id,
+        status,
+        created_at,
+        user_id,
+        profiles(
+          id,
+          email,
+          role
+        )
+      `)
+      .order("created_at", { ascending: false });
+
+    if (reservationsError) {
+      console.error("Error fetching reservations:", reservationsError);
+      return NextResponse.json({ error: "Failed to fetch reservations" }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      bookings: bookings || [],
+      reservations: reservations || []
+    });
+
+  } catch (error) {
+    console.error("Error in bookings API:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
+}
 
-  // Beräkna statistik
-  const totalBookings = bookings?.length || 0;
-  const totalBottles = bookings?.reduce((sum, b) => sum + b.quantity, 0) || 0;
-  const totalValue =
-    bookings?.reduce(
-      (sum, b) => sum + b.quantity * (b.wines?.base_price_cents || 0),
-      0,
-    ) || 0;
+export async function DELETE(request: Request) {
+  try {
+    const { bookingIds } = await request.json();
+    
+    if (!bookingIds || !Array.isArray(bookingIds) || bookingIds.length === 0) {
+      return NextResponse.json({ error: "No booking IDs provided" }, { status: 400 });
+    }
 
-  return NextResponse.json({
-    bookings: bookings || [],
-    stats: {
-      totalBookings,
-      totalBottles,
-      totalValue,
-    },
-  });
+    const sb = await supabaseServer();
+
+    const { error } = await sb
+      .from("bookings")
+      .delete()
+      .in("id", bookingIds);
+
+    if (error) {
+      console.error("Error deleting bookings:", error);
+      return NextResponse.json({ error: "Failed to delete bookings" }, { status: 500 });
+    }
+
+    return NextResponse.json({ 
+      message: `Successfully deleted ${bookingIds.length} booking(s)` 
+    });
+
+  } catch (error) {
+    console.error("Error in delete bookings API:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

@@ -1,11 +1,78 @@
 import { supabaseServer } from "./supabase-server";
 
+// Simple city to coordinates mapping (in a real app, use a geocoding service)
+function getLatitudeForCity(city: string, countryCode: string): number | null {
+  const cityLower = city.toLowerCase();
+  
+  if (countryCode === "SE") {
+    switch (cityLower) {
+      case "stockholm": return 59.3293;
+      case "karlstad": return 59.3793;
+      case "gothenburg": return 57.7089;
+      case "malmö": return 55.6050;
+      case "uppsala": return 59.8586;
+      case "västerås": return 59.6162;
+      case "örebro": return 59.2741;
+      case "linköping": return 58.4108;
+      case "helsingborg": return 56.0465;
+      case "jönköping": return 57.7826;
+      default: return null;
+    }
+  }
+  
+  return null;
+}
+
+function getLongitudeForCity(city: string, countryCode: string): number | null {
+  const cityLower = city.toLowerCase();
+  
+  if (countryCode === "SE") {
+    switch (cityLower) {
+      case "stockholm": return 18.0686;
+      case "karlstad": return 13.5036;
+      case "gothenburg": return 11.9746;
+      case "malmö": return 13.0038;
+      case "uppsala": return 17.6389;
+      case "västerås": return 16.5528;
+      case "örebro": return 15.2066;
+      case "linköping": return 15.6214;
+      case "helsingborg": return 12.6945;
+      case "jönköping": return 14.1618;
+      default: return null;
+    }
+  }
+  
+  return null;
+}
+
+// Calculate distance between two points using Haversine formula
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth's radius in kilometers
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
 export interface ZoneMatchResult {
   pickupZoneId: string | null;
   deliveryZoneId: string | null;
   pickupZoneName: string | null;
   deliveryZoneName: string | null;
+  availableDeliveryZones?: DeliveryZoneOption[];
   pallets?: PalletInfo[];
+}
+
+export interface DeliveryZoneOption {
+  id: string;
+  name: string;
+  centerLat: number;
+  centerLon: number;
+  radiusKm: number;
 }
 
 export interface PalletInfo {
@@ -96,8 +163,7 @@ export async function determineZones(
   const pickupZoneId = pickupZone?.id || null;
   const pickupZoneName = pickupZone?.name || null;
 
-  // For delivery zone, we'll use a simple approach based on country code
-  // In a real implementation, you might want to use geocoding to determine the closest delivery zone
+  // For delivery zone, we need to check if the address actually falls within a zone
   let deliveryZoneId: string | null = null;
   let deliveryZoneName: string | null = null;
 
@@ -107,17 +173,57 @@ export async function determineZones(
     deliveryAddress.city &&
     deliveryAddress.postcode
   ) {
-    if (deliveryAddress.countryCode === "SE") {
-      // For Sweden, try to find a delivery zone that covers Sweden
-      const { data: deliveryZones, error: deliveryZonesError } = await sb
-        .from("pallet_zones")
-        .select("id, name")
-        .eq("zone_type", "delivery")
-        .limit(1);
+    // Get all delivery zones for the country
+    const { data: deliveryZones, error: deliveryZonesError } = await sb
+      .from("pallet_zones")
+      .select("id, name, center_lat, center_lon, radius_km, country_code")
+      .eq("zone_type", "delivery")
+      .or(`country_code.eq.${deliveryAddress.countryCode},country_code.is.null`);
 
-      if (!deliveryZonesError && deliveryZones && deliveryZones.length > 0) {
-        deliveryZoneId = deliveryZones[0].id;
-        deliveryZoneName = deliveryZones[0].name;
+    if (!deliveryZonesError && deliveryZones && deliveryZones.length > 0) {
+      // For now, we'll use a simple geocoding approach
+      // In a real implementation, you'd want to use a proper geocoding service
+      const addressLat = getLatitudeForCity(deliveryAddress.city, deliveryAddress.countryCode);
+      const addressLon = getLongitudeForCity(deliveryAddress.city, deliveryAddress.countryCode);
+      
+      if (addressLat && addressLon) {
+        // Find all zones that contain this address
+        const matchingZones: DeliveryZoneOption[] = [];
+        
+        for (const zone of deliveryZones) {
+          if (zone.center_lat && zone.center_lon && zone.radius_km) {
+            const distance = calculateDistance(
+              addressLat, addressLon,
+              zone.center_lat, zone.center_lon
+            );
+            
+            if (distance <= zone.radius_km) {
+              matchingZones.push({
+                id: zone.id,
+                name: zone.name,
+                centerLat: zone.center_lat,
+                centerLon: zone.center_lon,
+                radiusKm: zone.radius_km,
+              });
+            }
+          }
+        }
+        
+        // If we have matching zones, use the first one as default
+        if (matchingZones.length > 0) {
+          deliveryZoneId = matchingZones[0].id;
+          deliveryZoneName = matchingZones[0].name;
+          
+          // Return all matching zones for user selection
+          return {
+            pickupZoneId,
+            deliveryZoneId,
+            pickupZoneName,
+            deliveryZoneName,
+            availableDeliveryZones: matchingZones,
+            pallets: [],
+          };
+        }
       }
     }
   } else {

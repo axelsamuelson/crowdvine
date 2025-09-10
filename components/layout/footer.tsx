@@ -1,5 +1,6 @@
 import { ShopLinks } from "./shop-links";
 import { SidebarLinks } from "./sidebar/product-sidebar-links";
+import { FooterLogoSvg } from "./footer-logo-svg";
 
 export async function Footer() {
   // Temporarily disable collections fetching to prevent blocking
@@ -9,25 +10,8 @@ export async function Footer() {
     <footer className="p-sides">
       <div className="w-full md:h-[532px] p-sides md:p-11 text-background bg-foreground rounded-[12px] flex flex-col justify-between max-md:gap-8">
         <div className="flex flex-col justify-between md:flex-row">
-          {/* Temporarily remove FooterLogoSvg to avoid errors */}
           <div className="md:basis-3/4 max-md:w-full max-w-[1200px] h-auto block">
-            <svg
-              className="h-12 w-auto"
-              viewBox="0 0 200 60"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <text
-                x="100"
-                y="35"
-                textAnchor="middle"
-                fill="currentColor"
-                fontSize="16"
-                fontWeight="bold"
-              >
-                CrowdVine
-              </text>
-            </svg>
+            <FooterLogoSvg className="h-12 w-auto" />
           </div>
           <ShopLinks
             collections={collections}

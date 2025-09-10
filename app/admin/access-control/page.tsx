@@ -48,20 +48,40 @@ export default function AccessControlAdmin() {
 
   const fetchAccessRequests = async () => {
     try {
-      const response = await fetch('/api/admin/access-requests');
-      const data = await response.json();
-      setAccessRequests(data);
+      // Temporärt mock data istället för API-anrop
+      const mockData = [
+        {
+          id: '1',
+          email: 'test@example.com',
+          status: 'pending',
+          requested_at: new Date().toISOString(),
+          notes: 'Test request'
+        }
+      ];
+      setAccessRequests(mockData);
+      setLoading(false);
     } catch (error) {
       console.error('Error fetching access requests:', error);
       toast.error("Failed to fetch access requests");
+      setLoading(false);
     }
   };
 
   const fetchInvitationCodes = async () => {
     try {
-      const response = await fetch('/api/admin/invitation-codes');
-      const data = await response.json();
-      setInvitationCodes(data);
+      // Temporärt mock data istället för API-anrop
+      const mockData = [
+        {
+          id: '1',
+          code: '12345678901234567890',
+          email: 'test@example.com',
+          created_by: 'admin',
+          is_active: true,
+          created_at: new Date().toISOString(),
+          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        }
+      ];
+      setInvitationCodes(mockData);
     } catch (error) {
       console.error('Error fetching invitation codes:', error);
       toast.error("Failed to fetch invitation codes");
@@ -70,20 +90,15 @@ export default function AccessControlAdmin() {
 
   const updateAccessRequest = async (id: string, status: 'approved' | 'rejected', notes?: string) => {
     try {
-      const response = await fetch('/api/admin/access-requests', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ id, status, notes }),
-      });
-
-      if (response.ok) {
-        toast.success(`Access request ${status}`);
-        fetchAccessRequests();
-      } else {
-        toast.error("Failed to update access request");
-      }
+      // Temporärt mock - uppdatera lokal state istället för API-anrop
+      setAccessRequests(prev => 
+        prev.map(req => 
+          req.id === id 
+            ? { ...req, status, notes, reviewed_at: new Date().toISOString() }
+            : req
+        )
+      );
+      toast.success(`Access request ${status}`);
     } catch (error) {
       console.error('Error updating access request:', error);
       toast.error("Failed to update access request");
@@ -92,26 +107,21 @@ export default function AccessControlAdmin() {
 
   const createInvitationCode = async () => {
     try {
-      const response = await fetch('/api/admin/invitation-codes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          email: newCodeEmail || null,
-          expiryDays: parseInt(newCodeExpiry)
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        toast.success("Invitation code created");
-        setNewCodeEmail("");
-        setNewCodeExpiry("30");
-        fetchInvitationCodes();
-      } else {
-        toast.error("Failed to create invitation code");
-      }
+      // Temporärt mock - skapa nytt invitation code lokalt
+      const newCode = {
+        id: Date.now().toString(),
+        code: Math.random().toString(36).substring(2, 22).padEnd(20, '0'),
+        email: newCodeEmail || null,
+        created_by: 'admin',
+        is_active: true,
+        created_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + parseInt(newCodeExpiry) * 24 * 60 * 60 * 1000).toISOString()
+      };
+      
+      setInvitationCodes(prev => [newCode, ...prev]);
+      toast.success("Invitation code created");
+      setNewCodeEmail("");
+      setNewCodeExpiry("30");
     } catch (error) {
       console.error('Error creating invitation code:', error);
       toast.error("Failed to create invitation code");
