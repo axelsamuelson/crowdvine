@@ -25,21 +25,7 @@ FOR SELECT USING (
   EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.access_granted_at IS NOT NULL)
 );
 
-ALTER TABLE IF EXISTS campaigns ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS p_campaigns_access ON campaigns;
-CREATE POLICY p_campaigns_access ON campaigns
-FOR SELECT USING (
-  EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.access_granted_at IS NOT NULL)
-);
-
-ALTER TABLE IF EXISTS campaign_items ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS p_campaign_items_access ON campaign_items;
-CREATE POLICY p_campaign_items_access ON campaign_items
-FOR SELECT USING (
-  EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.access_granted_at IS NOT NULL)
-);
-
--- Add RLS for wines table if it exists
+-- Add RLS for wines table (main product table)
 ALTER TABLE IF EXISTS wines ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS p_wines_access ON wines;
 CREATE POLICY p_wines_access ON wines
