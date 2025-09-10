@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
-import { ensureAccessCookie } from '@/lib/access';
+import { setAccessCookieAction } from '@/lib/access';
 
 export async function POST(req: Request) {
   try {
@@ -56,7 +56,7 @@ export async function POST(req: Request) {
     }
 
     // 5) UX fast-path - set access cookie
-    ensureAccessCookie();
+    await setAccessCookieAction();
 
     return NextResponse.json({ 
       ok: true, 

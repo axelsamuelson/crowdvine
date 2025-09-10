@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase-server";
-import { ensureAccessCookie } from "@/lib/access";
+import { setAccessCookieAction } from "@/lib/access";
 
 export async function POST(request: Request) {
   try {
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
       .single();
       
     if (prof?.access_granted_at) {
-      ensureAccessCookie();
+      await setAccessCookieAction();
     }
 
     return NextResponse.json({

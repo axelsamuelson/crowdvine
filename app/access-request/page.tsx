@@ -1,5 +1,5 @@
 import { supabaseServer } from '@/lib/supabase-server';
-import { ensureAccessCookie } from '@/lib/access';
+import { setAccessCookieAction } from '@/lib/access';
 import { redirect } from 'next/navigation';
 import { AccessRequestClient } from './access-request-client';
 
@@ -21,10 +21,10 @@ export default async function AccessRequestPage({
       .eq('id', user.id)
       .single();
       
-    if (prof?.access_granted_at) {
-      ensureAccessCookie();
-      redirect(next);
-    }
+          if (prof?.access_granted_at) {
+            await setAccessCookieAction();
+            redirect(next);
+          }
   }
 
   // User doesn't have access or isn't logged in - show access request page

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
-import { ensureAccessCookie } from '@/lib/access';
+import { setAccessCookieAction } from '@/lib/access';
 
 export async function GET() {
   try {
@@ -20,7 +20,7 @@ export async function GET() {
     const has = !!prof?.access_granted_at;
     
     if (has) {
-      ensureAccessCookie();
+      await setAccessCookieAction();
     }
     
     return NextResponse.json({ access: has });
