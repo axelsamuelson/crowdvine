@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabase-server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET(
   _: Request,
   { params }: { params: Promise<{ handle: string }> },
 ) {
-  const sb = await supabaseServer();
+  const sb = getSupabaseAdmin(); // Use admin client to bypass RLS
   const resolvedParams = await params;
 
   // Check if this is a wine box handle
