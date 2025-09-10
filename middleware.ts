@@ -6,6 +6,7 @@ const PUBLIC = [
   '/access-request', '/api/me/access', '/api/invite', '/api/auth', '/api/stripe/webhook',
   '/api/set-access-cookie', // Allow access cookie setting
   '/api/crowdvine', // Allow crowdvine API routes for products/collections
+  '/product', '/shop', // Allow product and shop pages
   '/admin', '/admin-auth', '/api/admin' // Allow admin access and admin APIs
 ];
 
