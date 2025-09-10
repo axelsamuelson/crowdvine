@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 
-export function ensureAccessCookie() {
-  const jar = cookies();
+export async function ensureAccessCookie() {
+  const jar = await cookies();
   const v = jar.get('cv-access')?.value;
   if (v !== '1') {
     jar.set('cv-access', '1', { 
@@ -16,5 +16,5 @@ export function ensureAccessCookie() {
 // Server action for setting access cookie
 export async function setAccessCookieAction() {
   "use server";
-  ensureAccessCookie();
+  await ensureAccessCookie();
 }
