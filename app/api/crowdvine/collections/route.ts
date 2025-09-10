@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabase-server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET() {
-  const sb = await supabaseServer();
+  const sb = getSupabaseAdmin(); // Use admin client to bypass RLS
 
   try {
     // Get all producers as collections

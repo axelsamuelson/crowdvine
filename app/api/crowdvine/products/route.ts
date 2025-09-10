@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabase-server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -7,7 +7,7 @@ export async function GET(request: Request) {
     ? parseInt(searchParams.get("limit")!)
     : 200;
 
-  const sb = await supabaseServer();
+  const sb = getSupabaseAdmin(); // Use admin client to bypass RLS
 
   // Use fallback method since RPC function might not be available yet
   let data;
@@ -44,8 +44,10 @@ export async function GET(request: Request) {
     );
   }
 
-  if (error)
+  if (error) {
+    console.error("Database error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
   // Get wine images for all wines
   const wineIds = data?.map((wine: any) => wine.id) || [];
