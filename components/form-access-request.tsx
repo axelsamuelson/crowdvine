@@ -8,7 +8,11 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { AlertTitle, alertVariants } from "@/components/ui/alert";
 import { CheckCircledIcon, CrossCircledIcon } from "@radix-ui/react-icons";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const accessRequestSchema = z.object({
   input: z.string().min(1, "Please enter an email or invitation code"),
@@ -87,10 +91,24 @@ export const FormAccessRequest = ({
   onUnlock: () => void;
 }) => {
   const [submissionState, setSubmissionState] = useState<ActionResult<string> | null>(null);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteCode, setInviteCode] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const form = useForm<AccessRequestSchema>({
     resolver: zodResolver(accessRequestSchema),
     defaultValues: getDefaultValues()
+  });
+
+  const inviteForm = useForm({
+    resolver: zodResolver(z.object({
+      email: z.string().email("Please enter a valid email"),
+      password: z.string().min(6, "Password must be at least 6 characters"),
+    })),
+    defaultValues: {
+      email: '',
+      password: ''
+    }
   });
 
   useEffect(() => {
@@ -114,26 +132,8 @@ export const FormAccessRequest = ({
     
     if (isInvitationCode) {
       console.log('Processing as invitation code');
-      
-      // For invitation codes, prompt for email and password
-      const email = prompt('Please enter your email address:');
-      const password = prompt('Please enter a password (min 6 characters):');
-      
-      if (!email || !password || password.length < 6) {
-        form.setError("input", { message: "Email and password are required for invitation codes" });
-        return;
-      }
-      
-      // Handle invitation code with email and password
-      const state = await validateInvitationCodeWithCredentials(input, email, password);
-      setSubmissionState(state);
-      
-      if (state.success === true) {
-        form.reset({ input: '' });
-        onUnlock();
-      } else {
-        form.setError("input", { message: state.message || "Invalid invitation code" });
-      }
+      setInviteCode(input);
+      setShowInviteModal(true);
     } else {
       console.log('Processing as email');
       // Handle email access request
@@ -148,33 +148,122 @@ export const FormAccessRequest = ({
     }
   }
 
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="relative pt-10 lg:pt-12">
-        <SubmissionStateMessage value={submissionState} reset={() => setSubmissionState(null)} />
+  async function handleInviteSubmit(values: { email: string; password: string }) {
+    setIsProcessing(true);
+    
+    try {
+      const state = await validateInvitationCodeWithCredentials(inviteCode, values.email, values.password);
+      
+      if (state.success === true) {
+        setShowInviteModal(false);
+        form.reset({ input: '' });
+        inviteForm.reset();
+        onUnlock();
+        // Redirect to main app after successful registration
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 2000);
+      } else {
+        inviteForm.setError("email", { message: state.message || "Invalid invitation code" });
+      }
+    } catch (error) {
+      inviteForm.setError("email", { message: "Network error. Please try again." });
+    } finally {
+      setIsProcessing(false);
+    }
+  }
 
-        <FormField
-          control={form.control}
-          name="input"
-          render={({ field }) => (
-            <FormItem className="space-y-0">
-              <FormMessage />
-              <FormControl>
-                <div className="relative">
-                  {input({ ...field })}
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2">
-                    {submit({
-                      type: "submit",
-                      disabled: form.formState.isSubmitting,
-                    })}
+  return (
+    <>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="relative pt-10 lg:pt-12">
+          <SubmissionStateMessage value={submissionState} reset={() => setSubmissionState(null)} />
+
+          <FormField
+            control={form.control}
+            name="input"
+            render={({ field }) => (
+              <FormItem className="space-y-0">
+                <FormMessage />
+                <FormControl>
+                  <div className="relative">
+                    {input({ ...field })}
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2">
+                      {submit({
+                        type: "submit",
+                        disabled: form.formState.isSubmitting,
+                      })}
+                    </div>
                   </div>
-                </div>
-              </FormControl>
-            </FormItem>
-          )}
-        />
-      </form>
-    </Form>
+                </FormControl>
+              </FormItem>
+            )}
+          />
+        </form>
+      </Form>
+
+      {/* Invitation Code Modal */}
+      <Dialog open={showInviteModal} onOpenChange={setShowInviteModal}>
+        <DialogContent className="sm:max-w-md bg-white/95 backdrop-blur-xl border-white/20">
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl font-semibold text-gray-900">
+              Complete Your Registration
+            </DialogTitle>
+          </DialogHeader>
+          
+          <Form {...inviteForm}>
+            <form onSubmit={inviteForm.handleSubmit(handleInviteSubmit)} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  {...inviteForm.register("email")}
+                  className="bg-white/80 border-gray-200"
+                />
+                {inviteForm.formState.errors.email && (
+                  <p className="text-sm text-red-600">{inviteForm.formState.errors.email.message}</p>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Create a password (min 6 characters)"
+                  {...inviteForm.register("password")}
+                  className="bg-white/80 border-gray-200"
+                />
+                {inviteForm.formState.errors.password && (
+                  <p className="text-sm text-red-600">{inviteForm.formState.errors.password.message}</p>
+                )}
+              </div>
+              
+              <div className="flex gap-3 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowInviteModal(false)}
+                  className="flex-1"
+                  disabled={isProcessing}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-1 bg-gray-900 hover:bg-gray-800"
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? "Creating Account..." : "Create Account"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
