@@ -4,6 +4,7 @@ import type { NextRequest } from "next/server";
 const PUBLIC = [
   '/_next', '/favicon', '/images', '/public', '/auth',
   '/access-request', '/api/me/access', '/api/invite', '/api/auth', '/api/stripe/webhook',
+  '/api/set-access-cookie', // Allow access cookie setting
   '/admin', '/admin-auth', '/api/admin' // Allow admin access and admin APIs
 ];
 
