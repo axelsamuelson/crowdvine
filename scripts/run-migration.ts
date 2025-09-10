@@ -1,54 +1,43 @@
 import { createClient } from "@supabase/supabase-js";
 import * as dotenv from "dotenv";
-import * as fs from "fs";
-import * as path from "path";
+import { readFileSync } from "fs";
+import { join } from "path";
 
-// Load environment variables
+// Load environment variables from .env.local
 dotenv.config({ path: ".env.local" });
 
+// Use service role key for admin operations
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
 
 async function runMigration() {
-  console.log("🔄 Running migration: Add zone_type and pickup_zone...");
+  console.log("🚀 Running access control migration...");
 
   try {
-    // Read migration SQL
-    const migrationPath = path.join(
-      process.cwd(),
-      "migrations",
-      "add_zone_type_and_pickup_zone.sql",
-    );
-    const sql = fs.readFileSync(migrationPath, "utf8");
+    // Read the migration file
+    const migrationPath = join(process.cwd(), "migration_access_control.sql");
+    const migrationSQL = readFileSync(migrationPath, "utf8");
 
-    // Split SQL into individual statements
-    const statements = sql
-      .split(";")
-      .map((stmt) => stmt.trim())
-      .filter((stmt) => stmt.length > 0 && !stmt.startsWith("--"));
+    console.log("📋 Executing migration SQL...");
 
-    // Execute each statement
-    for (const statement of statements) {
-      if (statement.trim()) {
-        console.log(`Executing: ${statement.substring(0, 50)}...`);
-        const { error } = await supabase.rpc("exec_sql", { sql: statement });
+    // Execute the migration
+    const { error } = await supabase.rpc('exec_sql', { sql: migrationSQL });
 
-        if (error) {
-          console.error("❌ Migration error:", error);
-          return;
-        }
-      }
+    if (error) {
+      console.error("❌ Migration error:", error);
+      return;
     }
 
     console.log("✅ Migration completed successfully!");
+
   } catch (error) {
     console.error("❌ Migration failed:", error);
   }
 }
 
-// Run migration if called directly
+// Run if called directly
 if (require.main === module) {
   runMigration();
 }
