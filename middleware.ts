@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 const PUBLIC = [
   '/_next', '/favicon', '/images', '/public', '/auth',
   '/access-request', '/api/me/access', '/api/invite', '/api/auth', '/api/stripe/webhook',
-  '/admin', '/admin-auth' // Allow admin access
+  '/admin', '/admin-auth', '/api/admin' // Allow admin access and admin APIs
 ];
 
 export function middleware(req: NextRequest) {
