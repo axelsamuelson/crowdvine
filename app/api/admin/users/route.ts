@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabase-server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET() {
   try {
-    const supabase = await supabaseServer();
+    const supabase = getSupabaseAdmin();
 
     // Temporarily skip auth check for development
     // TODO: Re-enable proper auth check when admin auth is implemented
@@ -28,8 +28,8 @@ export async function GET() {
       .select(`
         id,
         email,
-        full_name,
         role,
+        producer_id,
         access_granted_at,
         invite_code_used,
         created_at,
@@ -54,7 +54,7 @@ export async function PATCH(request: NextRequest) {
   try {
     const { userId, updates } = await request.json();
 
-    const supabase = await supabaseServer();
+    const supabase = getSupabaseAdmin();
 
     // Temporarily skip auth check for development
     // TODO: Re-enable proper auth check when admin auth is implemented
@@ -84,7 +84,7 @@ export async function DELETE(request: NextRequest) {
   try {
     const { userId } = await request.json();
 
-    const supabase = await supabaseServer();
+    const supabase = getSupabaseAdmin();
 
     // Temporarily skip auth check for development
     // TODO: Re-enable proper auth check when admin auth is implemented

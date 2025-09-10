@@ -16,8 +16,8 @@ import { toast } from "sonner";
 interface User {
   id: string;
   email: string;
-  full_name?: string;
   role: string;
+  producer_id?: string;
   access_granted_at?: string;
   invite_code_used?: string;
   created_at: string;
@@ -32,7 +32,6 @@ export default function UsersAdmin() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editForm, setEditForm] = useState({
-    full_name: "",
     role: "",
   });
 
@@ -104,7 +103,6 @@ export default function UsersAdmin() {
   const openEditDialog = (user: User) => {
     setSelectedUser(user);
     setEditForm({
-      full_name: user.full_name || "",
       role: user.role,
     });
     setIsEditDialogOpen(true);
@@ -134,8 +132,7 @@ export default function UsersAdmin() {
   };
 
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (user.full_name && user.full_name.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesSearch = user.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === "all" || user.role === roleFilter;
     return matchesSearch && matchesRole;
   });
@@ -215,12 +212,7 @@ export default function UsersAdmin() {
               {filteredUsers.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>
-                    <div>
-                      <div className="font-medium">{user.email}</div>
-                      {user.full_name && (
-                        <div className="text-sm text-gray-500">{user.full_name}</div>
-                      )}
-                    </div>
+                    <div className="font-medium">{user.email}</div>
                   </TableCell>
                   <TableCell>{getRoleBadge(user.role)}</TableCell>
                   <TableCell>{getAccessBadge(user.access_granted_at)}</TableCell>
@@ -292,15 +284,6 @@ export default function UsersAdmin() {
                 value={selectedUser?.email || ""}
                 disabled
                 className="bg-gray-50"
-              />
-            </div>
-            <div>
-              <Label htmlFor="full_name">Full Name</Label>
-              <Input
-                id="full_name"
-                value={editForm.full_name}
-                onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
-                placeholder="Enter full name"
               />
             </div>
             <div>
