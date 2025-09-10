@@ -2,7 +2,7 @@ import { ShopLinks } from "./shop-links";
 import { SidebarLinks } from "./sidebar/product-sidebar-links";
 import { FooterLogoSvg } from "./footer-logo-svg";
 
-export async function Footer() {
+export function Footer() {
   // Temporarily disable collections fetching to prevent blocking
   const collections = [];
 
