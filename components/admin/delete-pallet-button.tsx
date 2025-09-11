@@ -14,7 +14,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { deletePallet } from "@/lib/actions/pallets";
 import { toast } from "@/hooks/use-toast";
 
 interface DeletePalletButtonProps {
@@ -34,7 +33,15 @@ export function DeletePalletButton({
     setIsDeleting(true);
     
     try {
-      await deletePallet(palletId);
+      const response = await fetch(`/api/admin/pallets/${palletId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete pallet');
+      }
+
       toast({
         title: "Pallet deleted",
         description: `${palletName} has been successfully deleted.`,

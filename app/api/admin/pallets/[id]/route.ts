@@ -58,13 +58,49 @@ export async function DELETE(
 ) {
   const sb = await supabaseServer();
   const resolvedParams = await params;
+  
+  // First check if there are any bookings/reservations for this pallet
+  const { data: bookings, error: bookingsError } = await sb
+    .from("bookings")
+    .select("id")
+    .eq("pallet_id", resolvedParams.id)
+    .limit(1);
+
+  if (bookingsError) {
+    return NextResponse.json({ error: `Failed to check bookings: ${bookingsError.message}` }, { status: 500 });
+  }
+
+  if (bookings && bookings.length > 0) {
+    return NextResponse.json({ 
+      error: `Cannot delete pallet: It has ${bookings.length} associated booking(s). Please remove all bookings first.` 
+    }, { status: 400 });
+  }
+
+  // Check reservations as well
+  const { data: reservations, error: reservationsError } = await sb
+    .from("order_reservations")
+    .select("id")
+    .eq("pallet_id", resolvedParams.id)
+    .limit(1);
+
+  if (reservationsError) {
+    return NextResponse.json({ error: `Failed to check reservations: ${reservationsError.message}` }, { status: 500 });
+  }
+
+  if (reservations && reservations.length > 0) {
+    return NextResponse.json({ 
+      error: `Cannot delete pallet: It has ${reservations.length} associated reservation(s). Please remove all reservations first.` 
+    }, { status: 400 });
+  }
+
+  // If no dependencies, proceed with deletion
   const { error } = await sb
     .from("pallets")
     .delete()
     .eq("id", resolvedParams.id);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: `Failed to delete pallet: ${error.message}` }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });
