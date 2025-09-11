@@ -54,15 +54,36 @@ export function PaymentMethodSelector({ onPaymentMethodSelected, selectedMethod 
 
   const handleAddPaymentMethod = async () => {
     try {
-      // This would integrate with Stripe or similar payment processor
-      // For now, we'll show a success message
-      toast.info("Payment method integration coming soon");
-      setShowAddModal(false);
+      // Get user profile to get email and name
+      const profileResponse = await fetch('/api/user/profile');
+      if (!profileResponse.ok) {
+        toast.error("Please add your profile information first");
+        return;
+      }
       
-      // In a real implementation, you would:
-      // 1. Redirect to Stripe payment method setup
-      // 2. Handle the callback
-      // 3. Refresh the payment methods list
+      const profile = await profileResponse.json();
+      if (!profile.email) {
+        toast.error("Email is required to add payment method");
+        return;
+      }
+
+      // Redirect to Stripe setup
+      const response = await fetch(
+        `/api/checkout/setup?email=${encodeURIComponent(profile.email)}&name=${encodeURIComponent(profile.full_name || '')}`
+      );
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        toast.error(errorData.error || "Failed to setup payment method");
+        return;
+      }
+
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        toast.error("Failed to setup payment method");
+      }
       
     } catch (error) {
       console.error('Error adding payment method:', error);
@@ -122,12 +143,18 @@ export function PaymentMethodSelector({ onPaymentMethodSelected, selectedMethod 
               <DialogTitle>Add Payment Method</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <p className="text-gray-600">
-                Payment method integration will be available soon. For now, you can proceed with the reservation.
-              </p>
+              <div className="text-center">
+                <CreditCard className="w-12 h-12 text-blue-500 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Add Payment Method</h3>
+                <p className="text-gray-600 mb-4">
+                  You'll be redirected to Stripe to securely add your payment method. 
+                  This will be saved for future reservations.
+                </p>
+              </div>
               <div className="flex gap-2">
                 <Button onClick={handleAddPaymentMethod} className="flex-1">
-                  Continue
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Add Payment Method
                 </Button>
                 <Button variant="outline" onClick={() => setShowAddModal(false)} className="flex-1">
                   Cancel

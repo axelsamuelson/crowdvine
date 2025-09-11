@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { stripe } from "@/lib/stripe";
 
-export async function GET() {
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -13,6 +16,8 @@ export async function GET() {
       return NextResponse.json({ error: "Stripe not configured" }, { status: 503 });
     }
 
+    const { id: paymentMethodId } = await params;
+
     // Get user profile to find Stripe customer ID
     const profileResponse = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/user/profile`, {
       headers: {
@@ -21,15 +26,12 @@ export async function GET() {
     });
 
     // For now, we'll create a customer if one doesn't exist
-    // In a real implementation, you'd store the Stripe customer ID in the user profile
     let customer;
     try {
-      // Try to find existing customer by email
       const customers = await stripe.customers.list({ email: user.email });
       customer = customers.data[0];
       
       if (!customer) {
-        // Create new customer
         customer = await stripe.customers.create({
           email: user.email,
           name: user.user_metadata?.full_name || user.email,
@@ -40,27 +42,17 @@ export async function GET() {
       return NextResponse.json({ error: "Failed to handle customer" }, { status: 500 });
     }
 
-    // Get payment methods for this customer
-    const paymentMethods = await stripe.paymentMethods.list({
-      customer: customer.id,
-      type: 'card',
+    // Set this payment method as the default for the customer
+    await stripe.customers.update(customer.id, {
+      invoice_settings: {
+        default_payment_method: paymentMethodId,
+      },
     });
 
-    // Transform to our format
-    const formattedMethods = paymentMethods.data.map(pm => ({
-      id: pm.id,
-      type: 'card' as const,
-      last4: pm.card?.last4,
-      brand: pm.card?.brand,
-      is_default: false, // We'll handle this separately
-      expiry_month: pm.card?.exp_month,
-      expiry_year: pm.card?.exp_year,
-    }));
-
-    return NextResponse.json(formattedMethods);
+    return NextResponse.json({ success: true });
 
   } catch (error) {
-    console.error('Error fetching payment methods:', error);
-    return NextResponse.json({ error: "Failed to fetch payment methods" }, { status: 500 });
+    console.error('Error setting default payment method:', error);
+    return NextResponse.json({ error: "Failed to set default payment method" }, { status: 500 });
   }
 }
