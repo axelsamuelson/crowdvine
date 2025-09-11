@@ -3,11 +3,52 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { Cart } from "@/lib/shopify/types";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ProfileInfoModal } from "@/components/checkout/profile-info-modal";
+import { PaymentMethodSelector } from "@/components/checkout/payment-method-selector";
+import { toast } from "sonner";
+import { User, MapPin, CreditCard, Package, AlertCircle } from "lucide-react";
+
+interface UserProfile {
+  id: string;
+  email: string;
+  full_name?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  postal_code?: string;
+  country?: string;
+  created_at: string;
+}
+
+interface PaymentMethod {
+  id: string;
+  type: 'card' | 'bank';
+  last4?: string;
+  brand?: string;
+  is_default: boolean;
+  expiry_month?: number;
+  expiry_year?: number;
+}
 
 export default function CheckoutPage() {
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(true);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
+  const [useProfileAddress, setUseProfileAddress] = useState(true);
+  const [useCustomAddress, setUseCustomAddress] = useState(false);
+  const [customAddress, setCustomAddress] = useState({
+    street: "",
+    postcode: "",
+    city: "",
+    countryCode: "",
+  });
   const [zoneInfo, setZoneInfo] = useState<{
     pickupZone: string | null;
     deliveryZone: string | null;
@@ -29,192 +70,117 @@ export default function CheckoutPage() {
       deliveryZoneName: string;
     }>;
   }>({ pickupZone: null, deliveryZone: null, selectedDeliveryZoneId: null });
-  const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
-    phone: "",
-    street: "",
-    postcode: "",
-    city: "",
-    countryCode: "",
-  });
 
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    // Check if payment method was successfully added
-    const success = searchParams.get("success");
-    const sessionId = searchParams.get("session_id");
-
-    if (success === "true" && sessionId) {
-      setPaymentSuccess(true);
-      // Clear the URL parameters to avoid showing the message again on refresh
-      window.history.replaceState({}, "", "/checkout");
-    }
-
-    // Restore form data from session storage
-    const savedFormData = sessionStorage.getItem("checkoutFormData");
-    if (savedFormData) {
-      try {
-        const parsedData = JSON.parse(savedFormData);
-        setFormData(parsedData);
-      } catch (error) {
-        console.error("Failed to parse saved form data:", error);
-      }
-    }
-
-    // Restore zone info from session storage
-    const savedZoneInfo = sessionStorage.getItem("checkoutZoneInfo");
-    if (savedZoneInfo) {
-      try {
-        const parsedZoneInfo = JSON.parse(savedZoneInfo);
-        setZoneInfo(parsedZoneInfo);
-      } catch (error) {
-        console.error("Failed to parse saved zone info:", error);
-      }
-    }
-  }, [searchParams]);
+    fetchCart();
+    fetchProfile();
+  }, []);
 
   useEffect(() => {
-    async function fetchCart() {
-      try {
-        const response = await fetch("/api/crowdvine/cart");
-        if (response.ok) {
-          const cartData = await response.json();
-          setCart(cartData);
-
-          // Fetch zone information if cart has items
-          if (cartData.totalQuantity > 0) {
-            // Only fetch zone info if we have a complete delivery address
-            const hasCompleteAddress =
-              formData.postcode && formData.city && formData.countryCode;
-
-            if (hasCompleteAddress) {
-              const zoneResponse = await fetch("/api/checkout/zones", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  cartItems: cartData.lines,
-                  deliveryAddress: {
-                    postcode: formData.postcode,
-                    city: formData.city,
-                    countryCode: formData.countryCode,
-                  },
-                }),
-              });
-
-              if (zoneResponse.ok) {
-                const zoneData = await zoneResponse.json();
-                const newZoneInfo = {
-                  pickupZone: zoneData.pickupZoneName,
-                  deliveryZone: zoneData.deliveryZoneName,
-                  selectedDeliveryZoneId: zoneData.deliveryZoneId,
-                  availableDeliveryZones: zoneData.availableDeliveryZones,
-                  pallets: zoneData.pallets,
-                };
-                setZoneInfo(newZoneInfo);
-
-                // Save zone info to session storage
-                sessionStorage.setItem(
-                  "checkoutZoneInfo",
-                  JSON.stringify(newZoneInfo),
-                );
-              }
-            } else {
-              // Only show pickup zone if no complete delivery address
-              const zoneResponse = await fetch("/api/checkout/zones", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  cartItems: cartData.lines,
-                  deliveryAddress: {
-                    postcode: "",
-                    city: "",
-                    countryCode: "",
-                  },
-                }),
-              });
-
-              if (zoneResponse.ok) {
-                const zoneData = await zoneResponse.json();
-                const newZoneInfo = {
-                  pickupZone: zoneData.pickupZoneName,
-                  deliveryZone: null, // Don't show delivery zone yet
-                  selectedDeliveryZoneId: null,
-                  availableDeliveryZones: [],
-                  pallets: zoneData.pallets,
-                };
-                setZoneInfo(newZoneInfo);
-
-                // Save zone info to session storage
-                sessionStorage.setItem(
-                  "checkoutZoneInfo",
-                  JSON.stringify(newZoneInfo),
-                );
-              }
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Failed to fetch cart:", error);
-      } finally {
-        setLoading(false);
-      }
+    // Update zone info when address changes
+    if (cart && cart.totalQuantity > 0) {
+      updateZoneInfo();
     }
+  }, [profile, customAddress, useProfileAddress, useCustomAddress]);
 
-    fetchCart();
-  }, [formData]); // Add formData as dependency so it runs when formData changes
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
-    const { name, value } = e.target;
-    const updatedFormData = {
-      ...formData,
-      [name]: value,
-    };
-    setFormData(updatedFormData);
-
-    // Save form data to session storage
-    sessionStorage.setItem("checkoutFormData", JSON.stringify(updatedFormData));
-
-    // Update zone information if address fields changed
-    if (["postcode", "city", "countryCode"].includes(name) && cart) {
-      updateZoneInfo(updatedFormData);
+  const fetchCart = async () => {
+    try {
+      const response = await fetch("/api/crowdvine/cart");
+      if (response.ok) {
+        const cartData = await response.json();
+        setCart(cartData);
+      }
+    } catch (error) {
+      console.error("Failed to fetch cart:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handlePaymentSetup = async (e: React.MouseEvent) => {
-    e.preventDefault();
-
-    if (!formData.email) {
-      alert("Please enter your email first");
-      return;
-    }
-
-    // Save current form data before redirecting to Stripe
-    sessionStorage.setItem("checkoutFormData", JSON.stringify(formData));
-
+  const fetchProfile = async () => {
     try {
-      const response = await fetch(
-        `/api/checkout/setup?email=${encodeURIComponent(formData.email)}&name=${encodeURIComponent(formData.fullName)}`,
-      );
-      const data = await response.json();
-
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        console.error("No checkout URL received:", data);
-        alert("Failed to setup payment method");
+      const response = await fetch('/api/user/profile');
+      if (response.ok) {
+        const profileData = await response.json();
+        setProfile(profileData);
+        
+        // Check if profile has complete address information
+        const hasCompleteAddress = profileData.address && profileData.city && profileData.postal_code;
+        setUseProfileAddress(hasCompleteAddress);
+        setUseCustomAddress(!hasCompleteAddress);
       }
     } catch (error) {
-      console.error("Payment setup error:", error);
-      alert("Failed to setup payment method");
+      console.error('Error fetching profile:', error);
     }
+  };
+
+  const updateZoneInfo = async () => {
+    if (!cart || cart.totalQuantity === 0) return;
+
+    try {
+      let deliveryAddress;
+      
+      if (useProfileAddress && profile) {
+        deliveryAddress = {
+          postcode: profile.postal_code || "",
+          city: profile.city || "",
+          countryCode: profile.country === "Sweden" ? "SE" : 
+                      profile.country === "Norway" ? "NO" :
+                      profile.country === "Denmark" ? "DK" :
+                      profile.country === "Finland" ? "FI" :
+                      profile.country === "Germany" ? "DE" :
+                      profile.country === "France" ? "FR" :
+                      profile.country === "United Kingdom" ? "GB" : "",
+        };
+      } else if (useCustomAddress) {
+        deliveryAddress = {
+          postcode: customAddress.postcode,
+          city: customAddress.city,
+          countryCode: customAddress.countryCode,
+        };
+      } else {
+        deliveryAddress = {
+          postcode: "",
+          city: "",
+          countryCode: "",
+        };
+      }
+
+      const zoneResponse = await fetch("/api/checkout/zones", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          cartItems: cart.lines,
+          deliveryAddress,
+        }),
+      });
+
+      if (zoneResponse.ok) {
+        const zoneData = await zoneResponse.json();
+        const hasCompleteAddress = deliveryAddress.postcode && deliveryAddress.city && deliveryAddress.countryCode;
+        
+        setZoneInfo({
+          pickupZone: zoneData.pickupZoneName,
+          deliveryZone: hasCompleteAddress ? zoneData.deliveryZoneName : null,
+          selectedDeliveryZoneId: hasCompleteAddress ? zoneData.deliveryZoneId : null,
+          availableDeliveryZones: hasCompleteAddress ? zoneData.availableDeliveryZones : [],
+          pallets: hasCompleteAddress ? zoneData.pallets : [],
+        });
+      }
+    } catch (error) {
+      console.error("Failed to update zone info:", error);
+    }
+  };
+
+  const handleProfileSaved = (updatedProfile: UserProfile) => {
+    setProfile(updatedProfile);
+    setUseProfileAddress(true);
+    setUseCustomAddress(false);
+    toast.success("Profile information saved!");
   };
 
   const handleDeliveryZoneChange = (zoneId: string) => {
@@ -225,72 +191,92 @@ export default function CheckoutPage() {
         selectedDeliveryZoneId: zoneId,
         deliveryZone: selectedZone.name,
       }));
-      
-      // Update session storage
-      const updatedZoneInfo = {
-        ...zoneInfo,
-        selectedDeliveryZoneId: zoneId,
-        deliveryZone: selectedZone.name,
-      };
-      sessionStorage.setItem("checkoutZoneInfo", JSON.stringify(updatedZoneInfo));
     }
   };
 
-  const updateZoneInfo = async (currentFormData: typeof formData) => {
-    if (!cart || cart.totalQuantity === 0) return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validate required fields
+    if (!profile?.email) {
+      toast.error("Please add your profile information first");
+      return;
+    }
+
+    if (!selectedPaymentMethod) {
+      toast.error("Please select a payment method");
+      return;
+    }
+
+    // Check if delivery zone is available
+    const hasCompleteAddress = useProfileAddress ? 
+      (profile?.address && profile?.city && profile?.postal_code) :
+      (customAddress.street && customAddress.city && customAddress.postcode && customAddress.countryCode);
+      
+    if (hasCompleteAddress && !zoneInfo.selectedDeliveryZoneId) {
+      toast.error("No delivery zone matches your address. Please contact support or try a different address.");
+      return;
+    }
+
+    // Prepare form data
+    const formData = new FormData();
+    
+    // Customer details
+    formData.append("fullName", profile?.full_name || "");
+    formData.append("email", profile?.email || "");
+    formData.append("phone", profile?.phone || "");
+    
+    // Delivery address
+    if (useProfileAddress && profile) {
+      formData.append("street", profile.address || "");
+      formData.append("postcode", profile.postal_code || "");
+      formData.append("city", profile.city || "");
+      formData.append("countryCode", profile.country === "Sweden" ? "SE" : 
+                      profile.country === "Norway" ? "NO" :
+                      profile.country === "Denmark" ? "DK" :
+                      profile.country === "Finland" ? "FI" :
+                      profile.country === "Germany" ? "DE" :
+                      profile.country === "France" ? "FR" :
+                      profile.country === "United Kingdom" ? "GB" : "");
+    } else {
+      formData.append("street", customAddress.street);
+      formData.append("postcode", customAddress.postcode);
+      formData.append("city", customAddress.city);
+      formData.append("countryCode", customAddress.countryCode);
+    }
+    
+    // Zone information
+    if (zoneInfo.selectedDeliveryZoneId) {
+      formData.append("selectedDeliveryZoneId", zoneInfo.selectedDeliveryZoneId);
+    }
+    
+    // Payment method
+    formData.append("paymentMethodId", selectedPaymentMethod.id);
 
     try {
-      // Only fetch zone info if we have a complete delivery address
-      const hasCompleteAddress =
-        currentFormData.postcode &&
-        currentFormData.city &&
-        currentFormData.countryCode;
-
-      const zoneResponse = await fetch("/api/checkout/zones", {
+      const response = await fetch("/api/checkout/confirm", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          cartItems: cart.lines,
-          deliveryAddress: hasCompleteAddress
-            ? {
-                postcode: currentFormData.postcode,
-                city: currentFormData.city,
-                countryCode: currentFormData.countryCode,
-              }
-            : {
-                postcode: "",
-                city: "",
-                countryCode: "",
-              },
-        }),
+        body: formData,
       });
 
-      if (zoneResponse.ok) {
-        const zoneData = await zoneResponse.json();
-        const newZoneInfo = {
-          pickupZone: zoneData.pickupZoneName,
-          deliveryZone: hasCompleteAddress ? zoneData.deliveryZoneName : null,
-          selectedDeliveryZoneId: hasCompleteAddress ? zoneData.deliveryZoneId : null,
-          availableDeliveryZones: hasCompleteAddress ? zoneData.availableDeliveryZones : [],
-          pallets: hasCompleteAddress ? zoneData.pallets : [],
-        };
-
-        setZoneInfo(newZoneInfo);
-
-        // Save zone info to session storage
-        sessionStorage.setItem("checkoutZoneInfo", JSON.stringify(newZoneInfo));
+      if (response.ok) {
+        toast.success("Reservation placed successfully!");
+        // Redirect to confirmation page or profile
+        window.location.href = "/profile/reservations";
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.error || "Failed to place reservation");
       }
     } catch (error) {
-      console.error("Failed to update zone info:", error);
+      console.error("Error placing reservation:", error);
+      toast.error("Failed to place reservation");
     }
   };
 
   if (loading) {
     return (
-      <div className="max-w-3xl mx-auto p-6">
-        <div className="animate-pulse">
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="animate-pulse space-y-6">
           <div className="h-8 bg-gray-200 rounded mb-4"></div>
           <div className="h-4 bg-gray-200 rounded mb-2"></div>
           <div className="h-4 bg-gray-200 rounded"></div>
@@ -301,11 +287,10 @@ export default function CheckoutPage() {
 
   if (!cart || cart.totalQuantity === 0) {
     return (
-      <div className="max-w-3xl mx-auto p-6">
+      <div className="max-w-4xl mx-auto p-6">
         <h1 className="text-2xl font-semibold mb-4">Checkout</h1>
         <p className="text-gray-600">
-          Your cart is empty. Please add some items before proceeding to
-          checkout.
+          Your cart is empty. Please add some items before proceeding to checkout.
         </p>
         <a
           href="/"
@@ -317,358 +302,308 @@ export default function CheckoutPage() {
     );
   }
 
+  const hasProfileInfo = profile?.full_name && profile?.email;
+  const hasCompleteProfileAddress = profile?.address && profile?.city && profile?.postal_code;
+
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-8">
-      {/* Payment Success Message */}
-      {paymentSuccess && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <svg
-                className="h-5 w-5 text-green-400"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-green-800">
-                Payment Method Added Successfully!
-              </h3>
-              <p className="text-sm text-green-700 mt-1">
-                Your payment method has been saved and will be used when your
-                pallet is triggered.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+    <div className="max-w-4xl mx-auto p-6 space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Checkout</h1>
+        <p className="text-gray-600 mt-2">Complete your wine reservation</p>
+      </div>
 
-      <section>
-        <h1 className="text-2xl font-semibold mb-4">Checkout (Reservation)</h1>
-
-        {/* Cart Summary */}
-        <div className="bg-gray-50 p-4 rounded-lg mb-6">
-          <h2 className="text-lg font-semibold mb-3">Order Summary</h2>
-          <div className="space-y-2">
-            {cart.lines.map((line) => (
-              <div key={line.id} className="flex justify-between items-center">
-                <div>
-                  <span className="font-medium">{line.merchandise.title}</span>
-                  <span className="text-gray-600 ml-2">x{line.quantity}</span>
-                </div>
-                <span className="font-medium">
-                  {line.cost.totalAmount.amount}{" "}
-                  {line.cost.totalAmount.currencyCode}
-                </span>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Left Column - Order Summary */}
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="w-5 h-5" />
+                Order Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {cart.lines.map((line) => (
+                  <div key={line.id} className="flex justify-between items-center">
+                    <div>
+                      <span className="font-medium">{line.merchandise.title}</span>
+                      <span className="text-gray-600 ml-2">x{line.quantity}</span>
+                    </div>
+                    <span className="font-medium">
+                      {line.cost.totalAmount.amount} {line.cost.totalAmount.currencyCode}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <div className="border-t pt-3 mt-3">
-            <div className="flex justify-between items-center font-semibold">
-              <span>Total</span>
-              <span>
-                {cart.cost.totalAmount.amount}{" "}
-                {cart.cost.totalAmount.currencyCode}
-              </span>
-            </div>
-          </div>
+              <div className="border-t pt-3 mt-3">
+                <div className="flex justify-between items-center font-semibold">
+                  <span>Total</span>
+                  <span>
+                    {cart.cost.totalAmount.amount} {cart.cost.totalAmount.currencyCode}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Zone Information */}
-          {(zoneInfo.pickupZone || zoneInfo.deliveryZone || (formData.postcode && formData.city && formData.countryCode)) && (
-            <div className="border-t pt-3 mt-3">
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">
-                Zone Information
-              </h3>
-              <div className="space-y-1 text-sm text-gray-600">
-                {zoneInfo.pickupZone && (
-                  <div>
-                    <span className="font-medium">Pickup Zone:</span>{" "}
-                    {zoneInfo.pickupZone}
-                  </div>
-                )}
-                {zoneInfo.availableDeliveryZones && zoneInfo.availableDeliveryZones.length > 1 ? (
-                  <div>
-                    <span className="font-medium">Delivery Zone:</span>
-                    <select
-                      value={zoneInfo.selectedDeliveryZoneId || ""}
-                      onChange={(e) => handleDeliveryZoneChange(e.target.value)}
-                      className="ml-2 px-2 py-1 border border-gray-300 rounded text-sm"
-                    >
-                      <option value="">Select delivery zone</option>
-                      {zoneInfo.availableDeliveryZones.map((zone) => (
-                        <option key={zone.id} value={zone.id}>
-                          {zone.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ) : zoneInfo.deliveryZone ? (
-                  <div>
-                    <span className="font-medium">Delivery Zone:</span>{" "}
-                    {zoneInfo.deliveryZone}
-                  </div>
-                ) : formData.postcode && formData.city && formData.countryCode ? (
-                  <div className="text-red-600">
-                    <span className="font-medium">Delivery Zone:</span>{" "}
-                    No matching zone found
-                  </div>
-                ) : null}
-              </div>
-            </div>
+          {(zoneInfo.pickupZone || zoneInfo.deliveryZone) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="w-5 h-5" />
+                  Delivery Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 text-sm">
+                  {zoneInfo.pickupZone && (
+                    <div>
+                      <span className="font-medium">Pickup Zone:</span> {zoneInfo.pickupZone}
+                    </div>
+                  )}
+                  {zoneInfo.availableDeliveryZones && zoneInfo.availableDeliveryZones.length > 1 ? (
+                    <div>
+                      <span className="font-medium">Delivery Zone:</span>
+                      <Select
+                        value={zoneInfo.selectedDeliveryZoneId || ""}
+                        onValueChange={handleDeliveryZoneChange}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select delivery zone" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {zoneInfo.availableDeliveryZones.map((zone) => (
+                            <SelectItem key={zone.id} value={zone.id}>
+                              {zone.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : zoneInfo.deliveryZone ? (
+                    <div>
+                      <span className="font-medium">Delivery Zone:</span> {zoneInfo.deliveryZone}
+                    </div>
+                  ) : null}
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           {/* Pallet Information */}
           {zoneInfo.pallets && zoneInfo.pallets.length > 0 && (
-            <div className="border-t pt-3 mt-3">
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">
-                Available Pallets
-              </h3>
-              <div className="space-y-2">
-                {zoneInfo.pallets.map((pallet) => (
-                  <div key={pallet.id} className="bg-white p-3 rounded border">
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="font-medium text-sm">{pallet.name}</span>
-                      <span className="text-xs text-gray-500">
-                        {pallet.currentBottles}/{pallet.maxBottles} bottles
-                      </span>
+            <Card>
+              <CardHeader>
+                <CardTitle>Available Pallets</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {zoneInfo.pallets.map((pallet) => (
+                    <div key={pallet.id} className="bg-gray-50 p-3 rounded border">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="font-medium text-sm">{pallet.name}</span>
+                        <span className="text-xs text-gray-500">
+                          {pallet.currentBottles}/{pallet.maxBottles} bottles
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                          style={{
+                            width: `${(pallet.currentBottles / pallet.maxBottles) * 100}%`,
+                          }}
+                        ></div>
+                      </div>
+                      <div className="text-xs text-gray-600 mt-1">
+                        {pallet.remainingBottles} bottles remaining
+                      </div>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-green-600 h-2 rounded-full transition-all duration-300"
-                        style={{
-                          width: `${(pallet.currentBottles / pallet.maxBottles) * 100}%`,
-                        }}
-                      ></div>
-                    </div>
-                    <div className="text-xs text-gray-600 mt-1">
-                      {pallet.remainingBottles} bottles remaining
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           )}
         </div>
-      </section>
 
-      <form action="/api/checkout/confirm" method="post" className="space-y-6">
-        {/* Hidden field for selected delivery zone */}
-        {zoneInfo.selectedDeliveryZoneId && (
-          <input type="hidden" name="selectedDeliveryZoneId" value={zoneInfo.selectedDeliveryZoneId} />
-        )}
-        
-        {/* Customer Details */}
-        <section>
-          <h2 className="text-lg font-semibold mb-4">Customer Details</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label
-                htmlFor="fullName"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Full Name *
-              </label>
-              <input
-                id="fullName"
-                name="fullName"
-                type="text"
-                required
-                value={formData.fullName}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter your full name"
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Email *
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                value={formData.email}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter your email"
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="phone"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Phone
-              </label>
-              <input
-                id="phone"
-                name="phone"
-                type="tel"
-                value={formData.phone}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter your phone number"
-              />
-            </div>
-          </div>
-        </section>
+        {/* Right Column - Checkout Form */}
+        <div className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Profile Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="w-5 h-5" />
+                  Customer Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {!hasProfileInfo ? (
+                  <div className="text-center py-4">
+                    <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
+                    <p className="text-gray-600 mb-4">Profile information missing</p>
+                    <ProfileInfoModal onProfileSaved={handleProfileSaved} />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4 text-gray-500" />
+                      <span className="font-medium">{profile.full_name}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-4 h-4"></span>
+                      <span className="text-gray-600">{profile.email}</span>
+                    </div>
+                    {profile.phone && (
+                      <div className="flex items-center gap-2">
+                        <span className="w-4 h-4"></span>
+                        <span className="text-gray-600">{profile.phone}</span>
+                      </div>
+                    )}
+                    <ProfileInfoModal 
+                      onProfileSaved={handleProfileSaved}
+                      trigger={
+                        <Button variant="outline" size="sm" className="mt-2">
+                          Edit Profile
+                        </Button>
+                      }
+                    />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-        {/* Delivery Address */}
-        <section>
-          <h2 className="text-lg font-semibold mb-4">Delivery Address</h2>
-          <div className="space-y-4">
-            <div>
-              <label
-                htmlFor="street"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Street Address *
-              </label>
-              <input
-                id="street"
-                name="street"
-                type="text"
-                required
-                value={formData.street}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter street address"
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label
-                  htmlFor="postcode"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Postcode *
-                </label>
-                <input
-                  id="postcode"
-                  name="postcode"
-                  type="text"
-                  required
-                  value={formData.postcode}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter postcode"
+            {/* Delivery Address */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="w-5 h-5" />
+                  Delivery Address
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {hasCompleteProfileAddress ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="useProfileAddress"
+                        checked={useProfileAddress}
+                        onCheckedChange={(checked) => {
+                          setUseProfileAddress(checked as boolean);
+                          setUseCustomAddress(!checked as boolean);
+                        }}
+                      />
+                      <Label htmlFor="useProfileAddress" className="text-sm font-medium">
+                        Use profile address: {profile?.address}, {profile?.postal_code} {profile?.city}
+                      </Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="useCustomAddress"
+                        checked={useCustomAddress}
+                        onCheckedChange={(checked) => {
+                          setUseCustomAddress(checked as boolean);
+                          setUseProfileAddress(!checked as boolean);
+                        }}
+                      />
+                      <Label htmlFor="useCustomAddress" className="text-sm font-medium">
+                        Use different delivery address
+                      </Label>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
+                    <p className="text-gray-600 mb-4">Delivery address missing from profile</p>
+                    <ProfileInfoModal onProfileSaved={handleProfileSaved} />
+                  </div>
+                )}
+
+                {useCustomAddress && (
+                  <div className="space-y-4 pt-4 border-t">
+                    <div>
+                      <Label htmlFor="customStreet">Street Address</Label>
+                      <Input
+                        id="customStreet"
+                        value={customAddress.street}
+                        onChange={(e) => setCustomAddress({ ...customAddress, street: e.target.value })}
+                        placeholder="Enter street address"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="customPostcode">Postal Code</Label>
+                        <Input
+                          id="customPostcode"
+                          value={customAddress.postcode}
+                          onChange={(e) => setCustomAddress({ ...customAddress, postcode: e.target.value })}
+                          placeholder="Enter postal code"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="customCity">City</Label>
+                        <Input
+                          id="customCity"
+                          value={customAddress.city}
+                          onChange={(e) => setCustomAddress({ ...customAddress, city: e.target.value })}
+                          placeholder="Enter city"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="customCountry">Country</Label>
+                      <Select
+                        value={customAddress.countryCode}
+                        onValueChange={(value) => setCustomAddress({ ...customAddress, countryCode: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select country" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="SE">Sweden</SelectItem>
+                          <SelectItem value="NO">Norway</SelectItem>
+                          <SelectItem value="DK">Denmark</SelectItem>
+                          <SelectItem value="FI">Finland</SelectItem>
+                          <SelectItem value="DE">Germany</SelectItem>
+                          <SelectItem value="FR">France</SelectItem>
+                          <SelectItem value="GB">United Kingdom</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Payment Method */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="w-5 h-5" />
+                  Payment Method
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <PaymentMethodSelector
+                  onPaymentMethodSelected={setSelectedPaymentMethod}
+                  selectedMethod={selectedPaymentMethod}
                 />
-              </div>
-              <div>
-                <label
-                  htmlFor="city"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  City *
-                </label>
-                <input
-                  id="city"
-                  name="city"
-                  type="text"
-                  required
-                  value={formData.city}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter city"
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="countryCode"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Country *
-                </label>
-                <select
-                  id="countryCode"
-                  name="countryCode"
-                  required
-                  value={formData.countryCode}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Select country</option>
-                  <option value="SE">Sweden</option>
-                  <option value="NO">Norway</option>
-                  <option value="DK">Denmark</option>
-                  <option value="FI">Finland</option>
-                  <option value="DE">Germany</option>
-                  <option value="FR">France</option>
-                  <option value="GB">United Kingdom</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        </section>
+              </CardContent>
+            </Card>
 
-        {/* Payment Method */}
-        <section>
-          <h2 className="text-lg font-semibold mb-4">Payment Method</h2>
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <p className="text-sm text-blue-800 mb-3">
-              <strong>Reservation Checkout:</strong> No payment will be charged
-              now. We only charge when the matching pallet is triggered.
-            </p>
-            {paymentSuccess ? (
-              <div className="flex items-center text-green-600">
-                <svg
-                  className="h-5 w-5 mr-2"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <span className="font-medium">Payment method saved</span>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={handlePaymentSetup}
-                className="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-              >
-                Add/Update Payment Method
-              </button>
-            )}
-          </div>
-        </section>
-
-        {/* Submit Button */}
-        <div className="pt-6">
-          <button
-            type="submit"
-            onClick={(e) => {
-              // Check if delivery zone is available
-              const hasCompleteAddress = formData.postcode && formData.city && formData.countryCode;
-              if (hasCompleteAddress && !zoneInfo.selectedDeliveryZoneId) {
-                e.preventDefault();
-                alert("No delivery zone matches your address. Please contact support or try a different address.");
-                return;
-              }
-              
-              // Clear form data and zone info from session storage when placing reservation
-              sessionStorage.removeItem("checkoutFormData");
-              sessionStorage.removeItem("checkoutZoneInfo");
-            }}
-            className="w-full px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors"
-          >
-            Place Reservation
-          </button>
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              size="lg"
+            >
+              Place Reservation
+            </Button>
+          </form>
         </div>
-      </form>
+      </div>
     </div>
   );
 }
