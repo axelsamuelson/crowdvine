@@ -189,20 +189,27 @@ export default function ProfilePage() {
   }
 
   return (
-    <PageLayout>
-      <div className="space-y-6">
+    <PageLayout className="pt-8">
+      <div className="max-w-6xl mx-auto space-y-8">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
-          <p className="text-gray-600 mt-2">Manage your account information and payment methods</p>
+        <div className="text-center space-y-4">
+          <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mx-auto flex items-center justify-center">
+            <User className="w-12 h-12 text-white" />
+          </div>
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900">My Profile</h1>
+            <p className="text-gray-600 mt-2 text-lg">Manage your account information and preferences</p>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Profile Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="w-5 h-5" />
+          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-3 text-xl">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <User className="w-5 h-5 text-blue-600" />
+                </div>
                 Personal Information
               </CardTitle>
             </CardHeader>
@@ -270,15 +277,15 @@ export default function ProfilePage() {
                     />
                   </div>
                   
-                  <div className="flex gap-2">
-                    <Button onClick={updateProfile} className="flex-1">
+                  <div className="flex gap-3 pt-4">
+                    <Button onClick={updateProfile} className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
                       <Save className="w-4 h-4 mr-2" />
                       Save Changes
                     </Button>
                     <Button 
                       variant="outline" 
                       onClick={() => setEditing(false)}
-                      className="flex-1"
+                      className="flex-1 border-gray-300 hover:bg-gray-50"
                     >
                       <X className="w-4 h-4 mr-2" />
                       Cancel
@@ -339,7 +346,10 @@ export default function ProfilePage() {
                     </div>
                   </div>
                   
-                  <Button onClick={() => setEditing(true)} className="w-full">
+                  <Button 
+                    onClick={() => setEditing(true)} 
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 mt-6"
+                  >
                     <Edit className="w-4 h-4 mr-2" />
                     Edit Profile
                   </Button>
@@ -349,10 +359,12 @@ export default function ProfilePage() {
           </Card>
 
           {/* Payment Methods */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="w-5 h-5" />
+          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-3 text-xl">
+                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                  <CreditCard className="w-5 h-5 text-green-600" />
+                </div>
                 Payment Methods
               </CardTitle>
             </CardHeader>
@@ -416,26 +428,32 @@ export default function ProfilePage() {
         </div>
 
         {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="w-5 h-5" />
+        <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-3 text-xl">
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                <Settings className="w-5 h-5 text-purple-600" />
+              </div>
               Quick Actions
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Link href="/profile/reservations">
-                <Button variant="outline" className="w-full h-20 flex flex-col gap-2">
-                  <Package className="w-6 h-6" />
-                  <span>View Reservations</span>
+                <Button variant="outline" className="w-full h-24 flex flex-col gap-3 hover:bg-blue-50 hover:border-blue-200 transition-all duration-200">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <Package className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <span className="font-medium">View Reservations</span>
                 </Button>
               </Link>
               
               <Link href="/shop">
-                <Button variant="outline" className="w-full h-20 flex flex-col gap-2">
-                  <Package className="w-6 h-6" />
-                  <span>Browse Wines</span>
+                <Button variant="outline" className="w-full h-24 flex flex-col gap-3 hover:bg-green-50 hover:border-green-200 transition-all duration-200">
+                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <Package className="w-6 h-6 text-green-600" />
+                  </div>
+                  <span className="font-medium">Browse Wines</span>
                 </Button>
               </Link>
             </div>

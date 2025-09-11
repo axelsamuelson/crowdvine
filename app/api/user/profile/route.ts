@@ -19,6 +19,12 @@ export async function GET() {
         id,
         email,
         role,
+        full_name,
+        phone,
+        address,
+        city,
+        postal_code,
+        country,
         created_at,
         updated_at
       `)
