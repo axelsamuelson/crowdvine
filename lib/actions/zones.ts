@@ -1,6 +1,6 @@
 "use server";
 
-import { supabaseServer } from "@/lib/supabase-server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { revalidatePath } from "next/cache";
 
 export interface PalletZone {
@@ -21,7 +21,7 @@ export interface CreatePalletZoneData {
 }
 
 export async function getDeliveryZones() {
-  const sb = await supabaseServer();
+  const sb = getSupabaseAdmin();
 
   const { data, error } = await sb
     .from("pallet_zones")
@@ -34,7 +34,7 @@ export async function getDeliveryZones() {
 }
 
 export async function getPickupZones() {
-  const sb = await supabaseServer();
+  const sb = getSupabaseAdmin();
 
   const { data, error } = await sb
     .from("pallet_zones")
@@ -47,7 +47,7 @@ export async function getPickupZones() {
 }
 
 export async function getPalletZones() {
-  const sb = await supabaseServer();
+  const sb = getSupabaseAdmin();
 
   const { data, error } = await sb
     .from("pallet_zones")
@@ -59,7 +59,7 @@ export async function getPalletZones() {
 }
 
 export async function getPalletZone(id: string) {
-  const sb = await supabaseServer();
+  const sb = getSupabaseAdmin();
 
   const { data, error } = await sb
     .from("pallet_zones")
@@ -72,7 +72,7 @@ export async function getPalletZone(id: string) {
 }
 
 export async function createPalletZone(data: CreatePalletZoneData) {
-  const sb = await supabaseServer();
+  const sb = getSupabaseAdmin();
 
   const { data: zone, error } = await sb
     .from("pallet_zones")
@@ -90,7 +90,7 @@ export async function updatePalletZone(
   id: string,
   data: Partial<CreatePalletZoneData>,
 ) {
-  const sb = await supabaseServer();
+  const sb = getSupabaseAdmin();
 
   const { data: zone, error } = await sb
     .from("pallet_zones")
@@ -107,7 +107,7 @@ export async function updatePalletZone(
 }
 
 export async function deletePalletZone(id: string) {
-  const sb = await supabaseServer();
+  const sb = getSupabaseAdmin();
 
   // Check if zone is used in any producers before deleting
   const { data: producers, error: producersError } = await sb
