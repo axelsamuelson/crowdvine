@@ -325,8 +325,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     [optimisticCart, add, update, isPending],
   );
 
-  // Don't render children until cart is initialized
+  // Don't render children until cart is initialized, but allow admin pages to bypass this
   if (!isInitialized) {
+    // Check if we're on an admin page - if so, render immediately with empty cart
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')) {
+      return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+    }
+    
     return (
       <div className="flex items-center justify-center min-h-[1.5rem] opacity-60">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
