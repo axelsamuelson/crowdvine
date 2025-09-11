@@ -12,17 +12,13 @@ export async function GET() {
     const supabase = getSupabaseAdmin();
     
     // Get user profile from profiles table
+    // Only select columns that exist (graceful fallback for missing columns)
     const { data: profile, error } = await supabase
       .from('profiles')
       .select(`
         id,
         email,
-        full_name,
-        phone,
-        address,
-        city,
-        postal_code,
-        country,
+        role,
         created_at,
         updated_at
       `)
@@ -52,11 +48,20 @@ export async function PATCH(request: NextRequest) {
     const updates = await request.json();
     const supabase = getSupabaseAdmin();
 
+    // Filter out non-existent columns to prevent errors
+    const allowedColumns = ['email', 'role', 'full_name', 'phone', 'address', 'city', 'postal_code', 'country'];
+    const filteredUpdates = Object.keys(updates)
+      .filter(key => allowedColumns.includes(key))
+      .reduce((obj, key) => {
+        obj[key] = updates[key];
+        return obj;
+      }, {} as any);
+
     // Update user profile
     const { data, error } = await supabase
       .from('profiles')
       .update({
-        ...updates,
+        ...filteredUpdates,
         updated_at: new Date().toISOString()
       })
       .eq('id', user.id)
