@@ -19,7 +19,7 @@ import {
   createPalletZone,
   updatePalletZone,
 } from "@/lib/actions/zones";
-import { geocodeAddress } from "@/lib/geocoding";
+import { geocodeAddress, geocodeFromFields } from "@/lib/geocoding";
 
 interface ZoneFormProps {
   zone?: PalletZone;
@@ -35,6 +35,12 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
   });
 
   const [addressInput, setAddressInput] = useState("");
+  const [addressFields, setAddressFields] = useState({
+    street: "",
+    postcode: "",
+    city: "",
+    country: ""
+  });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [geocodingLoading, setGeocodingLoading] = useState(false);
@@ -77,6 +83,36 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
 
     try {
       const result = await geocodeAddress(addressInput.trim());
+      
+      if ('error' in result) {
+        setError(`Geocoding failed: ${result.message}`);
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          center_lat: result.lat,
+          center_lon: result.lon
+        }));
+        setError("");
+        console.log('✅ Coordinates updated:', result.lat, result.lon);
+      }
+    } catch (err) {
+      setError(`Geocoding error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setGeocodingLoading(false);
+    }
+  };
+
+  const handleGeocodeFromFields = async () => {
+    if (!addressFields.city.trim() || !addressFields.country.trim()) {
+      setError("City and country are required for geocoding");
+      return;
+    }
+
+    setGeocodingLoading(true);
+    setError("");
+
+    try {
+      const result = await geocodeFromFields(addressFields);
       
       if ('error' in result) {
         setError(`Geocoding failed: ${result.message}`);
@@ -142,27 +178,89 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
             </select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="address">Center Address (for automatic coordinates)</Label>
-            <div className="flex gap-2">
-              <Input
-                id="address"
-                value={addressInput}
-                onChange={(e) => setAddressInput(e.target.value)}
-                placeholder="Stockholm, Sweden or Grevgatan 49, 11458 Stockholm"
-                className="flex-1"
-              />
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="address">Center Address (for automatic coordinates)</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="address"
+                  value={addressInput}
+                  onChange={(e) => setAddressInput(e.target.value)}
+                  placeholder="Stockholm, Sweden or Grevgatan 49, 11458 Stockholm"
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleGeocodeAddress}
+                  disabled={geocodingLoading || !addressInput.trim()}
+                >
+                  {geocodingLoading ? "Getting..." : "Get Coordinates"}
+                </Button>
+              </div>
+            </div>
+
+            <div className="text-center text-sm text-muted-foreground">
+              OR use separate fields below
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="street">Street Address (optional)</Label>
+                <Input
+                  id="street"
+                  value={addressFields.street}
+                  onChange={(e) => setAddressFields(prev => ({ ...prev, street: e.target.value }))}
+                  placeholder="Grevgatan 49"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="postcode">Postcode (optional)</Label>
+                <Input
+                  id="postcode"
+                  value={addressFields.postcode}
+                  onChange={(e) => setAddressFields(prev => ({ ...prev, postcode: e.target.value }))}
+                  placeholder="11458"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="city">City *</Label>
+                <Input
+                  id="city"
+                  value={addressFields.city}
+                  onChange={(e) => setAddressFields(prev => ({ ...prev, city: e.target.value }))}
+                  placeholder="Stockholm"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="country">Country *</Label>
+                <Input
+                  id="country"
+                  value={addressFields.country}
+                  onChange={(e) => setAddressFields(prev => ({ ...prev, country: e.target.value }))}
+                  placeholder="Sweden"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-center">
               <Button
                 type="button"
                 variant="outline"
-                onClick={handleGeocodeAddress}
-                disabled={geocodingLoading || !addressInput.trim()}
+                onClick={handleGeocodeFromFields}
+                disabled={geocodingLoading || !addressFields.city.trim() || !addressFields.country.trim()}
               >
-                {geocodingLoading ? "Getting..." : "Get Coordinates"}
+                {geocodingLoading ? "Getting..." : "Get Coordinates from Fields"}
               </Button>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Enter an address to automatically get coordinates, or manually enter them below.
+
+            <p className="text-sm text-muted-foreground text-center">
+              Enter city and country (required) to automatically get coordinates, or manually enter them below.
             </p>
           </div>
 

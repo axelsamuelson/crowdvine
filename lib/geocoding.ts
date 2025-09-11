@@ -43,7 +43,7 @@ export async function geocodeAddress(address: string): Promise<GeocodeResult | G
       `q=${encodeURIComponent(cleanAddress)}&` +
       `limit=1&` +
       `addressdetails=1&` +
-      `countrycodes=se,no,dk,fi&` + // Focus on Nordic countries
+      `countrycodes=se,no,dk,fi,fr,de,gb,es,it&` + // Nordic + European countries
       `accept-language=en`
     );
 
@@ -111,6 +111,34 @@ export function createFullAddress(parts: {
   if (parts.country) addressParts.push(parts.country);
   
   return addressParts.join(', ');
+}
+
+// Helper function to geocode from separate address fields
+export async function geocodeFromFields(fields: {
+  street?: string;
+  postcode?: string;
+  city: string;
+  country: string;
+}): Promise<GeocodeResult | GeocodeError> {
+  // Validate required fields
+  if (!fields.city || !fields.country) {
+    return {
+      error: 'MISSING_REQUIRED_FIELDS',
+      message: 'City and country are required for geocoding'
+    };
+  }
+
+  // Create address string from fields
+  const addressParts = [];
+  
+  if (fields.street) addressParts.push(fields.street);
+  if (fields.postcode) addressParts.push(fields.postcode);
+  addressParts.push(fields.city);
+  addressParts.push(fields.country);
+  
+  const fullAddress = addressParts.join(', ');
+  
+  return await geocodeAddress(fullAddress);
 }
 
 // Helper function to validate coordinates
