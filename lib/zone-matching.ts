@@ -1,49 +1,5 @@
 import { supabaseServer } from "./supabase-server";
-
-// Simple city to coordinates mapping (in a real app, use a geocoding service)
-function getLatitudeForCity(city: string, countryCode: string): number | null {
-  const cityLower = city.toLowerCase();
-  
-  if (countryCode === "SE") {
-    switch (cityLower) {
-      case "stockholm": return 59.3293;
-      case "karlstad": return 59.3793;
-      case "gothenburg": return 57.7089;
-      case "malmö": return 55.6050;
-      case "uppsala": return 59.8586;
-      case "västerås": return 59.6162;
-      case "örebro": return 59.2741;
-      case "linköping": return 58.4108;
-      case "helsingborg": return 56.0465;
-      case "jönköping": return 57.7826;
-      default: return null;
-    }
-  }
-  
-  return null;
-}
-
-function getLongitudeForCity(city: string, countryCode: string): number | null {
-  const cityLower = city.toLowerCase();
-  
-  if (countryCode === "SE") {
-    switch (cityLower) {
-      case "stockholm": return 18.0686;
-      case "karlstad": return 13.5036;
-      case "gothenburg": return 11.9746;
-      case "malmö": return 13.0038;
-      case "uppsala": return 17.6389;
-      case "västerås": return 16.5528;
-      case "örebro": return 15.2066;
-      case "linköping": return 15.6214;
-      case "helsingborg": return 12.6945;
-      case "jönköping": return 14.1618;
-      default: return null;
-    }
-  }
-  
-  return null;
-}
+import { geocodeAddress, createFullAddress, isValidCoordinates } from "./geocoding";
 
 // Calculate distance between two points using Haversine formula
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -181,48 +137,80 @@ export async function determineZones(
       .or(`country_code.eq.${deliveryAddress.countryCode},country_code.is.null`);
 
     if (!deliveryZonesError && deliveryZones && deliveryZones.length > 0) {
-      // For now, we'll use a simple geocoding approach
-      // In a real implementation, you'd want to use a proper geocoding service
-      const addressLat = getLatitudeForCity(deliveryAddress.city, deliveryAddress.countryCode);
-      const addressLon = getLongitudeForCity(deliveryAddress.city, deliveryAddress.countryCode);
+      // Use automatic geocoding to get exact coordinates
+      const fullAddress = createFullAddress({
+        street: `${deliveryAddress.postcode} ${deliveryAddress.city}`,
+        postcode: deliveryAddress.postcode,
+        city: deliveryAddress.city,
+        country: deliveryAddress.countryCode === 'SE' ? 'Sweden' : undefined
+      });
+
+      const geocodeResult = await geocodeAddress(fullAddress);
       
-      if (addressLat && addressLon) {
-        // Find all zones that contain this address
-        const matchingZones: DeliveryZoneOption[] = [];
+      if ('error' in geocodeResult) {
+        console.warn('⚠️ Geocoding failed:', geocodeResult.message);
+        // Fallback: don't set delivery zone if geocoding fails
+        deliveryZoneId = null;
+        deliveryZoneName = null;
+      } else {
+        const { lat: addressLat, lon: addressLon } = geocodeResult;
         
-        for (const zone of deliveryZones) {
-          if (zone.center_lat && zone.center_lon && zone.radius_km) {
-            const distance = calculateDistance(
-              addressLat, addressLon,
-              zone.center_lat, zone.center_lon
-            );
-            
-            if (distance <= zone.radius_km) {
-              matchingZones.push({
-                id: zone.id,
-                name: zone.name,
-                centerLat: zone.center_lat,
-                centerLon: zone.center_lon,
-                radiusKm: zone.radius_km,
-              });
+        if (!isValidCoordinates(addressLat, addressLon)) {
+          console.warn('⚠️ Invalid coordinates from geocoding:', addressLat, addressLon);
+          deliveryZoneId = null;
+          deliveryZoneName = null;
+        } else {
+          console.log('📍 Geocoded address:', {
+            address: fullAddress,
+            lat: addressLat,
+            lon: addressLon
+          });
+
+          // Find all zones that contain this address
+          const matchingZones: DeliveryZoneOption[] = [];
+          
+          for (const zone of deliveryZones) {
+            if (zone.center_lat && zone.center_lon && zone.radius_km) {
+              const distance = calculateDistance(
+                addressLat, addressLon,
+                zone.center_lat, zone.center_lon
+              );
+              
+              console.log(`📏 Distance to ${zone.name}: ${distance.toFixed(2)}km (radius: ${zone.radius_km}km)`);
+              
+              if (distance <= zone.radius_km) {
+                matchingZones.push({
+                  id: zone.id,
+                  name: zone.name,
+                  centerLat: zone.center_lat,
+                  centerLon: zone.center_lon,
+                  radiusKm: zone.radius_km,
+                });
+              }
             }
           }
-        }
-        
-        // If we have matching zones, use the first one as default
-        if (matchingZones.length > 0) {
-          deliveryZoneId = matchingZones[0].id;
-          deliveryZoneName = matchingZones[0].name;
           
-          // Return all matching zones for user selection
-          return {
-            pickupZoneId,
-            deliveryZoneId,
-            pickupZoneName,
-            deliveryZoneName,
-            availableDeliveryZones: matchingZones,
-            pallets: [],
-          };
+          // If we have matching zones, use the first one as default
+          if (matchingZones.length > 0) {
+            deliveryZoneId = matchingZones[0].id;
+            deliveryZoneName = matchingZones[0].name;
+            
+            console.log('✅ Found matching delivery zone:', deliveryZoneName);
+            
+            // Return all matching zones for user selection
+            return {
+              pickupZoneId,
+              deliveryZoneId,
+              pickupZoneName,
+              deliveryZoneName,
+              availableDeliveryZones: matchingZones,
+              pallets: [],
+            };
+          } else {
+            console.log('❌ No delivery zones match this address');
+            deliveryZoneId = null;
+            deliveryZoneName = null;
+          }
         }
       }
     }
