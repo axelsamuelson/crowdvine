@@ -213,8 +213,43 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    CartActions.getCart().then((cart) => {
-      if (cart) setCart(cart);
+    // Try to load from localStorage first for instant display
+    const loadCachedCart = () => {
+      try {
+        const cachedCart = localStorage.getItem('cart-cache');
+        if (cachedCart) {
+          const parsedCart = JSON.parse(cachedCart);
+          // Check if cache is not too old (5 minutes)
+          const cacheTime = localStorage.getItem('cart-cache-time');
+          if (cacheTime && Date.now() - parseInt(cacheTime) < 5 * 60 * 1000) {
+            setCart(parsedCart);
+            return parsedCart;
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to load cached cart:', error);
+      }
+      return null;
+    };
+
+    // Load cached cart immediately
+    const cachedCart = loadCachedCart();
+    
+    // Then fetch fresh data from server
+    CartActions.getCart().then((freshCart) => {
+      if (freshCart) {
+        setCart(freshCart);
+        // Cache the fresh cart data
+        try {
+          localStorage.setItem('cart-cache', JSON.stringify(freshCart));
+          localStorage.setItem('cart-cache-time', Date.now().toString());
+        } catch (error) {
+          console.warn('Failed to cache cart:', error);
+        }
+      } else if (!cachedCart) {
+        // Only set to empty if we don't have cached data
+        setCart(undefined);
+      }
       setIsInitialized(true);
     }).catch(() => {
       // If cart fetch fails, still mark as initialized with empty cart

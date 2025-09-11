@@ -1,5 +1,9 @@
 import { supabaseServer } from "@/lib/supabase-server";
 
+// Cache for wine box calculations
+const calculationCache = new Map<string, { data: WineBoxCalculation; timestamp: number }>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 export interface WineBoxCalculation {
   wineBoxId: string;
   name: string;
@@ -22,6 +26,12 @@ export interface WineBoxCalculation {
 }
 
 export async function calculateWineBoxPrice(wineBoxId: string): Promise<WineBoxCalculation | null> {
+  // Check cache first
+  const cached = calculationCache.get(wineBoxId);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data;
+  }
+
   const sb = await supabaseServer();
 
   try {
@@ -112,7 +122,7 @@ export async function calculateWineBoxPrice(wineBoxId: string): Promise<WineBoxC
     const discountAmount = totalIndividualWinePrice - finalPrice;
     const discountPercentage = (discountAmount / totalIndividualWinePrice) * 100;
 
-    return {
+    const result = {
       wineBoxId,
       name: wineBoxData.name,
       description: wineBoxData.description,
@@ -126,6 +136,11 @@ export async function calculateWineBoxPrice(wineBoxId: string): Promise<WineBoxC
       bottleCount,
       wines,
     };
+
+    // Cache the result
+    calculationCache.set(wineBoxId, { data: result, timestamp: Date.now() });
+
+    return result;
   } catch (error) {
     console.error("Error calculating wine box price:", error);
     return null;
@@ -133,6 +148,13 @@ export async function calculateWineBoxPrice(wineBoxId: string): Promise<WineBoxC
 }
 
 export async function getAllWineBoxCalculations(): Promise<WineBoxCalculation[]> {
+  // Check if we have cached results for all wine boxes
+  const cacheKey = 'all-wine-boxes';
+  const cached = calculationCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data as WineBoxCalculation[];
+  }
+
   const sb = await supabaseServer();
 
   try {
@@ -152,7 +174,12 @@ export async function getAllWineBoxCalculations(): Promise<WineBoxCalculation[]>
       wineBoxes.map(box => calculateWineBoxPrice(box.id))
     );
 
-    return calculations.filter((calc): calc is WineBoxCalculation => calc !== null);
+    const result = calculations.filter((calc): calc is WineBoxCalculation => calc !== null);
+    
+    // Cache the result
+    calculationCache.set(cacheKey, { data: result, timestamp: Date.now() });
+
+    return result;
   } catch (error) {
     console.error("Error getting all wine box calculations:", error);
     return [];

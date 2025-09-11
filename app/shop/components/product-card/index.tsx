@@ -1,4 +1,4 @@
-import React, { Suspense } from "react";
+import React, { Suspense, memo } from "react";
 import Link from "next/link";
 import { Product } from "@/lib/shopify/types";
 import { AddToCart, AddToCartButton } from "@/components/cart/add-to-cart";
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRightIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
-export const ProductCard = ({ product }: { product: Product }) => {
+export const ProductCard = memo(({ product }: { product: Product }) => {
   const hasNoOptions = product.options.length === 0;
   const hasOneOptionWithOneValue =
     product.options.length === 1 && product.options[0].values.length === 1;
@@ -161,4 +161,4 @@ export const ProductCard = ({ product }: { product: Product }) => {
       </div>
     </div>
   );
-};
+});

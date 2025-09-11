@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import {
   useProductImages,
   useSelectedVariant,
@@ -7,7 +8,7 @@ import {
 import { Product } from "@/lib/shopify/types";
 import Image from "next/image";
 
-export const ProductImage = ({ product }: { product: Product }) => {
+export const ProductImage = memo(({ product }: { product: Product }) => {
   const selectedVariant = useSelectedVariant(product);
 
   const [variantImage] = useProductImages(
@@ -40,9 +41,10 @@ export const ProductImage = ({ product }: { product: Product }) => {
       height={imageToShow.height || 600}
       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
       className="object-cover size-full"
-      quality={100}
+      quality={85}
+      loading="lazy"
       placeholder={imageToShow?.thumbhash ? "blur" : undefined}
       blurDataURL={imageToShow?.thumbhash}
     />
   );
-};
+});
