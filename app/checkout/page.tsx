@@ -348,7 +348,9 @@ export default function CheckoutPage() {
           </Card>
 
           {/* Zone Information */}
-          {(zoneInfo.pickupZone || zoneInfo.deliveryZone) && (
+          {(zoneInfo.pickupZone || zoneInfo.deliveryZone || 
+            ((useProfileAddress && profile?.address && profile?.city && profile?.postal_code) || 
+             (useCustomAddress && customAddress.street && customAddress.city && customAddress.postcode))) && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -357,34 +359,58 @@ export default function CheckoutPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2 text-sm">
+                <div className="space-y-3">
                   {zoneInfo.pickupZone && (
-                    <div>
-                      <span className="font-medium">Pickup Zone:</span> {zoneInfo.pickupZone}
+                    <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <div>
+                        <p className="font-medium text-blue-900">Pickup Zone</p>
+                        <p className="text-sm text-blue-700">{zoneInfo.pickupZone}</p>
+                      </div>
                     </div>
                   )}
+                  
                   {zoneInfo.availableDeliveryZones && zoneInfo.availableDeliveryZones.length > 1 ? (
-                    <div>
-                      <span className="font-medium">Delivery Zone:</span>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <div>
+                          <p className="font-medium text-green-900">Delivery Zone</p>
+                          <p className="text-sm text-green-700">Multiple zones available</p>
+                        </div>
+                      </div>
                       <Select
                         value={zoneInfo.selectedDeliveryZoneId || ""}
                         onValueChange={handleDeliveryZoneChange}
                       >
-                        <SelectTrigger className="mt-1">
+                        <SelectTrigger className="w-full">
                           <SelectValue placeholder="Select delivery zone" />
                         </SelectTrigger>
                         <SelectContent>
                           {zoneInfo.availableDeliveryZones.map((zone) => (
                             <SelectItem key={zone.id} value={zone.id}>
-                              {zone.name}
+                              {zone.name} ({zone.radiusKm}km radius)
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
                   ) : zoneInfo.deliveryZone ? (
-                    <div>
-                      <span className="font-medium">Delivery Zone:</span> {zoneInfo.deliveryZone}
+                    <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <div>
+                        <p className="font-medium text-green-900">Delivery Zone</p>
+                        <p className="text-sm text-green-700">{zoneInfo.deliveryZone}</p>
+                      </div>
+                    </div>
+                  ) : (useProfileAddress && profile?.address && profile?.city && profile?.postal_code) || 
+                      (useCustomAddress && customAddress.street && customAddress.city && customAddress.postcode) ? (
+                    <div className="flex items-center gap-2 p-3 bg-red-50 rounded-lg">
+                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                      <div>
+                        <p className="font-medium text-red-900">Delivery Zone</p>
+                        <p className="text-sm text-red-700">No matching zone found for this address</p>
+                      </div>
                     </div>
                   ) : null}
                 </div>
@@ -396,29 +422,54 @@ export default function CheckoutPage() {
           {zoneInfo.pallets && zoneInfo.pallets.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Available Pallets</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Package className="w-5 h-5" />
+                  Available Pallets
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   {zoneInfo.pallets.map((pallet) => (
-                    <div key={pallet.id} className="bg-gray-50 p-3 rounded border">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="font-medium text-sm">{pallet.name}</span>
-                        <span className="text-xs text-gray-500">
-                          {pallet.currentBottles}/{pallet.maxBottles} bottles
-                        </span>
+                    <div key={pallet.id} className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg border border-green-200">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h4 className="font-semibold text-gray-900">{pallet.name}</h4>
+                          <p className="text-sm text-gray-600">
+                            {pallet.pickupZoneName} → {pallet.deliveryZoneName}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-medium text-gray-900">
+                            {pallet.currentBottles}/{pallet.maxBottles} bottles
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {pallet.remainingBottles} remaining
+                          </p>
+                        </div>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-green-600 h-2 rounded-full transition-all duration-300"
-                          style={{
-                            width: `${(pallet.currentBottles / pallet.maxBottles) * 100}%`,
-                          }}
-                        ></div>
+                      
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-xs text-gray-600">
+                          <span>Capacity</span>
+                          <span>{Math.round((pallet.currentBottles / pallet.maxBottles) * 100)}%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-3">
+                          <div
+                            className="bg-gradient-to-r from-green-500 to-blue-500 h-3 rounded-full transition-all duration-500"
+                            style={{
+                              width: `${(pallet.currentBottles / pallet.maxBottles) * 100}%`,
+                            }}
+                          ></div>
+                        </div>
                       </div>
-                      <div className="text-xs text-gray-600 mt-1">
-                        {pallet.remainingBottles} bottles remaining
-                      </div>
+                      
+                      {pallet.remainingBottles > 0 && (
+                        <div className="mt-3 p-2 bg-green-100 rounded text-center">
+                          <p className="text-sm font-medium text-green-800">
+                            ✅ This pallet can accommodate your order
+                          </p>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
