@@ -109,6 +109,23 @@ export async function updatePalletZone(
 export async function deletePalletZone(id: string) {
   const sb = await supabaseServer();
 
+  // Check if zone is used in any producers before deleting
+  const { data: producers, error: producersError } = await sb
+    .from("producers")
+    .select("id, name")
+    .eq("pickup_zone_id", id)
+    .limit(5); // Get up to 5 producers for more detailed error message
+
+  if (producersError) {
+    throw new Error(`Failed to check producer usage: ${producersError.message}`);
+  }
+
+  if (producers && producers.length > 0) {
+    const producerDetails = producers.map(p => `"${p.name}" (${p.id.substring(0, 8)}...)`).join(', ');
+    
+    throw new Error(`Cannot delete zone: This zone is currently used by ${producers.length} producer(s): ${producerDetails}. You must first reassign these producers to different zones before deleting this zone.`);
+  }
+
   // Check if zone is used in any reservations before deleting
   const { data: reservations, error: reservationsError } = await sb
     .from("order_reservations")
