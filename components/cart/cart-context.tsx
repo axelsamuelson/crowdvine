@@ -11,7 +11,6 @@ import React, {
   useState,
   useTransition,
 } from "react";
-import { usePathname } from "next/navigation";
 import * as CartActions from "@/components/cart/actions";
 
 export type UpdateType = "plus" | "minus" | "delete";
@@ -209,10 +208,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     Cart | undefined,
     CartAction
   >(cart, cartReducer);
-  const pathname = usePathname();
-
-  // Initialize with empty cart to prevent undefined context
-  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     // Try to load from localStorage first for instant display
@@ -225,7 +220,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           const cacheTime = localStorage.getItem('cart-cache-time');
           if (cacheTime && Date.now() - parseInt(cacheTime) < 5 * 60 * 1000) {
             setCart(parsedCart);
-            setIsInitialized(true); // Mark as initialized immediately with cached data
             return parsedCart;
           }
         }
@@ -269,13 +263,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
           console.warn('Failed to cache cart:', error);
         }
-      } else {
-        setCart(undefined);
-      }
-      setIsInitialized(true);
-    }).catch(() => {
-      setIsInitialized(true);
-    });
+        } else {
+          setCart(undefined);
+        }
+      }).catch(() => {
+        // Silent fail - cart will remain undefined
+      });
   }, []);
 
   const update = useCallback(
@@ -327,24 +320,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     [optimisticCart, add, update, isPending],
   );
 
-  // Don't render children until cart is initialized, but allow admin pages to bypass this
-  if (!isInitialized) {
-    // Check if we're on an admin page - if so, render immediately with empty cart
-    const isAdminPage = pathname.startsWith('/admin');
-    if (isAdminPage) {
-      return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
-    }
-    
-    return (
-      <div className="flex items-center justify-center min-h-[1.5rem] opacity-60">
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <div className="w-3 h-3 border border-muted-foreground/40 border-t-muted-foreground rounded-full animate-spin"></div>
-          <span>Cart</span>
-        </div>
-      </div>
-    );
-  }
-
+  // Always render children immediately - don't block the UI
+  // Cart will load in the background and update when ready
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
 
