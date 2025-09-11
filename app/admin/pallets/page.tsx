@@ -25,6 +25,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import Link from "next/link";
+import { DeletePalletButton } from "@/components/admin/delete-pallet-button";
 
 interface PalletZone {
   id: string;
@@ -116,6 +117,22 @@ export default function PalletsPage() {
     if (pallet.completion_percentage >= 75) return "Nearly Full";
     if (pallet.completion_percentage >= 50) return "In Progress";
     return "Needs Orders";
+  };
+
+  const handlePalletDeleted = () => {
+    // Refresh the pallet list
+    const fetchPallets = async () => {
+      try {
+        const response = await fetch("/api/admin/pallets");
+        if (response.ok) {
+          const data = await response.json();
+          setPallets(data);
+        }
+      } catch (err) {
+        console.error("Failed to refresh pallets:", err);
+      }
+    };
+    fetchPallets();
   };
 
   if (loading) {
@@ -355,6 +372,11 @@ export default function PalletsPage() {
                     Edit
                   </Link>
                 </Button>
+                <DeletePalletButton
+                  palletId={pallet.id}
+                  palletName={pallet.name}
+                  onDeleted={handlePalletDeleted}
+                />
               </div>
             </CardContent>
           </Card>
