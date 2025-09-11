@@ -223,6 +223,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           const cacheTime = localStorage.getItem('cart-cache-time');
           if (cacheTime && Date.now() - parseInt(cacheTime) < 5 * 60 * 1000) {
             setCart(parsedCart);
+            setIsInitialized(true); // Mark as initialized immediately with cached data
             return parsedCart;
           }
         }
@@ -235,7 +236,27 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     // Load cached cart immediately
     const cachedCart = loadCachedCart();
     
-    // Then fetch fresh data from server
+    // If we have cached data, we're already initialized
+    if (cachedCart) {
+      // Still fetch fresh data in background, but don't block UI
+      CartActions.getCart().then((freshCart) => {
+        if (freshCart) {
+          setCart(freshCart);
+          // Cache the fresh cart data
+          try {
+            localStorage.setItem('cart-cache', JSON.stringify(freshCart));
+            localStorage.setItem('cart-cache-time', Date.now().toString());
+          } catch (error) {
+            console.warn('Failed to cache cart:', error);
+          }
+        }
+      }).catch(() => {
+        // Silent fail for background refresh
+      });
+      return;
+    }
+    
+    // No cached data, fetch from server
     CartActions.getCart().then((freshCart) => {
       if (freshCart) {
         setCart(freshCart);
@@ -246,13 +267,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
           console.warn('Failed to cache cart:', error);
         }
-      } else if (!cachedCart) {
-        // Only set to empty if we don't have cached data
+      } else {
         setCart(undefined);
       }
       setIsInitialized(true);
     }).catch(() => {
-      // If cart fetch fails, still mark as initialized with empty cart
       setIsInitialized(true);
     });
   }, []);
@@ -308,7 +327,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   // Don't render children until cart is initialized
   if (!isInitialized) {
-    return <div>Loading cart...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-[1.5rem] opacity-60">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <div className="w-3 h-3 border border-muted-foreground/40 border-t-muted-foreground rounded-full animate-spin"></div>
+          <span>Cart</span>
+        </div>
+      </div>
+    );
   }
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

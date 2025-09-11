@@ -88,7 +88,7 @@ const serializeCart = (cart: Cart) => {
 };
 
 export default function CartModal() {
-  const { cart } = useCart();
+  const { cart, isPending } = useCart();
   const [isOpen, setIsOpen] = useState(false);
   const serializedCart = useRef(cart ? serializeCart(cart) : undefined);
 
@@ -168,8 +168,18 @@ export default function CartModal() {
         onClick={openCart}
         className="uppercase"
         size={"sm"}
+        disabled={isPending}
       >
-        <span className="max-md:hidden">cart</span> ({cart?.totalQuantity || 0})
+        {isPending ? (
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 border border-current/40 border-t-current rounded-full animate-spin"></div>
+            <span className="max-md:hidden">cart</span>
+          </div>
+        ) : (
+          <>
+            <span className="max-md:hidden">cart</span> ({cart?.totalQuantity || 0})
+          </>
+        )}
       </Button>
       <AnimatePresence>
         {isOpen && (
