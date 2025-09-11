@@ -11,6 +11,7 @@ import React, {
   useState,
   useTransition,
 } from "react";
+import { usePathname } from "next/navigation";
 import * as CartActions from "@/components/cart/actions";
 
 export type UpdateType = "plus" | "minus" | "delete";
@@ -208,6 +209,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     Cart | undefined,
     CartAction
   >(cart, cartReducer);
+  const pathname = usePathname();
 
   // Initialize with empty cart to prevent undefined context
   const [isInitialized, setIsInitialized] = useState(false);
@@ -328,7 +330,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // Don't render children until cart is initialized, but allow admin pages to bypass this
   if (!isInitialized) {
     // Check if we're on an admin page - if so, render immediately with empty cart
-    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')) {
+    const isAdminPage = pathname.startsWith('/admin');
+    if (isAdminPage) {
       return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
     }
     
