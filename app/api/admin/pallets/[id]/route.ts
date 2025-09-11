@@ -76,11 +76,24 @@ export async function DELETE(
     }, { status: 400 });
   }
 
-  // Check reservations as well
+  // Check reservations as well - reservations are linked to zones, not directly to pallets
+  // We need to check if this pallet's zones are used in any reservations
+  // First get the pallet's zones
+  const { data: pallet, error: palletError } = await sb
+    .from("pallets")
+    .select("delivery_zone_id, pickup_zone_id")
+    .eq("id", resolvedParams.id)
+    .single();
+
+  if (palletError) {
+    return NextResponse.json({ error: `Failed to get pallet: ${palletError.message}` }, { status: 500 });
+  }
+
+  // Check if any reservations use this pallet's zones
   const { data: reservations, error: reservationsError } = await sb
     .from("order_reservations")
     .select("id")
-    .eq("pallet_id", resolvedParams.id)
+    .or(`pickup_zone_id.eq.${pallet.pickup_zone_id},delivery_zone_id.eq.${pallet.delivery_zone_id}`)
     .limit(1);
 
   if (reservationsError) {
@@ -89,7 +102,7 @@ export async function DELETE(
 
   if (reservations && reservations.length > 0) {
     return NextResponse.json({ 
-      error: `Cannot delete pallet: It has ${reservations.length} associated reservation(s). Please remove all reservations first.` 
+      error: `Cannot delete pallet: Its zones are used in ${reservations.length} reservation(s). Please remove all reservations first.` 
     }, { status: 400 });
   }
 
