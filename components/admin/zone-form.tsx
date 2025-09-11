@@ -19,6 +19,7 @@ import {
   createPalletZone,
   updatePalletZone,
 } from "@/lib/actions/zones";
+import { geocodeAddress } from "@/lib/geocoding";
 
 interface ZoneFormProps {
   zone?: PalletZone;
@@ -33,8 +34,10 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
     zone_type: zone?.zone_type || "delivery",
   });
 
+  const [addressInput, setAddressInput] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [geocodingLoading, setGeocodingLoading] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,6 +64,36 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
     value: string | number,
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleGeocodeAddress = async () => {
+    if (!addressInput.trim()) {
+      setError("Please enter an address to geocode");
+      return;
+    }
+
+    setGeocodingLoading(true);
+    setError("");
+
+    try {
+      const result = await geocodeAddress(addressInput.trim());
+      
+      if ('error' in result) {
+        setError(`Geocoding failed: ${result.message}`);
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          center_lat: result.lat,
+          center_lon: result.lon
+        }));
+        setError("");
+        console.log('✅ Coordinates updated:', result.lat, result.lon);
+      }
+    } catch (err) {
+      setError(`Geocoding error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setGeocodingLoading(false);
+    }
   };
 
   return (
@@ -109,6 +142,30 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
             </select>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="address">Center Address (for automatic coordinates)</Label>
+            <div className="flex gap-2">
+              <Input
+                id="address"
+                value={addressInput}
+                onChange={(e) => setAddressInput(e.target.value)}
+                placeholder="Stockholm, Sweden or Grevgatan 49, 11458 Stockholm"
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleGeocodeAddress}
+                disabled={geocodingLoading || !addressInput.trim()}
+              >
+                {geocodingLoading ? "Getting..." : "Get Coordinates"}
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Enter an address to automatically get coordinates, or manually enter them below.
+            </p>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="center_lat">Center Latitude *</Label>
@@ -120,9 +177,10 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
                 onChange={(e) =>
                   handleChange("center_lat", parseFloat(e.target.value) || 0)
                 }
-                placeholder="43.3444"
+                placeholder="59.3293"
                 required
               />
+              <p className="text-xs text-muted-foreground">Auto-filled when using address above</p>
             </div>
 
             <div className="space-y-2">
@@ -135,9 +193,10 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
                 onChange={(e) =>
                   handleChange("center_lon", parseFloat(e.target.value) || 0)
                 }
-                placeholder="3.2169"
+                placeholder="18.0686"
                 required
               />
+              <p className="text-xs text-muted-foreground">Auto-filled when using address above</p>
             </div>
 
             <div className="space-y-2">
@@ -150,7 +209,7 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
                 onChange={(e) =>
                   handleChange("radius_km", parseInt(e.target.value) || 0)
                 }
-                placeholder="500"
+                placeholder="50"
                 required
               />
             </div>
