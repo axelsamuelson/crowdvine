@@ -286,8 +286,8 @@ export default function CheckoutPage() {
 
       if (response.ok) {
         toast.success("Reservation placed successfully!");
-        // Redirect to confirmation page or profile
-        window.location.href = "/profile/reservations";
+        // Redirect to confirmation page
+        window.location.href = "/checkout/success";
       } else {
         const errorData = await response.json();
         toast.error(errorData.error || "Failed to place reservation");
