@@ -26,6 +26,9 @@ export async function POST(request: Request) {
           city: formData.get("city"),
           countryCode: formData.get("countryCode"),
         },
+        selectedDeliveryZoneId: formData.get("selectedDeliveryZoneId"),
+        selectedPalletId: formData.get("selectedPalletId"),
+        paymentMethodId: formData.get("paymentMethodId"),
       };
     }
 
@@ -144,14 +147,17 @@ export async function POST(request: Request) {
 
     // Use selected delivery zone if provided
     let finalDeliveryZoneId = zones.deliveryZoneId;
-    if (formData.selectedDeliveryZoneId) {
-      finalDeliveryZoneId = formData.selectedDeliveryZoneId;
+    if (body.selectedDeliveryZoneId) {
+      finalDeliveryZoneId = body.selectedDeliveryZoneId;
       console.log("Using selected delivery zone:", finalDeliveryZoneId);
     }
 
-    // Find matching pallet for the zones
+    // Use selected pallet if provided, otherwise find matching pallet
     let palletId = null;
-    if (zones.pickupZoneId && finalDeliveryZoneId) {
+    if (body.selectedPalletId) {
+      palletId = body.selectedPalletId;
+      console.log("Using selected pallet:", palletId);
+    } else if (zones.pickupZoneId && finalDeliveryZoneId) {
       const { data: matchingPallets, error: palletsError } = await sb
         .from("pallets")
         .select("id")

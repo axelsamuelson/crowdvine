@@ -232,6 +232,12 @@ export default function CheckoutPage() {
       return;
     }
 
+    // Check if pallet is selected when zones are available
+    if (zoneInfo.pallets && zoneInfo.pallets.length > 0 && !selectedPallet) {
+      toast.error("Please select a pallet for your reservation.");
+      return;
+    }
+
     // Prepare form data
     const formData = new FormData();
     
@@ -262,6 +268,11 @@ export default function CheckoutPage() {
     // Zone information
     if (zoneInfo.selectedDeliveryZoneId) {
       formData.append("selectedDeliveryZoneId", zoneInfo.selectedDeliveryZoneId);
+    }
+    
+    // Pallet information
+    if (selectedPallet) {
+      formData.append("selectedPalletId", selectedPallet.id);
     }
     
     // Payment method
