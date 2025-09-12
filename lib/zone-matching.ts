@@ -197,6 +197,49 @@ export async function determineZones(
             
             console.log('✅ Found matching delivery zone:', deliveryZoneName);
             
+            // Get pallets that match the zones
+            let pallets: PalletInfo[] = [];
+            if (pickupZoneId && deliveryZoneId) {
+              const { data: matchingPallets, error: palletsError } = await sb
+                .from("pallets")
+                .select(
+                  `
+                  id,
+                  name,
+                  bottle_capacity,
+                  pickup_zone_id,
+                  delivery_zone_id
+                `,
+                )
+                .eq("pickup_zone_id", pickupZoneId)
+                .eq("delivery_zone_id", deliveryZoneId);
+
+              if (!palletsError && matchingPallets) {
+                // Get current bottle count for each pallet
+                for (const pallet of matchingPallets) {
+                  // Get current bottle count for each pallet using pallet_id
+                  const { data: bookings, error: bookingsError } = await sb
+                    .from("bookings")
+                    .select("quantity")
+                    .eq("pallet_id", pallet.id);
+
+                  const currentBottles = bookingsError
+                    ? 0
+                    : bookings?.reduce((sum, booking) => sum + booking.quantity, 0) || 0;
+
+                  pallets.push({
+                    id: pallet.id,
+                    name: pallet.name,
+                    currentBottles,
+                    maxBottles: pallet.bottle_capacity,
+                    remainingBottles: pallet.bottle_capacity - currentBottles,
+                    pickupZoneName: pickupZoneName || "",
+                    deliveryZoneName: deliveryZoneName || "",
+                  });
+                }
+              }
+            }
+
             // Return all matching zones for user selection
             return {
               pickupZoneId,
@@ -204,7 +247,7 @@ export async function determineZones(
               pickupZoneName,
               deliveryZoneName,
               availableDeliveryZones: matchingZones,
-              pallets: [],
+              pallets,
             };
           } else {
             console.log('❌ No delivery zones match this address');

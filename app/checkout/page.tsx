@@ -9,8 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { ProfileInfoModal } from "@/components/checkout/profile-info-modal";
 import { PaymentMethodSelector } from "@/components/checkout/payment-method-selector";
+import { ZoneDetails } from "@/components/checkout/zone-details";
+import { PalletDetails } from "@/components/checkout/pallet-details";
 import { toast } from "sonner";
 import { User, MapPin, CreditCard, Package, AlertCircle } from "lucide-react";
 
@@ -36,11 +39,22 @@ interface PaymentMethod {
   expiry_year?: number;
 }
 
+interface PalletInfo {
+  id: string;
+  name: string;
+  currentBottles: number;
+  maxBottles: number;
+  remainingBottles: number;
+  pickupZoneName: string;
+  deliveryZoneName: string;
+}
+
 export default function CheckoutPage() {
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
+  const [selectedPallet, setSelectedPallet] = useState<PalletInfo | null>(null);
   const [useProfileAddress, setUseProfileAddress] = useState(true);
   const [useCustomAddress, setUseCustomAddress] = useState(false);
   const [customAddress, setCustomAddress] = useState({
@@ -351,130 +365,126 @@ export default function CheckoutPage() {
           {(zoneInfo.pickupZone || zoneInfo.deliveryZone || 
             ((useProfileAddress && profile?.address && profile?.city && profile?.postal_code) || 
              (useCustomAddress && customAddress.street && customAddress.city && customAddress.postcode))) && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="w-5 h-5" />
-                  Delivery Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+            <div className="space-y-4">
+              {/* Pickup Zone */}
+              {zoneInfo.pickupZone && (
+                <ZoneDetails
+                  zoneId={zoneInfo.pickupZoneId || ""}
+                  zoneName={zoneInfo.pickupZone}
+                  zoneType="pickup"
+                />
+              )}
+              
+              {/* Delivery Zone */}
+              {zoneInfo.availableDeliveryZones && zoneInfo.availableDeliveryZones.length > 1 ? (
                 <div className="space-y-3">
-                  {zoneInfo.pickupZone && (
-                    <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      <div>
-                        <p className="font-medium text-blue-900">Pickup Zone</p>
-                        <p className="text-sm text-blue-700">{zoneInfo.pickupZone}</p>
-                      </div>
-                    </div>
+                  <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                    <p className="font-medium text-green-900 mb-2">Multiple delivery zones available</p>
+                    <Select
+                      value={zoneInfo.selectedDeliveryZoneId || ""}
+                      onValueChange={handleDeliveryZoneChange}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select delivery zone" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {zoneInfo.availableDeliveryZones.map((zone) => (
+                          <SelectItem key={zone.id} value={zone.id}>
+                            {zone.name} ({zone.radiusKm}km radius)
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {zoneInfo.selectedDeliveryZoneId && (
+                    <ZoneDetails
+                      zoneId={zoneInfo.selectedDeliveryZoneId}
+                      zoneName={zoneInfo.deliveryZone || ""}
+                      zoneType="delivery"
+                      centerLat={zoneInfo.availableDeliveryZones.find(z => z.id === zoneInfo.selectedDeliveryZoneId)?.centerLat}
+                      centerLon={zoneInfo.availableDeliveryZones.find(z => z.id === zoneInfo.selectedDeliveryZoneId)?.centerLon}
+                      radiusKm={zoneInfo.availableDeliveryZones.find(z => z.id === zoneInfo.selectedDeliveryZoneId)?.radiusKm}
+                    />
                   )}
-                  
-                  {zoneInfo.availableDeliveryZones && zoneInfo.availableDeliveryZones.length > 1 ? (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <div>
-                          <p className="font-medium text-green-900">Delivery Zone</p>
-                          <p className="text-sm text-green-700">Multiple zones available</p>
-                        </div>
-                      </div>
-                      <Select
-                        value={zoneInfo.selectedDeliveryZoneId || ""}
-                        onValueChange={handleDeliveryZoneChange}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select delivery zone" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {zoneInfo.availableDeliveryZones.map((zone) => (
-                            <SelectItem key={zone.id} value={zone.id}>
-                              {zone.name} ({zone.radiusKm}km radius)
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  ) : zoneInfo.deliveryZone ? (
-                    <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <div>
-                        <p className="font-medium text-green-900">Delivery Zone</p>
-                        <p className="text-sm text-green-700">{zoneInfo.deliveryZone}</p>
-                      </div>
-                    </div>
-                  ) : (useProfileAddress && profile?.address && profile?.city && profile?.postal_code) || 
-                      (useCustomAddress && customAddress.street && customAddress.city && customAddress.postcode) ? (
-                    <div className="flex items-center gap-2 p-3 bg-red-50 rounded-lg">
-                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                      <div>
-                        <p className="font-medium text-red-900">Delivery Zone</p>
-                        <p className="text-sm text-red-700">No matching zone found for this address</p>
-                      </div>
-                    </div>
-                  ) : null}
                 </div>
-              </CardContent>
-            </Card>
+              ) : zoneInfo.deliveryZone ? (
+                <ZoneDetails
+                  zoneId={zoneInfo.selectedDeliveryZoneId || ""}
+                  zoneName={zoneInfo.deliveryZone}
+                  zoneType="delivery"
+                  centerLat={zoneInfo.availableDeliveryZones?.[0]?.centerLat}
+                  centerLon={zoneInfo.availableDeliveryZones?.[0]?.centerLon}
+                  radiusKm={zoneInfo.availableDeliveryZones?.[0]?.radiusKm}
+                />
+              ) : (useProfileAddress && profile?.address && profile?.city && profile?.postal_code) || 
+                  (useCustomAddress && customAddress.street && customAddress.city && customAddress.postcode) ? (
+                <Card className="border-l-4 border-l-red-500">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-red-700">
+                      <AlertCircle className="w-5 h-5" />
+                      No Delivery Zone Found
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-red-600">
+                      No delivery zone matches this address. Please contact support or try a different address.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : null}
+            </div>
           )}
 
           {/* Pallet Information */}
           {zoneInfo.pallets && zoneInfo.pallets.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
                   <Package className="w-5 h-5" />
                   Available Pallets
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {zoneInfo.pallets.map((pallet) => (
-                    <div key={pallet.id} className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg border border-green-200">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h4 className="font-semibold text-gray-900">{pallet.name}</h4>
-                          <p className="text-sm text-gray-600">
-                            {pallet.pickupZoneName} → {pallet.deliveryZoneName}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-medium text-gray-900">
-                            {pallet.currentBottles}/{pallet.maxBottles} bottles
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {pallet.remainingBottles} remaining
-                          </p>
-                        </div>
+                </h3>
+                {selectedPallet && (
+                  <Badge variant="default" className="bg-green-100 text-green-800">
+                    Selected: {selectedPallet.name}
+                  </Badge>
+                )}
+              </div>
+              
+              <div className="space-y-3">
+                {zoneInfo.pallets.map((pallet) => (
+                  <div key={pallet.id} className="relative">
+                    <PalletDetails pallet={pallet} />
+                    {pallet.remainingBottles > 0 && (
+                      <div className="mt-3 flex justify-center">
+                        <Button
+                          variant={selectedPallet?.id === pallet.id ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setSelectedPallet(pallet)}
+                          className={selectedPallet?.id === pallet.id ? "bg-green-600 hover:bg-green-700" : ""}
+                        >
+                          {selectedPallet?.id === pallet.id ? "Selected" : "Select This Pallet"}
+                        </Button>
                       </div>
-                      
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-xs text-gray-600">
-                          <span>Capacity</span>
-                          <span>{Math.round((pallet.currentBottles / pallet.maxBottles) * 100)}%</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-3">
-                          <div
-                            className="bg-gradient-to-r from-green-500 to-blue-500 h-3 rounded-full transition-all duration-500"
-                            style={{
-                              width: `${(pallet.currentBottles / pallet.maxBottles) * 100}%`,
-                            }}
-                          ></div>
-                        </div>
-                      </div>
-                      
-                      {pallet.remainingBottles > 0 && (
-                        <div className="mt-3 p-2 bg-green-100 rounded text-center">
-                          <p className="text-sm font-medium text-green-800">
-                            ✅ This pallet can accommodate your order
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    )}
+                  </div>
+                ))}
+              </div>
+              
+              {selectedPallet && (
+                <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Package className="w-4 h-4 text-green-600" />
+                    <span className="font-medium text-green-800">Reservation will be added to:</span>
+                  </div>
+                  <p className="text-sm text-green-700">
+                    <strong>{selectedPallet.name}</strong> ({selectedPallet.pickupZoneName} → {selectedPallet.deliveryZoneName})
+                  </p>
+                  <p className="text-xs text-green-600 mt-1">
+                    {selectedPallet.remainingBottles} bottles available for your order
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
+              )}
+            </div>
           )}
         </div>
 

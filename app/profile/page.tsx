@@ -128,8 +128,42 @@ export default function ProfilePage() {
   };
 
   const addPaymentMethod = async () => {
-    // This would integrate with Stripe or similar payment processor
-    toast.info("Payment method integration coming soon");
+    try {
+      // Get user profile to get email and name
+      const profileResponse = await fetch('/api/user/profile');
+      if (!profileResponse.ok) {
+        toast.error("Please add your profile information first");
+        return;
+      }
+      
+      const profile = await profileResponse.json();
+      if (!profile.email) {
+        toast.error("Email is required to add payment method");
+        return;
+      }
+
+      // Redirect to Stripe setup
+      const response = await fetch(
+        `/api/checkout/setup?email=${encodeURIComponent(profile.email)}&name=${encodeURIComponent(profile.full_name || '')}`
+      );
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        toast.error(errorData.error || "Failed to setup payment method");
+        return;
+      }
+
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        toast.error("Failed to setup payment method");
+      }
+      
+    } catch (error) {
+      console.error('Error adding payment method:', error);
+      toast.error("Failed to add payment method");
+    }
   };
 
   const setDefaultPaymentMethod = async (methodId: string) => {
