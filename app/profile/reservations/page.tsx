@@ -125,8 +125,12 @@ export default function ReservationsPage() {
       group.totalCostCents += reservation.total_cost_cents;
 
       // Update latest order date
-      if (new Date(reservation.created_at) > new Date(group.latestOrderDate)) {
-        group.latestOrderDate = reservation.created_at;
+      try {
+        if (new Date(reservation.created_at) > new Date(group.latestOrderDate)) {
+          group.latestOrderDate = reservation.created_at;
+        }
+      } catch (error) {
+        console.error('Error comparing dates:', error);
       }
 
       // Add wines with cost aggregation
@@ -153,17 +157,27 @@ export default function ReservationsPage() {
       });
     });
 
-    return Array.from(addressPalletMap.values()).sort((a, b) =>
-      new Date(b.latestOrderDate).getTime() - new Date(a.latestOrderDate).getTime()
-    );
+    return Array.from(addressPalletMap.values()).sort((a, b) => {
+      try {
+        return new Date(b.latestOrderDate).getTime() - new Date(a.latestOrderDate).getTime();
+      } catch (error) {
+        console.error('Error sorting by date:', error);
+        return 0;
+      }
+    });
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+    try {
+      return new Date(dateString).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid Date';
+    }
   };
 
   const formatPrice = (cents: number) => {

@@ -50,33 +50,50 @@ const deliveryStages: DeliveryStage[] = [
 ];
 
 export function DeliveryProgress({ status, created_at, className = "" }: DeliveryProgressProps) {
+  // Helper function to calculate estimated delivery date
+  const getEstimatedDeliveryDate = (created_at: string): string => {
+    try {
+      const createdDate = new Date(created_at);
+      const estimatedDelivery = new Date(createdDate.getTime() + (14 * 24 * 60 * 60 * 1000));
+      return estimatedDelivery.toLocaleDateString();
+    } catch (error) {
+      console.error('Error calculating delivery date:', error);
+      return 'TBD';
+    }
+  };
+
   // Determine current stage based on status and time
   const getCurrentStage = (status: string, created_at: string): number => {
-    const createdDate = new Date(created_at);
-    const now = new Date();
-    const daysSinceCreated = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
-    
-    // Map status to stage index
-    const statusMap: { [key: string]: number } = {
-      "placed": 0,
-      "processing": 1,
-      "picked_up": 2,
-      "in_transit": 3,
-      "delivered": 4,
-      "cancelled": -1
-    };
-    
-    // If status is not explicitly set, estimate based on time
-    if (statusMap[status] !== undefined) {
-      return statusMap[status];
+    try {
+      const createdDate = new Date(created_at);
+      const now = new Date();
+      const daysSinceCreated = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // Map status to stage index
+      const statusMap: { [key: string]: number } = {
+        "placed": 0,
+        "processing": 1,
+        "picked_up": 2,
+        "in_transit": 3,
+        "delivered": 4,
+        "cancelled": -1
+      };
+      
+      // If status is not explicitly set, estimate based on time
+      if (statusMap[status] !== undefined) {
+        return statusMap[status];
+      }
+      
+      // Default progression based on time
+      if (daysSinceCreated < 1) return 0; // Just placed
+      if (daysSinceCreated < 3) return 1; // Processing
+      if (daysSinceCreated < 7) return 2; // Picked up
+      if (daysSinceCreated < 14) return 3; // In transit
+      return 4; // Delivered (or should be)
+    } catch (error) {
+      console.error('Error calculating current stage:', error);
+      return 0; // Default to first stage
     }
-    
-    // Default progression based on time
-    if (daysSinceCreated < 1) return 0; // Just placed
-    if (daysSinceCreated < 3) return 1; // Processing
-    if (daysSinceCreated < 7) return 2; // Picked up
-    if (daysSinceCreated < 14) return 3; // In transit
-    return 4; // Delivered (or should be)
   };
   
   const currentStageIndex = getCurrentStage(status, created_at);
@@ -162,7 +179,7 @@ export function DeliveryProgress({ status, created_at, className = "" }: Deliver
       <div className="text-xs text-gray-500 text-center">
         {currentStageIndex < 4 ? (
           <span>
-            Estimated delivery: {new Date(new Date(created_at).getTime() + (14 * 24 * 60 * 60 * 1000)).toLocaleDateString()}
+            Estimated delivery: {getEstimatedDeliveryDate(created_at)}
           </span>
         ) : (
           <span className="text-green-600 font-medium">
