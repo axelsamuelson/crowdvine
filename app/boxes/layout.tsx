@@ -12,7 +12,7 @@ export default async function BoxesLayout({
   return (
     <PageLayout>
       <div className="flex flex-col md:grid grid-cols-12 md:gap-sides">
-        <div className="col-span-12 flex flex-col h-full md:pt-top-spacing">
+        <div className="col-span-12 flex flex-col h-full">
           <Suspense fallback={null}>{children}</Suspense>
         </div>
       </div>
