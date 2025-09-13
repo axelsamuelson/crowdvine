@@ -33,15 +33,22 @@ export async function GET() {
 
     // Transform the data to match the expected format
     const transformedReservations = await Promise.all(reservations.map(async (reservation) => {
-      // Get pallet name
+      // Get pallet name based on zones
       let palletName = 'Unassigned Pallet';
-      if (reservation.pallet_id) {
+      let palletId = null;
+      
+      if (reservation.pickup_zone_id && reservation.delivery_zone_id) {
         const { data: pallet } = await supabase
           .from('pallets')
-          .select('name')
-          .eq('id', reservation.pallet_id)
+          .select('id, name')
+          .eq('pickup_zone_id', reservation.pickup_zone_id)
+          .eq('delivery_zone_id', reservation.delivery_zone_id)
           .single();
-        palletName = pallet?.name || 'Unknown Pallet';
+        
+        if (pallet) {
+          palletName = pallet.name;
+          palletId = pallet.id;
+        }
       }
 
       // Get zone names
@@ -87,7 +94,7 @@ export async function GET() {
         order_id: reservation.order_id || reservation.id,
         status: reservation.status,
         created_at: reservation.created_at,
-        pallet_id: reservation.pallet_id,
+        pallet_id: palletId,
         pallet_name: palletName,
         pickup_zone: pickupZoneName,
         delivery_zone: deliveryZoneName,
