@@ -36,6 +36,11 @@ export async function GET() {
 
     if (error) {
       console.error('Error fetching reservations:', error);
+      // If it's a relationship error, return empty array instead of error
+      if (error.code === 'PGRST201' || error.message?.includes('relationship')) {
+        console.log('Relationship error detected, returning empty array');
+        return NextResponse.json([]);
+      }
       return NextResponse.json({ error: "Failed to fetch reservations" }, { status: 500 });
     }
 

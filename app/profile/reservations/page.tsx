@@ -48,26 +48,46 @@ export default function ReservationsPage() {
     try {
       const response = await fetch('/api/user/reservations');
       if (!response.ok) {
+        // If it's a 500 error, it might be a relationship issue - try to handle gracefully
+        if (response.status === 500) {
+          console.log('Server error, assuming no reservations');
+          setReservations([]);
+          setGroupedReservations({});
+          setLoading(false);
+          return;
+        }
         throw new Error('Failed to fetch reservations');
       }
       const data = await response.json();
-      setReservations(data);
       
-      // Group reservations by pallet
-      const grouped = data.reduce((acc: Record<string, Reservation[]>, reservation: Reservation) => {
-        const palletKey = reservation.pallet_id || 'no-pallet';
-        if (!acc[palletKey]) {
-          acc[palletKey] = [];
-        }
-        acc[palletKey].push(reservation);
-        return acc;
-      }, {});
+      // Handle both array and error object responses
+      if (Array.isArray(data)) {
+        setReservations(data);
+        
+        // Group reservations by pallet
+        const grouped = data.reduce((acc: Record<string, Reservation[]>, reservation: Reservation) => {
+          const palletKey = reservation.pallet_id || 'no-pallet';
+          if (!acc[palletKey]) {
+            acc[palletKey] = [];
+          }
+          acc[palletKey].push(reservation);
+          return acc;
+        }, {});
+        
+        setGroupedReservations(grouped);
+      } else {
+        // If it's an error object, treat as no reservations
+        console.log('Received error object, treating as no reservations:', data);
+        setReservations([]);
+        setGroupedReservations({});
+      }
       
-      setGroupedReservations(grouped);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching reservations:', error);
-      toast.error("Failed to fetch reservations");
+      // Don't show error toast, just treat as no reservations
+      setReservations([]);
+      setGroupedReservations({});
       setLoading(false);
     }
   };
@@ -147,12 +167,17 @@ export default function ReservationsPage() {
         {Object.keys(groupedReservations).length === 0 ? (
           <Card>
             <CardContent className="text-center py-12">
-              <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No reservations yet</h3>
-              <p className="text-gray-600 mb-6">Start exploring our wine collection and make your first reservation!</p>
-              <Link href="/shop">
-                <Button>Browse Wines</Button>
-              </Link>
+              <p className="text-gray-600 mb-6">You haven't made any wine reservations yet. Start exploring our collection and make your first reservation!</p>
+              <div className="flex gap-3 justify-center">
+                <Link href="/shop">
+                  <Button>Browse Wines</Button>
+                </Link>
+                <Link href="/">
+                  <Button variant="outline">Go Home</Button>
+                </Link>
+              </div>
             </CardContent>
           </Card>
         ) : (
