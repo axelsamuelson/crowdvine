@@ -16,6 +16,8 @@ import { ZoneDetails } from "@/components/checkout/zone-details";
 import { PalletDetails } from "@/components/checkout/pallet-details";
 import { toast } from "sonner";
 import { User, MapPin, CreditCard, Package, AlertCircle } from "lucide-react";
+import { calculateCartShippingCost, formatShippingCost } from "@/lib/shipping-calculations";
+import type { PalletInfo } from "@/lib/zone-matching";
 
 interface UserProfile {
   id: string;
@@ -329,6 +331,19 @@ export default function CheckoutPage() {
 
   const hasProfileInfo = profile?.full_name && profile?.email;
   const hasCompleteProfileAddress = profile?.address && profile?.city && profile?.postal_code;
+  
+  // Calculate shipping cost
+  const shippingCost = selectedPallet ? calculateCartShippingCost(
+    cart.lines.map(line => ({ quantity: line.quantity })),
+    {
+      id: selectedPallet.id,
+      name: selectedPallet.name,
+      costCents: selectedPallet.costCents,
+      bottleCapacity: selectedPallet.maxBottles,
+      currentBottles: selectedPallet.currentBottles,
+      remainingBottles: selectedPallet.remainingBottles,
+    }
+  ) : null;
 
   return (
     <div className="max-w-4xl mx-auto p-6 pt-top-spacing space-y-8">
@@ -362,11 +377,42 @@ export default function CheckoutPage() {
                 ))}
               </div>
               <div className="border-t pt-3 mt-3">
-                <div className="flex justify-between items-center font-semibold">
-                  <span>Total</span>
-                  <span>
-                    {cart.cost.totalAmount.amount} {cart.cost.totalAmount.currencyCode}
-                  </span>
+                <div className="space-y-2">
+                  {/* Shipping Cost */}
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Shipping</span>
+                    <span className="text-sm">
+                      {shippingCost ? (
+                        <span className="font-medium">{formatShippingCost(shippingCost.totalShippingCostCents)}</span>
+                      ) : (
+                        <span className="text-gray-400">No pallet chosen</span>
+                      )}
+                    </span>
+                  </div>
+                  
+                  {/* Subtotal */}
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Subtotal</span>
+                    <span className="text-sm font-medium">
+                      {cart.cost.totalAmount.amount} {cart.cost.totalAmount.currencyCode}
+                    </span>
+                  </div>
+                  
+                  {/* Total */}
+                  <div className="flex justify-between items-center font-semibold text-lg border-t pt-2">
+                    <span>Total</span>
+                    <span>
+                      {shippingCost ? (
+                        <>
+                          {(parseFloat(cart.cost.totalAmount.amount) + shippingCost.totalShippingCostSek).toFixed(2)} {cart.cost.totalAmount.currencyCode}
+                        </>
+                      ) : (
+                        <>
+                          {cart.cost.totalAmount.amount} {cart.cost.totalAmount.currencyCode}
+                        </>
+                      )}
+                    </span>
+                  </div>
                 </div>
               </div>
             </CardContent>

@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronUp, Package, Truck, MapPin, BarChart3, Clock } from "lucide-react";
+import { ChevronDown, ChevronUp, Package, Truck, MapPin, BarChart3, Clock, DollarSign } from "lucide-react";
+import { calculateShippingCostPerBottle, formatShippingCost } from "@/lib/shipping-calculations";
 
 interface PalletDetailsProps {
   pallet: {
@@ -15,6 +16,7 @@ interface PalletDetailsProps {
     remainingBottles: number;
     pickupZoneName: string;
     deliveryZoneName: string;
+    costCents: number;
   };
 }
 
@@ -23,6 +25,7 @@ export function PalletDetails({ pallet }: PalletDetailsProps) {
   
   const capacityPercentage = Math.round((pallet.currentBottles / pallet.maxBottles) * 100);
   const isAvailable = pallet.remainingBottles > 0;
+  const shippingCostPerBottle = calculateShippingCostPerBottle(pallet.costCents, pallet.maxBottles);
   
   const getCapacityColor = (percentage: number) => {
     if (percentage >= 90) return "bg-red-500";
@@ -92,6 +95,27 @@ export function PalletDetails({ pallet }: PalletDetailsProps) {
                 <div>
                   <div className="text-xs text-gray-500">Delivery Area</div>
                   <div className="text-sm font-medium">{pallet.deliveryZoneName}</div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Shipping Cost Information */}
+            <div className="p-3 bg-blue-50 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <DollarSign className="w-4 h-4 text-blue-600" />
+                <span className="text-sm font-medium text-blue-900">Shipping Cost</span>
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Pallet cost:</span>
+                  <span className="font-medium">{formatShippingCost(pallet.costCents)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Per bottle:</span>
+                  <span className="font-medium text-blue-600">{formatShippingCost(shippingCostPerBottle)}</span>
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  Cost divided by {pallet.maxBottles} bottles capacity
                 </div>
               </div>
             </div>

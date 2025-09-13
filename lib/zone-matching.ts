@@ -39,6 +39,7 @@ export interface PalletInfo {
   remainingBottles: number;
   pickupZoneName: string;
   deliveryZoneName: string;
+  costCents: number;
 }
 
 export interface DeliveryAddress {
@@ -207,6 +208,7 @@ export async function determineZones(
                   id,
                   name,
                   bottle_capacity,
+                  cost_cents,
                   pickup_zone_id,
                   delivery_zone_id
                 `,
@@ -235,6 +237,7 @@ export async function determineZones(
                     remainingBottles: pallet.bottle_capacity - currentBottles,
                     pickupZoneName: pickupZoneName || "",
                     deliveryZoneName: deliveryZoneName || "",
+                    costCents: pallet.cost_cents,
                   });
                 }
               }
@@ -273,6 +276,7 @@ export async function determineZones(
         id,
         name,
         bottle_capacity,
+        cost_cents,
         pickup_zone_id,
         delivery_zone_id
       `,
@@ -301,6 +305,7 @@ export async function determineZones(
           remainingBottles: pallet.bottle_capacity - currentBottles,
           pickupZoneName: pickupZoneName || "",
           deliveryZoneName: deliveryZoneName || "",
+          costCents: pallet.cost_cents,
         });
       }
     }
