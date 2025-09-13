@@ -63,7 +63,10 @@ export default async function WinesPage() {
                     Systembolaget Price
                   </th>
                   <th className="text-left p-3 font-medium text-sm text-gray-600">
-                    Difference
+                    Our Margin (SEK)
+                  </th>
+                  <th className="text-left p-3 font-medium text-sm text-gray-600">
+                    Price Difference
                   </th>
                   <th className="text-left p-3 font-medium text-sm text-gray-600">
                     Handle
@@ -127,6 +130,20 @@ export default async function WinesPage() {
                     </td>
                     <td className="p-3 font-medium text-gray-900">
                       {wine.sb_price ? `${wine.sb_price.toFixed(2)} SEK` : 'N/A'}
+                    </td>
+                    <td className="p-3">
+                      {wine.cost_amount && wine.exchange_rate ? (
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-blue-600">
+                            {((Math.ceil(wine.base_price_cents / 100) - (wine.cost_amount * wine.exchange_rate))).toFixed(2)} SEK
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {wine.margin_percentage ? `${wine.margin_percentage}%` : 'N/A'}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-sm">N/A</span>
+                      )}
                     </td>
                     <td className="p-3">
                       {wine.sb_price ? (
