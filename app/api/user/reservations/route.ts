@@ -51,29 +51,22 @@ export async function GET() {
         }
       }
 
-      // Get zone names
-      let pickupZoneName = 'Unknown Pickup Zone';
-      let deliveryZoneName = 'Unknown Delivery Zone';
+      // Get delivery address instead of zone names
+      let deliveryAddress = 'No delivery address';
       
-      if (reservation.pickup_zone_id) {
-        const { data: pickupZone } = await supabase
-          .from('pallet_zones')
-          .select('name')
-          .eq('id', reservation.pickup_zone_id)
+      if (reservation.address_id) {
+        const { data: address } = await supabase
+          .from('addresses')
+          .select('street, city, postal_code, country')
+          .eq('id', reservation.address_id)
           .single();
-        pickupZoneName = pickupZone?.name || 'Unknown Pickup Zone';
-      }
-      
-      if (reservation.delivery_zone_id) {
-        const { data: deliveryZone } = await supabase
-          .from('pallet_zones')
-          .select('name')
-          .eq('id', reservation.delivery_zone_id)
-          .single();
-        deliveryZoneName = deliveryZone?.name || 'Unknown Delivery Zone';
+        
+        if (address) {
+          deliveryAddress = `${address.street}, ${address.postal_code} ${address.city}, ${address.country}`;
+        }
       }
 
-      // Get reservation items with wine details
+      // Get reservation items with wine details and costs
       const { data: items } = await supabase
         .from('order_reservation_items')
         .select(`
@@ -84,10 +77,25 @@ export async function GET() {
             vintage,
             label_image_path,
             grape_varieties,
-            color
+            color,
+            base_price_cents
           )
         `)
         .eq('reservation_id', reservation.id);
+
+      // Calculate costs
+      const itemsWithCosts = items?.map(item => ({
+        wine_name: item.wines?.wine_name || 'Unknown Wine',
+        quantity: item.quantity,
+        vintage: item.wines?.vintage || 'N/A',
+        image_path: item.wines?.label_image_path || null,
+        grape_varieties: item.wines?.grape_varieties || null,
+        color: item.wines?.color || null,
+        price_per_bottle_cents: item.wines?.base_price_cents || 0,
+        total_cost_cents: (item.wines?.base_price_cents || 0) * item.quantity
+      })) || [];
+
+      const totalCostCents = itemsWithCosts.reduce((sum, item) => sum + item.total_cost_cents, 0);
 
       return {
         id: reservation.id,
@@ -96,16 +104,9 @@ export async function GET() {
         created_at: reservation.created_at,
         pallet_id: palletId,
         pallet_name: palletName,
-        pickup_zone: pickupZoneName,
-        delivery_zone: deliveryZoneName,
-        items: items?.map(item => ({
-          wine_name: item.wines?.wine_name || 'Unknown Wine',
-          quantity: item.quantity,
-          vintage: item.wines?.vintage || 'N/A',
-          image_path: item.wines?.label_image_path || null,
-          grape_varieties: item.wines?.grape_varieties || null,
-          color: item.wines?.color || null
-        })) || []
+        delivery_address: deliveryAddress,
+        total_cost_cents: totalCostCents,
+        items: itemsWithCosts
       };
     }));
 
