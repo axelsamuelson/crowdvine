@@ -19,7 +19,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calculator, TrendingUp, Calendar, BarChart3 } from "lucide-react";
+import { Calculator, TrendingUp, Calendar, BarChart3, Store } from "lucide-react";
+import { calculateSystembolagetPrice, calculateSystembolagetPriceBreakdown } from "@/lib/systembolaget-pricing";
 
 interface PricingData {
   cost_currency: string;
@@ -103,12 +104,26 @@ export function PricingCalculator({
       ? priceAfterTax
       : priceAfterTax * 1.25;
 
+    // Calculate Systembolaget price using same formula but with 14.7% margin
+    const sbPrice = calculateSystembolagetPrice(
+      pricingData.cost_amount,
+      currentRate || pricingData.exchange_rate || 1,
+      pricingData.alcohol_tax_cents
+    );
+
+    // Calculate our margin in SEK
+    const ourMarginSek = finalPrice - costInSek;
+
     return {
       costInSek: costInSek.toFixed(2),
       priceBeforeTax: priceBeforeTax.toFixed(2),
       priceAfterTax: priceAfterTax.toFixed(2),
       finalPrice: finalPrice.toFixed(2),
       finalPriceCents: Math.ceil(finalPrice * 100), // Round up to nearest cent
+      sbPrice: sbPrice.toFixed(2),
+      ourMarginSek: ourMarginSek.toFixed(2),
+      priceDifference: (sbPrice - finalPrice).toFixed(2),
+      priceDifferencePercent: (((sbPrice - finalPrice) / finalPrice) * 100).toFixed(1)
     };
   };
 
@@ -354,6 +369,67 @@ export function PricingCalculator({
               <Badge variant="default" className="text-lg">
                 {breakdown.finalPrice} SEK
               </Badge>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Systembolaget Comparison */}
+        <Card className="bg-blue-50">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Store className="h-5 w-5" />
+              Systembolaget Comparison
+            </CardTitle>
+            <CardDescription>
+              Compare your pricing with Systembolaget's pricing (14.7% margin)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span>Your Price:</span>
+                  <Badge variant="default" className="text-lg">
+                    {breakdown.finalPrice} SEK
+                  </Badge>
+                </div>
+                <div className="flex justify-between">
+                  <span>Your Margin:</span>
+                  <span className="font-medium text-blue-600">
+                    {breakdown.ourMarginSek} SEK ({pricingData.margin_percentage}%)
+                  </span>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span>Systembolaget Price:</span>
+                  <Badge variant="outline" className="text-lg">
+                    {breakdown.sbPrice} SEK
+                  </Badge>
+                </div>
+                <div className="flex justify-between">
+                  <span>Price Difference:</span>
+                  <span className={`font-medium ${
+                    parseFloat(breakdown.priceDifference) > 0 
+                      ? 'text-red-600' 
+                      : 'text-green-600'
+                  }`}>
+                    {parseFloat(breakdown.priceDifference) > 0 ? '+' : ''}
+                    {breakdown.priceDifference} SEK ({breakdown.priceDifferencePercent}%)
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="text-sm text-gray-600 bg-white p-3 rounded border">
+              <strong>Competitive Analysis:</strong> {
+                parseFloat(breakdown.priceDifference) > 0 
+                  ? `Systembolaget is ${breakdown.priceDifference} SEK (${breakdown.priceDifferencePercent}%) more expensive than your price.`
+                  : parseFloat(breakdown.priceDifference) < 0
+                  ? `You are ${Math.abs(parseFloat(breakdown.priceDifference))} SEK (${Math.abs(parseFloat(breakdown.priceDifferencePercent))}%) more expensive than Systembolaget.`
+                  : 'Your price matches Systembolaget exactly.'
+              }
             </div>
           </CardContent>
         </Card>
