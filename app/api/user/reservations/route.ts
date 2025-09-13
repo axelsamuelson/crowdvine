@@ -56,13 +56,13 @@ export async function GET() {
       
       if (reservation.address_id) {
         const { data: address } = await supabase
-          .from('addresses')
-          .select('street, city, postal_code, country')
+          .from('user_addresses')
+          .select('address_street, address_city, address_postcode, country_code')
           .eq('id', reservation.address_id)
           .single();
         
         if (address) {
-          deliveryAddress = `${address.street}, ${address.postal_code} ${address.city}, ${address.country}`;
+          deliveryAddress = `${address.address_street}, ${address.address_postcode} ${address.address_city}, ${address.country_code}`;
         }
       }
 
