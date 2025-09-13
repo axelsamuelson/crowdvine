@@ -5,20 +5,27 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Package, MapPin, Calendar, ArrowRight, Eye } from "lucide-react";
+import { CheckCircle, Package, MapPin, Calendar, ArrowRight, Eye, DollarSign, Truck, Home } from "lucide-react";
 import { toast } from "sonner";
 
 interface ReservationDetails {
   id: string;
+  order_id: string;
   status: string;
   created_at: string;
   pallet_name?: string;
+  pallet_cost_cents?: number;
+  pallet_capacity?: number;
   pickup_zone?: string;
   delivery_zone?: string;
+  delivery_address?: string;
+  total_amount_cents?: number;
+  shipping_cost_cents?: number;
   items: Array<{
     wine_name: string;
     quantity: number;
     vintage: string;
+    price_cents: number;
   }>;
 }
 
@@ -41,6 +48,10 @@ export default function CheckoutConfirmationPage() {
     } else {
       setLoading(false);
     }
+
+    // Clear cart cache when success page loads
+    localStorage.removeItem('cart-cache');
+    localStorage.removeItem('cart-cache-time');
   }, [reservationId, message]);
 
   const fetchReservationDetails = async () => {
@@ -85,6 +96,10 @@ export default function CheckoutConfirmationPage() {
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  const formatPrice = (cents: number) => {
+    return `${(cents / 100).toFixed(2)} SEK`;
   };
 
   if (loading) {
@@ -180,18 +195,88 @@ export default function CheckoutConfirmationPage() {
               {/* Items */}
               <div>
                 <h3 className="text-lg font-semibold mb-3">Wine Selection</h3>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {reservation.items.map((item, index) => (
-                    <div key={index} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
-                      <div>
-                        <p className="font-medium">{item.wine_name}</p>
+                    <div key={index} className="flex justify-between items-center py-3 px-4 bg-gray-50 rounded-lg">
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">{item.wine_name}</p>
                         <p className="text-sm text-gray-500">{item.vintage}</p>
                       </div>
-                      <Badge variant="outline">{item.quantity} bottles</Badge>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-600">{item.quantity} bottles</p>
+                        <p className="font-medium">{formatPrice(item.price_cents * item.quantity)}</p>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
+
+              {/* Cost Breakdown */}
+              <div className="border-t pt-4">
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <DollarSign className="w-5 h-5" />
+                  Cost Breakdown
+                </h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Wine Subtotal:</span>
+                    <span className="font-medium">
+                      {formatPrice(reservation.items.reduce((sum, item) => sum + (item.price_cents * item.quantity), 0))}
+                    </span>
+                  </div>
+                  {reservation.shipping_cost_cents && reservation.shipping_cost_cents > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Shipping:</span>
+                      <span className="font-medium">{formatPrice(reservation.shipping_cost_cents)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-lg font-semibold border-t pt-2">
+                    <span>Total:</span>
+                    <span>{formatPrice(reservation.total_amount_cents || 0)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Delivery Address */}
+              {reservation.delivery_address && (
+                <div className="border-t pt-4">
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <Home className="w-5 h-5" />
+                    Delivery Address
+                  </h3>
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <p className="text-gray-900">{reservation.delivery_address}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Pallet Information */}
+              {reservation.pallet_name && (
+                <div className="border-t pt-4">
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <Truck className="w-5 h-5" />
+                    Pallet Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-4 bg-blue-50 rounded-lg">
+                      <p className="text-sm text-blue-600 font-medium">Pallet Name</p>
+                      <p className="text-blue-900 font-semibold">{reservation.pallet_name}</p>
+                    </div>
+                    {reservation.pallet_cost_cents && (
+                      <div className="p-4 bg-green-50 rounded-lg">
+                        <p className="text-sm text-green-600 font-medium">Pallet Cost</p>
+                        <p className="text-green-900 font-semibold">{formatPrice(reservation.pallet_cost_cents)}</p>
+                      </div>
+                    )}
+                    {reservation.pallet_capacity && (
+                      <div className="p-4 bg-purple-50 rounded-lg">
+                        <p className="text-sm text-purple-600 font-medium">Capacity</p>
+                        <p className="text-purple-900 font-semibold">{reservation.pallet_capacity} bottles</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

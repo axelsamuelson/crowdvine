@@ -25,13 +25,16 @@ export async function GET(
         pallet_id,
         pickup_zone_id,
         delivery_zone_id,
-        pallets(name),
+        delivery_address,
+        total_amount_cents,
+        shipping_cost_cents,
+        pallets(name, cost_cents, bottle_capacity),
         pallet_zones!order_reservations_pickup_zone_id_fkey(name),
         pallet_zones!order_reservations_delivery_zone_id_fkey(name),
         order_reservation_items(
           wine_id,
           quantity,
-          wines(wine_name, vintage)
+          wines(wine_name, vintage, base_price_cents)
         )
       `)
       .eq('id', params.id)
@@ -64,12 +67,18 @@ export async function GET(
       created_at: reservation.created_at,
       pallet_id: reservation.pallet_id,
       pallet_name: reservation.pallets?.name || 'Unknown Pallet',
+      pallet_cost_cents: reservation.pallets?.cost_cents || 0,
+      pallet_capacity: reservation.pallets?.bottle_capacity || 0,
       pickup_zone: pickupZone?.name || 'Unknown Pickup Zone',
       delivery_zone: deliveryZone?.name || 'Unknown Delivery Zone',
+      delivery_address: reservation.delivery_address || null,
+      total_amount_cents: reservation.total_amount_cents || 0,
+      shipping_cost_cents: reservation.shipping_cost_cents || 0,
       items: reservation.order_reservation_items?.map(item => ({
         wine_name: item.wines?.wine_name || 'Unknown Wine',
         quantity: item.quantity,
-        vintage: item.wines?.vintage || 'N/A'
+        vintage: item.wines?.vintage || 'N/A',
+        price_cents: item.wines?.base_price_cents || 0
       })) || []
     };
 
