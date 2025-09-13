@@ -1,32 +1,27 @@
 /**
- * Calculate Systembolaget price based on supplier price
+ * Calculate Systembolaget price using the same formula as our prices but with 14.7% margin
  * 
- * Formula:
- * 1. Supplier price + General markup (14.7%) + Product group markup (wine: 5.40 SEK)
- * 2. + Alcohol tax (29.58 SEK per liter for wine)
- * 3. + VAT (25%)
+ * Formula (same as our pricing):
+ * 1. cost_amount * exchange_rate = costInSek
+ * 2. costInSek * (1 + 14.7%) = priceBeforeTax (instead of our margin_percentage)
+ * 3. priceBeforeTax + alcohol_tax_cents = priceAfterTax
+ * 4. priceAfterTax * 1.25 = finalPrice (VAT included)
  * 
- * @param supplierPrice - The supplier price in SEK
- * @param volume - Volume in liters (default 0.75 for standard wine bottle)
+ * @param costAmount - The cost amount in original currency
+ * @param exchangeRate - Exchange rate to SEK (default 1.0)
+ * @param alcoholTaxCents - Alcohol tax in cents (default 0)
  * @returns The calculated Systembolaget price
  */
 export function calculateSystembolagetPrice(
-  supplierPrice: number, 
-  volume: number = 0.75
+  costAmount: number,
+  exchangeRate: number = 1.0,
+  alcoholTaxCents: number = 0
 ): number {
-  // Step 1: Calculate base price with markups
-  const generalMarkup = supplierPrice * 0.147; // 14.7% general markup
-  const productGroupMarkup = 5.40; // Wine product group markup
-  const priceAfterMarkup = supplierPrice + generalMarkup + productGroupMarkup;
-  
-  // Step 2: Add alcohol tax
-  const alcoholTaxPerLiter = 29.58; // SEK per liter for wine
-  const alcoholTax = volume * alcoholTaxPerLiter;
-  const priceAfterTax = priceAfterMarkup + alcoholTax;
-  
-  // Step 3: Add VAT (25%)
-  const vat = priceAfterTax * 0.25;
-  const finalPrice = priceAfterTax + vat;
+  // Same calculation as our prices but with 14.7% margin instead of our margin
+  const costInSek = costAmount * exchangeRate;
+  const priceBeforeTax = costInSek * (1 + 0.147); // 14.7% margin
+  const priceAfterTax = priceBeforeTax + (alcoholTaxCents / 100.0);
+  const finalPrice = priceAfterTax * 1.25; // VAT included
   
   return Math.round(finalPrice * 100) / 100; // Round to 2 decimal places
 }
@@ -34,34 +29,34 @@ export function calculateSystembolagetPrice(
 /**
  * Calculate Systembolaget price for a wine with detailed breakdown
  * 
- * @param supplierPrice - The supplier price in SEK
- * @param volume - Volume in liters (default 0.75 for standard wine bottle)
+ * @param costAmount - The cost amount in original currency
+ * @param exchangeRate - Exchange rate to SEK (default 1.0)
+ * @param alcoholTaxCents - Alcohol tax in cents (default 0)
  * @returns Detailed breakdown of the price calculation
  */
 export function calculateSystembolagetPriceBreakdown(
-  supplierPrice: number, 
-  volume: number = 0.75
+  costAmount: number,
+  exchangeRate: number = 1.0,
+  alcoholTaxCents: number = 0
 ) {
-  const generalMarkup = supplierPrice * 0.147;
-  const productGroupMarkup = 5.40;
-  const priceAfterMarkup = supplierPrice + generalMarkup + productGroupMarkup;
-  
-  const alcoholTaxPerLiter = 29.58;
-  const alcoholTax = volume * alcoholTaxPerLiter;
-  const priceAfterTax = priceAfterMarkup + alcoholTax;
-  
+  const costInSek = costAmount * exchangeRate;
+  const marginAmount = costInSek * 0.147; // 14.7% margin
+  const priceBeforeTax = costInSek + marginAmount;
+  const priceAfterTax = priceBeforeTax + (alcoholTaxCents / 100.0);
   const vat = priceAfterTax * 0.25;
   const finalPrice = priceAfterTax + vat;
   
   return {
-    supplierPrice,
-    generalMarkup: Math.round(generalMarkup * 100) / 100,
-    productGroupMarkup,
-    priceAfterMarkup: Math.round(priceAfterMarkup * 100) / 100,
-    alcoholTax: Math.round(alcoholTax * 100) / 100,
+    costAmount,
+    exchangeRate,
+    costInSek: Math.round(costInSek * 100) / 100,
+    marginPercentage: 14.7,
+    marginAmount: Math.round(marginAmount * 100) / 100,
+    priceBeforeTax: Math.round(priceBeforeTax * 100) / 100,
+    alcoholTaxCents,
+    alcoholTaxSek: Math.round((alcoholTaxCents / 100.0) * 100) / 100,
     priceAfterTax: Math.round(priceAfterTax * 100) / 100,
     vat: Math.round(vat * 100) / 100,
-    finalPrice: Math.round(finalPrice * 100) / 100,
-    volume
+    finalPrice: Math.round(finalPrice * 100) / 100
   };
 }

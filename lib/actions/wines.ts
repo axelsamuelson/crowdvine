@@ -204,11 +204,12 @@ export async function createWine(data: CreateWineData) {
       data.price_includes_vat !== false ? priceAfterTax : priceAfterTax * 1.25;
     finalPriceCents = Math.ceil(finalPrice * 100); // Round up to nearest cent
     
-    // Calculate Systembolaget price if supplier_price is provided
-    if (data.supplier_price && data.supplier_price > 0) {
+    // Calculate Systembolaget price if cost_amount is provided
+    if (data.cost_amount && data.cost_amount > 0) {
       calculatedSbPrice = calculateSystembolagetPrice(
-        data.supplier_price, 
-        data.volume_liters || 0.75
+        data.cost_amount,
+        data.exchange_rate || 1.0,
+        data.alcohol_tax_cents || 0
       );
     }
   }
@@ -355,10 +356,11 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
     updateData.base_price_cents = finalPriceCents; // Also update base_price_cents for compatibility
   }
 
-  // Calculate Systembolaget price if supplier_price is updated
-  if (updateData.supplier_price !== undefined && updateData.supplier_price > 0) {
-    const volume = updateData.volume_liters || 0.75;
-    updateData.sb_price = calculateSystembolagetPrice(updateData.supplier_price, volume);
+  // Calculate Systembolaget price if cost_amount is updated
+  if (updateData.cost_amount !== undefined && updateData.cost_amount > 0) {
+    const exchangeRate = updateData.exchange_rate ?? currentWine?.exchange_rate ?? 1.0;
+    const alcoholTaxCents = updateData.alcohol_tax_cents ?? currentWine?.alcohol_tax_cents ?? 0;
+    updateData.sb_price = calculateSystembolagetPrice(updateData.cost_amount, exchangeRate, alcoholTaxCents);
   }
 
   // Update wine

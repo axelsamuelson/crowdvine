@@ -5,7 +5,7 @@
 SELECT 
   id,
   wine_name,
-  price,
+  base_price_cents,
   volume_liters,
   supplier_price
 FROM wines 
@@ -28,10 +28,10 @@ WHERE supplier_price IS NOT NULL;
 SELECT 
   id,
   wine_name,
-  price as our_price,
+  ROUND(base_price_cents / 100, 2) as our_price,
   supplier_price,
   sb_price,
-  ROUND(((sb_price - price) / price) * 100, 1) as price_difference_percent
+  ROUND(((sb_price - (base_price_cents / 100)) / (base_price_cents / 100)) * 100, 1) as price_difference_percent
 FROM wines 
 WHERE sb_price IS NOT NULL
 ORDER BY wine_name;
