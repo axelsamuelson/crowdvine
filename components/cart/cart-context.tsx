@@ -312,7 +312,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<UseCartReturn>(
     () => ({
-      cart: optimisticCart || createEmptyCart(),
+      cart: optimisticCart, // Don't create empty cart - let it be undefined until loaded
       addItem: add,
       updateItem: update,
       isPending,

@@ -161,6 +161,11 @@ export default function CartModal() {
     return <CartItems closeCart={closeCart} />;
   };
 
+  // Don't render cart button if no cart data
+  if (!cart) {
+    return null;
+  }
+
   return (
     <>
       <Button
@@ -177,7 +182,7 @@ export default function CartModal() {
           </div>
         ) : (
           <>
-            <span className="max-md:hidden">cart</span> ({cart?.totalQuantity || 0})
+            <span className="max-md:hidden">cart</span> ({cart.totalQuantity})
           </>
         )}
       </Button>
