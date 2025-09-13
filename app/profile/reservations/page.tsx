@@ -15,6 +15,7 @@ import {
   Truck
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { DeliveryProgress } from "@/components/reservations/delivery-progress";
 
 interface Reservation {
@@ -73,7 +74,7 @@ export default function ReservationsPage() {
       if (!response.ok) {
         if (response.status === 500) {
           setReservations([]);
-          setPalletData([]);
+          setAddressPalletData([]);
           setLoading(false);
           return;
         }
@@ -126,8 +127,17 @@ export default function ReservationsPage() {
 
       // Update latest order date
       try {
-        if (new Date(reservation.created_at) > new Date(group.latestOrderDate)) {
-          group.latestOrderDate = reservation.created_at;
+        // Validate both dates before comparison
+        if (reservation.created_at && group.latestOrderDate) {
+          const reservationDate = new Date(reservation.created_at);
+          const groupDate = new Date(group.latestOrderDate);
+          
+          // Check if both dates are valid
+          if (!isNaN(reservationDate.getTime()) && !isNaN(groupDate.getTime())) {
+            if (reservationDate > groupDate) {
+              group.latestOrderDate = reservation.created_at;
+            }
+          }
         }
       } catch (error) {
         console.error('Error comparing dates:', error);
@@ -159,7 +169,20 @@ export default function ReservationsPage() {
 
     return Array.from(addressPalletMap.values()).sort((a, b) => {
       try {
-        return new Date(b.latestOrderDate).getTime() - new Date(a.latestOrderDate).getTime();
+        // Validate both dates before comparison
+        if (!a.latestOrderDate || !b.latestOrderDate) {
+          return 0;
+        }
+        
+        const dateA = new Date(a.latestOrderDate);
+        const dateB = new Date(b.latestOrderDate);
+        
+        // Check if both dates are valid
+        if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) {
+          return 0;
+        }
+        
+        return dateB.getTime() - dateA.getTime();
       } catch (error) {
         console.error('Error sorting by date:', error);
         return 0;
@@ -169,7 +192,19 @@ export default function ReservationsPage() {
 
   const formatDate = (dateString: string) => {
     try {
-      return new Date(dateString).toLocaleDateString("en-US", {
+      // Validate that dateString is not empty and is a valid date
+      if (!dateString || typeof dateString !== 'string') {
+        return 'Invalid Date';
+      }
+      
+      const date = new Date(dateString);
+      
+      // Check if the date is valid
+      if (isNaN(date.getTime())) {
+        return 'Invalid Date';
+      }
+      
+      return date.toLocaleDateString("en-US", {
         year: "numeric",
         month: "short",
         day: "numeric",
