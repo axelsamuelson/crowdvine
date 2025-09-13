@@ -7,6 +7,7 @@ const PUBLIC = [
   '/api/set-access-cookie', // Allow access cookie setting
   '/api/crowdvine', // Allow crowdvine API routes for products/collections
   '/api/user', // Allow user API routes for profile and reservations
+  '/api/debug', // Allow debug API routes
   '/product', '/shop', '/profile', // Allow product, shop, and profile pages
   '/admin', '/admin-auth', '/api/admin' // Allow admin access and admin APIs
 ];

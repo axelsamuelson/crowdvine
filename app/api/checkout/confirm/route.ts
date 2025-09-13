@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { CartService } from "@/src/lib/cart-service";
 import { supabaseServer, getCurrentUser } from "@/lib/supabase-server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { determineZones } from "@/lib/zone-matching";
 
 export async function POST(request: Request) {
@@ -54,6 +55,7 @@ export async function POST(request: Request) {
     console.log("Processing cart:", cart);
 
     const sb = await supabaseServer();
+    const sbAdmin = getSupabaseAdmin();
 
     // Get current user if authenticated
     const currentUser = await getCurrentUser();
@@ -88,7 +90,7 @@ export async function POST(request: Request) {
 
     // Create order reservation
     console.log("Creating order reservation");
-    const { data: reservation, error: reservationError } = await sb
+    const { data: reservation, error: reservationError } = await sbAdmin
       .from("order_reservations")
       .insert({
         user_id: currentUser?.id || null,
