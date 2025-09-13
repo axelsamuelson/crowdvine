@@ -6,15 +6,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { PageLayout } from "@/components/layout/page-layout";
-import { 
-  Package, 
+import {
+  Package,
   Wine,
   ArrowLeft,
   Calendar,
-  MapPin
+  MapPin,
+  Truck
 } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
+import { DeliveryProgress } from "@/components/reservations/delivery-progress";
 
 interface Reservation {
   id: string;
@@ -318,6 +319,23 @@ export default function ReservationsPage() {
                                  </div>
                                </div>
                              ))}
+                           </div>
+                         </div>
+
+                         <Separator className="my-6" />
+
+                         {/* Delivery Progress */}
+                         <div className="mb-6">
+                           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                             <Truck className="w-5 h-5" />
+                             Delivery Progress
+                           </h3>
+                           <div className="p-4 bg-gray-50 rounded-lg border">
+                             <DeliveryProgress 
+                               status="placed" 
+                               created_at={group.latestOrderDate}
+                               className="w-full"
+                             />
                            </div>
                          </div>
 
