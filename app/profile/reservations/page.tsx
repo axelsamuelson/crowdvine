@@ -14,6 +14,7 @@ import {
   MapPin
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface Reservation {
   id: string;
@@ -29,6 +30,9 @@ interface Reservation {
     wine_name: string;
     quantity: number;
     vintage: string;
+    image_path?: string;
+    grape_varieties?: string;
+    color?: string;
   }>;
 }
 
@@ -39,6 +43,9 @@ interface PalletData {
     wine_name: string;
     vintage: string;
     totalQuantity: number;
+    image_path?: string;
+    grape_varieties?: string;
+    color?: string;
   }>;
   totalBottles: number;
   deliveryZone?: string;
@@ -128,7 +135,10 @@ export default function ReservationsPage() {
           pallet.wines.push({
             wine_name: item.wine_name,
             vintage: item.vintage,
-            totalQuantity: item.quantity
+            totalQuantity: item.quantity,
+            image_path: item.image_path,
+            grape_varieties: item.grape_varieties,
+            color: item.color
           });
         }
       });
@@ -242,14 +252,33 @@ export default function ReservationsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {pallet.wines.map((wine, index) => (
                         <div key={index} className="p-4 border rounded-lg bg-gray-50">
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <h4 className="font-medium text-gray-900">{wine.wine_name}</h4>
+                          <div className="flex items-center gap-3">
+                            {wine.image_path && (
+                              <div className="w-16 h-16 relative flex-shrink-0">
+                                <Image
+                                  src={wine.image_path}
+                                  alt={wine.wine_name}
+                                  fill
+                                  className="object-cover rounded-lg"
+                                  sizes="64px"
+                                />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-gray-900 truncate">{wine.wine_name}</h4>
                               <p className="text-sm text-gray-600">{wine.vintage}</p>
+                              {wine.grape_varieties && (
+                                <p className="text-xs text-gray-500 truncate">{wine.grape_varieties}</p>
+                              )}
+                              <div className="flex items-center gap-2 mt-1">
+                                <Badge variant="outline" className="text-xs">
+                                  {wine.color}
+                                </Badge>
+                                <Badge variant="secondary" className="text-xs">
+                                  {wine.totalQuantity} bottle{wine.totalQuantity !== 1 ? 's' : ''}
+                                </Badge>
+                              </div>
                             </div>
-                            <Badge variant="secondary" className="ml-2">
-                              {wine.totalQuantity}
-                            </Badge>
                           </div>
                         </div>
                       ))}

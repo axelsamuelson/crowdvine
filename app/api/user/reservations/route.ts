@@ -32,22 +32,74 @@ export async function GET() {
     }
 
     // Transform the data to match the expected format
-    const transformedReservations = reservations.map(reservation => ({
-      id: reservation.id,
-      order_id: reservation.order_id || reservation.id,
-      status: reservation.status,
-      created_at: reservation.created_at,
-      pallet_id: reservation.pallet_id,
-      pallet_name: 'Stockholm Pallet', // Temporary hardcoded for testing
-      pickup_zone: 'Stockholm Pickup Zone',
-      delivery_zone: 'Stockholm Delivery Zone',
-      items: [
-        {
-          wine_name: 'Test Wine',
-          quantity: 2,
-          vintage: '2020'
-        }
-      ]
+    const transformedReservations = await Promise.all(reservations.map(async (reservation) => {
+      // Get pallet name
+      let palletName = 'Unassigned Pallet';
+      if (reservation.pallet_id) {
+        const { data: pallet } = await supabase
+          .from('pallets')
+          .select('name')
+          .eq('id', reservation.pallet_id)
+          .single();
+        palletName = pallet?.name || 'Unknown Pallet';
+      }
+
+      // Get zone names
+      let pickupZoneName = 'Unknown Pickup Zone';
+      let deliveryZoneName = 'Unknown Delivery Zone';
+      
+      if (reservation.pickup_zone_id) {
+        const { data: pickupZone } = await supabase
+          .from('pallet_zones')
+          .select('name')
+          .eq('id', reservation.pickup_zone_id)
+          .single();
+        pickupZoneName = pickupZone?.name || 'Unknown Pickup Zone';
+      }
+      
+      if (reservation.delivery_zone_id) {
+        const { data: deliveryZone } = await supabase
+          .from('pallet_zones')
+          .select('name')
+          .eq('id', reservation.delivery_zone_id)
+          .single();
+        deliveryZoneName = deliveryZone?.name || 'Unknown Delivery Zone';
+      }
+
+      // Get reservation items with wine details
+      const { data: items } = await supabase
+        .from('order_reservation_items')
+        .select(`
+          item_id,
+          quantity,
+          wines(
+            wine_name,
+            vintage,
+            label_image_path,
+            grape_varieties,
+            color
+          )
+        `)
+        .eq('reservation_id', reservation.id);
+
+      return {
+        id: reservation.id,
+        order_id: reservation.order_id || reservation.id,
+        status: reservation.status,
+        created_at: reservation.created_at,
+        pallet_id: reservation.pallet_id,
+        pallet_name: palletName,
+        pickup_zone: pickupZoneName,
+        delivery_zone: deliveryZoneName,
+        items: items?.map(item => ({
+          wine_name: item.wines?.wine_name || 'Unknown Wine',
+          quantity: item.quantity,
+          vintage: item.wines?.vintage || 'N/A',
+          image_path: item.wines?.label_image_path || null,
+          grape_varieties: item.wines?.grape_varieties || null,
+          color: item.wines?.color || null
+        })) || []
+      };
     }));
 
     return NextResponse.json(transformedReservations);
