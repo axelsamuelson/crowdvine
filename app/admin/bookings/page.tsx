@@ -59,7 +59,16 @@ export default function BookingsPage() {
         
         return {
           ...booking,
-          reservation: matchingReservation
+          reservation: matchingReservation || {
+            id: booking.user_id, // Use user_id as fallback
+            status: booking.status || 'reserved',
+            created_at: booking.created_at,
+            user_id: booking.user_id,
+            profiles: {
+              email: `user-${booking.user_id.substring(0, 8)}`,
+              role: 'customer'
+            }
+          }
         };
       }) || [];
       

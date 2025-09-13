@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabase-server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET() {
   try {
-    const sb = await supabaseServer();
+    const sb = getSupabaseAdmin();
 
     // Hämta alla bokningar med relaterad data
     const { data: bookings, error: bookingsError } = await sb
@@ -16,6 +16,7 @@ export async function GET() {
         status,
         created_at,
         user_id,
+        pallet_id,
         wines(
           id,
           wine_name,
@@ -32,9 +33,7 @@ export async function GET() {
         pallets(
           id,
           name,
-          bottle_capacity,
-          delivery_zone:pallet_zones!delivery_zone_id(name),
-          pickup_zone:pallet_zones!pickup_zone_id(name)
+          bottle_capacity
         )
       `,
       )
@@ -45,6 +44,8 @@ export async function GET() {
       return NextResponse.json({ error: "Failed to fetch bookings" }, { status: 500 });
     }
 
+    console.log(`Found ${bookings?.length || 0} bookings`);
+
     // Hämta reservations för att få kundinformation och order ID
     const { data: reservations, error: reservationsError } = await sb
       .from("order_reservations")
@@ -53,18 +54,20 @@ export async function GET() {
         status,
         created_at,
         user_id,
-        profiles(
-          id,
-          email,
-          role
-        )
+        order_id
       `)
       .order("created_at", { ascending: false });
 
     if (reservationsError) {
       console.error("Error fetching reservations:", reservationsError);
-      return NextResponse.json({ error: "Failed to fetch reservations" }, { status: 500 });
+      // Return bookings even if reservations fail
+      return NextResponse.json({
+        bookings: bookings || [],
+        reservations: []
+      });
     }
+
+    console.log(`Found ${reservations?.length || 0} reservations`);
 
     return NextResponse.json({
       bookings: bookings || [],
@@ -85,7 +88,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "No booking IDs provided" }, { status: 400 });
     }
 
-    const sb = await supabaseServer();
+    const sb = getSupabaseAdmin();
 
     const { error } = await sb
       .from("bookings")
