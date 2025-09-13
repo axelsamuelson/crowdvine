@@ -300,7 +300,7 @@ export default function CheckoutPage() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto p-6">
+      <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
         <div className="animate-pulse space-y-6">
           <div className="h-8 bg-gray-200 rounded mb-4"></div>
           <div className="h-4 bg-gray-200 rounded mb-2"></div>
@@ -312,7 +312,7 @@ export default function CheckoutPage() {
 
   if (!cart || cart.totalQuantity === 0) {
     return (
-      <div className="max-w-4xl mx-auto p-6">
+      <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
         <h1 className="text-2xl font-semibold mb-4">Checkout</h1>
         <p className="text-gray-600">
           Your cart is empty. Please add some items before proceeding to checkout.
@@ -331,7 +331,7 @@ export default function CheckoutPage() {
   const hasCompleteProfileAddress = profile?.address && profile?.city && profile?.postal_code;
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-8">
+    <div className="max-w-4xl mx-auto p-6 pt-top-spacing space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Checkout</h1>
         <p className="text-gray-600 mt-2">Complete your wine reservation</p>

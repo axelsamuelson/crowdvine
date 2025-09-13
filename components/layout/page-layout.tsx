@@ -8,7 +8,7 @@ export const PageLayout = ({
   className?: string;
 }) => {
   return (
-    <div className={className}>
+    <div className={`pt-top-spacing ${className || ''}`}>
       <main>{children}</main>
       <Footer />
     </div>
