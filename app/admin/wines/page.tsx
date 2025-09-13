@@ -57,7 +57,13 @@ export default async function WinesPage() {
                     Color
                   </th>
                   <th className="text-left p-3 font-medium text-sm text-gray-600">
-                    Price
+                    Our Price
+                  </th>
+                  <th className="text-left p-3 font-medium text-sm text-gray-600">
+                    Systembolaget Price
+                  </th>
+                  <th className="text-left p-3 font-medium text-sm text-gray-600">
+                    Difference
                   </th>
                   <th className="text-left p-3 font-medium text-sm text-gray-600">
                     Handle
@@ -118,6 +124,33 @@ export default async function WinesPage() {
                     </td>
                     <td className="p-3 font-medium text-gray-900">
                       {Math.ceil(wine.base_price_cents / 100)} SEK
+                    </td>
+                    <td className="p-3 font-medium text-gray-900">
+                      {wine.sb_price ? `${wine.sb_price.toFixed(2)} SEK` : 'N/A'}
+                    </td>
+                    <td className="p-3">
+                      {wine.sb_price ? (
+                        <div className="flex flex-col">
+                          <span className={`text-sm font-medium ${
+                            wine.sb_price > Math.ceil(wine.base_price_cents / 100) 
+                              ? 'text-red-600' 
+                              : 'text-green-600'
+                          }`}>
+                            {wine.sb_price > Math.ceil(wine.base_price_cents / 100) ? '+' : ''}
+                            {(wine.sb_price - Math.ceil(wine.base_price_cents / 100)).toFixed(2)} SEK
+                          </span>
+                          <span className={`text-xs ${
+                            wine.sb_price > Math.ceil(wine.base_price_cents / 100) 
+                              ? 'text-red-500' 
+                              : 'text-green-500'
+                          }`}>
+                            {wine.sb_price > Math.ceil(wine.base_price_cents / 100) ? '+' : ''}
+                            {(((wine.sb_price - Math.ceil(wine.base_price_cents / 100)) / Math.ceil(wine.base_price_cents / 100)) * 100).toFixed(1)}%
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-sm">N/A</span>
+                      )}
                     </td>
                     <td className="p-3 text-sm text-gray-500 font-mono">
                       {wine.handle}

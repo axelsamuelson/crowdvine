@@ -2,6 +2,7 @@
 
 import { supabaseServer } from "@/lib/supabase-server";
 import { revalidatePath } from "next/cache";
+import { calculateSystembolagetPrice } from "@/lib/systembolaget-pricing";
 
 export interface Wine {
   id: string;
@@ -30,6 +31,10 @@ export interface Wine {
   price_includes_vat: boolean;
   margin_percentage: number;
   calculated_price_cents: number;
+  // Systembolaget pricing
+  supplier_price?: number;
+  sb_price?: number;
+  volume_liters?: number;
   // Description fields
   description?: string;
   description_html?: string;
@@ -55,6 +60,10 @@ export interface CreateWineData {
   alcohol_tax_cents: number;
   price_includes_vat: boolean;
   margin_percentage: number;
+  // Systembolaget pricing
+  supplier_price?: number;
+  sb_price?: number;
+  volume_liters?: number;
   // Description fields
   description?: string;
   description_html?: string;
@@ -88,6 +97,9 @@ export async function getWines() {
       price_includes_vat,
       margin_percentage,
       calculated_price_cents,
+      supplier_price,
+      sb_price,
+      volume_liters,
       description,
       description_html,
       created_at,
@@ -145,6 +157,9 @@ export async function getWine(id: string) {
       price_includes_vat,
       margin_percentage,
       calculated_price_cents,
+      supplier_price,
+      sb_price,
+      volume_liters,
       description,
       description_html,
       created_at,
@@ -176,6 +191,8 @@ export async function createWine(data: CreateWineData) {
 
   // Calculate price if pricing data is provided
   let finalPriceCents = data.base_price_cents;
+  let calculatedSbPrice = null;
+  
   if (data.cost_amount && data.cost_amount > 0) {
     const exchangeRate = data.exchange_rate || 1.0;
     const costInSek = data.cost_amount * exchangeRate;
@@ -186,6 +203,14 @@ export async function createWine(data: CreateWineData) {
     const finalPrice =
       data.price_includes_vat !== false ? priceAfterTax : priceAfterTax * 1.25;
     finalPriceCents = Math.ceil(finalPrice * 100); // Round up to nearest cent
+    
+    // Calculate Systembolaget price if supplier_price is provided
+    if (data.supplier_price && data.supplier_price > 0) {
+      calculatedSbPrice = calculateSystembolagetPrice(
+        data.supplier_price, 
+        data.volume_liters || 0.75
+      );
+    }
   }
 
   // Prepare insert data
@@ -193,6 +218,7 @@ export async function createWine(data: CreateWineData) {
     ...data,
     base_price_cents: finalPriceCents,
     calculated_price_cents: finalPriceCents,
+    sb_price: calculatedSbPrice,
   };
 
   // First create the wine
@@ -221,6 +247,9 @@ export async function createWine(data: CreateWineData) {
       price_includes_vat,
       margin_percentage,
       calculated_price_cents,
+      supplier_price,
+      sb_price,
+      volume_liters,
       created_at,
       updated_at
     `,
@@ -283,6 +312,8 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
     updateData.margin_percentage = data.margin_percentage;
   if (data.description !== undefined) updateData.description = data.description;
   if (data.description_html !== undefined) updateData.description_html = data.description_html;
+  if (data.supplier_price !== undefined) updateData.supplier_price = data.supplier_price;
+  if (data.volume_liters !== undefined) updateData.volume_liters = data.volume_liters;
 
   // Calculate price manually to avoid trigger loop
   if (
@@ -296,7 +327,7 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
     const { data: currentWine } = await sb
       .from("wines")
       .select(
-        "cost_amount, exchange_rate, alcohol_tax_cents, price_includes_vat, margin_percentage",
+        "cost_amount, exchange_rate, alcohol_tax_cents, price_includes_vat, margin_percentage, volume_liters",
       )
       .eq("id", id)
       .single();
@@ -322,6 +353,12 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
     // Add calculated price to update data
     updateData.calculated_price_cents = finalPriceCents;
     updateData.base_price_cents = finalPriceCents; // Also update base_price_cents for compatibility
+  }
+
+  // Calculate Systembolaget price if supplier_price is updated
+  if (updateData.supplier_price !== undefined && updateData.supplier_price > 0) {
+    const volume = updateData.volume_liters || 0.75;
+    updateData.sb_price = calculateSystembolagetPrice(updateData.supplier_price, volume);
   }
 
   // Update wine
@@ -351,6 +388,9 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
       price_includes_vat,
       margin_percentage,
       calculated_price_cents,
+      supplier_price,
+      sb_price,
+      volume_liters,
       created_at,
       updated_at
     `,
