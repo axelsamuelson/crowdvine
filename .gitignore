@@ -18,10 +18,19 @@ yarn-error.log*
 
 # env files
 .env*
+!.env.example
 
 # vercel
 .vercel
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
+next-env.d.ts.DS_Store
+
+# uploads
+/public/uploads/*
+!/public/uploads/.gitkeep
+
+# Large files and deployment artifacts
+*.zip
+deployment/

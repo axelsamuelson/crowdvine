@@ -1,0 +1,41 @@
+# Cursor ignore file
+# This file tells Cursor which files to ignore
+
+
+
+# Node modules
+node_modules/
+
+# Build outputs
+.next/
+out/
+build/
+dist/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+tmp/
+temp/
+
+# Note: .env.local is NOT ignored here so Cursor can read it
+# But it's still ignored by .gitignore to keep secrets safe

@@ -1,8 +1,13 @@
-import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
-import { getCollection, getProduct, getProducts } from '@/lib/shopify';
-import { HIDDEN_PRODUCT_TAG } from '@/lib/constants';
+import {
+  getCollection,
+  getProduct,
+  getProducts,
+  getCollectionProducts,
+} from "@/lib/shopify";
+import { HIDDEN_PRODUCT_TAG } from "@/lib/constants";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -10,38 +15,37 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
   BreadcrumbPage,
-} from '@/components/ui/breadcrumb';
-import Link from 'next/link';
-import { SidebarLinks } from '@/components/layout/sidebar/product-sidebar-links';
-import { AddToCart, AddToCartButton } from '@/components/cart/add-to-cart';
-import { storeCatalog } from '@/lib/shopify/constants';
-import Prose from '@/components/prose';
-import { formatPrice } from '@/lib/shopify/utils';
-import { Suspense } from 'react';
-import { cn } from '@/lib/utils';
-import { PageLayout } from '@/components/layout/page-layout';
-import { VariantSelectorSlots } from './components/variant-selector-slots';
-import { MobileGallerySlider } from './components/mobile-gallery-slider';
-import { DesktopGallery } from './components/desktop-gallery';
+} from "@/components/ui/breadcrumb";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { storeCatalog } from "@/lib/shopify/constants";
+import Prose from "@/components/prose";
+import { formatPrice } from "@/lib/shopify/utils";
+import { Suspense } from "react";
+import { cn } from "@/lib/utils";
+import { PageLayout } from "@/components/layout/page-layout";
+import { VariantSelectorSlots } from "./components/variant-selector-slots";
+import { MobileGallerySlider } from "./components/mobile-gallery-slider";
+import { DesktopGallery } from "./components/desktop-gallery";
+import { WineBoxDiscountInfo } from "@/components/products/wine-box-discount-info";
 
 // Generate static params for all products at build time
 export async function generateStaticParams() {
-  try {
-    const products = await getProducts({ limit: 100 }); // Get first 100 products
-
-    return products.map(product => ({
-      handle: product.handle,
-    }));
-  } catch (error) {
-    console.error('Error generating static params for products:', error);
-    return [];
-  }
+  // Return static sample handles for build time
+  // In production, these will be replaced by Cloudflare Pages Functions
+  return [
+    { handle: 'sample-wine-1' },
+    { handle: 'sample-wine-2' },
+    { handle: 'sample-wine-box-1' },
+  ];
 }
 
 // Enable ISR with 1 minute revalidation
 export const revalidate = 60;
 
-export async function generateMetadata(props: { params: Promise<{ handle: string }> }): Promise<Metadata> {
+export async function generateMetadata(props: {
+  params: Promise<{ handle: string }>;
+}): Promise<Metadata> {
   const params = await props.params;
   const product = await getProduct(params.handle);
 
@@ -76,23 +80,29 @@ export async function generateMetadata(props: { params: Promise<{ handle: string
   };
 }
 
-export default async function ProductPage(props: { params: Promise<{ handle: string }> }) {
+export default async function ProductPage(props: {
+  params: Promise<{ handle: string }>;
+}) {
   const params = await props.params;
   const product = await getProduct(params.handle);
 
   if (!product) return notFound();
 
-  const collection = product.categoryId ? await getCollection(product.categoryId) : null;
+  const collection = product.categoryId
+    ? await getCollection(product.categoryId)
+    : null;
 
   const productJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Product',
+    "@context": "https://schema.org",
+    "@type": "Product",
     name: product.title,
     description: product.description,
     image: product.featuredImage.url,
     offers: {
-      '@type': 'AggregateOffer',
-      availability: product.availableForSale ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+      "@type": "AggregateOffer",
+      availability: product.availableForSale
+        ? "https://schema.org/InStock"
+        : "https://schema.org/OutOfStock",
       priceCurrency: product.currencyCode,
       highPrice: product.priceRange.maxVariantPrice.amount,
       lowPrice: product.priceRange.minVariantPrice.amount,
@@ -100,7 +110,7 @@ export default async function ProductPage(props: { params: Promise<{ handle: str
   };
 
   const [rootParentCategory] = collection?.parentCategoryTree.filter(
-    (c: any) => c.id !== storeCatalog.rootCategoryId
+    (c: any) => c.id !== storeCatalog.rootCategoryId,
   ) ?? [undefined];
 
   const hasVariants = product.variants.length > 1;
@@ -134,7 +144,18 @@ export default async function ProductPage(props: { params: Promise<{ handle: str
                     </Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
-                {rootParentCategory && (
+                {product.tags.includes("wine-box") ? (
+                  <>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      <BreadcrumbLink asChild>
+                        <Link href="/shop/wine-boxes" prefetch>
+                          Wine Boxes
+                        </Link>
+                      </BreadcrumbLink>
+                    </BreadcrumbItem>
+                  </>
+                ) : rootParentCategory ? (
                   <>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
@@ -145,7 +166,7 @@ export default async function ProductPage(props: { params: Promise<{ handle: str
                       </BreadcrumbLink>
                     </BreadcrumbItem>
                   </>
-                )}
+                ) : null}
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
                   <BreadcrumbPage>{product.title}</BreadcrumbPage>
@@ -162,39 +183,36 @@ export default async function ProductPage(props: { params: Promise<{ handle: str
                 <p className="flex gap-3 items-center text-lg font-semibold lg:text-xl 2xl:text-2xl max-md:mt-8">
                   {formatPrice(
                     product.priceRange.minVariantPrice.amount,
-                    product.priceRange.minVariantPrice.currencyCode
+                    product.priceRange.minVariantPrice.currencyCode,
                   )}
                   {product.compareAtPrice && (
                     <span className="line-through opacity-30">
-                      {formatPrice(product.compareAtPrice.amount, product.compareAtPrice.currencyCode)}
+                      {formatPrice(
+                        product.compareAtPrice.amount,
+                        product.compareAtPrice.currencyCode,
+                      )}
                     </span>
                   )}
                 </p>
               </div>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <Suspense fallback={<div className="h-10 bg-muted animate-pulse rounded" />}>
+                <Suspense
+                  fallback={
+                    <div className="h-10 bg-muted animate-pulse rounded" />
+                  }
+                >
                   <VariantSelectorSlots product={product} />
                 </Suspense>
 
-                <Suspense
-                  fallback={
-                    <AddToCartButton
-                      className={cn('w-full', {
-                        'col-span-full': !hasVariants || hasEvenOptions,
-                      })}
-                      product={product}
-                      size="lg"
-                    />
-                  }
+                <Button
+                  className={cn("w-full", {
+                    "col-span-full": !hasVariants || hasEvenOptions,
+                  })}
+                  size="lg"
+                  disabled
                 >
-                  <AddToCart
-                    product={product}
-                    size="lg"
-                    className={cn('w-full', {
-                      'col-span-full': !hasVariants || hasEvenOptions,
-                    })}
-                  />
-                </Suspense>
+                  Add to Cart (Coming Soon)
+                </Button>
               </div>
             </div>
           </div>
@@ -203,6 +221,8 @@ export default async function ProductPage(props: { params: Promise<{ handle: str
             className="col-span-full mb-auto opacity-70 max-md:order-3 max-md:my-6"
             html={product.descriptionHtml}
           />
+
+          <WineBoxDiscountInfo product={product} />
 
           <SidebarLinks className="flex-col-reverse max-md:hidden py-sides w-full max-w-[408px] pr-sides max-md:pr-0 max-md:py-0" />
         </div>

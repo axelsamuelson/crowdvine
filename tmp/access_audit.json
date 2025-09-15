@@ -1,0 +1,53 @@
+{
+  "paths": {
+    "accessPage": "/app/access-request/page.tsx",
+    "middleware": "/middleware.ts",
+    "redeemApi": null,
+    "meAccessApi": null,
+    "layoutGuards": ["/app/layout.tsx"]
+  },
+  "profile": { 
+    "accessGrantedAt": false, 
+    "inviteCodeUsed": false 
+  },
+  "invites": { 
+    "table": true, 
+    "fields": ["code","created_by","used_at","used_by","expires_at","is_active"], 
+    "consumeRpc": true 
+  },
+  "cookie": { 
+    "name": null, 
+    "setOnRedeem": false, 
+    "setOnLogin": false 
+  },
+  "middleware": { 
+    "redirectTo": "/access-request", 
+    "publicWhitelisted": ["/access-request","/api/access-request","/api/invitation-codes","/log-in","/signup","/auth","/_next","/favicon.ico","/api/auth","/admin","/admin-auth"],
+    "enabled": false
+  },
+  "meAccessApi": false,
+  "smartRedirectOnAccessRequest": false,
+  "rls": { 
+    "enabled": true, 
+    "requiresAccess": [] 
+  },
+  "notes": [
+    "Middleware completely disabled - all routes public",
+    "All form validation is mocked - no real API calls",
+    "Admin panel uses mock data - not connected to database",
+    "No access cookie system implemented",
+    "No RLS policies on sensitive tables (bookings, producers, wines)",
+    "Access control tables exist but unused",
+    "No server-side access verification"
+  ],
+  "nextSteps": [
+    "Implement real invitation code redeem API",
+    "Implement access request submission API", 
+    "Add access cookie system",
+    "Enable middleware with access control",
+    "Add smart redirect logic",
+    "Implement RLS policies on sensitive tables",
+    "Connect admin panel to real data",
+    "Add access verification API"
+  ]
+}

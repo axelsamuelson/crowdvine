@@ -1,11 +1,14 @@
-'use client';
+"use client";
 
-import { useQueryState, parseAsArrayOf, parseAsString } from 'nuqs';
-import { useParams } from 'next/navigation';
+import { useQueryState, parseAsArrayOf, parseAsString } from "nuqs";
+import { useParams } from "next/navigation";
 
 export function useFilterCount() {
   const params = useParams<{ collection: string }>();
-  const [color] = useQueryState('fcolor', parseAsArrayOf(parseAsString).withDefault([]));
+  const [color] = useQueryState(
+    "fcolor",
+    parseAsArrayOf(parseAsString).withDefault([]),
+  );
 
   // Count active filters
   let count = 0;
@@ -31,7 +34,10 @@ export function useCategoryFilterCount() {
 }
 
 export function useColorFilterCount() {
-  const [color] = useQueryState('fcolor', parseAsArrayOf(parseAsString).withDefault([]));
+  const [color] = useQueryState(
+    "fcolor",
+    parseAsArrayOf(parseAsString).withDefault([]),
+  );
 
   // Return the number of selected color filters
   return color.length;

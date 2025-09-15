@@ -18,6 +18,27 @@
     gap: var(--sides);
   }
 
+  @keyframes shine {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  .animate-shine {
+    animation: shine 2s ease-in-out infinite;
+  }
+
+  .shadow-button {
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  .shadow-button-hover {
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2), 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+
   .base-gap {
     gap: var(--sides);
   }
@@ -68,6 +89,7 @@
   --top-spacing: 5rem;
   --height-fold: 100vh;
   --height-fold: 100svh;
+  --inset: min(2vw, 1.5rem);
 
   @screen md {
     --sides: 1.5rem;

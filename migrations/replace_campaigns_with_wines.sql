@@ -1,0 +1,64 @@
+-- Migration: Replace campaigns and campaign_items with wines table
+-- Date: 2025-01-02
+
+-- Create new wines table
+CREATE TABLE wines (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    handle VARCHAR(255) UNIQUE NOT NULL,
+    wine_name VARCHAR(255) NOT NULL,
+    vintage VARCHAR(10) NOT NULL,
+    grape_varieties TEXT,
+    color VARCHAR(50),
+    label_image_path TEXT,
+    base_price_cents INTEGER NOT NULL,
+    producer_id UUID NOT NULL REFERENCES producers(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create indexes for better performance
+CREATE INDEX idx_wines_producer_id ON wines(producer_id);
+CREATE INDEX idx_wines_handle ON wines(handle);
+CREATE INDEX idx_wines_vintage ON wines(vintage);
+CREATE INDEX idx_wines_color ON wines(color);
+
+-- Migrate existing data from campaign_items to wines
+INSERT INTO wines (
+    id,
+    handle,
+    wine_name,
+    vintage,
+    grape_varieties,
+    color,
+    label_image_path,
+    base_price_cents,
+    producer_id,
+    created_at,
+    updated_at
+)
+SELECT 
+    ci.id,
+    ci.handle,
+    ci.wine_name,
+    ci.vintage,
+    ci.grape_varieties,
+    ci.color,
+    ci.label_image_path,
+    ci.base_price_cents,
+    COALESCE(ci.producer_id, c.producer_id) as producer_id,
+    ci.created_at,
+    ci.created_at as updated_at
+FROM campaign_items ci
+LEFT JOIN campaigns c ON ci.campaign_id = c.id;
+
+-- Update bookings table to reference wines instead of campaign_items
+ALTER TABLE bookings 
+DROP CONSTRAINT IF EXISTS bookings_item_id_fkey;
+
+ALTER TABLE bookings 
+ADD CONSTRAINT bookings_item_id_fkey 
+FOREIGN KEY (item_id) REFERENCES wines(id);
+
+-- Drop old tables
+DROP TABLE campaign_items CASCADE;
+DROP TABLE campaigns CASCADE;

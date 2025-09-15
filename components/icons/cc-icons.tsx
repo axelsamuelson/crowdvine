@@ -1,4 +1,4 @@
-export function VisaIcon(props: React.ComponentProps<'svg'>) {
+export function VisaIcon(props: React.ComponentProps<"svg">) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 500" {...props}>
       <path
@@ -17,7 +17,7 @@ export function VisaIcon(props: React.ComponentProps<'svg'>) {
   );
 }
 
-export function MasterCardIcon(props: React.ComponentProps<'svg'>) {
+export function MasterCardIcon(props: React.ComponentProps<"svg">) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 500" {...props}>
       <path
@@ -40,7 +40,7 @@ export function MasterCardIcon(props: React.ComponentProps<'svg'>) {
   );
 }
 
-export function AmexIcon(props: React.ComponentProps<'svg'>) {
+export function AmexIcon(props: React.ComponentProps<"svg">) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 500" {...props}>
       <path
@@ -55,7 +55,7 @@ export function AmexIcon(props: React.ComponentProps<'svg'>) {
   );
 }
 
-export function DiscoverIcon(props: React.ComponentProps<'svg'>) {
+export function DiscoverIcon(props: React.ComponentProps<"svg">) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 500" {...props}>
       <g fill-rule="evenodd">

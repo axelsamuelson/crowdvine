@@ -1,11 +1,14 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import Image from 'next/image';
-import useEmblaCarousel from 'embla-carousel-react';
-import { Product } from '@/lib/shopify/types';
-import { Badge } from '@/components/ui/badge';
-import { useProductImages, useSelectedVariant } from '@/components/products/variant-selector';
+import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
+import useEmblaCarousel from "embla-carousel-react";
+import { Product } from "@/lib/shopify/types";
+import { Badge } from "@/components/ui/badge";
+import {
+  useProductImages,
+  useSelectedVariant,
+} from "@/components/products/variant-selector";
 
 interface MobileGallerySliderProps {
   product: Product;
@@ -16,7 +19,7 @@ export function MobileGallerySlider({ product }: MobileGallerySliderProps) {
   const images = useProductImages(product, selectedVariant?.selectedOptions);
 
   const [emblaRef, emblaApi] = useEmblaCarousel({
-    align: 'start',
+    align: "start",
     dragFree: false,
     loop: false,
   });
@@ -35,11 +38,13 @@ export function MobileGallerySlider({ product }: MobileGallerySliderProps) {
 
     onInit();
     onSelect(emblaApi);
-    emblaApi.on('reInit', onInit);
-    emblaApi.on('select', onSelect);
+    emblaApi.on("reInit", onInit);
+    emblaApi.on("select", onSelect);
   }, [emblaApi, onInit, onSelect]);
 
-  const totalImages = images.length;
+  // Filter out images without URLs
+  const validImages = images.filter((image) => image && image.url);
+  const totalImages = validImages.length;
 
   if (totalImages === 0) return null;
 
@@ -48,9 +53,9 @@ export function MobileGallerySlider({ product }: MobileGallerySliderProps) {
       {/* Embla Carousel */}
       <div className="overflow-hidden h-full" ref={emblaRef}>
         <div className="flex h-full">
-          {images.map((image, index) => (
+          {validImages.map((image, index) => (
             <div
-              key={`${image.url}-${image.selectedOptions?.map(o => `${o.name},${o.value}`).join('-')}`}
+              key={`${image.url}-${image.selectedOptions?.map((o, idx) => `${o.name},${o.value}`).join("-") || index}`}
               className="flex-shrink-0 w-full h-full relative"
             >
               <Image
@@ -58,9 +63,9 @@ export function MobileGallerySlider({ product }: MobileGallerySliderProps) {
                   aspectRatio: `${image.width} / ${image.height}`,
                 }}
                 src={image.url}
-                alt={image.altText}
-                width={image.width}
-                height={image.height}
+                alt={image.altText || product.title}
+                width={image.width || 600}
+                height={image.height || 600}
                 className="w-full h-full object-cover"
                 quality={100}
                 priority={index === 0}

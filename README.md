@@ -5,11 +5,13 @@ A Next.js storefront for Crowdvine wine campaigns, built with Supabase and Strip
 ## Setup
 
 1. Install dependencies:
+
 ```bash
 npm install
 ```
 
 2. Create `.env.local` with your Supabase and Stripe credentials:
+
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
@@ -21,11 +23,13 @@ APP_URL=http://localhost:3000
 ```
 
 3. Seed the database with sample data:
+
 ```bash
 npm run seed
 ```
 
 4. Start the development server:
+
 ```bash
 npm run dev
 ```
@@ -33,6 +37,7 @@ npm run dev
 ## Seed Data
 
 The seed script creates:
+
 - 1 producer in Languedoc (near Béziers)
 - 1 zone (Béziers 500 km)
 - 1 membership
@@ -41,6 +46,7 @@ The seed script creates:
 ## Database Schema
 
 The application expects these Supabase tables:
+
 - `producers` - Wine producers
 - `zones` - Geographic zones for campaigns
 - `memberships` - User membership tiers

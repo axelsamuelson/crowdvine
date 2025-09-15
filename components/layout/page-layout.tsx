@@ -1,8 +1,14 @@
-import { Footer } from './footer';
+import { Footer } from "./footer";
 
-export const PageLayout = ({ children, className }: { children: React.ReactNode; className?: string }) => {
+export const PageLayout = ({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) => {
   return (
-    <div className={className}>
+    <div className={`pt-top-spacing ${className || ""}`}>
       <main>{children}</main>
       <Footer />
     </div>

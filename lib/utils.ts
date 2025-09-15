@@ -1,26 +1,41 @@
-import { type ClassValue, clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-import { COLOR_MAP } from './constants';
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+import { COLOR_MAP } from "./constants";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
 export function formatPrice(amount: string | number, currencyCode: string) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
+  const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
+
+  // Round up to nearest whole number
+  const roundedAmount = Math.ceil(numAmount);
+
+  // Use Swedish locale for consistent formatting with 0 decimal places
+  return new Intl.NumberFormat("sv-SE", {
+    style: "currency",
     currency: currencyCode,
-  }).format(Number(amount));
+    currencyDisplay: "narrowSymbol",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(roundedAmount);
 }
 
 export function createUrl(pathname: string, params: URLSearchParams | string) {
   const paramsString = params?.toString();
-  const queryString = `${paramsString.length ? '?' : ''}${paramsString}`;
+  const queryString = `${paramsString.length ? "?" : ""}${paramsString}`;
 
   return `${pathname}${queryString}`;
 }
 
-export function getColorHex(colorName: string): string | [string, string] {
+export function getColorHex(
+  colorName: string | undefined | null,
+): string | [string, string] {
+  if (!colorName) {
+    return "#000000"; // Default black color
+  }
+
   const lowerColorName = colorName.toLowerCase();
 
   // Check for exact match first
@@ -36,10 +51,17 @@ export function getColorHex(colorName: string): string | [string, string] {
   }
 
   // Return a default color if no match found
-  return '#666666';
+  return "#666666";
 }
 
-export const getLabelPosition = (index: number): 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' => {
-  const positions = ['top-left', 'bottom-right', 'top-right', 'bottom-left'] as const;
+export const getLabelPosition = (
+  index: number,
+): "top-left" | "top-right" | "bottom-left" | "bottom-right" => {
+  const positions = [
+    "top-left",
+    "bottom-right",
+    "top-right",
+    "bottom-left",
+  ] as const;
   return positions[index % positions.length];
 };

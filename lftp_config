@@ -1,0 +1,5 @@
+set sftp:auto-confirm yes
+set sftp:connect-program "ssh -a -x"
+open sftp://wicazddt:Ribrib14!@cpsrv27.misshosting.com
+put crowdvine-deployment.zip
+quit

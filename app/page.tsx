@@ -1,29 +1,19 @@
-import { HomeSidebar } from '@/components/layout/sidebar/home-sidebar';
-import { PageLayout } from '@/components/layout/page-layout';
-import { LatestProductCard } from '@/components/products/latest-product-card';
-import { Badge } from '@/components/ui/badge';
-import { getCollectionProducts, getCollections, getProducts } from '@/lib/shopify';
-import { getLabelPosition } from '../lib/utils';
-import { Product } from '../lib/shopify/types';
+import { HomeSidebar } from "@/components/layout/sidebar/home-sidebar";
+import { PageLayout } from "@/components/layout/page-layout";
+import { LatestProductCard } from "@/components/products/latest-product-card";
+import { Badge } from "@/components/ui/badge";
+import {
+  getCollectionProducts,
+  getCollections,
+  getProducts,
+} from "@/lib/shopify";
+import { getLabelPosition } from "../lib/utils";
+import { Product } from "../lib/shopify/types";
 
-export default async function Home() {
-  const collections = await getCollections();
-
-  let featuredProducts: Product[] = [];
-
-  try {
-    if (collections.length > 0) {
-      featuredProducts = await getCollectionProducts({ collection: collections[0].handle });
-    } else {
-      const allProducts = await getProducts({});
-      featuredProducts = allProducts.slice(0, 8);
-    }
-  } catch (error) {
-    console.error('Error fetching featured products:', error);
-    featuredProducts = [];
-  }
-
-  const [lastProduct, ...restProducts] = featuredProducts;
+export default function Home() {
+  // Static content for now - will be replaced with Pages Functions
+  const collections: any[] = [];
+  const featuredProducts: Product[] = [];
 
   return (
     <PageLayout>
@@ -39,9 +29,13 @@ export default async function Home() {
           </div>
           {featuredProducts.length > 0 && (
             <>
-              <LatestProductCard className="col-span-2" product={lastProduct} principal />
+              <LatestProductCard
+                className="col-span-2"
+                product={featuredProducts[0]}
+                principal
+              />
 
-              {restProducts.map((product: any, index: number) => (
+              {featuredProducts.slice(1).map((product: any, index: number) => (
                 <LatestProductCard
                   className="col-span-1"
                   key={product.id}
