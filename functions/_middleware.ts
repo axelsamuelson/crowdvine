@@ -1,15 +1,20 @@
 // Cloudflare Pages Function - Middleware
 // Access control middleware for all requests
 
-import { corsHeaders, handleCors } from './_lib/response'
-
 export async function onRequest(ctx: any) {
   const { request, next } = ctx
   
   // Handle CORS preflight requests
-  const corsResponse = handleCors(request)
-  if (corsResponse) {
-    return corsResponse
+  if (request.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+        'Access-Control-Allow-Credentials': 'true'
+      }
+    })
   }
 
   const url = new URL(request.url)
@@ -49,9 +54,10 @@ export async function onRequest(ctx: any) {
     // Add CORS headers to the response
     if (response) {
       const newHeaders = new Headers(response.headers)
-      Object.entries(corsHeaders(request.headers.get('Origin') || undefined)).forEach(
-        ([key, value]) => newHeaders.set(key, value)
-      )
+      newHeaders.set('Access-Control-Allow-Origin', '*')
+      newHeaders.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+      newHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+      newHeaders.set('Access-Control-Allow-Credentials', 'true')
       
       return new Response(response.body, {
         status: response.status,
@@ -69,7 +75,10 @@ export async function onRequest(ctx: any) {
       status: 302,
       headers: {
         'Location': '/access-request',
-        ...corsHeaders(request.headers.get('Origin') || undefined)
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+        'Access-Control-Allow-Credentials': 'true'
       }
     })
   }
@@ -80,9 +89,10 @@ export async function onRequest(ctx: any) {
   // Add CORS headers to the response
   if (response) {
     const newHeaders = new Headers(response.headers)
-    Object.entries(corsHeaders(request.headers.get('Origin') || undefined)).forEach(
-      ([key, value]) => newHeaders.set(key, value)
-    )
+    newHeaders.set('Access-Control-Allow-Origin', '*')
+    newHeaders.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+    newHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+    newHeaders.set('Access-Control-Allow-Credentials', 'true')
     
     return new Response(response.body, {
       status: response.status,
