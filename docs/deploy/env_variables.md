@@ -1,26 +1,50 @@
 # Environment Variables for Cloudflare Pages
 
-## Overview
-This document lists all environment variables required for the Cloudflare Pages deployment and where they should be configured.
+This document lists all required environment variables for the application, their scope (client or server-side), and where they should be configured in Cloudflare Pages.
 
-## Environment Variables Table
+**Important**: All secret keys (e.g., `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`) must **never** be exposed on the client-side. They should only be available to Pages Functions (server-side).
 
-| Variable | Scope | Example Value | Where to Set | Description |
-|----------|-------|---------------|--------------|-------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Client/Edge | `https://abc123.supabase.co` | Cloudflare Pages Settings | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client/Edge | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` | Cloudflare Pages Settings | Supabase anonymous key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Edge Only | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` | Cloudflare Pages Settings | Supabase service role key |
-| `STRIPE_SECRET_KEY` | Edge Only | `sk_test_51ABC123...` | Cloudflare Pages Settings | Stripe secret key |
-| `STRIPE_WEBHOOK_SECRET` | Edge Only | `whsec_ABC123...` | Cloudflare Pages Settings | Stripe webhook secret |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Client/Edge | `pk_test_51ABC123...` | Cloudflare Pages Settings | Stripe publishable key |
-| `DATABASE_URL` | Edge Only | `postgresql://user:pass@host:5432/db` | Cloudflare Pages Settings | Database connection string |
-| `EMAIL_SERVER_HOST` | Edge Only | `smtp.gmail.com` | Cloudflare Pages Settings | SMTP server hostname |
-| `EMAIL_SERVER_PORT` | Edge Only | `587` | Cloudflare Pages Settings | SMTP server port |
-| `EMAIL_SERVER_USER` | Edge Only | `noreply@dirtywine.se` | Cloudflare Pages Settings | SMTP username |
-| `EMAIL_SERVER_PASSWORD` | Edge Only | `your-app-password` | Cloudflare Pages Settings | SMTP password |
-| `EMAIL_FROM` | Edge Only | `noreply@dirtywine.se` | Cloudflare Pages Settings | From email address |
-| `NEXT_PUBLIC_APP_URL` | Client/Edge | `https://dirtywine.se` | Cloudflare Pages Settings | Application URL |
-| `NODE_ENV` | Edge Only | `production` | Cloudflare Pages Settings | Environment mode |
+## Core Infrastructure Variables
+
+| Variable Name | Scope | Description | Example Value | Cloudflare Pages Setting |
+|---------------|-------|-------------|---------------|-------------------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Client & Server | Supabase project URL | `https://abcdefghijk.supabase.co` | Pages Settings → Environment Variables |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client & Server | Supabase anonymous key | `eyJ...` | Pages Settings → Environment Variables |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server (Functions) | Supabase service role key (admin operations) | `eyJ...` | Pages Settings → Environment Variables (Secret) |
+
+## Payment Processing Variables
+
+| Variable Name | Scope | Description | Example Value | Cloudflare Pages Setting |
+|---------------|-------|-------------|---------------|-------------------------|
+| `STRIPE_SECRET_KEY` | Server (Functions) | Stripe secret key | `sk_live_...` | Pages Settings → Environment Variables (Secret) |
+| `STRIPE_WEBHOOK_SECRET` | Server (Functions) | Stripe webhook secret | `whsec_...` | Pages Settings → Environment Variables (Secret) |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Client & Server | Stripe publishable key | `pk_live_...` | Pages Settings → Environment Variables |
+
+## File Storage Variables
+
+| Variable Name | Scope | Description | Example Value | Cloudflare Pages Setting |
+|---------------|-------|-------------|---------------|-------------------------|
+| `R2_ACCOUNT_ID` | Server (Functions) | Cloudflare R2 account ID | `your-account-id` | Pages Settings → Environment Variables (Secret) |
+| `R2_ACCESS_KEY_ID` | Server (Functions) | Cloudflare R2 access key | `your-access-key` | Pages Settings → Environment Variables (Secret) |
+| `R2_SECRET_ACCESS_KEY` | Server (Functions) | Cloudflare R2 secret key | `your-secret-key` | Pages Settings → Environment Variables (Secret) |
+| `R2_BUCKET_NAME` | Server (Functions) | Cloudflare R2 bucket name | `your-bucket-name` | Pages Settings → Environment Variables (Secret) |
+
+## External API Variables
+
+| Variable Name | Scope | Description | Example Value | Cloudflare Pages Setting |
+|---------------|-------|-------------|---------------|-------------------------|
+| `EXCHANGE_RATE_API_KEY` | Server (Functions) | Exchange rate API key | `your-api-key` | Pages Settings → Environment Variables (Secret) |
+| `NODEMAILER_EMAIL` | Server (Functions) | Email service email | `no-reply@dirtywine.se` | Pages Settings → Environment Variables (Secret) |
+| `NODEMAILER_PASSWORD` | Server (Functions) | Email service password | `your-email-password` | Pages Settings → Environment Variables (Secret) |
+| `NODEMAILER_HOST` | Server (Functions) | Email service host | `smtp.misshosting.com` | Pages Settings → Environment Variables (Secret) |
+| `NODEMAILER_PORT` | Server (Functions) | Email service port | `587` | Pages Settings → Environment Variables (Secret) |
+
+## Application Variables
+
+| Variable Name | Scope | Description | Example Value | Cloudflare Pages Setting |
+|---------------|-------|-------------|---------------|-------------------------|
+| `NEXT_PUBLIC_BASE_URL` | Client & Server | Base URL for the application | `https://dirtywine.se` | Pages Settings → Environment Variables |
+| `DATABASE_URL` | Server (Functions) | Direct database connection string | `postgresql://...` | Pages Settings → Environment Variables (Secret) |
 
 ## Cloudflare Pages Configuration
 
@@ -28,153 +52,90 @@ This document lists all environment variables required for the Cloudflare Pages 
 
 1. **Go to Cloudflare Pages Dashboard**
    - Navigate to your project
-   - Click "Settings" → "Environment Variables"
+   - Go to Settings → Environment Variables
 
-2. **Add Variables**
-   - Click "Add variable"
-   - Enter variable name and value
-   - Mark sensitive variables as "Encrypted"
+2. **Add Variables by Environment**
+   - **Production**: Set all variables for production deployment
+   - **Preview**: Set variables for preview deployments (can use test keys)
 
-3. **Environment-Specific Variables**
-   - Set different values for Production, Preview, and Development
-   - Use "Encrypted" for all sensitive data
+3. **Mark Secret Variables**
+   - Click the "Encrypt" checkbox for sensitive variables
+   - This prevents them from being exposed in build logs
 
-### Variable Scoping
+### Variable Categories
 
-#### Client-Side Variables (`NEXT_PUBLIC_*`)
-- Available in browser JavaScript
-- Can be accessed in React components
-- **Security**: Never put secrets in these variables
+#### Public Variables (Client Accessible)
+These variables are prefixed with `NEXT_PUBLIC_` and are available in both client and server code:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+- `NEXT_PUBLIC_BASE_URL`
 
-#### Edge Variables (No prefix)
-- Available in Cloudflare Pages Functions
-- Not accessible in browser
-- **Security**: Safe for secrets and API keys
-
-## Required Variables by Function
-
-### Authentication Functions
-```bash
-# functions/api/auth/login.ts
-SUPABASE_URL=https://abc123.supabase.co
-SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-### Payment Functions
-```bash
-# functions/api/checkout/create-payment-intent.ts
-STRIPE_SECRET_KEY=sk_test_51ABC123...
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_51ABC123...
-
-# functions/api/stripe/webhook.ts
-STRIPE_WEBHOOK_SECRET=whsec_ABC123...
-```
-
-### File Upload Functions
-```bash
-# functions/api/upload/index.ts
-# Option 1: R2 Storage
-R2_BUCKET_NAME=your-bucket-name
-R2_ACCESS_KEY_ID=your-access-key
-R2_SECRET_ACCESS_KEY=your-secret-key
-
-# Option 2: Supabase Storage
-SUPABASE_URL=https://abc123.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-### Admin Functions
-```bash
-# functions/api/admin/wines.ts
-SUPABASE_URL=https://abc123.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-DATABASE_URL=postgresql://user:pass@host:5432/db
-```
-
-## Security Best Practices
-
-### 1. Never Commit Secrets
-- Add `.env*` to `.gitignore`
-- Use `.env.example` for documentation
-- Never put real secrets in code
-
-### 2. Use Encrypted Variables
-- Mark all sensitive variables as "Encrypted" in Cloudflare
-- This prevents them from being logged or exposed
-
-### 3. Rotate Keys Regularly
-- Set up key rotation schedule
-- Update environment variables when keys change
-- Monitor for unauthorized access
-
-### 4. Principle of Least Privilege
-- Only give functions access to variables they need
-- Use different keys for different environments
-- Separate read/write permissions where possible
+#### Secret Variables (Server Only)
+These variables should be marked as encrypted in Cloudflare Pages:
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `R2_ACCOUNT_ID`
+- `R2_ACCESS_KEY_ID`
+- `R2_SECRET_ACCESS_KEY`
+- `R2_BUCKET_NAME`
+- `EXCHANGE_RATE_API_KEY`
+- `NODEMAILER_EMAIL`
+- `NODEMAILER_PASSWORD`
+- `NODEMAILER_HOST`
+- `NODEMAILER_PORT`
+- `DATABASE_URL`
 
 ## Environment-Specific Configuration
 
-### Production Environment
+### Development (.env.local)
 ```bash
-NODE_ENV=production
-NEXT_PUBLIC_APP_URL=https://dirtywine.se
-STRIPE_SECRET_KEY=sk_live_51ABC123...
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_51ABC123...
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+# Stripe
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+
+# Application
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
 ```
 
-### Preview Environment
-```bash
-NODE_ENV=development
-NEXT_PUBLIC_APP_URL=https://preview.dirtywine.se
-STRIPE_SECRET_KEY=sk_test_51ABC123...
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_51ABC123...
-```
+### Production (Cloudflare Pages)
+All variables should be set in the Cloudflare Pages dashboard with appropriate values for production.
 
-### Development Environment
-```bash
-NODE_ENV=development
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-STRIPE_SECRET_KEY=sk_test_51ABC123...
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_51ABC123...
-```
+## Security Best Practices
+
+1. **Never commit secrets to version control**
+2. **Use different keys for development and production**
+3. **Rotate keys regularly**
+4. **Monitor usage and access logs**
+5. **Use least privilege principle for API keys**
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Variable Not Found**
-   - Check variable name spelling
-   - Ensure variable is set in correct environment
-   - Verify variable is marked as "Encrypted" if needed
+1. **Missing Environment Variables**
+   - Check that all required variables are set in Cloudflare Pages
+   - Verify variable names match exactly (case-sensitive)
 
-2. **Permission Denied**
-   - Check if variable is accessible in function scope
-   - Verify Edge vs Client variable usage
-   - Check Cloudflare Pages Function permissions
+2. **Secret Variables Not Working**
+   - Ensure secret variables are marked as encrypted
+   - Check that they're available in the correct environment (Production/Preview)
 
-3. **Invalid Format**
-   - Verify JSON format for complex variables
-   - Check URL format for Supabase/Stripe URLs
-   - Ensure no trailing spaces or quotes
+3. **Client-Side Access Issues**
+   - Only `NEXT_PUBLIC_*` variables are available on the client
+   - Server-only variables are only available in Pages Functions
 
-### Debugging
+### Verification Commands
 
-1. **Check Function Logs**
-   - Go to Cloudflare Pages → Functions → Logs
-   - Look for environment variable errors
-   - Check function execution logs
-
-2. **Test Variables**
-   - Create a test function to log variables
-   - Verify variables are accessible
-   - Check variable values (without logging secrets)
-
-## Migration Checklist
-
-- [ ] Document all current environment variables
-- [ ] Create `.env.example` file
-- [ ] Set up Cloudflare Pages environment variables
-- [ ] Test all functions with new variables
-- [ ] Verify no secrets are in code
-- [ ] Update documentation
-- [ ] Train team on new variable management
+```bash
+# Check if environment variables are loaded
+echo "Supabase URL: $NEXT_PUBLIC_SUPABASE_URL"
+echo "Stripe Key: ${STRIPE_SECRET_KEY:0:10}..." # Only show first 10 chars
+```

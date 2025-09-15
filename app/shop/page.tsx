@@ -14,12 +14,7 @@ export const metadata: Metadata = {
 // Enable ISR with 1 minute revalidation
 export const revalidate = 60;
 
-export default async function ShopPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
-  const resolvedSearchParams = await searchParams;
+export default function ShopPage() {
   return (
     <>
       <Suspense
@@ -33,7 +28,7 @@ export default async function ShopPage({
       >
         <ProductList
           collection={storeCatalog.rootCategoryId}
-          searchParams={searchParams}
+          searchParams={{}}
         />
       </Suspense>
     </>

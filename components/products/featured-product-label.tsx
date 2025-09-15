@@ -1,7 +1,8 @@
 import { Badge } from "../ui/badge";
 import { cn } from "@/lib/utils";
 import { Product } from "@/lib/shopify/types";
-import { AddToCart, AddToCartButton } from "../cart/add-to-cart";
+// import { AddToCart, AddToCartButton } from "../cart/add-to-cart";
+import { Button } from "../ui/button";
 import { Suspense } from "react";
 import Link from "next/link";
 
@@ -51,21 +52,13 @@ export function FeaturedProductLabel({
             </span>
           )}
         </div>
-        <Suspense
-          fallback={
-            <AddToCartButton
-              className="flex gap-20 justify-between pr-2"
-              size="lg"
-              product={product}
-            />
-          }
+        <Button
+          className="flex gap-20 justify-between pr-2"
+          size="lg"
+          disabled
         >
-          <AddToCart
-            className="flex gap-20 justify-between pr-2"
-            size="lg"
-            product={product}
-          />
-        </Suspense>
+          Add to Cart (Coming Soon)
+        </Button>
       </div>
     );
   }
@@ -93,23 +86,13 @@ export function FeaturedProductLabel({
           )}
         </div>
       </div>
-      <Suspense
-        fallback={
-          <AddToCartButton
-            product={product}
-            iconOnly
-            variant="default"
-            size="icon-lg"
-          />
-        }
+      <Button
+        variant="default"
+        size="icon-lg"
+        disabled
       >
-        <AddToCart
-          product={product}
-          iconOnly
-          variant="default"
-          size="icon-lg"
-        />
-      </Suspense>
+        +
+      </Button>
     </div>
   );
 }

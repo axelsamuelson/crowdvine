@@ -26,8 +26,8 @@ import {
   Wine,
   createWine,
   updateWine,
-} from "@/lib/actions/wines";
-import { Producer } from "@/lib/actions/producers";
+// } from "@/lib/actions/wines";
+// import { Producer } from "@/lib/actions/producers";
 import { WineImageUpload } from "@/components/admin/wine-image-upload";
 import { WineImage } from "@/lib/types/wine-images";
 import { PricingCalculator } from "@/components/admin/pricing-calculator";
@@ -35,7 +35,7 @@ import GrapeVarietiesSelector from "@/components/admin/grape-varieties-selector"
 import {
   getGrapeVarieties,
   createGrapeVariety,
-} from "@/lib/actions/grape-varieties";
+// } from "@/lib/actions/grape-varieties";
 
 interface WineFormProps {
   wine?: Wine;
@@ -421,7 +421,7 @@ export default function WineForm({ wine, producers }: WineFormProps) {
                 alcohol_tax_cents: pricingData.alcohol_tax_cents,
                 price_includes_vat: pricingData.price_includes_vat,
                 margin_percentage: pricingData.margin_percentage,
-                base_price_cents: pricingData.finalPriceCents,
+                base_price_cents: pricingData.calculated_price_cents,
               }));
             }}
           />

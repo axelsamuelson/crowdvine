@@ -4,7 +4,7 @@ import { FooterLogoSvg } from "./footer-logo-svg";
 
 export function Footer() {
   // Temporarily disable collections fetching to prevent blocking
-  const collections = [];
+  const collections: any[] = [];
 
   return (
     <footer className="p-sides">

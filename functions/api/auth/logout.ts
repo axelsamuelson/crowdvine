@@ -1,35 +1,47 @@
-// Cloudflare Pages Function - Auth Logout
-// TODO: Implement Supabase auth session cleanup
+// Cloudflare Pages Function - Authentication Logout
+// Handle user logout and clear access cookie
 
-export async function onRequestPost(ctx: EventContext) {
-  const { request, env } = ctx;
+import { success, error, internalError, corsHeaders } from '../_lib/response'
+import { getSupabasePublic } from '../_lib/supabase'
+
+export async function onRequestPost(ctx: any) {
+  const { request, env } = ctx
   
   try {
-    // TODO: Implement Supabase logout
-    // const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
-    // await supabase.auth.signOut();
+    const supabase = getSupabasePublic(env)
+
+    // Sign out from Supabase
+    const { error: signOutError } = await supabase.auth.signOut()
+
+    if (signOutError) {
+      console.error('Sign out error:', signOutError)
+      // Continue anyway to clear the access cookie
+    }
+
+    // Create response
+    const response = success(null, 'Logout successful')
 
     // Clear access cookie
-    const response = Response.json({ 
-      ok: true, 
-      message: 'Logged out successfully' 
-    });
+    response.headers.set('Set-Cookie', 'cv-access=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0')
 
-    response.headers.set('Set-Cookie', 'cv-access=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict');
-    
-    return response;
-  } catch (error) {
-    return Response.json({ 
-      ok: false, 
-      error: 'Logout failed' 
-    }, { status: 500 });
+    // Add CORS headers
+    Object.entries(corsHeaders(request.headers.get('Origin') || undefined)).forEach(
+      ([key, value]) => response.headers.set(key, value)
+    )
+
+    return response
+
+  } catch (err) {
+    console.error('Logout error:', err)
+    return internalError('Logout failed')
   }
 }
 
-// Handle GET requests
-export async function onRequestGet() {
-  return Response.json({ 
-    ok: true, 
-    message: 'Auth logout endpoint - TODO: implement Supabase logout' 
-  });
+export async function onRequestOptions(ctx: any) {
+  const { request } = ctx
+  
+  return new Response(null, {
+    status: 200,
+    headers: corsHeaders(request.headers.get('Origin') || undefined)
+  })
 }

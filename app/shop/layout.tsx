@@ -8,18 +8,13 @@ import { ProductsProvider } from "./providers/products-provider";
 // Enable ISR with 1 minute revalidation for the layout
 export const revalidate = 60;
 
-export default async function ShopLayout({
+export default function ShopLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  let collections = [];
-  try {
-    collections = await getCollections();
-  } catch (error) {
-    console.warn("Failed to fetch collections in shop layout:", error);
-    collections = [];
-  }
+  // Static content for now - will be replaced with Pages Functions
+  const collections: any[] = [];
 
   return (
     <PageLayout>

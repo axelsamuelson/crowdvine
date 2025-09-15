@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 import {
   ArrowRightIcon,
   Cross1Icon,
-  LockClosedIcon,
   LockOpen1Icon,
 } from "@radix-ui/react-icons";
 import { inputVariants } from "@/components/ui/input";
@@ -132,7 +131,15 @@ export function AccessRequestClient() {
                               ease: EASE_OUT,
                               delay: DELAY,
                             }}
-                            {...props}
+                            value={props.value}
+                            onChange={props.onChange}
+                            onBlur={props.onBlur}
+                            onFocus={props.onFocus}
+                            name={props.name}
+                            id={props.id}
+                            type={props.type}
+                            disabled={props.disabled}
+                            required={props.required}
                           />
                         )}
                         submit={(props) => (
@@ -146,7 +153,9 @@ export function AccessRequestClient() {
                                 ? "bg-green-600 hover:bg-green-700"
                                 : "",
                             )}
-                            {...props}
+                            type={props.type}
+                            disabled={props.disabled}
+                            onClick={props.onClick}
                             initial={
                               isInitialRender.current ? false : { opacity: 0 }
                             }
@@ -277,9 +286,9 @@ export function AccessRequestClient() {
                   >
                     <article className="relative overflow-y-auto italic p-6 h-full [&_p]:my-4">
                       <p>
-                        "CrowdVine represents the future of wine discovery and
+                        &ldquo;CrowdVine represents the future of wine discovery and
                         community. We believe that great wine should be
-                        accessible, but finding it shouldn't be overwhelming."
+                        accessible, but finding it shouldn&apos;t be overwhelming.&rdquo;
                       </p>
                       <p>
                         Our platform brings together wine enthusiasts,
@@ -299,7 +308,7 @@ export function AccessRequestClient() {
                       <p>
                         Join us in celebrating the art of winemaking, the joy of
                         discovery, and the community that makes every sip more
-                        meaningful."
+                        meaningful.&rdquo;
                       </p>
                     </article>
                   </motion.div>

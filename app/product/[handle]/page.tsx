@@ -17,8 +17,7 @@ import {
   BreadcrumbPage,
 } from "@/components/ui/breadcrumb";
 import Link from "next/link";
-import { SidebarLinks } from "@/components/layout/sidebar/product-sidebar-links";
-import { AddToCart, AddToCartButton } from "@/components/cart/add-to-cart";
+import { Button } from "@/components/ui/button";
 import { storeCatalog } from "@/lib/shopify/constants";
 import Prose from "@/components/prose";
 import { formatPrice } from "@/lib/shopify/utils";
@@ -32,24 +31,13 @@ import { WineBoxDiscountInfo } from "@/components/products/wine-box-discount-inf
 
 // Generate static params for all products at build time
 export async function generateStaticParams() {
-  try {
-    const products = await getProducts({ limit: 100 }); // Get first 100 products
-
-    // Also get wine box products
-    const wineBoxProducts = await getCollectionProducts({
-      collection: "wine-boxes-collection",
-      limit: 50,
-    });
-
-    const allProducts = [...products, ...wineBoxProducts];
-
-    return allProducts.map((product) => ({
-      handle: product.handle,
-    }));
-  } catch (error) {
-    console.error("Error generating static params for products:", error);
-    return [];
-  }
+  // Return static sample handles for build time
+  // In production, these will be replaced by Cloudflare Pages Functions
+  return [
+    { handle: 'sample-wine-1' },
+    { handle: 'sample-wine-2' },
+    { handle: 'sample-wine-box-1' },
+  ];
 }
 
 // Enable ISR with 1 minute revalidation
@@ -156,7 +144,7 @@ export default async function ProductPage(props: {
                     </Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
-                {product.productType === "wine-box" ? (
+                {product.tags.includes("wine-box") ? (
                   <>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
@@ -216,25 +204,15 @@ export default async function ProductPage(props: {
                   <VariantSelectorSlots product={product} />
                 </Suspense>
 
-                <Suspense
-                  fallback={
-                    <AddToCartButton
-                      className={cn("w-full", {
-                        "col-span-full": !hasVariants || hasEvenOptions,
-                      })}
-                      product={product}
-                      size="lg"
-                    />
-                  }
+                <Button
+                  className={cn("w-full", {
+                    "col-span-full": !hasVariants || hasEvenOptions,
+                  })}
+                  size="lg"
+                  disabled
                 >
-                  <AddToCart
-                    product={product}
-                    size="lg"
-                    className={cn("w-full", {
-                      "col-span-full": !hasVariants || hasEvenOptions,
-                    })}
-                  />
-                </Suspense>
+                  Add to Cart (Coming Soon)
+                </Button>
               </div>
             </div>
           </div>

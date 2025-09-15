@@ -11,7 +11,7 @@ interface WineBoxDiscountInfoProps {
 
 export function WineBoxDiscountInfo({ product }: WineBoxDiscountInfoProps) {
   // Check if this is a wine box product
-  if (product.productType !== "wine-box" || !(product as any).discountInfo) {
+  if (!product.tags.includes("wine-box") || !(product as any).discountInfo) {
     return null;
   }
 

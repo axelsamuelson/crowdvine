@@ -16,51 +16,13 @@ interface ProductListProps {
   searchParams?: { [key: string]: string | string[] | undefined };
 }
 
-export default async function ProductList({
+export default function ProductList({
   collection,
   searchParams,
 }: ProductListProps) {
-  const query =
-    typeof (await searchParams)?.q === "string"
-      ? (await searchParams).q
-      : undefined;
-  const sort =
-    typeof (await searchParams)?.sort === "string"
-      ? (await searchParams).sort
-      : undefined;
-  const isRootCollection =
-    collection === "joyco-root" ||
-    collection === "all-wines" ||
-    collection === "frontpage" ||
-    !collection;
-
-  const { sortKey, reverse } = isRootCollection
-    ? mapSortKeys(sort, "product")
-    : mapSortKeys(sort, "collection");
-
-  let products: Product[] = [];
-
-  try {
-    if (isRootCollection) {
-      products = await getProducts({
-        sortKey: sortKey as ProductSortKey,
-        query,
-        reverse,
-      });
-    } else {
-      products = await getCollectionProducts({
-        collection,
-        query,
-        sortKey: sortKey as ProductCollectionSortKey,
-        reverse,
-      });
-    }
-  } catch (error) {
-    console.error("Error fetching products:", error);
-    products = [];
-  }
-
-  const collections = await getCollections();
+  // Static content for now - will be replaced with Pages Functions
+  const products: Product[] = [];
+  const collections: any[] = [];
 
   return <ProductListContent products={products} collections={collections} />;
 }

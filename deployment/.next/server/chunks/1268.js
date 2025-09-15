@@ -1,1 +1,0 @@
-"use strict";exports.id=1268,exports.ids=[1268],exports.modules={11268:(e,s,r)=>{r.d(s,{getSupabaseAdmin:()=>a});var t=r(83008);function a(){let e="https://abrnvjqwpdkodgrtezeg.supabase.co",s=process.env.SUPABASE_SERVICE_ROLE_KEY;if(!e||!s)throw Error("Missing Supabase admin credentials");return(0,t.UU)(e,s)}}};

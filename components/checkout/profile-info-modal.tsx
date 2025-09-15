@@ -21,7 +21,7 @@ import {
 import { toast } from "sonner";
 import { User, MapPin, Phone, Mail } from "lucide-react";
 
-interface ProfileInfo {
+export interface ProfileInfo {
   full_name?: string;
   phone?: string;
   address?: string;

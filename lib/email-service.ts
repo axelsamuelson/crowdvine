@@ -191,6 +191,11 @@ class EmailService {
         `,
       };
 
+      if (!this.transporter) {
+        console.error("Email transporter not initialized");
+        return false;
+      }
+
       const result = await this.transporter.sendMail(mailOptions);
       console.log("Email sent successfully:", result.messageId);
       return true;
@@ -256,6 +261,11 @@ class EmailService {
         subject: `🍷 Statusuppdatering - ${data.reservationId}`,
         html: emailContent,
       };
+
+      if (!this.transporter) {
+        console.error("Email transporter not initialized");
+        return false;
+      }
 
       const result = await this.transporter.sendMail(mailOptions);
       console.log("Status update email sent successfully:", result.messageId);

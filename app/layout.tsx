@@ -4,7 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
-import { CartProvider } from "@/components/cart/cart-context";
+// import { CartProvider } from "@/components/cart/cart-context";
 import { DebugGrid } from "@/components/debug-grid";
 import { isDevelopment } from "@/lib/constants";
 import { getCollections } from "@/lib/shopify";
@@ -53,7 +53,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   // Temporarily disable collections fetching to prevent blocking
-  const collections = [];
+  const collections: any[] = [];
 
   return (
     <html lang="en">
@@ -68,16 +68,14 @@ export default async function RootLayout({
       >
         <V0Provider isV0={isV0}>
           <MobileMenuProvider>
-            <CartProvider>
-              <NuqsAdapter>
-                <main data-vaul-drawer-wrapper="true">
-                  <ConditionalHeader collections={collections} />
-                  {children}
-                </main>
-                {isDevelopment && <DebugGrid />}
-                <Toaster closeButton position="bottom-right" />
-              </NuqsAdapter>
-            </CartProvider>
+            <NuqsAdapter>
+              <main data-vaul-drawer-wrapper="true">
+                <ConditionalHeader collections={collections} />
+                {children}
+              </main>
+              {isDevelopment && <DebugGrid />}
+              <Toaster closeButton position="bottom-right" />
+            </NuqsAdapter>
           </MobileMenuProvider>
           {isV0 && <V0Setup />}
         </V0Provider>

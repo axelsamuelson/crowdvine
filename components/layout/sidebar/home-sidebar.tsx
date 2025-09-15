@@ -1,20 +1,17 @@
 import { ShopLinks } from "../shop-links";
 import { Collection } from "@/lib/shopify/types";
-import { getSiteContentByKey } from "@/lib/actions/content";
+// import { getSiteContentByKey } from "@/lib/actions/content";
 
 interface HomeSidebarProps {
   collections: Collection[];
 }
 
-export async function HomeSidebar({ collections }: HomeSidebarProps) {
-  // Hämta hero-text från databasen
-  const [heroTitle, heroSubtitle, heroDescription1, heroDescription2] =
-    await Promise.all([
-      getSiteContentByKey("homepage_hero_title"),
-      getSiteContentByKey("homepage_hero_subtitle"),
-      getSiteContentByKey("homepage_hero_description_1"),
-      getSiteContentByKey("homepage_hero_description_2"),
-    ]);
+export function HomeSidebar({ collections }: HomeSidebarProps) {
+  // Static content for now - will be replaced with Pages Functions
+  const heroTitle = "Welcome to Dirty Wine";
+  const heroSubtitle = "Discover exceptional wines";
+  const heroDescription1 = "Curated selection of premium wines";
+  const heroDescription2 = "From the world's finest producers";
 
   return (
     <aside className="max-md:hidden col-span-4 h-screen sticky top-0 p-sides pt-top-spacing flex flex-col justify-between">

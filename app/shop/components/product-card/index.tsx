@@ -1,7 +1,7 @@
 import React, { Suspense, memo } from "react";
 import Link from "next/link";
 import { Product } from "@/lib/shopify/types";
-import { AddToCart, AddToCartButton } from "@/components/cart/add-to-cart";
+// import { AddToCart, AddToCartButton } from "@/components/cart/add-to-cart";
 import { formatPrice } from "@/lib/shopify/utils";
 import { VariantSelector } from "../variant-selector";
 import { ProductImage } from "./product-image";
@@ -21,7 +21,7 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
     hasNoOptions || hasOneOptionWithOneValue || justHasColorOption;
 
   // Check if this is a wine box product
-  const isWineBox = product.productType === "wine-box";
+  const isWineBox = product.tags.includes("wine-box");
   const discountInfo = (product as any).discountInfo;
 
   return (
@@ -128,21 +128,13 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
             )}
 
             {renderInCardAddToCart ? (
-              <Suspense
-                fallback={
-                  <AddToCartButton
-                    className="col-start-2"
-                    product={product}
-                    size="sm"
-                  />
-                }
+              <Button
+                className="col-start-2"
+                size="sm"
+                disabled
               >
-                <AddToCart
-                  className="col-start-2"
-                  size="sm"
-                  product={product}
-                />
-              </Suspense>
+                Add to Cart (Coming Soon)
+              </Button>
             ) : (
               <Button
                 className="col-start-2"

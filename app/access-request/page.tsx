@@ -1,33 +1,39 @@
-import { supabaseServer } from "@/lib/supabase-server";
-import { redirect } from "next/navigation";
+"use client";
+
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AccessRequestClient } from "./access-request-client";
 
-export default async function AccessRequestPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ next?: string }>;
-}) {
-  const params = await searchParams;
-  const next = params?.next || "/";
-  const sb = await supabaseServer();
-  const {
-    data: { user },
-  } = await sb.auth.getUser();
+function AccessRequestContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [loading, setLoading] = useState(true);
 
-  // Smart redirect: if user is logged in and has access, redirect them
-  if (user) {
-    const { data: prof } = await sb
-      .from("profiles")
-      .select("access_granted_at")
-      .eq("id", user.id)
-      .single();
+  useEffect(() => {
+    // For now, just show the access request form
+    // This will be replaced with Pages Functions authentication check
+    setLoading(false);
+  }, []);
 
-    if (prof?.access_granted_at) {
-      // Redirect to API route that will set the cookie and redirect
-      redirect(`/api/set-access-cookie?next=${encodeURIComponent(next)}`);
-    }
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
   }
 
-  // User doesn't have access or isn't logged in - show access request page
   return <AccessRequestClient />;
+}
+
+export default function AccessRequestPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    }>
+      <AccessRequestContent />
+    </Suspense>
+  );
 }

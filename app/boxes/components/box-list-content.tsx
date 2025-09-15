@@ -1,5 +1,6 @@
 import { ProductGrid } from "@/app/shop/components/product-grid";
 import { ProductCardSkeleton } from "@/app/shop/components/product-card-skeleton";
+import { ProductCard } from "@/app/shop/components/product-card";
 import { Suspense } from "react";
 import type { Product } from "@/lib/shopify/types";
 
@@ -34,7 +35,11 @@ export function BoxListContent({ boxes }: BoxListContentProps) {
             }
           >
             {boxes.length > 0 ? (
-              <ProductGrid products={boxes} />
+              <ProductGrid>
+                {boxes.map((box) => (
+                  <ProductCard key={box.id} product={box} />
+                ))}
+              </ProductGrid>
             ) : (
               <div className="text-center py-12">
                 <p className="text-muted-foreground text-lg">

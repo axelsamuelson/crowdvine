@@ -8,7 +8,7 @@ export default function Counter() {
       <Button
         className="rounded-none shadow-none first:rounded-s-md last:rounded-e-md focus-visible:z-10"
         variant="outline"
-        size="icon-sm"
+        size="icon"
         aria-label="Upvote"
       >
         <ChevronUpIcon size={16} aria-hidden="true" />
@@ -19,7 +19,7 @@ export default function Counter() {
       <Button
         className="rounded-none shadow-none first:rounded-s-md last:rounded-e-md focus-visible:z-10"
         variant="outline"
-        size="icon-sm"
+        size="icon"
         aria-label="Downvote"
       >
         <ChevronDownIcon size={16} aria-hidden="true" />

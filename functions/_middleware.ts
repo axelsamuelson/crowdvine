@@ -1,38 +1,95 @@
 // Cloudflare Pages Function - Middleware
-// Replaces Next.js middleware.ts for access control
+// Access control middleware for all requests
 
-export async function onRequest(ctx: EventContext) {
-  const { request, next } = ctx;
-  const cookie = request.headers.get('Cookie') || '';
-  const hasAccess = cookie.includes('cv-access=1');
-  const url = new URL(request.url);
+import { corsHeaders, handleCors } from './_lib/response'
 
-  // Allow public routes to pass through
+export async function onRequest(ctx: any) {
+  const { request, next } = ctx
+  
+  // Handle CORS preflight requests
+  const corsResponse = handleCors(request)
+  if (corsResponse) {
+    return corsResponse
+  }
+
+  const url = new URL(request.url)
+  const cookie = request.headers.get('Cookie') || ''
+  const hasAccess = cookie.includes('cv-access=1')
+
+  // Public paths that don't require authentication
   const publicPaths = [
     '/access-request',
     '/favicon.ico',
     '/_worker.js',
     '/api/health',
     '/api/auth/login',
-    '/api/auth/callback',
+    '/api/auth/signup',
     '/api/stripe/webhook',
-    '/api/crowdvine',
-    '/product',
-    '/shop',
-    '/boxes',
-    '/about',
-    '/contact'
-  ];
+    '/api/exchange-rates',
+    '/api/invite/redeem',
+    '/api/invitation-codes/validate',
+    '/api/access-request'
+  ]
 
-  // Check if path starts with any public path
-  if (publicPaths.some(p => url.pathname.startsWith(p))) {
-    return next();
+  // Check if the current path is public
+  const isPublicPath = publicPaths.some(path => {
+    if (path.includes('[') && path.includes(']')) {
+      // Handle dynamic routes like /api/user/reservations/[id]
+      const pattern = path.replace(/\[.*?\]/g, '[^/]+')
+      const regex = new RegExp(`^${pattern}$`)
+      return regex.test(url.pathname)
+    }
+    return url.pathname.startsWith(path)
+  })
+
+  // Allow public paths to pass through
+  if (isPublicPath) {
+    const response = await next()
+    
+    // Add CORS headers to the response
+    if (response) {
+      const newHeaders = new Headers(response.headers)
+      Object.entries(corsHeaders(request.headers.get('Origin') || undefined)).forEach(
+        ([key, value]) => newHeaders.set(key, value)
+      )
+      
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: newHeaders
+      })
+    }
+    
+    return response
   }
 
-  // Protect all other content
+  // Check authentication for protected paths
   if (!hasAccess) {
-    return Response.redirect('/access-request', 302);
+    return new Response(null, {
+      status: 302,
+      headers: {
+        'Location': '/access-request',
+        ...corsHeaders(request.headers.get('Origin') || undefined)
+      }
+    })
   }
 
-  return next();
+  // User has access, continue to the next function
+  const response = await next()
+  
+  // Add CORS headers to the response
+  if (response) {
+    const newHeaders = new Headers(response.headers)
+    Object.entries(corsHeaders(request.headers.get('Origin') || undefined)).forEach(
+      ([key, value]) => newHeaders.set(key, value)
+    )
+    
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: newHeaders
+    })
+  }
+  
+  return response
 }

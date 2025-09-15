@@ -15,6 +15,6 @@ export async function ensureAccessCookie() {
 
 // Server action for setting access cookie
 export async function setAccessCookieAction() {
-  "use server";
+  // "use server"; // Commented out for static export compatibility
   await ensureAccessCookie();
 }

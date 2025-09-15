@@ -25,24 +25,28 @@ async function testGeocoding() {
     try {
       let result;
       
-      if ('input' in testCase) {
+      if ('input' in testCase && testCase.input) {
         console.log(`   Input: ${testCase.input}`);
         result = await geocodeAddress(testCase.input);
-      } else if ('fields' in testCase) {
+      } else if ('fields' in testCase && testCase.fields) {
         console.log(`   Fields:`, testCase.fields);
         result = await geocodeFromFields(testCase.fields);
       }
       
-      if ('error' in result!) {
-        console.log(`❌ Error: ${result.message}`);
-      } else {
-        console.log(`✅ Success:`);
-        console.log(`   Lat: ${result.lat}`);
-        console.log(`   Lon: ${result.lon}`);
-        console.log(`   Display: ${result.display_name}`);
-        if (result.address?.city) {
-          console.log(`   City: ${result.address.city}`);
+      if (result) {
+        if ('error' in result) {
+          console.log(`❌ Error: ${result.message}`);
+        } else {
+          console.log(`✅ Success:`);
+          console.log(`   Lat: ${result.lat}`);
+          console.log(`   Lon: ${result.lon}`);
+          console.log(`   Display: ${result.display_name}`);
+          if (result.address?.city) {
+            console.log(`   City: ${result.address.city}`);
+          }
         }
+      } else {
+        console.log(`❌ No result returned`);
       }
     } catch (error) {
       console.log(`❌ Exception: ${error}`);

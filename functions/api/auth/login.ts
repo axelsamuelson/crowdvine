@@ -1,31 +1,68 @@
-// Cloudflare Pages Function - Auth Login
-// TODO: Implement Supabase auth via env.SUPABASE_URL/KEY
+// Cloudflare Pages Function - Authentication Login
+// Handle user login with Supabase Auth
 
-export async function onRequestPost(ctx: EventContext) {
-  const { request, env } = ctx;
+import { success, error, badRequest, internalError, corsHeaders } from '../_lib/response'
+import { getSupabasePublic } from '../_lib/supabase'
+
+export async function onRequestPost(ctx: any) {
+  const { request, env } = ctx
   
   try {
-    const body = await request.json();
-    const { email, password } = body;
+    const body = await request.json()
+    const { email, password } = body
 
-    // TODO: Implement Supabase authentication
-    // const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
-    // const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (!email || !password) {
+      return badRequest('Email and password are required')
+    }
 
-    return Response.json({ 
-      ok: true, 
-      message: 'Auth login endpoint - TODO: implement Supabase auth',
-      email: email // For testing
-    });
-  } catch (error) {
-    return Response.json({ 
-      ok: false, 
-      error: 'Invalid request body' 
-    }, { status: 400 });
+    const supabase = getSupabasePublic(env)
+
+    // Authenticate with Supabase
+    const { data, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    })
+
+    if (authError) {
+      console.error('Authentication error:', authError)
+      return error('Invalid credentials', 401)
+    }
+
+    if (!data.user) {
+      return error('Authentication failed', 401)
+    }
+
+    // Create response with access cookie
+    const response = success({
+      user: {
+        id: data.user.id,
+        email: data.user.email,
+        created_at: data.user.created_at
+      },
+      session: data.session
+    }, 'Login successful')
+
+    // Set access cookie
+    response.headers.set('Set-Cookie', 'cv-access=1; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=86400')
+
+    // Add CORS headers
+    Object.entries(corsHeaders(request.headers.get('Origin') || undefined)).forEach(
+      ([key, value]) => response.headers.set(key, value)
+    )
+
+    return response
+
+  } catch (err) {
+    console.error('Login error:', err)
+    return internalError('Login failed')
   }
 }
 
-// Handle GET requests (redirect to login page)
-export async function onRequestGet() {
-  return Response.redirect('/access-request', 302);
+export async function onRequestOptions(ctx: any) {
+  const { request } = ctx
+  
+  return new Response(null, {
+    status: 200,
+    headers: corsHeaders(request.headers.get('Origin') || undefined)
+  })
 }

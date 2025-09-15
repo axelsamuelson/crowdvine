@@ -1,40 +1,63 @@
 // Cloudflare Pages Function - Create Payment Intent
-// TODO: Implement Stripe PaymentIntent creation
+// Create Stripe Payment Intent for checkout
 
-export async function onRequestPost(ctx: EventContext) {
-  const { request, env } = ctx;
+import { success, error, badRequest, unauthorized, internalError, corsHeaders } from '../_lib/response'
+import { getStripeClient, createPaymentIntentData } from '../_lib/stripe'
+import { getUserFromRequest } from '../_lib/supabase'
+
+export async function onRequestPost(ctx: any) {
+  const { request, env } = ctx
   
   try {
-    const body = await request.json();
-    const { amount, currency = 'sek', metadata = {} } = body;
+    const userId = getUserFromRequest(request)
+    
+    if (!userId) {
+      return unauthorized('Authentication required')
+    }
 
-    // TODO: Implement Stripe PaymentIntent creation
-    // const stripe = new Stripe(env.STRIPE_SECRET_KEY);
-    // const paymentIntent = await stripe.paymentIntents.create({
-    //   amount: amount,
-    //   currency: currency,
-    //   metadata: metadata
-    // });
+    const body = await request.json()
+    const { amount, currency = 'sek', metadata = {} } = body
 
-    return Response.json({ 
-      ok: true, 
-      message: 'PaymentIntent creation - TODO: implement Stripe integration',
-      amount: amount,
-      currency: currency,
-      // client_secret: paymentIntent.client_secret
-    });
-  } catch (error) {
-    return Response.json({ 
-      ok: false, 
-      error: 'Invalid request body' 
-    }, { status: 400 });
+    if (!amount || amount <= 0) {
+      return badRequest('Valid amount is required')
+    }
+
+    const stripe = getStripeClient(env)
+
+    // Create payment intent
+    const paymentIntentData = createPaymentIntentData(amount, currency, {
+      user_id: userId,
+      ...metadata
+    })
+
+    const paymentIntent = await stripe.paymentIntents.create(paymentIntentData)
+
+    const response = success({
+      clientSecret: paymentIntent.client_secret,
+      id: paymentIntent.id,
+      amount: paymentIntent.amount,
+      currency: paymentIntent.currency,
+      status: paymentIntent.status
+    }, 'Payment intent created')
+
+    // Add CORS headers
+    Object.entries(corsHeaders(request.headers.get('Origin') || undefined)).forEach(
+      ([key, value]) => response.headers.set(key, value)
+    )
+
+    return response
+
+  } catch (err) {
+    console.error('Payment intent creation error:', err)
+    return internalError('Payment intent creation failed')
   }
 }
 
-// Handle GET requests
-export async function onRequestGet() {
-  return Response.json({ 
-    ok: true, 
-    message: 'Create PaymentIntent endpoint - TODO: implement Stripe integration' 
-  });
+export async function onRequestOptions(ctx: any) {
+  const { request } = ctx
+  
+  return new Response(null, {
+    status: 200,
+    headers: corsHeaders(request.headers.get('Origin') || undefined)
+  })
 }

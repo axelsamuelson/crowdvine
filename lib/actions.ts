@@ -1,4 +1,4 @@
-"use server";
+// "use server"; // Commented out for static export compatibility
 
 interface EnvCheckResult {
   name: string;

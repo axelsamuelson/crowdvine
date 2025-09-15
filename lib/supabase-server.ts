@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+// import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
 interface CookieOptions {
@@ -11,6 +11,8 @@ interface CookieOptions {
   sameSite?: "strict" | "lax" | "none";
 }
 
+// Commented out for static export compatibility
+/*
 export async function supabaseServer() {
   const cookieStore = await cookies();
 
@@ -35,12 +37,12 @@ export async function supabaseServer() {
       get(name: string) {
         return cookieStore.get(name)?.value;
       },
-      set(name: string, value: string, options: CookieOptions) {
+      set(name: string, value: string, options: any) {
         // Only set cookies in Server Actions or Route Handlers
         // This is handled by the access cookie system
         console.log(`Cookie ${name} would be set to ${value}`);
       },
-      remove(name: string, options: CookieOptions) {
+      remove(name: string, options: any) {
         // Only remove cookies in Server Actions or Route Handlers
         console.log(`Cookie ${name} would be removed`);
       },
@@ -61,3 +63,4 @@ export async function getCurrentUser() {
   }
   return user;
 }
+*/

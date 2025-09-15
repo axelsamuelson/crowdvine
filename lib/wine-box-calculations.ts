@@ -5,6 +5,10 @@ const calculationCache = new Map<
   string,
   { data: WineBoxCalculation; timestamp: number }
 >();
+const allCalculationsCache = new Map<
+  string,
+  { data: WineBoxCalculation[]; timestamp: number }
+>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 export interface WineBoxCalculation {
@@ -87,7 +91,7 @@ export async function calculateWineBoxPrice(
     }> = [];
 
     for (const item of wineBoxData.wine_box_items) {
-      const wine = item.wines;
+      const wine = item.wines[0]; // Access first wine in the array
 
       // Calculate wine cost in SEK using cost_amount and exchange_rate
       const costInSek = wine.cost_amount * (wine.exchange_rate || 1.0);
@@ -117,7 +121,7 @@ export async function calculateWineBoxPrice(
     // Use base_price_cents which already includes individual wine margins
     let totalIndividualWinePrice = 0;
     for (const item of wineBoxData.wine_box_items) {
-      const wine = item.wines;
+      const wine = item.wines[0]; // Access first wine in the array
 
       // Use base_price_cents which is the individual wine price (already includes margin)
       const individualWinePrice = wine.base_price_cents / 100; // Convert to SEK
@@ -160,9 +164,9 @@ export async function getAllWineBoxCalculations(): Promise<
 > {
   // Check if we have cached results for all wine boxes
   const cacheKey = "all-wine-boxes";
-  const cached = calculationCache.get(cacheKey);
+  const cached = allCalculationsCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    return cached.data as WineBoxCalculation[];
+    return cached.data;
   }
 
   const sb = await supabaseServer();
@@ -189,7 +193,7 @@ export async function getAllWineBoxCalculations(): Promise<
     );
 
     // Cache the result
-    calculationCache.set(cacheKey, { data: result, timestamp: Date.now() });
+    allCalculationsCache.set(cacheKey, { data: result, timestamp: Date.now() });
 
     return result;
   } catch (error) {

@@ -127,7 +127,7 @@ export async function determineZones(
   }
 
   // Determine pickup zone (use the first producer's pickup zone)
-  const pickupZone = producers[0]?.pallet_zones;
+  const pickupZone = producers[0]?.pallet_zones?.[0];
   const pickupZoneId = pickupZone?.id || null;
   const pickupZoneName = pickupZone?.name || null;
 

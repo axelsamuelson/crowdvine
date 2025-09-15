@@ -1,5 +1,11 @@
 import { NavItem } from "./types";
 
+export const SOCIAL_LINKS = {
+  instagram: "https://instagram.com/crowdvine",
+  x: "https://x.com/crowdvine",
+  github: "https://github.com/crowdvine",
+};
+
 export const TAGS = {
   mode: "mode",
   collections: "collections",

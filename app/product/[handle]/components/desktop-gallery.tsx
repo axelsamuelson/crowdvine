@@ -29,7 +29,7 @@ export const DesktopGallery = ({ product }: { product: Product }) => {
             style={{
               aspectRatio: `${image.width} / ${image.height}`,
             }}
-            key={`${image.url}-${image.selectedOptions?.map((o, idx) => `${o.name},${o.value}`).join("-") || image.id || image.url}`}
+            key={`${image.url}-${image.selectedOptions?.map((o, idx) => `${o.name},${o.value}`).join("-") || image.url}`}
             src={image.url}
             alt={image.altText || product.title}
             width={image.width || 600}
