@@ -1,0 +1,21 @@
+(()=>{var e={};e.id=6063,e.ids=[6063],e.modules={3295:e=>{"use strict";e.exports=require("next/dist/server/app-render/after-task-async-storage.external.js")},10846:e=>{"use strict";e.exports=require("next/dist/compiled/next-server/app-page.runtime.prod.js")},11997:e=>{"use strict";e.exports=require("punycode")},27910:e=>{"use strict";e.exports=require("stream")},29294:e=>{"use strict";e.exports=require("next/dist/server/app-render/work-async-storage.external.js")},44870:e=>{"use strict";e.exports=require("next/dist/compiled/next-server/app-route.runtime.prod.js")},55591:e=>{"use strict";e.exports=require("https")},63033:e=>{"use strict";e.exports=require("next/dist/server/app-render/work-unit-async-storage.external.js")},74075:e=>{"use strict";e.exports=require("zlib")},78335:()=>{},79551:e=>{"use strict";e.exports=require("url")},81630:e=>{"use strict";e.exports=require("http")},89144:(e,t,r)=>{"use strict";r.d(t,{H:()=>o,w:()=>i});var s=r(44999),n=r(34386);async function i(){let e=await (0,s.UL)(),t="https://abrnvjqwpdkodgrtezeg.supabase.co",r="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFicm52anF3cGRrb2RncnRlemVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NzQwNjMsImV4cCI6MjA3MjI1MDA2M30.I_i63rAdVM51CKwic2GhNY5z7WKzA8p8OdVVh8-YiGs";if(!t||!r)throw console.error("Missing Supabase environment variables:"),console.error("NEXT_PUBLIC_SUPABASE_URL:",t?"SET":"MISSING"),console.error("NEXT_PUBLIC_SUPABASE_ANON_KEY:",r?"SET":"MISSING"),Error("Supabase environment variables are not configured. Please check your .env.local file.");return(0,n.createServerClient)(t,r,{cookies:{get:t=>e.get(t)?.value,set(e,t,r){console.log(`Cookie ${e} would be set to ${t}`)},remove(e,t){console.log(`Cookie ${e} would be removed`)}}})}async function o(){let e=await i(),{data:{user:t},error:r}=await e.auth.getUser();return r?(console.error("Error getting current user:",r),null):t}},96266:(e,t,r)=>{"use strict";r.r(t),r.d(t,{patchFetch:()=>g,routeModule:()=>l,serverHooks:()=>m,workAsyncStorage:()=>d,workUnitAsyncStorage:()=>_});var s={};r.r(s),r.d(s,{GET:()=>c,POST:()=>p});var n=r(96559),i=r(48088),o=r(37719),a=r(32190),u=r(89144);async function c(){let e=await (0,u.w)(),{data:t,error:r}=await e.from("pallets").select(`
+      *,
+      delivery_zone:pallet_zones!delivery_zone_id(id, name, zone_type),
+      pickup_zone:pallet_zones!pickup_zone_id(id, name, zone_type),
+      bookings(
+        quantity,
+        wines(
+          id,
+          wine_name,
+          vintage,
+          grape_varieties,
+          color,
+          base_price_cents,
+          producers(
+            name,
+            region,
+            country_code
+          )
+        )
+      )
+    `).order("created_at",{ascending:!1});if(r)return a.NextResponse.json({error:r.message},{status:500});let s=(t||[]).map(e=>{let t=e.bookings?.reduce((e,t)=>e+t.quantity,0)||0,r=e.bottle_capacity-t,s=t/e.bottle_capacity*100,n=e.bookings?.reduce((e,t)=>{let r=t.wines,s=`${r.wine_name}-${r.vintage}`;return e[s]||(e[s]={wine_name:r.wine_name,vintage:r.vintage,grape_varieties:r.grape_varieties,color:r.color,producer:r.producers.name,total_quantity:0,base_price_cents:r.base_price_cents}),e[s].total_quantity+=t.quantity,e},{})||{};return{...e,total_booked_bottles:t,remaining_bottles:r,completion_percentage:s,wine_summary:Object.values(n),is_complete:t>=e.bottle_capacity,needs_ordering:r>0}});return a.NextResponse.json(s)}async function p(e){let t=await (0,u.w)(),r=await e.json(),{data:s,error:n}=await t.from("pallets").insert(r).select().single();return n?a.NextResponse.json({error:n.message},{status:500}):a.NextResponse.json(s)}let l=new n.AppRouteRouteModule({definition:{kind:i.RouteKind.APP_ROUTE,page:"/api/admin/pallets/route",pathname:"/api/admin/pallets",filename:"route",bundlePath:"app/api/admin/pallets/route"},resolvedPagePath:"/Users/axelsamuelson/Downloads/crowdvine_01/app/api/admin/pallets/route.ts",nextConfigOutput:"",userland:s}),{workAsyncStorage:d,workUnitAsyncStorage:_,serverHooks:m}=l;function g(){return(0,o.patchFetch)({workAsyncStorage:d,workUnitAsyncStorage:_})}},96487:()=>{}};var t=require("../../../../webpack-runtime.js");t.C(e);var r=e=>t(t.s=e),s=t.X(0,[4447,3008,4999,4386,580],()=>r(96266));module.exports=s})();
