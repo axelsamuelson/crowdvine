@@ -4,13 +4,19 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { CreditCard, Plus, Check, X } from "lucide-react";
 
 interface PaymentMethod {
   id: string;
-  type: 'card' | 'bank';
+  type: "card" | "bank";
   last4?: string;
   brand?: string;
   is_default: boolean;
@@ -23,7 +29,10 @@ interface PaymentMethodSelectorProps {
   selectedMethod?: PaymentMethod | null;
 }
 
-export function PaymentMethodSelector({ onPaymentMethodSelected, selectedMethod }: PaymentMethodSelectorProps) {
+export function PaymentMethodSelector({
+  onPaymentMethodSelected,
+  selectedMethod,
+}: PaymentMethodSelectorProps) {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -34,19 +43,20 @@ export function PaymentMethodSelector({ onPaymentMethodSelected, selectedMethod 
 
   const fetchPaymentMethods = async () => {
     try {
-      const response = await fetch('/api/user/payment-methods');
+      const response = await fetch("/api/user/payment-methods");
       if (response.ok) {
         const data = await response.json();
         setPaymentMethods(data);
-        
+
         // Auto-select default payment method if none selected
         if (!selectedMethod && data.length > 0) {
-          const defaultMethod = data.find((method: PaymentMethod) => method.is_default) || data[0];
+          const defaultMethod =
+            data.find((method: PaymentMethod) => method.is_default) || data[0];
           onPaymentMethodSelected(defaultMethod);
         }
       }
     } catch (error) {
-      console.error('Error fetching payment methods:', error);
+      console.error("Error fetching payment methods:", error);
     } finally {
       setLoading(false);
     }
@@ -55,12 +65,12 @@ export function PaymentMethodSelector({ onPaymentMethodSelected, selectedMethod 
   const handleAddPaymentMethod = async () => {
     try {
       // Get user profile to get email and name
-      const profileResponse = await fetch('/api/user/profile');
+      const profileResponse = await fetch("/api/user/profile");
       if (!profileResponse.ok) {
         toast.error("Please add your profile information first");
         return;
       }
-      
+
       const profile = await profileResponse.json();
       if (!profile.email) {
         toast.error("Email is required to add payment method");
@@ -69,9 +79,9 @@ export function PaymentMethodSelector({ onPaymentMethodSelected, selectedMethod 
 
       // Redirect to Stripe setup
       const response = await fetch(
-        `/api/checkout/setup?email=${encodeURIComponent(profile.email)}&name=${encodeURIComponent(profile.full_name || '')}`
+        `/api/checkout/setup?email=${encodeURIComponent(profile.email)}&name=${encodeURIComponent(profile.full_name || "")}`,
       );
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         toast.error(errorData.error || "Failed to setup payment method");
@@ -84,34 +94,36 @@ export function PaymentMethodSelector({ onPaymentMethodSelected, selectedMethod 
       } else {
         toast.error("Failed to setup payment method");
       }
-      
     } catch (error) {
-      console.error('Error adding payment method:', error);
+      console.error("Error adding payment method:", error);
       toast.error("Failed to add payment method");
     }
   };
 
   const handleSetDefault = async (methodId: string) => {
     try {
-      const response = await fetch(`/api/user/payment-methods/${methodId}/set-default`, {
-        method: 'PATCH',
-      });
+      const response = await fetch(
+        `/api/user/payment-methods/${methodId}/set-default`,
+        {
+          method: "PATCH",
+        },
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to set default payment method');
+        throw new Error("Failed to set default payment method");
       }
 
       // Update local state
-      setPaymentMethods(prev => 
-        prev.map(method => ({
+      setPaymentMethods((prev) =>
+        prev.map((method) => ({
           ...method,
-          is_default: method.id === methodId
-        }))
+          is_default: method.id === methodId,
+        })),
       );
-      
+
       toast.success("Default payment method updated");
     } catch (error) {
-      console.error('Error setting default payment method:', error);
+      console.error("Error setting default payment method:", error);
       toast.error("Failed to update default payment method");
     }
   };
@@ -145,10 +157,12 @@ export function PaymentMethodSelector({ onPaymentMethodSelected, selectedMethod 
             <div className="space-y-4">
               <div className="text-center">
                 <CreditCard className="w-12 h-12 text-blue-500 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Add Payment Method</h3>
+                <h3 className="text-lg font-semibold mb-2">
+                  Add Payment Method
+                </h3>
                 <p className="text-gray-600 mb-4">
-                  You'll be redirected to Stripe to securely add your payment method. 
-                  This will be saved for future reservations.
+                  You'll be redirected to Stripe to securely add your payment
+                  method. This will be saved for future reservations.
                 </p>
               </div>
               <div className="flex gap-2">
@@ -156,7 +170,11 @@ export function PaymentMethodSelector({ onPaymentMethodSelected, selectedMethod 
                   <CreditCard className="w-4 h-4 mr-2" />
                   Add Payment Method
                 </Button>
-                <Button variant="outline" onClick={() => setShowAddModal(false)} className="flex-1">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowAddModal(false)}
+                  className="flex-1"
+                >
                   Cancel
                 </Button>
               </div>
@@ -179,12 +197,12 @@ export function PaymentMethodSelector({ onPaymentMethodSelected, selectedMethod 
       ) : (
         <div className="space-y-3">
           {paymentMethods.map((method) => (
-            <Card 
-              key={method.id} 
+            <Card
+              key={method.id}
               className={`cursor-pointer transition-all ${
-                selectedMethod?.id === method.id 
-                  ? 'ring-2 ring-blue-500 bg-blue-50' 
-                  : 'hover:bg-gray-50'
+                selectedMethod?.id === method.id
+                  ? "ring-2 ring-blue-500 bg-blue-50"
+                  : "hover:bg-gray-50"
               }`}
               onClick={() => onPaymentMethodSelected(method)}
             >
@@ -203,7 +221,9 @@ export function PaymentMethodSelector({ onPaymentMethodSelected, selectedMethod 
                   </div>
                   <div className="flex items-center gap-2">
                     {method.is_default && (
-                      <Badge variant="default" className="bg-green-600">Default</Badge>
+                      <Badge variant="default" className="bg-green-600">
+                        Default
+                      </Badge>
                     )}
                     {selectedMethod?.id === method.id && (
                       <Check className="w-5 h-5 text-blue-600" />
@@ -218,7 +238,10 @@ export function PaymentMethodSelector({ onPaymentMethodSelected, selectedMethod 
 
       {paymentMethods.length > 0 && (
         <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
-          <p><strong>Reservation Checkout:</strong> No payment will be charged now. We only charge when the matching pallet is triggered.</p>
+          <p>
+            <strong>Reservation Checkout:</strong> No payment will be charged
+            now. We only charge when the matching pallet is triggered.
+          </p>
         </div>
       )}
     </div>

@@ -18,7 +18,7 @@ export async function getWineImages(wineId: string): Promise<WineImage[]> {
 
     if (error) {
       // If table doesn't exist, return empty array
-      if (error.code === 'PGRST205' || error.message.includes('wine_images')) {
+      if (error.code === "PGRST205" || error.message.includes("wine_images")) {
         console.warn("wine_images table not found, returning empty array");
         return [];
       }
@@ -31,7 +31,9 @@ export async function getWineImages(wineId: string): Promise<WineImage[]> {
   }
 }
 
-export async function createWineImage(data: CreateWineImageData): Promise<WineImage> {
+export async function createWineImage(
+  data: CreateWineImageData,
+): Promise<WineImage> {
   const sb = await supabaseServer();
 
   try {
@@ -50,8 +52,10 @@ export async function createWineImage(data: CreateWineImageData): Promise<WineIm
       .single();
 
     if (error) {
-      if (error.code === 'PGRST205' || error.message.includes('wine_images')) {
-        throw new Error("wine_images table not found. Please create the table first.");
+      if (error.code === "PGRST205" || error.message.includes("wine_images")) {
+        throw new Error(
+          "wine_images table not found. Please create the table first.",
+        );
       }
       throw new Error(error.message);
     }
@@ -65,7 +69,10 @@ export async function createWineImage(data: CreateWineImageData): Promise<WineIm
   }
 }
 
-export async function updateWineImage(id: string, data: Partial<CreateWineImageData>): Promise<WineImage> {
+export async function updateWineImage(
+  id: string,
+  data: Partial<CreateWineImageData>,
+): Promise<WineImage> {
   const sb = await supabaseServer();
 
   // If this is set as primary, unset other primary images for this wine
@@ -109,10 +116,7 @@ export async function deleteWineImage(id: string): Promise<void> {
     .eq("id", id)
     .single();
 
-  const { error } = await sb
-    .from("wine_images")
-    .delete()
-    .eq("id", id);
+  const { error } = await sb.from("wine_images").delete().eq("id", id);
 
   if (error) throw new Error(error.message);
 
@@ -122,16 +126,19 @@ export async function deleteWineImage(id: string): Promise<void> {
   }
 }
 
-export async function reorderWineImages(wineId: string, imageIds: string[]): Promise<void> {
+export async function reorderWineImages(
+  wineId: string,
+  imageIds: string[],
+): Promise<void> {
   const sb = await supabaseServer();
 
   // Update sort_order for each image
-  const updates = imageIds.map((imageId, index) => 
+  const updates = imageIds.map((imageId, index) =>
     sb
       .from("wine_images")
       .update({ sort_order: index })
       .eq("id", imageId)
-      .eq("wine_id", wineId)
+      .eq("wine_id", wineId),
   );
 
   await Promise.all(updates);

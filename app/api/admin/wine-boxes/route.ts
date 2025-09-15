@@ -17,7 +17,7 @@ export async function GET() {
     console.error("Error fetching wine boxes:", error);
     return NextResponse.json(
       { error: "Failed to fetch wine boxes" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    
+
     const { data, error } = await sb
       .from("wine_boxes")
       .insert([body])
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     console.error("Error creating wine box:", error);
     return NextResponse.json(
       { error: "Failed to create wine box" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

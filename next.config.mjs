@@ -1,12 +1,15 @@
 const nextConfig = {
-  /* config options here */
+  /* Cloudflare Pages configuration */
+  output: 'export',
+  trailingSlash: true,
   experimental: {
-    inlineCss: true,
-    useCache: true,
-    clientSegmentCache: true,
+    // Disable experimental features that might block export
+    // inlineCss: true, // Commented out - might cause issues with static export
+    // useCache: true, // Commented out - might cause issues with static export
+    // clientSegmentCache: true, // Commented out - might cause issues with static export
   },
   images: {
-    unoptimized: true,
+    unoptimized: true, // Required for static export
     formats: ["image/avif", "image/webp"],
     remotePatterns: [
       {

@@ -14,7 +14,7 @@ export function clearLogoCache() {
   logoCache = null;
   hasPreloaded = false;
   // Trigger reload av alla LogoSvg komponenter
-  window.dispatchEvent(new CustomEvent('logoCacheCleared'));
+  window.dispatchEvent(new CustomEvent("logoCacheCleared"));
 }
 
 export function LogoSvg({ className }: { className?: string }) {
@@ -36,21 +36,21 @@ export function LogoSvg({ className }: { className?: string }) {
 
     fetch(`/api/site-content/header_logo?t=${Date.now()}`, {
       signal: controller.signal,
-      cache: 'no-cache', // Ingen cache för att få senaste versionen
+      cache: "no-cache", // Ingen cache för att få senaste versionen
     })
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         const logoValue = data.value || null;
-        
+
         // Uppdatera cache
         logoCache = {
           value: logoValue,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
-        
+
         setHeaderLogo(logoValue);
         setLoading(false);
-        
+
         // Preload bilden för nästa gång
         if (logoValue && !hasPreloaded) {
           const img = new Image();
@@ -58,8 +58,8 @@ export function LogoSvg({ className }: { className?: string }) {
           hasPreloaded = true;
         }
       })
-      .catch(err => {
-        console.error('Error fetching header logo:', err);
+      .catch((err) => {
+        console.error("Error fetching header logo:", err);
         setLoading(false);
       })
       .finally(() => {
@@ -70,27 +70,28 @@ export function LogoSvg({ className }: { className?: string }) {
   // Lyssna på cache-clearing events
   useEffect(() => {
     const handleCacheCleared = () => {
-      setReloadTrigger(prev => prev + 1);
+      setReloadTrigger((prev) => prev + 1);
     };
 
-    window.addEventListener('logoCacheCleared', handleCacheCleared);
-    return () => window.removeEventListener('logoCacheCleared', handleCacheCleared);
+    window.addEventListener("logoCacheCleared", handleCacheCleared);
+    return () =>
+      window.removeEventListener("logoCacheCleared", handleCacheCleared);
   }, []);
 
   // Om det laddas, visa en transparent placeholder för att undvika layout shift
   if (loading) {
     return (
-      <div 
+      <div
         className={className}
-        style={{ 
-          backgroundColor: 'transparent',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
+        style={{
+          backgroundColor: "transparent",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
         {/* Invisible placeholder med samma storlek som loggan */}
-        <div style={{ width: '100%', height: '100%' }} />
+        <div style={{ width: "100%", height: "100%" }} />
       </div>
     );
   }
@@ -102,7 +103,7 @@ export function LogoSvg({ className }: { className?: string }) {
         src={headerLogo}
         alt="CrowdVine Logo"
         className={className}
-        style={{ objectFit: 'contain' }}
+        style={{ objectFit: "contain" }}
         loading="eager" // Ladda direkt
         fetchPriority="high" // Hög prioritet
       />

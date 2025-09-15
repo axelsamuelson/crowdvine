@@ -5,7 +5,17 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Package, MapPin, Calendar, ArrowRight, Eye, DollarSign, Truck, Home } from "lucide-react";
+import {
+  CheckCircle,
+  Package,
+  MapPin,
+  Calendar,
+  ArrowRight,
+  Eye,
+  DollarSign,
+  Truck,
+  Home,
+} from "lucide-react";
 import { toast } from "sonner";
 
 interface ReservationDetails {
@@ -32,7 +42,9 @@ interface ReservationDetails {
 export default function CheckoutConfirmationPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [reservation, setReservation] = useState<ReservationDetails | null>(null);
+  const [reservation, setReservation] = useState<ReservationDetails | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
 
   const reservationId = searchParams.get("reservationId");
@@ -50,8 +62,8 @@ export default function CheckoutConfirmationPage() {
     }
 
     // Clear cart cache when success page loads
-    localStorage.removeItem('cart-cache');
-    localStorage.removeItem('cart-cache-time');
+    localStorage.removeItem("cart-cache");
+    localStorage.removeItem("cart-cache-time");
   }, [reservationId, message]);
 
   const fetchReservationDetails = async () => {
@@ -143,10 +155,13 @@ export default function CheckoutConfirmationPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-500">Reservation ID</p>
-                  <p className="font-mono text-lg font-semibold">{reservation.id}</p>
+                  <p className="font-mono text-lg font-semibold">
+                    {reservation.id}
+                  </p>
                 </div>
                 <Badge className={getStatusColor(reservation.status)}>
-                  {reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
+                  {reservation.status.charAt(0).toUpperCase() +
+                    reservation.status.slice(1)}
                 </Badge>
               </div>
 
@@ -155,7 +170,9 @@ export default function CheckoutConfirmationPage() {
                 <Calendar className="w-5 h-5 text-gray-500" />
                 <div>
                   <p className="text-sm text-gray-500">Placed on</p>
-                  <p className="font-medium">{formatDate(reservation.created_at)}</p>
+                  <p className="font-medium">
+                    {formatDate(reservation.created_at)}
+                  </p>
                 </div>
               </div>
 
@@ -170,7 +187,7 @@ export default function CheckoutConfirmationPage() {
                     </div>
                   </div>
                 )}
-                
+
                 {reservation.delivery_zone && (
                   <div className="flex items-center gap-2">
                     <MapPin className="w-5 h-5 text-green-500" />
@@ -197,14 +214,23 @@ export default function CheckoutConfirmationPage() {
                 <h3 className="text-lg font-semibold mb-3">Wine Selection</h3>
                 <div className="space-y-3">
                   {reservation.items.map((item, index) => (
-                    <div key={index} className="flex justify-between items-center py-3 px-4 bg-gray-50 rounded-lg">
+                    <div
+                      key={index}
+                      className="flex justify-between items-center py-3 px-4 bg-gray-50 rounded-lg"
+                    >
                       <div className="flex-1">
-                        <p className="font-medium text-gray-900">{item.wine_name}</p>
+                        <p className="font-medium text-gray-900">
+                          {item.wine_name}
+                        </p>
                         <p className="text-sm text-gray-500">{item.vintage}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm text-gray-600">{item.quantity} bottles</p>
-                        <p className="font-medium">{formatPrice(item.price_cents * item.quantity)}</p>
+                        <p className="text-sm text-gray-600">
+                          {item.quantity} bottles
+                        </p>
+                        <p className="font-medium">
+                          {formatPrice(item.price_cents * item.quantity)}
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -221,18 +247,28 @@ export default function CheckoutConfirmationPage() {
                   <div className="flex justify-between">
                     <span className="text-gray-600">Wine Subtotal:</span>
                     <span className="font-medium">
-                      {formatPrice(reservation.items.reduce((sum, item) => sum + (item.price_cents * item.quantity), 0))}
+                      {formatPrice(
+                        reservation.items.reduce(
+                          (sum, item) => sum + item.price_cents * item.quantity,
+                          0,
+                        ),
+                      )}
                     </span>
                   </div>
-                  {reservation.shipping_cost_cents && reservation.shipping_cost_cents > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Shipping:</span>
-                      <span className="font-medium">{formatPrice(reservation.shipping_cost_cents)}</span>
-                    </div>
-                  )}
+                  {reservation.shipping_cost_cents &&
+                    reservation.shipping_cost_cents > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Shipping:</span>
+                        <span className="font-medium">
+                          {formatPrice(reservation.shipping_cost_cents)}
+                        </span>
+                      </div>
+                    )}
                   <div className="flex justify-between text-lg font-semibold border-t pt-2">
                     <span>Total:</span>
-                    <span>{formatPrice(reservation.total_amount_cents || 0)}</span>
+                    <span>
+                      {formatPrice(reservation.total_amount_cents || 0)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -245,7 +281,9 @@ export default function CheckoutConfirmationPage() {
                     Delivery Address
                   </h3>
                   <div className="p-4 bg-gray-50 rounded-lg">
-                    <p className="text-gray-900">{reservation.delivery_address}</p>
+                    <p className="text-gray-900">
+                      {reservation.delivery_address}
+                    </p>
                   </div>
                 </div>
               )}
@@ -259,19 +297,31 @@ export default function CheckoutConfirmationPage() {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="p-4 bg-blue-50 rounded-lg">
-                      <p className="text-sm text-blue-600 font-medium">Pallet Name</p>
-                      <p className="text-blue-900 font-semibold">{reservation.pallet_name}</p>
+                      <p className="text-sm text-blue-600 font-medium">
+                        Pallet Name
+                      </p>
+                      <p className="text-blue-900 font-semibold">
+                        {reservation.pallet_name}
+                      </p>
                     </div>
                     {reservation.pallet_cost_cents && (
                       <div className="p-4 bg-green-50 rounded-lg">
-                        <p className="text-sm text-green-600 font-medium">Pallet Cost</p>
-                        <p className="text-green-900 font-semibold">{formatPrice(reservation.pallet_cost_cents)}</p>
+                        <p className="text-sm text-green-600 font-medium">
+                          Pallet Cost
+                        </p>
+                        <p className="text-green-900 font-semibold">
+                          {formatPrice(reservation.pallet_cost_cents)}
+                        </p>
                       </div>
                     )}
                     {reservation.pallet_capacity && (
                       <div className="p-4 bg-purple-50 rounded-lg">
-                        <p className="text-sm text-purple-600 font-medium">Capacity</p>
-                        <p className="text-purple-900 font-semibold">{reservation.pallet_capacity} bottles</p>
+                        <p className="text-sm text-purple-600 font-medium">
+                          Capacity
+                        </p>
+                        <p className="text-purple-900 font-semibold">
+                          {reservation.pallet_capacity} bottles
+                        </p>
                       </div>
                     )}
                   </div>
@@ -293,27 +343,36 @@ export default function CheckoutConfirmationPage() {
               </div>
               <div>
                 <p className="font-medium">Confirmation Email</p>
-                <p className="text-sm text-gray-600">You'll receive a confirmation email with your reservation details and tracking information.</p>
+                <p className="text-sm text-gray-600">
+                  You'll receive a confirmation email with your reservation
+                  details and tracking information.
+                </p>
               </div>
             </div>
-            
+
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                 <span className="text-green-600 font-semibold text-sm">2</span>
               </div>
               <div>
                 <p className="font-medium">Preparation</p>
-                <p className="text-sm text-gray-600">Your wines will be prepared and loaded onto the assigned pallet for delivery.</p>
+                <p className="text-sm text-gray-600">
+                  Your wines will be prepared and loaded onto the assigned
+                  pallet for delivery.
+                </p>
               </div>
             </div>
-            
+
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0 w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
                 <span className="text-purple-600 font-semibold text-sm">3</span>
               </div>
               <div>
                 <p className="font-medium">Delivery</p>
-                <p className="text-sm text-gray-600">Your wines will be delivered to your specified address within the delivery zone.</p>
+                <p className="text-sm text-gray-600">
+                  Your wines will be delivered to your specified address within
+                  the delivery zone.
+                </p>
               </div>
             </div>
           </CardContent>
@@ -321,15 +380,15 @@ export default function CheckoutConfirmationPage() {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button 
+          <Button
             onClick={() => router.push("/profile/reservations")}
             className="flex items-center gap-2"
           >
             <Eye className="w-4 h-4" />
             View All Reservations
           </Button>
-          
-          <Button 
+
+          <Button
             variant="outline"
             onClick={() => router.push("/")}
             className="flex items-center gap-2"

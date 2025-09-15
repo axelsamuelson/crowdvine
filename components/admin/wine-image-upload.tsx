@@ -21,12 +21,12 @@ interface WineImageUploadProps {
   images?: File[];
 }
 
-export function WineImageUpload({ 
-  wineId, 
-  existingImages = [], 
-  onImagesChange, 
+export function WineImageUpload({
+  wineId,
+  existingImages = [],
+  onImagesChange,
   onExistingImagesChange,
-  images = [] 
+  images = [],
 }: WineImageUploadProps) {
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState("");
@@ -90,14 +90,16 @@ export function WineImageUpload({
 
   const removeExistingImage = async (imageId: string) => {
     if (!wineId) return;
-    
+
     setLoading(true);
     try {
       const { deleteWineImage } = await import("@/lib/actions/wine-images");
       await deleteWineImage(imageId);
-      
+
       if (onExistingImagesChange) {
-        const updatedImages = existingImages.filter(img => img.id !== imageId);
+        const updatedImages = existingImages.filter(
+          (img) => img.id !== imageId,
+        );
         onExistingImagesChange(updatedImages);
       }
     } catch (err) {
@@ -109,21 +111,23 @@ export function WineImageUpload({
 
   const setPrimaryImage = async (imageId: string) => {
     if (!wineId) return;
-    
+
     setLoading(true);
     try {
       const { setPrimaryWineImage } = await import("@/lib/actions/wine-images");
       await setPrimaryWineImage(imageId);
-      
+
       if (onExistingImagesChange) {
-        const updatedImages = existingImages.map(img => ({
+        const updatedImages = existingImages.map((img) => ({
           ...img,
-          is_primary: img.id === imageId
+          is_primary: img.id === imageId,
         }));
         onExistingImagesChange(updatedImages);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to set primary image");
+      setError(
+        err instanceof Error ? err.message : "Failed to set primary image",
+      );
     } finally {
       setLoading(false);
     }
@@ -131,17 +135,19 @@ export function WineImageUpload({
 
   const reorderExistingImages = async (imageIds: string[]) => {
     if (!wineId) return;
-    
+
     setLoading(true);
     try {
       const { reorderWineImages } = await import("@/lib/actions/wine-images");
       await reorderWineImages(wineId, imageIds);
-      
+
       if (onExistingImagesChange) {
-        const updatedImages = imageIds.map((id, index) => {
-          const image = existingImages.find(img => img.id === id);
-          return image ? { ...image, sort_order: index } : null;
-        }).filter(Boolean) as WineImage[];
+        const updatedImages = imageIds
+          .map((id, index) => {
+            const image = existingImages.find((img) => img.id === id);
+            return image ? { ...image, sort_order: index } : null;
+          })
+          .filter(Boolean) as WineImage[];
         onExistingImagesChange(updatedImages);
       }
     } catch (err) {
@@ -155,8 +161,8 @@ export function WineImageUpload({
     const newOrder = [...existingImages];
     const [movedImage] = newOrder.splice(fromIndex, 1);
     newOrder.splice(toIndex, 0, movedImage);
-    
-    const imageIds = newOrder.map(img => img.id);
+
+    const imageIds = newOrder.map((img) => img.id);
     reorderExistingImages(imageIds);
   };
 
@@ -164,24 +170,28 @@ export function WineImageUpload({
     fileInputRef.current?.click();
   };
 
-  const allImages = [...existingImages, ...images.map((file, index) => ({
-    id: `new-${index}`,
-    wine_id: wineId || '',
-    image_path: URL.createObjectURL(file),
-    alt_text: file.name,
-    sort_order: existingImages.length + index,
-    is_primary: false,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    isNew: true
-  }))];
+  const allImages = [
+    ...existingImages,
+    ...images.map((file, index) => ({
+      id: `new-${index}`,
+      wine_id: wineId || "",
+      image_path: URL.createObjectURL(file),
+      alt_text: file.name,
+      sort_order: existingImages.length + index,
+      is_primary: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      isNew: true,
+    })),
+  ];
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Product Images</CardTitle>
         <CardDescription>
-          Upload multiple images for this wine. Drag and drop to reorder. The first image will be the main product image.
+          Upload multiple images for this wine. Drag and drop to reorder. The
+          first image will be the main product image.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -210,7 +220,12 @@ export function WineImageUpload({
           <p className="text-sm text-gray-500 mb-4">
             Supports JPG, PNG, GIF up to 10MB each
           </p>
-          <Button onClick={openFileDialog} variant="outline" type="button" disabled={loading}>
+          <Button
+            onClick={openFileDialog}
+            variant="outline"
+            type="button"
+            disabled={loading}
+          >
             Choose Files
           </Button>
           <input
@@ -231,9 +246,9 @@ export function WineImageUpload({
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {allImages.map((image, index) => {
-                const isNewImage = 'isNew' in image;
+                const isNewImage = "isNew" in image;
                 const isExistingImage = !isNewImage;
-                
+
                 return (
                   <div key={image.id} className="relative group">
                     <div className="w-20 h-20 rounded-lg border overflow-hidden bg-gray-100">
@@ -270,7 +285,7 @@ export function WineImageUpload({
                       >
                         <Eye className="h-3 w-3" />
                       </Button>
-                      
+
                       {isExistingImage && (
                         <Button
                           size="sm"
@@ -287,7 +302,7 @@ export function WineImageUpload({
                           )}
                         </Button>
                       )}
-                      
+
                       <Button
                         size="sm"
                         variant="destructive"
@@ -315,10 +330,16 @@ export function WineImageUpload({
                           className="h-4 w-4 p-0 text-xs"
                           type="button"
                           onClick={() => {
-                            if (isExistingImage && index < existingImages.length) {
+                            if (
+                              isExistingImage &&
+                              index < existingImages.length
+                            ) {
                               moveExistingImage(index, index - 1);
                             } else if (isNewImage) {
-                              moveNewImage(index - existingImages.length, index - existingImages.length - 1);
+                              moveNewImage(
+                                index - existingImages.length,
+                                index - existingImages.length - 1,
+                              );
                             }
                           }}
                           disabled={loading}
@@ -333,10 +354,16 @@ export function WineImageUpload({
                           className="h-4 w-4 p-0 text-xs"
                           type="button"
                           onClick={() => {
-                            if (isExistingImage && index < existingImages.length - 1) {
+                            if (
+                              isExistingImage &&
+                              index < existingImages.length - 1
+                            ) {
                               moveExistingImage(index, index + 1);
                             } else if (isNewImage) {
-                              moveNewImage(index - existingImages.length, index - existingImages.length + 1);
+                              moveNewImage(
+                                index - existingImages.length,
+                                index - existingImages.length + 1,
+                              );
                             }
                           }}
                           disabled={loading}
@@ -351,7 +378,9 @@ export function WineImageUpload({
             </div>
 
             <div className="text-xs text-gray-500">
-              <p>• First image will be the main product image (marked with ★)</p>
+              <p>
+                • First image will be the main product image (marked with ★)
+              </p>
               <p>• Drag and drop or use arrow buttons to reorder</p>
               <p>• Click the eye icon to preview full size</p>
               <p>• Click the star icon to set as primary image</p>

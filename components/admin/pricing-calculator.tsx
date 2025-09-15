@@ -19,8 +19,17 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calculator, TrendingUp, Calendar, BarChart3, Store } from "lucide-react";
-import { calculateSystembolagetPrice, calculateSystembolagetPriceBreakdown } from "@/lib/systembolaget-pricing";
+import {
+  Calculator,
+  TrendingUp,
+  Calendar,
+  BarChart3,
+  Store,
+} from "lucide-react";
+import {
+  calculateSystembolagetPrice,
+  calculateSystembolagetPriceBreakdown,
+} from "@/lib/systembolaget-pricing";
 
 interface PricingData {
   cost_currency: string;
@@ -108,7 +117,7 @@ export function PricingCalculator({
     const sbPrice = calculateSystembolagetPrice(
       pricingData.cost_amount,
       currentRate || pricingData.exchange_rate || 1,
-      pricingData.alcohol_tax_cents
+      pricingData.alcohol_tax_cents,
     );
 
     // Calculate our margin in SEK
@@ -123,7 +132,10 @@ export function PricingCalculator({
       sbPrice: sbPrice.toFixed(2),
       ourMarginSek: ourMarginSek.toFixed(2),
       priceDifference: (sbPrice - finalPrice).toFixed(2),
-      priceDifferencePercent: (((sbPrice - finalPrice) / finalPrice) * 100).toFixed(1)
+      priceDifferencePercent: (
+        ((sbPrice - finalPrice) / finalPrice) *
+        100
+      ).toFixed(1),
     };
   };
 
@@ -396,11 +408,12 @@ export function PricingCalculator({
                 <div className="flex justify-between">
                   <span>Your Margin:</span>
                   <span className="font-medium text-blue-600">
-                    {breakdown.ourMarginSek} SEK ({pricingData.margin_percentage}%)
+                    {breakdown.ourMarginSek} SEK (
+                    {pricingData.margin_percentage}%)
                   </span>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span>Systembolaget Price:</span>
@@ -410,26 +423,28 @@ export function PricingCalculator({
                 </div>
                 <div className="flex justify-between">
                   <span>Price Difference:</span>
-                  <span className={`font-medium ${
-                    parseFloat(breakdown.priceDifference) > 0 
-                      ? 'text-red-600' 
-                      : 'text-green-600'
-                  }`}>
-                    {parseFloat(breakdown.priceDifference) > 0 ? '+' : ''}
-                    {breakdown.priceDifference} SEK ({breakdown.priceDifferencePercent}%)
+                  <span
+                    className={`font-medium ${
+                      parseFloat(breakdown.priceDifference) > 0
+                        ? "text-red-600"
+                        : "text-green-600"
+                    }`}
+                  >
+                    {parseFloat(breakdown.priceDifference) > 0 ? "+" : ""}
+                    {breakdown.priceDifference} SEK (
+                    {breakdown.priceDifferencePercent}%)
                   </span>
                 </div>
               </div>
             </div>
-            
+
             <div className="text-sm text-gray-600 bg-white p-3 rounded border">
-              <strong>Competitive Analysis:</strong> {
-                parseFloat(breakdown.priceDifference) > 0 
-                  ? `Systembolaget is ${breakdown.priceDifference} SEK (${breakdown.priceDifferencePercent}%) more expensive than your price.`
-                  : parseFloat(breakdown.priceDifference) < 0
+              <strong>Competitive Analysis:</strong>{" "}
+              {parseFloat(breakdown.priceDifference) > 0
+                ? `Systembolaget is ${breakdown.priceDifference} SEK (${breakdown.priceDifferencePercent}%) more expensive than your price.`
+                : parseFloat(breakdown.priceDifference) < 0
                   ? `You are ${Math.abs(parseFloat(breakdown.priceDifference))} SEK (${Math.abs(parseFloat(breakdown.priceDifferencePercent))}%) more expensive than Systembolaget.`
-                  : 'Your price matches Systembolaget exactly.'
-              }
+                  : "Your price matches Systembolaget exactly."}
             </div>
           </CardContent>
         </Card>

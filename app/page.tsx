@@ -15,7 +15,7 @@ export default async function Home() {
   try {
     collections = await getCollections();
   } catch (error) {
-    console.warn('Failed to fetch collections in home page:', error);
+    console.warn("Failed to fetch collections in home page:", error);
     collections = [];
   }
 

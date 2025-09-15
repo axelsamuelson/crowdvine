@@ -96,10 +96,12 @@ export function VariantOptionSelector({
         {option.values.map((value, index) => {
           // Create a unique key using index and value name/id
           const key = `${option.id}-${value.id || value.name}-${index}`;
-          
+
           // Check if this is a color or grape variety option (display only)
           const isColorOption = optionNameLowerCase === "color";
-          const isGrapeVarietyOption = optionNameLowerCase === "grape variety" || optionNameLowerCase === "grape varieties";
+          const isGrapeVarietyOption =
+            optionNameLowerCase === "grape variety" ||
+            optionNameLowerCase === "grape varieties";
           const isDisplayOnlyOption = isColorOption || isGrapeVarietyOption;
 
           // If this is a color option, show color display only

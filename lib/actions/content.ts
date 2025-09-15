@@ -51,7 +51,7 @@ export async function updateSiteContent(
     .eq("key", key)
     .single();
 
-  if (selectError && selectError.code !== 'PGRST116') {
+  if (selectError && selectError.code !== "PGRST116") {
     throw new Error(selectError.message);
   }
 

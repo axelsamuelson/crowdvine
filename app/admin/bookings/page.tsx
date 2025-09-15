@@ -33,7 +33,8 @@ import {
 export default function BookingsPage() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [reservations, setReservations] = useState<any[]>([]);
-  const [bookingsWithReservationInfo, setBookingsWithReservationInfo] = useState<any[]>([]);
+  const [bookingsWithReservationInfo, setBookingsWithReservationInfo] =
+    useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBookings, setSelectedBookings] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -45,36 +46,42 @@ export default function BookingsPage() {
   const fetchBookings = async () => {
     try {
       // Fetch bookings
-      const bookingsResponse = await fetch('/api/admin/bookings');
+      const bookingsResponse = await fetch("/api/admin/bookings");
       const bookingsData = await bookingsResponse.json();
       setBookings(bookingsData.bookings || []);
       setReservations(bookingsData.reservations || []);
 
       // Koppla bookings till reservations baserat på user_id och datum
-      const bookingsWithReservationInfo = bookingsData.bookings?.map((booking: any) => {
-        const matchingReservation = bookingsData.reservations?.find((reservation: any) => 
-          reservation.user_id === booking.user_id &&
-          Math.abs(new Date(reservation.created_at).getTime() - new Date(booking.created_at).getTime()) < 24 * 60 * 60 * 1000
-        );
-        
-        return {
-          ...booking,
-          reservation: matchingReservation || {
-            id: booking.user_id, // Use user_id as fallback
-            status: booking.status || 'reserved',
-            created_at: booking.created_at,
-            user_id: booking.user_id,
-            profiles: {
-              email: `user-${booking.user_id.substring(0, 8)}`,
-              role: 'customer'
-            }
-          }
-        };
-      }) || [];
-      
+      const bookingsWithReservationInfo =
+        bookingsData.bookings?.map((booking: any) => {
+          const matchingReservation = bookingsData.reservations?.find(
+            (reservation: any) =>
+              reservation.user_id === booking.user_id &&
+              Math.abs(
+                new Date(reservation.created_at).getTime() -
+                  new Date(booking.created_at).getTime(),
+              ) <
+                24 * 60 * 60 * 1000,
+          );
+
+          return {
+            ...booking,
+            reservation: matchingReservation || {
+              id: booking.user_id, // Use user_id as fallback
+              status: booking.status || "reserved",
+              created_at: booking.created_at,
+              user_id: booking.user_id,
+              profiles: {
+                email: `user-${booking.user_id.substring(0, 8)}`,
+                role: "customer",
+              },
+            },
+          };
+        }) || [];
+
       setBookingsWithReservationInfo(bookingsWithReservationInfo);
     } catch (error) {
-      console.error('Failed to fetch bookings:', error);
+      console.error("Failed to fetch bookings:", error);
     } finally {
       setLoading(false);
     }
@@ -108,7 +115,9 @@ export default function BookingsPage() {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedBookings(bookingsWithReservationInfo.map(booking => booking.id));
+      setSelectedBookings(
+        bookingsWithReservationInfo.map((booking) => booking.id),
+      );
     } else {
       setSelectedBookings([]);
     }
@@ -116,23 +125,25 @@ export default function BookingsPage() {
 
   const handleSelectBooking = (bookingId: string, checked: boolean) => {
     if (checked) {
-      setSelectedBookings(prev => [...prev, bookingId]);
+      setSelectedBookings((prev) => [...prev, bookingId]);
     } else {
-      setSelectedBookings(prev => prev.filter(id => id !== bookingId));
+      setSelectedBookings((prev) => prev.filter((id) => id !== bookingId));
     }
   };
 
   const handleBulkDelete = async () => {
     if (selectedBookings.length === 0) return;
-    
-    const confirmed = confirm(`Are you sure you want to delete ${selectedBookings.length} booking(s)? This action cannot be undone.`);
+
+    const confirmed = confirm(
+      `Are you sure you want to delete ${selectedBookings.length} booking(s)? This action cannot be undone.`,
+    );
     if (!confirmed) return;
 
     try {
-      const response = await fetch('/api/admin/bookings', {
-        method: 'DELETE',
+      const response = await fetch("/api/admin/bookings", {
+        method: "DELETE",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ bookingIds: selectedBookings }),
       });
@@ -141,21 +152,23 @@ export default function BookingsPage() {
         setSelectedBookings([]);
         fetchBookings(); // Refresh data
       } else {
-        alert('Failed to delete bookings');
+        alert("Failed to delete bookings");
       }
     } catch (error) {
-      console.error('Error deleting bookings:', error);
-      alert('Failed to delete bookings');
+      console.error("Error deleting bookings:", error);
+      alert("Failed to delete bookings");
     }
   };
 
-  const filteredBookings = bookingsWithReservationInfo.filter(booking => {
+  const filteredBookings = bookingsWithReservationInfo.filter((booking) => {
     if (!searchTerm) return true;
     const searchLower = searchTerm.toLowerCase();
     return (
       booking.wines?.wine_name?.toLowerCase().includes(searchLower) ||
       booking.wines?.producers?.name?.toLowerCase().includes(searchLower) ||
-      booking.reservation?.profiles?.email?.toLowerCase().includes(searchLower) ||
+      booking.reservation?.profiles?.email
+        ?.toLowerCase()
+        .includes(searchLower) ||
       booking.reservation?.id?.toLowerCase().includes(searchLower)
     );
   });
@@ -172,11 +185,7 @@ export default function BookingsPage() {
         </div>
         <div className="flex items-center gap-2">
           {selectedBookings.length > 0 && (
-            <Button 
-              variant="destructive" 
-              size="sm"
-              onClick={handleBulkDelete}
-            >
+            <Button variant="destructive" size="sm" onClick={handleBulkDelete}>
               <Trash2 className="h-4 w-4 mr-2" />
               Delete ({selectedBookings.length})
             </Button>
@@ -292,7 +301,10 @@ export default function BookingsPage() {
                   <tr className="border-b border-gray-200">
                     <th className="text-left p-3 font-medium text-sm text-gray-600">
                       <Checkbox
-                        checked={selectedBookings.length === filteredBookings.length && filteredBookings.length > 0}
+                        checked={
+                          selectedBookings.length === filteredBookings.length &&
+                          filteredBookings.length > 0
+                        }
                         onCheckedChange={handleSelectAll}
                       />
                     </th>
@@ -340,7 +352,9 @@ export default function BookingsPage() {
                       <td className="p-3">
                         <Checkbox
                           checked={selectedBookings.includes(booking.id)}
-                          onCheckedChange={(checked) => handleSelectBooking(booking.id, checked as boolean)}
+                          onCheckedChange={(checked) =>
+                            handleSelectBooking(booking.id, checked as boolean)
+                          }
                         />
                       </td>
                       <td className="p-3">
@@ -362,14 +376,16 @@ export default function BookingsPage() {
                         <Badge
                           variant="secondary"
                           className={
-                            booking.reservation?.status === "placed" 
+                            booking.reservation?.status === "placed"
                               ? "bg-blue-100 text-blue-800"
                               : booking.reservation?.status === "confirmed"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-gray-100 text-gray-800"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-gray-100 text-gray-800"
                           }
                         >
-                          {booking.reservation?.status || booking.status || "Unknown"}
+                          {booking.reservation?.status ||
+                            booking.status ||
+                            "Unknown"}
                         </Badge>
                       </td>
                       <td className="p-3">

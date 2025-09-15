@@ -1,0 +1,19 @@
+# Cloudflare Pages Redirects Configuration
+# Handle redirects and rewrites
+
+# Redirect www to non-www (if preferred)
+# https://www.dirtywine.se/* https://dirtywine.se/:splat 301
+
+# Redirect old paths to new ones (if any)
+# /old-path/* /new-path/:splat 301
+
+# Handle trailing slashes
+# /shop /shop/ 301
+# /boxes /boxes/ 301
+
+# API routes - ensure they go to Pages Functions
+/api/* /api/:splat 200
+
+# Fallback for SPA routing (if needed)
+# /admin/* /admin/ 200
+# /profile/* /profile/ 200
