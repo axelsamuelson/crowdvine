@@ -102,3 +102,15 @@ export function handleCors(request: Request): Response | null {
   }
   return null
 }
+
+// Additional helper functions for compatibility
+export function jsonResponse(data: any, options: { status?: number; headers?: Headers } = {}) {
+  const { status = 200, headers = new Headers() } = options;
+  
+  headers.set('Content-Type', 'application/json');
+  
+  return new Response(JSON.stringify(data), {
+    status,
+    headers,
+  });
+}

@@ -1,11 +1,7 @@
 // Cloudflare Pages Function - Health Check
 // Simple health check endpoint
 
-import { success, corsHeaders } from '../_lib/response'
-
-export async function onRequestGet(ctx: any) {
-  const { request } = ctx
-  
+export async function onRequestGet() {
   const healthData = {
     status: 'healthy',
     timestamp: new Date().toISOString(),
@@ -17,12 +13,7 @@ export async function onRequestGet(ctx: any) {
     status: 200,
     headers: {
       'Content-Type': 'application/json',
-      'Cache-Control': 'no-cache',
-      ...corsHeaders(request.headers.get('Origin') || undefined)
+      'Cache-Control': 'no-cache'
     }
   })
-}
-
-export async function onRequestPost(ctx: any) {
-  return onRequestGet(ctx)
 }

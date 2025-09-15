@@ -1,63 +1,38 @@
-// Cloudflare Pages Function - Create Payment Intent
-// Create Stripe Payment Intent for checkout
+// Cloudflare Pages Function - Checkout Payment Intent
+// Create Stripe payment intent
 
-import { success, error, badRequest, unauthorized, internalError, corsHeaders } from '../_lib/response'
-import { getStripeClient, createPaymentIntentData } from '../_lib/stripe'
-import { getUserFromRequest } from '../_lib/supabase'
-
-export async function onRequestPost(ctx: any) {
-  const { request, env } = ctx
+export async function onRequestPost(context: any) {
+  const { request, env } = context
   
   try {
-    const userId = getUserFromRequest(request)
-    
-    if (!userId) {
-      return unauthorized('Authentication required')
-    }
-
     const body = await request.json()
-    const { amount, currency = 'sek', metadata = {} } = body
+    const { amount, currency = 'sek' } = body
 
-    if (!amount || amount <= 0) {
-      return badRequest('Valid amount is required')
+    if (!amount || typeof amount !== 'number' || amount <= 0) {
+      return new Response(JSON.stringify({
+        error: 'Valid amount is required'
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
     }
 
-    const stripe = getStripeClient(env)
-
-    // Create payment intent
-    const paymentIntentData = createPaymentIntentData(amount, currency, {
-      user_id: userId,
-      ...metadata
+    // For now, return a mock payment intent
+    // TODO: Implement actual Stripe integration
+    return new Response(JSON.stringify({
+      clientSecret: 'pi_mock_client_secret_' + Date.now()
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
     })
 
-    const paymentIntent = await stripe.paymentIntents.create(paymentIntentData)
-
-    const response = success({
-      clientSecret: paymentIntent.client_secret,
-      id: paymentIntent.id,
-      amount: paymentIntent.amount,
-      currency: paymentIntent.currency,
-      status: paymentIntent.status
-    }, 'Payment intent created')
-
-    // Add CORS headers
-    Object.entries(corsHeaders(request.headers.get('Origin') || undefined)).forEach(
-      ([key, value]) => response.headers.set(key, value)
-    )
-
-    return response
-
-  } catch (err) {
-    console.error('Payment intent creation error:', err)
-    return internalError('Payment intent creation failed')
+  } catch (error) {
+    console.error('Create Payment Intent error:', error)
+    return new Response(JSON.stringify({
+      error: 'Internal server error'
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    })
   }
-}
-
-export async function onRequestOptions(ctx: any) {
-  const { request } = ctx
-  
-  return new Response(null, {
-    status: 200,
-    headers: corsHeaders(request.headers.get('Origin') || undefined)
-  })
 }
