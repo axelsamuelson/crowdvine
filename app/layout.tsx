@@ -30,9 +30,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ACME Store",
-  description: "ACME Store, your one-stop shop for all your needs.",
-  generator: "v0.app",
+  title: "Pact Wines",
+  description: "Premium wine collection - curated selections for wine enthusiasts.",
+  generator: "Next.js",
 };
 
 /**
