@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
@@ -24,7 +24,7 @@ interface ReservationStatus {
   };
 }
 
-export default function ReservationStatusPage() {
+function ReservationStatusContent() {
   const [reservation, setReservation] = useState<ReservationStatus | null>(
     null,
   );
@@ -351,5 +351,21 @@ export default function ReservationStatusPage() {
         </button>
       </div>
     </div>
+  );
+}
+
+export default function ReservationStatusPage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 bg-gray-200 rounded mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    }>
+      <ReservationStatusContent />
+    </Suspense>
   );
 }
