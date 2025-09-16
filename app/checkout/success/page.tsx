@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,7 @@ interface ReservationDetails {
   }>;
 }
 
-export default function CheckoutConfirmationPage() {
+function CheckoutConfirmationContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [reservation, setReservation] = useState<ReservationDetails | null>(null);
@@ -340,5 +340,21 @@ export default function CheckoutConfirmationPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CheckoutConfirmationPage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 bg-gray-200 rounded mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    }>
+      <CheckoutConfirmationContent />
+    </Suspense>
   );
 }
