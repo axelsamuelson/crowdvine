@@ -1,15 +1,12 @@
 const nextConfig = {
-  /* Cloudflare Pages configuration */
-  output: 'export',
-  trailingSlash: true,
+  /* Vercel configuration */
   experimental: {
-    // Disable experimental features that might block export
-    // inlineCss: true, // Commented out - might cause issues with static export
-    // useCache: true, // Commented out - might cause issues with static export
-    // clientSegmentCache: true, // Commented out - might cause issues with static export
+    // Enable experimental features for better performance
+    inlineCss: true,
+    useCache: true,
+    clientSegmentCache: true,
   },
   images: {
-    unoptimized: true, // Required for static export
     formats: ["image/avif", "image/webp"],
     remotePatterns: [
       {
@@ -23,12 +20,12 @@ const nextConfig = {
     ],
   },
   eslint: {
-    // Temporarily ignore ESLint errors during build for Cloudflare Pages deployment
-    ignoreDuringBuilds: true,
+    // Enable ESLint during builds for better code quality
+    ignoreDuringBuilds: false,
   },
   typescript: {
-    // Temporarily ignore TypeScript errors during build for Cloudflare Pages deployment
-    ignoreBuildErrors: true,
+    // Enable TypeScript checking during builds
+    ignoreBuildErrors: false,
   },
 };
 
