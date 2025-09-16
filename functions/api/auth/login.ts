@@ -1,41 +1,40 @@
-// Cloudflare Pages Function - Authentication Login
-// Handle user login with Supabase Auth
-
-export async function onRequestPost(context: any) {
-  const { request, env } = context
+// Development login endpoint
+export async function onRequest(context: any) {
+  const { request } = context;
+  
+  if (request.method !== 'POST') {
+    return new Response('Method not allowed', { status: 405 });
+  }
   
   try {
-    const body = await request.json()
-    const { email, password } = body
-
-    if (!email || !password) {
-      return new Response(JSON.stringify({ error: 'Email and password are required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
-
-    // For now, return a simple success response
-    // TODO: Implement actual Supabase authentication
-    const response = new Response(JSON.stringify({
+    const body = await request.json();
+    const { email, password } = body;
+    
+    // Development login - accept any credentials
+    console.log(`[DEV] Login attempt: ${email}`);
+    
+    return new Response(JSON.stringify({
       success: true,
-      message: 'Login successful',
-      user: { email }
+      message: 'Development login successful',
+      user: {
+        email,
+        id: 'dev-user-123',
+        role: 'admin'
+      }
     }), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Set-Cookie': 'cv-access=1; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=86400'
-      }
-    })
-
-    return response
-
-  } catch (err) {
-    console.error('Login error:', err)
-    return new Response(JSON.stringify({ error: 'Login failed' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    })
+        'Set-Cookie': 'cv-access=1; HttpOnly; Secure; SameSite=Lax; Path=/',
+      },
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({
+      success: false,
+      error: 'Invalid request'
+    }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }

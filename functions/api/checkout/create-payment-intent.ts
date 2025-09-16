@@ -1,38 +1,39 @@
-// Cloudflare Pages Function - Checkout Payment Intent
-// Create Stripe payment intent
-
-export async function onRequestPost(context: any) {
-  const { request, env } = context
+// Development checkout endpoint
+export async function onRequest(context: any) {
+  const { request } = context;
+  
+  if (request.method !== 'POST') {
+    return new Response('Method not allowed', { status: 405 });
+  }
   
   try {
-    const body = await request.json()
-    const { amount, currency = 'sek' } = body
-
-    if (!amount || typeof amount !== 'number' || amount <= 0) {
-      return new Response(JSON.stringify({
-        error: 'Valid amount is required'
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
-
-    // For now, return a mock payment intent
-    // TODO: Implement actual Stripe integration
+    const body = await request.json();
+    const { amount, currency = 'SEK' } = body;
+    
+    console.log(`[DEV] Creating payment intent for ${amount} ${currency}`);
+    
+    // Development payment intent - return mock data
     return new Response(JSON.stringify({
-      clientSecret: 'pi_mock_client_secret_' + Date.now()
+      clientSecret: 'pi_dev_1234567890_secret_abcdef',
+      paymentIntentId: 'pi_dev_1234567890',
+      amount: amount,
+      currency: currency,
+      status: 'requires_payment_method',
+      environment: 'development'
     }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    })
-
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
+    });
   } catch (error) {
-    console.error('Create Payment Intent error:', error)
     return new Response(JSON.stringify({
-      error: 'Internal server error'
+      error: 'Failed to create payment intent',
+      details: error instanceof Error ? error.message : 'Unknown error'
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    })
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }

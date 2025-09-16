@@ -1,3 +1,13 @@
-# Cloudflare Pages Build Configuration
-name = "crowdvine"
-pages_build_output_dir = "out"
+# Cloudflare Pages Functions - Development Environment
+name = "crowdvine-development"
+compatibility_date = "2024-09-16"
+
+[env.development]
+name = "crowdvine-development"
+
+[env.production]
+name = "crowdvine-production"
+
+# Pages Functions configuration
+[[pages_functions]]
+pattern = "/api/*"

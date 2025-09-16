@@ -1,15 +1,13 @@
-// Cloudflare Pages Function - Authentication Logout
-// Handle user logout
-
-export async function onRequestPost() {
+// Development logout endpoint
+export async function onRequest() {
   return new Response(JSON.stringify({
     success: true,
-    message: 'Logout successful'
+    message: 'Logged out successfully'
   }), {
     status: 200,
     headers: {
       'Content-Type': 'application/json',
-      'Set-Cookie': 'cv-access=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0'
-    }
-  })
+      'Set-Cookie': 'cv-access=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0',
+    },
+  });
 }

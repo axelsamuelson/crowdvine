@@ -1,35 +1,33 @@
-// Cloudflare Pages Function - Stripe Webhook
-// Handle Stripe webhook events
-
-export async function onRequestPost(context: any) {
-  const { request, env } = context
+// Development Stripe webhook endpoint
+export async function onRequest(context: any) {
+  const { request } = context;
+  
+  if (request.method !== 'POST') {
+    return new Response('Method not allowed', { status: 405 });
+  }
   
   try {
-    const signature = request.headers.get('stripe-signature')
-    if (!signature) {
-      return new Response(JSON.stringify({
-        error: 'No Stripe signature in headers'
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
-
-    const body = await request.text()
+    const body = await request.text();
+    console.log(`[DEV] Received webhook: ${body}`);
     
-    // For now, just log the webhook
-    console.log('Stripe webhook received:', { signature, body: body.substring(0, 100) + '...' })
-    
-    // Return 200 to acknowledge receipt
-    return new Response(null, { status: 200 })
-
-  } catch (error) {
-    console.error('Stripe webhook error:', error)
+    // Development webhook - just log and return success
     return new Response(JSON.stringify({
-      error: 'Webhook processing failed'
+      received: true,
+      environment: 'development',
+      timestamp: new Date().toISOString()
+    }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({
+      error: 'Webhook processing failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    })
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }
