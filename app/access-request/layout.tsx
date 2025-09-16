@@ -9,7 +9,6 @@ import { isDevelopment } from "@/lib/constants";
 import { V0Provider } from "@/lib/context";
 import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
-import { AccessRequestHeader } from "@/components/access-request-header";
 
 const V0Setup = dynamic(() => import("@/components/v0-setup"));
 const isV0 = process.env["VERCEL_URL"]?.includes("vusercontent.net") ?? false;
@@ -48,8 +47,7 @@ export default async function AccessRequestLayout({
       >
         <V0Provider isV0={isV0}>
           <NuqsAdapter>
-            <AccessRequestHeader />
-            <main data-vaul-drawer-wrapper="true" className="pt-20">
+            <main data-vaul-drawer-wrapper="true">
               {children}
             </main>
             {isDevelopment && <DebugGrid />}
