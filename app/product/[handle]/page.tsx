@@ -27,24 +27,9 @@ import { WineBoxDiscountInfo } from "@/components/products/wine-box-discount-inf
 
 // Generate static params for all products at build time
 export async function generateStaticParams() {
-  try {
-    const products = await getProducts({ limit: 100 }); // Get first 100 products
-    
-    // Also get wine box products
-    const wineBoxProducts = await getCollectionProducts({ 
-      collection: "wine-boxes-collection", 
-      limit: 50 
-    });
-
-    const allProducts = [...products, ...wineBoxProducts];
-
-    return allProducts.map((product) => ({
-      handle: product.handle,
-    }));
-  } catch (error) {
-    console.error("Error generating static params for products:", error);
-    return [];
-  }
+  // Temporarily disabled for Vercel deployment
+  // TODO: Re-enable when Shopify API is accessible during build
+  return [];
 }
 
 // Enable ISR with 1 minute revalidation

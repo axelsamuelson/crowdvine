@@ -5,16 +5,9 @@ import ProductList from "../components/product-list";
 
 // Generate static params for all collections at build time
 export async function generateStaticParams() {
-  try {
-    const collections = await getCollections();
-
-    return collections.map((collection) => ({
-      collection: collection.handle,
-    }));
-  } catch (error) {
-    console.error("Error generating static params:", error);
-    return [];
-  }
+  // Temporarily disabled for Vercel deployment
+  // TODO: Re-enable when Shopify API is accessible during build
+  return [];
 }
 
 // Enable ISR with 1 minute revalidation
