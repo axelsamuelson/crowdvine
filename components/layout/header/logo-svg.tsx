@@ -38,7 +38,12 @@ export function LogoSvg({ className }: { className?: string }) {
       signal: controller.signal,
       cache: 'no-cache', // Ingen cache för att få senaste versionen
     })
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
       .then(data => {
         const logoValue = data.value || null;
         
@@ -59,8 +64,10 @@ export function LogoSvg({ className }: { className?: string }) {
         }
       })
       .catch(err => {
-        console.error('Error fetching header logo:', err);
+        console.warn('Error fetching header logo:', err);
+        // Set loading to false and use fallback
         setLoading(false);
+        setHeaderLogo(null);
       })
       .finally(() => {
         clearTimeout(timeoutId);
