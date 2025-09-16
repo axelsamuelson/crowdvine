@@ -24,6 +24,8 @@ export async function onRequest(ctx: any) {
   // Public paths that don't require authentication
   const publicPaths = [
     '/access-request',
+    '/admin',
+    '/admin-auth',
     '/favicon.ico',
     '/_worker.js',
     '/_next', // Allow Next.js static files
