@@ -62,3 +62,4 @@ The application expects these Supabase tables:
 - `/api/crowdvine/collections/[id]/products` - Wines in a campaign
 - `/api/crowdvine/cart/*` - Cart operations (maps to bookings)
 - `/api/checkout/setup` - Stripe payment method setup
+# Force Cloudflare Pages redeploy
