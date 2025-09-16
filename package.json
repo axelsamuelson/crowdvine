@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "build": "next build",
+    "build:cloudflare": "NODE_ENV=production next build",
     "dev": "next dev",
+    "dev:cloudflare": "NODE_ENV=production next dev",
     "lint": "next lint",
     "start": "next start",
     "seed": "tsx scripts/seed.ts",

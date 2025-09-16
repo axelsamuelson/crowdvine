@@ -217,7 +217,7 @@ export default function WineForm({ wine, producers }: WineFormProps) {
       // Save new images to wine_images table
       if (savedWine && imagePaths.length > 0) {
         const { createWineImage } = await import("@/lib/actions/wine-images");
-        
+
         for (let i = 0; i < imagePaths.length; i++) {
           await createWineImage({
             wine_id: savedWine.id,
@@ -369,7 +369,8 @@ export default function WineForm({ wine, producers }: WineFormProps) {
                 rows={3}
               />
               <p className="text-sm text-muted-foreground">
-                Leave empty to use auto-generated description based on wine properties.
+                Leave empty to use auto-generated description based on wine
+                properties.
               </p>
             </div>
 
@@ -378,12 +379,15 @@ export default function WineForm({ wine, producers }: WineFormProps) {
               <Textarea
                 id="description_html"
                 value={formData.description_html}
-                onChange={(e) => handleChange("description_html", e.target.value)}
+                onChange={(e) =>
+                  handleChange("description_html", e.target.value)
+                }
                 placeholder="Enter custom HTML description (optional)..."
                 rows={4}
               />
               <p className="text-sm text-muted-foreground">
-                Custom HTML for rich formatting. Leave empty to use auto-generated HTML from description.
+                Custom HTML for rich formatting. Leave empty to use
+                auto-generated HTML from description.
               </p>
             </div>
           </div>
@@ -422,7 +426,7 @@ export default function WineForm({ wine, producers }: WineFormProps) {
             }}
           />
 
-          <WineImageUpload 
+          <WineImageUpload
             wineId={wine?.id}
             existingImages={existingImages}
             images={images}

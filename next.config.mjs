@@ -1,5 +1,9 @@
 const nextConfig = {
   /* config options here */
+  // Cloudflare Pages compatibility
+  output: process.env.NODE_ENV === 'production' ? 'export' : undefined,
+  trailingSlash: true,
+  
   experimental: {
     inlineCss: true,
     useCache: true,

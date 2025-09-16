@@ -8,25 +8,19 @@ interface HomeSidebarProps {
 
 export async function HomeSidebar({ collections }: HomeSidebarProps) {
   // Hämta hero-text från databasen
-  const [
-    heroTitle,
-    heroSubtitle,
-    heroDescription1,
-    heroDescription2
-  ] = await Promise.all([
-    getSiteContentByKey('homepage_hero_title'),
-    getSiteContentByKey('homepage_hero_subtitle'),
-    getSiteContentByKey('homepage_hero_description_1'),
-    getSiteContentByKey('homepage_hero_description_2')
-  ]);
+  const [heroTitle, heroSubtitle, heroDescription1, heroDescription2] =
+    await Promise.all([
+      getSiteContentByKey("homepage_hero_title"),
+      getSiteContentByKey("homepage_hero_subtitle"),
+      getSiteContentByKey("homepage_hero_description_1"),
+      getSiteContentByKey("homepage_hero_description_2"),
+    ]);
 
   return (
     <aside className="max-md:hidden col-span-4 h-screen sticky top-0 p-sides pt-top-spacing flex flex-col justify-between">
       <div>
         {heroTitle && (
-          <p className="italic tracking-tighter text-base">
-            {heroTitle}
-          </p>
+          <p className="italic tracking-tighter text-base">{heroTitle}</p>
         )}
         {(heroSubtitle || heroDescription1 || heroDescription2) && (
           <div className="mt-5 text-base leading-tight">

@@ -97,7 +97,7 @@ export async function updatePallet(
 
 export async function deletePallet(id: string): Promise<void> {
   const sb = await supabaseServer();
-  
+
   // First check if there are any bookings/reservations for this pallet
   const { data: bookings, error: bookingsError } = await sb
     .from("bookings")
@@ -110,7 +110,9 @@ export async function deletePallet(id: string): Promise<void> {
   }
 
   if (bookings && bookings.length > 0) {
-    throw new Error(`Cannot delete pallet: It has ${bookings.length} associated booking(s). Please remove all bookings first.`);
+    throw new Error(
+      `Cannot delete pallet: It has ${bookings.length} associated booking(s). Please remove all bookings first.`,
+    );
   }
 
   // Check reservations as well
@@ -121,11 +123,15 @@ export async function deletePallet(id: string): Promise<void> {
     .limit(1);
 
   if (reservationsError) {
-    throw new Error(`Failed to check reservations: ${reservationsError.message}`);
+    throw new Error(
+      `Failed to check reservations: ${reservationsError.message}`,
+    );
   }
 
   if (reservations && reservations.length > 0) {
-    throw new Error(`Cannot delete pallet: It has ${reservations.length} associated reservation(s). Please remove all reservations first.`);
+    throw new Error(
+      `Cannot delete pallet: It has ${reservations.length} associated reservation(s). Please remove all reservations first.`,
+    );
   }
 
   // If no dependencies, proceed with deletion

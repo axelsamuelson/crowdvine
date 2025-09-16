@@ -3,7 +3,7 @@ import { supabaseServer } from "@/lib/supabase-server";
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const sb = await supabaseServer();
   const resolvedParams = await params;
@@ -11,7 +11,8 @@ export async function GET(
   try {
     const { data, error } = await sb
       .from("wine_box_items")
-      .select(`
+      .select(
+        `
         *,
         wine:wines(
           id,
@@ -21,7 +22,8 @@ export async function GET(
           color,
           base_price_cents
         )
-      `)
+      `,
+      )
       .eq("wine_box_id", resolvedParams.id);
 
     if (error) throw error;
@@ -31,14 +33,14 @@ export async function GET(
     console.error("Error fetching wine box items:", error);
     return NextResponse.json(
       { error: "Failed to fetch wine box items" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function PUT(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const sb = await supabaseServer();
   const resolvedParams = await params;
@@ -50,7 +52,7 @@ export async function PUT(
     if (!wineItems || !Array.isArray(wineItems)) {
       return NextResponse.json(
         { error: "wineItems must be an array" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -79,14 +81,14 @@ export async function PUT(
     console.error("Error updating wine box items:", error);
     return NextResponse.json(
       { error: "Failed to update wine box items" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const sb = await supabaseServer();
   const resolvedParams = await params;
@@ -98,7 +100,7 @@ export async function POST(
     if (!wineItems || !Array.isArray(wineItems)) {
       return NextResponse.json(
         { error: "wineItems must be an array" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -121,7 +123,7 @@ export async function POST(
     console.error("Error adding wines to wine box:", error);
     return NextResponse.json(
       { error: "Failed to add wines to wine box" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

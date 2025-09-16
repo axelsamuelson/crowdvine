@@ -7,19 +7,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { PageLayout } from "@/components/layout/page-layout";
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  CreditCard, 
-  Plus, 
-  Edit, 
-  Save, 
+import {
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  CreditCard,
+  Plus,
+  Edit,
+  Save,
   X,
   Calendar,
   Package,
-  Settings
+  Settings,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -38,7 +38,7 @@ interface UserProfile {
 
 interface PaymentMethod {
   id: string;
-  type: 'card' | 'bank';
+  type: "card" | "bank";
   last4?: string;
   brand?: string;
   is_default: boolean;
@@ -52,12 +52,12 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({
-    full_name: '',
-    phone: '',
-    address: '',
-    city: '',
-    postal_code: '',
-    country: 'Sweden'
+    full_name: "",
+    phone: "",
+    address: "",
+    city: "",
+    postal_code: "",
+    country: "Sweden",
   });
 
   useEffect(() => {
@@ -67,23 +67,23 @@ export default function ProfilePage() {
 
   const fetchProfile = async () => {
     try {
-      const response = await fetch('/api/user/profile');
+      const response = await fetch("/api/user/profile");
       if (!response.ok) {
-        throw new Error('Failed to fetch profile');
+        throw new Error("Failed to fetch profile");
       }
       const data = await response.json();
       setProfile(data);
       setEditForm({
-        full_name: data.full_name || '',
-        phone: data.phone || '',
-        address: data.address || '',
-        city: data.city || '',
-        postal_code: data.postal_code || '',
-        country: data.country || 'Sweden'
+        full_name: data.full_name || "",
+        phone: data.phone || "",
+        address: data.address || "",
+        city: data.city || "",
+        postal_code: data.postal_code || "",
+        country: data.country || "Sweden",
       });
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error("Error fetching profile:", error);
       toast.error("Failed to fetch profile");
       setLoading(false);
     }
@@ -91,30 +91,30 @@ export default function ProfilePage() {
 
   const fetchPaymentMethods = async () => {
     try {
-      const response = await fetch('/api/user/payment-methods');
+      const response = await fetch("/api/user/payment-methods");
       if (!response.ok) {
-        throw new Error('Failed to fetch payment methods');
+        throw new Error("Failed to fetch payment methods");
       }
       const data = await response.json();
       setPaymentMethods(data);
     } catch (error) {
-      console.error('Error fetching payment methods:', error);
+      console.error("Error fetching payment methods:", error);
       // Don't show error toast for payment methods as they might not be implemented yet
     }
   };
 
   const updateProfile = async () => {
     try {
-      const response = await fetch('/api/user/profile', {
-        method: 'PATCH',
+      const response = await fetch("/api/user/profile", {
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(editForm),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update profile');
+        throw new Error("Failed to update profile");
       }
 
       const updatedProfile = await response.json();
@@ -122,7 +122,7 @@ export default function ProfilePage() {
       setEditing(false);
       toast.success("Profile updated successfully");
     } catch (error) {
-      console.error('Error updating profile:', error);
+      console.error("Error updating profile:", error);
       toast.error("Failed to update profile");
     }
   };
@@ -130,12 +130,12 @@ export default function ProfilePage() {
   const addPaymentMethod = async () => {
     try {
       // Get user profile to get email and name
-      const profileResponse = await fetch('/api/user/profile');
+      const profileResponse = await fetch("/api/user/profile");
       if (!profileResponse.ok) {
         toast.error("Please add your profile information first");
         return;
       }
-      
+
       const profile = await profileResponse.json();
       if (!profile.email) {
         toast.error("Email is required to add payment method");
@@ -144,9 +144,9 @@ export default function ProfilePage() {
 
       // Redirect to Stripe setup
       const response = await fetch(
-        `/api/checkout/setup?email=${encodeURIComponent(profile.email)}&name=${encodeURIComponent(profile.full_name || '')}`
+        `/api/checkout/setup?email=${encodeURIComponent(profile.email)}&name=${encodeURIComponent(profile.full_name || "")}`,
       );
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         toast.error(errorData.error || "Failed to setup payment method");
@@ -159,34 +159,36 @@ export default function ProfilePage() {
       } else {
         toast.error("Failed to setup payment method");
       }
-      
     } catch (error) {
-      console.error('Error adding payment method:', error);
+      console.error("Error adding payment method:", error);
       toast.error("Failed to add payment method");
     }
   };
 
   const setDefaultPaymentMethod = async (methodId: string) => {
     try {
-      const response = await fetch(`/api/user/payment-methods/${methodId}/set-default`, {
-        method: 'PATCH',
-      });
+      const response = await fetch(
+        `/api/user/payment-methods/${methodId}/set-default`,
+        {
+          method: "PATCH",
+        },
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to set default payment method');
+        throw new Error("Failed to set default payment method");
       }
 
       // Update local state
-      setPaymentMethods(prev => 
-        prev.map(method => ({
+      setPaymentMethods((prev) =>
+        prev.map((method) => ({
           ...method,
-          is_default: method.id === methodId
-        }))
+          is_default: method.id === methodId,
+        })),
       );
-      
+
       toast.success("Default payment method updated");
     } catch (error) {
-      console.error('Error setting default payment method:', error);
+      console.error("Error setting default payment method:", error);
       toast.error("Failed to update default payment method");
     }
   };
@@ -194,17 +196,19 @@ export default function ProfilePage() {
   const deletePaymentMethod = async (methodId: string) => {
     try {
       const response = await fetch(`/api/user/payment-methods/${methodId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete payment method');
+        throw new Error("Failed to delete payment method");
       }
 
-      setPaymentMethods(prev => prev.filter(method => method.id !== methodId));
+      setPaymentMethods((prev) =>
+        prev.filter((method) => method.id !== methodId),
+      );
       toast.success("Payment method deleted");
     } catch (error) {
-      console.error('Error deleting payment method:', error);
+      console.error("Error deleting payment method:", error);
       toast.error("Failed to delete payment method");
     }
   };
@@ -232,7 +236,9 @@ export default function ProfilePage() {
           </div>
           <div>
             <h1 className="text-4xl font-bold text-gray-900">My Profile</h1>
-            <p className="text-gray-600 mt-2 text-lg">Manage your account information and preferences</p>
+            <p className="text-gray-600 mt-2 text-lg">
+              Manage your account information and preferences
+            </p>
           </div>
         </div>
 
@@ -255,38 +261,46 @@ export default function ProfilePage() {
                     <Input
                       id="full_name"
                       value={editForm.full_name}
-                      onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, full_name: e.target.value })
+                      }
                       placeholder="Enter your full name"
                     />
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="phone">Phone Number</Label>
                     <Input
                       id="phone"
                       value={editForm.phone}
-                      onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, phone: e.target.value })
+                      }
                       placeholder="Enter your phone number"
                     />
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="address">Address</Label>
                     <Input
                       id="address"
                       value={editForm.address}
-                      onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, address: e.target.value })
+                      }
                       placeholder="Enter your address"
                     />
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="city">City</Label>
                       <Input
                         id="city"
                         value={editForm.city}
-                        onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                        onChange={(e) =>
+                          setEditForm({ ...editForm, city: e.target.value })
+                        }
                         placeholder="Enter your city"
                       />
                     </div>
@@ -295,29 +309,39 @@ export default function ProfilePage() {
                       <Input
                         id="postal_code"
                         value={editForm.postal_code}
-                        onChange={(e) => setEditForm({ ...editForm, postal_code: e.target.value })}
+                        onChange={(e) =>
+                          setEditForm({
+                            ...editForm,
+                            postal_code: e.target.value,
+                          })
+                        }
                         placeholder="Enter postal code"
                       />
                     </div>
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="country">Country</Label>
                     <Input
                       id="country"
                       value={editForm.country}
-                      onChange={(e) => setEditForm({ ...editForm, country: e.target.value })}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, country: e.target.value })
+                      }
                       placeholder="Enter your country"
                     />
                   </div>
-                  
+
                   <div className="flex gap-3 pt-4">
-                    <Button onClick={updateProfile} className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                    <Button
+                      onClick={updateProfile}
+                      className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                    >
                       <Save className="w-4 h-4 mr-2" />
                       Save Changes
                     </Button>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={() => setEditing(false)}
                       className="flex-1 border-gray-300 hover:bg-gray-50"
                     >
@@ -335,7 +359,7 @@ export default function ProfilePage() {
                       <p className="font-medium">{profile?.email}</p>
                     </div>
                   </div>
-                  
+
                   {profile?.full_name && (
                     <div className="flex items-center gap-3">
                       <User className="w-4 h-4 text-gray-500" />
@@ -345,7 +369,7 @@ export default function ProfilePage() {
                       </div>
                     </div>
                   )}
-                  
+
                   {profile?.phone && (
                     <div className="flex items-center gap-3">
                       <Phone className="w-4 h-4 text-gray-500" />
@@ -355,33 +379,40 @@ export default function ProfilePage() {
                       </div>
                     </div>
                   )}
-                  
+
                   {(profile?.address || profile?.city) && (
                     <div className="flex items-center gap-3">
                       <MapPin className="w-4 h-4 text-gray-500" />
                       <div>
                         <p className="text-sm text-gray-600">Address</p>
                         <p className="font-medium">
-                          {[profile.address, profile.city, profile.postal_code, profile.country]
+                          {[
+                            profile.address,
+                            profile.city,
+                            profile.postal_code,
+                            profile.country,
+                          ]
                             .filter(Boolean)
-                            .join(', ')}
+                            .join(", ")}
                         </p>
                       </div>
                     </div>
                   )}
-                  
+
                   <div className="flex items-center gap-3">
                     <Calendar className="w-4 h-4 text-gray-500" />
                     <div>
                       <p className="text-sm text-gray-600">Member Since</p>
                       <p className="font-medium">
-                        {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : 'N/A'}
+                        {profile?.created_at
+                          ? new Date(profile.created_at).toLocaleDateString()
+                          : "N/A"}
                       </p>
                     </div>
                   </div>
-                  
-                  <Button 
-                    onClick={() => setEditing(true)} 
+
+                  <Button
+                    onClick={() => setEditing(true)}
                     className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 mt-6"
                   >
                     <Edit className="w-4 h-4 mr-2" />
@@ -406,7 +437,9 @@ export default function ProfilePage() {
               {paymentMethods.length === 0 ? (
                 <div className="text-center py-8">
                   <CreditCard className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600 mb-4">No payment methods added yet</p>
+                  <p className="text-gray-600 mb-4">
+                    No payment methods added yet
+                  </p>
                   <Button onClick={addPaymentMethod}>
                     <Plus className="w-4 h-4 mr-2" />
                     Add Payment Method
@@ -415,7 +448,10 @@ export default function ProfilePage() {
               ) : (
                 <div className="space-y-3">
                   {paymentMethods.map((method) => (
-                    <div key={method.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div
+                      key={method.id}
+                      className="flex items-center justify-between p-3 border rounded-lg"
+                    >
                       <div className="flex items-center gap-3">
                         <CreditCard className="w-4 h-4 text-gray-500" />
                         <div>
@@ -429,7 +465,9 @@ export default function ProfilePage() {
                       </div>
                       <div className="flex items-center gap-2">
                         {method.is_default && (
-                          <Badge variant="default" className="bg-green-600">Default</Badge>
+                          <Badge variant="default" className="bg-green-600">
+                            Default
+                          </Badge>
                         )}
                         {!method.is_default && (
                           <Button
@@ -450,8 +488,12 @@ export default function ProfilePage() {
                       </div>
                     </div>
                   ))}
-                  
-                  <Button onClick={addPaymentMethod} className="w-full" variant="outline">
+
+                  <Button
+                    onClick={addPaymentMethod}
+                    className="w-full"
+                    variant="outline"
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Add Another Payment Method
                   </Button>
@@ -474,16 +516,22 @@ export default function ProfilePage() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Link href="/profile/reservations">
-                <Button variant="outline" className="w-full h-24 flex flex-col gap-3 hover:bg-blue-50 hover:border-blue-200 transition-all duration-200">
+                <Button
+                  variant="outline"
+                  className="w-full h-24 flex flex-col gap-3 hover:bg-blue-50 hover:border-blue-200 transition-all duration-200"
+                >
                   <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                     <Package className="w-6 h-6 text-blue-600" />
                   </div>
                   <span className="font-medium">View Reservations</span>
                 </Button>
               </Link>
-              
+
               <Link href="/shop">
-                <Button variant="outline" className="w-full h-24 flex flex-col gap-3 hover:bg-green-50 hover:border-green-200 transition-all duration-200">
+                <Button
+                  variant="outline"
+                  className="w-full h-24 flex flex-col gap-3 hover:bg-green-50 hover:border-green-200 transition-all duration-200"
+                >
                   <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                     <Package className="w-6 h-6 text-green-600" />
                   </div>

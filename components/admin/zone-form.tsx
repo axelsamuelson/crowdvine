@@ -39,7 +39,7 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
     street: "",
     postcode: "",
     city: "",
-    country: ""
+    country: "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -83,20 +83,22 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
 
     try {
       const result = await geocodeAddress(addressInput.trim());
-      
-      if ('error' in result) {
+
+      if ("error" in result) {
         setError(`Geocoding failed: ${result.message}`);
       } else {
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
           center_lat: result.lat,
-          center_lon: result.lon
+          center_lon: result.lon,
         }));
         setError("");
-        console.log('✅ Coordinates updated:', result.lat, result.lon);
+        console.log("✅ Coordinates updated:", result.lat, result.lon);
       }
     } catch (err) {
-      setError(`Geocoding error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setError(
+        `Geocoding error: ${err instanceof Error ? err.message : "Unknown error"}`,
+      );
     } finally {
       setGeocodingLoading(false);
     }
@@ -113,20 +115,22 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
 
     try {
       const result = await geocodeFromFields(addressFields);
-      
-      if ('error' in result) {
+
+      if ("error" in result) {
         setError(`Geocoding failed: ${result.message}`);
       } else {
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
           center_lat: result.lat,
-          center_lon: result.lon
+          center_lon: result.lon,
         }));
         setError("");
-        console.log('✅ Coordinates updated:', result.lat, result.lon);
+        console.log("✅ Coordinates updated:", result.lat, result.lon);
       }
     } catch (err) {
-      setError(`Geocoding error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setError(
+        `Geocoding error: ${err instanceof Error ? err.message : "Unknown error"}`,
+      );
     } finally {
       setGeocodingLoading(false);
     }
@@ -180,7 +184,9 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="address">Center Address (for automatic coordinates)</Label>
+              <Label htmlFor="address">
+                Center Address (for automatic coordinates)
+              </Label>
               <div className="flex gap-2">
                 <Input
                   id="address"
@@ -210,7 +216,12 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
                 <Input
                   id="street"
                   value={addressFields.street}
-                  onChange={(e) => setAddressFields(prev => ({ ...prev, street: e.target.value }))}
+                  onChange={(e) =>
+                    setAddressFields((prev) => ({
+                      ...prev,
+                      street: e.target.value,
+                    }))
+                  }
                   placeholder="Grevgatan 49"
                 />
               </div>
@@ -220,7 +231,12 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
                 <Input
                   id="postcode"
                   value={addressFields.postcode}
-                  onChange={(e) => setAddressFields(prev => ({ ...prev, postcode: e.target.value }))}
+                  onChange={(e) =>
+                    setAddressFields((prev) => ({
+                      ...prev,
+                      postcode: e.target.value,
+                    }))
+                  }
                   placeholder="11458"
                 />
               </div>
@@ -230,7 +246,12 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
                 <Input
                   id="city"
                   value={addressFields.city}
-                  onChange={(e) => setAddressFields(prev => ({ ...prev, city: e.target.value }))}
+                  onChange={(e) =>
+                    setAddressFields((prev) => ({
+                      ...prev,
+                      city: e.target.value,
+                    }))
+                  }
                   placeholder="Stockholm"
                   required
                 />
@@ -241,7 +262,12 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
                 <Input
                   id="country"
                   value={addressFields.country}
-                  onChange={(e) => setAddressFields(prev => ({ ...prev, country: e.target.value }))}
+                  onChange={(e) =>
+                    setAddressFields((prev) => ({
+                      ...prev,
+                      country: e.target.value,
+                    }))
+                  }
                   placeholder="Sweden"
                   required
                 />
@@ -253,14 +279,21 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
                 type="button"
                 variant="outline"
                 onClick={handleGeocodeFromFields}
-                disabled={geocodingLoading || !addressFields.city.trim() || !addressFields.country.trim()}
+                disabled={
+                  geocodingLoading ||
+                  !addressFields.city.trim() ||
+                  !addressFields.country.trim()
+                }
               >
-                {geocodingLoading ? "Getting..." : "Get Coordinates from Fields"}
+                {geocodingLoading
+                  ? "Getting..."
+                  : "Get Coordinates from Fields"}
               </Button>
             </div>
 
             <p className="text-sm text-muted-foreground text-center">
-              Enter city and country (required) to automatically get coordinates, or manually enter them below.
+              Enter city and country (required) to automatically get
+              coordinates, or manually enter them below.
             </p>
           </div>
 
@@ -278,7 +311,9 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
                 placeholder="59.3293"
                 required
               />
-              <p className="text-xs text-muted-foreground">Auto-filled when using address above</p>
+              <p className="text-xs text-muted-foreground">
+                Auto-filled when using address above
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -294,7 +329,9 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
                 placeholder="18.0686"
                 required
               />
-              <p className="text-xs text-muted-foreground">Auto-filled when using address above</p>
+              <p className="text-xs text-muted-foreground">
+                Auto-filled when using address above
+              </p>
             </div>
 
             <div className="space-y-2">

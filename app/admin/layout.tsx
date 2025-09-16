@@ -18,11 +18,11 @@ export default async function AdminLayout({
   // Get user profile to check role
   const { getSupabaseAdmin } = await import("@/lib/supabase-admin");
   const supabase = getSupabaseAdmin();
-  
+
   const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, email')
-    .eq('id', user.id)
+    .from("profiles")
+    .select("role, email")
+    .eq("id", user.id)
     .single();
 
   if (!profile || profile.role !== "admin") {
@@ -36,7 +36,10 @@ export default async function AdminLayout({
   }
 
   return (
-    <AdminLayoutClient userEmail={profile.email || user.email || "Unknown"} onSignOut={handleSignOut}>
+    <AdminLayoutClient
+      userEmail={profile.email || user.email || "Unknown"}
+      onSignOut={handleSignOut}
+    >
       {children}
     </AdminLayoutClient>
   );

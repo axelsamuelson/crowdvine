@@ -37,11 +37,11 @@ export async function POST(request: Request) {
     // Check if user has access and set cookie if they do
     const sb = await supabaseServer();
     const { data: prof } = await sb
-      .from('profiles')
-      .select('access_granted_at')
-      .eq('id', authData.user.id)
+      .from("profiles")
+      .select("access_granted_at")
+      .eq("id", authData.user.id)
       .single();
-      
+
     if (prof?.access_granted_at) {
       await setAccessCookieAction();
     }

@@ -299,7 +299,10 @@ export default function ContentPage() {
                     id="homepage_hero_subtitle"
                     value={formData.homepage_hero_subtitle || ""}
                     onChange={(e) =>
-                      handleInputChange("homepage_hero_subtitle", e.target.value)
+                      handleInputChange(
+                        "homepage_hero_subtitle",
+                        e.target.value,
+                      )
                     }
                     placeholder="Furniture that speaks softly, but stands out loud."
                   />
@@ -323,12 +326,17 @@ export default function ContentPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="homepage_hero_description_1">Description Line 1</Label>
+                  <Label htmlFor="homepage_hero_description_1">
+                    Description Line 1
+                  </Label>
                   <Input
                     id="homepage_hero_description_1"
                     value={formData.homepage_hero_description_1 || ""}
                     onChange={(e) =>
-                      handleInputChange("homepage_hero_description_1", e.target.value)
+                      handleInputChange(
+                        "homepage_hero_description_1",
+                        e.target.value,
+                      )
                     }
                     placeholder="Clean lines, crafted with wit."
                   />
@@ -352,12 +360,17 @@ export default function ContentPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="homepage_hero_description_2">Description Line 2</Label>
+                  <Label htmlFor="homepage_hero_description_2">
+                    Description Line 2
+                  </Label>
                   <Input
                     id="homepage_hero_description_2"
                     value={formData.homepage_hero_description_2 || ""}
                     onChange={(e) =>
-                      handleInputChange("homepage_hero_description_2", e.target.value)
+                      handleInputChange(
+                        "homepage_hero_description_2",
+                        e.target.value,
+                      )
                     }
                     placeholder="Elegance with a wink — style first"
                   />

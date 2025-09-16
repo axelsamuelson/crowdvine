@@ -42,13 +42,17 @@ export async function GET() {
 
     if (bookingsError) {
       console.error("Error fetching bookings:", bookingsError);
-      return NextResponse.json({ error: "Failed to fetch bookings" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to fetch bookings" },
+        { status: 500 },
+      );
     }
 
     // Hämta reservations för att få kundinformation och order ID
     const { data: reservations, error: reservationsError } = await sb
       .from("order_reservations")
-      .select(`
+      .select(
+        `
         id,
         status,
         created_at,
@@ -58,51 +62,62 @@ export async function GET() {
           email,
           role
         )
-      `)
+      `,
+      )
       .order("created_at", { ascending: false });
 
     if (reservationsError) {
       console.error("Error fetching reservations:", reservationsError);
-      return NextResponse.json({ error: "Failed to fetch reservations" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to fetch reservations" },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({
       bookings: bookings || [],
-      reservations: reservations || []
+      reservations: reservations || [],
     });
-
   } catch (error) {
     console.error("Error in bookings API:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
 export async function DELETE(request: Request) {
   try {
     const { bookingIds } = await request.json();
-    
+
     if (!bookingIds || !Array.isArray(bookingIds) || bookingIds.length === 0) {
-      return NextResponse.json({ error: "No booking IDs provided" }, { status: 400 });
+      return NextResponse.json(
+        { error: "No booking IDs provided" },
+        { status: 400 },
+      );
     }
 
     const sb = await supabaseServer();
 
-    const { error } = await sb
-      .from("bookings")
-      .delete()
-      .in("id", bookingIds);
+    const { error } = await sb.from("bookings").delete().in("id", bookingIds);
 
     if (error) {
       console.error("Error deleting bookings:", error);
-      return NextResponse.json({ error: "Failed to delete bookings" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to delete bookings" },
+        { status: 500 },
+      );
     }
 
-    return NextResponse.json({ 
-      message: `Successfully deleted ${bookingIds.length} booking(s)` 
+    return NextResponse.json({
+      message: `Successfully deleted ${bookingIds.length} booking(s)`,
     });
-
   } catch (error) {
     console.error("Error in delete bookings API:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

@@ -4,7 +4,7 @@ import { stripe } from "@/lib/stripe";
 
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getCurrentUser();
@@ -13,24 +13,30 @@ export async function PATCH(
     }
 
     if (!stripe) {
-      return NextResponse.json({ error: "Stripe not configured" }, { status: 503 });
+      return NextResponse.json(
+        { error: "Stripe not configured" },
+        { status: 503 },
+      );
     }
 
     const { id: paymentMethodId } = await params;
 
     // Get user profile to find Stripe customer ID
-    const profileResponse = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/user/profile`, {
-      headers: {
-        'Cookie': `sb-abrnvjqwpdkodgrtezeg-auth-token=${user.id}` // This is a simplified approach
-      }
-    });
+    const profileResponse = await fetch(
+      `${process.env.APP_URL || "http://localhost:3000"}/api/user/profile`,
+      {
+        headers: {
+          Cookie: `sb-abrnvjqwpdkodgrtezeg-auth-token=${user.id}`, // This is a simplified approach
+        },
+      },
+    );
 
     // For now, we'll create a customer if one doesn't exist
     let customer;
     try {
       const customers = await stripe.customers.list({ email: user.email });
       customer = customers.data[0];
-      
+
       if (!customer) {
         customer = await stripe.customers.create({
           email: user.email,
@@ -38,8 +44,11 @@ export async function PATCH(
         });
       }
     } catch (error) {
-      console.error('Error handling customer:', error);
-      return NextResponse.json({ error: "Failed to handle customer" }, { status: 500 });
+      console.error("Error handling customer:", error);
+      return NextResponse.json(
+        { error: "Failed to handle customer" },
+        { status: 500 },
+      );
     }
 
     // Set this payment method as the default for the customer
@@ -50,9 +59,11 @@ export async function PATCH(
     });
 
     return NextResponse.json({ success: true });
-
   } catch (error) {
-    console.error('Error setting default payment method:', error);
-    return NextResponse.json({ error: "Failed to set default payment method" }, { status: 500 });
+    console.error("Error setting default payment method:", error);
+    return NextResponse.json(
+      { error: "Failed to set default payment method" },
+      { status: 500 },
+    );
   }
 }

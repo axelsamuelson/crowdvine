@@ -21,7 +21,10 @@ interface DeleteWineBoxButtonProps {
   wineBoxName: string;
 }
 
-export function DeleteWineBoxButton({ wineBoxId, wineBoxName }: DeleteWineBoxButtonProps) {
+export function DeleteWineBoxButton({
+  wineBoxId,
+  wineBoxName,
+}: DeleteWineBoxButtonProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
 
@@ -56,8 +59,9 @@ export function DeleteWineBoxButton({ wineBoxId, wineBoxName }: DeleteWineBoxBut
         <AlertDialogHeader>
           <AlertDialogTitle>Delete Wine Box</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete the wine box "{wineBoxName}"? This action
-            cannot be undone and will also remove all associated wine items.
+            Are you sure you want to delete the wine box "{wineBoxName}"? This
+            action cannot be undone and will also remove all associated wine
+            items.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -74,4 +78,3 @@ export function DeleteWineBoxButton({ wineBoxId, wineBoxName }: DeleteWineBoxBut
     </AlertDialog>
   );
 }
-

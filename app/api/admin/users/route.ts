@@ -14,19 +14,23 @@ export async function GET() {
 
     // Check if user has admin role
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
       .single();
 
-    if (!profile || profile.role !== 'admin') {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+    if (!profile || profile.role !== "admin") {
+      return NextResponse.json(
+        { error: "Admin access required" },
+        { status: 403 },
+      );
     }
 
     // Fetch all users with their profiles
     const { data: users, error } = await supabase
-      .from('profiles')
-      .select(`
+      .from("profiles")
+      .select(
+        `
         id,
         email,
         role,
@@ -35,19 +39,25 @@ export async function GET() {
         invite_code_used,
         created_at,
         updated_at
-      `)
-      .order('created_at', { ascending: false });
+      `,
+      )
+      .order("created_at", { ascending: false });
 
     if (error) {
-      console.error('Error fetching users:', error);
-      return NextResponse.json({ error: "Failed to fetch users" }, { status: 500 });
+      console.error("Error fetching users:", error);
+      return NextResponse.json(
+        { error: "Failed to fetch users" },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json(users || []);
-
   } catch (error) {
-    console.error('Users API error:', error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.error("Users API error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -65,33 +75,41 @@ export async function PATCH(request: NextRequest) {
 
     // Check if user has admin role
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
       .single();
 
-    if (!profile || profile.role !== 'admin') {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+    if (!profile || profile.role !== "admin") {
+      return NextResponse.json(
+        { error: "Admin access required" },
+        { status: 403 },
+      );
     }
 
     // Update user profile
     const { data, error } = await supabase
-      .from('profiles')
+      .from("profiles")
       .update(updates)
-      .eq('id', userId)
+      .eq("id", userId)
       .select()
       .single();
 
     if (error) {
-      console.error('Error updating user:', error);
-      return NextResponse.json({ error: "Failed to update user" }, { status: 500 });
+      console.error("Error updating user:", error);
+      return NextResponse.json(
+        { error: "Failed to update user" },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({ success: true, data });
-
   } catch (error) {
-    console.error('Update user API error:', error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.error("Update user API error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -109,30 +127,35 @@ export async function DELETE(request: NextRequest) {
 
     // Check if user has admin role
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
       .single();
 
-    if (!profile || profile.role !== 'admin') {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+    if (!profile || profile.role !== "admin") {
+      return NextResponse.json(
+        { error: "Admin access required" },
+        { status: 403 },
+      );
     }
 
     // Delete user profile (this will cascade to related records)
-    const { error } = await supabase
-      .from('profiles')
-      .delete()
-      .eq('id', userId);
+    const { error } = await supabase.from("profiles").delete().eq("id", userId);
 
     if (error) {
-      console.error('Error deleting user:', error);
-      return NextResponse.json({ error: "Failed to delete user" }, { status: 500 });
+      console.error("Error deleting user:", error);
+      return NextResponse.json(
+        { error: "Failed to delete user" },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({ success: true });
-
   } catch (error) {
-    console.error('Delete user API error:', error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.error("Delete user API error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

@@ -29,7 +29,10 @@ export default async function ProductList({
       ? (await searchParams).sort
       : undefined;
   const isRootCollection =
-    collection === "joyco-root" || collection === "all-wines" || collection === "frontpage" || !collection;
+    collection === "joyco-root" ||
+    collection === "all-wines" ||
+    collection === "frontpage" ||
+    !collection;
 
   const { sortKey, reverse } = isRootCollection
     ? mapSortKeys(sort, "product")

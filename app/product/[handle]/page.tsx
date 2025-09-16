@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { getCollection, getProduct, getProducts, getCollectionProducts } from "@/lib/shopify";
+import {
+  getCollection,
+  getProduct,
+  getProducts,
+  getCollectionProducts,
+} from "@/lib/shopify";
 import { HIDDEN_PRODUCT_TAG } from "@/lib/constants";
 import {
   Breadcrumb,
@@ -29,11 +34,11 @@ import { WineBoxDiscountInfo } from "@/components/products/wine-box-discount-inf
 export async function generateStaticParams() {
   try {
     const products = await getProducts({ limit: 100 }); // Get first 100 products
-    
+
     // Also get wine box products
-    const wineBoxProducts = await getCollectionProducts({ 
-      collection: "wine-boxes-collection", 
-      limit: 50 
+    const wineBoxProducts = await getCollectionProducts({
+      collection: "wine-boxes-collection",
+      limit: 50,
     });
 
     const allProducts = [...products, ...wineBoxProducts];

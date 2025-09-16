@@ -1,7 +1,10 @@
 import { supabaseServer } from "@/lib/supabase-server";
 
 // Cache for wine box calculations
-const calculationCache = new Map<string, { data: WineBoxCalculation; timestamp: number }>();
+const calculationCache = new Map<
+  string,
+  { data: WineBoxCalculation; timestamp: number }
+>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 export interface WineBoxCalculation {
@@ -25,7 +28,9 @@ export interface WineBoxCalculation {
   }>;
 }
 
-export async function calculateWineBoxPrice(wineBoxId: string): Promise<WineBoxCalculation | null> {
+export async function calculateWineBoxPrice(
+  wineBoxId: string,
+): Promise<WineBoxCalculation | null> {
   // Check cache first
   const cached = calculationCache.get(wineBoxId);
   if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
@@ -38,7 +43,8 @@ export async function calculateWineBoxPrice(wineBoxId: string): Promise<WineBoxC
     // Get wine box with items and wine details
     const { data: wineBoxData, error: wineBoxError } = await sb
       .from("wine_boxes")
-      .select(`
+      .select(
+        `
         id,
         name,
         description,
@@ -59,7 +65,8 @@ export async function calculateWineBoxPrice(wineBoxId: string): Promise<WineBoxC
             base_price_cents
           )
         )
-      `)
+      `,
+      )
       .eq("id", wineBoxId)
       .single();
 
@@ -81,18 +88,18 @@ export async function calculateWineBoxPrice(wineBoxId: string): Promise<WineBoxC
 
     for (const item of wineBoxData.wine_box_items) {
       const wine = item.wines;
-      
+
       // Calculate wine cost in SEK using cost_amount and exchange_rate
       const costInSek = wine.cost_amount * (wine.exchange_rate || 1.0);
-      
+
       // Add alcohol tax
       const winePrice = costInSek + (wine.alcohol_tax_cents || 0) / 100;
-      
+
       const itemTotal = winePrice * item.quantity;
-      
+
       totalWinePrice += itemTotal;
       bottleCount += item.quantity;
-      
+
       wines.push({
         wineId: wine.id,
         wineName: wine.wine_name,
@@ -111,16 +118,17 @@ export async function calculateWineBoxPrice(wineBoxId: string): Promise<WineBoxC
     let totalIndividualWinePrice = 0;
     for (const item of wineBoxData.wine_box_items) {
       const wine = item.wines;
-      
+
       // Use base_price_cents which is the individual wine price (already includes margin)
       const individualWinePrice = wine.base_price_cents / 100; // Convert to SEK
-      
+
       totalIndividualWinePrice += individualWinePrice * item.quantity;
     }
-    
+
     // Calculate discount compared to individual prices
     const discountAmount = totalIndividualWinePrice - finalPrice;
-    const discountPercentage = (discountAmount / totalIndividualWinePrice) * 100;
+    const discountPercentage =
+      (discountAmount / totalIndividualWinePrice) * 100;
 
     const result = {
       wineBoxId,
@@ -147,9 +155,11 @@ export async function calculateWineBoxPrice(wineBoxId: string): Promise<WineBoxC
   }
 }
 
-export async function getAllWineBoxCalculations(): Promise<WineBoxCalculation[]> {
+export async function getAllWineBoxCalculations(): Promise<
+  WineBoxCalculation[]
+> {
   // Check if we have cached results for all wine boxes
-  const cacheKey = 'all-wine-boxes';
+  const cacheKey = "all-wine-boxes";
   const cached = calculationCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
     return cached.data as WineBoxCalculation[];
@@ -171,11 +181,13 @@ export async function getAllWineBoxCalculations(): Promise<WineBoxCalculation[]>
 
     // Calculate prices for all wine boxes
     const calculations = await Promise.all(
-      wineBoxes.map(box => calculateWineBoxPrice(box.id))
+      wineBoxes.map((box) => calculateWineBoxPrice(box.id)),
     );
 
-    const result = calculations.filter((calc): calc is WineBoxCalculation => calc !== null);
-    
+    const result = calculations.filter(
+      (calc): calc is WineBoxCalculation => calc !== null,
+    );
+
     // Cache the result
     calculationCache.set(cacheKey, { data: result, timestamp: Date.now() });
 
@@ -185,4 +197,3 @@ export async function getAllWineBoxCalculations(): Promise<WineBoxCalculation[]>
     return [];
   }
 }
-

@@ -17,9 +17,9 @@ export function BoxListContent({ boxes }: BoxListContentProps) {
               Wine Boxes
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl">
-              Discover our carefully curated wine packages featuring organic wines, 
-              light reds, pet-nat, and premium collections. Perfect for gifting or 
-              exploring new flavors.
+              Discover our carefully curated wine packages featuring organic
+              wines, light reds, pet-nat, and premium collections. Perfect for
+              gifting or exploring new flavors.
             </p>
           </div>
 

@@ -5,11 +5,11 @@ import { createClient } from "@supabase/supabase-js";
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
+
   if (!supabaseUrl || !supabaseServiceKey) {
     throw new Error("Missing Supabase admin credentials");
   }
-  
+
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
@@ -20,37 +20,51 @@ export async function GET() {
     // Hämta alla reservations med relaterad data
     const { data: reservations, error: reservationsError } = await sb
       .from("order_reservations")
-      .select(`
+      .select(
+        `
         id,
         status,
         created_at,
         user_id,
         delivery_zone_id,
         pickup_zone_id
-      `)
+      `,
+      )
       .order("created_at", { ascending: false });
 
     if (reservationsError) {
       console.error("Error fetching reservations:", reservationsError);
-      return NextResponse.json({ error: "Failed to fetch reservations" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to fetch reservations" },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({
-      reservations: reservations || []
+      reservations: reservations || [],
     });
-
   } catch (error) {
     console.error("Error in reservations API:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
 export async function DELETE(request: Request) {
   try {
     const { reservationIds } = await request.json();
-    
-    if (!reservationIds || !Array.isArray(reservationIds) || reservationIds.length === 0) {
-      return NextResponse.json({ error: "No reservation IDs provided" }, { status: 400 });
+
+    if (
+      !reservationIds ||
+      !Array.isArray(reservationIds) ||
+      reservationIds.length === 0
+    ) {
+      return NextResponse.json(
+        { error: "No reservation IDs provided" },
+        { status: 400 },
+      );
     }
 
     console.log("DELETE request received for reservations:", reservationIds);
@@ -73,7 +87,10 @@ export async function DELETE(request: Request) {
 
     if (itemsError) {
       console.error("Error deleting reservation items:", itemsError);
-      return NextResponse.json({ error: "Failed to delete reservation items" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to delete reservation items" },
+        { status: 500 },
+      );
     }
 
     console.log("Reservation items deleted");
@@ -87,7 +104,10 @@ export async function DELETE(request: Request) {
 
     if (reservationsError) {
       console.error("Error deleting reservations:", reservationsError);
-      return NextResponse.json({ error: "Failed to delete reservations" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to delete reservations" },
+        { status: 500 },
+      );
     }
 
     console.log("Reservations deleted");
@@ -101,14 +121,16 @@ export async function DELETE(request: Request) {
 
     const deletedCount = (beforeCount || 0) - (afterCount || 0);
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: `Successfully deleted ${deletedCount} reservation(s)`,
       deletedCount: deletedCount,
-      remainingCount: afterCount
+      remainingCount: afterCount,
     });
-
   } catch (error) {
     console.error("Error in delete reservations API:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

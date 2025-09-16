@@ -51,8 +51,8 @@ export async function GET(request: Request) {
 
   // Get wine images for all wines
   const wineIds = data?.map((wine: any) => wine.id) || [];
-  let wineImagesMap = new Map();
-  
+  const wineImagesMap = new Map();
+
   if (wineIds.length > 0) {
     const { data: wineImages } = await sb
       .from("wine_images")
@@ -83,37 +83,44 @@ export async function GET(request: Request) {
 
     // Get images for this wine
     const wineImages = wineImagesMap.get(i.id) || [];
-    const images = wineImages.length > 0 
-      ? wineImages.map((img: any) => ({
-          id: `${i.id}-img-${img.sort_order}`,
-          url: img.image_path,
-          altText: img.alt_text || i.wine_name,
-          width: 600,
-          height: 600,
-        }))
-      : [
-          {
-            id: `${i.id}-img`,
-            url: i.label_image_path || "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
-            altText: i.wine_name,
+    const images =
+      wineImages.length > 0
+        ? wineImages.map((img: any) => ({
+            id: `${i.id}-img-${img.sort_order}`,
+            url: img.image_path,
+            altText: img.alt_text || i.wine_name,
             width: 600,
             height: 600,
-          },
-        ];
+          }))
+        : [
+            {
+              id: `${i.id}-img`,
+              url:
+                i.label_image_path ||
+                "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
+              altText: i.wine_name,
+              width: 600,
+              height: 600,
+            },
+          ];
 
     const featuredImage = images[0] || {
       id: `${i.id}-img`,
-      url: i.label_image_path || "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
+      url:
+        i.label_image_path ||
+        "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
       altText: i.wine_name,
       width: 600,
       height: 600,
     };
 
     // Use custom description or generate default one
-    const wineDescription = i.description || 
-      `This exceptional ${i.color || 'wine'} wine from ${i.vintage} showcases the unique characteristics of ${i.grape_varieties || 'carefully selected grapes'}. Crafted with precision and passion, this wine offers a perfect balance of flavors and aromas that will delight your palate.`;
-    
-    const wineDescriptionHtml = i.description_html || `<p>${wineDescription}</p>`;
+    const wineDescription =
+      i.description ||
+      `This exceptional ${i.color || "wine"} wine from ${i.vintage} showcases the unique characteristics of ${i.grape_varieties || "carefully selected grapes"}. Crafted with precision and passion, this wine offers a perfect balance of flavors and aromas that will delight your palate.`;
+
+    const wineDescriptionHtml =
+      i.description_html || `<p>${wineDescription}</p>`;
 
     return {
       id: i.id,
@@ -130,7 +137,7 @@ export async function GET(request: Request) {
           id: "grape-varieties",
           name: "Grape Varieties",
           values: grapeVarieties.map((variety: string) => ({
-            id: variety.toLowerCase().replace(/\s+/g, '-'),
+            id: variety.toLowerCase().replace(/\s+/g, "-"),
             name: variety,
           })),
         },
@@ -138,10 +145,14 @@ export async function GET(request: Request) {
         {
           id: "color",
           name: "Color",
-          values: colorName ? [{
-            id: colorName.toLowerCase().replace(/\s+/g, '-'),
-            name: colorName,
-          }] : [],
+          values: colorName
+            ? [
+                {
+                  id: colorName.toLowerCase().replace(/\s+/g, "-"),
+                  name: colorName,
+                },
+              ]
+            : [],
         },
       ],
       variants: [

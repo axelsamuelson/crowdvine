@@ -19,7 +19,7 @@ export async function GET(
     if (resolvedParams.id === "wine-boxes-collection") {
       // Get wine box calculations
       const calculations = await getAllWineBoxCalculations();
-      
+
       if (calculations.length === 0) {
         return NextResponse.json([]);
       }
@@ -34,18 +34,20 @@ export async function GET(
           productType: "wine-box",
           categoryId: "wine-boxes-collection",
           priceRange: {
-            minVariantPrice: { 
-              amount: calc.finalPrice.toFixed(2), 
-              currencyCode: "SEK" 
+            minVariantPrice: {
+              amount: calc.finalPrice.toFixed(2),
+              currencyCode: "SEK",
             },
-            maxVariantPrice: { 
-              amount: calc.finalPrice.toFixed(2), 
-              currencyCode: "SEK" 
+            maxVariantPrice: {
+              amount: calc.finalPrice.toFixed(2),
+              currencyCode: "SEK",
             },
           },
           images: [
             {
-              url: calc.imageUrl || "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
+              url:
+                calc.imageUrl ||
+                "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
               altText: calc.name,
             },
           ],
@@ -54,13 +56,16 @@ export async function GET(
               id: `${calc.wineBoxId}-variant`,
               title: `${calc.bottleCount} Bottles`,
               availableForSale: true,
-              price: { 
-                amount: calc.finalPrice.toFixed(2), 
-                currencyCode: "SEK" 
+              price: {
+                amount: calc.finalPrice.toFixed(2),
+                currencyCode: "SEK",
               },
               selectedOptions: [
                 { name: "Size", value: `${calc.bottleCount} Bottles` },
-                { name: "Discount", value: `${Math.round(calc.discountPercentage)}% off` },
+                {
+                  name: "Discount",
+                  value: `${Math.round(calc.discountPercentage)}% off`,
+                },
               ],
             },
           ],
@@ -76,7 +81,10 @@ export async function GET(
               values: [`${Math.round(calc.discountPercentage)}% off`],
             },
           ],
-          tags: [`${calc.bottleCount}-bottles`, `${calc.discountPercentage}-discount`],
+          tags: [
+            `${calc.bottleCount}-bottles`,
+            `${calc.discountPercentage}-discount`,
+          ],
           // Add custom fields for discount information
           discountInfo: {
             totalWinePrice: calc.totalWinePrice,

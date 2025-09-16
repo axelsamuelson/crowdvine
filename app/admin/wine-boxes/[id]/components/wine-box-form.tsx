@@ -54,7 +54,10 @@ interface WineBoxFormProps {
   wineBoxItems?: WineBoxItem[];
 }
 
-export default function WineBoxForm({ wineBox, wineBoxItems = [] }: WineBoxFormProps) {
+export default function WineBoxForm({
+  wineBox,
+  wineBoxItems = [],
+}: WineBoxFormProps) {
   const [formData, setFormData] = useState({
     name: wineBox?.name || "",
     description: wineBox?.description || "",
@@ -73,27 +76,31 @@ export default function WineBoxForm({ wineBox, wineBoxItems = [] }: WineBoxFormP
   // Initialize selected wines from existing wine box items
   useEffect(() => {
     if (wineBoxItems && wineBoxItems.length > 0) {
-      const initialWines = wineBoxItems.map(item => ({
+      const initialWines = wineBoxItems.map((item) => ({
         wineId: item.wine_id,
-        quantity: item.quantity
+        quantity: item.quantity,
       }));
       setSelectedWines(initialWines);
     }
   }, [wineBoxItems]);
 
   const handleInputChange = (field: string, value: string | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    
+    setFormData((prev) => ({ ...prev, [field]: value }));
+
     // Auto-generate handle from name
     if (field === "name") {
-      const handle = value.toString().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-      setFormData(prev => ({ ...prev, handle }));
+      const handle = value
+        .toString()
+        .toLowerCase()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9-]/g, "");
+      setFormData((prev) => ({ ...prev, handle }));
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (selectedWines.length === 0) {
       setError("Please select at least one wine for the box.");
       return;
@@ -132,22 +139,28 @@ export default function WineBoxForm({ wineBox, wineBoxItems = [] }: WineBoxFormP
 
       if (wineBox) {
         // Update existing wine box
-        const wineBoxResponse = await fetch(`/api/admin/wine-boxes/${wineBox.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(wineBoxData),
-        });
+        const wineBoxResponse = await fetch(
+          `/api/admin/wine-boxes/${wineBox.id}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(wineBoxData),
+          },
+        );
 
         if (!wineBoxResponse.ok) {
           throw new Error("Failed to update wine box");
         }
 
         // Update wine items
-        const wineItemsResponse = await fetch(`/api/admin/wine-boxes/${wineBox.id}/items`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ wineItems: selectedWines }),
-        });
+        const wineItemsResponse = await fetch(
+          `/api/admin/wine-boxes/${wineBox.id}/items`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ wineItems: selectedWines }),
+          },
+        );
 
         if (!wineItemsResponse.ok) {
           throw new Error("Failed to update wine items");
@@ -167,11 +180,14 @@ export default function WineBoxForm({ wineBox, wineBoxItems = [] }: WineBoxFormP
         const newWineBox = await wineBoxResponse.json();
 
         // Add wine items
-        const wineItemsResponse = await fetch(`/api/admin/wine-boxes/${newWineBox.id}/items`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ wineItems: selectedWines }),
-        });
+        const wineItemsResponse = await fetch(
+          `/api/admin/wine-boxes/${newWineBox.id}/items`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ wineItems: selectedWines }),
+          },
+        );
 
         if (!wineItemsResponse.ok) {
           throw new Error("Failed to add wine items");
@@ -248,7 +264,9 @@ export default function WineBoxForm({ wineBox, wineBoxItems = [] }: WineBoxFormP
                 min="0"
                 max="100"
                 value={formData.margin_percentage}
-                onChange={(e) => handleInputChange("margin_percentage", e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("margin_percentage", e.target.value)
+                }
                 placeholder="15.00"
               />
             </div>
@@ -275,19 +293,19 @@ export default function WineBoxForm({ wineBox, wineBoxItems = [] }: WineBoxFormP
       <Card>
         <CardHeader>
           <CardTitle>Wine Selection</CardTitle>
-          <CardDescription>
-            Select wines to include in this box
-          </CardDescription>
+          <CardDescription>Select wines to include in this box</CardDescription>
         </CardHeader>
         <CardContent>
-          <WineSelector 
-            selectedWines={selectedWines} 
-            onWinesChange={setSelectedWines} 
+          <WineSelector
+            selectedWines={selectedWines}
+            onWinesChange={setSelectedWines}
           />
           {selectedWines.length > 0 && (
             <div className="mt-4 p-3 bg-gray-50 rounded-md">
               <p className="text-sm text-gray-600">
-                Selected {selectedWines.length} wine(s) with {selectedWines.reduce((sum, w) => sum + w.quantity, 0)} total bottles
+                Selected {selectedWines.length} wine(s) with{" "}
+                {selectedWines.reduce((sum, w) => sum + w.quantity, 0)} total
+                bottles
               </p>
             </div>
           )}
@@ -295,18 +313,15 @@ export default function WineBoxForm({ wineBox, wineBoxItems = [] }: WineBoxFormP
       </Card>
 
       <div className="flex justify-end gap-2">
-        <Button 
-          type="button" 
-          variant="outline" 
-          onClick={() => router.back()}
-        >
+        <Button type="button" variant="outline" onClick={() => router.back()}>
           Cancel
         </Button>
-        <Button 
-          type="submit" 
-          disabled={loading || selectedWines.length === 0}
-        >
-          {loading ? "Saving..." : wineBox ? "Update Wine Box" : "Create Wine Box"}
+        <Button type="submit" disabled={loading || selectedWines.length === 0}>
+          {loading
+            ? "Saving..."
+            : wineBox
+              ? "Update Wine Box"
+              : "Create Wine Box"}
         </Button>
       </div>
     </form>

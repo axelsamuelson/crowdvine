@@ -4,26 +4,33 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronUp, MapPin, Navigation, Users, Clock } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  MapPin,
+  Navigation,
+  Users,
+  Clock,
+} from "lucide-react";
 
 interface ZoneDetailsProps {
   zoneId: string;
   zoneName: string;
-  zoneType: 'pickup' | 'delivery';
+  zoneType: "pickup" | "delivery";
   centerLat?: number;
   centerLon?: number;
   radiusKm?: number;
   countryCode?: string;
 }
 
-export function ZoneDetails({ 
-  zoneId, 
-  zoneName, 
-  zoneType, 
-  centerLat, 
-  centerLon, 
-  radiusKm, 
-  countryCode 
+export function ZoneDetails({
+  zoneId,
+  zoneName,
+  zoneType,
+  centerLat,
+  centerLon,
+  radiusKm,
+  countryCode,
 }: ZoneDetailsProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -32,14 +39,14 @@ export function ZoneDetails({
       title: "Pickup Zone",
       description: "Where wines are collected from producers",
       icon: <Navigation className="w-4 h-4" />,
-      color: "blue"
+      color: "blue",
     },
     delivery: {
-      title: "Delivery Zone", 
+      title: "Delivery Zone",
       description: "Where wines are delivered to customers",
       icon: <MapPin className="w-4 h-4" />,
-      color: "green"
-    }
+      color: "green",
+    },
   };
 
   const info = zoneTypeInfo[zoneType];
@@ -54,7 +61,9 @@ export function ZoneDetails({
             </div>
             <div>
               <div className="font-semibold">{zoneName}</div>
-              <div className="text-sm text-gray-600 font-normal">{info.title}</div>
+              <div className="text-sm text-gray-600 font-normal">
+                {info.title}
+              </div>
             </div>
           </CardTitle>
           <Button
@@ -63,18 +72,22 @@ export function ZoneDetails({
             onClick={() => setIsExpanded(!isExpanded)}
             className="p-1"
           >
-            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            {isExpanded ? (
+              <ChevronUp className="w-4 h-4" />
+            ) : (
+              <ChevronDown className="w-4 h-4" />
+            )}
           </Button>
         </div>
       </CardHeader>
-      
+
       {isExpanded && (
         <CardContent className="pt-0">
           <div className="space-y-4">
             <div className="p-3 bg-gray-50 rounded-lg">
               <p className="text-sm text-gray-700">{info.description}</p>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-3">
               {centerLat && centerLon && (
                 <div className="flex items-center gap-2">
@@ -87,17 +100,19 @@ export function ZoneDetails({
                   </div>
                 </div>
               )}
-              
+
               {radiusKm && (
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-gray-500" />
                   <div>
                     <div className="text-xs text-gray-500">Coverage</div>
-                    <div className="text-sm font-medium">{radiusKm}km radius</div>
+                    <div className="text-sm font-medium">
+                      {radiusKm}km radius
+                    </div>
                   </div>
                 </div>
               )}
-              
+
               {countryCode && (
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-gray-500" />
@@ -108,7 +123,7 @@ export function ZoneDetails({
                 </div>
               )}
             </div>
-            
+
             <div className="pt-2 border-t">
               <Badge variant="outline" className="text-xs">
                 Zone ID: {zoneId.substring(0, 8)}...
