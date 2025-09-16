@@ -4,6 +4,10 @@
 export async function onRequest(ctx: any) {
   const { request, next } = ctx
   
+  const url = new URL(request.url)
+  const cookie = request.headers.get('Cookie') || ''
+  const hasAccess = cookie.includes('cv-access=1')
+
   // Handle CORS preflight requests
   if (request.method === 'OPTIONS') {
     return new Response(null, {
@@ -17,15 +21,12 @@ export async function onRequest(ctx: any) {
     })
   }
 
-  const url = new URL(request.url)
-  const cookie = request.headers.get('Cookie') || ''
-  const hasAccess = cookie.includes('cv-access=1')
-
   // Public paths that don't require authentication
   const publicPaths = [
     '/access-request',
     '/favicon.ico',
     '/_worker.js',
+    '/_next', // Allow Next.js static files
     '/api/health',
     '/api/auth/login',
     '/api/auth/signup',
