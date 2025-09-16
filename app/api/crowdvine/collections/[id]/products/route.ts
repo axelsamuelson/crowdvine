@@ -17,12 +17,14 @@ export async function GET(
   try {
     // Handle wine boxes collection
     if (resolvedParams.id === "wine-boxes-collection") {
-      // Get wine box calculations
-      const calculations = await getAllWineBoxCalculations();
-      
-      if (calculations.length === 0) {
-        return NextResponse.json([]);
-      }
+      try {
+        // Get wine box calculations
+        const calculations = await getAllWineBoxCalculations();
+        
+        if (calculations.length === 0) {
+          console.log("No wine boxes found in database");
+          return NextResponse.json([]);
+        }
 
       // Convert to Shopify-compatible product format
       const products = calculations.map((calc) => {
@@ -90,7 +92,11 @@ export async function GET(
         };
       });
 
-      return NextResponse.json(products.slice(0, limit));
+        return NextResponse.json(products.slice(0, limit));
+      } catch (wineBoxError) {
+        console.error("Error fetching wine boxes:", wineBoxError);
+        return NextResponse.json([]);
+      }
     }
 
     // Get wines for the specific producer/collection
