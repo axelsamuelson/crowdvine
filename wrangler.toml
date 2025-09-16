@@ -1,0 +1,17 @@
+# Cloudflare Pages Configuration
+name = "crowdvine-production"
+compatibility_date = "2024-09-16"
+
+# Production environment
+[env.production]
+name = "crowdvine-production"
+
+# Build configuration for Cloudflare Pages
+[build]
+command = "npm run build"
+cwd = "."
+watch_dir = "."
+
+# Pages configuration
+[[pages_functions]]
+pattern = "/api/*"
