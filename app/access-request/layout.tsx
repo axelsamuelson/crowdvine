@@ -1,13 +1,14 @@
 import type React from "react";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import "../globals.css";
 import { Toaster } from "sonner";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { DebugGrid } from "@/components/debug-grid";
 import { isDevelopment } from "@/lib/constants";
 import { V0Provider } from "@/lib/context";
 import { cn } from "@/lib/utils";
+import dynamic from "next/dynamic";
 
 const V0Setup = dynamic(() => import("@/components/v0-setup"));
 const isV0 = process.env["VERCEL_URL"]?.includes("vusercontent.net") ?? false;
