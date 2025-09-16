@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { randomUUID } from "crypto";
 
 export async function POST(request: NextRequest) {
@@ -13,6 +12,7 @@ export async function POST(request: NextRequest) {
     }
 
     const uploadedFiles: string[] = [];
+    const supabase = getSupabaseAdmin();
 
     for (const file of files) {
       // Validate file type
@@ -24,19 +24,30 @@ export async function POST(request: NextRequest) {
       const fileExtension = file.name.split(".").pop();
       const fileName = `${randomUUID()}.${fileExtension}`;
 
-      // Create uploads directory if it doesn't exist
-      const uploadsDir = join(process.cwd(), "public", "uploads");
-      await mkdir(uploadsDir, { recursive: true });
-
-      // Save file
+      // Convert file to buffer
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
-      const filePath = join(uploadsDir, fileName);
 
-      await writeFile(filePath, buffer);
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('logos')
+        .upload(fileName, buffer, {
+          contentType: file.type,
+          cacheControl: '3600',
+          upsert: false
+        });
 
-      // Return the public URL
-      uploadedFiles.push(`/uploads/${fileName}`);
+      if (error) {
+        console.error('Supabase upload error:', error);
+        continue;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('logos')
+        .getPublicUrl(fileName);
+
+      uploadedFiles.push(urlData.publicUrl);
     }
 
     return NextResponse.json({
