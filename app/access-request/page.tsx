@@ -1,73 +1,39 @@
+"use client";
+
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { AccessRequestClient } from "./access-request-client";
+
+function AccessRequestContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // For now, just show the access request form
+    // This will be replaced with Pages Functions authentication check
+    setLoading(false);
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  return <AccessRequestClient />;
+}
+
 export default function AccessRequestPage() {
   return (
-    <div style={{
-      margin: 0,
-      padding: 0,
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }}>
-      <div style={{
-        textAlign: 'center',
-        color: 'white',
-        maxWidth: '600px',
-        padding: '2rem'
-      }}>
-        <h1 style={{
-          fontSize: '2.5rem',
-          marginBottom: '1rem',
-          fontWeight: 300
-        }}>
-          Pact Wines
-        </h1>
-        <p style={{
-          fontSize: '1.2rem',
-          marginBottom: '2rem',
-          opacity: 0.9
-        }}>
-          Join our exclusive wine community. Request access or enter your invitation code to unlock the platform.
-        </p>
-        
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.1)',
-          backdropFilter: 'blur(10px)',
-          borderRadius: '20px',
-          padding: '2rem',
-          border: '1px solid rgba(255, 255, 255, 0.2)'
-        }}>
-          <input 
-            type="text" 
-            placeholder="Enter your email or invitation code"
-            style={{
-              width: '100%',
-              padding: '1rem',
-              border: 'none',
-              borderRadius: '10px',
-              background: 'rgba(255, 255, 255, 0.9)',
-              fontSize: '1rem',
-              marginBottom: '1rem',
-              boxSizing: 'border-box'
-            }}
-          />
-          <button style={{
-            width: '100%',
-            padding: '1rem',
-            border: 'none',
-            borderRadius: '10px',
-            background: 'rgba(255, 255, 255, 0.2)',
-            color: 'white',
-            fontSize: '1rem',
-            cursor: 'pointer',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            transition: 'all 0.3s ease'
-          }}>
-            Request Access
-          </button>
-        </div>
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
-    </div>
+    }>
+      <AccessRequestContent />
+    </Suspense>
   );
 }
