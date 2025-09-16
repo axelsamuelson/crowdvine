@@ -26,16 +26,24 @@ export async function getSiteContent(): Promise<SiteContent[]> {
 }
 
 export async function getSiteContentByKey(key: string): Promise<string | null> {
-  const sb = await supabaseServer();
+  try {
+    const sb = await supabaseServer();
 
-  const { data, error } = await sb
-    .from("site_content")
-    .select("value")
-    .eq("key", key)
-    .single();
+    const { data, error } = await sb
+      .from("site_content")
+      .select("value")
+      .eq("key", key)
+      .single();
 
-  if (error) return null;
-  return data?.value || null;
+    if (error) {
+      console.warn(`Site content not found for key: ${key}`, error);
+      return null;
+    }
+    return data?.value || null;
+  } catch (error) {
+    console.error(`Error fetching site content for key: ${key}`, error);
+    return null;
+  }
 }
 
 export async function updateSiteContent(

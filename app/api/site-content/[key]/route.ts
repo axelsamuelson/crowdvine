@@ -14,8 +14,8 @@ export async function GET(
 
     const value = await getSiteContentByKey(key);
     
-    // Lägg till cache headers för bättre prestanda
-    const response = NextResponse.json({ key, value });
+    // Returnera tom sträng om inget värde hittas istället för null
+    const response = NextResponse.json({ key, value: value || "" });
     
     // Cache i 30 minuter
     response.headers.set('Cache-Control', 'public, max-age=1800, s-maxage=1800');
@@ -23,9 +23,7 @@ export async function GET(
     return response;
   } catch (error) {
     console.error("Error fetching site content:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch site content" },
-      { status: 500 }
-    );
+    // Returnera tom sträng istället för 500-fel för att undvika krasch
+    return NextResponse.json({ key: (await params).key, value: "" });
   }
 }
