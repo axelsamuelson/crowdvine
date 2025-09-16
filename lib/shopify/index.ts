@@ -2,7 +2,7 @@ import { TAGS } from "@/lib/constants";
 import type { Product, Collection, Cart } from "./types";
 
 // Vår API-bas (Next API routes som läser Supabase)
-const API_BASE = process.env.APP_URL || "http://localhost:3000";
+const API_BASE = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "http://localhost:3000";
 const API = {
   products: `${API_BASE}/api/crowdvine/products`,
   product: (handle: string) => `${API_BASE}/api/crowdvine/products/${handle}`,

@@ -10,6 +10,9 @@ import {
 import { getLabelPosition } from "../lib/utils";
 import { Product } from "../lib/shopify/types";
 
+// Disable static generation for now - make it dynamic
+export const dynamic = 'force-dynamic';
+
 export default async function Home() {
   let collections = [];
   try {

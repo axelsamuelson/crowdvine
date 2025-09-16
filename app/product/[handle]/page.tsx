@@ -32,8 +32,8 @@ export async function generateStaticParams() {
   return [];
 }
 
-// Enable ISR with 1 minute revalidation
-export const revalidate = 60;
+// Disable static generation for now - make it dynamic
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata(props: {
   params: Promise<{ handle: string }>;
