@@ -34,3 +34,7 @@ next-env.d.ts.DS_Store
 # Large files and deployment artifacts
 *.zip
 deployment/
+*.mp4
+*.mov
+*.avi
+*.mkv

@@ -1,10 +1,5 @@
 # Cloudflare Pages Build Configuration
-# Force npm instead of bun
+pages_build_output_dir = "out"
 
 [build]
 command = "npm run build:cf"
-publish = "out"
-
-[build.environment]
-NODE_VERSION = "18.20.8"
-NPM_VERSION = "10.9.2"
