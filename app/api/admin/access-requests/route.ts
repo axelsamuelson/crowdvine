@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase-server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET() {
   try {
@@ -62,6 +63,18 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
 
+    // Get the access request to find the email
+    const { data: accessRequest, error: fetchError } = await supabase
+      .from('access_requests')
+      .select('email')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !accessRequest) {
+      console.error('Error fetching access request:', fetchError);
+      return NextResponse.json({ error: "Access request not found" }, { status: 404 });
+    }
+
     // Update access request
     const { data, error } = await supabase
       .from('access_requests')
@@ -78,6 +91,34 @@ export async function PATCH(request: NextRequest) {
     if (error) {
       console.error('Error updating access request:', error);
       return NextResponse.json({ error: "Failed to update access request" }, { status: 500 });
+    }
+
+    // If approved, grant access to the user
+    if (status === 'approved') {
+      // Use admin client to find user by email
+      const adminSupabase = getSupabaseAdmin();
+      const { data: authUser, error: userError } = await adminSupabase.auth.admin.getUserByEmail(accessRequest.email);
+      
+      if (userError || !authUser.user) {
+        console.log('User not found in auth, will grant access when they sign up:', accessRequest.email);
+      } else {
+        // User exists, grant access immediately
+        const { error: profileError } = await adminSupabase
+          .from('profiles')
+          .upsert({
+            id: authUser.user.id,
+            email: accessRequest.email,
+            access_granted_at: new Date().toISOString(),
+            role: 'user'
+          });
+
+        if (profileError) {
+          console.error('Error granting access to user:', profileError);
+          // Don't fail the request, just log the error
+        } else {
+          console.log('Access granted to user:', accessRequest.email);
+        }
+      }
     }
 
     return NextResponse.json({ success: true, data });
