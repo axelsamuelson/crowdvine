@@ -12,13 +12,22 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Check if user is admin - try user_access table first, then profiles
+    const { data: userAccess } = await supabase
+      .from('user_access')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
+
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single();
 
-    if (!profile || profile.role !== 'admin') {
+    const isAdmin = userAccess?.role === 'admin' || profile?.role === 'admin';
+    
+    if (!isAdmin) {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
 
@@ -53,13 +62,22 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Check if user is admin - try user_access table first, then profiles
+    const { data: userAccess } = await supabase
+      .from('user_access')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
+
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single();
 
-    if (!profile || profile.role !== 'admin') {
+    const isAdmin = userAccess?.role === 'admin' || profile?.role === 'admin';
+    
+    if (!isAdmin) {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
 
@@ -103,17 +121,33 @@ export async function PATCH(request: NextRequest) {
         console.log('User not found in auth, will grant access when they sign up:', accessRequest.email);
       } else {
         // User exists, grant access immediately
+        const now = new Date().toISOString();
+        
+        // Update profiles table with access_granted_at
         const { error: profileError } = await adminSupabase
           .from('profiles')
           .upsert({
             id: authUser.user.id,
-            email: accessRequest.email,
-            access_granted_at: new Date().toISOString(),
-            role: 'user'
+            access_granted_at: now
           });
 
         if (profileError) {
-          console.error('Error granting access to user:', profileError);
+          console.error('Error updating profiles:', profileError);
+        }
+
+        // Update user_access table (if it exists)
+        const { error: userAccessError } = await adminSupabase
+          .from('user_access')
+          .upsert({
+            user_id: authUser.user.id,
+            email: accessRequest.email,
+            access_granted_at: now,
+            status: 'active',
+            granted_by: user.id
+          });
+
+        if (userAccessError) {
+          console.error('Error updating user_access:', userAccessError);
           // Don't fail the request, just log the error
         } else {
           console.log('Access granted to user:', accessRequest.email);
