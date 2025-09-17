@@ -48,17 +48,12 @@ export default function AccessControlAdmin() {
 
   const fetchAccessRequests = async () => {
     try {
-      // Temporärt mock data istället för API-anrop
-      const mockData = [
-        {
-          id: '1',
-          email: 'test@example.com',
-          status: 'pending',
-          requested_at: new Date().toISOString(),
-          notes: 'Test request'
-        }
-      ];
-      setAccessRequests(mockData);
+      const response = await fetch('/api/admin/access-requests');
+      if (!response.ok) {
+        throw new Error('Failed to fetch access requests');
+      }
+      const data = await response.json();
+      setAccessRequests(data);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching access requests:', error);
@@ -83,15 +78,26 @@ export default function AccessControlAdmin() {
 
   const updateAccessRequest = async (id: string, status: 'approved' | 'rejected', notes?: string) => {
     try {
-      // Temporärt mock - uppdatera lokal state istället för API-anrop
-      setAccessRequests(prev => 
-        prev.map(req => 
-          req.id === id 
-            ? { ...req, status, notes, reviewed_at: new Date().toISOString() }
-            : req
-        )
-      );
-      toast.success(`Access request ${status}`);
+      const response = await fetch('/api/admin/access-requests', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id, status, notes }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update access request');
+      }
+
+      const result = await response.json();
+      if (result.success) {
+        // Refresh the list
+        fetchAccessRequests();
+        toast.success(`Access request ${status}`);
+      } else {
+        throw new Error(result.error || 'Failed to update access request');
+      }
     } catch (error) {
       console.error('Error updating access request:', error);
       toast.error("Failed to update access request");
