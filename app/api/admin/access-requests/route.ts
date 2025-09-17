@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { emailService } from "@/lib/email-service";
 
 export async function GET() {
   try {
@@ -119,6 +120,35 @@ export async function PATCH(request: NextRequest) {
       
       if (userError || !authUser.user) {
         console.log('User not found in auth, will grant access when they sign up:', accessRequest.email);
+        
+        // Generate signup URL and send email
+        try {
+          const signupResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'https://pactwines.com'}/api/generate-signup-url`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: accessRequest.email })
+          });
+          
+          if (signupResponse.ok) {
+            const { signupUrl } = await signupResponse.json();
+            
+            // Send approval email
+            const emailSent = await emailService.sendAccessApprovalEmail({
+              email: accessRequest.email,
+              signupUrl
+            });
+            
+            if (emailSent) {
+              console.log('Approval email sent to:', accessRequest.email);
+            } else {
+              console.error('Failed to send approval email to:', accessRequest.email);
+            }
+          } else {
+            console.error('Failed to generate signup URL for:', accessRequest.email);
+          }
+        } catch (emailError) {
+          console.error('Error sending approval email:', emailError);
+        }
       } else {
         // User exists, grant access immediately
         const now = new Date().toISOString();

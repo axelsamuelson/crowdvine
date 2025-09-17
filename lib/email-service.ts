@@ -1,7 +1,4 @@
-// Test email service som använder Ethereal Email (gratis för utveckling)
-// Gå till https://ethereal.email/create för att få test-credentials
-
-import { createTransport } from "nodemailer";
+import nodemailer from 'nodemailer';
 
 interface EmailConfig {
   host: string;
@@ -13,257 +10,149 @@ interface EmailConfig {
   };
 }
 
-interface ReservationEmailData {
-  reservationId: string;
-  trackingCode?: string;
-  customerName: string;
-  customerEmail: string;
-  items: Array<{
-    wineName: string;
-    vintage: string;
-    quantity: number;
-    price: string;
-  }>;
-  totalAmount: string;
-  address: {
-    street: string;
-    postcode: string;
-    city: string;
-    countryCode: string;
-  };
-  createdAt: string;
-}
-
-interface Transporter {
-  sendMail: (options: {
-    from: string;
-    to: string;
-    subject: string;
-    html: string;
-  }) => Promise<any>;
+interface AccessApprovalEmailData {
+  email: string;
+  signupUrl: string;
 }
 
 class EmailService {
-  private transporter: Transporter | null = null;
+  private transporter: nodemailer.Transporter | null = null;
 
   constructor() {
-    // För utveckling, använd Ethereal Email eller Gmail
+    this.initializeTransporter();
+  }
+
+  private initializeTransporter() {
     const emailConfig: EmailConfig = {
-      host: process.env.SMTP_HOST || "smtp.ethereal.email",
-      port: parseInt(process.env.SMTP_PORT || "587"),
-      secure: false,
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: process.env.SMTP_SECURE === 'true',
       auth: {
-        user: process.env.SMTP_USER || "test@ethereal.email",
-        pass: process.env.SMTP_PASS || "test-password",
+        user: process.env.SMTP_USER || '',
+        pass: process.env.SMTP_PASS || '',
       },
     };
 
-    this.transporter = createTransport(emailConfig);
+    if (!emailConfig.auth.user || !emailConfig.auth.pass) {
+      console.warn('Email service not configured - SMTP credentials missing');
+      return;
+    }
+
+    this.transporter = nodemailer.createTransporter(emailConfig);
   }
 
-  async sendReservationConfirmation(
-    data: ReservationEmailData,
-  ): Promise<boolean> {
+  async sendAccessApprovalEmail(data: AccessApprovalEmailData): Promise<boolean> {
+    if (!this.transporter) {
+      console.error('Email service not configured');
+      return false;
+    }
+
+    const { email, signupUrl } = data;
+
+    const mailOptions = {
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to: email,
+      subject: '🎉 Welcome to CrowdVine - Your Access Has Been Approved!',
+      html: this.getAccessApprovalEmailTemplate(signupUrl),
+      text: this.getAccessApprovalEmailText(signupUrl),
+    };
+
     try {
-      // För utveckling, logga email-innehållet istället för att skicka
-      if (
-        !process.env.SMTP_USER ||
-        process.env.SMTP_USER === "your-email@gmail.com"
-      ) {
-        // Email would be sent in production
-        return true;
-      }
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log('Access approval email sent:', result.messageId);
+      return true;
+    } catch (error) {
+      console.error('Failed to send access approval email:', error);
+      return false;
+    }
+  }
 
-      const itemsList = data.items
-        .map(
-          (item) =>
-            `• ${item.wineName} ${item.vintage} - ${item.quantity} st - ${item.price} SEK`,
-        )
-        .join("\n");
-
-      const emailContent = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background-color: #f8f9fa; padding: 20px; text-align: center;">
-            <h1 style="color: #2c3e50; margin: 0;">🍷 CrowdVine</h1>
-            <p style="color: #7f8c8d; margin: 10px 0 0 0;">Din vinreservation är bekräftad</p>
-          </div>
-          
-          <div style="padding: 30px; background-color: white;">
-            <h2 style="color: #2c3e50; margin-top: 0;">Hej ${data.customerName}!</h2>
-            
-            <p>Tack för din reservation hos CrowdVine. Din order har mottagits och behandlas nu.</p>
-            
-            <div style="background-color: #ecf0f1; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="color: #2c3e50; margin-top: 0;">📋 Reservationsdetaljer</h3>
-              <p><strong>Reservations-ID:</strong> ${data.reservationId}</p>
-              ${data.trackingCode ? `<p><strong>Tracking-kod:</strong> <span style="font-family: monospace; font-weight: bold; color: #e74c3c;">${data.trackingCode}</span></p>` : ""}
-              <p><strong>Datum:</strong> ${new Date(data.createdAt).toLocaleDateString("sv-SE")}</p>
-              <p><strong>Status:</strong> <span style="color: #27ae60; font-weight: bold;">Placerad</span></p>
+  private getAccessApprovalEmailTemplate(signupUrl: string): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Welcome to CrowdVine</title>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+            .button { display: inline-block; background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+            .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>🍷 Welcome to CrowdVine!</h1>
+              <p>Your access request has been approved</p>
             </div>
-            
-            <div style="background-color: #ecf0f1; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="color: #2c3e50; margin-top: 0;">🍷 Beställda viner</h3>
-              <div style="font-family: monospace; background-color: white; padding: 15px; border-radius: 4px;">
-                ${itemsList}
-              </div>
-              <p style="text-align: right; font-weight: bold; margin-top: 15px;">
-                Totalt: ${data.totalAmount} SEK
-              </p>
-            </div>
-            
-            <div style="background-color: #ecf0f1; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="color: #2c3e50; margin-top: 0;">📍 Leveransadress</h3>
-              <p>${data.address.street}</p>
-              <p>${data.address.postcode} ${data.address.city}</p>
-              <p>${data.address.countryCode}</p>
-            </div>
-            
-            <div style="background-color: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
-              <h3 style="color: #856404; margin-top: 0;">ℹ️ Viktig information</h3>
-              <ul style="color: #856404;">
-                <li>Ingen betalning har debiterats ännu</li>
-                <li>Vi debiterar endast när en pall bildas</li>
-                <li>Du kan avbryta reservationen när som helst före pall-bildning</li>
-                <li>Vi meddelar dig via email när din pall är redo</li>
+            <div class="content">
+              <h2>Congratulations!</h2>
+              <p>We're excited to welcome you to CrowdVine, the exclusive wine community where quality meets community.</p>
+              
+              <p>Your access request has been approved, and you're now ready to join our curated platform featuring:</p>
+              <ul>
+                <li>🎯 Exclusive wines from boutique producers</li>
+                <li>📦 Pallet-sharing system for premium accessibility</li>
+                <li>👥 Community of wine enthusiasts and collectors</li>
+                <li>🍾 Limited releases and rare vintages</li>
               </ul>
+              
+              <p>Click the button below to complete your registration and start exploring:</p>
+              
+              <div style="text-align: center;">
+                <a href="${signupUrl}" class="button">Complete Registration</a>
+              </div>
+              
+              <p><strong>Important:</strong> This link is unique to you and will expire in 7 days for security reasons.</p>
+              
+              <p>If you have any questions, feel free to reach out to our support team.</p>
+              
+              <p>Welcome to the community!</p>
+              <p><strong>The CrowdVine Team</strong></p>
             </div>
-            
-            <div style="background-color: #d1ecf1; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #17a2b8;">
-              <h3 style="color: #0c5460; margin-top: 0;">🔍 Kolla din reservationsstatus</h3>
-              <p style="color: #0c5460;">
-                Du kan kolla status på din reservation genom att besöka:
-                <br>
-                <a href="${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/reservation-status?email=${encodeURIComponent(data.customerEmail)}&${data.trackingCode ? `trackingCode=${data.trackingCode}` : `reservationId=${data.reservationId}`}" 
-                   style="color: #17a2b8; text-decoration: none; font-weight: bold;">
-                  Kolla reservationsstatus →
-                </a>
-              </p>
+            <div class="footer">
+              <p>This email was sent because you requested access to CrowdVine.</p>
+              <p>If you didn't request this, please ignore this email.</p>
             </div>
-            
-            <p style="color: #7f8c8d; font-size: 14px; margin-top: 30px;">
-              Har du frågor? Kontakta oss på support@crowdvine.se
-            </p>
           </div>
-          
-          <div style="background-color: #34495e; padding: 20px; text-align: center; color: white;">
-            <p style="margin: 0; font-size: 14px;">© 2024 CrowdVine. Alla rättigheter förbehållna.</p>
-          </div>
-        </div>
-      `;
-
-      const mailOptions = {
-        from: `"CrowdVine" <${process.env.SMTP_USER || "noreply@crowdvine.se"}>`,
-        to: data.customerEmail,
-        subject: `🍷 Reservationsbekräftelse - ${data.reservationId}`,
-        html: emailContent,
-        text: `
-          CrowdVine - Reservationsbekräftelse
-          
-          Hej ${data.customerName}!
-          
-          Din reservation har mottagits och behandlas nu.
-          
-          Reservations-ID: ${data.reservationId}
-          ${data.trackingCode ? `Tracking-kod: ${data.trackingCode}` : ""}
-          Datum: ${new Date(data.createdAt).toLocaleDateString("sv-SE")}
-          Status: Placerad
-          
-          Beställda viner:
-          ${data.items.map((item) => `- ${item.wineName} ${item.vintage} - ${item.quantity} st - ${item.price} SEK`).join("\n")}
-          
-          Totalt: ${data.totalAmount} SEK
-          
-          Leveransadress:
-          ${data.address.street}
-          ${data.address.postcode} ${data.address.city}
-          ${data.address.countryCode}
-          
-          Viktig information:
-          - Ingen betalning har debiterats ännu
-          - Vi debiterar endast när en pall bildas
-          - Du kan avbryta reservationen när som helst före pall-bildning
-          - Vi meddelar dig via email när din pall är redo
-          
-          Kolla din reservationsstatus:
-          ${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/reservation-status?email=${encodeURIComponent(data.customerEmail)}&${data.trackingCode ? `trackingCode=${data.trackingCode}` : `reservationId=${data.reservationId}`}
-          
-          Har du frågor? Kontakta oss på support@crowdvine.se
-        `,
-      };
-
-      const result = await this.transporter.sendMail(mailOptions);
-      console.log("Email sent successfully:", result.messageId);
-      return true;
-    } catch (error) {
-      console.error("Failed to send email:", error);
-      return false;
-    }
+        </body>
+      </html>
+    `;
   }
 
-  async sendReservationStatusUpdate(data: {
-    reservationId: string;
-    customerName: string;
-    customerEmail: string;
-    status: string;
-    message: string;
-  }): Promise<boolean> {
-    try {
-      const emailContent = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background-color: #f8f9fa; padding: 20px; text-align: center;">
-            <h1 style="color: #2c3e50; margin: 0;">🍷 CrowdVine</h1>
-            <p style="color: #7f8c8d; margin: 10px 0 0 0;">Statusuppdatering för din reservation</p>
-          </div>
-          
-          <div style="padding: 30px; background-color: white;">
-            <h2 style="color: #2c3e50; margin-top: 0;">Hej ${data.customerName}!</h2>
-            
-            <p>Din reservation har uppdaterats med ny status.</p>
-            
-            <div style="background-color: #ecf0f1; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="color: #2c3e50; margin-top: 0;">📋 Statusuppdatering</h3>
-              <p><strong>Reservations-ID:</strong> ${data.reservationId}</p>
-              <p><strong>Ny status:</strong> <span style="color: #27ae60; font-weight: bold;">${data.status}</span></p>
-              <p><strong>Meddelande:</strong> ${data.message}</p>
-            </div>
-            
-            <div style="background-color: #d1ecf1; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #17a2b8;">
-              <h3 style="color: #0c5460; margin-top: 0;">🔍 Kolla din reservationsstatus</h3>
-              <p style="color: #0c5460;">
-                Du kan kolla status på din reservation genom att besöka:
-                <br>
-                <a href="${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/reservation-status?email=${encodeURIComponent(data.customerEmail)}&reservationId=${data.reservationId}" 
-                   style="color: #17a2b8; text-decoration: none; font-weight: bold;">
-                  Kolla reservationsstatus →
-                </a>
-              </p>
-            </div>
-            
-            <p style="color: #7f8c8d; font-size: 14px; margin-top: 30px;">
-              Har du frågor? Kontakta oss på support@crowdvine.se
-            </p>
-          </div>
-          
-          <div style="background-color: #34495e; padding: 20px; text-align: center; color: white;">
-            <p style="margin: 0; font-size: 14px;">© 2024 CrowdVine. Alla rättigheter förbehållna.</p>
-          </div>
-        </div>
-      `;
+  private getAccessApprovalEmailText(signupUrl: string): string {
+    return `
+Welcome to CrowdVine!
 
-      const mailOptions = {
-        from: `"CrowdVine" <${process.env.SMTP_USER || "noreply@crowdvine.se"}>`,
-        to: data.customerEmail,
-        subject: `🍷 Statusuppdatering - ${data.reservationId}`,
-        html: emailContent,
-      };
+Your access request has been approved!
 
-      const result = await this.transporter.sendMail(mailOptions);
-      console.log("Status update email sent successfully:", result.messageId);
-      return true;
-    } catch (error) {
-      console.error("Failed to send status update email:", error);
-      return false;
-    }
+We're excited to welcome you to CrowdVine, the exclusive wine community where quality meets community.
+
+Your access request has been approved, and you're now ready to join our curated platform featuring:
+- Exclusive wines from boutique producers
+- Pallet-sharing system for premium accessibility  
+- Community of wine enthusiasts and collectors
+- Limited releases and rare vintages
+
+Complete your registration by clicking this link:
+${signupUrl}
+
+Important: This link is unique to you and will expire in 7 days for security reasons.
+
+If you have any questions, feel free to reach out to our support team.
+
+Welcome to the community!
+The CrowdVine Team
+
+---
+This email was sent because you requested access to CrowdVine.
+If you didn't request this, please ignore this email.
+    `;
   }
 }
 
