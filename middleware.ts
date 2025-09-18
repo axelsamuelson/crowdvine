@@ -11,6 +11,7 @@ const PUBLIC = [
   '/api/validate-access-token', '/api/use-access-token', '/api/grant-access', '/api/delete-access-request-on-signup', // Allow signup process APIs
   '/api/generate-signup-url', // Allow signup URL generation (used internally)
   '/api/test-email', // Allow test email API for debugging
+  '/api/admin/auth-debug', // Allow admin auth debug API
   '/product', '/shop', '/profile', '/signup', // Allow product, shop, profile, and signup pages
   '/admin', '/admin-auth', '/api/admin' // Allow admin access and admin APIs
 ];
