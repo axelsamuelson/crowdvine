@@ -79,12 +79,13 @@ export default function AccessControlAdmin() {
 
   const updateAccessRequest = async (id: string, status: 'approved' | 'rejected', notes?: string) => {
     try {
-      const response = await fetch('/api/admin/access-requests', {
-        method: 'PATCH',
+      // Use the new simple API for updating access request status
+      const response = await fetch('/api/admin/update-access-request', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ id, status, notes }),
+        body: JSON.stringify({ id, status }),
       });
 
       if (!response.ok) {
@@ -93,9 +94,41 @@ export default function AccessControlAdmin() {
 
       const result = await response.json();
       if (result.success) {
+        // If approved, also send approval email
+        if (status === 'approved') {
+          try {
+            // Get the email from the access request
+            const accessRequest = accessRequests.find(req => req.id === id);
+            if (accessRequest) {
+              const emailResponse = await fetch('/api/admin/send-approval-email', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email: accessRequest.email }),
+              });
+
+              if (emailResponse.ok) {
+                const emailResult = await emailResponse.json();
+                if (emailResult.success) {
+                  toast.success(`Access request approved and email sent to ${accessRequest.email}`);
+                } else {
+                  toast.success(`Access request approved, but email failed to send`);
+                }
+              } else {
+                toast.success(`Access request approved, but email failed to send`);
+              }
+            }
+          } catch (emailError) {
+            console.error('Error sending approval email:', emailError);
+            toast.success(`Access request approved, but email failed to send`);
+          }
+        } else {
+          toast.success(`Access request ${status}`);
+        }
+        
         // Refresh the list
         fetchAccessRequests();
-        toast.success(`Access request ${status}`);
       } else {
         throw new Error(result.error || 'Failed to update access request');
       }
