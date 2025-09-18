@@ -92,13 +92,13 @@ function SignupPageContent() {
           body: JSON.stringify({ token })
         });
 
-        // Grant access to the user
-        await fetch('/api/grant-access', {
+        // Create profile for the user
+        await fetch('/api/create-profile', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            email,
-            userId: authData.user.id // Pass the user ID directly
+            userId: authData.user.id,
+            email
           })
         });
 

@@ -9,6 +9,7 @@ const PUBLIC = [
   '/api/user', // Allow user API routes for profile and reservations
   '/api/debug', // Allow debug API routes
   '/api/validate-access-token', '/api/use-access-token', '/api/grant-access', '/api/delete-access-request-on-signup', // Allow signup process APIs
+  '/api/create-profile', // Allow profile creation during signup
   '/api/generate-signup-url', // Allow signup URL generation (used internally)
   '/api/test-email', // Allow test email API for debugging
   '/api/admin/auth-debug', // Allow admin auth debug API
