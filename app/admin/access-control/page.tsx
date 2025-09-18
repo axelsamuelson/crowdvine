@@ -113,15 +113,16 @@ export default function AccessControlAdmin() {
                 if (emailResult.success) {
                   toast.success(`Access request approved and email sent to ${accessRequest.email}`);
                 } else {
-                  toast.success(`Access request approved, but email failed to send`);
+                  toast.error(`Access request approved, but email failed to send: ${emailResult.error || 'Unknown error'}`);
                 }
               } else {
-                toast.success(`Access request approved, but email failed to send`);
+                const errorData = await emailResponse.json().catch(() => ({ error: 'Network error' }));
+                toast.error(`Access request approved, but email failed to send: ${errorData.error || 'Unknown error'}`);
               }
             }
           } catch (emailError) {
             console.error('Error sending approval email:', emailError);
-            toast.success(`Access request approved, but email failed to send`);
+            toast.error(`Access request approved, but email failed to send: ${emailError instanceof Error ? emailError.message : 'Unknown error'}`);
           }
         } else {
           toast.success(`Access request ${status}`);
@@ -145,20 +146,37 @@ export default function AccessControlAdmin() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete access request');
+        const errorData = await response.json().catch(() => ({ error: 'Network error' }));
+        throw new Error(errorData.error || 'Failed to delete access request');
       }
 
       const result = await response.json();
       if (result.success) {
+        // Show detailed success message
+        const deleted = result.deleted;
+        let message = `Access request deleted successfully!`;
+        
+        if (deleted.accessTokens > 0 || deleted.invitationCodes > 0 || deleted.authUser > 0) {
+          message += ` Also cleaned up:`;
+          const cleanupItems = [];
+          if (deleted.accessTokens > 0) cleanupItems.push(`${deleted.accessTokens} access token(s)`);
+          if (deleted.invitationCodes > 0) cleanupItems.push(`${deleted.invitationCodes} invitation code(s)`);
+          if (deleted.authUser > 0) cleanupItems.push(`1 orphaned auth user`);
+          
+          message += ` ${cleanupItems.join(', ')}.`;
+        }
+        
+        toast.success(message);
+        
         // Refresh the list
         fetchAccessRequests();
-        toast.success("Access request deleted");
       } else {
         throw new Error(result.error || 'Failed to delete access request');
       }
     } catch (error) {
       console.error('Error deleting access request:', error);
-      toast.error("Failed to delete access request");
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      toast.error(`Failed to delete access request: ${errorMessage}`);
     }
   };
 
@@ -176,12 +194,13 @@ export default function AccessControlAdmin() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create invitation code');
+        const errorData = await response.json().catch(() => ({ error: 'Network error' }));
+        throw new Error(errorData.error || 'Failed to create invitation code');
       }
 
       const result = await response.json();
       if (result.success) {
-        toast.success("Invitation code created");
+        toast.success("Invitation code created successfully");
         setNewCodeEmail("");
         setNewCodeExpiry("30");
         // Refresh the list
@@ -191,7 +210,8 @@ export default function AccessControlAdmin() {
       }
     } catch (error) {
       console.error('Error creating invitation code:', error);
-      toast.error("Failed to create invitation code");
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      toast.error(`Failed to create invitation code: ${errorMessage}`);
     }
   };
 

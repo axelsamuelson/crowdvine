@@ -8,6 +8,8 @@ const PUBLIC = [
   '/api/crowdvine', // Allow crowdvine API routes for products/collections
   '/api/user', // Allow user API routes for profile and reservations
   '/api/debug', // Allow debug API routes
+  '/api/test-simple', // Allow simple test API
+  '/api/test-supabase', // Allow Supabase test API
   '/api/validate-access-token', '/api/use-access-token', '/api/grant-access', '/api/delete-access-request-on-signup', // Allow signup process APIs
   '/api/create-profile', // Allow profile creation during signup
   '/api/create-user', // Allow user creation during signup

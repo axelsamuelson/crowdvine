@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { sendGridService } from "@/lib/sendgrid-service";
+import { getAccessApprovalEmailTemplate, getAccessApprovalEmailText } from "@/lib/email-templates";
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,8 +16,10 @@ export async function GET(request: NextRequest) {
     
     console.log('Access requests API: Admin auth confirmed');
 
-    // Fetch all access requests first
+    // Use admin client to bypass RLS
     const supabase = getSupabaseAdmin();
+    
+    // Fetch all access requests first
     const { data: accessRequests, error } = await supabase
       .from('access_requests')
       .select('*')
@@ -24,8 +27,14 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Error fetching access requests:', error);
-      return NextResponse.json({ error: "Failed to fetch access requests" }, { status: 500 });
+      return NextResponse.json({ 
+        error: "Failed to fetch access requests",
+        details: error.message,
+        code: error.code
+      }, { status: 500 });
     }
+
+    console.log('Access requests found:', accessRequests?.length || 0);
 
     if (!accessRequests || accessRequests.length === 0) {
       return NextResponse.json([]);
@@ -43,12 +52,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(accessRequests);
     }
 
+    console.log('Profiles with access:', profiles?.length || 0);
+    console.log('Profiles data:', profiles);
+
     // Filter out requests that have associated user accounts (profiles with access_granted_at)
     const emailsWithAccess = new Set(profiles?.map(p => p.email) || []);
-    const filteredRequests = accessRequests.filter(request => 
-      !emailsWithAccess.has(request.email)
-    );
+    console.log('Emails with access:', Array.from(emailsWithAccess));
+    
+    const filteredRequests = accessRequests.filter(request => {
+      const hasAccess = emailsWithAccess.has(request.email);
+      console.log(`Request ${request.email} has access: ${hasAccess}`);
+      return !hasAccess;
+    });
 
+    console.log('Filtered requests:', filteredRequests.length);
+    console.log('All requests before filtering:', accessRequests.length);
+    
     return NextResponse.json(filteredRequests);
 
   } catch (error) {
@@ -226,6 +245,8 @@ export async function PATCH(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    console.log('=== DELETE ACCESS REQUEST START ===');
+    
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -239,111 +260,106 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Delete the access request
     const supabase = getSupabaseAdmin();
-    const { error } = await supabase
+
+    // Step 1: Get the access request to find the email
+    console.log('1. Fetching access request details...');
+    const { data: accessRequest, error: fetchError } = await supabase
+      .from('access_requests')
+      .select('email')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !accessRequest) {
+      console.error('Error fetching access request:', fetchError);
+      return NextResponse.json({ error: "Access request not found" }, { status: 404 });
+    }
+
+    const email = accessRequest.email.toLowerCase().trim();
+    console.log('2. Found access request for email:', email);
+
+    // Step 2: Delete all access tokens for this email
+    console.log('3. Deleting access tokens...');
+    const { data: deletedTokens, error: tokensError } = await supabase
+      .from('access_tokens')
+      .delete()
+      .eq('email', email)
+      .select();
+
+    if (tokensError) {
+      console.error('Error deleting access tokens:', tokensError);
+    } else {
+      console.log(`   ✅ Deleted ${deletedTokens?.length || 0} access tokens`);
+    }
+
+    // Step 3: Delete all invitation codes for this email (if any)
+    console.log('4. Deleting invitation codes...');
+    const { data: deletedInvitations, error: invitationsError } = await supabase
+      .from('invitation_codes')
+      .delete()
+      .eq('email', email)
+      .select();
+
+    if (invitationsError) {
+      console.error('Error deleting invitation codes:', invitationsError);
+    } else {
+      console.log(`   ✅ Deleted ${deletedInvitations?.length || 0} invitation codes`);
+    }
+
+    // Step 4: Check if user exists in auth.users and delete if no profile exists
+    console.log('5. Checking for orphaned auth user...');
+    const { data: authUser } = await supabase.auth.admin.getUserByEmail(email);
+    
+    if (authUser?.user) {
+      // Check if user has a profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', authUser.user.id)
+        .single();
+
+      if (!profile) {
+        console.log('6. Deleting orphaned auth user...');
+        const { error: deleteUserError } = await supabase.auth.admin.deleteUser(authUser.user.id);
+        
+        if (deleteUserError) {
+          console.error('Error deleting auth user:', deleteUserError);
+        } else {
+          console.log('   ✅ Deleted orphaned auth user');
+        }
+      } else {
+        console.log('   ℹ️ User has profile, keeping auth user');
+      }
+    }
+
+    // Step 5: Finally delete the access request
+    console.log('7. Deleting access request...');
+    const { error: deleteError } = await supabase
       .from('access_requests')
       .delete()
       .eq('id', id);
 
-    if (error) {
-      console.error('Error deleting access request:', error);
+    if (deleteError) {
+      console.error('Error deleting access request:', deleteError);
       return NextResponse.json({ error: "Failed to delete access request" }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true });
+    console.log('   ✅ Access request deleted successfully');
+    console.log('=== DELETE ACCESS REQUEST END ===');
+
+    return NextResponse.json({ 
+      success: true,
+      message: `Access request and all related data deleted for ${email}`,
+      deleted: {
+        accessRequest: 1,
+        accessTokens: deletedTokens?.length || 0,
+        invitationCodes: deletedInvitations?.length || 0,
+        authUser: authUser?.user && !profile ? 1 : 0
+      }
+    });
 
   } catch (error) {
     console.error('Delete access request API error:', error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-}
-
-// Email template functions
-function getAccessApprovalEmailTemplate(signupUrl: string): string {
-  return `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Welcome to PACT Wines</title>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-          .button { display: inline-block; background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
-          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>🍷 Welcome to PACT Wines!</h1>
-            <p>Your access request has been approved</p>
-          </div>
-          <div class="content">
-            <h2>Congratulations!</h2>
-            <p>We're excited to welcome you to PACT Wines, the exclusive wine community where quality meets community.</p>
-            
-            <p>Your access request has been approved, and you're now ready to join our curated platform featuring:</p>
-            <ul>
-              <li>🎯 Exclusive wines from boutique producers</li>
-              <li>📦 Pallet-sharing system for premium accessibility</li>
-              <li>👥 Community of wine enthusiasts and collectors</li>
-              <li>🍾 Limited releases and rare vintages</li>
-            </ul>
-            
-            <p>Click the button below to complete your registration and start exploring:</p>
-            
-            <div style="text-align: center;">
-              <a href="${signupUrl}" class="button">Complete Registration</a>
-            </div>
-            
-            <p><strong>Important:</strong> This link is unique to you and will expire in 7 days for security reasons.</p>
-            
-            <p>If you have any questions, feel free to reach out to our support team.</p>
-            
-            <p>Welcome to the community!</p>
-            <p><strong>The PACT Wines Team</strong></p>
-          </div>
-          <div class="footer">
-            <p>This email was sent because you requested access to PACT Wines.</p>
-            <p>If you didn't request this, please ignore this email.</p>
-          </div>
-        </div>
-      </body>
-    </html>
-  `;
-}
-
-function getAccessApprovalEmailText(signupUrl: string): string {
-  return `
-Welcome to PACT Wines!
-
-Your access request has been approved!
-
-We're excited to welcome you to PACT Wines, the exclusive wine community where quality meets community.
-
-Your access request has been approved, and you're now ready to join our curated platform featuring:
-- Exclusive wines from boutique producers
-- Pallet-sharing system for premium accessibility  
-- Community of wine enthusiasts and collectors
-- Limited releases and rare vintages
-
-Complete your registration by clicking this link:
-${signupUrl}
-
-Important: This link is unique to you and will expire in 7 days for security reasons.
-
-If you have any questions, feel free to reach out to our support team.
-
-Welcome to the community!
-The PACT Wines Team
-
----
-This email was sent because you requested access to PACT Wines.
-If you didn't request this, please ignore this email.
-  `;
 }

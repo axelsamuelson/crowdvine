@@ -30,9 +30,13 @@ CREATE POLICY "Allow public insert access requests" ON access_requests
 CREATE POLICY "Allow authenticated users to read access requests" ON access_requests
   FOR SELECT USING (auth.role() = 'authenticated');
 
--- Allow authenticated users to update access requests (for admin)
-CREATE POLICY "Allow authenticated users to update access requests" ON access_requests
-  FOR UPDATE USING (auth.role() = 'authenticated');
+-- Allow service role to read all access requests (for admin API)
+CREATE POLICY "Allow service role to read access requests" ON access_requests
+  FOR SELECT USING (auth.role() = 'service_role');
+
+-- Allow service role to update access requests (for admin API)
+CREATE POLICY "Allow service role to update access requests" ON access_requests
+  FOR UPDATE USING (auth.role() = 'service_role');
 
 -- Create function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_access_requests_updated_at()

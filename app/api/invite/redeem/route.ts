@@ -11,12 +11,31 @@ export async function POST(request: NextRequest) {
 
     const supabase = getSupabaseAdmin();
 
-    // For now, we'll implement a simple invitation code system
-    // In a real implementation, you'd have an invitation_codes table
-    // For testing, we'll accept any 20-character code
-    
-    if (code.length !== 20) {
-      return NextResponse.json({ error: "Invalid invitation code format" }, { status: 400 });
+    // Validate invitation code against database
+    const { data: invitationCode, error: codeError } = await supabase
+      .from('invitation_codes')
+      .select('*')
+      .eq('code', code)
+      .eq('is_active', true)
+      .single();
+
+    if (codeError || !invitationCode) {
+      return NextResponse.json({ error: "Invalid invitation code" }, { status: 400 });
+    }
+
+    // Check if code is expired
+    if (new Date(invitationCode.expires_at) < new Date()) {
+      return NextResponse.json({ error: "Invitation code has expired" }, { status: 400 });
+    }
+
+    // Check if code is already used
+    if (invitationCode.used_at) {
+      return NextResponse.json({ error: "Invitation code has already been used" }, { status: 400 });
+    }
+
+    // Check if code is for specific email (if specified)
+    if (invitationCode.email && invitationCode.email !== email.toLowerCase().trim()) {
+      return NextResponse.json({ error: "This invitation code is not valid for this email address" }, { status: 400 });
     }
 
     // Create user account
@@ -44,6 +63,21 @@ export async function POST(request: NextRequest) {
       if (profileError) {
         console.error('Error granting access:', profileError);
         return NextResponse.json({ error: "Failed to grant access" }, { status: 500 });
+      }
+
+      // Mark invitation code as used
+      const { error: updateCodeError } = await supabase
+        .from('invitation_codes')
+        .update({
+          used_at: new Date().toISOString(),
+          used_by: authData.user.id,
+          is_active: false
+        })
+        .eq('id', invitationCode.id);
+
+      if (updateCodeError) {
+        console.error('Error updating invitation code:', updateCodeError);
+        // Don't fail the request, just log the error
       }
 
       return NextResponse.json({ 

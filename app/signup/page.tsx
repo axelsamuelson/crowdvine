@@ -32,24 +32,49 @@ function SignupPageContent() {
 
   const validateToken = async (tokenToValidate: string) => {
     try {
-      const response = await fetch('/api/validate-access-token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: tokenToValidate })
+      console.log('Validating token:', tokenToValidate);
+      
+      const response = await fetch(`/api/validate-access-token?token=${tokenToValidate}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
       });
 
+      console.log('Token validation response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Network error' }));
+        console.error('Token validation error:', errorData);
+        setTokenValid(false);
+        setError(`Token validation failed: ${errorData.error || errorData.message || 'Unknown error'}`);
+        return;
+      }
+
       const result = await response.json();
+      console.log('Token validation result:', result);
       
       if (result.success) {
         setTokenValid(true);
         setEmail(result.email);
+        console.log('Token is valid for email:', result.email);
       } else {
         setTokenValid(false);
-        setError(result.message || 'Invalid or expired access token');
+        let errorMessage = result.message || 'Invalid or expired access token';
+        
+        if (result.token) {
+          if (result.token.isExpired) {
+            errorMessage = 'Access token has expired';
+          } else if (result.token.isUsed) {
+            errorMessage = 'Access token has already been used';
+          }
+        }
+        
+        setError(errorMessage);
+        console.log('Token validation failed:', errorMessage);
       }
     } catch (error) {
+      console.error('Token validation network error:', error);
       setTokenValid(false);
-      setError('Failed to validate access token');
+      setError(`Failed to validate access token: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -83,7 +108,23 @@ function SignupPageContent() {
 
       if (!createUserResponse.ok) {
         const errorData = await createUserResponse.json();
-        setError(errorData.error || 'Failed to create account');
+        console.error('Create user error:', errorData);
+        
+        let errorMessage = errorData.error || 'Failed to create account';
+        
+        if (errorData.details) {
+          errorMessage += `: ${errorData.details}`;
+        }
+        
+        if (errorData.debug) {
+          console.log('Debug info:', errorData.debug);
+          // Add debug info to error message for development
+          if (process.env.NODE_ENV === 'development') {
+            errorMessage += ` (Debug: ${errorData.debug.errorType})`;
+          }
+        }
+        
+        setError(errorMessage);
         setLoading(false);
         return;
       }
