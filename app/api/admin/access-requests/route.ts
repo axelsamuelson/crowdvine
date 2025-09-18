@@ -108,20 +108,31 @@ export async function PATCH(request: NextRequest) {
     const adminEmail = request.cookies.get('admin-email')?.value;
     let adminUserId = null;
     if (adminEmail) {
-      const { data: adminUser } = await supabase.auth.admin.getUserByEmail(adminEmail);
-      adminUserId = adminUser?.user?.id;
+      try {
+        const { data: adminUser } = await supabase.auth.admin.getUserByEmail(adminEmail);
+        adminUserId = adminUser?.user?.id;
+        console.log('DEBUG: Admin user ID found:', adminUserId);
+      } catch (error) {
+        console.log('DEBUG: Could not get admin user ID:', error);
+      }
     }
 
-    // Now try the full update
-    console.log('DEBUG: Testing full update...');
+    // Try the full update with admin user ID
+    console.log('DEBUG: Testing full update with admin ID:', adminUserId);
+    const updateData = {
+      status,
+      notes: notes || null,
+      reviewed_at: new Date().toISOString(),
+    };
+    
+    // Only add reviewed_by if we have adminUserId
+    if (adminUserId) {
+      updateData.reviewed_by = adminUserId;
+    }
+
     const { data: fullUpdate, error: fullError } = await supabase
       .from('access_requests')
-      .update({
-        status,
-        notes: notes || null,
-        reviewed_at: new Date().toISOString(),
-        reviewed_by: adminUserId,
-      })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();
