@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
       .upsert({
         id: authUser.user.id,
         email: email.toLowerCase().trim(),
+        role: 'user', // Set role as user for regular customers
         access_granted_at: new Date().toISOString()
       });
 
