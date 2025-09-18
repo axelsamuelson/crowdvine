@@ -33,11 +33,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Access granted successfully
-
-    return NextResponse.json({ 
+    const response = NextResponse.json({ 
       success: true, 
       message: "Access granted successfully" 
     });
+
+    // Set access cookie so user can access the app
+    response.cookies.set('cv-access', '1', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 365 // 1 year
+    });
+
+    return response;
 
   } catch (error) {
     console.error('Grant access API error:', error);
