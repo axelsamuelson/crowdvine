@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { signOut } from "@/lib/admin-auth";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentAdmin } from "@/lib/admin-auth-server";
 import { AdminLayoutClient } from "./admin-layout-client";
 
 export default async function AdminLayout({
@@ -8,35 +7,21 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Get the current authenticated user
-  const user = await getCurrentUser();
+  // Get the current authenticated admin using cookie-based auth
+  const admin = await getCurrentAdmin();
 
-  if (!user) {
-    redirect("/admin-auth/login");
-  }
-
-  // Get user profile to check role
-  const { getSupabaseAdmin } = await import("@/lib/supabase-admin");
-  const supabase = getSupabaseAdmin();
-  
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, email')
-    .eq('id', user.id)
-    .single();
-
-  if (!profile || profile.role !== "admin") {
+  if (!admin) {
     redirect("/admin-auth/login");
   }
 
   async function handleSignOut() {
     "use server";
-    await signOut();
-    redirect("/admin-auth/login");
+    // Clear admin cookie by redirecting to logout
+    redirect("/admin-auth/logout");
   }
 
   return (
-    <AdminLayoutClient userEmail={profile.email || user.email || "Unknown"} onSignOut={handleSignOut}>
+    <AdminLayoutClient userEmail={admin.email} onSignOut={handleSignOut}>
       {children}
     </AdminLayoutClient>
   );

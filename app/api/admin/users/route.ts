@@ -1,34 +1,12 @@
-import { NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabase-server";
+import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await supabaseServer();
-
-    // Check if user is admin
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    // Check admin cookie
+    const adminAuth = request.cookies.get('admin-auth')?.value;
+    if (!adminAuth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Check if user is admin - try user_access table first, then profiles
-    const { data: userAccess } = await supabase
-      .from('user_access')
-      .select('role')
-      .eq('user_id', user.id)
-      .single();
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    const isAdmin = userAccess?.role === 'admin' || profile?.role === 'admin';
-    
-    if (!isAdmin) {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
 
     // Use admin client to get all users with profiles

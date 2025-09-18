@@ -31,9 +31,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
-    // Set admin cookie
+    // Set admin cookie with email for easier retrieval
     const response = NextResponse.json({ success: true, user: profile });
     response.cookies.set('admin-auth', 'true', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7 // 7 days
+    });
+    
+    // Also set admin email in a separate cookie for easy access
+    response.cookies.set('admin-email', profile.email, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -51,5 +59,6 @@ export async function POST(request: NextRequest) {
 export async function DELETE() {
   const response = NextResponse.json({ success: true });
   response.cookies.delete('admin-auth');
+  response.cookies.delete('admin-email');
   return response;
 }

@@ -1,4 +1,4 @@
-import { supabaseServer } from "@/lib/supabase-server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import {
   Card,
   CardContent,
@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 
 export default async function AdminDashboard() {
-  const sb = await supabaseServer();
+  const sb = getSupabaseAdmin();
 
   // Hämta statistik
   const [

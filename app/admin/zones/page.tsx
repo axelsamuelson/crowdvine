@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { supabaseServer } from "@/lib/supabase-server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 
 export default async function ZonesPage() {
-  const sb = await supabaseServer();
+  const sb = getSupabaseAdmin();
 
   // Hämta zones med relaterad data
   const { data: zones } = await sb
