@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle, XCircle, Clock, Plus, Copy, Trash2, Users } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Plus, Copy, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface AccessRequest {
@@ -34,20 +34,9 @@ interface InvitationCode {
   created_at: string;
 }
 
-interface User {
-  id: string;
-  email: string;
-  created_at: string;
-  last_sign_in_at?: string;
-  email_confirmed_at?: string;
-  access_granted_at?: string;
-  role: string;
-}
-
 export default function AccessControlAdmin() {
   const [accessRequests, setAccessRequests] = useState<AccessRequest[]>([]);
   const [invitationCodes, setInvitationCodes] = useState<InvitationCode[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [newCodeEmail, setNewCodeEmail] = useState("");
   const [newCodeExpiry, setNewCodeExpiry] = useState("30");
@@ -55,7 +44,6 @@ export default function AccessControlAdmin() {
   useEffect(() => {
     fetchAccessRequests();
     fetchInvitationCodes();
-    fetchUsers();
   }, []);
 
   const fetchAccessRequests = async () => {
@@ -88,19 +76,6 @@ export default function AccessControlAdmin() {
     }
   };
 
-  const fetchUsers = async () => {
-    try {
-      const response = await fetch('/api/admin/users');
-      if (!response.ok) {
-        throw new Error('Failed to fetch users');
-      }
-      const data = await response.json();
-      setUsers(data);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      toast.error("Failed to fetch users");
-    }
-  };
 
   const updateAccessRequest = async (id: string, status: 'approved' | 'rejected', notes?: string) => {
     try {
@@ -118,9 +93,8 @@ export default function AccessControlAdmin() {
 
       const result = await response.json();
       if (result.success) {
-        // Refresh the lists
+        // Refresh the list
         fetchAccessRequests();
-        fetchUsers();
         toast.success(`Access request ${status}`);
       } else {
         throw new Error(result.error || 'Failed to update access request');
@@ -226,9 +200,8 @@ export default function AccessControlAdmin() {
         </div>
 
         <Tabs defaultValue="requests" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="requests">Access Requests</TabsTrigger>
-            <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="codes">Invitation Codes</TabsTrigger>
           </TabsList>
 
@@ -307,56 +280,21 @@ export default function AccessControlAdmin() {
                             <p className="text-sm text-gray-600 mt-1">{request.notes}</p>
                           )}
                         </div>
-                        {getStatusBadge(request.status)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="users" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Active Users ({users.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {users.map((user) => (
-                    <div key={user.id} className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{user.email}</p>
-                          <div className="text-sm text-gray-500 space-y-1">
-                            <p>Role: <Badge variant="outline">{user.role}</Badge></p>
-                            <p>Account created: {new Date(user.created_at).toLocaleDateString()}</p>
-                            {user.access_granted_at && (
-                              <p>Access granted: {new Date(user.access_granted_at).toLocaleDateString()}</p>
-                            )}
-                            {user.last_sign_in_at && (
-                              <p>Last sign in: {new Date(user.last_sign_in_at).toLocaleDateString()}</p>
-                            )}
-                            {user.email_confirmed_at && (
-                              <p>Email confirmed: {new Date(user.email_confirmed_at).toLocaleDateString()}</p>
-                            )}
-                          </div>
-                        </div>
                         <div className="flex items-center gap-2">
-                          <Badge variant="default" className="bg-green-600">
-                            <CheckCircle className="w-3 h-3 mr-1" />
-                            Active
-                          </Badge>
+                          {getStatusBadge(request.status)}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => deleteAccessRequest(request.id)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-4 h-4 mr-1" />
+                            Delete
+                          </Button>
                         </div>
                       </div>
                     </div>
                   ))}
-                  {users.length === 0 && (
-                    <p className="text-center text-gray-500 py-8">No active users found</p>
-                  )}
                 </div>
               </CardContent>
             </Card>
