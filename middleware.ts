@@ -8,7 +8,9 @@ const PUBLIC = [
   '/api/crowdvine', // Allow crowdvine API routes for products/collections
   '/api/user', // Allow user API routes for profile and reservations
   '/api/debug', // Allow debug API routes
-  '/product', '/shop', '/profile', // Allow product, shop, and profile pages
+  '/api/validate-access-token', '/api/use-access-token', '/api/grant-access', '/api/delete-access-request-on-signup', // Allow signup process APIs
+  '/api/generate-signup-url', // Allow signup URL generation (used internally)
+  '/product', '/shop', '/profile', '/signup', // Allow product, shop, profile, and signup pages
   '/admin', '/admin-auth', '/api/admin' // Allow admin access and admin APIs
 ];
 
