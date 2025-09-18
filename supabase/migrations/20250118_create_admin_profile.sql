@@ -1,8 +1,8 @@
--- Create admin profile for axelrib@hotmail.com
+-- Create admin profile for ave.samuelson@gmail.com
 INSERT INTO profiles (id, email, role, created_at, updated_at)
 VALUES (
   gen_random_uuid(),
-  'axelrib@hotmail.com',
+  'ave.samuelson@gmail.com',
   'admin',
   NOW(),
   NOW()
