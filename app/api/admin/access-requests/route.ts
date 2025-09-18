@@ -1,6 +1,61 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
+export async function GET(request: NextRequest) {
+  try {
+    console.log('Access requests API: Starting request');
+    
+    // Check admin cookie
+    const adminAuth = request.cookies.get('admin-auth')?.value;
+    if (!adminAuth) {
+      console.log('Access requests API: No admin auth cookie');
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    
+    console.log('Access requests API: Admin auth confirmed');
+
+    // Fetch all access requests first
+    const supabase = getSupabaseAdmin();
+    const { data: accessRequests, error } = await supabase
+      .from('access_requests')
+      .select('*')
+      .order('requested_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching access requests:', error);
+      return NextResponse.json({ error: "Failed to fetch access requests" }, { status: 500 });
+    }
+
+    if (!accessRequests || accessRequests.length === 0) {
+      return NextResponse.json([]);
+    }
+
+    // Get all profiles with access_granted_at for filtering
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('email, access_granted_at')
+      .not('access_granted_at', 'is', null);
+
+    if (profilesError) {
+      console.error('Error fetching profiles:', profilesError);
+      // Don't fail the request, just return all access requests
+      return NextResponse.json(accessRequests);
+    }
+
+    // Filter out requests that have associated user accounts (profiles with access_granted_at)
+    const emailsWithAccess = new Set(profiles?.map(p => p.email) || []);
+    const filteredRequests = accessRequests.filter(request => 
+      !emailsWithAccess.has(request.email)
+    );
+
+    return NextResponse.json(filteredRequests);
+
+  } catch (error) {
+    console.error('Access requests API error:', error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
 export async function PATCH(request: NextRequest) {
   try {
     console.log('=== DEBUG: Starting PATCH request ===');
@@ -60,6 +115,41 @@ export async function PATCH(request: NextRequest) {
   } catch (error) {
     console.error('DEBUG: Unexpected error in PATCH:', error);
     console.error('DEBUG: Error stack:', error.stack);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: "ID is required" }, { status: 400 });
+    }
+
+    // Check admin cookie
+    const adminAuth = request.cookies.get('admin-auth')?.value;
+    if (!adminAuth) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Delete the access request
+    const supabase = getSupabaseAdmin();
+    const { error } = await supabase
+      .from('access_requests')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting access request:', error);
+      return NextResponse.json({ error: "Failed to delete access request" }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+
+  } catch (error) {
+    console.error('Delete access request API error:', error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
