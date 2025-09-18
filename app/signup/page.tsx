@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
-import { supabase } from "@/lib/supabase-client";
 import { useRouter } from "next/navigation";
 
 function SignupPageContent() {
@@ -72,34 +71,31 @@ function SignupPageContent() {
     }
 
     try {
-      // Create user account
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
+      // Create user account directly via admin API (bypasses email verification)
+      const createUserResponse = await fetch('/api/create-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email,
+          password
+        })
       });
 
-      if (authError) {
-        setError(authError.message);
+      if (!createUserResponse.ok) {
+        const errorData = await createUserResponse.json();
+        setError(errorData.error || 'Failed to create account');
         setLoading(false);
         return;
       }
 
-      if (authData.user) {
+      const createUserData = await createUserResponse.json();
+      
+      if (createUserData.success && createUserData.user) {
         // Mark token as used
         await fetch('/api/use-access-token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token })
-        });
-
-        // Create profile for the user
-        await fetch('/api/create-profile', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            userId: authData.user.id,
-            email
-          })
         });
 
         // Remove access request from Access Control (moves to Users)
@@ -125,6 +121,8 @@ function SignupPageContent() {
         setTimeout(() => {
           router.push('/');
         }, 2000);
+      } else {
+        setError('Failed to create account');
       }
     } catch (error) {
       setError('Failed to create account');
