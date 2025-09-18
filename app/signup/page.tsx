@@ -96,7 +96,10 @@ function SignupPageContent() {
         await fetch('/api/grant-access', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email })
+          body: JSON.stringify({ 
+            email,
+            userId: authData.user.id // Pass the user ID directly
+          })
         });
 
         // Remove access request from Access Control (moves to Users)

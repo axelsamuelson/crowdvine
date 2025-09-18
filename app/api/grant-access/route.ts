@@ -3,7 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function POST(request: NextRequest) {
   try {
-    const { email } = await request.json();
+    const { email, userId } = await request.json();
 
     if (!email) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
@@ -11,18 +11,28 @@ export async function POST(request: NextRequest) {
 
     const supabase = getSupabaseAdmin();
 
-    // Find user by email
-    const { data: authUser, error: userError } = await supabase.auth.admin.getUserByEmail(email);
+    // If userId is provided, use it directly (from signup process)
+    // Otherwise, try to find user by email (for manual access granting)
+    let userToGrantAccess;
     
-    if (userError || !authUser.user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    if (userId) {
+      userToGrantAccess = { user: { id: userId } };
+    } else {
+      // Find user by email (for manual access granting)
+      const { data: authUser, error: userError } = await supabase.auth.admin.getUserByEmail(email);
+      
+      if (userError || !authUser.user) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
+      }
+      
+      userToGrantAccess = authUser;
     }
 
     // Grant access by updating profiles table
     const { error: profileError } = await supabase
       .from('profiles')
       .upsert({
-        id: authUser.user.id,
+        id: userToGrantAccess.user.id,
         email: email.toLowerCase().trim(),
         role: 'user', // Set role as user for regular customers
         access_granted_at: new Date().toISOString()
