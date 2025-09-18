@@ -11,24 +11,26 @@ export async function POST(request: NextRequest) {
 
     const supabase = getSupabaseAdmin();
 
-    // Check if user exists in profiles table with admin role
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('id, email, role')
-      .eq('email', email.toLowerCase().trim())
-      .eq('role', 'admin')
-      .single();
+    // Use Supabase Auth to sign in the admin user
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email: email.toLowerCase().trim(),
+      password: password
+    });
 
-    if (error || !profile) {
+    if (authError || !authData.user) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
-    // For now, we'll use a simple password check
-    // In production, you should hash passwords properly
-    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
-    
-    if (password !== adminPassword) {
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+    // Check if user has admin role in profiles table
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, email, role')
+      .eq('id', authData.user.id)
+      .eq('role', 'admin')
+      .single();
+
+    if (profileError || !profile) {
+      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
 
     // Set admin cookie with email for easier retrieval
