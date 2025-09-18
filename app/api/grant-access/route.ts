@@ -32,21 +32,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to grant access" }, { status: 500 });
     }
 
-    // Update user_access table if it exists
-    const { error: userAccessError } = await supabase
-      .from('user_access')
-      .upsert({
-        user_id: authUser.user.id,
-        email: email.toLowerCase().trim(),
-        access_granted_at: new Date().toISOString(),
-        status: 'active',
-        granted_by: 'admin'
-      });
-
-    if (userAccessError) {
-      console.log('user_access table update failed (may not exist):', userAccessError);
-      // Don't fail the request, just log the error
-    }
+    // Access granted successfully
 
     return NextResponse.json({ 
       success: true, 

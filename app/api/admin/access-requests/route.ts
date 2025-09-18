@@ -156,23 +156,7 @@ export async function PATCH(request: NextRequest) {
           console.error('Error updating profiles:', profileError);
         }
 
-        // Update user_access table (if it exists)
-        const { error: userAccessError } = await supabase
-          .from('user_access')
-          .upsert({
-            user_id: authUser.user.id,
-            email: accessRequest.email,
-            access_granted_at: now,
-            status: 'active',
-            granted_by: 'admin'
-          });
-
-        if (userAccessError) {
-          console.error('Error updating user_access:', userAccessError);
-          // Don't fail the request, just log the error
-        } else {
-          console.log('Access granted to user:', accessRequest.email);
-        }
+        console.log('Access granted to user:', accessRequest.email);
       }
     }
 
