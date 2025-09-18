@@ -35,10 +35,10 @@ export async function GET() {
     const adminSupabase = getSupabaseAdmin();
     
     // Get all users from auth.users
-    const { data: authUsers, error: authError } = await adminSupabase.auth.admin.listUsers();
+    const { data: authUsers, error: listUsersError } = await adminSupabase.auth.admin.listUsers();
     
-    if (authError) {
-      console.error('Error fetching auth users:', authError);
+    if (listUsersError) {
+      console.error('Error fetching auth users:', listUsersError);
       return NextResponse.json({ error: "Failed to fetch users" }, { status: 500 });
     }
 
