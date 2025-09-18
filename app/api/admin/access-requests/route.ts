@@ -117,23 +117,28 @@ export async function PATCH(request: NextRequest) {
           
           if (signupResponse.ok) {
             const { signupUrl } = await signupResponse.json();
+            console.log('Signup URL generated for:', accessRequest.email, 'URL:', signupUrl);
             
-            // Send approval email
-            const emailSent = await emailService.sendAccessApprovalEmail({
-              email: accessRequest.email,
-              signupUrl
-            });
-            
-            if (emailSent) {
-              console.log('Approval email sent to:', accessRequest.email);
-            } else {
-              console.error('Failed to send approval email to:', accessRequest.email);
+            // Try to send approval email, but don't fail if it doesn't work
+            try {
+              const emailSent = await emailService.sendAccessApprovalEmail({
+                email: accessRequest.email,
+                signupUrl
+              });
+              
+              if (emailSent) {
+                console.log('Approval email sent to:', accessRequest.email);
+              } else {
+                console.log('Email service not configured, but signup URL generated:', signupUrl);
+              }
+            } catch (emailError) {
+              console.log('Email sending failed, but signup URL generated:', signupUrl);
             }
           } else {
             console.error('Failed to generate signup URL for:', accessRequest.email);
           }
-        } catch (emailError) {
-          console.error('Error sending approval email:', emailError);
+        } catch (signupError) {
+          console.error('Error generating signup URL:', signupError);
         }
       } else {
         // User exists, grant access immediately

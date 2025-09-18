@@ -12,25 +12,14 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabaseAdmin();
 
     // Check if user exists in profiles table with admin role
-    // Accept both axelrib@hotmail.com and ave.samuelson@gmail.com as admin
-    const adminEmails = ['axelrib@hotmail.com', 'ave.samuelson@gmail.com'];
-    const normalizedEmail = email.toLowerCase().trim();
-    
-    if (!adminEmails.includes(normalizedEmail)) {
-      console.error('Email not in admin list:', normalizedEmail);
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
-    }
-
-    // Check if user exists in profiles table with admin role
     const { data: profile, error } = await supabase
       .from('profiles')
       .select('id, email, role')
-      .eq('email', normalizedEmail)
+      .eq('email', email.toLowerCase().trim())
       .eq('role', 'admin')
       .single();
 
     if (error || !profile) {
-      console.error('Admin profile not found:', error);
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
