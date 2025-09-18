@@ -56,10 +56,15 @@ export default function AdminLogin() {
       } else {
         console.log("Admin login successful");
         setSuccess("Inloggning lyckades! Omdirigerar...");
-        // Vänta lite och sedan omdirigera manuellt
-        setTimeout(() => {
-          window.location.href = "/admin";
-        }, 1000);
+        // Try immediate redirect first, then fallback
+        try {
+          window.location.replace("/admin");
+        } catch (e) {
+          // Fallback with timeout
+          setTimeout(() => {
+            window.location.href = "/admin";
+          }, 1000);
+        }
       }
     } catch (err: any) {
       console.error("Login error details:", err);
