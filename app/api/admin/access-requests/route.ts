@@ -125,6 +125,62 @@ export async function PATCH(request: NextRequest) {
     }
     console.log('DEBUG: Full update successful:', fullUpdate);
 
+    // If approved, grant access to the user
+    if (status === 'approved') {
+      console.log('DEBUG: Processing approval for:', accessRequest.email);
+      
+      // Use admin client to find user by email
+      const { data: authUser, error: userError } = await supabase.auth.admin.getUserByEmail(accessRequest.email);
+      
+      if (userError || !authUser.user) {
+        console.log('DEBUG: User not found in auth, will grant access when they sign up:', accessRequest.email);
+        
+        // Generate signup URL and send email
+        try {
+          const signupResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'https://pactwines.com'}/api/generate-signup-url`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: accessRequest.email })
+          });
+          
+          if (signupResponse.ok) {
+            const { signupUrl } = await signupResponse.json();
+            console.log('DEBUG: Signup URL generated for:', accessRequest.email, 'URL:', signupUrl);
+            
+            // Try to send approval email, but don't fail if it doesn't work
+            try {
+              // For now, just log that we would send email
+              console.log('DEBUG: Would send approval email to:', accessRequest.email, 'with URL:', signupUrl);
+            } catch (emailError) {
+              console.log('DEBUG: Email sending failed, but signup URL generated:', signupUrl);
+            }
+          } else {
+            console.error('DEBUG: Failed to generate signup URL for:', accessRequest.email);
+          }
+        } catch (signupError) {
+          console.error('DEBUG: Error generating signup URL:', signupError);
+        }
+      } else {
+        // User exists, grant access immediately
+        console.log('DEBUG: User exists, granting access immediately:', accessRequest.email);
+        const now = new Date().toISOString();
+        
+        // Update profiles table with access_granted_at
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: authUser.user.id,
+            access_granted_at: now
+          });
+
+        if (profileError) {
+          console.error('DEBUG: Error updating profiles:', profileError);
+        }
+
+        console.log('DEBUG: Access granted to user:', accessRequest.email);
+      }
+    }
+
     console.log('DEBUG: Returning success response');
     return NextResponse.json({ success: true, data: fullUpdate });
 
