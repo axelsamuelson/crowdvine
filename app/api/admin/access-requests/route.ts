@@ -32,10 +32,13 @@ export async function GET() {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
 
-    // Fetch access requests
+    // Fetch access requests that don't have associated user accounts yet
     const { data: accessRequests, error } = await supabase
       .from('access_requests')
-      .select('*')
+      .select(`
+        *,
+        profiles!left(id, access_granted_at)
+      `)
       .order('requested_at', { ascending: false });
 
     if (error) {
@@ -43,7 +46,12 @@ export async function GET() {
       return NextResponse.json({ error: "Failed to fetch access requests" }, { status: 500 });
     }
 
-    return NextResponse.json(accessRequests || []);
+    // Filter out requests that have associated user accounts (profiles with access_granted_at)
+    const filteredRequests = (accessRequests || []).filter(request => 
+      !request.profiles || !request.profiles.access_granted_at
+    );
+
+    return NextResponse.json(filteredRequests);
 
   } catch (error) {
     console.error('Access requests API error:', error);
@@ -189,6 +197,61 @@ export async function PATCH(request: NextRequest) {
 
   } catch (error) {
     console.error('Update access request API error:', error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: "ID is required" }, { status: 400 });
+    }
+
+    const supabase = await supabaseServer();
+
+    // Check if user is admin
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check if user is admin - try user_access table first, then profiles
+    const { data: userAccess } = await supabase
+      .from('user_access')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    const isAdmin = userAccess?.role === 'admin' || profile?.role === 'admin';
+    
+    if (!isAdmin) {
+      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+    }
+
+    // Delete the access request
+    const { error } = await supabase
+      .from('access_requests')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting access request:', error);
+      return NextResponse.json({ error: "Failed to delete access request" }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+
+  } catch (error) {
+    console.error('Delete access request API error:', error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

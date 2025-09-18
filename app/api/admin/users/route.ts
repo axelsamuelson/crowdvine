@@ -1,138 +1,81 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { supabaseServer } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { getCurrentUser } from "@/lib/auth";
 
 export async function GET() {
   try {
-    // Check if user is authenticated
-    const user = await getCurrentUser();
-    if (!user) {
+    const supabase = await supabaseServer();
+
+    // Check if user is admin
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const supabase = getSupabaseAdmin();
+    // Check if user is admin - try user_access table first, then profiles
+    const { data: userAccess } = await supabase
+      .from('user_access')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
 
-    // Check if user has admin role
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single();
 
-    if (!profile || profile.role !== 'admin') {
+    const isAdmin = userAccess?.role === 'admin' || profile?.role === 'admin';
+    
+    if (!isAdmin) {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
 
-    // Fetch all users with their profiles
-    const { data: users, error } = await supabase
-      .from('profiles')
-      .select(`
-        id,
-        email,
-        role,
-        producer_id,
-        access_granted_at,
-        invite_code_used,
-        created_at,
-        updated_at
-      `)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching users:', error);
+    // Use admin client to get all users with profiles
+    const adminSupabase = getSupabaseAdmin();
+    
+    // Get all users from auth.users
+    const { data: authUsers, error: authError } = await adminSupabase.auth.admin.listUsers();
+    
+    if (authError) {
+      console.error('Error fetching auth users:', authError);
       return NextResponse.json({ error: "Failed to fetch users" }, { status: 500 });
     }
 
-    return NextResponse.json(users || []);
+    // Get profiles with access_granted_at
+    const { data: profiles, error: profilesError } = await adminSupabase
+      .from('profiles')
+      .select('id, email, access_granted_at, role')
+      .not('access_granted_at', 'is', null);
+
+    if (profilesError) {
+      console.error('Error fetching profiles:', profilesError);
+      return NextResponse.json({ error: "Failed to fetch profiles" }, { status: 500 });
+    }
+
+    // Combine auth users with profiles data
+    const usersWithAccess = (authUsers.users || [])
+      .filter(authUser => 
+        profiles?.some(profile => profile.id === authUser.id)
+      )
+      .map(authUser => {
+        const profile = profiles?.find(p => p.id === authUser.id);
+        return {
+          id: authUser.id,
+          email: authUser.email,
+          created_at: authUser.created_at,
+          last_sign_in_at: authUser.last_sign_in_at,
+          email_confirmed_at: authUser.email_confirmed_at,
+          access_granted_at: profile?.access_granted_at,
+          role: profile?.role || 'user'
+        };
+      })
+      .sort((a, b) => new Date(b.access_granted_at || '').getTime() - new Date(a.access_granted_at || '').getTime());
+
+    return NextResponse.json(usersWithAccess);
 
   } catch (error) {
     console.error('Users API error:', error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-  }
-}
-
-export async function PATCH(request: NextRequest) {
-  try {
-    const { userId, updates } = await request.json();
-
-    // Check if user is authenticated
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const supabase = getSupabaseAdmin();
-
-    // Check if user has admin role
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile || profile.role !== 'admin') {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
-    }
-
-    // Update user profile
-    const { data, error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', userId)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error updating user:', error);
-      return NextResponse.json({ error: "Failed to update user" }, { status: 500 });
-    }
-
-    return NextResponse.json({ success: true, data });
-
-  } catch (error) {
-    console.error('Update user API error:', error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-  }
-}
-
-export async function DELETE(request: NextRequest) {
-  try {
-    const { userId } = await request.json();
-
-    // Check if user is authenticated
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const supabase = getSupabaseAdmin();
-
-    // Check if user has admin role
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile || profile.role !== 'admin') {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
-    }
-
-    // Delete user profile (this will cascade to related records)
-    const { error } = await supabase
-      .from('profiles')
-      .delete()
-      .eq('id', userId);
-
-    if (error) {
-      console.error('Error deleting user:', error);
-      return NextResponse.json({ error: "Failed to delete user" }, { status: 500 });
-    }
-
-    return NextResponse.json({ success: true });
-
-  } catch (error) {
-    console.error('Delete user API error:', error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

@@ -99,6 +99,13 @@ function SignupPageContent() {
           body: JSON.stringify({ email })
         });
 
+        // Remove access request from Access Control (moves to Users)
+        await fetch('/api/delete-access-request-on-signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+
         // Send welcome email
         await fetch('/api/email/welcome', {
           method: 'POST',
