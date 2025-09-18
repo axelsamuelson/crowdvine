@@ -1,57 +1,56 @@
-import { NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabase-server";
+import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const { email } = await request.json();
-    
+
     if (!email) {
-      return NextResponse.json({ error: 'Email is required' }, { status: 400 });
+      return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
-    const supabase = await supabaseServer();
-    const adminSupabase = getSupabaseAdmin();
+    const supabase = getSupabaseAdmin();
 
-    // Check if user has approved access request
-    const { data: accessRequest, error: accessError } = await adminSupabase
-      .from('access_requests')
-      .select('status')
-      .eq('email', email.toLowerCase().trim())
-      .eq('status', 'approved')
-      .single();
-
-    if (accessError || !accessRequest) {
-      return NextResponse.json({ 
-        success: false, 
-        message: 'No approved access request found for this email' 
-      });
+    // Find user by email
+    const { data: authUser, error: userError } = await supabase.auth.admin.getUserByEmail(email);
+    
+    if (userError || !authUser.user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: "User not authenticated" }, { status: 401 });
-    }
-
-    // Grant access to the user
-    const { error: profileError } = await adminSupabase
+    // Grant access by updating profiles table
+    const { error: profileError } = await supabase
       .from('profiles')
       .upsert({
-        id: user.id,
+        id: authUser.user.id,
         email: email.toLowerCase().trim(),
-        access_granted_at: new Date().toISOString(),
-        role: 'user'
+        access_granted_at: new Date().toISOString()
       });
 
     if (profileError) {
-      console.error('Error granting access to user:', profileError);
+      console.error('Error granting access:', profileError);
       return NextResponse.json({ error: "Failed to grant access" }, { status: 500 });
+    }
+
+    // Update user_access table if it exists
+    const { error: userAccessError } = await supabase
+      .from('user_access')
+      .upsert({
+        user_id: authUser.user.id,
+        email: email.toLowerCase().trim(),
+        access_granted_at: new Date().toISOString(),
+        status: 'active',
+        granted_by: 'admin'
+      });
+
+    if (userAccessError) {
+      console.log('user_access table update failed (may not exist):', userAccessError);
+      // Don't fail the request, just log the error
     }
 
     return NextResponse.json({ 
       success: true, 
-      message: "Access granted successfully!" 
+      message: "Access granted successfully" 
     });
 
   } catch (error) {

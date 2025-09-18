@@ -9,27 +9,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
-    const adminSupabase = getSupabaseAdmin();
+    const supabase = getSupabaseAdmin();
 
-    // Delete the access request for this email
-    const { error } = await adminSupabase
+    // Delete access request after successful signup
+    const { error } = await supabase
       .from('access_requests')
       .delete()
-      .eq('email', email);
+      .eq('email', email.toLowerCase().trim());
 
     if (error) {
       console.error('Error deleting access request:', error);
-      // Don't fail the signup process if this fails
-      console.log('Continuing signup despite access request deletion error');
-    } else {
-      console.log('Access request deleted for:', email);
+      return NextResponse.json({ error: "Failed to delete access request" }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ 
+      success: true, 
+      message: "Access request deleted successfully" 
+    });
 
   } catch (error) {
-    console.error('Delete access request on signup API error:', error);
-    // Don't fail the signup process
-    return NextResponse.json({ success: true });
+    console.error('Delete access request API error:', error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

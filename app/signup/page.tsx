@@ -73,7 +73,7 @@ function SignupPageContent() {
 
     try {
       // Create user account
-      const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
       });
