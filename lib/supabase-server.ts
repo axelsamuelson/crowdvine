@@ -36,13 +36,10 @@ export async function supabaseServer() {
         return cookieStore.get(name)?.value;
       },
       set(name: string, value: string, options: CookieOptions) {
-        // Only set cookies in Server Actions or Route Handlers
-        // This is handled by the access cookie system
-        console.log(`Cookie ${name} would be set to ${value}`);
+        cookieStore.set(name, value, options);
       },
       remove(name: string, options: CookieOptions) {
-        // Only remove cookies in Server Actions or Route Handlers
-        console.log(`Cookie ${name} would be removed`);
+        cookieStore.set(name, "", options);
       },
     },
   });
