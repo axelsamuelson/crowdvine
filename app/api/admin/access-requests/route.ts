@@ -3,43 +3,21 @@ import { supabaseServer } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { emailService } from "@/lib/email-service";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     console.log('Access requests API: Starting request');
-    const supabase = await supabaseServer();
-
-    // Check if user is admin
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      console.log('Access requests API: Auth error:', authError?.message);
+    
+    // Check admin cookie
+    const adminAuth = request.cookies.get('admin-auth')?.value;
+    if (!adminAuth) {
+      console.log('Access requests API: No admin auth cookie');
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
-    console.log('Access requests API: User authenticated:', user.email);
-
-    // Check if user is admin - try user_access table first, then profiles
-    const { data: userAccess } = await supabase
-      .from('user_access')
-      .select('role')
-      .eq('user_id', user.id)
-      .single();
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    const isAdmin = userAccess?.role === 'admin' || profile?.role === 'admin';
-    
-    if (!isAdmin) {
-      console.log('Access requests API: User is not admin. userAccess:', userAccess?.role, 'profile:', profile?.role);
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
-    }
-    
-    console.log('Access requests API: Admin access confirmed');
+    console.log('Access requests API: Admin auth confirmed');
 
     // Fetch all access requests first
+    const supabase = getSupabaseAdmin();
     const { data: accessRequests, error } = await supabase
       .from('access_requests')
       .select('*')
@@ -84,34 +62,14 @@ export async function PATCH(request: NextRequest) {
   try {
     const { id, status, notes } = await request.json();
 
-    const supabase = await supabaseServer();
-
-    // Check if user is admin
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    // Check admin cookie
+    const adminAuth = request.cookies.get('admin-auth')?.value;
+    if (!adminAuth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check if user is admin - try user_access table first, then profiles
-    const { data: userAccess } = await supabase
-      .from('user_access')
-      .select('role')
-      .eq('user_id', user.id)
-      .single();
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    const isAdmin = userAccess?.role === 'admin' || profile?.role === 'admin';
-    
-    if (!isAdmin) {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
-    }
-
     // Get the access request to find the email
+    const supabase = getSupabaseAdmin();
     const { data: accessRequest, error: fetchError } = await supabase
       .from('access_requests')
       .select('email')
@@ -130,7 +88,7 @@ export async function PATCH(request: NextRequest) {
         status,
         notes,
         reviewed_at: new Date().toISOString(),
-        reviewed_by: user.id,
+        reviewed_by: 'admin', // Simplified since we're using cookie auth
       })
       .eq('id', id)
       .select()
@@ -144,8 +102,7 @@ export async function PATCH(request: NextRequest) {
     // If approved, grant access to the user
     if (status === 'approved') {
       // Use admin client to find user by email
-      const adminSupabase = getSupabaseAdmin();
-      const { data: authUser, error: userError } = await adminSupabase.auth.admin.getUserByEmail(accessRequest.email);
+      const { data: authUser, error: userError } = await supabase.auth.admin.getUserByEmail(accessRequest.email);
       
       if (userError || !authUser.user) {
         console.log('User not found in auth, will grant access when they sign up:', accessRequest.email);
@@ -183,7 +140,7 @@ export async function PATCH(request: NextRequest) {
         const now = new Date().toISOString();
         
         // Update profiles table with access_granted_at
-        const { error: profileError } = await adminSupabase
+        const { error: profileError } = await supabase
           .from('profiles')
           .upsert({
             id: authUser.user.id,
@@ -195,14 +152,14 @@ export async function PATCH(request: NextRequest) {
         }
 
         // Update user_access table (if it exists)
-        const { error: userAccessError } = await adminSupabase
+        const { error: userAccessError } = await supabase
           .from('user_access')
           .upsert({
             user_id: authUser.user.id,
             email: accessRequest.email,
             access_granted_at: now,
             status: 'active',
-            granted_by: user.id
+            granted_by: 'admin'
           });
 
         if (userAccessError) {
@@ -231,34 +188,14 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "ID is required" }, { status: 400 });
     }
 
-    const supabase = await supabaseServer();
-
-    // Check if user is admin
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    // Check admin cookie
+    const adminAuth = request.cookies.get('admin-auth')?.value;
+    if (!adminAuth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check if user is admin - try user_access table first, then profiles
-    const { data: userAccess } = await supabase
-      .from('user_access')
-      .select('role')
-      .eq('user_id', user.id)
-      .single();
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    const isAdmin = userAccess?.role === 'admin' || profile?.role === 'admin';
-    
-    if (!isAdmin) {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
-    }
-
     // Delete the access request
+    const supabase = getSupabaseAdmin();
     const { error } = await supabase
       .from('access_requests')
       .delete()

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { adminLogin, createAdminAccount } from "@/lib/admin-auth";
+import { createAdminAccount } from "@/lib/admin-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -40,12 +40,20 @@ export default function AdminLogin() {
     try {
       console.log("Attempting admin login...");
 
-      const result = await adminLogin(email, password);
+      const response = await fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-      if (result?.error) {
+      const result = await response.json();
+
+      if (!response.ok) {
         console.error("Admin login error:", result.error);
         setError(result.error);
-      } else if (result?.success) {
+      } else {
         console.log("Admin login successful");
         setSuccess("Inloggning lyckades! Omdirigerar...");
         // Vänta lite och sedan omdirigera manuellt
@@ -55,24 +63,7 @@ export default function AdminLogin() {
       }
     } catch (err: any) {
       console.error("Login error details:", err);
-
-      // NEXT_REDIRECT är normalt för server actions - det betyder att redirect fungerade
-      if (err?.digest?.includes("NEXT_REDIRECT")) {
-        console.log("Admin login redirect successful");
-        setSuccess("Inloggning lyckades! Omdirigerar...");
-        // Vänta lite och sedan omdirigera manuellt
-        setTimeout(() => {
-          window.location.href = "/admin";
-        }, 1000);
-      } else if (err?.message) {
-        console.error("Login error with message:", err.message);
-        setError(err.message);
-      } else {
-        console.error("Unexpected error during sign in:", err);
-        setError(
-          "Ett oväntat fel uppstod. Kontrollera din internetanslutning och försök igen.",
-        );
-      }
+      setError("Ett oväntat fel uppstod. Kontrollera din internetanslutning och försök igen.");
     } finally {
       setLoading(false);
     }
