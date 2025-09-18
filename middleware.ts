@@ -13,6 +13,7 @@ const PUBLIC = [
   '/api/test-email', // Allow test email API for debugging
   '/api/admin/auth-debug', // Allow admin auth debug API
   '/api/admin/send-approval-email', // Allow admin approval email API
+  '/api/admin/update-access-request', // Allow simple access request updates
   '/product', '/shop', '/profile', '/signup', // Allow product, shop, profile, and signup pages
   '/admin', '/admin-auth', '/api/admin' // Allow admin access and admin APIs
 ];
