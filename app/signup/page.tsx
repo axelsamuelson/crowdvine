@@ -99,6 +99,16 @@ export default function SignupPage() {
           body: JSON.stringify({ email })
         });
 
+        // Send welcome email
+        await fetch('/api/email/welcome', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            customerEmail: email,
+            customerName: email.split('@')[0] // Use email prefix as name
+          })
+        });
+
         setSuccess(true);
         
         // Redirect to main app after 2 seconds

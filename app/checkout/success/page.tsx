@@ -60,6 +60,9 @@ function CheckoutConfirmationContent() {
       if (response.ok) {
         const data = await response.json();
         setReservation(data);
+        
+        // Send order confirmation email
+        await sendOrderConfirmationEmail(data);
       } else {
         toast.error("Failed to fetch reservation details");
       }
@@ -68,6 +71,52 @@ function CheckoutConfirmationContent() {
       toast.error("Failed to fetch reservation details");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const sendOrderConfirmationEmail = async (reservationData: ReservationDetails) => {
+    try {
+      // Get user email from auth or reservation data
+      const userEmail = reservationData.items[0]?.customer_email || 'customer@pactwines.com'; // Fallback
+      const userName = reservationData.items[0]?.customer_name || 'Valued Customer'; // Fallback
+      
+      const emailData = {
+        customerEmail: userEmail,
+        customerName: userName,
+        orderId: reservationData.order_id || reservationData.id,
+        orderDate: new Date(reservationData.created_at).toLocaleDateString(),
+        items: reservationData.items.map(item => ({
+          name: `${item.wine_name} ${item.vintage}`,
+          quantity: item.quantity,
+          price: item.price_cents / 100, // Convert to SEK
+          image: undefined // Could add wine images if available
+        })),
+        subtotal: reservationData.items.reduce((sum, item) => sum + (item.price_cents * item.quantity), 0) / 100,
+        tax: 0, // Could calculate tax if needed
+        shipping: (reservationData.shipping_cost_cents || 0) / 100,
+        total: (reservationData.total_amount_cents || 0) / 100,
+        shippingAddress: {
+          name: userName,
+          street: reservationData.delivery_address || 'Address not provided',
+          city: 'City', // Could extract from delivery address
+          postalCode: '12345', // Could extract from delivery address
+          country: 'Sweden'
+        }
+      };
+
+      const response = await fetch('/api/email/order-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(emailData)
+      });
+
+      if (response.ok) {
+        console.log('Order confirmation email sent successfully');
+      } else {
+        console.error('Failed to send order confirmation email');
+      }
+    } catch (error) {
+      console.error('Error sending order confirmation email:', error);
     }
   };
 
