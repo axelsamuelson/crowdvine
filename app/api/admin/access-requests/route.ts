@@ -5,13 +5,17 @@ import { emailService } from "@/lib/email-service";
 
 export async function GET() {
   try {
+    console.log('Access requests API: Starting request');
     const supabase = await supabaseServer();
 
     // Check if user is admin
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
+      console.log('Access requests API: Auth error:', authError?.message);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    
+    console.log('Access requests API: User authenticated:', user.email);
 
     // Check if user is admin - try user_access table first, then profiles
     const { data: userAccess } = await supabase
@@ -29,16 +33,16 @@ export async function GET() {
     const isAdmin = userAccess?.role === 'admin' || profile?.role === 'admin';
     
     if (!isAdmin) {
+      console.log('Access requests API: User is not admin. userAccess:', userAccess?.role, 'profile:', profile?.role);
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
+    
+    console.log('Access requests API: Admin access confirmed');
 
-    // Fetch access requests that don't have associated user accounts yet
+    // Fetch all access requests first
     const { data: accessRequests, error } = await supabase
       .from('access_requests')
-      .select(`
-        *,
-        profiles!left(id, access_granted_at)
-      `)
+      .select('*')
       .order('requested_at', { ascending: false });
 
     if (error) {
@@ -46,9 +50,26 @@ export async function GET() {
       return NextResponse.json({ error: "Failed to fetch access requests" }, { status: 500 });
     }
 
+    if (!accessRequests || accessRequests.length === 0) {
+      return NextResponse.json([]);
+    }
+
+    // Get all profiles with access_granted_at for filtering
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('email, access_granted_at')
+      .not('access_granted_at', 'is', null);
+
+    if (profilesError) {
+      console.error('Error fetching profiles:', profilesError);
+      // Don't fail the request, just return all access requests
+      return NextResponse.json(accessRequests);
+    }
+
     // Filter out requests that have associated user accounts (profiles with access_granted_at)
-    const filteredRequests = (accessRequests || []).filter(request => 
-      !request.profiles || !request.profiles.access_granted_at
+    const emailsWithAccess = new Set(profiles?.map(p => p.email) || []);
+    const filteredRequests = accessRequests.filter(request => 
+      !emailsWithAccess.has(request.email)
     );
 
     return NextResponse.json(filteredRequests);
