@@ -104,6 +104,14 @@ export async function PATCH(request: NextRequest) {
     }
     console.log('DEBUG: Simple update successful:', simpleUpdate);
 
+    // Get admin user ID for reviewed_by field
+    const adminEmail = request.cookies.get('admin-email')?.value;
+    let adminUserId = null;
+    if (adminEmail) {
+      const { data: adminUser } = await supabase.auth.admin.getUserByEmail(adminEmail);
+      adminUserId = adminUser?.user?.id;
+    }
+
     // Now try the full update
     console.log('DEBUG: Testing full update...');
     const { data: fullUpdate, error: fullError } = await supabase
@@ -112,7 +120,7 @@ export async function PATCH(request: NextRequest) {
         status,
         notes: notes || null,
         reviewed_at: new Date().toISOString(),
-        reviewed_by: 'admin',
+        reviewed_by: adminUserId,
       })
       .eq('id', id)
       .select()
