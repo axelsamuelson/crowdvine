@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function LogInPage() {
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -14,6 +15,17 @@ export default function LogInPage() {
   const [success, setSuccess] = useState("");
   const router = useRouter();
 
+  // Get next parameter from URL
+  const [nextUrl, setNextUrl] = useState('/profile');
+  
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const next = urlParams.get('next');
+    if (next) {
+      setNextUrl(next);
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -21,7 +33,31 @@ export default function LogInPage() {
     setSuccess("");
 
     try {
-      if (isSignUp) {
+      if (isForgotPassword) {
+        // Password reset
+        const response = await fetch("/api/auth/forgot-password", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to reset password");
+        }
+
+        setSuccess(data.message);
+        if (data.newPassword) {
+          setSuccess(`${data.message} Your new password is: ${data.newPassword}`);
+        }
+        setEmail("");
+        setIsForgotPassword(false);
+      } else if (isSignUp) {
         // Real signup
         const response = await fetch("/api/auth/signup", {
           method: "POST",
@@ -65,22 +101,24 @@ export default function LogInPage() {
           throw new Error(data.error || "Invalid email or password");
         }
 
-        setSuccess("Login successful! Redirecting to your profile...");
+        setSuccess("Login successful! Redirecting...");
         setEmail("");
         setPassword("");
 
-        // Redirect using Next.js router
+        // Redirect using Next.js router to the intended destination
         setTimeout(() => {
-          router.push("/profile");
+          router.push(nextUrl);
         }, 1000);
       }
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : isSignUp
-            ? "Failed to create account. Please try again."
-            : "Invalid email or password. Please try again.",
+          : isForgotPassword
+            ? "Failed to reset password. Please try again."
+            : isSignUp
+              ? "Failed to create account. Please try again."
+              : "Invalid email or password. Please try again.",
       );
     } finally {
       setLoading(false);
@@ -92,12 +130,14 @@ export default function LogInPage() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
           <h2 className="text-3xl font-bold text-gray-900">
-            {isSignUp ? "Create your account" : "Welcome back"}
+            {isForgotPassword ? "Reset your password" : isSignUp ? "Create your account" : "Welcome back"}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            {isSignUp
-              ? "Join CrowdVine to start reserving wines"
-              : "Sign in to your CrowdVine account"}
+            {isForgotPassword
+              ? "Enter your email to receive a new password"
+              : isSignUp
+                ? "Join CrowdVine to start reserving wines"
+                : "Sign in to your CrowdVine account"}
           </p>
         </div>
       </div>
@@ -105,7 +145,7 @@ export default function LogInPage() {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           <form className="space-y-6" onSubmit={handleSubmit}>
-            {isSignUp && (
+            {isSignUp && !isForgotPassword && (
               <div>
                 <label
                   htmlFor="fullName"
@@ -150,29 +190,31 @@ export default function LogInPage() {
               </div>
             </div>
 
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Password
-              </label>
-              <div className="mt-1">
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete={isSignUp ? "new-password" : "current-password"}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder={
-                    isSignUp ? "Create a password" : "Enter your password"
-                  }
-                />
+            {!isForgotPassword && (
+              <div>
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Password
+                </label>
+                <div className="mt-1">
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    autoComplete={isSignUp ? "new-password" : "current-password"}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    placeholder={
+                      isSignUp ? "Create a password" : "Enter your password"
+                    }
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-md p-4">
@@ -191,18 +233,24 @@ export default function LogInPage() {
                 type="submit"
                 disabled={loading}
                 className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                  isSignUp
-                    ? "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500"
-                    : "bg-green-600 hover:bg-green-700 focus:ring-green-500"
+                  isForgotPassword
+                    ? "bg-orange-600 hover:bg-orange-700 focus:ring-orange-500"
+                    : isSignUp
+                      ? "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500"
+                      : "bg-green-600 hover:bg-green-700 focus:ring-green-500"
                 }`}
               >
                 {loading
-                  ? isSignUp
-                    ? "Creating account..."
-                    : "Signing in..."
-                  : isSignUp
-                    ? "Sign up"
-                    : "Sign in"}
+                  ? isForgotPassword
+                    ? "Resetting password..."
+                    : isSignUp
+                      ? "Creating account..."
+                      : "Signing in..."
+                  : isForgotPassword
+                    ? "Reset password"
+                    : isSignUp
+                      ? "Sign up"
+                      : "Sign in"}
               </button>
             </div>
           </form>
@@ -214,27 +262,48 @@ export default function LogInPage() {
               </div>
               <div className="relative flex justify-center text-sm">
                 <span className="px-2 bg-white text-gray-500">
-                  {isSignUp
-                    ? "Already have an account?"
-                    : "Don't have an account?"}
+                  {isForgotPassword
+                    ? "Remember your password?"
+                    : isSignUp
+                      ? "Already have an account?"
+                      : "Don't have an account?"}
                 </span>
               </div>
             </div>
 
-            <div className="mt-6">
-              <button
-                onClick={() => {
-                  setIsSignUp(!isSignUp);
-                  setError("");
-                  setSuccess("");
-                  setEmail("");
-                  setPassword("");
-                  setFullName("");
-                }}
-                className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                {isSignUp ? "Sign in instead" : "Create account"}
-              </button>
+            <div className="mt-6 space-y-3">
+              {!isForgotPassword && (
+                <button
+                  onClick={() => {
+                    setIsSignUp(!isSignUp);
+                    setError("");
+                    setSuccess("");
+                    setEmail("");
+                    setPassword("");
+                    setFullName("");
+                    setIsForgotPassword(false);
+                  }}
+                  className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  {isSignUp ? "Sign in instead" : "Create account"}
+                </button>
+              )}
+              
+              {!isSignUp && (
+                <button
+                  onClick={() => {
+                    setIsForgotPassword(!isForgotPassword);
+                    setError("");
+                    setSuccess("");
+                    setEmail("");
+                    setPassword("");
+                    setFullName("");
+                  }}
+                  className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                >
+                  {isForgotPassword ? "Back to sign in" : "Forgot password?"}
+                </button>
+              )}
             </div>
           </div>
 

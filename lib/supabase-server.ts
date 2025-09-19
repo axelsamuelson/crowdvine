@@ -36,10 +36,20 @@ export async function supabaseServer() {
         return cookieStore.get(name)?.value;
       },
       set(name: string, value: string, options: CookieOptions) {
-        cookieStore.set(name, value, options);
+        try {
+          cookieStore.set(name, value, options);
+        } catch (error) {
+          // Ignore cookie modification errors outside of Server Actions/Route Handlers
+          console.warn(`Cannot set cookie ${name}: ${error}`);
+        }
       },
       remove(name: string, options: CookieOptions) {
-        cookieStore.set(name, "", options);
+        try {
+          cookieStore.set(name, "", options);
+        } catch (error) {
+          // Ignore cookie modification errors outside of Server Actions/Route Handlers
+          console.warn(`Cannot remove cookie ${name}: ${error}`);
+        }
       },
     },
   });

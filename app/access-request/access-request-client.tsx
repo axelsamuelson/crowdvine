@@ -24,6 +24,7 @@ const SPRING = {
 export function AccessRequestClient() {
   const [isOpen, setIsOpen] = useState(false);
   const [isUnlocked, setIsUnlocked] = useState(false);
+  const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const router = useRouter();
 
   const isInitialRender = useRef(true);
@@ -33,6 +34,40 @@ export function AccessRequestClient() {
       isInitialRender.current = false;
     };
   }, [isOpen]);
+
+  // Smart access check: cookie first, then API
+  useEffect(() => {
+    const checkExistingAccess = async () => {
+      try {
+        // 1. Quick cookie check first (fastest)
+        const hasAccessCookie = document.cookie.includes('cv-access=1');
+        if (hasAccessCookie) {
+          // User has access cookie, redirect to destination
+          const urlParams = new URLSearchParams(window.location.search);
+          const next = urlParams.get('next') || '/';
+          window.location.href = next;
+          return;
+        }
+
+        // 2. API check for existing users without cookie
+        const response = await fetch('/api/me/access');
+        if (response.ok) {
+          // User has access but no cookie, redirect to set cookie and continue
+          const urlParams = new URLSearchParams(window.location.search);
+          const next = urlParams.get('next') || '/';
+          window.location.href = `/api/set-access-cookie?next=${encodeURIComponent(next)}`;
+          return;
+        }
+      } catch (error) {
+        // Ignore errors, show access request form normally
+        console.log('Access check failed, showing access request form');
+      } finally {
+        setIsCheckingAccess(false);
+      }
+    };
+
+    checkExistingAccess();
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -177,9 +212,52 @@ export function AccessRequestClient() {
                   >
                     {isUnlocked 
                       ? "Welcome! Redirecting to sign up..."
-                      : "Join our exclusive wine community. Request access or enter your invitation code to unlock the platform."
+                      : isCheckingAccess
+                        ? "Checking if you already have access..."
+                        : "Join our exclusive wine community. Request access or enter your invitation code to unlock the platform."
                     }
                   </motion.p>
+                  
+                  {/* Additional text for existing users */}
+                  {!isUnlocked && !isCheckingAccess && (
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{
+                        duration: DURATION,
+                        ease: EASE_OUT,
+                        delay: DELAY + 0.1,
+                      }}
+                      className="text-sm text-white/70 text-center"
+                    >
+                      Or sign in if you already have an account
+                    </motion.p>
+                  )}
+                  
+                  {/* Sign in button for existing users */}
+                  {!isUnlocked && !isCheckingAccess && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{
+                        duration: DURATION,
+                        ease: EASE_OUT,
+                        delay: DELAY + 0.2,
+                      }}
+                      className="text-center"
+                    >
+                      <button
+                        onClick={() => {
+                          const urlParams = new URLSearchParams(window.location.search);
+                          const next = urlParams.get('next') || '/';
+                          window.location.href = `/log-in?next=${encodeURIComponent(next)}`;
+                        }}
+                        className="px-6 py-2 text-sm font-medium text-white border border-white/50 rounded-lg hover:border-white/80 hover:bg-white/10 transition-all duration-200"
+                      >
+                        Already have access? Sign In
+                      </button>
+                    </motion.div>
+                  )}
                 </div>
               </motion.div>
             )}
