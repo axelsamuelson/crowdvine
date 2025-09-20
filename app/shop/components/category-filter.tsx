@@ -28,7 +28,9 @@ export function CategoryFilter({
         )}
       </h3>
       <ul className="flex flex-col gap-1">
-        {collections.map((collection, index) => {
+        {collections
+          .filter((collection) => collection.handle !== 'wine-boxes')
+          .map((collection, index) => {
           const isSelected = params.collection === collection.handle;
           return (
             <li key={`${collection.handle}-${index}`}>
