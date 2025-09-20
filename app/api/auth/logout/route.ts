@@ -5,7 +5,31 @@ export async function POST(request: NextRequest) {
   try {
     console.log('=== LOGOUT START ===');
 
-    const supabase = getSupabaseAdmin();
+    // Get auth token from request
+    const authToken = request.cookies.get('sb-access-auth-token')?.value;
+    
+    if (authToken) {
+      // Create Supabase client with the auth token to sign out the user
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+      
+      const supabase = createClient(supabaseUrl, supabaseKey, {
+        global: {
+          headers: {
+            Authorization: `Bearer ${authToken}`
+          }
+        }
+      });
+
+      // Sign out the user from Supabase Auth
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Supabase signOut error:', error);
+      } else {
+        console.log('Successfully signed out from Supabase Auth');
+      }
+    }
 
     // Clear the access cookie
     const response = NextResponse.json({
@@ -29,6 +53,23 @@ export async function POST(request: NextRequest) {
       sameSite: 'lax',
       maxAge: 0, // Expire immediately
       path: '/'
+    });
+
+    // Clear all possible Supabase auth cookies
+    const cookieNames = [
+      'sb-access-auth-token',
+      'sb-abrnvjqwpdkodgrtezeg-auth-token',
+      'supabase-auth-token'
+    ];
+    
+    cookieNames.forEach(cookieName => {
+      response.cookies.set(cookieName, '', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 0,
+        path: '/'
+      });
     });
 
     console.log('=== LOGOUT END ===');

@@ -41,6 +41,18 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
     }
   };
 
+  // Listen for storage changes (logout from other tabs)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'supabase.auth.token') {
+        checkAuthStatus();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   const sizeClasses = {
     sm: "h-4 w-4",
     md: "h-5 w-5",

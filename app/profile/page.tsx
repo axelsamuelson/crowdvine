@@ -250,9 +250,13 @@ export default function ProfilePage() {
 
       toast.success("Logged out successfully");
       
-      // Redirect to home page after a short delay
+      // Clear local state
+      setIsAuthenticated(false);
+      setProfile(null);
+      
+      // Redirect to access request page (not home) since user should re-request access
       setTimeout(() => {
-        window.location.href = '/';
+        window.location.href = '/access-request';
       }, 1000);
     } catch (error) {
       console.error('Error logging out:', error);
