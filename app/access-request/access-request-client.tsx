@@ -86,19 +86,19 @@ export function AccessRequestClient() {
 
   return (
     <>
-      <div className="p-inset h-[100dvh] w-full">
+      <div className="p-4 sm:p-6 lg:p-8 h-[100dvh] w-full">
         <div className="relative h-full w-full">
           <Background 
             src="https://cdn.pixabay.com/video/2022/10/19/135643-762117669_large.mp4" 
             placeholder="/alt-placeholder.png" 
           />
-          <div className="flex overflow-hidden relative flex-col gap-4 justify-center items-center w-full h-full max-w-4xl mx-auto z-10">
+          <div className="flex overflow-hidden relative flex-col gap-3 sm:gap-4 justify-center items-center w-full h-full max-w-4xl mx-auto z-10 px-2 sm:px-4">
             <motion.div
               layout="position"
               transition={{ duration: DURATION, ease: EASE_OUT }}
               className="flex justify-center"
             >
-              <FooterLogoSvg className="h-16 sm:h-24 lg:h-32 w-auto text-white" />
+              <FooterLogoSvg className="h-12 sm:h-16 md:h-20 lg:h-24 xl:h-32 w-auto text-white" />
             </motion.div>
 
             <div className="flex flex-col items-center min-h-0 shrink">
@@ -129,7 +129,7 @@ export function AccessRequestClient() {
                   },
                 }}
               >
-                <div className="flex flex-col gap-4 w-full max-w-xl md:gap-6 lg:gap-8">
+                <div className="flex flex-col gap-3 sm:gap-4 md:gap-6 lg:gap-8 w-full max-w-xs sm:max-w-sm md:max-w-lg lg:max-w-xl">
                   <FormAccessRequest
                     onUnlock={handleUnlock}
                     input={(props) => (
@@ -200,7 +200,7 @@ export function AccessRequestClient() {
                       ease: EASE_OUT,
                       delay: DELAY,
                     }}
-                    className="text-base sm:text-lg lg:text-xl !leading-[1.1] font-medium text-center text-white text-pretty"
+                    className="text-sm sm:text-base md:text-lg lg:text-xl !leading-[1.1] font-medium text-center text-white text-pretty px-2"
                   >
                     {isUnlocked 
                       ? "Welcome! Redirecting to sign up..."
@@ -220,7 +220,7 @@ export function AccessRequestClient() {
                         ease: EASE_OUT,
                         delay: DELAY + 0.1,
                       }}
-                      className="text-sm text-white/70 text-center"
+                      className="text-xs sm:text-sm text-white/70 text-center px-2"
                     >
                       Or sign in if you already have an account
                     </motion.p>
@@ -250,13 +250,13 @@ export function AccessRequestClient() {
                             window.location.href = `/log-in?next=${encodeURIComponent(next)}`;
                           }}
                           className={cn(
-                            "relative px-8 text-white border-white/50 hover:border-white/80 bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-indigo-500/20 hover:from-purple-400/30 hover:via-pink-400/30 hover:to-indigo-400/30",
+                            "relative px-4 sm:px-6 md:px-8 text-white border-white/50 hover:border-white/80 bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-indigo-500/20 hover:from-purple-400/30 hover:via-pink-400/30 hover:to-indigo-400/30",
                             "backdrop-blur-sm shadow-lg shadow-purple-500/20 hover:shadow-purple-400/30",
                             "before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-r before:from-white/10 before:via-purple-200/10 before:to-pink-200/10 before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-500",
                             "after:absolute after:inset-0 after:rounded-lg after:bg-gradient-to-r after:from-transparent after:via-white/5 after:to-transparent after:animate-pulse",
                             "hover:after:animate-shimmer",
                             "transition-all duration-300 ease-out",
-                            "overflow-hidden group"
+                            "overflow-hidden group text-sm sm:text-base"
                           )}
                           shine={true}
                         >
@@ -279,10 +279,10 @@ export function AccessRequestClient() {
               layout="position"
               transition={SPRING}
               key="button"
-              className={isOpen ? "my-6" : "mt-6"}
+              className={isOpen ? "my-4 sm:my-6" : "mt-4 sm:mt-6"}
             >
               <Button
-                className={cn("relative px-8 text-white border-white/50 hover:border-white/80 bg-white/20 hover:bg-white/30")}
+                className={cn("relative px-4 sm:px-6 md:px-8 text-white border-white/50 hover:border-white/80 bg-white/20 hover:bg-white/30 text-sm sm:text-base")}
                 onClick={() => setIsOpen(!isOpen)}
                 shine={!isOpen}
               >
@@ -341,9 +341,9 @@ export function AccessRequestClient() {
                     transition: { duration: DURATION, ease: EASE_OUT_OPACITY },
                   },
                 }}
-                className="relative flex min-h-0 flex-shrink overflow-hidden text-sm md:text-base max-h-[calc(70dvh-var(--footer-safe-area))] flex-col gap-8 text-center backdrop-blur-xl text-balance border-2 border-white/20 bg-white/10 max-w-3xl text-white rounded-3xl ring-1 ring-offset-white/10 ring-white/10 ring-offset-2 shadow-button"
+                className="relative flex min-h-0 flex-shrink overflow-hidden text-sm md:text-base max-h-[calc(60vh)] sm:max-h-[calc(70dvh-var(--footer-safe-area))] flex-col gap-4 sm:gap-6 md:gap-8 text-center backdrop-blur-xl text-balance border-2 border-white/20 bg-white/10 max-w-xs sm:max-w-sm md:max-w-2xl lg:max-w-3xl text-white rounded-2xl sm:rounded-3xl ring-1 ring-offset-white/10 ring-white/10 ring-offset-2 shadow-button mx-2 sm:mx-4"
               >
-                <article className="relative overflow-y-auto italic p-6 h-full [&_p]:my-4">
+                <article className="relative overflow-y-auto italic p-4 sm:p-6 h-full [&_p]:my-3 sm:[&_p]:my-4 text-sm sm:text-base">
                   <p>
                     "CrowdVine represents the future of wine discovery and community. 
                     We believe that great wine should be accessible, but finding it 

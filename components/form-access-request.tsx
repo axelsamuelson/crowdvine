@@ -204,15 +204,15 @@ export const FormAccessRequest = ({
 
       {/* Invitation Code Modal */}
       <Dialog open={showInviteModal} onOpenChange={setShowInviteModal}>
-        <DialogContent className="sm:max-w-md bg-white/95 backdrop-blur-xl border-white/20">
+        <DialogContent className="w-[95vw] max-w-md mx-auto bg-white/95 backdrop-blur-xl border-white/20">
           <DialogHeader>
-            <DialogTitle className="text-center text-xl font-semibold text-gray-900">
+            <DialogTitle className="text-center text-lg sm:text-xl font-semibold text-gray-900 px-2">
               Complete Your Registration
             </DialogTitle>
           </DialogHeader>
           
           <Form {...inviteForm}>
-            <form onSubmit={inviteForm.handleSubmit(handleInviteSubmit)} className="space-y-4">
+            <form onSubmit={inviteForm.handleSubmit(handleInviteSubmit)} className="space-y-4 px-2 sm:px-0">
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
                 <Input
