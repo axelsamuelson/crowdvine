@@ -94,8 +94,8 @@ export function AddToCartButton({
         disabled={isDisabled}
         className={
           iconOnly
-            ? "size-12 [&_svg:not([class*='size-'])]:size-7"
-            : "flex relative justify-between items-center w-full"
+            ? "size-12 [&_svg:not([class*='size-'])]:size-7 bg-black hover:bg-black/90 text-white border-black rounded-md"
+            : "flex relative justify-between items-center w-full bg-black hover:bg-black/90 text-white border-black rounded-md"
         }
         {...buttonProps}
       >
@@ -112,7 +112,7 @@ export function AddToCartButton({
               {isLoading ? (
                 <Loader size={getLoaderSize()} />
               ) : (
-                <span className="inline-block">{icon}</span>
+                <span className="inline-block text-white">{icon}</span>
               )}
             </motion.div>
           ) : (
@@ -129,7 +129,7 @@ export function AddToCartButton({
               ) : (
                 <div className="flex justify-between items-center w-full">
                   <span>{getButtonText()}</span>
-                  <CirclePlus />
+                  <CirclePlus className="text-white" />
                 </div>
               )}
             </motion.div>
