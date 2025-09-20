@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { PaymentMethodCard } from "@/components/ui/payment-method-card";
 
 interface UserProfile {
   id: string;
@@ -474,9 +475,18 @@ export default function ProfilePage() {
           {/* Payment Methods */}
           <Card className="border border-gray-200">
             <CardHeader className="pb-4">
-              <CardTitle className="text-lg font-medium text-gray-900">
-                Payment Methods
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg font-medium text-gray-900">
+                  Payment Methods
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <svg viewBox="0 0 24 24" className="w-5 h-5">
+                    <rect width="24" height="24" rx="4" fill="#635BFF"/>
+                    <text x="12" y="16" fontSize="8" fontWeight="bold" fill="white" textAnchor="middle">S</text>
+                  </svg>
+                  <span className="text-sm font-medium text-gray-600">Powered by Stripe</span>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {paymentMethods.length === 0 ? (
@@ -489,42 +499,14 @@ export default function ProfilePage() {
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {paymentMethods.map((method) => (
-                    <div key={method.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <CreditCard className="w-4 h-4 text-gray-500" />
-                        <div>
-                          <p className="font-medium">
-                            {method.brand?.toUpperCase()} •••• {method.last4}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            Expires {method.expiry_month}/{method.expiry_year}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {method.is_default && (
-                          <Badge variant="default" className="bg-green-600">Default</Badge>
-                        )}
-                        {!method.is_default && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setDefaultPaymentMethod(method.id)}
-                          >
-                            Set Default
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => deletePaymentMethod(method.id)}
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
+                    <PaymentMethodCard
+                      key={method.id}
+                      method={method}
+                      onSetDefault={setDefaultPaymentMethod}
+                      onDelete={deletePaymentMethod}
+                    />
                   ))}
                   
                   <Button onClick={addPaymentMethod} className="w-full" variant="outline">
