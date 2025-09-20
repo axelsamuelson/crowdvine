@@ -158,9 +158,9 @@ function SignupPageContent() {
 
         setSuccess(true);
         
-        // Redirect to main app after 2 seconds
+        // Redirect to profile page after 2 seconds since user is now logged in
         setTimeout(() => {
-          router.push('/');
+          router.push('/profile');
         }, 2000);
       } else {
         setError('Failed to create account');
@@ -226,7 +226,7 @@ function SignupPageContent() {
             </p>
             <div className="text-center">
               <Button 
-                onClick={() => router.push('/')}
+                onClick={() => router.push('/profile')}
                 className="w-full"
               >
                 Enter CrowdVine

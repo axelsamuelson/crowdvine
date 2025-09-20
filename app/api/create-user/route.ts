@@ -235,6 +235,54 @@ export async function POST(request: NextRequest) {
       maxAge: 60 * 60 * 24 * 365 // 1 year
     });
 
+    // CRITICAL: Create a proper auth session for the new user
+    // This prevents the user from being logged into someone else's account
+    console.log('6. Creating auth session for new user...');
+    try {
+      // Use admin API to create a session for the user
+      const { data: sessionData, error: sessionError } = await supabase.auth.admin.generateLink({
+        type: 'magiclink',
+        email: normalizedEmail
+      });
+
+      if (sessionError) {
+        console.error('Error generating magic link:', sessionError);
+        // Fallback: try to create a session using password
+        console.log('6b. Trying password-based session creation...');
+        const { data: passwordSession, error: passwordError } = await supabase.auth.signInWithPassword({
+          email: normalizedEmail,
+          password: password
+        });
+
+        if (passwordError) {
+          console.error('Error creating password session:', passwordError);
+        } else if (passwordSession?.session?.access_token) {
+          // Set the auth session cookie with the access token
+          response.cookies.set('sb-access-auth-token', passwordSession.session.access_token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 60 * 60 * 24 * 7, // 7 days
+            path: '/'
+          });
+          console.log('6c. Auth session cookie set via password login');
+        }
+      } else if (sessionData?.properties?.hashed_token) {
+        // Set the auth session cookie
+        response.cookies.set('sb-access-auth-token', sessionData.properties.hashed_token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 7, // 7 days
+          path: '/'
+        });
+        console.log('6a. Auth session cookie set via magic link');
+      }
+    } catch (sessionError) {
+      console.error('Error creating auth session:', sessionError);
+      // Don't fail the request for session creation errors
+    }
+
     console.log('=== CREATE USER API END ===');
     return response;
 
