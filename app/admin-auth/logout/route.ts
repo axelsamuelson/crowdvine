@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const response = NextResponse.redirect(new URL('/admin-auth/login', process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'));
+  const response = NextResponse.redirect(new URL('/admin-auth/login', 'https://pactwines.com'));
   
   // Clear both admin cookies
   response.cookies.set('admin-auth', '', {

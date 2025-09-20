@@ -63,10 +63,8 @@ export async function GET(request: Request) {
     // Create Stripe Checkout session for setup
     console.log("DEBUG: Creating checkout session...");
     
-    // Get the base URL - try multiple sources
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
-                   "https://pactwines.com";
+    // Always use the production domain for redirects
+    const baseUrl = "https://pactwines.com";
     
     const successUrl = `${baseUrl}/profile?payment_method_added=true&session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${baseUrl}/profile?payment_method_canceled=true`;

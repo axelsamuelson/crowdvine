@@ -19,7 +19,7 @@ export async function PATCH(
     const { id: paymentMethodId } = await params;
 
     // Get user profile to find Stripe customer ID
-    const profileResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'https://pactwines.com'}/api/user/profile`, {
+    const profileResponse = await fetch(`https://pactwines.com/api/user/profile`, {
       headers: {
         'Cookie': `sb-abrnvjqwpdkodgrtezeg-auth-token=${user.id}` // This is a simplified approach
       }
