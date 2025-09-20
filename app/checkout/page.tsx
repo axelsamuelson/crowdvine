@@ -164,6 +164,11 @@ function CheckoutContent() {
         };
       }
 
+      console.log('🚀 Sending zone request:', {
+        cartItems: cart.lines,
+        deliveryAddress
+      });
+      
       const zoneResponse = await fetch("/api/checkout/zones", {
         method: "POST",
         headers: {
@@ -179,6 +184,12 @@ function CheckoutContent() {
         const zoneData = await zoneResponse.json();
         const hasCompleteAddress = deliveryAddress.postcode && deliveryAddress.city && deliveryAddress.countryCode;
         
+        console.log('✅ Zone response received:', {
+          zoneData,
+          hasCompleteAddress,
+          deliveryAddress
+        });
+        
         setZoneInfo({
           pickupZone: zoneData.pickupZoneName,
           deliveryZone: hasCompleteAddress ? zoneData.deliveryZoneName : null,
@@ -186,6 +197,8 @@ function CheckoutContent() {
           availableDeliveryZones: hasCompleteAddress ? zoneData.availableDeliveryZones : [],
           pallets: hasCompleteAddress ? zoneData.pallets : [],
         });
+      } else {
+        console.error('❌ Zone response failed:', zoneResponse.status, await zoneResponse.text());
       }
     } catch (error) {
       console.error("Failed to update zone info:", error);
