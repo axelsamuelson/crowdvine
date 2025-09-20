@@ -131,11 +131,19 @@ export async function determineZones(
     deliveryAddress.postcode
   ) {
     // Get all delivery zones for the country
+    console.log('🔍 Fetching delivery zones for country:', deliveryAddress.countryCode);
     const { data: deliveryZones, error: deliveryZonesError } = await sb
       .from("pallet_zones")
       .select("id, name, center_lat, center_lon, radius_km, country_code")
       .eq("zone_type", "delivery")
       .or(`country_code.eq.${deliveryAddress.countryCode},country_code.is.null`);
+
+    console.log('📍 Found delivery zones:', deliveryZones?.length || 0);
+    if (deliveryZones) {
+      deliveryZones.forEach(zone => {
+        console.log(`  - ${zone.name}: ${zone.center_lat}, ${zone.center_lon} (${zone.radius_km}km radius, country: ${zone.country_code || 'null'})`);
+      });
+    }
 
     if (!deliveryZonesError && deliveryZones && deliveryZones.length > 0) {
       // Use automatic geocoding to get exact coordinates
@@ -146,6 +154,7 @@ export async function determineZones(
         country: deliveryAddress.countryCode === 'SE' ? 'Sweden' : undefined
       });
 
+      console.log('🌍 Geocoding address:', fullAddress);
       const geocodeResult = await geocodeAddress(fullAddress);
       
       if ('error' in geocodeResult) {
@@ -155,6 +164,7 @@ export async function determineZones(
         deliveryZoneName = null;
       } else {
         const { lat: addressLat, lon: addressLon } = geocodeResult;
+        console.log('✅ Geocoding successful:', { lat: addressLat, lon: addressLon });
         
         if (!isValidCoordinates(addressLat, addressLon)) {
           console.warn('⚠️ Invalid coordinates from geocoding:', addressLat, addressLon);

@@ -23,6 +23,12 @@ export interface GeocodeError {
 // Cache for geocoding results to avoid repeated API calls
 const geocodeCache = new Map<string, GeocodeResult>();
 
+// Function to clear geocoding cache (useful for debugging)
+export function clearGeocodeCache() {
+  geocodeCache.clear();
+  console.log('🧹 Geocoding cache cleared');
+}
+
 export async function geocodeAddress(address: string): Promise<GeocodeResult | GeocodeError> {
   // Clean and normalize the address
   const cleanAddress = address.trim().replace(/\s+/g, ' ');
