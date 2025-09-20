@@ -206,25 +206,9 @@ export function AccessRequestClient() {
                       ? "Welcome! Redirecting to sign up..."
                       : isCheckingAccess
                         ? "Checking if you already have access..."
-                        : "Join our exclusive wine community. Request access or enter your invitation code to unlock the platform."
+                        : "Request access or enter your invitation code to unlock the platform."
                     }
                   </motion.p>
-                  
-                  {/* Additional text for existing users */}
-                  {!isUnlocked && !isCheckingAccess && (
-                    <motion.p
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{
-                        duration: DURATION,
-                        ease: EASE_OUT,
-                        delay: DELAY + 0.1,
-                      }}
-                      className="text-xs sm:text-sm text-white/70 text-center px-2"
-                    >
-                      Or sign in if you already have an account
-                    </motion.p>
-                  )}
                   
                   {/* Sign in button for existing users */}
                   {!isUnlocked && !isCheckingAccess && (
@@ -250,23 +234,11 @@ export function AccessRequestClient() {
                             window.location.href = `/log-in?next=${encodeURIComponent(next)}`;
                           }}
                           className={cn(
-                            "relative px-4 sm:px-6 md:px-8 text-white border-white/50 hover:border-white/80 bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-indigo-500/20 hover:from-purple-400/30 hover:via-pink-400/30 hover:to-indigo-400/30",
-                            "backdrop-blur-sm shadow-lg shadow-purple-500/20 hover:shadow-purple-400/30",
-                            "before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-r before:from-white/10 before:via-purple-200/10 before:to-pink-200/10 before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-500",
-                            "after:absolute after:inset-0 after:rounded-lg after:bg-gradient-to-r after:from-transparent after:via-white/5 after:to-transparent after:animate-pulse",
-                            "hover:after:animate-shimmer",
-                            "transition-all duration-300 ease-out",
-                            "overflow-hidden group text-sm sm:text-base"
+                            "relative px-4 sm:px-6 md:px-8 text-white border-white/50 hover:border-white/80 bg-white/20 hover:bg-white/30",
+                            "backdrop-blur-sm transition-all duration-300 ease-out text-sm sm:text-base"
                           )}
-                          shine={true}
                         >
-                          <motion.span
-                            className="relative z-10 font-semibold tracking-wide"
-                            whileHover={{ scale: 1.05 }}
-                            transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                          >
-                            ✨ Already have access? Sign In
-                          </motion.span>
+                          Already have access? Sign In
                         </Button>
                       </motion.div>
                     </motion.div>

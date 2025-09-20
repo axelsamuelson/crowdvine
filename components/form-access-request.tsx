@@ -57,16 +57,18 @@ const SubmissionStateMessage = ({
         <motion.div
           key={value.id}
           className={cn(
-            alertVariants({ variant: "success" }),
-            "absolute top-0 left-0 right-0 mx-auto w-max"
+            "relative backdrop-blur-xl border-2 border-white/20 bg-white/10 text-white rounded-2xl p-4 mx-2 sm:mx-4 mb-4",
+            "shadow-lg ring-1 ring-offset-white/10 ring-white/10 ring-offset-2"
           )}
           exit={{ opacity: 0, y: 10, scale: 0.8 }}
           initial={{ opacity: 0, y: 10, scale: 0.8 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={SPRING}
         >
-          <CheckCircledIcon />
-          <AlertTitle>{value.data}</AlertTitle>
+          <div className="flex items-center gap-3">
+            <CheckCircledIcon className="w-5 h-5 text-green-400 flex-shrink-0" />
+            <p className="text-sm sm:text-base font-medium text-white/90">{value.data}</p>
+          </div>
         </motion.div>
       )}
     </FormStateMessage>
@@ -176,15 +178,15 @@ export const FormAccessRequest = ({
   return (
     <>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="relative pt-10 lg:pt-12">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="relative">
           <SubmissionStateMessage value={submissionState} reset={() => setSubmissionState(null)} />
 
           <FormField
             control={form.control}
             name="input"
             render={({ field }) => (
-              <FormItem className="space-y-0">
-                <FormMessage />
+              <FormItem className="space-y-2">
+                <FormMessage className="text-red-400 text-xs sm:text-sm px-2" />
                 <FormControl>
                   <div className="relative">
                     {input({ ...field })}
