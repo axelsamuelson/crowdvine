@@ -35,7 +35,8 @@ export async function POST(request: Request) {
     }
 
     // Check if user has access and set cookies if they do
-    const sb = await supabaseServer();
+    const { getSupabaseAdmin } = await import('@/lib/supabase-admin');
+    const sb = getSupabaseAdmin();
     const { data: prof } = await sb
       .from('profiles')
       .select('access_granted_at')
