@@ -3,6 +3,27 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AnimatePresence, motion } from "framer-motion";
+import { cn } from "@/lib/utils";
+import { Loader2, Mail, Lock, User, ArrowLeft } from "lucide-react";
+import { Background } from "@/components/background";
+import { FooterLogoSvg } from "@/components/layout/footer-logo-svg";
+
+const DURATION = 0.3;
+const DELAY = DURATION;
+const EASE_OUT = "easeOut";
+const EASE_OUT_OPACITY = [0.25, 0.46, 0.45, 0.94] as const;
+const SPRING = {
+  type: "spring" as const,
+  stiffness: 60,
+  damping: 10,
+  mass: 0.8,
+};
 
 export default function LogInPage() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -126,195 +147,254 @@ export default function LogInPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-900">
-            {isForgotPassword ? "Reset your password" : isSignUp ? "Create your account" : "Welcome back"}
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            {isForgotPassword
-              ? "Enter your email to receive a new password"
-              : isSignUp
-                ? "Join CrowdVine to start reserving wines"
-                : "Sign in to your CrowdVine account"}
-          </p>
-        </div>
-      </div>
+    <div className="p-inset h-[100dvh] w-full">
+      <div className="relative h-full w-full">
+        <Background
+          src="https://cdn.pixabay.com/video/2022/10/19/135643-762117669_large.mp4"
+          placeholder="/alt-placeholder.png"
+        />
+        
+        <div className="flex overflow-hidden relative flex-col gap-4 justify-center items-center w-full h-full max-w-md mx-auto z-10">
+          {/* Logo */}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: DURATION, ease: EASE_OUT }}
+            className="flex justify-center mb-8"
+          >
+            <FooterLogoSvg className="h-16 sm:h-20 lg:h-24 w-auto text-white" />
+          </motion.div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            {isSignUp && !isForgotPassword && (
-              <div>
-                <label
-                  htmlFor="fullName"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Full Name
-                </label>
-                <div className="mt-1">
-                  <input
-                    id="fullName"
-                    name="fullName"
-                    type="text"
-                    required={isSignUp}
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    placeholder="Enter your full name"
-                  />
-                </div>
-              </div>
-            )}
-
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Email address
-              </label>
-              <div className="mt-1">
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="Enter your email"
-                />
-              </div>
-            </div>
-
-            {!isForgotPassword && (
-              <div>
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Password
-                </label>
-                <div className="mt-1">
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    autoComplete={isSignUp ? "new-password" : "current-password"}
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    placeholder={
-                      isSignUp ? "Create a password" : "Enter your password"
-                    }
-                  />
-                </div>
-              </div>
-            )}
-
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                <p className="text-sm text-red-600">{error}</p>
-              </div>
-            )}
-
-            {success && (
-              <div className="bg-green-50 border border-green-200 rounded-md p-4">
-                <p className="text-sm text-green-600">{success}</p>
-              </div>
-            )}
-
-            <div>
-              <button
-                type="submit"
-                disabled={loading}
-                className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                  isForgotPassword
-                    ? "bg-orange-600 hover:bg-orange-700 focus:ring-orange-500"
-                    : isSignUp
-                      ? "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500"
-                      : "bg-green-600 hover:bg-green-700 focus:ring-green-500"
-                }`}
-              >
-                {loading
-                  ? isForgotPassword
-                    ? "Resetting password..."
-                    : isSignUp
-                      ? "Creating account..."
-                      : "Signing in..."
-                  : isForgotPassword
-                    ? "Reset password"
-                    : isSignUp
-                      ? "Sign up"
-                      : "Sign in"}
-              </button>
-            </div>
-          </form>
-
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">
+          {/* Login Card */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: DURATION, ease: EASE_OUT, delay: DELAY }}
+            className="w-full"
+          >
+            <Card className="backdrop-blur-xl border-2 border-white/20 bg-white/10 max-w-md mx-auto">
+              <CardHeader className="text-center pb-6">
+                <CardTitle className="text-2xl font-semibold text-white">
+                  {isForgotPassword ? "Reset your password" : isSignUp ? "Create your account" : "Welcome back"}
+                </CardTitle>
+                <p className="text-white/80 text-sm mt-2">
                   {isForgotPassword
-                    ? "Remember your password?"
+                    ? "Enter your email to receive a new password"
                     : isSignUp
-                      ? "Already have an account?"
-                      : "Don't have an account?"}
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-6 space-y-3">
-              {!isForgotPassword && (
-                <button
-                  onClick={() => {
-                    setIsSignUp(!isSignUp);
-                    setError("");
-                    setSuccess("");
-                    setEmail("");
-                    setPassword("");
-                    setFullName("");
-                    setIsForgotPassword(false);
-                  }}
-                  className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  {isSignUp ? "Sign in instead" : "Create account"}
-                </button>
-              )}
+                      ? "Join CrowdVine to start reserving wines"
+                      : "Sign in to your CrowdVine account"}
+                </p>
+              </CardHeader>
               
-              {!isSignUp && (
-                <button
-                  onClick={() => {
-                    setIsForgotPassword(!isForgotPassword);
-                    setError("");
-                    setSuccess("");
-                    setEmail("");
-                    setPassword("");
-                    setFullName("");
-                  }}
-                  className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
-                >
-                  {isForgotPassword ? "Back to sign in" : "Forgot password?"}
-                </button>
-              )}
-            </div>
-          </div>
+              <CardContent className="space-y-6">
+                <form className="space-y-4" onSubmit={handleSubmit}>
+                  <AnimatePresence mode="wait">
+                    {isSignUp && !isForgotPassword && (
+                      <motion.div
+                        key="fullName"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: DURATION, ease: EASE_OUT }}
+                        className="space-y-2"
+                      >
+                        <Label htmlFor="fullName" className="text-white/90 text-sm font-medium">
+                          Full Name
+                        </Label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/50" />
+                          <Input
+                            id="fullName"
+                            name="fullName"
+                            type="text"
+                            required={isSignUp}
+                            value={fullName}
+                            onChange={(e) => setFullName(e.target.value)}
+                            className="pl-10 bg-white/20 border-white/30 text-white placeholder:text-white/50 focus:bg-white/30 focus:border-white/50"
+                            placeholder="Enter your full name"
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
-          <div className="mt-6 text-center">
-            <Link
-              href="/"
-              className="text-sm text-blue-600 hover:text-blue-500"
-            >
-              ← Back to home
-            </Link>
-          </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-white/90 text-sm font-medium">
+                      Email address
+                    </Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/50" />
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        autoComplete="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="pl-10 bg-white/20 border-white/30 text-white placeholder:text-white/50 focus:bg-white/30 focus:border-white/50"
+                        placeholder="Enter your email"
+                      />
+                    </div>
+                  </div>
+
+                  <AnimatePresence mode="wait">
+                    {!isForgotPassword && (
+                      <motion.div
+                        key="password"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: DURATION, ease: EASE_OUT }}
+                        className="space-y-2"
+                      >
+                        <Label htmlFor="password" className="text-white/90 text-sm font-medium">
+                          Password
+                        </Label>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/50" />
+                          <Input
+                            id="password"
+                            name="password"
+                            type="password"
+                            autoComplete={isSignUp ? "new-password" : "current-password"}
+                            required
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="pl-10 bg-white/20 border-white/30 text-white placeholder:text-white/50 focus:bg-white/30 focus:border-white/50"
+                            placeholder={isSignUp ? "Create a password" : "Enter your password"}
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <AnimatePresence>
+                    {error && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: DURATION, ease: EASE_OUT }}
+                      >
+                        <Alert variant="destructive" className="bg-red-500/20 border-red-500/50">
+                          <AlertDescription className="text-red-100">{error}</AlertDescription>
+                        </Alert>
+                      </motion.div>
+                    )}
+
+                    {success && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: DURATION, ease: EASE_OUT }}
+                      >
+                        <Alert className="bg-green-500/20 border-green-500/50">
+                          <AlertDescription className="text-green-100">{success}</AlertDescription>
+                        </Alert>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className={cn(
+                      "w-full bg-white/20 hover:bg-white/30 border-white/30 text-white font-semibold",
+                      "backdrop-blur-sm shadow-lg",
+                      "transition-all duration-300 ease-out"
+                    )}
+                    size="lg"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        {isForgotPassword
+                          ? "Resetting password..."
+                          : isSignUp
+                            ? "Creating account..."
+                            : "Signing in..."}
+                      </>
+                    ) : (
+                      isForgotPassword
+                        ? "Reset password"
+                        : isSignUp
+                          ? "Sign up"
+                          : "Sign in"
+                    )}
+                  </Button>
+                </form>
+
+                {/* Action Buttons */}
+                <div className="space-y-3 pt-4 border-t border-white/20">
+                  <AnimatePresence mode="wait">
+                    {!isForgotPassword && (
+                      <motion.div
+                        key="signup-toggle"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: DURATION, ease: EASE_OUT }}
+                      >
+                        <Button
+                          onClick={() => {
+                            setIsSignUp(!isSignUp);
+                            setError("");
+                            setSuccess("");
+                            setEmail("");
+                            setPassword("");
+                            setFullName("");
+                            setIsForgotPassword(false);
+                          }}
+                          variant="outline"
+                          className="w-full bg-transparent border-white/30 text-white hover:bg-white/20"
+                        >
+                          {isSignUp ? "Sign in instead" : "Create account"}
+                        </Button>
+                      </motion.div>
+                    )}
+                    
+                    {!isSignUp && (
+                      <motion.div
+                        key="forgot-password-toggle"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: DURATION, ease: EASE_OUT }}
+                      >
+                        <Button
+                          onClick={() => {
+                            setIsForgotPassword(!isForgotPassword);
+                            setError("");
+                            setSuccess("");
+                            setEmail("");
+                            setPassword("");
+                            setFullName("");
+                          }}
+                          variant="outline"
+                          className="w-full bg-transparent border-white/30 text-white hover:bg-white/20"
+                        >
+                          {isForgotPassword ? "Back to sign in" : "Forgot password?"}
+                        </Button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Back to Home */}
+                <div className="text-center pt-4">
+                  <Link
+                    href="/"
+                    className="inline-flex items-center text-white/70 hover:text-white text-sm transition-colors duration-200"
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back to home
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
       </div>
     </div>
