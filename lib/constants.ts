@@ -31,12 +31,12 @@ export const isDevelopment = process.env.NODE_ENV === "development";
 // Internal color mapping for common color names to hex values
 export const COLOR_MAP: Record<string, string> = {
   // Wine-inspired colors
-  red: "#722F37",           // Deep wine red
+  red: "#CE0000",           // Classic wine red
   "rose": "#D4A5A5",        // Rosé wine color
   "light-red": "#A05252",   // Lighter wine red
   "dark-red": "#4A1A1F",    // Dark burgundy
   
-  orange: "#C4621A",        // Amber/orange wine color
+  orange: "#FF8C00",        // Vibrant orange wine color
   "amber": "#D4A574",       // Golden amber
   
   purple: "#6B46C1",        // Deep purple wine
