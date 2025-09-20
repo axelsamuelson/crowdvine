@@ -1,6 +1,7 @@
 "use server";
 
 import { supabaseServer } from "@/lib/supabase-server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { revalidatePath } from "next/cache";
 
 export interface SiteContent {
@@ -14,7 +15,7 @@ export interface SiteContent {
 }
 
 export async function getSiteContent(): Promise<SiteContent[]> {
-  const sb = await supabaseServer();
+  const sb = getSupabaseAdmin(); // Use admin client to bypass RLS
 
   const { data, error } = await sb
     .from("site_content")
@@ -22,12 +23,22 @@ export async function getSiteContent(): Promise<SiteContent[]> {
     .order("key");
 
   if (error) throw new Error(error.message);
-  return data || [];
+  
+  // Konvertera relativa uploads-sökvägar till fullständiga URL:er
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001';
+  const processedData = (data || []).map(item => ({
+    ...item,
+    value: item.value && item.value.startsWith('/uploads/') 
+      ? `${baseUrl}${item.value}` 
+      : item.value
+  }));
+  
+  return processedData;
 }
 
 export async function getSiteContentByKey(key: string): Promise<string | null> {
   try {
-    const sb = await supabaseServer();
+    const sb = getSupabaseAdmin(); // Use admin client to bypass RLS
 
     const { data, error } = await sb
       .from("site_content")
@@ -39,7 +50,16 @@ export async function getSiteContentByKey(key: string): Promise<string | null> {
       console.warn(`Site content not found for key: ${key}`, error);
       return null;
     }
-    return data?.value || null;
+    
+    const value = data?.value || null;
+    
+    // Om värdet är en relativ sökväg för uploads, konvertera till fullständig URL
+    if (value && value.startsWith('/uploads/')) {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001';
+      return `${baseUrl}${value}`;
+    }
+    
+    return value;
   } catch (error) {
     console.error(`Error fetching site content for key: ${key}`, error);
     return null;
@@ -50,7 +70,7 @@ export async function updateSiteContent(
   key: string,
   value: string,
 ): Promise<void> {
-  const sb = await supabaseServer();
+  const sb = getSupabaseAdmin(); // Use admin client to bypass RLS
 
   // First try to update existing record
   const { data: existingData, error: selectError } = await sb

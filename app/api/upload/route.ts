@@ -28,26 +28,22 @@ export async function POST(request: NextRequest) {
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
 
-      // Upload to Supabase Storage
-      const { data, error } = await supabase.storage
-        .from('logos')
-        .upload(fileName, buffer, {
-          contentType: file.type,
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (error) {
-        console.error('Supabase upload error:', error);
-        continue;
+      // Save file to public/uploads directory
+      const fs = require('fs');
+      const path = require('path');
+      
+      // Create uploads directory if it doesn't exist
+      const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
       }
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('logos')
-        .getPublicUrl(fileName);
-
-      uploadedFiles.push(urlData.publicUrl);
+      
+      // Write file to public/uploads
+      const filePath = path.join(uploadsDir, fileName);
+      fs.writeFileSync(filePath, buffer);
+      
+      // Return relative path for the uploaded file
+      uploadedFiles.push(`/uploads/${fileName}`);
     }
 
     return NextResponse.json({

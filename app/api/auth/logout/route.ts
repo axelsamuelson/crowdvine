@@ -22,6 +22,15 @@ export async function POST(request: NextRequest) {
       path: '/'
     });
 
+    // Also clear Supabase auth session cookies
+    response.cookies.set('sb-access-auth-token', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 0, // Expire immediately
+      path: '/'
+    });
+
     console.log('=== LOGOUT END ===');
 
     return response;

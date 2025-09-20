@@ -29,11 +29,27 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "ACME Store",
-  description: "ACME Store, your one-stop shop for all your needs.",
-  generator: "v0.app",
-};
+import { getSiteContentByKey } from "@/lib/actions/content";
+
+export async function generateMetadata(): Promise<Metadata> {
+  try {
+    const siteTitle = await getSiteContentByKey("site_title") || "CrowdVine";
+    const siteDescription = await getSiteContentByKey("site_description") || "Premium Wine Community";
+    
+    return {
+      title: siteTitle,
+      description: siteDescription,
+      generator: "v0.app",
+    };
+  } catch (error) {
+    console.error("Error generating metadata:", error);
+    return {
+      title: "CrowdVine",
+      description: "Premium Wine Community",
+      generator: "v0.app",
+    };
+  }
+}
 
 /**
  * Root Layout Component for ACME Store

@@ -34,7 +34,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check if user has access and set cookie if they do
+    // Check if user has access and set cookies if they do
     const sb = await supabaseServer();
     const { data: prof } = await sb
       .from('profiles')
@@ -42,19 +42,42 @@ export async function POST(request: Request) {
       .eq('id', authData.user.id)
       .single();
       
-    if (prof?.access_granted_at) {
-      await setAccessCookieAction();
-    }
+    const hasAccess = !!prof?.access_granted_at;
 
-    return NextResponse.json({
+    // Create response
+    const response = NextResponse.json({
       message: "Login successful",
       user: {
         id: authData.user.id,
         email: authData.user.email,
         full_name: authData.user.user_metadata?.full_name,
       },
-      hasAccess: !!prof?.access_granted_at,
+      hasAccess: hasAccess,
     });
+
+    // Set access cookie if user has access
+    if (hasAccess) {
+      response.cookies.set('cv-access', '1', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 365, // 1 year
+        path: '/'
+      });
+    }
+
+    // Set Supabase auth session cookies
+    if (authData.session) {
+      response.cookies.set('sb-access-auth-token', authData.session.access_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: authData.session.expires_in || 60 * 60 * 24 * 7, // 7 days default
+        path: '/'
+      });
+    }
+
+    return response;
   } catch (error) {
     console.error("Login error:", error);
     return NextResponse.json(

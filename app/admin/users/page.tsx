@@ -84,7 +84,8 @@ export default function UsersAdmin() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update user');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update user');
       }
 
       toast.success("User updated successfully");
@@ -92,7 +93,8 @@ export default function UsersAdmin() {
       fetchUsers();
     } catch (error) {
       console.error('Error updating user:', error);
-      toast.error("Failed to update user");
+      const errorMessage = error instanceof Error ? error.message : "Failed to update user";
+      toast.error(`Failed to update user: ${errorMessage}`);
     }
   };
 
@@ -107,14 +109,25 @@ export default function UsersAdmin() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete user');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete user');
       }
 
-      toast.success("User deleted successfully");
+      const responseData = await response.json();
+      
+      if (responseData.warning) {
+        toast.warning(responseData.message, {
+          description: responseData.warning
+        });
+      } else {
+        toast.success(responseData.message || "User deleted successfully");
+      }
+      
       fetchUsers();
     } catch (error) {
       console.error('Error deleting user:', error);
-      toast.error("Failed to delete user");
+      const errorMessage = error instanceof Error ? error.message : "Failed to delete user";
+      toast.error(`Failed to delete user: ${errorMessage}`);
     }
   };
 

@@ -109,7 +109,7 @@ export default async function ProductPage(props: {
   const hasEvenOptions = product.options.length % 2 === 0;
 
   return (
-    <PageLayout className="bg-muted">
+    <PageLayout className="bg-muted" noPadding={true}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{

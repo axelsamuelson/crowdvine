@@ -9,6 +9,7 @@ import { ArrowRightIcon, Cross1Icon, LockClosedIcon, LockOpen1Icon } from "@radi
 import { inputVariants } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { Background } from "@/components/background";
+import { FooterLogoSvg } from "@/components/layout/footer-logo-svg";
 
 const DURATION = 0.3;
 const DELAY = DURATION;
@@ -35,27 +36,19 @@ export function AccessRequestClient() {
     };
   }, [isOpen]);
 
-  // Smart access check: cookie first, then API
+  // Smart access check: check authentication and access status
   useEffect(() => {
     const checkExistingAccess = async () => {
       try {
-        // 1. Quick cookie check first (fastest)
-        const hasAccessCookie = document.cookie.includes('cv-access=1');
-        if (hasAccessCookie) {
-          // User has access cookie, redirect to destination
+        // Check if user is authenticated and has access
+        const response = await fetch('/api/me/access');
+        const data = await response.json();
+        
+        if (data.access) {
+          // User is authenticated and has access, redirect to destination
           const urlParams = new URLSearchParams(window.location.search);
           const next = urlParams.get('next') || '/';
           window.location.href = next;
-          return;
-        }
-
-        // 2. API check for existing users without cookie
-        const response = await fetch('/api/me/access');
-        if (response.ok) {
-          // User has access but no cookie, redirect to set cookie and continue
-          const urlParams = new URLSearchParams(window.location.search);
-          const next = urlParams.get('next') || '/';
-          window.location.href = `/api/set-access-cookie?next=${encodeURIComponent(next)}`;
           return;
         }
       } catch (error) {
@@ -103,10 +96,9 @@ export function AccessRequestClient() {
             <motion.div
               layout="position"
               transition={{ duration: DURATION, ease: EASE_OUT }}
+              className="flex justify-center"
             >
-              <h1 className="font-serif text-5xl italic sm:text-8xl lg:text-9xl text-white text-center">
-                CrowdVine®
-              </h1>
+              <FooterLogoSvg className="h-16 sm:h-24 lg:h-32 w-auto text-white" />
             </motion.div>
 
             <div className="flex flex-col items-center min-h-0 shrink">
@@ -246,16 +238,37 @@ export function AccessRequestClient() {
                       }}
                       className="text-center"
                     >
-                      <button
-                        onClick={() => {
-                          const urlParams = new URLSearchParams(window.location.search);
-                          const next = urlParams.get('next') || '/';
-                          window.location.href = `/log-in?next=${encodeURIComponent(next)}`;
-                        }}
-                        className="px-6 py-2 text-sm font-medium text-white border border-white/50 rounded-lg hover:border-white/80 hover:bg-white/10 transition-all duration-200"
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
                       >
-                        Already have access? Sign In
-                      </button>
+                        <Button
+                          onClick={() => {
+                            const urlParams = new URLSearchParams(window.location.search);
+                            const next = urlParams.get('next') || '/';
+                            window.location.href = `/log-in?next=${encodeURIComponent(next)}`;
+                          }}
+                          className={cn(
+                            "relative px-8 text-white border-white/50 hover:border-white/80 bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-indigo-500/20 hover:from-purple-400/30 hover:via-pink-400/30 hover:to-indigo-400/30",
+                            "backdrop-blur-sm shadow-lg shadow-purple-500/20 hover:shadow-purple-400/30",
+                            "before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-r before:from-white/10 before:via-purple-200/10 before:to-pink-200/10 before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-500",
+                            "after:absolute after:inset-0 after:rounded-lg after:bg-gradient-to-r after:from-transparent after:via-white/5 after:to-transparent after:animate-pulse",
+                            "hover:after:animate-shimmer",
+                            "transition-all duration-300 ease-out",
+                            "overflow-hidden group"
+                          )}
+                          shine={true}
+                        >
+                          <motion.span
+                            className="relative z-10 font-semibold tracking-wide"
+                            whileHover={{ scale: 1.05 }}
+                            transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                          >
+                            ✨ Already have access? Sign In
+                          </motion.span>
+                        </Button>
+                      </motion.div>
                     </motion.div>
                   )}
                 </div>

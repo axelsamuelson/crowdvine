@@ -20,7 +20,7 @@ import {
   updateSiteContent,
   SiteContent,
 } from "@/lib/actions/content";
-import { FileText, Image, MapPin, Phone, Mail, Instagram } from "lucide-react";
+import { FileText, Image, MapPin, Phone, Mail, Instagram, Settings } from "lucide-react";
 import { clearLogoCache } from "@/components/layout/header/logo-svg";
 import { clearFooterLogoCache } from "@/components/layout/footer-logo-svg";
 
@@ -158,7 +158,7 @@ export default function ContentPage() {
       )}
 
       <Tabs defaultValue="logos" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="logos" className="flex items-center gap-2">
             <Image className="h-4 w-4" />
             Logos
@@ -174,6 +174,10 @@ export default function ContentPage() {
           <TabsTrigger value="location" className="flex items-center gap-2">
             <MapPin className="h-4 w-4" />
             Location
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Settings
           </TabsTrigger>
         </TabsList>
 
@@ -550,6 +554,72 @@ export default function ContentPage() {
                   disabled={saving}
                 >
                   {saving ? "Saving..." : "Save Longitude"}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="settings" className="space-y-6">
+          <div className="grid grid-cols-1 gap-6">
+            {/* Site Title */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Site Title
+                </CardTitle>
+                <CardDescription>
+                  The main title displayed in the browser tab and page metadata
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="site_title">Site Title</Label>
+                  <Input
+                    id="site_title"
+                    value={formData.site_title || ""}
+                    onChange={(e) =>
+                      handleInputChange("site_title", e.target.value)
+                    }
+                    placeholder="CrowdVine - Premium Wine Community"
+                  />
+                </div>
+                <Button
+                  onClick={() => handleSave("site_title")}
+                  disabled={saving}
+                >
+                  {saving ? "Saving..." : "Save Site Title"}
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Site Description */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Site Description</CardTitle>
+                <CardDescription>
+                  The description shown in search results and social media
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="site_description">Site Description</Label>
+                  <Textarea
+                    id="site_description"
+                    value={formData.site_description || ""}
+                    onChange={(e) =>
+                      handleInputChange("site_description", e.target.value)
+                    }
+                    placeholder="Join our exclusive wine community. Discover curated wines from boutique producers worldwide."
+                    rows={3}
+                  />
+                </div>
+                <Button
+                  onClick={() => handleSave("site_description")}
+                  disabled={saving}
+                >
+                  {saving ? "Saving..." : "Save Site Description"}
                 </Button>
               </CardContent>
             </Card>

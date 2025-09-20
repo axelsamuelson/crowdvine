@@ -201,6 +201,7 @@ export async function PATCH(request: NextRequest) {
                 console.log('DEBUG: Approval email sent successfully to:', accessRequest.email);
               } else {
                 console.log('DEBUG: Failed to send approval email to:', accessRequest.email);
+                console.log('DEBUG: Check SendGrid configuration and API key');
               }
             } catch (emailError) {
               console.log('DEBUG: Email sending failed, but signup URL generated:', signupUrl);
@@ -280,56 +281,75 @@ export async function DELETE(request: NextRequest) {
 
     // Step 2: Delete all access tokens for this email
     console.log('3. Deleting access tokens...');
-    const { data: deletedTokens, error: tokensError } = await supabase
-      .from('access_tokens')
-      .delete()
-      .eq('email', email)
-      .select();
+    try {
+      const { data: deletedTokens, error: tokensError } = await supabase
+        .from('access_tokens')
+        .delete()
+        .eq('email', email)
+        .select();
 
-    if (tokensError) {
-      console.error('Error deleting access tokens:', tokensError);
-    } else {
-      console.log(`   ✅ Deleted ${deletedTokens?.length || 0} access tokens`);
+      if (tokensError) {
+        console.error('Error deleting access tokens:', tokensError);
+        // Don't fail the entire operation, just log the error
+      } else {
+        console.log(`   ✅ Deleted ${deletedTokens?.length || 0} access tokens`);
+      }
+    } catch (tokensDeleteError) {
+      console.error('Exception deleting access tokens:', tokensDeleteError);
+      // Continue with the operation
     }
 
     // Step 3: Delete all invitation codes for this email (if any)
     console.log('4. Deleting invitation codes...');
-    const { data: deletedInvitations, error: invitationsError } = await supabase
-      .from('invitation_codes')
-      .delete()
-      .eq('email', email)
-      .select();
+    try {
+      const { data: deletedInvitations, error: invitationsError } = await supabase
+        .from('invitation_codes')
+        .delete()
+        .eq('email', email)
+        .select();
 
-    if (invitationsError) {
-      console.error('Error deleting invitation codes:', invitationsError);
-    } else {
-      console.log(`   ✅ Deleted ${deletedInvitations?.length || 0} invitation codes`);
+      if (invitationsError) {
+        console.error('Error deleting invitation codes:', invitationsError);
+        // Don't fail the entire operation, just log the error
+      } else {
+        console.log(`   ✅ Deleted ${deletedInvitations?.length || 0} invitation codes`);
+      }
+    } catch (invitationsDeleteError) {
+      console.error('Exception deleting invitation codes:', invitationsDeleteError);
+      // Continue with the operation
     }
 
     // Step 4: Check if user exists in auth.users and delete if no profile exists
     console.log('5. Checking for orphaned auth user...');
-    const { data: authUser } = await supabase.auth.admin.getUserByEmail(email);
-    
-    if (authUser?.user) {
-      // Check if user has a profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', authUser.user.id)
-        .single();
+    try {
+      const { data: authUser } = await supabase.auth.admin.getUserByEmail(email);
+      
+      if (authUser?.user) {
+        // Check if user has a profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', authUser.user.id)
+          .single();
 
-      if (!profile) {
-        console.log('6. Deleting orphaned auth user...');
-        const { error: deleteUserError } = await supabase.auth.admin.deleteUser(authUser.user.id);
-        
-        if (deleteUserError) {
-          console.error('Error deleting auth user:', deleteUserError);
+        if (!profile) {
+          console.log('6. Deleting orphaned auth user...');
+          const { error: deleteUserError } = await supabase.auth.admin.deleteUser(authUser.user.id);
+          
+          if (deleteUserError) {
+            console.error('Error deleting auth user:', deleteUserError);
+          } else {
+            console.log('   ✅ Deleted orphaned auth user');
+          }
         } else {
-          console.log('   ✅ Deleted orphaned auth user');
+          console.log('   ℹ️ User has profile, keeping auth user');
         }
       } else {
-        console.log('   ℹ️ User has profile, keeping auth user');
+        console.log('   ℹ️ No auth user found for email:', email);
       }
+    } catch (authUserError) {
+      console.error('Exception checking/deleting auth user:', authUserError);
+      // Continue with the operation
     }
 
     // Step 5: Finally delete the access request
@@ -349,17 +369,22 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true,
-      message: `Access request and all related data deleted for ${email}`,
+      message: `Access request deleted successfully for ${email}`,
       deleted: {
         accessRequest: 1,
-        accessTokens: deletedTokens?.length || 0,
-        invitationCodes: deletedInvitations?.length || 0,
-        authUser: authUser?.user && !profile ? 1 : 0
+        accessTokens: 0, // We don't track exact count due to error handling
+        invitationCodes: 0, // We don't track exact count due to error handling
+        authUser: 0 // We don't track exact count due to error handling
       }
     });
 
   } catch (error) {
     console.error('Delete access request API error:', error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    return NextResponse.json({ 
+      error: "Internal server error", 
+      details: error instanceof Error ? error.message : 'Unknown error occurred'
+    }, { status: 500 });
   }
 }

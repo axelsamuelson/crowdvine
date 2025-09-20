@@ -54,7 +54,8 @@ class SendGridService {
 
   async sendEmail(data: EmailData): Promise<boolean> {
     if (!process.env.SENDGRID_API_KEY) {
-      console.error('SendGrid API key not configured');
+      console.error('SendGrid API key not configured. Please set SENDGRID_API_KEY in your environment variables.');
+      console.error('For development, you can set it in .env.local file.');
       return false;
     }
 
@@ -75,6 +76,9 @@ class SendGridService {
       return true;
     } catch (error) {
       console.error('SendGrid error:', error);
+      if (error.response) {
+        console.error('SendGrid response body:', error.response.body);
+      }
       return false;
     }
   }

@@ -3,12 +3,14 @@ import { Footer } from "./footer";
 export const PageLayout = ({
   children,
   className,
+  noPadding = false,
 }: {
   children: React.ReactNode;
   className?: string;
+  noPadding?: boolean;
 }) => {
   return (
-    <div className={`pt-top-spacing ${className || ''}`}>
+    <div className={`${noPadding ? '' : 'pt-top-spacing'} ${className || ''}`}>
       <main>{children}</main>
       <Footer />
     </div>

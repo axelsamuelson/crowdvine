@@ -147,7 +147,26 @@ export default function AccessControlAdmin() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Network error' }));
-        throw new Error(errorData.error || 'Failed to delete access request');
+        
+        // Provide specific error messages based on status code
+        if (response.status === 401) {
+          toast.error("Authentication required. Please log in as admin first.");
+          // Redirect to admin login
+          setTimeout(() => {
+            window.location.href = '/admin-auth/login';
+          }, 2000);
+          return;
+        } else if (response.status === 403) {
+          toast.error("Admin access required. You don't have permission to delete access requests.");
+          return;
+        } else if (response.status === 404) {
+          toast.error("Access request not found. It may have already been deleted.");
+          // Refresh the list to update UI
+          fetchAccessRequests();
+          return;
+        } else {
+          throw new Error(errorData.error || `Server error (${response.status})`);
+        }
       }
 
       const result = await response.json();
