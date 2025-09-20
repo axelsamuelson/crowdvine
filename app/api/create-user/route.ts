@@ -172,21 +172,49 @@ export async function POST(request: NextRequest) {
       authUserId = authData.user.id;
       console.log('3b. New user created:', authUserId);
 
-      // Step 3: Create profile for new user
-      console.log('3c. Creating profile for new user...');
+      // Step 3: Check if profile already exists and create/update it
+      console.log('3c. Checking if profile already exists...');
+      const { data: existingProfile, error: profileCheckError } = await supabase
+        .from('profiles')
+        .select('id, access_granted_at')
+        .eq('id', authUserId)
+        .maybeSingle();
+
+      if (profileCheckError) {
+        console.error('Error checking existing profile:', profileCheckError);
+        return NextResponse.json({ 
+          error: "Failed to check existing profile",
+          details: profileCheckError.message,
+          code: profileCheckError.code || 'unknown'
+        }, { status: 500 });
+      }
+
+      if (existingProfile?.access_granted_at) {
+        console.log('3c1. Profile already exists with access, skipping creation');
+      } else {
+        console.log('3c2. Creating/updating profile for new user...');
       const { error: profileError } = await supabase
         .from('profiles')
-        .insert({
+        .upsert({
           id: authUserId,
           email: normalizedEmail,
           role: 'user',
           access_granted_at: new Date().toISOString(),
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'id',
+          ignoreDuplicates: false // Update existing records
         });
 
       if (profileError) {
-        console.error('Error creating profile:', profileError);
+        console.error('Error creating/updating profile:', profileError);
+        console.error('Profile error details:', {
+          message: profileError.message,
+          code: profileError.code,
+          details: profileError.details,
+          hint: profileError.hint
+        });
         return NextResponse.json({ 
           error: "Failed to create profile",
           details: profileError.message,
@@ -194,12 +222,15 @@ export async function POST(request: NextRequest) {
           debug: {
             authUserId: authUserId,
             email: normalizedEmail,
-            errorType: 'profile_creation_failed'
+            errorType: 'profile_creation_failed',
+            errorDetails: profileError.details,
+            errorHint: profileError.hint
           }
         }, { status: 500 });
       }
       
-      console.log('3d. Profile created successfully');
+      console.log('3d. Profile created/updated successfully');
+      }
     }
 
     // Step 4: Clean up any remaining access requests for this email
