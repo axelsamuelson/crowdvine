@@ -1,4 +1,5 @@
 import { supabaseServer } from "./supabase-server";
+import { getSupabaseAdmin } from "./supabase-admin";
 import { geocodeAddress, createFullAddress, isValidCoordinates } from "./geocoding";
 
 // Calculate distance between two points using Haversine formula
@@ -62,7 +63,7 @@ export async function determineZones(
   cartItems: CartItem[],
   deliveryAddress: DeliveryAddress,
 ): Promise<ZoneMatchResult> {
-  const sb = await supabaseServer();
+  const sb = getSupabaseAdmin(); // Use admin client to bypass RLS
 
   // Get unique producer IDs from cart items
   const { data: wines, error: winesError } = await sb
