@@ -197,12 +197,12 @@ export default function LogInPage() {
                             id="password"
                             name="password"
                             type="password"
-                            autoComplete={isSignUp ? "new-password" : "current-password"}
+                            autoComplete="current-password"
                             required
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             className="pl-10 bg-white/20 border-white/30 text-white placeholder:text-white/50 focus:bg-white/30 focus:border-white/50"
-                            placeholder={isSignUp ? "Create a password" : "Enter your password"}
+                            placeholder="Enter your password"
                           />
                         </div>
                       </motion.div>
