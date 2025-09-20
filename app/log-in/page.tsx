@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Loader2, Mail, Lock, User, ArrowLeft } from "lucide-react";
+import { Loader2, Mail, Lock, ArrowLeft } from "lucide-react";
 import { Background } from "@/components/background";
 import { FooterLogoSvg } from "@/components/layout/footer-logo-svg";
 
@@ -26,11 +26,9 @@ const SPRING = {
 };
 
 export default function LogInPage() {
-  const [isSignUp, setIsSignUp] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -78,31 +76,6 @@ export default function LogInPage() {
         }
         setEmail("");
         setIsForgotPassword(false);
-      } else if (isSignUp) {
-        // Real signup
-        const response = await fetch("/api/auth/signup", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email,
-            password,
-            fullName,
-          }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || "Failed to create account");
-        }
-
-        setSuccess("Account created successfully! You can now log in.");
-        setEmail("");
-        setPassword("");
-        setFullName("");
-        setIsSignUp(false);
       } else {
         // Real login
         const response = await fetch("/api/auth/login", {
@@ -137,9 +110,7 @@ export default function LogInPage() {
           ? err.message
           : isForgotPassword
             ? "Failed to reset password. Please try again."
-            : isSignUp
-              ? "Failed to create account. Please try again."
-              : "Invalid email or password. Please try again.",
+            : "Invalid email or password. Please try again.",
       );
     } finally {
       setLoading(false);
@@ -175,48 +146,17 @@ export default function LogInPage() {
             <Card className="backdrop-blur-xl border-2 border-white/20 bg-white/10 max-w-md mx-auto">
               <CardHeader className="text-center pb-6">
                 <CardTitle className="text-2xl font-semibold text-white">
-                  {isForgotPassword ? "Reset your password" : isSignUp ? "Create your account" : "Welcome back"}
+                  {isForgotPassword ? "Reset your password" : "Welcome back"}
                 </CardTitle>
                 <p className="text-white/80 text-sm mt-2">
                   {isForgotPassword
                     ? "Enter your email to receive a new password"
-                    : isSignUp
-                      ? "Join CrowdVine to start reserving wines"
-                      : "Sign in to your CrowdVine account"}
+                    : "Enter your credentials to access your account"}
                 </p>
               </CardHeader>
               
               <CardContent className="space-y-6">
                 <form className="space-y-4" onSubmit={handleSubmit}>
-                  <AnimatePresence mode="wait">
-                    {isSignUp && !isForgotPassword && (
-                      <motion.div
-                        key="fullName"
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: DURATION, ease: EASE_OUT }}
-                        className="space-y-2"
-                      >
-                        <Label htmlFor="fullName" className="text-white/90 text-sm font-medium">
-                          Full Name
-                        </Label>
-                        <div className="relative">
-                          <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/50" />
-                          <Input
-                            id="fullName"
-                            name="fullName"
-                            type="text"
-                            required={isSignUp}
-                            value={fullName}
-                            onChange={(e) => setFullName(e.target.value)}
-                            className="pl-10 bg-white/20 border-white/30 text-white placeholder:text-white/50 focus:bg-white/30 focus:border-white/50"
-                            placeholder="Enter your full name"
-                          />
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
 
                   <div className="space-y-2">
                     <Label htmlFor="email" className="text-white/90 text-sm font-medium">
@@ -312,16 +252,12 @@ export default function LogInPage() {
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                         {isForgotPassword
                           ? "Resetting password..."
-                          : isSignUp
-                            ? "Creating account..."
-                            : "Signing in..."}
+                          : "Signing in..."}
                       </>
                     ) : (
                       isForgotPassword
                         ? "Reset password"
-                        : isSignUp
-                          ? "Sign up"
-                          : "Sign in"
+                        : "Sign in"
                     )}
                   </Button>
                 </form>
@@ -330,32 +266,6 @@ export default function LogInPage() {
                 <div className="space-y-3 pt-4 border-t border-white/20">
                   <AnimatePresence mode="wait">
                     {!isForgotPassword && (
-                      <motion.div
-                        key="signup-toggle"
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: DURATION, ease: EASE_OUT }}
-                      >
-                        <Button
-                          onClick={() => {
-                            setIsSignUp(!isSignUp);
-                            setError("");
-                            setSuccess("");
-                            setEmail("");
-                            setPassword("");
-                            setFullName("");
-                            setIsForgotPassword(false);
-                          }}
-                          variant="outline"
-                          className="w-full bg-transparent border-white/30 text-white hover:bg-white/20"
-                        >
-                          {isSignUp ? "Sign in instead" : "Create account"}
-                        </Button>
-                      </motion.div>
-                    )}
-                    
-                    {!isSignUp && (
                       <motion.div
                         key="forgot-password-toggle"
                         initial={{ opacity: 0, height: 0 }}
@@ -375,7 +285,32 @@ export default function LogInPage() {
                           variant="outline"
                           className="w-full bg-transparent border-white/30 text-white hover:bg-white/20"
                         >
-                          {isForgotPassword ? "Back to sign in" : "Forgot password?"}
+                          Forgot password?
+                        </Button>
+                      </motion.div>
+                    )}
+                    
+                    {isForgotPassword && (
+                      <motion.div
+                        key="back-to-signin"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: DURATION, ease: EASE_OUT }}
+                      >
+                        <Button
+                          onClick={() => {
+                            setIsForgotPassword(false);
+                            setError("");
+                            setSuccess("");
+                            setEmail("");
+                            setPassword("");
+                            setFullName("");
+                          }}
+                          variant="outline"
+                          className="w-full bg-transparent border-white/30 text-white hover:bg-white/20"
+                        >
+                          Back to sign in
                         </Button>
                       </motion.div>
                     )}
