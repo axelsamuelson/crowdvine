@@ -30,64 +30,95 @@ export const isDevelopment = process.env.NODE_ENV === "development";
 
 // Internal color mapping for common color names to hex values
 export const COLOR_MAP: Record<string, string> = {
-  // Basic colors
-  red: "#ef4444",
-  blue: "#3b82f6",
-  green: "#22c55e",
-  yellow: "#eab308",
-  orange: "#f97316",
-  purple: "#a855f7",
-  pink: "#ec4899",
-  black: "#000000",
-  white: "#ffffff",
-  gray: "#6b7280",
-  grey: "#6b7280",
-  brown: "#92400e",
-  navy: "#1e3a8a",
-  teal: "#14b8a6",
-  cyan: "#06b6d4",
-  indigo: "#6366f1",
-  violet: "#8b5cf6",
-  lime: "#84cc16",
-  emerald: "#10b981",
-  rose: "#f43f5e",
-  fuchsia: "#d946ef",
-  slate: "#64748b",
+  // Wine-inspired colors
+  red: "#722F37",           // Deep wine red
+  "rose": "#D4A5A5",        // Rosé wine color
+  "light-red": "#A05252",   // Lighter wine red
+  "dark-red": "#4A1A1F",    // Dark burgundy
+  
+  orange: "#C4621A",        // Amber/orange wine color
+  "amber": "#D4A574",       // Golden amber
+  
+  purple: "#6B46C1",        // Deep purple wine
+  "light-purple": "#8B7ED8", // Lighter purple
+  "dark-purple": "#4C1D95", // Dark purple wine
+  
+  pink: "#E879F9",          // Pink wine/rosé
+  "blush": "#F9A8D4",       // Blush wine
+  
+  // White wine colors
+  white: "#FEF3C7",         // Pale golden white wine
+  "golden": "#FCD34D",      // Golden white wine
+  "straw": "#FDE68A",       // Straw-colored wine
+  "champagne": "#FEF3C7",   // Champagne color
+  
+  // Earth tones for wine barrels/bottles
+  brown: "#92400E",         // Oak barrel brown
+  "dark-brown": "#451A03",  // Dark oak
+  "light-brown": "#D97706", // Light oak
+  "tan": "#D2B48C",         // Tan leather
+  "beige": "#F5F5DC",       // Light beige
+  
+  // Natural colors
+  green: "#365314",         // Forest green (vine leaves)
+  "olive": "#6B7280",       // Olive green
+  "sage": "#84CC16",        // Sage green
+  "emerald": "#059669",     // Emerald green
+  
+  // Metallic colors for wine accessories
+  gold: "#D97706",          // Wine gold
+  silver: "#6B7280",        // Wine silver
+  "copper": "#B45309",      // Copper wine accessories
+  
+  // Neutral colors
+  black: "#1F2937",         // Dark charcoal
+  gray: "#6B7280",          // Medium gray
+  "dark-gray": "#374151",   // Dark gray
+  "light-gray": "#D1D5DB",  // Light gray
+  
+  // Special wine blend colors
+  "blend": "#8B5A2B",       // Wine blend color (mix of red and brown)
+  "cuvée": "#A05252",       // Cuvée blend color
+  
+  // Traditional colors (keeping for compatibility)
+  blue: "#3B82F6",
+  yellow: "#EAB308",
+  navy: "#1E3A8A",
+  teal: "#14B8A6",
+  cyan: "#06B6D4",
+  indigo: "#6366F1",
+  violet: "#8B5CF6",
+  lime: "#84CC16",
+  rose: "#F43F5E",
+  fuchsia: "#D946EF",
+  slate: "#64748B",
   neutral: "#737373",
-  stone: "#78716c",
-  zinc: "#71717a",
-
-  // Additional common variations
-  "light-blue": "#38bdf8",
-  "dark-blue": "#1e40af",
-  "light-green": "#4ade80",
+  stone: "#78716C",
+  zinc: "#71717A",
+  
+  // Additional variations
+  "light-blue": "#38BDF8",
+  "dark-blue": "#1E40AF",
+  "light-green": "#4ADE80",
   "dark-green": "#232E23",
-  "light-gray": "#d1d5db",
-  "dark-gray": "#374151",
-  "light-grey": "#d1d5db",
+  "light-grey": "#D1D5DB",
   "dark-grey": "#374151",
-  "dark-brown": "#6b4a1b",
-  beige: "#f5f5dc",
   maroon: "#800000",
-  olive: "#808000",
-  aqua: "#00ffff",
-  silver: "#c0c0c0",
-  gold: "#ffd700",
-  coral: "#ff7f50",
-  salmon: "#fa8072",
-  khaki: "#f0e68c",
-  sand: "#e7d3b7",
-  plum: "#dda0dd",
-  tan: "#d2b48c",
-  crimson: "#dc143c",
-  turquoise: "#40e0d0",
-  lavender: "#e6e6fa",
-  ivory: "#fffff0",
-  mint: "#98fb98",
-  peach: "#ffcba4",
-  pistachio: "#93c572",
-  cream: "#edd0ae",
-  "army-green": "#4b5320",
+  aqua: "#00FFFF",
+  coral: "#FF7F50",
+  salmon: "#FA8072",
+  khaki: "#F0E68C",
+  sand: "#E7D3B7",
+  plum: "#DDA0DD",
+  crimson: "#DC143C",
+  turquoise: "#40E0D0",
+  lavender: "#E6E6FA",
+  ivory: "#FFFFF0",
+  mint: "#98FB98",
+  peach: "#FFCBA4",
+  pistachio: "#93C572",
+  cream: "#EDD0AE",
+  "army-green": "#4B5320",
   "navy-blue": "#000080",
-  wood: "#8d6e63",
+  wood: "#8D6E63",
 };

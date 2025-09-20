@@ -7,43 +7,72 @@ import { COLOR_MAP } from "@/lib/constants";
 import { useEffect, useMemo } from "react";
 
 const allColors: Color[] = [
-  { name: "Olive", value: COLOR_MAP["olive"] },
-  { name: "Beige", value: COLOR_MAP["beige"] },
-  { name: "White", value: COLOR_MAP["white"] },
-  { name: "Blue", value: COLOR_MAP["blue"] },
-  { name: "Brown", value: COLOR_MAP["brown"] },
-  { name: "Sand", value: COLOR_MAP["sand"] },
-  { name: "Green", value: COLOR_MAP["green"] },
-  { name: "Black", value: COLOR_MAP["black"] },
-  { name: "Orange", value: COLOR_MAP["orange"] },
-  { name: "Dark Brown", value: COLOR_MAP["dark-brown"] },
-  { name: "Pink", value: COLOR_MAP["pink"] },
+  // Wine colors
   { name: "Red", value: COLOR_MAP["red"] },
-  { name: "Yellow", value: COLOR_MAP["yellow"] },
+  { name: "Rose", value: COLOR_MAP["rose"] },
+  { name: "White", value: COLOR_MAP["white"] },
+  { name: "Orange", value: COLOR_MAP["orange"] },
   { name: "Purple", value: COLOR_MAP["purple"] },
-  { name: "Gray", value: COLOR_MAP["gray"] },
+  { name: "Pink", value: COLOR_MAP["pink"] },
+  { name: "Blend", value: COLOR_MAP["blend"] },
+  
+  // Wine variations
+  { name: "Amber", value: COLOR_MAP["amber"] },
+  { name: "Golden", value: COLOR_MAP["golden"] },
+  { name: "Straw", value: COLOR_MAP["straw"] },
+  { name: "Champagne", value: COLOR_MAP["champagne"] },
+  { name: "Blush", value: COLOR_MAP["blush"] },
+  { name: "Light Red", value: COLOR_MAP["light-red"] },
+  { name: "Dark Red", value: COLOR_MAP["dark-red"] },
+  { name: "Light Purple", value: COLOR_MAP["light-purple"] },
+  { name: "Dark Purple", value: COLOR_MAP["dark-purple"] },
+  
+  // Barrel and bottle colors
+  { name: "Brown", value: COLOR_MAP["brown"] },
+  { name: "Dark Brown", value: COLOR_MAP["dark-brown"] },
+  { name: "Light Brown", value: COLOR_MAP["light-brown"] },
+  { name: "Tan", value: COLOR_MAP["tan"] },
+  { name: "Beige", value: COLOR_MAP["beige"] },
+  { name: "Wood", value: COLOR_MAP["wood"] },
+  
+  // Natural colors
+  { name: "Green", value: COLOR_MAP["green"] },
+  { name: "Olive", value: COLOR_MAP["olive"] },
+  { name: "Sage", value: COLOR_MAP["sage"] },
+  { name: "Emerald", value: COLOR_MAP["emerald"] },
+  
+  // Metallic colors
   { name: "Gold", value: COLOR_MAP["gold"] },
   { name: "Silver", value: COLOR_MAP["silver"] },
-  { name: "Army Green", value: COLOR_MAP["army-green"] },
-  { name: "Navy Blue", value: COLOR_MAP["navy-blue"] },
-  { name: "Navy", value: COLOR_MAP["navy"] },
-  { name: "Navy Blue", value: COLOR_MAP["navy-blue"] },
-  { name: "Navy Blue", value: COLOR_MAP["navy-blue"] },
+  { name: "Copper", value: COLOR_MAP["copper"] },
+  
+  // Neutral colors
+  { name: "Black", value: COLOR_MAP["black"] },
+  { name: "Gray", value: COLOR_MAP["gray"] },
+  { name: "Dark Gray", value: COLOR_MAP["dark-gray"] },
+  { name: "Light Gray", value: COLOR_MAP["light-gray"] },
+  { name: "Cream", value: COLOR_MAP["cream"] },
+  { name: "Ivory", value: COLOR_MAP["ivory"] },
+  
+  // Additional wine-related colors
   { name: "Coral", value: COLOR_MAP["coral"] },
   { name: "Salmon", value: COLOR_MAP["salmon"] },
-  { name: "Khaki", value: COLOR_MAP["khaki"] },
-  { name: "Sand", value: COLOR_MAP["sand"] },
   { name: "Plum", value: COLOR_MAP["plum"] },
-  { name: "Tan", value: COLOR_MAP["tan"] },
   { name: "Crimson", value: COLOR_MAP["crimson"] },
-  { name: "Turquoise", value: COLOR_MAP["turquoise"] },
   { name: "Lavender", value: COLOR_MAP["lavender"] },
-  { name: "Ivory", value: COLOR_MAP["ivory"] },
-  { name: "Mint", value: COLOR_MAP["mint"] },
   { name: "Peach", value: COLOR_MAP["peach"] },
+  { name: "Sand", value: COLOR_MAP["sand"] },
+  { name: "Khaki", value: COLOR_MAP["khaki"] },
+  
+  // Traditional colors (keeping for compatibility)
+  { name: "Blue", value: COLOR_MAP["blue"] },
+  { name: "Yellow", value: COLOR_MAP["yellow"] },
+  { name: "Navy", value: COLOR_MAP["navy"] },
+  { name: "Turquoise", value: COLOR_MAP["turquoise"] },
+  { name: "Mint", value: COLOR_MAP["mint"] },
   { name: "Pistachio", value: COLOR_MAP["pistachio"] },
-  { name: "Cream", value: COLOR_MAP["cream"] },
-  { name: "Wood", value: COLOR_MAP["wood"] },
+  { name: "Army Green", value: COLOR_MAP["army-green"] },
+  { name: "Navy Blue", value: COLOR_MAP["navy-blue"] },
 ];
 
 const getColorName = (color: Color | [Color, Color]) => {
