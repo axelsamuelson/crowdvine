@@ -62,12 +62,37 @@ export async function GET(request: Request) {
 
     // Create Stripe Checkout session for setup
     console.log("DEBUG: Creating checkout session...");
+    
+    // Get the base URL - try multiple sources
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
+                   "https://pactwines.com";
+    
+    const successUrl = `${baseUrl}/profile?payment_method_added=true&session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${baseUrl}/profile?payment_method_canceled=true`;
+    
+    console.log("DEBUG: Base URL:", baseUrl);
+    console.log("DEBUG: Success URL:", successUrl);
+    console.log("DEBUG: Cancel URL:", cancelUrl);
+    
+    // Validate URLs
+    try {
+      new URL(successUrl);
+      new URL(cancelUrl);
+    } catch (urlError) {
+      console.error("ERROR: Invalid URL:", urlError);
+      return NextResponse.json(
+        { error: "Invalid URL configuration", details: urlError instanceof Error ? urlError.message : "URL validation failed" },
+        { status: 500 },
+      );
+    }
+    
     const session = await stripe!.checkout.sessions.create({
       customer: customer.id,
       payment_method_types: ["card"],
       mode: "setup",
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL || "https://pactwines.com"}/profile?payment_method_added=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || "https://pactwines.com"}/profile?payment_method_canceled=true`,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
       metadata: {
         type: "payment_method_setup",
       },
