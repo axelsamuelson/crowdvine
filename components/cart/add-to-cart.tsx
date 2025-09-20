@@ -1,6 +1,6 @@
 "use client";
 
-import { PlusCircleIcon } from "lucide-react";
+import { CirclePlus } from "lucide-react";
 import { Product, ProductVariant } from "@/lib/shopify/types";
 import { useMemo, useTransition } from "react";
 import { useCart } from "./cart-context";
@@ -40,7 +40,7 @@ export function AddToCartButton({
   selectedVariant,
   className,
   iconOnly = false,
-  icon = <PlusCircleIcon />,
+  icon = <CirclePlus />,
   ...buttonProps
 }: AddToCartButtonProps) {
   const { addItem } = useCart();
@@ -94,7 +94,7 @@ export function AddToCartButton({
         disabled={isDisabled}
         className={
           iconOnly
-            ? undefined
+            ? "size-12 [&_svg:not([class*='size-'])]:size-7"
             : "flex relative justify-between items-center w-full"
         }
         {...buttonProps}
@@ -129,7 +129,7 @@ export function AddToCartButton({
               ) : (
                 <div className="flex justify-between items-center w-full">
                   <span>{getButtonText()}</span>
-                  <PlusCircleIcon />
+                  <CirclePlus />
                 </div>
               )}
             </motion.div>
@@ -144,7 +144,7 @@ export function AddToCart({
   product,
   className,
   iconOnly = false,
-  icon = <PlusCircleIcon />,
+  icon = <CirclePlus />,
   ...buttonProps
 }: AddToCartProps) {
   const { variants } = product;
