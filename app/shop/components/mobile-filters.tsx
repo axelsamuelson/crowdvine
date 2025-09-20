@@ -29,7 +29,7 @@ export function MobileFilters({ collections, className }: MobileFiltersProps) {
   const { products, originalProducts } = useProducts();
 
   return (
-    <div className="pt-top-spacing bg-background md:hidden overflow-x-clip">
+    <div className="bg-background md:hidden overflow-x-clip">
       <Drawer>
         {/* 3 main items: Filters, Results count, Sort by */}
         <div className="grid grid-cols-3 items-center px-4 py-3">

@@ -24,7 +24,7 @@ export function DesktopFilters({
   return (
     <aside
       className={cn(
-        "grid sticky top-0 grid-cols-3 h-screen pl-sides pt-top-spacing",
+        "grid sticky top-0 grid-cols-3 h-screen pl-sides",
         className,
       )}
     >
