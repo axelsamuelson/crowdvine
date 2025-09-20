@@ -22,7 +22,7 @@ export default async function ShopLayout({
   }
 
   return (
-    <PageLayout>
+    <PageLayout noPadding={true}>
       <ProductsProvider>
         <div className="flex flex-col md:grid grid-cols-12 md:gap-sides">
           <Suspense fallback={null}>
