@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase-server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function POST(request: Request) {
   try {
@@ -13,6 +14,7 @@ export async function POST(request: Request) {
     }
 
     const supabase = await supabaseServer();
+    const supabaseAdmin = getSupabaseAdmin();
 
     // 1. Create user in Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -37,18 +39,35 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Optionally create user profile in custom table
-    // This would go in a custom users table if we had one
-    // const { error: profileError } = await supabase
-    //   .from('users')
-    //   .insert({
-    //     id: authData.user.id,
-    //     full_name: fullName,
-    //     email: email
-    //   });
+    // 2. Create user profile in profiles table
+    const { error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .upsert({
+        id: authData.user.id,
+        email: email.toLowerCase().trim(),
+        full_name: fullName,
+        role: 'user',
+        access_granted_at: null // No access until granted by admin
+      });
+
+    if (profileError) {
+      console.error("Profile creation error:", profileError);
+      // Don't fail signup if profile creation fails, but log it
+    }
+
+    // 3. Check if user has a pending access request and delete it
+    const { error: deleteRequestError } = await supabaseAdmin
+      .from('access_requests')
+      .delete()
+      .eq('email', email.toLowerCase().trim());
+
+    if (deleteRequestError) {
+      console.error("Error deleting access request:", deleteRequestError);
+      // Don't fail signup if this fails
+    }
 
     return NextResponse.json({
-      message: "User registered successfully",
+      message: "User registered successfully. Your account is pending admin approval.",
       user: {
         id: authData.user.id,
         email: authData.user.email,
