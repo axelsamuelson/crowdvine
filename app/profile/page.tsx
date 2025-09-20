@@ -482,7 +482,7 @@ export default function ProfilePage() {
                 <div className="flex items-center gap-2">
                   <svg viewBox="0 0 24 24" className="w-5 h-5">
                     <rect width="24" height="24" rx="4" fill="#635BFF"/>
-                    <text x="12" y="16" fontSize="8" fontWeight="bold" fill="white" textAnchor="middle">S</text>
+                    <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.274 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.407-2.2 1.407-1.99 0-4.043-.921-5.827-1.845L4.717 24c1.73.921 4.351 1.685 7.552 1.685 2.508 0 4.682-.657 6.104-1.892 1.545-1.31 2.352-3.147 2.352-5.373 0-4.039-2.467-5.76-6.476-7.219z" fill="white"/>
                   </svg>
                   <span className="text-sm font-medium text-gray-600">Powered by Stripe</span>
                 </div>

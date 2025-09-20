@@ -20,16 +20,16 @@ interface PaymentMethodCardProps {
   className?: string;
 }
 
-// Brand logos as SVG components
+// Brand logos matching Stripe's official design
 const BrandLogo = ({ brand }: { brand?: string }) => {
   const brandLower = brand?.toLowerCase() || '';
   
   if (brandLower.includes('visa')) {
     return (
-      <div className="flex items-center justify-center w-12 h-8 bg-white rounded border">
-        <svg viewBox="0 0 24 16" className="w-8 h-5">
-          <rect width="24" height="16" rx="2" fill="#1434CB"/>
-          <text x="12" y="11" fontSize="8" fontWeight="bold" fill="white" textAnchor="middle">VISA</text>
+      <div className="flex items-center justify-center w-12 h-8 bg-white rounded border border-gray-200">
+        <svg viewBox="0 0 40 24" className="w-10 h-6">
+          <rect width="40" height="24" rx="3" fill="#1A1F71"/>
+          <text x="20" y="16" fontSize="10" fontWeight="bold" fill="white" textAnchor="middle">VISA</text>
         </svg>
       </div>
     );
@@ -37,12 +37,12 @@ const BrandLogo = ({ brand }: { brand?: string }) => {
   
   if (brandLower.includes('mastercard') || brandLower.includes('master')) {
     return (
-      <div className="flex items-center justify-center w-12 h-8 bg-white rounded border">
-        <svg viewBox="0 0 24 16" className="w-8 h-5">
-          <rect width="24" height="16" rx="2" fill="#EB001B"/>
-          <circle cx="9" cy="8" r="5" fill="#F79E1B"/>
-          <circle cx="15" cy="8" r="5" fill="#FF5F00"/>
-          <text x="12" y="11" fontSize="4" fontWeight="bold" fill="white" textAnchor="middle">Mastercard</text>
+      <div className="flex items-center justify-center w-12 h-8 bg-white rounded border border-gray-200">
+        <svg viewBox="0 0 40 24" className="w-10 h-6">
+          <rect width="40" height="24" rx="3" fill="#EB001B"/>
+          <circle cx="15" cy="12" r="8" fill="#F79E1B"/>
+          <circle cx="25" cy="12" r="8" fill="#FF5F00"/>
+          <path d="M20 8c-2.2 0-4 1.8-4 4s1.8 4 4 4c1.1 0 2.1-.5 2.8-1.2-1.4-1.4-1.4-3.6 0-5.6-.7-.7-1.7-1.2-2.8-1.2z" fill="#EB001B"/>
         </svg>
       </div>
     );
@@ -50,11 +50,11 @@ const BrandLogo = ({ brand }: { brand?: string }) => {
   
   if (brandLower.includes('amex') || brandLower.includes('american express')) {
     return (
-      <div className="flex items-center justify-center w-12 h-8 bg-white rounded border">
-        <svg viewBox="0 0 24 16" className="w-8 h-5">
-          <rect width="24" height="16" rx="2" fill="#006FCF"/>
-          <text x="12" y="8" fontSize="4" fontWeight="bold" fill="white" textAnchor="middle">AMERICAN</text>
-          <text x="12" y="12" fontSize="4" fontWeight="bold" fill="white" textAnchor="middle">EXPRESS</text>
+      <div className="flex items-center justify-center w-12 h-8 bg-white rounded border border-gray-200">
+        <svg viewBox="0 0 40 24" className="w-10 h-6">
+          <rect width="40" height="24" rx="3" fill="#006FCF"/>
+          <text x="20" y="10" fontSize="5" fontWeight="bold" fill="white" textAnchor="middle">AMERICAN</text>
+          <text x="20" y="16" fontSize="5" fontWeight="bold" fill="white" textAnchor="middle">EXPRESS</text>
         </svg>
       </div>
     );
@@ -62,19 +62,54 @@ const BrandLogo = ({ brand }: { brand?: string }) => {
   
   if (brandLower.includes('discover')) {
     return (
-      <div className="flex items-center justify-center w-12 h-8 bg-white rounded border">
-        <svg viewBox="0 0 24 16" className="w-8 h-5">
-          <rect width="24" height="16" rx="2" fill="#FF6000"/>
-          <circle cx="12" cy="8" r="3" fill="white"/>
-          <text x="12" y="9" fontSize="3" fontWeight="bold" fill="#FF6000" textAnchor="middle">D</text>
+      <div className="flex items-center justify-center w-12 h-8 bg-white rounded border border-gray-200">
+        <svg viewBox="0 0 40 24" className="w-10 h-6">
+          <rect width="40" height="24" rx="3" fill="#FF6000"/>
+          <circle cx="20" cy="12" r="5" fill="white"/>
+          <text x="20" y="14" fontSize="6" fontWeight="bold" fill="#FF6000" textAnchor="middle">D</text>
         </svg>
       </div>
     );
   }
   
-  // Default generic card icon
+  if (brandLower.includes('diners')) {
+    return (
+      <div className="flex items-center justify-center w-12 h-8 bg-white rounded border border-gray-200">
+        <svg viewBox="0 0 40 24" className="w-10 h-6">
+          <rect width="40" height="24" rx="3" fill="#0079BE"/>
+          <text x="20" y="10" fontSize="4" fontWeight="bold" fill="white" textAnchor="middle">DINERS</text>
+          <text x="20" y="16" fontSize="4" fontWeight="bold" fill="white" textAnchor="middle">CLUB</text>
+        </svg>
+      </div>
+    );
+  }
+  
+  if (brandLower.includes('jcb')) {
+    return (
+      <div className="flex items-center justify-center w-12 h-8 bg-white rounded border border-gray-200">
+        <svg viewBox="0 0 40 24" className="w-10 h-6">
+          <rect width="40" height="24" rx="3" fill="#007B49"/>
+          <text x="20" y="14" fontSize="7" fontWeight="bold" fill="white" textAnchor="middle">JCB</text>
+        </svg>
+      </div>
+    );
+  }
+  
+  if (brandLower.includes('unionpay') || brandLower.includes('union')) {
+    return (
+      <div className="flex items-center justify-center w-12 h-8 bg-white rounded border border-gray-200">
+        <svg viewBox="0 0 40 24" className="w-10 h-6">
+          <rect width="40" height="24" rx="3" fill="#E21836"/>
+          <text x="20" y="8" fontSize="4" fontWeight="bold" fill="white" textAnchor="middle">UNION</text>
+          <text x="20" y="14" fontSize="4" fontWeight="bold" fill="white" textAnchor="middle">PAY</text>
+        </svg>
+      </div>
+    );
+  }
+  
+  // Default generic card icon for unknown brands
   return (
-    <div className="flex items-center justify-center w-12 h-8 bg-gradient-to-r from-gray-400 to-gray-600 rounded border">
+    <div className="flex items-center justify-center w-12 h-8 bg-gradient-to-r from-gray-400 to-gray-600 rounded border border-gray-200">
       <CreditCard className="w-5 h-5 text-white" />
     </div>
   );
@@ -84,7 +119,7 @@ const StripeLogo = () => (
   <div className="flex items-center gap-1">
     <svg viewBox="0 0 24 24" className="w-4 h-4">
       <rect width="24" height="24" rx="4" fill="#635BFF"/>
-      <text x="12" y="16" fontSize="8" fontWeight="bold" fill="white" textAnchor="middle">S</text>
+      <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.274 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.407-2.2 1.407-1.99 0-4.043-.921-5.827-1.845L4.717 24c1.73.921 4.351 1.685 7.552 1.685 2.508 0 4.682-.657 6.104-1.892 1.545-1.31 2.352-3.147 2.352-5.373 0-4.039-2.467-5.76-6.476-7.219z" fill="white"/>
     </svg>
     <span className="text-xs font-medium text-gray-600">Stripe</span>
   </div>
