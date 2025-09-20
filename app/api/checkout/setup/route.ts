@@ -50,8 +50,8 @@ export async function GET(request: Request) {
       customer: customer.id,
       payment_method_types: ["card"],
       mode: "setup",
-      success_url: `${process.env.APP_URL || "http://localhost:3000"}/checkout?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.APP_URL || "http://localhost:3000"}/checkout?canceled=true`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL || "https://pactwines.com"}/profile?payment_method_added=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || "https://pactwines.com"}/profile?payment_method_canceled=true`,
       metadata: {
         type: "payment_method_setup",
       },

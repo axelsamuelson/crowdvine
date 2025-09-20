@@ -66,6 +66,18 @@ export default function ProfilePage() {
   useEffect(() => {
     fetchProfile();
     fetchPaymentMethods();
+    
+    // Check for payment method success/cancel messages
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('payment_method_added') === 'true') {
+      toast.success("Payment method added successfully!");
+      // Clean up URL
+      window.history.replaceState({}, '', '/profile');
+    } else if (urlParams.get('payment_method_canceled') === 'true') {
+      toast.error("Payment method setup was canceled");
+      // Clean up URL
+      window.history.replaceState({}, '', '/profile');
+    }
   }, []);
 
   const fetchProfile = async () => {
