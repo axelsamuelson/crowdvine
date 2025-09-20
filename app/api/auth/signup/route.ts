@@ -39,7 +39,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Create user profile in profiles table
+    // 2. Create user profile in profiles table (or update if exists)
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .upsert({
@@ -47,11 +47,14 @@ export async function POST(request: Request) {
         email: email.toLowerCase().trim(),
         full_name: fullName,
         role: 'user',
-        access_granted_at: null // No access until granted by admin
+        access_granted_at: null // Reset access until granted by admin
+      }, {
+        onConflict: 'id',
+        ignoreDuplicates: false // Update existing records
       });
 
     if (profileError) {
-      console.error("Profile creation error:", profileError);
+      console.error("Profile creation/update error:", profileError);
       // Don't fail signup if profile creation fails, but log it
     }
 
