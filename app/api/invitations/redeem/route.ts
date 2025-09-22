@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (invitationError || !invitation) {
+      console.error('Invitation not found:', invitationError);
       return NextResponse.json({ error: "Invalid invitation code" }, { status: 400 });
     }
 
@@ -35,6 +36,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (invitation.max_uses && invitation.current_uses >= invitation.max_uses) {
+      console.error('Invitation code already used up:', { code, current_uses: invitation.current_uses, max_uses: invitation.max_uses });
       return NextResponse.json({ error: "Invitation code has been used up" }, { status: 400 });
     }
 
