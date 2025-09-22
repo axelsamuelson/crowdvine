@@ -79,6 +79,17 @@ export default function ProfilePage() {
     fetchProfile();
     fetchPaymentMethods();
     
+    // Load invitation from localStorage
+    const savedInvitation = localStorage.getItem('currentInvitation');
+    if (savedInvitation) {
+      try {
+        setInvitation(JSON.parse(savedInvitation));
+      } catch (error) {
+        console.error('Error loading invitation from localStorage:', error);
+        localStorage.removeItem('currentInvitation');
+      }
+    }
+    
     // Check for payment method success/cancel messages
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('payment_method_added') === 'true') {
@@ -264,6 +275,10 @@ export default function ProfilePage() {
 
       const data = await response.json();
       setInvitation(data.invitation);
+      
+      // Save invitation to localStorage
+      localStorage.setItem('currentInvitation', JSON.stringify(data.invitation));
+      
       toast.success("Invitation generated successfully!");
     } catch (error) {
       console.error('Error generating invitation:', error);
@@ -680,6 +695,18 @@ export default function ProfilePage() {
                         Generate New Invitation
                       </>
                     )}
+                  </Button>
+                  
+                  <Button
+                    onClick={() => {
+                      setInvitation(null);
+                      localStorage.removeItem('currentInvitation');
+                      toast.success("Invitation cleared");
+                    }}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Clear Invitation
                   </Button>
                 </div>
               </div>
