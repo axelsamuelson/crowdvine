@@ -98,6 +98,13 @@ export async function POST(request: NextRequest) {
 
     // Create profile with access granted
     console.log('Creating profile for user ID:', authData.user.id);
+    console.log('Profile data to insert:', {
+      id: authData.user.id,
+      email: email.toLowerCase().trim(),
+      access_granted_at: new Date().toISOString(),
+      invite_code_used: code
+    });
+    
     const { error: profileError } = await supabase
       .from('profiles')
       .insert({
@@ -110,30 +117,48 @@ export async function POST(request: NextRequest) {
     if (profileError) {
       console.error('Create profile error:', profileError);
       console.error('Profile error details:', JSON.stringify(profileError, null, 2));
-      
+      console.error('Profile error code:', profileError.code);
+      console.error('Profile error message:', profileError.message);
+      console.error('Profile error hint:', profileError.hint);
+
       // Clean up the created user if profile creation fails
-      await supabase.auth.admin.deleteUser(authData.user.id);
-      
-      return NextResponse.json({ 
-        error: "Failed to create profile", 
+      console.log('Cleaning up created user due to profile error...');
+      const deleteResult = await supabase.auth.admin.deleteUser(authData.user.id);
+      console.log('User deletion result:', deleteResult);
+
+      return NextResponse.json({
+        error: "Failed to create profile",
         details: profileError.message,
-        code: profileError.code 
+        code: profileError.code,
+        hint: profileError.hint
       }, { status: 500 });
     }
+    
+    console.log('Profile created successfully for user:', authData.user.id);
 
     // Update invitation usage
+    console.log('Updating invitation usage for invitation ID:', invitation.id);
+    console.log('Update data:', {
+      used_at: new Date().toISOString(),
+      used_by: authData.user.id,
+      current_uses: invitation.current_uses + 1
+    });
+    
     const { error: updateError } = await supabase
       .from('invitation_codes')
       .update({
         used_at: new Date().toISOString(),
-        used_by: authData.user.id,
+        used_by: authData.user.id, // This should match the profile ID since profiles.id = auth.users.id
         current_uses: invitation.current_uses + 1
       })
       .eq('id', invitation.id);
 
     if (updateError) {
       console.error('Update invitation error:', updateError);
+      console.error('Update invitation details:', JSON.stringify(updateError, null, 2));
       // Don't fail the signup if we can't update the invitation
+    } else {
+      console.log('Invitation usage updated successfully');
     }
 
     // Return success - frontend will handle sign in
@@ -148,6 +173,11 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Redeem invitation error:', error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
+    return NextResponse.json({ 
+      error: "Internal server error",
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
