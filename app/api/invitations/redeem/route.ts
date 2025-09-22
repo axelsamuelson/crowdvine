@@ -39,6 +39,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create user account
+    console.log('Creating user with email:', email.toLowerCase().trim());
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: email.toLowerCase().trim(),
       password,
@@ -50,7 +51,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to create account" }, { status: 500 });
     }
 
+    console.log('User created successfully with ID:', authData.user.id);
+
     // Create profile with access granted
+    console.log('Creating profile for user ID:', authData.user.id);
     const { error: profileError } = await supabase
       .from('profiles')
       .insert({
