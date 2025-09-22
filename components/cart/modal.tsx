@@ -171,7 +171,7 @@ export default function CartModal() {
       <Button
         aria-label="Open cart"
         onClick={openCart}
-        className="uppercase"
+        className="font-semibold cursor-pointer inline-flex items-center justify-center whitespace-nowrap text-base transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-black border border-transparent text-white shadow-xs hover:bg-black/90 h-7 rounded-sm gap-1.5 py-1 px-2 [&_svg:not([class*='size-'])]:size-4 has-[>svg]:pr-1.5 uppercase"
         size={"sm"}
         disabled={isPending}
       >
