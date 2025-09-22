@@ -71,8 +71,25 @@ export async function POST(request: NextRequest) {
     if (profileCheckError && profileCheckError.code !== 'PGRST116') {
       console.error('Profile check error:', profileCheckError);
     } else if (existingProfile) {
-      console.log('Profile already exists, skipping creation');
-      // Profile already exists, just update the invitation usage
+      console.log('Profile already exists, updating access and invitation usage');
+      
+      // Update profile to grant access if not already granted
+      const { error: profileUpdateError } = await supabase
+        .from('profiles')
+        .update({
+          access_granted_at: existingProfile.access_granted_at || new Date().toISOString(),
+          invite_code_used: code,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', authData.user.id);
+
+      if (profileUpdateError) {
+        console.error('Profile update error:', profileUpdateError);
+      } else {
+        console.log('Profile updated with access granted');
+      }
+      
+      // Update invitation usage
       const { error: updateError } = await supabase
         .from('invitation_codes')
         .update({
@@ -162,7 +179,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Return success - frontend will handle sign in
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       user: {
         id: authData.user.id,
@@ -170,6 +187,11 @@ export async function POST(request: NextRequest) {
       },
       message: "Account created successfully. Please sign in with your credentials."
     });
+
+    // Note: We don't set auth cookies here since the user needs to sign in manually
+    // The frontend will redirect to login page
+    
+    return response;
 
   } catch (error) {
     console.error('Redeem invitation error:', error);
