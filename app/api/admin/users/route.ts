@@ -20,11 +20,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Failed to fetch users" }, { status: 500 });
     }
 
-    // Get profiles with access_granted_at
+    // Get all profiles (both with and without access)
     const { data: profiles, error: profilesError } = await adminSupabase
       .from('profiles')
-      .select('id, email, access_granted_at, role')
-      .not('access_granted_at', 'is', null);
+      .select('id, email, access_granted_at, role, created_at, updated_at, invite_code_used');
 
     if (profilesError) {
       console.error('Error fetching profiles:', profilesError);
@@ -45,10 +44,12 @@ export async function GET(request: NextRequest) {
           last_sign_in_at: authUser.last_sign_in_at,
           email_confirmed_at: authUser.email_confirmed_at,
           access_granted_at: profile?.access_granted_at,
-          role: profile?.role || 'user'
+          role: profile?.role || 'user',
+          invite_code_used: profile?.invite_code_used,
+          updated_at: profile?.updated_at
         };
       })
-      .sort((a, b) => new Date(b.access_granted_at || '').getTime() - new Date(a.access_granted_at || '').getTime());
+      .sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime());
 
     return NextResponse.json(usersWithAccess);
 

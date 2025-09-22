@@ -23,6 +23,8 @@ interface User {
   invite_code_used?: string;
   created_at: string;
   updated_at: string;
+  last_sign_in_at?: string;
+  email_confirmed_at?: string;
 }
 
 interface EditForm {
@@ -236,6 +238,7 @@ export default function UsersAdmin() {
                 <TableHead>User</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Access</TableHead>
+                <TableHead>Invite Code</TableHead>
                 <TableHead>Joined</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -245,13 +248,30 @@ export default function UsersAdmin() {
                 <TableRow key={user.id}>
                   <TableCell>
                     <div className="font-medium">{user.email}</div>
+                    <div className="text-sm text-gray-500">
+                      {user.email_confirmed_at ? 'Email confirmed' : 'Email not confirmed'}
+                    </div>
                   </TableCell>
                   <TableCell>{getRoleBadge(user.role)}</TableCell>
                   <TableCell>{getAccessBadge(user.access_granted_at)}</TableCell>
                   <TableCell>
+                    {user.invite_code_used ? (
+                      <Badge variant="outline" className="font-mono text-xs">
+                        {user.invite_code_used.substring(0, 8)}...
+                      </Badge>
+                    ) : (
+                      <span className="text-gray-400 text-sm">No invite code</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
                     <div className="text-sm">
                       {new Date(user.created_at).toLocaleDateString()}
                     </div>
+                    {user.last_sign_in_at && (
+                      <div className="text-xs text-gray-500">
+                        Last login: {new Date(user.last_sign_in_at).toLocaleDateString()}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
