@@ -11,7 +11,7 @@ export async function getOrSetCartId(): Promise<string> {
     cartId = randomUUID();
     cookieStore.set(CART_COOKIE_NAME, cartId, {
       httpOnly: true,
-      sameSite: "lax",
+      sameSite: "strict",
       path: "/",
       maxAge: 60 * 60 * 24 * 90, // 90 days
       secure: process.env.NODE_ENV === "production",

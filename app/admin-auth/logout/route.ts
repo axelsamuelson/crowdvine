@@ -7,14 +7,14 @@ export async function GET() {
   response.cookies.set('admin-auth', '', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: 'strict',
     maxAge: 0 // Expire immediately
   });
   
   response.cookies.set('admin-email', '', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: 'strict',
     maxAge: 0 // Expire immediately
   });
 
