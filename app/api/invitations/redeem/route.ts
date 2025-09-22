@@ -62,7 +62,16 @@ export async function POST(request: NextRequest) {
 
     if (profileError) {
       console.error('Create profile error:', profileError);
-      return NextResponse.json({ error: "Failed to create profile" }, { status: 500 });
+      console.error('Profile error details:', JSON.stringify(profileError, null, 2));
+      
+      // Clean up the created user if profile creation fails
+      await supabase.auth.admin.deleteUser(authData.user.id);
+      
+      return NextResponse.json({ 
+        error: "Failed to create profile", 
+        details: profileError.message,
+        code: profileError.code 
+      }, { status: 500 });
     }
 
     // Update invitation usage
