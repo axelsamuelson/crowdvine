@@ -1,0 +1,68 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
+
+export async function POST(request: NextRequest) {
+  try {
+    const { code } = await request.json();
+    
+    if (!code || typeof code !== 'string') {
+      return NextResponse.json({ error: "Invitation code is required" }, { status: 400 });
+    }
+
+    const supabase = getSupabaseAdmin();
+
+    // Find the invitation code
+    const { data: invitation, error } = await supabase
+      .from('invitation_codes')
+      .select('id, code, expires_at, max_uses, current_uses, is_active')
+      .eq('code', code)
+      .single();
+
+    if (error || !invitation) {
+      return NextResponse.json({ 
+        success: false, 
+        error: "Invalid invitation code" 
+      });
+    }
+
+    // Check if invitation is valid
+    const now = new Date();
+    const expiresAt = new Date(invitation.expires_at);
+    
+    if (!invitation.is_active) {
+      return NextResponse.json({ 
+        success: false, 
+        error: "Invitation code is no longer active" 
+      });
+    }
+
+    if (expiresAt < now) {
+      return NextResponse.json({ 
+        success: false, 
+        error: "Invitation code has expired" 
+      });
+    }
+
+    if (invitation.max_uses && invitation.current_uses >= invitation.max_uses) {
+      return NextResponse.json({ 
+        success: false, 
+        error: "Invitation code has been used up" 
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      invitation: {
+        id: invitation.id,
+        code: invitation.code,
+        expiresAt: invitation.expires_at,
+        maxUses: invitation.max_uses,
+        currentUses: invitation.current_uses
+      }
+    });
+
+  } catch (error) {
+    console.error('Validate invitation error:', error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}

@@ -21,7 +21,10 @@ import {
   Package,
   Settings,
   LogOut,
-  Wine
+  Wine,
+  UserPlus,
+  Copy,
+  Check
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -63,6 +66,14 @@ export default function ProfilePage() {
     postal_code: '',
     country: 'Sweden'
   });
+  const [invitation, setInvitation] = useState<{
+    code: string;
+    signupUrl: string;
+    expiresAt: string;
+  } | null>(null);
+  const [generatingInvite, setGeneratingInvite] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
 
   useEffect(() => {
     fetchProfile();
@@ -235,6 +246,46 @@ export default function ProfilePage() {
     } catch (error) {
       console.error('Error deleting payment method:', error);
       toast.error("Failed to delete payment method");
+    }
+  };
+
+  const generateInvitation = async () => {
+    setGeneratingInvite(true);
+    try {
+      const response = await fetch('/api/invitations/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ expiresInDays: 30 })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate invitation');
+      }
+
+      const data = await response.json();
+      setInvitation(data.invitation);
+      toast.success("Invitation generated successfully!");
+    } catch (error) {
+      console.error('Error generating invitation:', error);
+      toast.error("Failed to generate invitation");
+    } finally {
+      setGeneratingInvite(false);
+    }
+  };
+
+  const copyToClipboard = async (text: string, type: 'code' | 'url') => {
+    try {
+      await navigator.clipboard.writeText(text);
+      if (type === 'code') {
+        setCopiedCode(true);
+        setTimeout(() => setCopiedCode(false), 2000);
+      } else {
+        setCopiedUrl(true);
+        setTimeout(() => setCopiedUrl(false), 2000);
+      }
+      toast.success(`${type === 'code' ? 'Code' : 'URL'} copied to clipboard!`);
+    } catch (error) {
+      toast.error("Failed to copy to clipboard");
     }
   };
 
@@ -522,6 +573,119 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Invite Friends */}
+        <Card className="border border-gray-200">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg font-medium text-gray-900 flex items-center gap-2">
+              <UserPlus className="w-5 h-5" />
+              Invite Friends
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {!invitation ? (
+              <div className="text-center py-6">
+                <UserPlus className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600 mb-4">
+                  Generate an invitation code to share with friends and family
+                </p>
+                <Button 
+                  onClick={generateInvitation}
+                  disabled={generatingInvite}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {generatingInvite ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      Generate Invitation
+                    </>
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h3 className="font-medium text-green-800 mb-2">Invitation Generated!</h3>
+                  <p className="text-sm text-green-700 mb-4">
+                    Share this code or link with friends. It expires on {new Date(invitation.expiresAt).toLocaleDateString()}.
+                  </p>
+                  
+                  {/* Invitation Code */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">Invitation Code</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={invitation.code}
+                        readOnly
+                        className="font-mono text-lg tracking-wider bg-gray-50"
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => copyToClipboard(invitation.code, 'code')}
+                        className="px-3"
+                      >
+                        {copiedCode ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Share this code with friends. They can enter it on the access request page.
+                    </p>
+                  </div>
+
+                  {/* Signup Link */}
+                  <div className="space-y-2 mt-4">
+                    <Label className="text-sm font-medium text-gray-700">Direct Signup Link</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={invitation.signupUrl}
+                        readOnly
+                        className="text-sm bg-gray-50"
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => copyToClipboard(invitation.signupUrl, 'url')}
+                        className="px-3"
+                      >
+                        {copiedUrl ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Share this link for direct signup without entering a code.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <Button
+                    onClick={generateInvitation}
+                    variant="outline"
+                    disabled={generatingInvite}
+                    className="flex-1"
+                  >
+                    {generatingInvite ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="w-4 h-4 mr-2" />
+                        Generate New Invitation
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Quick Actions */}
         <Card className="border border-gray-200">

@@ -24,9 +24,14 @@ function SignupPageContent() {
 
   useEffect(() => {
     const tokenParam = searchParams.get('token');
+    const inviteParam = searchParams.get('invite');
+    
     if (tokenParam) {
       setToken(tokenParam);
       validateToken(tokenParam);
+    } else if (inviteParam) {
+      setToken(inviteParam);
+      validateInvite(inviteParam);
     }
   }, [searchParams]);
 
@@ -78,6 +83,44 @@ function SignupPageContent() {
     }
   };
 
+  const validateInvite = async (inviteCode: string) => {
+    try {
+      console.log('Validating invitation code:', inviteCode);
+      
+      const response = await fetch('/api/invitations/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: inviteCode })
+      });
+
+      console.log('Invitation validation response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Network error' }));
+        console.error('Invitation validation error:', errorData);
+        setTokenValid(false);
+        setError(`Invitation validation failed: ${errorData.error || errorData.message || 'Unknown error'}`);
+        return;
+      }
+
+      const result = await response.json();
+      console.log('Invitation validation result:', result);
+      
+      if (result.success) {
+        setTokenValid(true);
+        console.log('Invitation code is valid');
+      } else {
+        setTokenValid(false);
+        setError(result.error || 'Invalid or expired invitation code');
+        console.log('Invitation validation failed:', result.error);
+      }
+    } catch (error) {
+      console.error('Invitation validation network error:', error);
+      setTokenValid(false);
+      setError(`Failed to validate invitation code: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -90,80 +133,117 @@ function SignupPageContent() {
     }
 
     if (!token) {
-      setError("No access token provided");
+      setError("No access token or invitation code provided");
       setLoading(false);
       return;
     }
 
     try {
-      // Create user account directly via admin API (bypasses email verification)
-      const createUserResponse = await fetch('/api/create-user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          email,
-          password
-        })
-      });
-
-      if (!createUserResponse.ok) {
-        const errorData = await createUserResponse.json();
-        console.error('Create user error:', errorData);
-        
-        let errorMessage = errorData.error || 'Failed to create account';
-        
-        if (errorData.details) {
-          errorMessage += `: ${errorData.details}`;
-        }
-        
-        if (errorData.debug) {
-          console.log('Debug info:', errorData.debug);
-          // Add debug info to error message for development
-          if (process.env.NODE_ENV === 'development') {
-            errorMessage += ` (Debug: ${errorData.debug.errorType})`;
-          }
-        }
-        
-        setError(errorMessage);
-        setLoading(false);
-        return;
-      }
-
-      const createUserData = await createUserResponse.json();
+      // Check if this is an invitation code (20 characters) or access token (UUID)
+      const isInvitationCode = token.length === 20 && !token.includes('-');
       
-      if (createUserData.success && createUserData.user) {
-        // Mark token as used
-        await fetch('/api/use-access-token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token })
-        });
-
-        // Remove access request from Access Control (moves to Users)
-        await fetch('/api/delete-access-request-on-signup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email })
-        });
-
-        // Send welcome email
-        await fetch('/api/email/welcome', {
+      if (isInvitationCode) {
+        // Handle invitation signup
+        const inviteResponse = await fetch('/api/invitations/redeem', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            customerEmail: email,
-            customerName: email.split('@')[0] // Use email prefix as name
+            email,
+            password,
+            code: token
           })
         });
 
-        setSuccess(true);
+        if (!inviteResponse.ok) {
+          const errorData = await inviteResponse.json();
+          console.error('Invitation signup error:', errorData);
+          setError(errorData.error || 'Failed to create account with invitation');
+          setLoading(false);
+          return;
+        }
+
+        const inviteData = await inviteResponse.json();
         
-        // Redirect to profile page after 2 seconds since user is now logged in
-        setTimeout(() => {
-          router.push('/profile');
-        }, 2000);
+        if (inviteData.success && inviteData.user) {
+          setSuccess(true);
+          
+          // Redirect to profile page after 2 seconds since user is now logged in
+          setTimeout(() => {
+            router.push('/profile');
+          }, 2000);
+        } else {
+          setError('Failed to create account');
+        }
       } else {
-        setError('Failed to create account');
+        // Handle access token signup (existing flow)
+        const createUserResponse = await fetch('/api/create-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            email,
+            password
+          })
+        });
+
+        if (!createUserResponse.ok) {
+          const errorData = await createUserResponse.json();
+          console.error('Create user error:', errorData);
+          
+          let errorMessage = errorData.error || 'Failed to create account';
+          
+          if (errorData.details) {
+            errorMessage += `: ${errorData.details}`;
+          }
+          
+          if (errorData.debug) {
+            console.log('Debug info:', errorData.debug);
+            // Add debug info to error message for development
+            if (process.env.NODE_ENV === 'development') {
+              errorMessage += ` (Debug: ${errorData.debug.errorType})`;
+            }
+          }
+          
+          setError(errorMessage);
+          setLoading(false);
+          return;
+        }
+
+        const createUserData = await createUserResponse.json();
+        
+        if (createUserData.success && createUserData.user) {
+          // Mark token as used
+          await fetch('/api/use-access-token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token })
+          });
+
+          // Remove access request from Access Control (moves to Users)
+          await fetch('/api/delete-access-request-on-signup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+          });
+
+          // Send welcome email
+          await fetch('/api/email/welcome', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              customerEmail: email,
+              customerName: email.split('@')[0] // Use email prefix as name
+            })
+          });
+
+          setSuccess(true);
+          
+          // Redirect to profile page after 2 seconds since user is now logged in
+          setTimeout(() => {
+            router.push('/profile');
+          }, 2000);
+        } else {
+          setError('Failed to create account');
+        }
       }
     } catch (error) {
       setError('Failed to create account');
@@ -255,10 +335,12 @@ function SignupPageContent() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                disabled
-                className="bg-gray-100"
+                disabled={!!email}
+                className={email ? "bg-gray-100" : ""}
               />
-              <p className="text-sm text-gray-500">Email is pre-filled from your access approval</p>
+              <p className="text-sm text-gray-500">
+                {email ? "Email is pre-filled from your access approval" : "Enter your email address"}
+              </p>
             </div>
             
             <div className="space-y-2">

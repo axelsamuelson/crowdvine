@@ -270,9 +270,9 @@ export const FormAccessRequest = ({
 };
 
 // API functions
-async function validateInvitationCodeWithCredentials(code: string, email: string, password: string): Promise<ActionResult<string>> {
+  async function validateInvitationCodeWithCredentials(code: string, email: string, password: string): Promise<ActionResult<string>> {
   try {
-    const response = await fetch('/api/invite/redeem', {
+    const response = await fetch('/api/invitations/redeem', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, code }),
@@ -304,22 +304,18 @@ async function validateInvitationCodeWithCredentials(code: string, email: string
 
 async function validateInvitationCode(code: string): Promise<ActionResult<string>> {
   try {
-    const response = await fetch('/api/invite/redeem', {
+    const response = await fetch('/api/invitations/validate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        email: 'temp@example.com', // Will be replaced by actual email
-        password: 'temp123', // Will be replaced by actual password
-        code 
-      }),
+      body: JSON.stringify({ code }),
     });
     
     const result = await response.json();
     
-    if (response.ok) {
+    if (response.ok && result.success) {
       return {
         success: true,
-        data: "Platform unlocked! Welcome to CrowdVine.",
+        data: "Valid invitation code! Complete your registration below.",
         id: Date.now().toString(),
       };
     } else {
