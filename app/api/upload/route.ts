@@ -28,22 +28,29 @@ export async function POST(request: NextRequest) {
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
 
-      // Save file to public/uploads directory
-      const fs = require('fs');
-      const path = require('path');
-      
-      // Create uploads directory if it doesn't exist
-      const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-      if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('uploads')
+        .upload(fileName, buffer, {
+          contentType: file.type,
+          upsert: false
+        });
+
+      if (error) {
+        console.error("Supabase upload error:", error);
+        throw new Error(`Failed to upload to storage: ${error.message}`);
       }
-      
-      // Write file to public/uploads
-      const filePath = path.join(uploadsDir, fileName);
-      fs.writeFileSync(filePath, buffer);
-      
-      // Return relative path for the uploaded file
-      uploadedFiles.push(`/uploads/${fileName}`);
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('uploads')
+        .getPublicUrl(fileName);
+
+      if (urlData?.publicUrl) {
+        uploadedFiles.push(urlData.publicUrl);
+      } else {
+        throw new Error("Failed to get public URL");
+      }
     }
 
     return NextResponse.json({

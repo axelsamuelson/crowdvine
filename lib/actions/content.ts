@@ -24,14 +24,8 @@ export async function getSiteContent(): Promise<SiteContent[]> {
 
   if (error) throw new Error(error.message);
   
-  // Konvertera relativa uploads-sökvägar till fullständiga URL:er
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001';
-  const processedData = (data || []).map(item => ({
-    ...item,
-    value: item.value && item.value.startsWith('/uploads/') 
-      ? `${baseUrl}${item.value}` 
-      : item.value
-  }));
+  // Supabase Storage URLs are already full URLs, no conversion needed
+  const processedData = data || [];
   
   return processedData;
 }
@@ -53,12 +47,7 @@ export async function getSiteContentByKey(key: string): Promise<string | null> {
     
     const value = data?.value || null;
     
-    // Om värdet är en relativ sökväg för uploads, konvertera till fullständig URL
-    if (value && value.startsWith('/uploads/')) {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001';
-      return `${baseUrl}${value}`;
-    }
-    
+    // Supabase Storage URLs are already full URLs, no conversion needed
     return value;
   } catch (error) {
     console.error(`Error fetching site content for key: ${key}`, error);
