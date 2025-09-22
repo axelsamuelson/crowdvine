@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, Package, MapPin, Calendar, ArrowRight, Eye, DollarSign, Truck, Home } from "lucide-react";
 import { toast } from "sonner";
+import Image from "next/image";
+import Link from "next/link";
 
 interface ReservationDetails {
   id: string;
@@ -26,6 +28,9 @@ interface ReservationDetails {
     quantity: number;
     vintage: string;
     price_cents: number;
+    image_url?: string;
+    product_handle?: string;
+    producer_name?: string;
   }>;
 }
 
@@ -167,15 +172,21 @@ function CheckoutConfirmationContent() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Success Header */}
         <div className="text-center mb-8">
-          <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
-            <CheckCircle className="h-8 w-8 text-green-600" />
+          <div className="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-green-100 mb-6">
+            <CheckCircle className="h-10 w-10 text-green-600" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Reservation Confirmed!
+          <h1 className="text-4xl font-bold text-gray-900 mb-3">
+            🍷 Wine Reservation Confirmed!
           </h1>
-          <p className="text-lg text-gray-600">
-            Your wine reservation has been successfully placed
+          <p className="text-xl text-gray-600 mb-2">
+            Your premium wine collection has been successfully reserved
           </p>
+          {reservation && (
+            <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+              <Calendar className="w-4 h-4" />
+              <span>Reserved on {formatDate(reservation.created_at)}</span>
+            </div>
+          )}
         </div>
 
         {/* Reservation Details */}
@@ -243,17 +254,66 @@ function CheckoutConfirmationContent() {
 
               {/* Items */}
               <div>
-                <h3 className="text-lg font-semibold mb-3">Wine Selection</h3>
-                <div className="space-y-3">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Package className="w-5 h-5" />
+                  Reserved Wines
+                </h3>
+                <div className="grid gap-4">
                   {reservation.items.map((item, index) => (
-                    <div key={index} className="flex justify-between items-center py-3 px-4 bg-gray-50 rounded-lg">
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-900">{item.wine_name}</p>
-                        <p className="text-sm text-gray-500">{item.vintage}</p>
+                    <div key={index} className="flex gap-4 p-4 bg-gray-50 rounded-lg border">
+                      {/* Wine Image */}
+                      <div className="relative w-20 h-20 shrink-0 overflow-hidden rounded-md">
+                        {item.image_url ? (
+                          <Image
+                            src={item.image_url}
+                            alt={`${item.wine_name} ${item.vintage}`}
+                            fill
+                            className="object-cover"
+                            sizes="80px"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                            <Package className="w-6 h-6 text-gray-400" />
+                          </div>
+                        )}
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm text-gray-600">{item.quantity} bottles</p>
-                        <p className="font-medium">{formatPrice(item.price_cents * item.quantity)}</p>
+                      
+                      {/* Wine Details */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-gray-900 truncate">
+                              {item.wine_name}
+                            </h4>
+                            {item.producer_name && (
+                              <p className="text-sm text-gray-600 truncate">
+                                by {item.producer_name}
+                              </p>
+                            )}
+                            <p className="text-sm text-gray-500">
+                              Vintage {item.vintage}
+                            </p>
+                            <div className="flex items-center gap-4 mt-2">
+                              <span className="text-sm text-gray-600">
+                                {item.quantity} {item.quantity === 1 ? 'bottle' : 'bottles'}
+                              </span>
+                              <span className="text-sm font-medium text-gray-900">
+                                {formatPrice(item.price_cents * item.quantity)}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          {/* View Product Link */}
+                          {item.product_handle && (
+                            <Link
+                              href={`/product/${item.product_handle}`}
+                              className="shrink-0 text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
+                            >
+                              <Eye className="w-4 h-4" />
+                              View
+                            </Link>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
