@@ -52,6 +52,42 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('User created successfully with ID:', authData.user.id);
+    
+    // Check if profile already exists (in case of duplicate key error)
+    console.log('Checking if profile already exists...');
+    const { data: existingProfile, error: profileCheckError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', authData.user.id)
+      .single();
+      
+    if (profileCheckError && profileCheckError.code !== 'PGRST116') {
+      console.error('Profile check error:', profileCheckError);
+    } else if (existingProfile) {
+      console.log('Profile already exists, skipping creation');
+      // Profile already exists, just update the invitation usage
+      const { error: updateError } = await supabase
+        .from('invitation_codes')
+        .update({
+          used_at: new Date().toISOString(),
+          used_by: authData.user.id,
+          current_uses: invitation.current_uses + 1
+        })
+        .eq('id', invitation.id);
+
+      if (updateError) {
+        console.error('Update invitation error:', updateError);
+      }
+
+      return NextResponse.json({
+        success: true,
+        user: {
+          id: authData.user.id,
+          email: authData.user.email
+        },
+        message: "Account created successfully. Please sign in with your credentials."
+      });
+    }
 
     // Create profile with access granted
     console.log('Creating profile for user ID:', authData.user.id);
