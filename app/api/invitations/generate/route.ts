@@ -1,33 +1,44 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { createServerClient } from "@supabase/ssr";
 import { randomUUID } from "crypto";
 
 export async function POST(request: NextRequest) {
   try {
     const { expiresInDays = 30 } = await request.json();
     
-    // Get current user from cookie
-    const cookieStore = await request.cookies;
-    const adminAuthCookie = cookieStore.get('admin-auth')?.value;
-    const adminEmailCookie = cookieStore.get('admin-email')?.value;
+    // Create Supabase client for user authentication
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value));
+          },
+        },
+      }
+    );
+
+    // Get current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
     
-    if (!adminAuthCookie || adminAuthCookie !== 'true' || !adminEmailCookie) {
+    if (userError || !user) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     }
 
-    const supabase = getSupabaseAdmin();
-    
-    // Get user profile
+    // Get user profile to verify access
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('id, email, access_granted_at')
-      .eq('email', adminEmailCookie)
-      .eq('access_granted_at')
+      .eq('id', user.id)
       .not('access_granted_at', 'is', null)
       .single();
 
     if (profileError || !profile) {
-      return NextResponse.json({ error: "User not found or no access" }, { status: 403 });
+      return NextResponse.json({ error: "User not found or no access granted" }, { status: 403 });
     }
 
     // Generate invitation code
