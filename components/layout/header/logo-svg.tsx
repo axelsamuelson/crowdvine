@@ -124,7 +124,7 @@ export function LogoSvg({ className }: { className?: string }) {
       viewBox="0 0 292 61"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className={className}
+      className={`w-auto h-6 max-md:place-self-center md:w-full md:h-auto max-w-96 ${className || ''}`}
     >
       <path
         d="M0 58.9432L20.7844 1.29902H35.3984L56.1828 58.9432H43.3549L39.1331 46.6837H16.9685L12.7467 58.9432H0ZM20.4596 36.535H35.7232L28.0914 14.2893L20.4596 36.535Z"
