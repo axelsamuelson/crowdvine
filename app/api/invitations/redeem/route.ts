@@ -80,43 +80,15 @@ export async function POST(request: NextRequest) {
       // Don't fail the signup if we can't update the invitation
     }
 
-    // Sign in the user
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email: email.toLowerCase().trim(),
-      password
-    });
-
-    if (signInError || !signInData.user) {
-      console.error('Sign in error:', signInError);
-      return NextResponse.json({ error: "Account created but failed to sign in" }, { status: 500 });
-    }
-
-    // Set cookies for authentication
-    const response = NextResponse.json({
+    // Return success - frontend will handle sign in
+    return NextResponse.json({
       success: true,
       user: {
         id: authData.user.id,
         email: authData.user.email
-      }
+      },
+      message: "Account created successfully. Please sign in with your credentials."
     });
-
-    // Set access cookie
-    response.cookies.set('cv-access', '1', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 30 // 30 days
-    });
-
-    // Set Supabase auth cookie
-    response.cookies.set('sb-access-auth-token', signInData.session?.access_token || '', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7 // 7 days
-    });
-
-    return response;
 
   } catch (error) {
     console.error('Redeem invitation error:', error);

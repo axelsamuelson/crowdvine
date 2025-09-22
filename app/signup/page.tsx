@@ -167,9 +167,9 @@ function SignupPageContent() {
         if (inviteData.success && inviteData.user) {
           setSuccess(true);
           
-          // Redirect to profile page after 2 seconds since user is now logged in
+          // Redirect to login page since user needs to sign in
           setTimeout(() => {
-            router.push('/profile');
+            router.push('/log-in');
           }, 2000);
         } else {
           setError('Failed to create account');
@@ -302,14 +302,14 @@ function SignupPageContent() {
           </CardHeader>
           <CardContent>
             <p className="text-center text-gray-600 mb-4">
-              Welcome to CrowdVine! Your account has been created and you now have access to our exclusive wine community.
+              Welcome to CrowdVine! Your account has been created with invitation access. Please sign in to continue.
             </p>
             <div className="text-center">
               <Button 
-                onClick={() => router.push('/profile')}
+                onClick={() => router.push('/log-in')}
                 className="w-full"
               >
-                Enter CrowdVine
+                Sign In to Continue
               </Button>
             </div>
           </CardContent>
