@@ -5,7 +5,10 @@ export async function POST(request: NextRequest) {
   try {
     const { email, password, code } = await request.json();
     
+    console.log('Redeem invitation request:', { email, code: code.substring(0, 10) + '...' });
+    
     if (!email || !password || !code) {
+      console.error('Missing required fields:', { email: !!email, password: !!password, code: !!code });
       return NextResponse.json({ error: "Email, password, and invitation code are required" }, { status: 400 });
     }
 
@@ -50,10 +53,12 @@ export async function POST(request: NextRequest) {
 
     if (authError || !authData.user) {
       console.error('Create user error:', authError);
+      console.error('Auth data:', authData);
       return NextResponse.json({ error: "Failed to create account" }, { status: 500 });
     }
 
     console.log('User created successfully with ID:', authData.user.id);
+    console.log('User email:', authData.user.email);
     
     // Check if profile already exists (in case of duplicate key error)
     console.log('Checking if profile already exists...');
