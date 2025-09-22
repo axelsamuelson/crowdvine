@@ -54,8 +54,9 @@ CREATE POLICY "Allow users to update invitation usage" ON invitation_codes
     (auth.uid() = created_by OR auth.uid() = used_by)
   );
 
--- Function to generate random invitation code
-CREATE OR REPLACE FUNCTION generate_invitation_code()
+-- Drop existing function if it exists and create new one
+DROP FUNCTION IF EXISTS generate_invitation_code();
+CREATE FUNCTION generate_invitation_code()
 RETURNS TEXT AS $$
 DECLARE
   chars TEXT := 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -69,8 +70,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Function to use an invitation code
-CREATE OR REPLACE FUNCTION use_invitation_code(
+-- Drop existing function if it exists and create new one
+DROP FUNCTION IF EXISTS use_invitation_code(TEXT, UUID);
+CREATE FUNCTION use_invitation_code(
   invitation_code TEXT,
   user_id UUID
 )
