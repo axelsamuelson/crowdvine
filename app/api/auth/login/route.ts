@@ -61,7 +61,7 @@ export async function POST(request: Request) {
       response.cookies.set('cv-access', '1', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        sameSite: 'strict',
         maxAge: 60 * 60 * 24 * 365, // 1 year
         path: '/'
       });
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
       response.cookies.set('sb-access-auth-token', authData.session.access_token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        sameSite: 'strict',
         maxAge: authData.session.expires_in || 60 * 60 * 24 * 7, // 7 days default
         path: '/'
       });

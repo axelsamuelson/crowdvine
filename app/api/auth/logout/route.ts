@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     response.cookies.set('cv-access', '', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'strict',
       maxAge: 0, // Expire immediately
       path: '/'
     });
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     response.cookies.set('sb-access-auth-token', '', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'strict',
       maxAge: 0, // Expire immediately
       path: '/'
     });
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       response.cookies.set(cookieName, '', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        sameSite: 'strict',
         maxAge: 0,
         path: '/'
       });
