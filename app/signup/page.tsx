@@ -26,14 +26,17 @@ function SignupPageContent() {
     const tokenParam = searchParams.get('token');
     const inviteParam = searchParams.get('invite');
     
+    if (inviteParam) {
+      // Redirect to dedicated invite signup page
+      router.push(`/invite-signup?invite=${inviteParam}`);
+      return;
+    }
+    
     if (tokenParam) {
       setToken(tokenParam);
       validateToken(tokenParam);
-    } else if (inviteParam) {
-      setToken(inviteParam);
-      validateInvite(inviteParam);
     }
-  }, [searchParams]);
+  }, [searchParams, router]);
 
   const validateToken = async (tokenToValidate: string) => {
     try {
@@ -83,43 +86,6 @@ function SignupPageContent() {
     }
   };
 
-  const validateInvite = async (inviteCode: string) => {
-    try {
-      console.log('Validating invitation code:', inviteCode);
-      
-      const response = await fetch('/api/invitations/validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: inviteCode })
-      });
-
-      console.log('Invitation validation response status:', response.status);
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Network error' }));
-        console.error('Invitation validation error:', errorData);
-        setTokenValid(false);
-        setError(`Invitation validation failed: ${errorData.error || errorData.message || 'Unknown error'}`);
-        return;
-      }
-
-      const result = await response.json();
-      console.log('Invitation validation result:', result);
-      
-      if (result.success) {
-        setTokenValid(true);
-        console.log('Invitation code is valid');
-      } else {
-        setTokenValid(false);
-        setError(result.error || 'Invalid or expired invitation code');
-        console.log('Invitation validation failed:', result.error);
-      }
-    } catch (error) {
-      console.error('Invitation validation network error:', error);
-      setTokenValid(false);
-      setError(`Failed to validate invitation code: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,43 +105,7 @@ function SignupPageContent() {
     }
 
     try {
-      // Check if this is an invitation code (20 characters) or access token (UUID)
-      const isInvitationCode = token.length === 20 && !token.includes('-');
-      
-      if (isInvitationCode) {
-        // Handle invitation signup
-        const inviteResponse = await fetch('/api/invitations/redeem', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            email,
-            password,
-            code: token
-          })
-        });
-
-        if (!inviteResponse.ok) {
-          const errorData = await inviteResponse.json();
-          console.error('Invitation signup error:', errorData);
-          setError(errorData.error || 'Failed to create account with invitation');
-          setLoading(false);
-          return;
-        }
-
-        const inviteData = await inviteResponse.json();
-        
-        if (inviteData.success && inviteData.user) {
-          setSuccess(true);
-          
-          // Redirect to login page since user needs to sign in
-          setTimeout(() => {
-            router.push('/log-in');
-          }, 2000);
-        } else {
-          setError('Failed to create account');
-        }
-      } else {
-        // Handle access token signup (existing flow)
+      // Handle access token signup (existing flow)
         const createUserResponse = await fetch('/api/create-user', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -244,7 +174,6 @@ function SignupPageContent() {
         } else {
           setError('Failed to create account');
         }
-      }
     } catch (error) {
       setError('Failed to create account');
     } finally {

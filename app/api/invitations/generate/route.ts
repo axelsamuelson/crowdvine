@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     // Generate signup URL
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const signupUrl = `${baseUrl}/signup?invite=${code}`;
+    const signupUrl = `${baseUrl}/invite-signup?invite=${code}`;
 
     return NextResponse.json({
       success: true,
