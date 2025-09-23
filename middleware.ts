@@ -36,9 +36,9 @@ export async function middleware(req: NextRequest) {
   if (!isPublic) {
     // Först kontrollera om användaren är inloggad
     if (!user) {
-      const login = new URL("/log-in", req.url);
-      login.searchParams.set("redirectedFrom", pathname);
-      return NextResponse.redirect(login);
+      const ask = new URL("/access-request", req.url);
+      ask.searchParams.set("redirectedFrom", pathname);
+      return NextResponse.redirect(ask);
     }
 
     // Sedan kontrollera om användaren har access
