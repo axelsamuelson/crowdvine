@@ -6,10 +6,15 @@ export async function GET() {
   try {
     const supabase = getSupabaseAdmin();
     
-    // For now, let's use the known user ID from our test
-    // TODO: Fix authentication properly
-    const userId = "7122d74d-f06c-4b25-be10-0fe025607981";
+    // Get the current authenticated user
+    const user = await getCurrentUser();
     
+    if (!user) {
+      console.log('No authenticated user found');
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+    
+    const userId = user.id;
     console.log(`Fetching reservations for user: ${userId}`);
     
     // Get reservations with related data
