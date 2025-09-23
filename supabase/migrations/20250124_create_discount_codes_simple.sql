@@ -21,6 +21,8 @@ ALTER TABLE discount_codes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view their own discount codes" ON discount_codes
   FOR SELECT USING (auth.uid() = earned_by_user_id);
 
+-- Note: Admin policy not included since profiles.is_admin column doesn't exist
+
 -- Function to generate discount code
 CREATE OR REPLACE FUNCTION generate_discount_code()
 RETURNS VARCHAR(50) AS $$

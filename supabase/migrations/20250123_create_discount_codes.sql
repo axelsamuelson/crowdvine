@@ -44,14 +44,8 @@ CREATE POLICY "Users can view their own discount codes" ON discount_codes
 CREATE POLICY "Users can view their own used discount codes" ON discount_codes
   FOR SELECT USING (auth.uid() = used_by_user_id);
 
-CREATE POLICY "Admins can manage all discount codes" ON discount_codes
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM profiles 
-      WHERE profiles.id = auth.uid() 
-      AND profiles.is_admin = true
-    )
-  );
+-- Note: Admin policy removed since profiles.is_admin column doesn't exist
+-- You can add admin functionality later if needed
 
 -- Function to generate discount code
 CREATE OR REPLACE FUNCTION generate_discount_code()
