@@ -13,8 +13,9 @@ export function ConditionalHeader({ collections }: ConditionalHeaderProps) {
   const isAdminRoute = pathname.startsWith("/admin");
   const isAccessRequestRoute = pathname === "/access-request";
   const isCheckoutSuccessRoute = pathname === "/checkout/success";
+  const isLogInRoute = pathname === "/log-in";
 
-  if (isAdminRoute || isAccessRequestRoute || isCheckoutSuccessRoute) {
+  if (isAdminRoute || isAccessRequestRoute || isCheckoutSuccessRoute || isLogInRoute) {
     return null;
   }
 

@@ -222,7 +222,7 @@ export function AccessRequestClient() {
                           ? "Welcome! Redirecting to sign up..."
                           : isCheckingAccess
                             ? "Checking if you already have access..."
-                            : "Request access or enter your invitation code to unlock the platform."}
+                            : ""}
                       </motion.p>
 
                       {/* Sign in button for existing users */}
@@ -235,7 +235,7 @@ export function AccessRequestClient() {
                             ease: EASE_OUT,
                             delay: DELAY + 0.2,
                           }}
-                          className="text-center"
+                          className="flex gap-4 justify-center items-center"
                         >
                           <motion.div
                             whileHover={{ scale: 1.02 }}
@@ -259,7 +259,27 @@ export function AccessRequestClient() {
                                 "backdrop-blur-sm transition-all duration-300 ease-out text-sm sm:text-base",
                               )}
                             >
-                              Already have access? Sign In
+                              Already have access
+                            </Button>
+                          </motion.div>
+                          
+                          <motion.div
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            transition={{
+                              type: "spring",
+                              stiffness: 300,
+                              damping: 20,
+                            }}
+                          >
+                            <Button
+                              onClick={() => setIsOpen(true)}
+                              className={cn(
+                                "relative px-4 sm:px-6 md:px-8 text-white border-white/50 hover:border-white/80 bg-white/20 hover:bg-white/30",
+                                "backdrop-blur-sm transition-all duration-300 ease-out text-sm sm:text-base",
+                              )}
+                            >
+                              About
                             </Button>
                           </motion.div>
                         </motion.div>
@@ -268,49 +288,51 @@ export function AccessRequestClient() {
                   </motion.div>
                 )}
 
-                <motion.div
-                  layout="position"
-                  transition={SPRING}
-                  key="button"
-                  className={isOpen ? "my-4 sm:my-6" : "mt-4 sm:mt-6"}
-                >
-                  <Button
-                    className={cn(
-                      "relative px-4 sm:px-6 md:px-8 text-white border-white/50 hover:border-white/80 bg-white/20 hover:bg-white/30 text-sm sm:text-base",
-                    )}
-                    onClick={() => setIsOpen(!isOpen)}
-                    shine={!isOpen}
+                {!isUnlocked && !isCheckingAccess && (
+                  <motion.div
+                    layout="position"
+                    transition={SPRING}
+                    key="close-button"
+                    className={isOpen ? "my-4 sm:my-6" : "mt-4 sm:mt-6"}
                   >
-                    <motion.span
-                      animate={{ x: isOpen ? -16 : 0 }}
-                      transition={{ duration: DURATION, ease: EASE_OUT }}
-                      className="inline-block"
+                    <Button
+                      className={cn(
+                        "relative px-4 sm:px-6 md:px-8 text-white border-white/50 hover:border-white/80 bg-white/20 hover:bg-white/30 text-sm sm:text-base",
+                      )}
+                      onClick={() => setIsOpen(false)}
+                      shine={!isOpen}
                     >
-                      About
-                    </motion.span>
-
-                    {isOpen && (
-                      <motion.div
-                        className={cn(
-                          buttonVariants({
-                            variant: "iconButton",
-                            size: "icon",
-                          }),
-                          "absolute -top-px -right-px aspect-square",
-                        )}
-                        initial={{ opacity: 0, scale: 0.8, rotate: -40 }}
-                        animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                        transition={{
-                          duration: DURATION,
-                          ease: EASE_OUT,
-                          delay: DELAY,
-                        }}
+                      <motion.span
+                        animate={{ x: isOpen ? -16 : 0 }}
+                        transition={{ duration: DURATION, ease: EASE_OUT }}
+                        className="inline-block"
                       >
-                        <Cross1Icon className="size-5 text-primary-foreground" />
-                      </motion.div>
-                    )}
-                  </Button>
-                </motion.div>
+                        Close
+                      </motion.span>
+
+                      {isOpen && (
+                        <motion.div
+                          className={cn(
+                            buttonVariants({
+                              variant: "iconButton",
+                              size: "icon",
+                            }),
+                            "absolute -top-px -right-px aspect-square",
+                          )}
+                          initial={{ opacity: 0, scale: 0.8, rotate: -40 }}
+                          animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                          transition={{
+                            duration: DURATION,
+                            ease: EASE_OUT,
+                            delay: DELAY,
+                          }}
+                        >
+                          <Cross1Icon className="size-5 text-primary-foreground" />
+                        </motion.div>
+                      )}
+                    </Button>
+                  </motion.div>
+                )}
 
                 {isOpen && (
                   <motion.div
