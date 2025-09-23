@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     // Validate invitation code first
     const { data: invitation, error: invitationError } = await supabase
       .from('invitation_codes')
-      .select('id, code, expires_at, max_uses, current_uses, is_active')
+      .select('id, code, expires_at, max_uses, current_uses, is_active, created_by')
       .eq('code', code)
       .single();
 
@@ -176,6 +176,23 @@ export async function POST(request: NextRequest) {
       // Don't fail the signup if we can't update the invitation
     } else {
       console.log('Invitation usage updated successfully');
+      
+      // Create reward discount code for the inviter
+      try {
+        const { data: inviterReward, error: rewardError } = await supabase.rpc('create_invitation_reward_discount', {
+          p_user_id: invitation.created_by, // The user who created the invitation
+          p_invitation_id: invitation.id,
+          p_discount_percentage: 10 // 10% discount
+        });
+
+        if (rewardError) {
+          console.error('Error creating reward for inviter:', rewardError);
+        } else {
+          console.log('Reward discount code created for inviter:', rewardError);
+        }
+      } catch (rewardError) {
+        console.error('Error creating invitation reward:', rewardError);
+      }
     }
 
     // Return success - frontend will handle sign in
