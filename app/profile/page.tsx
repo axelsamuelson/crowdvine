@@ -81,6 +81,12 @@ export default function ProfilePage() {
     usedAt?: string;
     isActive?: boolean;
   } | null>(null);
+  const [usedInvitations, setUsedInvitations] = useState<Array<{
+    code: string;
+    usedAt: string;
+    usedBy?: string;
+    currentUses: number;
+  }>>([]);
   const [generatingInvite, setGeneratingInvite] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
@@ -310,6 +316,16 @@ export default function ProfilePage() {
   const generateInvitation = async () => {
     setGeneratingInvite(true);
     try {
+      // If there's a current invitation that has been used, save it to used invitations
+      if (invitation && invitation.currentUses && invitation.currentUses > 0) {
+        setUsedInvitations(prev => [...prev, {
+          code: invitation.code,
+          usedAt: invitation.usedAt || new Date().toISOString(),
+          usedBy: invitation.usedBy,
+          currentUses: invitation.currentUses || 0
+        }]);
+      }
+
       const response = await fetch('/api/invitations/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -665,6 +681,31 @@ export default function ProfilePage() {
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Show used invitations first */}
+            {usedInvitations.length > 0 && (
+              <div className="space-y-3">
+                <h4 className="font-medium text-gray-900 text-sm">Previous Invitations</h4>
+                {usedInvitations.map((usedInvite, index) => (
+                  <div key={index} className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                        <Check className="w-3 h-3 text-green-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-green-800">
+                          Invitation Successful
+                        </p>
+                        <p className="text-xs text-green-600">
+                          Used {usedInvite.currentUses} time{usedInvite.currentUses > 1 ? 's' : ''} • {new Date(usedInvite.usedAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Current invitation section */}
             {!invitation ? (
               <div className="text-center py-6">
                 <UserPlus className="w-12 h-12 text-gray-400 mx-auto mb-4" />
