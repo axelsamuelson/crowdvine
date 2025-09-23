@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -353,10 +354,12 @@ export default function ReservationsPage() {
                             <Eye className="h-3 w-3 mr-1" />
                             View
                           </Button>
-                          <Button size="sm" className="text-xs">
-                            <Edit className="h-3 w-3 mr-1" />
-                            Edit
-                          </Button>
+                          <Link href={`/admin/reservations/${reservation.id}`}>
+                            <Button size="sm" className="text-xs">
+                              <Edit className="h-3 w-3 mr-1" />
+                              Edit
+                            </Button>
+                          </Link>
                         </div>
                       </td>
                     </tr>
