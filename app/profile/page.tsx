@@ -92,19 +92,36 @@ export default function ProfilePage() {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [discountCodes, setDiscountCodes] = useState<any[]>([]);
 
-         // Hybrid updates (polling + webhooks)
-         const { isConnected: invitationConnected, lastUpdate: invitationLastUpdate, checkStatus } = useHybridInvitationUpdates({
-           invitation,
-           onInvitationUpdate: (updatedInvitation) => {
-             console.log('Invitation updated via hybrid system:', updatedInvitation);
-             setInvitation(updatedInvitation);
-             localStorage.setItem('currentInvitation', JSON.stringify(updatedInvitation));
-           },
-           onDiscountCodesUpdate: (codes) => {
-             console.log('Discount codes updated via hybrid system:', codes);
-             setDiscountCodes(codes);
-           }
-         });
+  // Hybrid updates (polling + webhooks)
+  const { isConnected: invitationConnected, lastUpdate: invitationLastUpdate, checkStatus } = useHybridInvitationUpdates({
+    invitation,
+    onInvitationUpdate: (updatedInvitation) => {
+      console.log('Invitation updated via hybrid system:', updatedInvitation);
+      setInvitation(updatedInvitation);
+      localStorage.setItem('currentInvitation', JSON.stringify(updatedInvitation));
+      
+      // If invitation was just used, save it to used invitations
+      if (updatedInvitation.currentUses && updatedInvitation.currentUses > 0 && 
+          invitation && (!invitation.currentUses || invitation.currentUses === 0)) {
+        const newUsedInvitation = {
+          code: updatedInvitation.code,
+          usedAt: updatedInvitation.usedAt || new Date().toISOString(),
+          usedBy: updatedInvitation.usedBy,
+          currentUses: updatedInvitation.currentUses
+        };
+        
+        setUsedInvitations(prev => {
+          const updated = [...prev, newUsedInvitation];
+          localStorage.setItem('usedInvitations', JSON.stringify(updated));
+          return updated;
+        });
+      }
+    },
+    onDiscountCodesUpdate: (codes) => {
+      console.log('Discount codes updated via hybrid system:', codes);
+      setDiscountCodes(codes);
+    }
+  });
 
   useEffect(() => {
     fetchProfile();
@@ -122,6 +139,18 @@ export default function ProfilePage() {
       } catch (error) {
         console.error('Error loading invitation from localStorage:', error);
         localStorage.removeItem('currentInvitation');
+      }
+    }
+    
+    // Load used invitations from localStorage
+    const savedUsedInvitations = localStorage.getItem('usedInvitations');
+    if (savedUsedInvitations) {
+      try {
+        const parsedUsedInvitations = JSON.parse(savedUsedInvitations);
+        setUsedInvitations(parsedUsedInvitations);
+      } catch (error) {
+        console.error('Error loading used invitations from localStorage:', error);
+        localStorage.removeItem('usedInvitations');
       }
     }
     
@@ -318,12 +347,19 @@ export default function ProfilePage() {
     try {
       // If there's a current invitation that has been used, save it to used invitations
       if (invitation && invitation.currentUses && invitation.currentUses > 0) {
-        setUsedInvitations(prev => [...prev, {
+        const newUsedInvitation = {
           code: invitation.code,
           usedAt: invitation.usedAt || new Date().toISOString(),
           usedBy: invitation.usedBy,
           currentUses: invitation.currentUses || 0
-        }]);
+        };
+        
+        setUsedInvitations(prev => {
+          const updated = [...prev, newUsedInvitation];
+          // Save to localStorage
+          localStorage.setItem('usedInvitations', JSON.stringify(updated));
+          return updated;
+        });
       }
 
       const response = await fetch('/api/invitations/generate', {
