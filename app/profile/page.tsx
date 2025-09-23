@@ -70,6 +70,11 @@ export default function ProfilePage() {
     code: string;
     signupUrl: string;
     expiresAt: string;
+    currentUses?: number;
+    maxUses?: number;
+    usedBy?: string;
+    usedAt?: string;
+    isActive?: boolean;
   } | null>(null);
   const [generatingInvite, setGeneratingInvite] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
@@ -83,12 +88,27 @@ export default function ProfilePage() {
     const savedInvitation = localStorage.getItem('currentInvitation');
     if (savedInvitation) {
       try {
-        setInvitation(JSON.parse(savedInvitation));
+        const parsedInvitation = JSON.parse(savedInvitation);
+        setInvitation(parsedInvitation);
+        
+        // Refresh invitation status after loading
+        if (parsedInvitation.code) {
+          setTimeout(refreshInvitationStatus, 1000);
+        }
       } catch (error) {
         console.error('Error loading invitation from localStorage:', error);
         localStorage.removeItem('currentInvitation');
       }
     }
+    
+    // Set up periodic refresh of invitation status
+    const interval = setInterval(() => {
+      if (invitation?.code) {
+        refreshInvitationStatus();
+      }
+    }, 30000); // Check every 30 seconds
+    
+    return () => clearInterval(interval);
     
     // Check for payment method success/cancel messages
     const urlParams = new URLSearchParams(window.location.search);
@@ -285,6 +305,36 @@ export default function ProfilePage() {
       toast.error("Failed to generate invitation");
     } finally {
       setGeneratingInvite(false);
+    }
+  };
+
+  const refreshInvitationStatus = async () => {
+    if (!invitation?.code) return;
+    
+    try {
+      const response = await fetch('/api/invitations/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: invitation.code })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.invitation) {
+          const updatedInvitation = {
+            ...invitation,
+            currentUses: data.invitation.currentUses,
+            maxUses: data.invitation.maxUses,
+            usedBy: data.invitation.usedBy,
+            usedAt: data.invitation.usedAt,
+            isActive: data.invitation.isActive
+          };
+          setInvitation(updatedInvitation);
+          localStorage.setItem('currentInvitation', JSON.stringify(updatedInvitation));
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing invitation status:', error);
     }
   };
 
@@ -624,10 +674,48 @@ export default function ProfilePage() {
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <h3 className="font-medium text-green-800 mb-2">Invitation Generated!</h3>
-                  <p className="text-sm text-green-700 mb-4">
-                    Share this code or link with friends. It expires on {new Date(invitation.expiresAt).toLocaleDateString()}.
+                <div className={`rounded-lg p-4 border ${
+                  invitation.currentUses && invitation.currentUses > 0 
+                    ? 'bg-orange-50 border-orange-200' 
+                    : 'bg-green-50 border-green-200'
+                }`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className={`font-medium ${
+                      invitation.currentUses && invitation.currentUses > 0 
+                        ? 'text-orange-800' 
+                        : 'text-green-800'
+                    }`}>
+                      {invitation.currentUses && invitation.currentUses > 0 
+                        ? 'Invitation Used!' 
+                        : 'Invitation Active!'}
+                    </h3>
+                    <Button
+                      onClick={refreshInvitationStatus}
+                      variant="outline"
+                      size="sm"
+                      className="text-xs"
+                    >
+                      Refresh
+                    </Button>
+                  </div>
+                  
+                  <p className={`text-sm mb-4 ${
+                    invitation.currentUses && invitation.currentUses > 0 
+                      ? 'text-orange-700' 
+                      : 'text-green-700'
+                  }`}>
+                    {invitation.currentUses && invitation.currentUses > 0 ? (
+                      <>
+                        This invitation has been used {invitation.currentUses} time{invitation.currentUses > 1 ? 's' : ''}.
+                        {invitation.usedAt && (
+                          <span className="block mt-1">
+                            Last used: {new Date(invitation.usedAt).toLocaleDateString()} at {new Date(invitation.usedAt).toLocaleTimeString()}
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      `Share this code or link with friends. It expires on ${new Date(invitation.expiresAt).toLocaleDateString()}.`
+                    )}
                   </p>
                   
                   {/* Invitation Code */}

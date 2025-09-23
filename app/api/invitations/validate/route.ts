@@ -11,10 +11,10 @@ export async function POST(request: NextRequest) {
 
     const supabase = getSupabaseAdmin();
 
-    // Find the invitation code
+    // Find the invitation code with usage information
     const { data: invitation, error } = await supabase
       .from('invitation_codes')
-      .select('id, code, expires_at, max_uses, current_uses, is_active')
+      .select('id, code, expires_at, max_uses, current_uses, is_active, used_at, used_by')
       .eq('code', code)
       .single();
 
@@ -57,7 +57,10 @@ export async function POST(request: NextRequest) {
         code: invitation.code,
         expiresAt: invitation.expires_at,
         maxUses: invitation.max_uses,
-        currentUses: invitation.current_uses
+        currentUses: invitation.current_uses,
+        usedAt: invitation.used_at,
+        usedBy: invitation.used_by,
+        isActive: invitation.is_active
       }
     });
 
