@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { createServerClient } from "@supabase/ssr";
 
 const PUBLIC = [
   // Static assets and Next.js internals
@@ -37,39 +35,26 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check authentication status
-  const supabase = getSupabaseAdmin();
-  
-  // Create a server-side Supabase client to check auth
-  const cookieStore = req.cookies;
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  
-  const supabaseClient = createServerClient(supabaseUrl, supabaseKey, {
-    cookies: {
-      get(name: string) {
-        return cookieStore.get(name)?.value;
-      },
-      set() {}, // No-op for middleware
-      remove() {}, // No-op for middleware
-    },
-  });
-
+  // Simple cookie-based authentication check (no Supabase calls in middleware)
   let isAuthenticated = false;
   
-  try {
-    const { data: { user }, error } = await supabaseClient.auth.getUser();
-    isAuthenticated = !!user && !error;
-  } catch (error) {
-    // If token validation fails, user is not authenticated
-    isAuthenticated = false;
+  // Check if user has Supabase auth cookies
+  const hasSupabaseAuth = req.cookies.has('sb-access-auth-token') ||
+                         req.cookies.has('sb-abrnvjqwpdkodgrtezeg-auth-token') ||
+                         req.cookies.has('supabase-auth-token');
+  
+  // If they have Supabase auth cookies, consider them authenticated
+  if (hasSupabaseAuth) {
+    isAuthenticated = true;
   }
-
+  
   // Check access cookie
   const accessCookie = req.cookies.get('cv-access')?.value === '1';
   
   // User must be both authenticated AND have access cookie to proceed
-  if (!isAuthenticated || !accessCookie) {
+  const hasValidAuth = isAuthenticated && accessCookie;
+  
+  if (!hasValidAuth) {
     // Not authenticated or no access, redirect to access request
     const url = req.nextUrl.clone();
     url.pathname = '/access-request';
