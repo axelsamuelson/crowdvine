@@ -373,7 +373,9 @@ export default function ProfilePage() {
 
   const copyToClipboard = async (text: string, type: 'code' | 'url') => {
     try {
-      await navigator.clipboard.writeText(text);
+      // Clean the text to remove any potential line breaks or whitespace
+      const cleanText = text.trim().replace(/\s+/g, ' ');
+      await navigator.clipboard.writeText(cleanText);
       if (type === 'code') {
         setCopiedCode(true);
         setTimeout(() => setCopiedCode(false), 2000);
@@ -899,7 +901,8 @@ export default function ProfilePage() {
                       <Input
                         value={invitation.signupUrl}
                         readOnly
-                        className="text-sm"
+                        className="text-sm font-mono whitespace-nowrap overflow-hidden"
+                        style={{ wordBreak: 'keep-all' }}
                       />
                       <Button
                         size="sm"
