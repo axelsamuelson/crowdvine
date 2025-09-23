@@ -58,7 +58,10 @@ export default function ReservationEditForm({
     pickup_zone_id: reservation.pickup_zone_id || '',
     delivery_zone_id: reservation.delivery_zone_id || '',
     address_id: reservation.address_id || '',
-    delivery_address: reservation.delivery_address || '',
+    delivery_address: reservation.user_addresses ? 
+      `${reservation.user_addresses.address_street || ''}, ${reservation.user_addresses.address_postcode || ''} ${reservation.user_addresses.address_city || ''}, ${reservation.user_addresses.country_code || ''}`.replace(/^,\s*/, '').replace(/,\s*$/, '') : 
+      reservation.delivery_address || '',
+    pallet_id: reservation.pallet_id || '',
   });
 
   const [items, setItems] = useState(
@@ -72,6 +75,23 @@ export default function ReservationEditForm({
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Debug: Log the reservation data when component mounts
+  useEffect(() => {
+    console.log('Reservation data:', reservation);
+    console.log('Form data initialized:', {
+      status: reservation.status || '',
+      order_id: reservation.order_id || '',
+      notes: reservation.notes || '',
+      pickup_zone_id: reservation.pickup_zone_id || '',
+      delivery_zone_id: reservation.delivery_zone_id || '',
+      address_id: reservation.address_id || '',
+      pallet_id: reservation.pallet_id || '',
+      delivery_address: reservation.user_addresses ? 
+        `${reservation.user_addresses.address_street || ''}, ${reservation.user_addresses.address_postcode || ''} ${reservation.user_addresses.address_city || ''}, ${reservation.user_addresses.country_code || ''}`.replace(/^,\s*/, '').replace(/,\s*$/, '') : 
+        reservation.delivery_address || '',
+    });
+  }, [reservation]);
 
   const formatPrice = (cents: number) => {
     return new Intl.NumberFormat("sv-SE", {
@@ -202,6 +222,9 @@ export default function ReservationEditForm({
               </CardTitle>
               <CardDescription>
                 Basic information about this reservation
+                {reservation.status && (
+                  <span className="ml-2 text-blue-600">• Current status: {reservation.status}</span>
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -291,6 +314,23 @@ export default function ReservationEditForm({
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="pallet_id">Pallet</Label>
+                <Select value={formData.pallet_id} onValueChange={(value) => handleInputChange('pallet_id', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select pallet" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No pallet assigned</SelectItem>
+                    {pallets.map((pallet) => (
+                      <SelectItem key={pallet.id} value={pallet.id}>
+                        {pallet.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
