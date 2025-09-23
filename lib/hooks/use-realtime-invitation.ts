@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase-client';
+import { supabase } from '@/lib/supabase-client';
 import { toast } from 'sonner';
 
 interface Invitation {
@@ -29,7 +29,7 @@ export function useRealtimeInvitation({ invitation, onInvitationUpdate }: UseRea
   useEffect(() => {
     if (!invitation?.id) return;
 
-    const supabase = createClient();
+    // Use the imported supabase client
     
     console.log('Setting up realtime subscription for invitation:', invitation.id);
 

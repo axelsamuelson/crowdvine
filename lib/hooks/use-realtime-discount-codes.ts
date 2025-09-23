@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase-client';
+import { supabase } from '@/lib/supabase-client';
 import { toast } from 'sonner';
 
 interface DiscountCode {
@@ -29,7 +29,7 @@ export function useRealtimeDiscountCodes({ userId, onDiscountCodesUpdate }: UseR
   useEffect(() => {
     if (!userId) return;
 
-    const supabase = createClient();
+    // Use the imported supabase client
     
     console.log('Setting up realtime subscription for discount codes for user:', userId);
 

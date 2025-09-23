@@ -98,7 +98,7 @@ export default function ProfilePage() {
   });
 
   const { isConnected: discountCodesConnected, lastUpdate: discountCodesLastUpdate } = useRealtimeDiscountCodes({
-    userId: user?.id || '',
+    userId: profile?.id || '',
     onDiscountCodesUpdate: (codes) => {
       console.log('Discount codes updated via realtime:', codes);
       setDiscountCodes(codes);
