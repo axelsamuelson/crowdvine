@@ -24,12 +24,16 @@ import {
   Wine,
   UserPlus,
   Copy,
-  Check
+  Check,
+  Wifi,
+  WifiOff
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { PaymentMethodCard } from "@/components/ui/payment-method-card";
 import DiscountCodesSection from "@/components/profile/discount-codes-section";
+import { useRealtimeInvitation } from "@/lib/hooks/use-realtime-invitation";
+import { useRealtimeDiscountCodes } from "@/lib/hooks/use-realtime-discount-codes";
 
 interface UserProfile {
   id: string;
@@ -81,6 +85,25 @@ export default function ProfilePage() {
   const [generatingInvite, setGeneratingInvite] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
+  const [discountCodes, setDiscountCodes] = useState<any[]>([]);
+
+  // Realtime hooks
+  const { isConnected: invitationConnected, lastUpdate: invitationLastUpdate } = useRealtimeInvitation({
+    invitation,
+    onInvitationUpdate: (updatedInvitation) => {
+      console.log('Invitation updated via realtime:', updatedInvitation);
+      setInvitation(updatedInvitation);
+      localStorage.setItem('currentInvitation', JSON.stringify(updatedInvitation));
+    }
+  });
+
+  const { isConnected: discountCodesConnected, lastUpdate: discountCodesLastUpdate } = useRealtimeDiscountCodes({
+    userId: user?.id || '',
+    onDiscountCodesUpdate: (codes) => {
+      console.log('Discount codes updated via realtime:', codes);
+      setDiscountCodes(codes);
+    }
+  });
 
   useEffect(() => {
     fetchProfile();
@@ -103,28 +126,7 @@ export default function ProfilePage() {
       }
     }
     
-    // Set up periodic refresh of invitation status
-    const interval = setInterval(() => {
-      if (invitation?.code) {
-        console.log('Periodic refresh triggered');
-        refreshInvitationStatus();
-      }
-    }, 5000); // Check every 5 seconds for faster updates
-    
-    // Set up visibility change listener for immediate updates when user returns to tab
-    const handleVisibilityChange = () => {
-      if (!document.hidden && invitation?.code) {
-        console.log('Tab became visible, refreshing invitation status');
-        refreshInvitationStatus();
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
+    // No more polling - using realtime updates instead
     
     // Check for payment method success/cancel messages
     const urlParams = new URLSearchParams(window.location.search);
@@ -324,54 +326,7 @@ export default function ProfilePage() {
     }
   };
 
-  const refreshInvitationStatus = async () => {
-    if (!invitation?.code) {
-      console.log('No invitation code to refresh');
-      return;
-    }
-    
-    console.log('Refreshing invitation status for code:', invitation.code);
-    
-    try {
-      const response = await fetch('/api/invitations/validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: invitation.code })
-      });
-
-      console.log('Refresh response status:', response.status);
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Refresh response data:', data);
-        
-        if (data.success && data.invitation) {
-          const updatedInvitation = {
-            ...invitation,
-            currentUses: data.invitation.currentUses,
-            maxUses: data.invitation.maxUses,
-            usedBy: data.invitation.usedBy,
-            usedAt: data.invitation.usedAt,
-            isActive: data.invitation.isActive
-          };
-          
-          console.log('Updated invitation:', updatedInvitation);
-          setInvitation(updatedInvitation);
-          localStorage.setItem('currentInvitation', JSON.stringify(updatedInvitation));
-          
-          // Show toast if invitation was just used
-          if (data.invitation.currentUses > 0 && invitation.currentUses === 0) {
-            toast.success("🎉 Your invitation was used! You've earned a 5% reward! Earn 10% when they make a reservation.");
-          }
-        }
-      } else {
-        const errorData = await response.json();
-        console.error('Refresh failed:', errorData);
-      }
-    } catch (error) {
-      console.error('Error refreshing invitation status:', error);
-    }
-  };
+  // Realtime updates handle status changes automatically
 
   const copyToClipboard = async (text: string, type: 'code' | 'url') => {
     try {
@@ -680,6 +635,21 @@ export default function ProfilePage() {
             <CardTitle className="text-lg font-medium text-gray-900 flex items-center gap-2">
               <UserPlus className="w-5 h-5" />
               Invite Friends
+              {invitation && (
+                <div className="flex items-center gap-2 ml-auto">
+                  {invitationConnected ? (
+                    <div className="flex items-center gap-1 text-green-600 text-xs">
+                      <Wifi className="w-3 h-3" />
+                      <span>Live</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 text-gray-400 text-xs">
+                      <WifiOff className="w-3 h-3" />
+                      <span>Offline</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </CardTitle>
             <p className="text-sm text-gray-600 mt-1">
               Share the love and earn rewards when friends join!
@@ -905,7 +875,11 @@ export default function ProfilePage() {
 
         {/* Discount Codes */}
         {profile && (
-          <DiscountCodesSection userId={profile.id} />
+          <DiscountCodesSection 
+            userId={profile.id} 
+            discountCodes={discountCodes}
+            isConnected={discountCodesConnected}
+          />
         )}
 
         {/* Quick Actions */}
