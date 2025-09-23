@@ -100,21 +100,10 @@ export default function ProfilePage() {
       setInvitation(updatedInvitation);
       localStorage.setItem('currentInvitation', JSON.stringify(updatedInvitation));
       
-      // If invitation was just used, save it to used invitations
+      // If invitation was just used, refresh used invitations from database
       if (updatedInvitation.currentUses && updatedInvitation.currentUses > 0 && 
           invitation && (!invitation.currentUses || invitation.currentUses === 0)) {
-        const newUsedInvitation = {
-          code: updatedInvitation.code,
-          usedAt: updatedInvitation.usedAt || new Date().toISOString(),
-          usedBy: updatedInvitation.usedBy,
-          currentUses: updatedInvitation.currentUses
-        };
-        
-        setUsedInvitations(prev => {
-          const updated = [...prev, newUsedInvitation];
-          localStorage.setItem('usedInvitations', JSON.stringify(updated));
-          return updated;
-        });
+        fetchUsedInvitations();
       }
     },
     onDiscountCodesUpdate: (codes) => {
@@ -127,6 +116,7 @@ export default function ProfilePage() {
     fetchProfile();
     fetchPaymentMethods();
     fetchDiscountCodes();
+    fetchUsedInvitations(); // Fetch used invitations from database
     
     // Load invitation from localStorage
     const savedInvitation = localStorage.getItem('currentInvitation');
@@ -142,17 +132,7 @@ export default function ProfilePage() {
       }
     }
     
-    // Load used invitations from localStorage
-    const savedUsedInvitations = localStorage.getItem('usedInvitations');
-    if (savedUsedInvitations) {
-      try {
-        const parsedUsedInvitations = JSON.parse(savedUsedInvitations);
-        setUsedInvitations(parsedUsedInvitations);
-      } catch (error) {
-        console.error('Error loading used invitations from localStorage:', error);
-        localStorage.removeItem('usedInvitations');
-      }
-    }
+    // Used invitations are now fetched from database instead of localStorage
     
     // No more polling - using realtime updates instead
     
@@ -233,6 +213,22 @@ export default function ProfilePage() {
     } catch (error) {
       console.error('Error fetching discount codes:', error);
       setDiscountCodes([]);
+    }
+  };
+
+  const fetchUsedInvitations = async () => {
+    try {
+      const response = await fetch('/api/invitations/used');
+      if (response.ok) {
+        const data = await response.json();
+        setUsedInvitations(data.usedInvitations || []);
+      } else {
+        console.error("Failed to load used invitations");
+        setUsedInvitations([]);
+      }
+    } catch (error) {
+      console.error('Error fetching used invitations:', error);
+      setUsedInvitations([]);
     }
   };
 
@@ -345,22 +341,8 @@ export default function ProfilePage() {
   const generateInvitation = async () => {
     setGeneratingInvite(true);
     try {
-      // If there's a current invitation that has been used, save it to used invitations
-      if (invitation && invitation.currentUses && invitation.currentUses > 0) {
-        const newUsedInvitation = {
-          code: invitation.code,
-          usedAt: invitation.usedAt || new Date().toISOString(),
-          usedBy: invitation.usedBy,
-          currentUses: invitation.currentUses || 0
-        };
-        
-        setUsedInvitations(prev => {
-          const updated = [...prev, newUsedInvitation];
-          // Save to localStorage
-          localStorage.setItem('usedInvitations', JSON.stringify(updated));
-          return updated;
-        });
-      }
+      // Refresh used invitations from database when generating new invitation
+      fetchUsedInvitations();
 
       const response = await fetch('/api/invitations/generate', {
         method: 'POST',
