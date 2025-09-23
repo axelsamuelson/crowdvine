@@ -10,6 +10,7 @@ export default function DebugRealtimePage() {
   const [connectionStatus, setConnectionStatus] = useState<string>('Disconnected');
   const [messages, setMessages] = useState<string[]>([]);
   const [isConnected, setIsConnected] = useState(false);
+  const [serverStatus, setServerStatus] = useState<any>(null);
 
   const addMessage = (message: string) => {
     setMessages(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
@@ -17,6 +18,17 @@ export default function DebugRealtimePage() {
 
   useEffect(() => {
     addMessage('Initializing realtime connection...');
+
+    // Test server-side connection first
+    fetch('/api/debug/realtime-test')
+      .then(response => response.json())
+      .then(data => {
+        setServerStatus(data);
+        addMessage(`Server status: ${JSON.stringify(data)}`);
+      })
+      .catch(error => {
+        addMessage(`Server error: ${error.message}`);
+      });
 
     // Test basic realtime connection
     const channel = supabase
@@ -134,11 +146,47 @@ export default function DebugRealtimePage() {
           </div>
 
           <div>
+            <h3 className="font-semibold mb-2">Server Status:</h3>
+            <div className="bg-gray-100 p-4 rounded-lg">
+              <div className="text-sm font-mono">
+                {serverStatus ? (
+                  <div>
+                    <div>Database Connection: {serverStatus.databaseConnection}</div>
+                    <div>Realtime Status: {serverStatus.realtimeStatus || 'Unknown'}</div>
+                    <div>Message: {serverStatus.message}</div>
+                    {serverStatus.error && <div className="text-red-600">Error: {serverStatus.error}</div>}
+                  </div>
+                ) : (
+                  <div>Loading server status...</div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div>
             <h3 className="font-semibold mb-2">Environment Info:</h3>
             <div className="bg-gray-100 p-4 rounded-lg">
               <div className="text-sm font-mono">
                 <div>NEXT_PUBLIC_SUPABASE_URL: {process.env.NEXT_PUBLIC_SUPABASE_URL ? 'SET' : 'MISSING'}</div>
                 <div>NEXT_PUBLIC_SUPABASE_ANON_KEY: {process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'SET' : 'MISSING'}</div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="font-semibold mb-2">Supabase Realtime Setup Instructions:</h3>
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="text-sm space-y-2">
+                <p><strong>1. Go to Supabase Dashboard:</strong></p>
+                <p>• Navigate to your project → Settings → API</p>
+                <p>• Find "Realtime" section and enable it</p>
+                <p><strong>2. Enable Replication:</strong></p>
+                <p>• Go to Database → Replication</p>
+                <p>• Enable replication for <code>invitation_codes</code> table</p>
+                <p>• Enable replication for <code>discount_codes</code> table</p>
+                <p><strong>3. Check RLS Policies:</strong></p>
+                <p>• Ensure RLS policies allow SELECT operations</p>
+                <p>• Users should be able to read their own data</p>
               </div>
             </div>
           </div>
