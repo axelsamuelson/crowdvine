@@ -6,7 +6,7 @@ export async function POST() {
     const supabase = getSupabaseAdmin();
 
     // Create discount_codes table
-    const { error: createTableError } = await supabase.rpc('exec_sql', {
+    const { error: createTableError } = await supabase.rpc("exec_sql", {
       sql: `
         CREATE TABLE IF NOT EXISTS discount_codes (
           id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -22,41 +22,41 @@ export async function POST() {
           used_by_user_id UUID REFERENCES auth.users(id),
           used_at TIMESTAMP WITH TIME ZONE
         );
-      `
+      `,
     });
 
     if (createTableError) {
-      console.error('Error creating table:', createTableError);
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Failed to create table',
-        details: createTableError.message 
+      console.error("Error creating table:", createTableError);
+      return NextResponse.json({
+        success: false,
+        error: "Failed to create table",
+        details: createTableError.message,
       });
     }
 
     // Enable RLS
-    const { error: rlsError } = await supabase.rpc('exec_sql', {
-      sql: 'ALTER TABLE discount_codes ENABLE ROW LEVEL SECURITY;'
+    const { error: rlsError } = await supabase.rpc("exec_sql", {
+      sql: "ALTER TABLE discount_codes ENABLE ROW LEVEL SECURITY;",
     });
 
     if (rlsError) {
-      console.error('Error enabling RLS:', rlsError);
+      console.error("Error enabling RLS:", rlsError);
     }
 
     // Create RLS policy
-    const { error: policyError } = await supabase.rpc('exec_sql', {
+    const { error: policyError } = await supabase.rpc("exec_sql", {
       sql: `
         CREATE POLICY IF NOT EXISTS "Users can view their own discount codes" ON discount_codes
         FOR SELECT USING (auth.uid() = earned_by_user_id);
-      `
+      `,
     });
 
     if (policyError) {
-      console.error('Error creating policy:', policyError);
+      console.error("Error creating policy:", policyError);
     }
 
     // Create function to generate discount code
-    const { error: functionError } = await supabase.rpc('exec_sql', {
+    const { error: functionError } = await supabase.rpc("exec_sql", {
       sql: `
         CREATE OR REPLACE FUNCTION generate_discount_code()
         RETURNS VARCHAR(50) AS $$
@@ -72,15 +72,15 @@ export async function POST() {
           RETURN new_code;
         END;
         $$ LANGUAGE plpgsql;
-      `
+      `,
     });
 
     if (functionError) {
-      console.error('Error creating function:', functionError);
+      console.error("Error creating function:", functionError);
     }
 
     // Create function to create invitation reward discount
-    const { error: rewardFunctionError } = await supabase.rpc('exec_sql', {
+    const { error: rewardFunctionError } = await supabase.rpc("exec_sql", {
       sql: `
         CREATE OR REPLACE FUNCTION create_invitation_reward_discount(
           p_user_id UUID,
@@ -126,24 +126,23 @@ export async function POST() {
           RETURN new_discount_id;
         END;
         $$ LANGUAGE plpgsql SECURITY DEFINER;
-      `
+      `,
     });
 
     if (rewardFunctionError) {
-      console.error('Error creating reward function:', rewardFunctionError);
+      console.error("Error creating reward function:", rewardFunctionError);
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Discount codes table and functions created successfully'
+      message: "Discount codes table and functions created successfully",
     });
-
   } catch (error) {
-    console.error('Create discount codes table error:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
+    console.error("Create discount codes table error:", error);
+    return NextResponse.json({
+      success: false,
+      error: "Internal server error",
+      details: error instanceof Error ? error.message : "Unknown error",
     });
   }
 }

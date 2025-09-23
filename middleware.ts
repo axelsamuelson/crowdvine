@@ -1,104 +1,66 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-
-const PUBLIC = [
-  // Static assets and Next.js internals
-  '/_next', '/favicon', '/images', '/public',
-  
-  // Authentication and access control pages
-  '/access-request', '/log-in', '/signup', '/invite-signup', '/code-signup',
-  
-  // Short invitation URLs
-  '/i', '/c',
-  
-  // Access control APIs
-  '/api/access-request', '/api/me/access', '/api/auth', 
-  '/api/validate-access-token', '/api/use-access-token', '/api/grant-access', 
-  '/api/delete-access-request-on-signup', '/api/create-profile', '/api/create-user',
-  '/api/generate-signup-url', '/api/set-access-cookie',
-  
-  // Invitation system
-  '/api/invite',
-  
-  // External webhooks (Stripe)
-  '/api/stripe/webhook',
-  
-  // Admin access
-  '/admin', '/admin-auth', '/api/admin',
-  
-  // Debug/development APIs (remove in production)
-  '/api/debug', '/api/test-simple', '/api/test-supabase', '/api/test-email',
-  
-  // Webhooks
-  '/api/webhooks',
-  
-  // Debug pages
-  '/debug-realtime', '/test-cookies'
-];
+import { NextRequest, NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 
 export async function middleware(req: NextRequest) {
-  const p = req.nextUrl.pathname;
-  
-  // Allow public routes
-  if (PUBLIC.some((x) => p.startsWith(x))) {
-    return NextResponse.next();
+  const { pathname } = req.nextUrl;
+
+  // Offentliga paths (UI oförändrad, bara backend-gate)
+  const PUBLIC = [
+    "/", "/log-in", "/signup", "/invite-signup", "/code-signup",
+    "/access-request", "/i", "/c",
+  ];
+  const isPublic = PUBLIC.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+
+  // Skip statik / webhooks
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api/stripe/webhook") ||
+    pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|ico)$/)
+  ) return NextResponse.next();
+
+  const res = NextResponse.next();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get: (name) => req.cookies.get(name)?.value,
+        set: (name, value, options) => res.cookies.set({ name, value, ...options }),
+        remove: (name, options) => res.cookies.set({ name, value: "", ...options, maxAge: 0 }),
+      },
+    }
+  );
+
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!isPublic) {
+    if (!user) {
+      const login = new URL("/log-in", req.url);
+      login.searchParams.set("redirectedFrom", pathname);
+      return NextResponse.redirect(login);
+    }
+
+    // Gate via DB (profiles.access_granted_at), inte via cv-access-cookie
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("access_granted_at, role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (!profile?.access_granted_at) {
+      const ask = new URL("/access-request", req.url);
+      ask.searchParams.set("redirectedFrom", pathname);
+      return NextResponse.redirect(ask);
+    }
+
+    if (pathname.startsWith("/admin") && profile.role !== "admin") {
+      return NextResponse.redirect(new URL("/", req.url));
+    }
   }
 
-  // Simple cookie-based authentication check (no Supabase calls in middleware)
-  let isAuthenticated = false;
-  
-  // Check if user has Supabase auth cookies
-  const hasSupabaseAuth = req.cookies.has('sb-access-auth-token') ||
-                         req.cookies.has('sb-abrnvjqwpdkodgrtezeg-auth-token') ||
-                         req.cookies.has('supabase-auth-token');
-  
-  // If they have Supabase auth cookies, consider them authenticated
-  if (hasSupabaseAuth) {
-    isAuthenticated = true;
-  }
-  
-  // Check access cookie
-  const accessCookie = req.cookies.get('cv-access')?.value === '1';
-  
-  // User must be both authenticated AND have access cookie to proceed
-  const hasValidAuth = isAuthenticated && accessCookie;
-  
-  // Debug logging for troubleshooting
-  const allCookies = req.cookies.getAll();
-  const cookieNames = allCookies.map(c => c.name);
-  
-  console.log(`Middleware check for ${p}:`, {
-    hasSupabaseAuth,
-    accessCookie,
-    hasValidAuth,
-    totalCookies: allCookies.length,
-    cookieNames,
-    userAgent: req.headers.get('user-agent')?.substring(0, 50) + '...',
-    isIncognito: req.headers.get('user-agent')?.includes('Incognito') || false
-  });
-  
-  if (!hasValidAuth) {
-    // Not authenticated or no access, redirect to access request
-    const url = req.nextUrl.clone();
-    url.pathname = '/access-request';
-    url.searchParams.set('next', p);
-    return NextResponse.redirect(url);
-  }
-  
-  // User is authenticated and has access, allow request
-  return NextResponse.next();
+  return res;
 }
 
-export const config = { 
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder files
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ]
+export const config = {
+  matcher: ["/((?!api/stripe/webhook|_next/static|_next/image|favicon.ico|images|public).*)"],
 };

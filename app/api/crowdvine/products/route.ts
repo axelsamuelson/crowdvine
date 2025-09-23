@@ -51,8 +51,8 @@ export async function GET(request: Request) {
 
   // Get wine images for all wines
   const wineIds = data?.map((wine: any) => wine.id) || [];
-  let wineImagesMap = new Map();
-  
+  const wineImagesMap = new Map();
+
   if (wineIds.length > 0) {
     const { data: wineImages } = await sb
       .from("wine_images")
@@ -83,42 +83,46 @@ export async function GET(request: Request) {
 
     // Helper function to convert relative paths to full URLs
     const convertToFullUrl = (path: string | null | undefined): string => {
-      if (!path) return "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop";
-      
+      if (!path)
+        return "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop";
+
       // Clean up any newline characters or whitespace
-      const cleanPath = path.trim().replace(/\n/g, '');
-      
-      if (cleanPath.startsWith('http')) return cleanPath; // Already a full URL
-      if (cleanPath.startsWith('/uploads/')) {
+      const cleanPath = path.trim().replace(/\n/g, "");
+
+      if (cleanPath.startsWith("http")) return cleanPath; // Already a full URL
+      if (cleanPath.startsWith("/uploads/")) {
         // Use our image proxy API to serve Supabase Storage files
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pactwines.com';
-        const fileName = cleanPath.replace('/uploads/', '');
+        const baseUrl =
+          process.env.NEXT_PUBLIC_APP_URL || "https://pactwines.com";
+        const fileName = cleanPath.replace("/uploads/", "");
         return `${baseUrl}/api/images/${fileName}`;
       }
       // For other relative paths, construct full URL
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pactwines.com';
-      return `${baseUrl}${cleanPath.startsWith('/') ? '' : '/'}${cleanPath}`;
+      const baseUrl =
+        process.env.NEXT_PUBLIC_APP_URL || "https://pactwines.com";
+      return `${baseUrl}${cleanPath.startsWith("/") ? "" : "/"}${cleanPath}`;
     };
 
     // Get images for this wine
     const wineImages = wineImagesMap.get(i.id) || [];
-    const images = wineImages.length > 0 
-      ? wineImages.map((img: any) => ({
-          id: `${i.id}-img-${img.sort_order}`,
-          url: convertToFullUrl(img.image_path),
-          altText: img.alt_text || i.wine_name,
-          width: 600,
-          height: 600,
-        }))
-      : [
-          {
-            id: `${i.id}-img`,
-            url: convertToFullUrl(i.label_image_path),
-            altText: i.wine_name,
+    const images =
+      wineImages.length > 0
+        ? wineImages.map((img: any) => ({
+            id: `${i.id}-img-${img.sort_order}`,
+            url: convertToFullUrl(img.image_path),
+            altText: img.alt_text || i.wine_name,
             width: 600,
             height: 600,
-          },
-        ];
+          }))
+        : [
+            {
+              id: `${i.id}-img`,
+              url: convertToFullUrl(i.label_image_path),
+              altText: i.wine_name,
+              width: 600,
+              height: 600,
+            },
+          ];
 
     const featuredImage = images[0] || {
       id: `${i.id}-img`,
@@ -129,10 +133,12 @@ export async function GET(request: Request) {
     };
 
     // Use custom description or generate default one
-    const wineDescription = i.description || 
-      `This exceptional ${i.color || 'wine'} wine from ${i.vintage} showcases the unique characteristics of ${i.grape_varieties || 'carefully selected grapes'}. Crafted with precision and passion, this wine offers a perfect balance of flavors and aromas that will delight your palate.`;
-    
-    const wineDescriptionHtml = i.description_html || `<p>${wineDescription}</p>`;
+    const wineDescription =
+      i.description ||
+      `This exceptional ${i.color || "wine"} wine from ${i.vintage} showcases the unique characteristics of ${i.grape_varieties || "carefully selected grapes"}. Crafted with precision and passion, this wine offers a perfect balance of flavors and aromas that will delight your palate.`;
+
+    const wineDescriptionHtml =
+      i.description_html || `<p>${wineDescription}</p>`;
 
     return {
       id: i.id,
@@ -149,7 +155,7 @@ export async function GET(request: Request) {
           id: "grape-varieties",
           name: "Grape Varieties",
           values: grapeVarieties.map((variety: string) => ({
-            id: variety.toLowerCase().replace(/\s+/g, '-'),
+            id: variety.toLowerCase().replace(/\s+/g, "-"),
             name: variety,
           })),
         },
@@ -157,10 +163,14 @@ export async function GET(request: Request) {
         {
           id: "color",
           name: "Color",
-          values: colorName ? [{
-            id: colorName.toLowerCase().replace(/\s+/g, '-'),
-            name: colorName,
-          }] : [],
+          values: colorName
+            ? [
+                {
+                  id: colorName.toLowerCase().replace(/\s+/g, "-"),
+                  name: colorName,
+                },
+              ]
+            : [],
         },
       ],
       variants: [

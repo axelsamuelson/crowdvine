@@ -13,20 +13,20 @@ import { toast } from "sonner";
 function CodeSignupContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const code = searchParams.get('code');
+  const code = searchParams.get("code");
 
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    fullName: '',
-    code: code || ''
+    email: "",
+    password: "",
+    confirmPassword: "",
+    fullName: "",
+    code: code || "",
   });
 
   const [loading, setLoading] = useState(false);
   const [validatingCode, setValidatingCode] = useState(false);
   const [codeValid, setCodeValid] = useState<boolean | null>(null);
-  const [codeError, setCodeError] = useState('');
+  const [codeError, setCodeError] = useState("");
 
   // Validate invitation code when component mounts or code changes
   useEffect(() => {
@@ -37,34 +37,34 @@ function CodeSignupContent() {
 
   const validateInvitationCode = async (invitationCode: string) => {
     if (!invitationCode) return;
-    
+
     setValidatingCode(true);
-    setCodeError('');
-    
+    setCodeError("");
+
     try {
-      const response = await fetch('/api/invitations/validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: invitationCode })
+      const response = await fetch("/api/invitations/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: invitationCode }),
       });
 
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
           setCodeValid(true);
-          setFormData(prev => ({ ...prev, code: invitationCode }));
+          setFormData((prev) => ({ ...prev, code: invitationCode }));
         } else {
           setCodeValid(false);
-          setCodeError(data.error || 'Invalid invitation code');
+          setCodeError(data.error || "Invalid invitation code");
         }
       } else {
         setCodeValid(false);
-        setCodeError('Failed to validate invitation code');
+        setCodeError("Failed to validate invitation code");
       }
     } catch (error) {
-      console.error('Error validating invitation code:', error);
+      console.error("Error validating invitation code:", error);
       setCodeValid(false);
-      setCodeError('Network error. Please try again.');
+      setCodeError("Network error. Please try again.");
     } finally {
       setValidatingCode(false);
     }
@@ -72,17 +72,17 @@ function CodeSignupContent() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
     // Validate code if it's being manually entered
-    if (name === 'code' && value.length >= 8) {
+    if (name === "code" && value.length >= 8) {
       validateInvitationCode(value);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!codeValid) {
       toast.error("Please enter a valid invitation code");
       return;
@@ -101,15 +101,15 @@ function CodeSignupContent() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/invitations/redeem', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/invitations/redeem", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
           fullName: formData.fullName,
-          code: formData.code
-        })
+          code: formData.code,
+        }),
       });
 
       const data = await response.json();
@@ -117,12 +117,14 @@ function CodeSignupContent() {
       if (response.ok && data.success) {
         toast.success("Account created successfully! Please log in.");
         // Redirect to login page
-        router.push('/log-in?message=Account created successfully! Please log in.');
+        router.push(
+          "/log-in?message=Account created successfully! Please log in.",
+        );
       } else {
         toast.error(data.error || "Failed to create account");
       }
     } catch (error) {
-      console.error('Signup error:', error);
+      console.error("Signup error:", error);
       toast.error("Network error. Please try again.");
     } finally {
       setLoading(false);
@@ -183,7 +185,9 @@ function CodeSignupContent() {
                 {codeValid && (
                   <Alert className="mt-2">
                     <CheckCircle className="h-4 w-4" />
-                    <AlertDescription>Invitation code is valid!</AlertDescription>
+                    <AlertDescription>
+                      Invitation code is valid!
+                    </AlertDescription>
                   </Alert>
                 )}
               </div>
@@ -270,7 +274,9 @@ function CodeSignupContent() {
                   <div className="w-full border-t border-gray-300" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">Already have an account?</span>
+                  <span className="px-2 bg-white text-gray-500">
+                    Already have an account?
+                  </span>
                 </div>
               </div>
 
@@ -278,7 +284,7 @@ function CodeSignupContent() {
                 <Button
                   variant="outline"
                   className="w-full"
-                  onClick={() => router.push('/log-in')}
+                  onClick={() => router.push("/log-in")}
                 >
                   Sign In
                 </Button>
@@ -293,11 +299,13 @@ function CodeSignupContent() {
 
 export default function CodeSignupPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      }
+    >
       <CodeSignupContent />
     </Suspense>
   );

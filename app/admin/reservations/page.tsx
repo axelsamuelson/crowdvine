@@ -33,7 +33,9 @@ import {
 export default function ReservationsPage() {
   const [reservations, setReservations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedReservations, setSelectedReservations] = useState<string[]>([]);
+  const [selectedReservations, setSelectedReservations] = useState<string[]>(
+    [],
+  );
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
@@ -42,20 +44,23 @@ export default function ReservationsPage() {
 
   const fetchReservations = async () => {
     try {
-      console.log('Fetching reservations...');
-      const reservationsResponse = await fetch('/api/admin/reservations');
-      
+      console.log("Fetching reservations...");
+      const reservationsResponse = await fetch("/api/admin/reservations");
+
       if (!reservationsResponse.ok) {
         throw new Error(`HTTP error! status: ${reservationsResponse.status}`);
       }
-      
+
       const reservationsData = await reservationsResponse.json();
-      console.log('Fetched reservations:', reservationsData.reservations?.length || 0);
-      
+      console.log(
+        "Fetched reservations:",
+        reservationsData.reservations?.length || 0,
+      );
+
       setReservations(reservationsData.reservations || []);
     } catch (error) {
-      console.error('Failed to fetch reservations:', error);
-      alert('Failed to fetch reservations. Please refresh the page.');
+      console.error("Failed to fetch reservations:", error);
+      alert("Failed to fetch reservations. Please refresh the page.");
     } finally {
       setLoading(false);
     }
@@ -63,7 +68,9 @@ export default function ReservationsPage() {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedReservations(reservations.map(reservation => reservation.id));
+      setSelectedReservations(
+        reservations.map((reservation) => reservation.id),
+      );
     } else {
       setSelectedReservations([]);
     }
@@ -71,52 +78,60 @@ export default function ReservationsPage() {
 
   const handleSelectReservation = (reservationId: string, checked: boolean) => {
     if (checked) {
-      setSelectedReservations(prev => [...prev, reservationId]);
+      setSelectedReservations((prev) => [...prev, reservationId]);
     } else {
-      setSelectedReservations(prev => prev.filter(id => id !== reservationId));
+      setSelectedReservations((prev) =>
+        prev.filter((id) => id !== reservationId),
+      );
     }
   };
 
   const handleBulkDelete = async () => {
     if (selectedReservations.length === 0) return;
-    
-    const confirmed = confirm(`Are you sure you want to delete ${selectedReservations.length} reservation(s)? This will also delete all associated bookings and reservation items. This action cannot be undone.`);
+
+    const confirmed = confirm(
+      `Are you sure you want to delete ${selectedReservations.length} reservation(s)? This will also delete all associated bookings and reservation items. This action cannot be undone.`,
+    );
     if (!confirmed) return;
 
     try {
-      console.log('Deleting reservations:', selectedReservations);
-      
-      const response = await fetch('/api/admin/reservations', {
-        method: 'DELETE',
+      console.log("Deleting reservations:", selectedReservations);
+
+      const response = await fetch("/api/admin/reservations", {
+        method: "DELETE",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ reservationIds: selectedReservations }),
       });
 
       const result = await response.json();
-      console.log('Delete response:', result);
+      console.log("Delete response:", result);
 
       if (response.ok) {
         setSelectedReservations([]);
         setLoading(true); // Show loading state
         await fetchReservations(); // Refresh data
-        
+
         const deletedCount = result.deletedCount || selectedReservations.length;
         const remainingCount = result.remainingCount || 0;
-        
-        alert(`Successfully deleted ${deletedCount} reservation(s). ${remainingCount} reservations remaining.`);
+
+        alert(
+          `Successfully deleted ${deletedCount} reservation(s). ${remainingCount} reservations remaining.`,
+        );
       } else {
-        console.error('Delete failed:', result);
-        alert(`Failed to delete reservations: ${result.error || 'Unknown error'}`);
+        console.error("Delete failed:", result);
+        alert(
+          `Failed to delete reservations: ${result.error || "Unknown error"}`,
+        );
       }
     } catch (error) {
-      console.error('Error deleting reservations:', error);
-      alert('Failed to delete reservations');
+      console.error("Error deleting reservations:", error);
+      alert("Failed to delete reservations");
     }
   };
 
-  const filteredReservations = reservations.filter(reservation => {
+  const filteredReservations = reservations.filter((reservation) => {
     if (!searchTerm) return true;
     const searchLower = searchTerm.toLowerCase();
     return (
@@ -138,17 +153,13 @@ export default function ReservationsPage() {
         </div>
         <div className="flex items-center gap-2">
           {selectedReservations.length > 0 && (
-            <Button 
-              variant="destructive" 
-              size="sm"
-              onClick={handleBulkDelete}
-            >
+            <Button variant="destructive" size="sm" onClick={handleBulkDelete}>
               <Trash2 className="h-4 w-4 mr-2" />
               Delete ({selectedReservations.length})
             </Button>
           )}
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             onClick={() => {
               setLoading(true);
@@ -197,7 +208,7 @@ export default function ReservationsPage() {
                   Placed Orders
                 </p>
                 <p className="text-2xl font-bold text-green-600">
-                  {reservations.filter(r => r.status === 'placed').length}
+                  {reservations.filter((r) => r.status === "placed").length}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Confirmed orders
@@ -216,7 +227,7 @@ export default function ReservationsPage() {
                   Pending Orders
                 </p>
                 <p className="text-2xl font-bold text-orange-600">
-                  {reservations.filter(r => r.status !== 'placed').length}
+                  {reservations.filter((r) => r.status !== "placed").length}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Awaiting confirmation
@@ -235,7 +246,8 @@ export default function ReservationsPage() {
             <div>
               <CardTitle>All Reservations</CardTitle>
               <CardDescription>
-                Complete list of all order reservations (these prevent zone deletion)
+                Complete list of all order reservations (these prevent zone
+                deletion)
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -269,7 +281,11 @@ export default function ReservationsPage() {
                   <tr className="border-b border-gray-200">
                     <th className="text-left p-3 font-medium text-sm text-gray-600">
                       <Checkbox
-                        checked={selectedReservations.length === filteredReservations.length && filteredReservations.length > 0}
+                        checked={
+                          selectedReservations.length ===
+                            filteredReservations.length &&
+                          filteredReservations.length > 0
+                        }
                         onCheckedChange={handleSelectAll}
                       />
                     </th>
@@ -304,8 +320,15 @@ export default function ReservationsPage() {
                     >
                       <td className="p-3">
                         <Checkbox
-                          checked={selectedReservations.includes(reservation.id)}
-                          onCheckedChange={(checked) => handleSelectReservation(reservation.id, checked as boolean)}
+                          checked={selectedReservations.includes(
+                            reservation.id,
+                          )}
+                          onCheckedChange={(checked) =>
+                            handleSelectReservation(
+                              reservation.id,
+                              checked as boolean,
+                            )
+                          }
                         />
                       </td>
                       <td className="p-3">
@@ -316,18 +339,18 @@ export default function ReservationsPage() {
                       <td className="p-3">
                         <div>
                           <div className="font-medium text-gray-900">
-                            {reservation.user_id ? `User ${reservation.user_id.substring(0, 8)}...` : "Unknown"}
+                            {reservation.user_id
+                              ? `User ${reservation.user_id.substring(0, 8)}...`
+                              : "Unknown"}
                           </div>
-                          <div className="text-sm text-gray-500">
-                            Customer
-                          </div>
+                          <div className="text-sm text-gray-500">Customer</div>
                         </div>
                       </td>
                       <td className="p-3">
                         <Badge
                           variant="secondary"
                           className={
-                            reservation.status === "placed" 
+                            reservation.status === "placed"
                               ? "bg-green-100 text-green-800"
                               : "bg-orange-100 text-orange-800"
                           }
@@ -336,10 +359,14 @@ export default function ReservationsPage() {
                         </Badge>
                       </td>
                       <td className="p-3 text-gray-900">
-                        {reservation.delivery_zone_id ? `Zone ${reservation.delivery_zone_id}` : "None"}
+                        {reservation.delivery_zone_id
+                          ? `Zone ${reservation.delivery_zone_id}`
+                          : "None"}
                       </td>
                       <td className="p-3 text-gray-900">
-                        {reservation.pickup_zone_id ? `Zone ${reservation.pickup_zone_id}` : "None"}
+                        {reservation.pickup_zone_id
+                          ? `Zone ${reservation.pickup_zone_id}`
+                          : "None"}
                       </td>
                       <td className="p-3 text-sm text-gray-500">
                         {new Date(reservation.created_at).toLocaleDateString()}

@@ -3,17 +3,20 @@ import type { Product, Collection, Cart } from "./types";
 
 // Vår API-bas (Next API routes som läser Supabase)
 const getApiBase = () => {
-  const base = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "http://localhost:3000";
+  const base =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.APP_URL ||
+    "http://localhost:3000";
   // Ensure protocol is included
-  if (base.startsWith('http://') || base.startsWith('https://')) {
+  if (base.startsWith("http://") || base.startsWith("https://")) {
     return base;
   }
   // Default to https for production, http for localhost
-  return base.includes('localhost') ? `http://${base}` : `https://${base}`;
+  return base.includes("localhost") ? `http://${base}` : `https://${base}`;
 };
 
 const API_BASE = getApiBase();
-console.log('API_BASE:', API_BASE); // Debug log
+console.log("API_BASE:", API_BASE); // Debug log
 const API = {
   products: `${API_BASE}/api/crowdvine/products`,
   product: (handle: string) => `${API_BASE}/api/crowdvine/products/${handle}`,

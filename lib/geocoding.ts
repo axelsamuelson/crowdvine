@@ -26,38 +26,40 @@ const geocodeCache = new Map<string, GeocodeResult>();
 // Function to clear geocoding cache (useful for debugging)
 export function clearGeocodeCache() {
   geocodeCache.clear();
-  console.log('🧹 Geocoding cache cleared');
+  console.log("🧹 Geocoding cache cleared");
 }
 
-export async function geocodeAddress(address: string): Promise<GeocodeResult | GeocodeError> {
+export async function geocodeAddress(
+  address: string,
+): Promise<GeocodeResult | GeocodeError> {
   // Clean and normalize the address
-  const cleanAddress = address.trim().replace(/\s+/g, ' ');
-  
+  const cleanAddress = address.trim().replace(/\s+/g, " ");
+
   // Check cache first
   if (geocodeCache.has(cleanAddress)) {
-    console.log('📍 Using cached geocode result for:', cleanAddress);
+    console.log("📍 Using cached geocode result for:", cleanAddress);
     return geocodeCache.get(cleanAddress)!;
   }
 
   try {
-    console.log('🌍 Geocoding address:', cleanAddress);
-    
+    console.log("🌍 Geocoding address:", cleanAddress);
+
     // Use OpenStreetMap Nominatim API (free, no API key required)
     // Add User-Agent header to avoid 403 errors
     const response = await fetch(
       `https://nominatim.openstreetmap.org/search?` +
-      `format=json&` +
-      `q=${encodeURIComponent(cleanAddress)}&` +
-      `limit=1&` +
-      `addressdetails=1&` +
-      `countrycodes=se,no,dk,fi,fr,de,gb,es,it&` + // Nordic + European countries
-      `accept-language=en`,
+        `format=json&` +
+        `q=${encodeURIComponent(cleanAddress)}&` +
+        `limit=1&` +
+        `addressdetails=1&` +
+        `countrycodes=se,no,dk,fi,fr,de,gb,es,it&` + // Nordic + European countries
+        `accept-language=en`,
       {
         headers: {
-          'User-Agent': 'CrowdVine/1.0 (https://pactwines.com)',
-          'Accept': 'application/json'
-        }
-      }
+          "User-Agent": "CrowdVine/1.0 (https://pactwines.com)",
+          Accept: "application/json",
+        },
+      },
     );
 
     if (!response.ok) {
@@ -68,8 +70,8 @@ export async function geocodeAddress(address: string): Promise<GeocodeResult | G
 
     if (!data || data.length === 0) {
       return {
-        error: 'NO_RESULTS',
-        message: 'No coordinates found for this address'
+        error: "NO_RESULTS",
+        message: "No coordinates found for this address",
       };
     }
 
@@ -78,49 +80,53 @@ export async function geocodeAddress(address: string): Promise<GeocodeResult | G
       lat: parseFloat(result.lat),
       lon: parseFloat(result.lon),
       display_name: result.display_name,
-      address: result.address ? {
-        house_number: result.address.house_number,
-        road: result.address.road,
-        city: result.address.city || result.address.town || result.address.village,
-        postcode: result.address.postcode,
-        country: result.address.country,
-        country_code: result.address.country_code?.toUpperCase()
-      } : undefined
+      address: result.address
+        ? {
+            house_number: result.address.house_number,
+            road: result.address.road,
+            city:
+              result.address.city ||
+              result.address.town ||
+              result.address.village,
+            postcode: result.address.postcode,
+            country: result.address.country,
+            country_code: result.address.country_code?.toUpperCase(),
+          }
+        : undefined,
     };
 
     // Cache the result
     geocodeCache.set(cleanAddress, geocodeResult);
-    
-    console.log('✅ Geocoded successfully:', {
+
+    console.log("✅ Geocoded successfully:", {
       address: cleanAddress,
       lat: geocodeResult.lat,
       lon: geocodeResult.lon,
-      city: geocodeResult.address?.city
+      city: geocodeResult.address?.city,
     });
 
     return geocodeResult;
-
   } catch (error) {
-    console.error('❌ Primary geocoding failed:', error);
-    
+    console.error("❌ Primary geocoding failed:", error);
+
     // Fallback: Try with a simpler address format
     try {
-      console.log('🔄 Trying fallback geocoding...');
-      const simpleAddress = address.split(',')[0] + ', Sweden'; // Just street + country
-      
+      console.log("🔄 Trying fallback geocoding...");
+      const simpleAddress = address.split(",")[0] + ", Sweden"; // Just street + country
+
       const fallbackResponse = await fetch(
         `https://nominatim.openstreetmap.org/search?` +
-        `format=json&` +
-        `q=${encodeURIComponent(simpleAddress)}&` +
-        `limit=1&` +
-        `countrycodes=se&` +
-        `accept-language=en`,
+          `format=json&` +
+          `q=${encodeURIComponent(simpleAddress)}&` +
+          `limit=1&` +
+          `countrycodes=se&` +
+          `accept-language=en`,
         {
           headers: {
-            'User-Agent': 'CrowdVine/1.0 (https://pactwines.com)',
-            'Accept': 'application/json'
-          }
-        }
+            "User-Agent": "CrowdVine/1.0 (https://pactwines.com)",
+            Accept: "application/json",
+          },
+        },
       );
 
       if (fallbackResponse.ok) {
@@ -131,35 +137,40 @@ export async function geocodeAddress(address: string): Promise<GeocodeResult | G
             lat: parseFloat(result.lat),
             lon: parseFloat(result.lon),
             display_name: result.display_name,
-            address: result.address ? {
-              house_number: result.address.house_number,
-              road: result.address.road,
-              city: result.address.city || result.address.town || result.address.village,
-              postcode: result.address.postcode,
-              country: result.address.country,
-              country_code: result.address.country_code?.toUpperCase()
-            } : undefined
+            address: result.address
+              ? {
+                  house_number: result.address.house_number,
+                  road: result.address.road,
+                  city:
+                    result.address.city ||
+                    result.address.town ||
+                    result.address.village,
+                  postcode: result.address.postcode,
+                  country: result.address.country,
+                  country_code: result.address.country_code?.toUpperCase(),
+                }
+              : undefined,
           };
 
           // Cache the result
           geocodeCache.set(cleanAddress, geocodeResult);
-          
-          console.log('✅ Fallback geocoding successful:', {
+
+          console.log("✅ Fallback geocoding successful:", {
             address: cleanAddress,
             lat: geocodeResult.lat,
-            lon: geocodeResult.lon
+            lon: geocodeResult.lon,
           });
 
           return geocodeResult;
         }
       }
     } catch (fallbackError) {
-      console.error('❌ Fallback geocoding also failed:', fallbackError);
+      console.error("❌ Fallback geocoding also failed:", fallbackError);
     }
-    
+
     return {
-      error: 'GEOCODING_FAILED',
-      message: `Failed to geocode address: ${error instanceof Error ? error.message : 'Unknown error'}`
+      error: "GEOCODING_FAILED",
+      message: `Failed to geocode address: ${error instanceof Error ? error.message : "Unknown error"}`,
     };
   }
 }
@@ -172,13 +183,13 @@ export function createFullAddress(parts: {
   country?: string;
 }): string {
   const addressParts = [];
-  
+
   if (parts.street) addressParts.push(parts.street);
   if (parts.postcode) addressParts.push(parts.postcode);
   if (parts.city) addressParts.push(parts.city);
   if (parts.country) addressParts.push(parts.country);
-  
-  return addressParts.join(', ');
+
+  return addressParts.join(", ");
 }
 
 // Helper function to geocode from separate address fields
@@ -191,29 +202,29 @@ export async function geocodeFromFields(fields: {
   // Validate required fields
   if (!fields.city || !fields.country) {
     return {
-      error: 'MISSING_REQUIRED_FIELDS',
-      message: 'City and country are required for geocoding'
+      error: "MISSING_REQUIRED_FIELDS",
+      message: "City and country are required for geocoding",
     };
   }
 
   // Create address string from fields
   const addressParts = [];
-  
+
   if (fields.street) addressParts.push(fields.street);
   if (fields.postcode) addressParts.push(fields.postcode);
   addressParts.push(fields.city);
   addressParts.push(fields.country);
-  
-  const fullAddress = addressParts.join(', ');
-  
+
+  const fullAddress = addressParts.join(", ");
+
   return await geocodeAddress(fullAddress);
 }
 
 // Helper function to validate coordinates
 export function isValidCoordinates(lat: number, lon: number): boolean {
   return (
-    typeof lat === 'number' &&
-    typeof lon === 'number' &&
+    typeof lat === "number" &&
+    typeof lon === "number" &&
     !isNaN(lat) &&
     !isNaN(lon) &&
     lat >= -90 &&

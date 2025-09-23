@@ -10,10 +10,10 @@ export interface AdminUser {
 export async function getCurrentAdmin(): Promise<AdminUser | null> {
   try {
     const cookieStore = await cookies();
-    const adminAuthCookie = cookieStore.get('admin-auth');
-    const adminEmailCookie = cookieStore.get('admin-email');
-    
-    if (!adminAuthCookie || adminAuthCookie.value !== 'true') {
+    const adminAuthCookie = cookieStore.get("admin-auth");
+    const adminEmailCookie = cookieStore.get("admin-email");
+
+    if (!adminAuthCookie || adminAuthCookie.value !== "true") {
       return null;
     }
 
@@ -24,10 +24,10 @@ export async function getCurrentAdmin(): Promise<AdminUser | null> {
     // Verify admin exists in database
     const supabase = getSupabaseAdmin();
     const { data: adminProfile } = await supabase
-      .from('profiles')
-      .select('id, email, role')
-      .eq('email', adminEmailCookie.value)
-      .eq('role', 'admin')
+      .from("profiles")
+      .select("id, email, role")
+      .eq("email", adminEmailCookie.value)
+      .eq("role", "admin")
       .single();
 
     if (!adminProfile) {
@@ -37,10 +37,10 @@ export async function getCurrentAdmin(): Promise<AdminUser | null> {
     return {
       id: adminProfile.id,
       email: adminProfile.email,
-      role: adminProfile.role
+      role: adminProfile.role,
     };
   } catch (error) {
-    console.error('Error in getCurrentAdmin:', error);
+    console.error("Error in getCurrentAdmin:", error);
     return null;
   }
 }

@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
         // Validate image
         const validation = await validateImage(file);
         if (!validation.isValid) {
-          uploadErrors.push(`${file.name}: ${validation.errors.join(', ')}`);
+          uploadErrors.push(`${file.name}: ${validation.errors.join(", ")}`);
           continue;
         }
 
@@ -57,10 +57,10 @@ export async function POST(request: NextRequest) {
 
         // Upload to Supabase Storage
         const { data, error } = await supabase.storage
-          .from('uploads')
+          .from("uploads")
           .upload(fileName, buffer, {
             contentType: file.type,
-            upsert: false
+            upsert: false,
           });
 
         if (error) {
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
 
         // Get public URL
         const { data: urlData } = supabase.storage
-          .from('uploads')
+          .from("uploads")
           .getPublicUrl(fileName);
 
         if (urlData?.publicUrl) {
@@ -80,10 +80,11 @@ export async function POST(request: NextRequest) {
         } else {
           uploadErrors.push(`${file.name}: Failed to get public URL`);
         }
-
       } catch (fileError) {
         console.error(`Error processing ${file.name}:`, fileError);
-        uploadErrors.push(`${file.name}: ${fileError instanceof Error ? fileError.message : 'Unknown error'}`);
+        uploadErrors.push(
+          `${file.name}: ${fileError instanceof Error ? fileError.message : "Unknown error"}`,
+        );
       }
     }
 
@@ -95,7 +96,8 @@ export async function POST(request: NextRequest) {
 
     if (uploadErrors.length > 0) {
       response.errors = uploadErrors;
-      response.partialSuccess = uploadedFiles.length > 0 && uploadErrors.length > 0;
+      response.partialSuccess =
+        uploadedFiles.length > 0 && uploadErrors.length > 0;
     }
 
     if (uploadedFiles.length === 0) {
@@ -106,9 +108,9 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Upload error:", error);
     return NextResponse.json(
-      { 
-        error: "Failed to upload files", 
-        details: error instanceof Error ? error.message : 'Unknown error'
+      {
+        error: "Failed to upload files",
+        details: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 },
     );

@@ -40,10 +40,10 @@ export default function AdminLogin() {
     try {
       console.log("Attempting admin login...");
 
-      const response = await fetch('/api/admin/auth', {
-        method: 'POST',
+      const response = await fetch("/api/admin/auth", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ email, password }),
       });
@@ -68,7 +68,9 @@ export default function AdminLogin() {
       }
     } catch (err: any) {
       console.error("Login error details:", err);
-      setError("Ett oväntat fel uppstod. Kontrollera din internetanslutning och försök igen.");
+      setError(
+        "Ett oväntat fel uppstod. Kontrollera din internetanslutning och försök igen.",
+      );
     } finally {
       setLoading(false);
     }

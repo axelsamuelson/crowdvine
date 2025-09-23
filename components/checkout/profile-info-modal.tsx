@@ -4,8 +4,20 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { User, MapPin, Phone, Mail } from "lucide-react";
 
@@ -23,7 +35,10 @@ interface ProfileModalProps {
   trigger?: React.ReactNode;
 }
 
-export function ProfileInfoModal({ onProfileSaved, trigger }: ProfileModalProps) {
+export function ProfileInfoModal({
+  onProfileSaved,
+  trigger,
+}: ProfileModalProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<ProfileInfo>({
@@ -32,22 +47,22 @@ export function ProfileInfoModal({ onProfileSaved, trigger }: ProfileModalProps)
     address: "",
     city: "",
     postal_code: "",
-    country: "Sweden"
+    country: "Sweden",
   });
 
   const handleSave = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/user/profile', {
-        method: 'PATCH',
+      const response = await fetch("/api/user/profile", {
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save profile');
+        throw new Error("Failed to save profile");
       }
 
       const updatedProfile = await response.json();
@@ -55,7 +70,7 @@ export function ProfileInfoModal({ onProfileSaved, trigger }: ProfileModalProps)
       setOpen(false);
       toast.success("Profile information saved successfully!");
     } catch (error) {
-      console.error('Error saving profile:', error);
+      console.error("Error saving profile:", error);
       toast.error("Failed to save profile information");
     } finally {
       setLoading(false);
@@ -79,45 +94,53 @@ export function ProfileInfoModal({ onProfileSaved, trigger }: ProfileModalProps)
             Add Profile Information
           </DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           <div>
             <Label htmlFor="full_name">Full Name</Label>
             <Input
               id="full_name"
               value={formData.full_name}
-              onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, full_name: e.target.value })
+              }
               placeholder="Enter your full name"
             />
           </div>
-          
+
           <div>
             <Label htmlFor="phone">Phone Number</Label>
             <Input
               id="phone"
               value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, phone: e.target.value })
+              }
               placeholder="Enter your phone number"
             />
           </div>
-          
+
           <div>
             <Label htmlFor="address">Address</Label>
             <Input
               id="address"
               value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, address: e.target.value })
+              }
               placeholder="Enter your address"
             />
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="city">City</Label>
               <Input
                 id="city"
                 value={formData.city}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, city: e.target.value })
+                }
                 placeholder="Enter your city"
               />
             </div>
@@ -126,15 +149,22 @@ export function ProfileInfoModal({ onProfileSaved, trigger }: ProfileModalProps)
               <Input
                 id="postal_code"
                 value={formData.postal_code}
-                onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, postal_code: e.target.value })
+                }
                 placeholder="Enter postal code"
               />
             </div>
           </div>
-          
+
           <div>
             <Label htmlFor="country">Country</Label>
-            <Select value={formData.country} onValueChange={(value) => setFormData({ ...formData, country: value })}>
+            <Select
+              value={formData.country}
+              onValueChange={(value) =>
+                setFormData({ ...formData, country: value })
+              }
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select country" />
               </SelectTrigger>
@@ -149,12 +179,16 @@ export function ProfileInfoModal({ onProfileSaved, trigger }: ProfileModalProps)
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="flex gap-2 pt-4">
             <Button onClick={handleSave} disabled={loading} className="flex-1">
               {loading ? "Saving..." : "Save Profile"}
             </Button>
-            <Button variant="outline" onClick={() => setOpen(false)} className="flex-1">
+            <Button
+              variant="outline"
+              onClick={() => setOpen(false)}
+              className="flex-1"
+            >
               Cancel
             </Button>
           </div>

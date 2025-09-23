@@ -1,5 +1,8 @@
-import sgMail from '@sendgrid/mail';
-import { getWelcomeEmailTemplate, getWelcomeEmailText } from './email-templates';
+import sgMail from "@sendgrid/mail";
+import {
+  getWelcomeEmailTemplate,
+  getWelcomeEmailText,
+} from "./email-templates";
 
 // Initialize SendGrid
 if (process.env.SENDGRID_API_KEY) {
@@ -48,14 +51,16 @@ class SendGridService {
   private fromName: string;
 
   constructor() {
-    this.fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@pactwines.com';
-    this.fromName = process.env.SENDGRID_FROM_NAME || 'CrowdVine';
+    this.fromEmail = process.env.SENDGRID_FROM_EMAIL || "noreply@pactwines.com";
+    this.fromName = process.env.SENDGRID_FROM_NAME || "CrowdVine";
   }
 
   async sendEmail(data: EmailData): Promise<boolean> {
     if (!process.env.SENDGRID_API_KEY) {
-      console.error('SendGrid API key not configured. Please set SENDGRID_API_KEY in your environment variables.');
-      console.error('For development, you can set it in .env.local file.');
+      console.error(
+        "SendGrid API key not configured. Please set SENDGRID_API_KEY in your environment variables.",
+      );
+      console.error("For development, you can set it in .env.local file.");
       return false;
     }
 
@@ -75,9 +80,9 @@ class SendGridService {
       console.log(`Email sent successfully to ${data.to}`);
       return true;
     } catch (error) {
-      console.error('SendGrid error:', error);
+      console.error("SendGrid error:", error);
       if (error.response) {
-        console.error('SendGrid response body:', error.response.body);
+        console.error("SendGrid response body:", error.response.body);
       }
       return false;
     }
@@ -101,18 +106,20 @@ class SendGridService {
 
     return this.sendEmail({
       to: data.customerEmail,
-      subject: '🍷 Welcome to CrowdVine!',
+      subject: "🍷 Welcome to CrowdVine!",
       html,
       text,
     });
   }
 
   private getOrderConfirmationTemplate(data: OrderConfirmationData): string {
-    const itemsHtml = data.items.map(item => `
+    const itemsHtml = data.items
+      .map(
+        (item) => `
       <tr>
         <td style="padding: 15px; border-bottom: 1px solid #eee;">
           <div style="display: flex; align-items: center;">
-            ${item.image ? `<img src="${item.image}" alt="${item.name}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; margin-right: 15px;">` : ''}
+            ${item.image ? `<img src="${item.image}" alt="${item.name}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; margin-right: 15px;">` : ""}
             <div>
               <h4 style="margin: 0 0 5px 0; color: #333;">${item.name}</h4>
               <p style="margin: 0; color: #666; font-size: 14px;">Quantity: ${item.quantity}</p>
@@ -123,7 +130,9 @@ class SendGridService {
           ${item.price.toFixed(2)} SEK
         </td>
       </tr>
-    `).join('');
+    `,
+      )
+      .join("");
 
     return `
       <!DOCTYPE html>
@@ -203,7 +212,7 @@ class SendGridService {
               </div>
 
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://pactwines.com'}/profile/reservations" class="button">
+                <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://pactwines.com"}/profile/reservations" class="button">
                   View Your Reservations
                 </a>
               </div>
@@ -225,9 +234,12 @@ class SendGridService {
   }
 
   private getOrderConfirmationText(data: OrderConfirmationData): string {
-    const itemsText = data.items.map(item => 
-      `${item.name} (Qty: ${item.quantity}) - ${item.price.toFixed(2)} SEK`
-    ).join('\n');
+    const itemsText = data.items
+      .map(
+        (item) =>
+          `${item.name} (Qty: ${item.quantity}) - ${item.price.toFixed(2)} SEK`,
+      )
+      .join("\n");
 
     return `
 Order Confirmation - ${data.orderId}
@@ -266,9 +278,11 @@ CrowdVine - Premium Wine Community
     `;
   }
 
-
   private stripHtml(html: string): string {
-    return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+    return html
+      .replace(/<[^>]*>/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
   }
 }
 

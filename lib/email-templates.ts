@@ -89,7 +89,10 @@ If you didn't request this, please ignore this email.
   `;
 }
 
-export function getWelcomeEmailTemplate(data: { customerEmail: string; customerName: string }): string {
+export function getWelcomeEmailTemplate(data: {
+  customerEmail: string;
+  customerName: string;
+}): string {
   return `
     <!DOCTYPE html>
     <html>
@@ -135,7 +138,7 @@ export function getWelcomeEmailTemplate(data: { customerEmail: string; customerN
             </div>
 
             <div style="text-align: center;">
-              <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://pactwines.com'}/shop" class="button">
+              <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://pactwines.com"}/shop" class="button">
                 Start Exploring Wines
               </a>
             </div>
@@ -156,7 +159,10 @@ export function getWelcomeEmailTemplate(data: { customerEmail: string; customerN
   `;
 }
 
-export function getWelcomeEmailText(data: { customerEmail: string; customerName: string }): string {
+export function getWelcomeEmailText(data: {
+  customerEmail: string;
+  customerName: string;
+}): string {
   return `
 Welcome to CrowdVine!
 
@@ -173,7 +179,7 @@ What You Can Explore:
 Getting Started:
 Start by browsing our current collections and discover wines that match your taste preferences. Our pallet-sharing system makes premium wines accessible while building connections with like-minded enthusiasts.
 
-Visit our shop: ${process.env.NEXT_PUBLIC_APP_URL || 'https://pactwines.com'}/shop
+Visit our shop: ${process.env.NEXT_PUBLIC_APP_URL || "https://pactwines.com"}/shop
 
 If you have any questions or need assistance, our support team is here to help. We're committed to making your wine journey exceptional.
 

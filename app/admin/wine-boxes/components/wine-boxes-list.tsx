@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2, Eye } from "lucide-react";
@@ -74,7 +80,9 @@ export function WineBoxesList() {
     <Card>
       <CardHeader>
         <CardTitle>All Wine Boxes</CardTitle>
-        <CardDescription>Complete list of all wine box packages</CardDescription>
+        <CardDescription>
+          Complete list of all wine box packages
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
@@ -132,12 +140,15 @@ export function WineBoxesList() {
                       <div className="font-medium text-gray-900">
                         {box.name}
                       </div>
-                      <div className="text-sm text-gray-500 overflow-hidden" style={{
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        maxHeight: '2.5rem'
-                      }}>
+                      <div
+                        className="text-sm text-gray-500 overflow-hidden"
+                        style={{
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          maxHeight: "2.5rem",
+                        }}
+                      >
                         {box.description}
                       </div>
                     </div>
@@ -147,9 +158,7 @@ export function WineBoxesList() {
                       {box.margin_percentage}%
                     </Badge>
                   </td>
-                  <td className="p-3 text-sm text-gray-500">
-                    Dynamic pricing
-                  </td>
+                  <td className="p-3 text-sm text-gray-500">Dynamic pricing</td>
                   <td className="p-3 text-sm text-gray-500 font-mono">
                     {box.handle}
                   </td>
@@ -168,7 +177,10 @@ export function WineBoxesList() {
                           <Edit className="h-4 w-4" />
                         </Button>
                       </Link>
-                      <DeleteWineBoxButton wineBoxId={box.id} wineBoxName={box.name} />
+                      <DeleteWineBoxButton
+                        wineBoxId={box.id}
+                        wineBoxName={box.name}
+                      />
                     </div>
                   </td>
                 </tr>

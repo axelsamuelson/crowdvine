@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,7 +23,10 @@ interface SelectedWine {
   quantity: number;
 }
 
-export function CreateWineBoxDialog({ isOpen, onClose }: CreateWineBoxDialogProps) {
+export function CreateWineBoxDialog({
+  isOpen,
+  onClose,
+}: CreateWineBoxDialogProps) {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -31,7 +39,7 @@ export function CreateWineBoxDialog({ isOpen, onClose }: CreateWineBoxDialogProp
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (selectedWines.length === 0) {
       alert("Please select at least one wine for the box.");
       return;
@@ -59,15 +67,18 @@ export function CreateWineBoxDialog({ isOpen, onClose }: CreateWineBoxDialogProp
       const wineBox = await wineBoxResponse.json();
 
       // Then add the wine items
-      const wineItemsResponse = await fetch(`/api/admin/wine-boxes/${wineBox.id}/items`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const wineItemsResponse = await fetch(
+        `/api/admin/wine-boxes/${wineBox.id}/items`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            wineItems: selectedWines,
+          }),
         },
-        body: JSON.stringify({
-          wineItems: selectedWines,
-        }),
-      });
+      );
 
       if (!wineItemsResponse.ok) {
         throw new Error("Failed to add wines to box");
@@ -93,15 +104,18 @@ export function CreateWineBoxDialog({ isOpen, onClose }: CreateWineBoxDialogProp
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
-    
+
     // Auto-generate handle from name
     if (field === "name") {
-      const handle = value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-      setFormData(prev => ({
+      const handle = value
+        .toLowerCase()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9-]/g, "");
+      setFormData((prev) => ({
         ...prev,
         handle,
       }));
@@ -114,7 +128,7 @@ export function CreateWineBoxDialog({ isOpen, onClose }: CreateWineBoxDialogProp
         <DialogHeader>
           <DialogTitle>Create New Wine Box</DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -161,7 +175,9 @@ export function CreateWineBoxDialog({ isOpen, onClose }: CreateWineBoxDialogProp
                 min="0"
                 max="100"
                 value={formData.margin_percentage}
-                onChange={(e) => handleInputChange("margin_percentage", e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("margin_percentage", e.target.value)
+                }
                 placeholder="15.00"
                 required
               />
@@ -186,7 +202,9 @@ export function CreateWineBoxDialog({ isOpen, onClose }: CreateWineBoxDialogProp
             />
             {selectedWines.length > 0 && (
               <div className="mt-2 text-sm text-muted-foreground">
-                Selected {selectedWines.length} wine(s) with {selectedWines.reduce((sum, w) => sum + w.quantity, 0)} total bottles
+                Selected {selectedWines.length} wine(s) with{" "}
+                {selectedWines.reduce((sum, w) => sum + w.quantity, 0)} total
+                bottles
               </div>
             )}
           </div>
@@ -195,7 +213,10 @@ export function CreateWineBoxDialog({ isOpen, onClose }: CreateWineBoxDialogProp
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading || selectedWines.length === 0}>
+            <Button
+              type="submit"
+              disabled={loading || selectedWines.length === 0}
+            >
               {loading ? "Creating..." : "Create Wine Box"}
             </Button>
           </div>

@@ -6,7 +6,7 @@ export async function POST() {
     const supabase = getSupabaseAdmin();
 
     // Create discount_codes table
-    const { error: tableError } = await supabase.rpc('exec_sql', {
+    const { error: tableError } = await supabase.rpc("exec_sql", {
       sql: `
         CREATE TABLE IF NOT EXISTS discount_codes (
           id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -22,28 +22,28 @@ export async function POST() {
           used_by_user_id UUID REFERENCES auth.users(id),
           used_at TIMESTAMP WITH TIME ZONE
         );
-      `
+      `,
     });
 
     if (tableError) {
-      console.error('Table creation error:', tableError);
+      console.error("Table creation error:", tableError);
     }
 
     // Enable RLS
-    await supabase.rpc('exec_sql', {
-      sql: 'ALTER TABLE discount_codes ENABLE ROW LEVEL SECURITY;'
+    await supabase.rpc("exec_sql", {
+      sql: "ALTER TABLE discount_codes ENABLE ROW LEVEL SECURITY;",
     });
 
     // Create RLS policy
-    await supabase.rpc('exec_sql', {
+    await supabase.rpc("exec_sql", {
       sql: `
         CREATE POLICY "Users can view their own discount codes" ON discount_codes
           FOR SELECT USING (auth.uid() = earned_by_user_id);
-      `
+      `,
     });
 
     // Create function to generate discount code
-    await supabase.rpc('exec_sql', {
+    await supabase.rpc("exec_sql", {
       sql: `
         CREATE OR REPLACE FUNCTION generate_discount_code()
         RETURNS VARCHAR(50) AS $$
@@ -59,11 +59,11 @@ export async function POST() {
           RETURN new_code;
         END;
         $$ LANGUAGE plpgsql;
-      `
+      `,
     });
 
     // Create function to create invitation reward discount
-    await supabase.rpc('exec_sql', {
+    await supabase.rpc("exec_sql", {
       sql: `
         CREATE OR REPLACE FUNCTION create_invitation_reward_discount(
           p_user_id UUID,
@@ -109,19 +109,21 @@ export async function POST() {
           RETURN new_discount_id;
         END;
         $$ LANGUAGE plpgsql SECURITY DEFINER;
-      `
+      `,
     });
 
-    return NextResponse.json({ 
-      success: true, 
-      message: "Discount codes table and functions created successfully" 
+    return NextResponse.json({
+      success: true,
+      message: "Discount codes table and functions created successfully",
     });
-
   } catch (error) {
-    console.error('Setup discount codes error:', error);
-    return NextResponse.json({ 
-      error: "Failed to setup discount codes",
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    console.error("Setup discount codes error:", error);
+    return NextResponse.json(
+      {
+        error: "Failed to setup discount codes",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
   }
 }

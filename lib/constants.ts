@@ -31,55 +31,55 @@ export const isDevelopment = process.env.NODE_ENV === "development";
 // Internal color mapping for common color names to hex values
 export const COLOR_MAP: Record<string, string> = {
   // Wine-inspired colors
-  red: "#CE0000",           // Classic wine red
-  "rose": "#D4A5A5",        // Rosé wine color
-  "light-red": "#A05252",   // Lighter wine red
-  "dark-red": "#4A1A1F",    // Dark burgundy
-  
-  orange: "#FF8C00",        // Vibrant orange wine color
-  "amber": "#D4A574",       // Golden amber
-  
-  purple: "#6B46C1",        // Deep purple wine
+  red: "#CE0000", // Classic wine red
+  rose: "#D4A5A5", // Rosé wine color
+  "light-red": "#A05252", // Lighter wine red
+  "dark-red": "#4A1A1F", // Dark burgundy
+
+  orange: "#FF8C00", // Vibrant orange wine color
+  amber: "#D4A574", // Golden amber
+
+  purple: "#6B46C1", // Deep purple wine
   "light-purple": "#8B7ED8", // Lighter purple
   "dark-purple": "#4C1D95", // Dark purple wine
-  
-  pink: "#E879F9",          // Pink wine/rosé
-  "blush": "#F9A8D4",       // Blush wine
-  
+
+  pink: "#E879F9", // Pink wine/rosé
+  blush: "#F9A8D4", // Blush wine
+
   // White wine colors
-  white: "#FEF3C7",         // Pale golden white wine
-  "golden": "#FCD34D",      // Golden white wine
-  "straw": "#FDE68A",       // Straw-colored wine
-  "champagne": "#FEF3C7",   // Champagne color
-  
+  white: "#FEF3C7", // Pale golden white wine
+  golden: "#FCD34D", // Golden white wine
+  straw: "#FDE68A", // Straw-colored wine
+  champagne: "#FEF3C7", // Champagne color
+
   // Earth tones for wine barrels/bottles
-  brown: "#92400E",         // Oak barrel brown
-  "dark-brown": "#451A03",  // Dark oak
+  brown: "#92400E", // Oak barrel brown
+  "dark-brown": "#451A03", // Dark oak
   "light-brown": "#D97706", // Light oak
-  "tan": "#D2B48C",         // Tan leather
-  "beige": "#F5F5DC",       // Light beige
-  
+  tan: "#D2B48C", // Tan leather
+  beige: "#F5F5DC", // Light beige
+
   // Natural colors
-  green: "#365314",         // Forest green (vine leaves)
-  "olive": "#6B7280",       // Olive green
-  "sage": "#84CC16",        // Sage green
-  "emerald": "#059669",     // Emerald green
-  
+  green: "#365314", // Forest green (vine leaves)
+  olive: "#6B7280", // Olive green
+  sage: "#84CC16", // Sage green
+  emerald: "#059669", // Emerald green
+
   // Metallic colors for wine accessories
-  gold: "#D97706",          // Wine gold
-  silver: "#6B7280",        // Wine silver
-  "copper": "#B45309",      // Copper wine accessories
-  
+  gold: "#D97706", // Wine gold
+  silver: "#6B7280", // Wine silver
+  copper: "#B45309", // Copper wine accessories
+
   // Neutral colors
-  black: "#1F2937",         // Dark charcoal
-  gray: "#6B7280",          // Medium gray
-  "dark-gray": "#374151",   // Dark gray
-  "light-gray": "#D1D5DB",  // Light gray
-  
+  black: "#1F2937", // Dark charcoal
+  gray: "#6B7280", // Medium gray
+  "dark-gray": "#374151", // Dark gray
+  "light-gray": "#D1D5DB", // Light gray
+
   // Special wine blend colors
-  "blend": "#8B5A2B",       // Wine blend color (mix of red and brown)
-  "cuvée": "#A05252",       // Cuvée blend color
-  
+  blend: "#8B5A2B", // Wine blend color (mix of red and brown)
+  cuvée: "#A05252", // Cuvée blend color
+
   // Traditional colors (keeping for compatibility)
   blue: "#3B82F6",
   yellow: "#EAB308",
@@ -95,7 +95,7 @@ export const COLOR_MAP: Record<string, string> = {
   neutral: "#737373",
   stone: "#78716C",
   zinc: "#71717A",
-  
+
   // Additional variations
   "light-blue": "#38BDF8",
   "dark-blue": "#1E40AF",

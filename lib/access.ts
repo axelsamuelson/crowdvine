@@ -1,22 +1,13 @@
-import { cookies } from 'next/headers';
+// cv-access cookie hantering har tagits bort
+// Middleware använder nu profiles.access_granted_at för access control
+// Denna fil behålls för kompatibilitet men funktionerna är inaktiva
 
 export async function ensureAccessCookie() {
-  const jar = await cookies();
-  const v = jar.get('cv-access')?.value;
-  if (v !== '1') {
-  jar.set('cv-access', '1', { 
-    httpOnly: true, 
-    sameSite: 'lax', // Changed from 'strict' to 'lax' for better incognito support
-    path: '/', 
-    maxAge: 60*60*24*365, // 1 year
-    secure: process.env.NODE_ENV === 'production',
-    domain: process.env.NODE_ENV === 'production' ? '.pactwines.com' : undefined
-  });
-  }
+  // Inaktiv - middleware hanterar access via databas
+  return;
 }
 
-// Server action for setting access cookie
 export async function setAccessCookieAction() {
-  "use server";
-  await ensureAccessCookie();
+  // Inaktiv - middleware hanterar access via databas
+  return;
 }

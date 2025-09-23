@@ -131,8 +131,6 @@ export async function signUp(
 }
 
 export async function signOut() {
-  // Clear access cookie on client side
-  document.cookie = 'cv-access=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-  
-  return await supabase.auth.signOut();
+  // Använd global signOut för att rensa alla sessioner
+  return await supabase.auth.signOut({ scope: "global" });
 }

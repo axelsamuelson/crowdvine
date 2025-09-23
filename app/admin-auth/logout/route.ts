@@ -1,21 +1,23 @@
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const response = NextResponse.redirect(new URL('/admin-auth/login', 'https://pactwines.com'));
-  
+  const response = NextResponse.redirect(
+    new URL("/admin-auth/login", "https://pactwines.com"),
+  );
+
   // Clear both admin cookies
-  response.cookies.set('admin-auth', '', {
+  response.cookies.set("admin-auth", "", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 0 // Expire immediately
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: 0, // Expire immediately
   });
-  
-  response.cookies.set('admin-email', '', {
+
+  response.cookies.set("admin-email", "", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 0 // Expire immediately
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: 0, // Expire immediately
   });
 
   return response;

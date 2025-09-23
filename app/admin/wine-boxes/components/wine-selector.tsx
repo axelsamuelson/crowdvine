@@ -29,7 +29,10 @@ interface WineSelectorProps {
   onWinesChange: (wines: SelectedWine[]) => void;
 }
 
-export function WineSelector({ selectedWines, onWinesChange }: WineSelectorProps) {
+export function WineSelector({
+  selectedWines,
+  onWinesChange,
+}: WineSelectorProps) {
   const [wines, setWines] = useState<Wine[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -59,36 +62,39 @@ export function WineSelector({ selectedWines, onWinesChange }: WineSelectorProps
       onWinesChange([...selectedWines, newWine]);
     } else {
       // Remove wine
-      onWinesChange(selectedWines.filter(w => w.wineId !== wineId));
+      onWinesChange(selectedWines.filter((w) => w.wineId !== wineId));
     }
   };
 
   const handleQuantityChange = (wineId: string, quantity: number) => {
     if (quantity <= 0) {
       // Remove wine if quantity is 0 or negative
-      onWinesChange(selectedWines.filter(w => w.wineId !== wineId));
+      onWinesChange(selectedWines.filter((w) => w.wineId !== wineId));
     } else {
       // Update quantity
-      onWinesChange(selectedWines.map(w => 
-        w.wineId === wineId ? { ...w, quantity } : w
-      ));
+      onWinesChange(
+        selectedWines.map((w) =>
+          w.wineId === wineId ? { ...w, quantity } : w,
+        ),
+      );
     }
   };
 
   const isWineSelected = (wineId: string) => {
-    return selectedWines.some(w => w.wineId === wineId);
+    return selectedWines.some((w) => w.wineId === wineId);
   };
 
   const getSelectedQuantity = (wineId: string) => {
-    const selected = selectedWines.find(w => w.wineId === wineId);
+    const selected = selectedWines.find((w) => w.wineId === wineId);
     return selected ? selected.quantity : 0;
   };
 
-  const filteredWines = wines.filter(wine =>
-    wine.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    wine.variants?.[0]?.selectedOptions?.some(option => 
-      option.value?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+  const filteredWines = wines.filter(
+    (wine) =>
+      wine.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      wine.variants?.[0]?.selectedOptions?.some((option) =>
+        option.value?.toLowerCase().includes(searchTerm.toLowerCase()),
+      ),
   );
 
   const formatPrice = (cents: number) => {
@@ -130,38 +136,51 @@ export function WineSelector({ selectedWines, onWinesChange }: WineSelectorProps
         {filteredWines.map((wine) => {
           const isSelected = isWineSelected(wine.id);
           const quantity = getSelectedQuantity(wine.id);
-          
+
           return (
-            <Card key={wine.id} className={`cursor-pointer transition-colors ${
-              isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'
-            }`}>
+            <Card
+              key={wine.id}
+              className={`cursor-pointer transition-colors ${
+                isSelected
+                  ? "ring-2 ring-blue-500 bg-blue-50"
+                  : "hover:bg-gray-50"
+              }`}
+            >
               <CardContent className="p-4">
                 <div className="flex items-start space-x-3">
                   <Checkbox
                     checked={isSelected}
-                    onCheckedChange={(checked) => 
+                    onCheckedChange={(checked) =>
                       handleWineToggle(wine.id, checked as boolean)
                     }
                   />
-                  
+
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="font-medium text-sm truncate">
                         {wine.title || "Unknown Wine"}
                       </h4>
                       <Badge variant="outline" className="text-xs">
-                        {formatPrice(wine.variants?.[0]?.price?.amount ? 
-                          parseFloat(wine.variants[0].price.amount) * 100 : 0)}
+                        {formatPrice(
+                          wine.variants?.[0]?.price?.amount
+                            ? parseFloat(wine.variants[0].price.amount) * 100
+                            : 0,
+                        )}
                       </Badge>
                     </div>
-                    
+
                     <p className="text-xs text-muted-foreground mb-2">
-                      {wine.variants?.[0]?.selectedOptions?.map(option => option.value).join(", ") || "No details"}
+                      {wine.variants?.[0]?.selectedOptions
+                        ?.map((option) => option.value)
+                        .join(", ") || "No details"}
                     </p>
-                    
+
                     {isSelected && (
                       <div className="flex items-center space-x-2">
-                        <Label htmlFor={`quantity-${wine.id}`} className="text-xs">
+                        <Label
+                          htmlFor={`quantity-${wine.id}`}
+                          className="text-xs"
+                        >
                           Quantity:
                         </Label>
                         <Input
@@ -169,8 +188,11 @@ export function WineSelector({ selectedWines, onWinesChange }: WineSelectorProps
                           type="number"
                           min="1"
                           value={quantity}
-                          onChange={(e) => 
-                            handleQuantityChange(wine.id, parseInt(e.target.value) || 0)
+                          onChange={(e) =>
+                            handleQuantityChange(
+                              wine.id,
+                              parseInt(e.target.value) || 0,
+                            )
                           }
                           className="w-16 h-8 text-xs"
                         />

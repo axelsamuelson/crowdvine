@@ -1,87 +1,71 @@
 import { NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabase-server";
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { signupLimiter, getClientIdentifier } from "@/lib/rate-limiter";
 
-export async function POST(request: Request) {
-  try {
-    const { email, password, fullName } = await request.json();
+export async function POST(req: Request) {
+  // Rate limiting för signup (striktare)
+  const identifier = getClientIdentifier(req);
+  if (!signupLimiter.isAllowed(identifier)) {
+    return NextResponse.json(
+      {
+        ok: false,
+        message: "Too many signup attempts. Please try again later.",
+      },
+      { status: 429 },
+    );
+  }
 
-    if (!email || !password || !fullName) {
+  // Origin-kontroll för säkerhet
+  const origin = req.headers.get("origin");
+  if (process.env.NODE_ENV === "production") {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+    if (!origin || !appUrl || !origin.startsWith(appUrl)) {
       return NextResponse.json(
-        { error: "Email, password, and full name are required" },
+        { ok: false, message: "Bad origin" },
+        { status: 403 },
+      );
+    }
+  }
+
+  const { email, password, full_name, invitation_code } = await req.json();
+  const supabase = createSupabaseServerClient();
+
+  if (invitation_code) {
+    const { data: invite } = await supabase
+      .from("invitation_codes")
+      .select("code, used_at")
+      .eq("code", invitation_code)
+      .maybeSingle();
+    if (!invite || invite.used_at) {
+      return NextResponse.json(
+        { ok: false, message: "Invalid or used invitation code" },
         { status: 400 },
       );
     }
-
-    const supabase = await supabaseServer();
-    const supabaseAdmin = getSupabaseAdmin();
-
-    // 1. Create user in Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-        },
-      },
-    });
-
-    if (authError) {
-      console.error("Auth signup error:", authError);
-      return NextResponse.json({ error: authError.message }, { status: 400 });
-    }
-
-    if (!authData.user) {
-      return NextResponse.json(
-        { error: "Failed to create user account" },
-        { status: 500 },
-      );
-    }
-
-    // 2. Create user profile in profiles table (or update if exists)
-    const { error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .upsert({
-        id: authData.user.id,
-        email: email.toLowerCase().trim(),
-        full_name: fullName,
-        role: 'user',
-        access_granted_at: null // Reset access until granted by admin
-      }, {
-        onConflict: 'id',
-        ignoreDuplicates: false // Update existing records
-      });
-
-    if (profileError) {
-      console.error("Profile creation/update error:", profileError);
-      // Don't fail signup if profile creation fails, but log it
-    }
-
-    // 3. Check if user has a pending access request and delete it
-    const { error: deleteRequestError } = await supabaseAdmin
-      .from('access_requests')
-      .delete()
-      .eq('email', email.toLowerCase().trim());
-
-    if (deleteRequestError) {
-      console.error("Error deleting access request:", deleteRequestError);
-      // Don't fail signup if this fails
-    }
-
-    return NextResponse.json({
-      message: "User registered successfully. Your account is pending admin approval.",
-      user: {
-        id: authData.user.id,
-        email: authData.user.email,
-        full_name: fullName,
-      },
-    });
-  } catch (error) {
-    console.error("Signup error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
   }
+
+  const { data, error } = await supabase.auth.signUp({ email, password });
+  if (error)
+    return NextResponse.json(
+      { ok: false, message: error.message },
+      { status: 400 },
+    );
+
+  await supabase.from("profiles").insert({
+    id: data.user?.id,
+    full_name,
+    // access_granted_at: null (pending) eller sätt direkt om ni auto-grantar
+  });
+
+  if (invitation_code) {
+    await supabase
+      .from("invitation_codes")
+      .update({ used_at: new Date().toISOString() })
+      .eq("code", invitation_code);
+  }
+
+  return NextResponse.json({
+    ok: true,
+    user: { id: data.user?.id, email: data.user?.email },
+  });
 }

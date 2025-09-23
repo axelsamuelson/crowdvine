@@ -17,7 +17,7 @@ export default async function ShopLayout({
   try {
     collections = await getCollections();
   } catch (error) {
-    console.warn('Failed to fetch collections in shop layout:', error);
+    console.warn("Failed to fetch collections in shop layout:", error);
     collections = [];
   }
 

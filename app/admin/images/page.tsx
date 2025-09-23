@@ -10,7 +10,9 @@ export default async function ImagesPage() {
   for (const wine of wines) {
     try {
       const images = await getWineImages(wine.id);
-      allWineImages.push(...images.map(img => ({ ...img, wine_name: wine.wine_name })));
+      allWineImages.push(
+        ...images.map((img) => ({ ...img, wine_name: wine.wine_name })),
+      );
     } catch (error) {
       console.error(`Failed to load images for wine ${wine.id}:`, error);
     }
@@ -23,10 +25,7 @@ export default async function ImagesPage() {
         <p className="text-gray-600">Monitor and manage wine product images</p>
       </div>
 
-      <ImageHealthDashboard 
-        wines={wines}
-        wineImages={allWineImages}
-      />
+      <ImageHealthDashboard wines={wines} wineImages={allWineImages} />
     </div>
   );
 }

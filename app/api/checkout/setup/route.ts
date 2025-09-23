@@ -6,8 +6,11 @@ export async function GET(request: Request) {
     console.log("DEBUG: Starting checkout setup...");
     console.log("DEBUG: Stripe configured:", STRIPE_CONFIG.isConfigured);
     console.log("DEBUG: Has secret key:", !!process.env.STRIPE_SECRET_KEY);
-    console.log("DEBUG: Has publishable key:", !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
-    
+    console.log(
+      "DEBUG: Has publishable key:",
+      !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+    );
+
     // Check if Stripe is configured
     if (!STRIPE_CONFIG.isConfigured) {
       console.error("ERROR: Stripe is not configured");
@@ -62,17 +65,17 @@ export async function GET(request: Request) {
 
     // Create Stripe Checkout session for setup
     console.log("DEBUG: Creating checkout session...");
-    
+
     // Always use the production domain for redirects
     const baseUrl = "https://pactwines.com";
-    
+
     const successUrl = `${baseUrl}/profile?payment_method_added=true&session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${baseUrl}/profile?payment_method_canceled=true`;
-    
+
     console.log("DEBUG: Base URL:", baseUrl);
     console.log("DEBUG: Success URL:", successUrl);
     console.log("DEBUG: Cancel URL:", cancelUrl);
-    
+
     // Validate URLs
     try {
       new URL(successUrl);
@@ -80,11 +83,17 @@ export async function GET(request: Request) {
     } catch (urlError) {
       console.error("ERROR: Invalid URL:", urlError);
       return NextResponse.json(
-        { error: "Invalid URL configuration", details: urlError instanceof Error ? urlError.message : "URL validation failed" },
+        {
+          error: "Invalid URL configuration",
+          details:
+            urlError instanceof Error
+              ? urlError.message
+              : "URL validation failed",
+        },
         { status: 500 },
       );
     }
-    
+
     const session = await stripe!.checkout.sessions.create({
       customer: customer.id,
       payment_method_types: ["card"],
@@ -106,10 +115,10 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("ERROR: Checkout setup error:", error);
     return NextResponse.json(
-      { 
-        error: "Internal server error", 
+      {
+        error: "Internal server error",
         details: error instanceof Error ? error.message : "Unknown error",
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
       },
       { status: 500 },
     );

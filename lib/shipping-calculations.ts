@@ -29,7 +29,7 @@ export interface ShippingCostBreakdown {
  */
 export function calculateShippingCostPerBottle(
   palletCostCents: number,
-  bottleCapacity: number
+  bottleCapacity: number,
 ): number {
   if (bottleCapacity === 0) return 0;
   return Math.round(palletCostCents / bottleCapacity);
@@ -45,11 +45,14 @@ export function calculateShippingCostPerBottle(
 export function calculateShippingCostBreakdown(
   palletCostCents: number,
   bottleCapacity: number,
-  bottlesInPallet: number
+  bottlesInPallet: number,
 ): ShippingCostBreakdown {
-  const costPerBottleCents = calculateShippingCostPerBottle(palletCostCents, bottleCapacity);
+  const costPerBottleCents = calculateShippingCostPerBottle(
+    palletCostCents,
+    bottleCapacity,
+  );
   const totalShippingCostCents = costPerBottleCents * bottlesInPallet;
-  
+
   return {
     palletCostCents,
     palletCostSek: palletCostCents / 100,
@@ -78,17 +81,17 @@ export function formatShippingCost(costCents: number): string {
  */
 export function calculateCartShippingCost(
   cartItems: Array<{ quantity: number }>,
-  selectedPallet: PalletShippingInfo | null
+  selectedPallet: PalletShippingInfo | null,
 ): ShippingCostBreakdown | null {
   if (!selectedPallet) {
     return null;
   }
 
   const totalBottles = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  
+
   return calculateShippingCostBreakdown(
     selectedPallet.costCents,
     selectedPallet.bottleCapacity,
-    totalBottles
+    totalBottles,
   );
 }

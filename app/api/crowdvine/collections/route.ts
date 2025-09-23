@@ -28,7 +28,8 @@ export async function GET() {
       id: "wine-boxes-collection",
       handle: "wine-boxes",
       title: "Wine Boxes",
-      description: "Curated wine packages with 3 or 6 bottles featuring organic, light reds, pet-nat, and more",
+      description:
+        "Curated wine packages with 3 or 6 bottles featuring organic, light reds, pet-nat, and more",
       updatedAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
     };

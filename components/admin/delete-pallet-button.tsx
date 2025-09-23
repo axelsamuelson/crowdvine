@@ -22,24 +22,24 @@ interface DeletePalletButtonProps {
   onDeleted: () => void;
 }
 
-export function DeletePalletButton({ 
-  palletId, 
-  palletName, 
-  onDeleted 
+export function DeletePalletButton({
+  palletId,
+  palletName,
+  onDeleted,
 }: DeletePalletButtonProps) {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = async () => {
     setIsDeleting(true);
-    
+
     try {
       const response = await fetch(`/api/admin/pallets/${palletId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete pallet');
+        throw new Error(errorData.error || "Failed to delete pallet");
       }
 
       toast({
@@ -51,7 +51,8 @@ export function DeletePalletButton({
       console.error("Error deleting pallet:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to delete pallet",
+        description:
+          error instanceof Error ? error.message : "Failed to delete pallet",
         variant: "destructive",
       });
     } finally {
@@ -62,9 +63,9 @@ export function DeletePalletButton({
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           className="text-red-600 hover:text-red-700 hover:bg-red-50"
           disabled={isDeleting}
         >
@@ -75,10 +76,12 @@ export function DeletePalletButton({
         <AlertDialogHeader>
           <AlertDialogTitle>Delete Pallet</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete "{palletName}"? This action cannot be undone.
+            Are you sure you want to delete "{palletName}"? This action cannot
+            be undone.
             <br />
             <br />
-            <strong>Warning:</strong> This will also delete all associated bookings and reservations.
+            <strong>Warning:</strong> This will also delete all associated
+            bookings and reservations.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

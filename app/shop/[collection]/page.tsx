@@ -11,7 +11,7 @@ export async function generateStaticParams() {
 }
 
 // Disable static generation for now - make it dynamic
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata(props: {
   params: Promise<{ collection: string }>;

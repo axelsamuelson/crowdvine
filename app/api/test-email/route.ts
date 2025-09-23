@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     // Test email with a simple message
     const emailSent = await sendGridService.sendEmail({
       to: email,
-      subject: '🧪 Test Email from PACT Wines',
+      subject: "🧪 Test Email from PACT Wines",
       html: `
         <!DOCTYPE html>
         <html>
@@ -65,19 +65,24 @@ PACT Wines Team
     });
 
     if (emailSent) {
-      return NextResponse.json({ 
-        success: true, 
-        message: "Test email sent successfully!" 
+      return NextResponse.json({
+        success: true,
+        message: "Test email sent successfully!",
       });
     } else {
-      return NextResponse.json({ 
-        success: false, 
-        message: "Failed to send test email" 
-      }, { status: 500 });
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Failed to send test email",
+        },
+        { status: 500 },
+      );
     }
-
   } catch (error) {
-    console.error('Test email API error:', error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.error("Test email API error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

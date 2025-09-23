@@ -1,9 +1,15 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function TestSignupPage() {
   const [result, setResult] = useState<any>(null);
@@ -12,36 +18,38 @@ export default function TestSignupPage() {
   const testTokenValidation = async () => {
     setLoading(true);
     setResult(null);
-    
+
     try {
-      console.log('Testing token validation...');
-      
-      const token = 'b4164748-a508-4402-aed1-959920fee1b5';
-      
+      console.log("Testing token validation...");
+
+      const token = "b4164748-a508-4402-aed1-959920fee1b5";
+
       // Test token validation
-      const validateResponse = await fetch(`/api/validate-access-token?token=${token}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      console.log('Token validation response:', validateResponse);
-      
+      const validateResponse = await fetch(
+        `/api/validate-access-token?token=${token}`,
+        {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+
+      console.log("Token validation response:", validateResponse);
+
       const validateData = await validateResponse.json();
-      console.log('Token validation data:', validateData);
-      
+      console.log("Token validation data:", validateData);
+
       setResult({
-        step: 'Token Validation',
+        step: "Token Validation",
         status: validateResponse.status,
         data: validateData,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
-      
     } catch (error) {
-      console.error('Error testing token validation:', error);
+      console.error("Error testing token validation:", error);
       setResult({
-        step: 'Token Validation',
-        error: error instanceof Error ? error.message : 'Unknown error',
-        timestamp: new Date().toISOString()
+        step: "Token Validation",
+        error: error instanceof Error ? error.message : "Unknown error",
+        timestamp: new Date().toISOString(),
       });
     } finally {
       setLoading(false);
@@ -50,39 +58,38 @@ export default function TestSignupPage() {
 
   const testCreateUser = async () => {
     setLoading(true);
-    
+
     try {
-      console.log('Testing create user...');
-      
-      const response = await fetch('/api/create-user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      console.log("Testing create user...");
+
+      const response = await fetch("/api/create-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: 'test@example.com',
-          password: 'testpassword123'
-        })
+          email: "test@example.com",
+          password: "testpassword123",
+        }),
       });
-      
-      console.log('Create user response:', response);
-      
+
+      console.log("Create user response:", response);
+
       const data = await response.json();
-      console.log('Create user data:', data);
-      
-      setResult(prev => ({
+      console.log("Create user data:", data);
+
+      setResult((prev) => ({
         ...prev,
-        step: 'Create User',
+        step: "Create User",
         status: response.status,
         data: data,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       }));
-      
     } catch (error) {
-      console.error('Error testing create user:', error);
-      setResult(prev => ({
+      console.error("Error testing create user:", error);
+      setResult((prev) => ({
         ...prev,
-        step: 'Create User',
-        error: error instanceof Error ? error.message : 'Unknown error',
-        timestamp: new Date().toISOString()
+        step: "Create User",
+        error: error instanceof Error ? error.message : "Unknown error",
+        timestamp: new Date().toISOString(),
       }));
     } finally {
       setLoading(false);
@@ -91,57 +98,59 @@ export default function TestSignupPage() {
 
   const testWithRealToken = async () => {
     setLoading(true);
-    
+
     try {
-      console.log('Testing with real token...');
-      
-      const token = 'b4164748-a508-4402-aed1-959920fee1b5';
-      
+      console.log("Testing with real token...");
+
+      const token = "b4164748-a508-4402-aed1-959920fee1b5";
+
       // First validate token
-      const validateResponse = await fetch(`/api/validate-access-token?token=${token}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
+      const validateResponse = await fetch(
+        `/api/validate-access-token?token=${token}`,
+        {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+
       const validateData = await validateResponse.json();
-      console.log('Token validation:', validateData);
-      
+      console.log("Token validation:", validateData);
+
       if (!validateData.success) {
         setResult({
-          step: 'Real Token Test',
+          step: "Real Token Test",
           error: `Token validation failed: ${validateData.message}`,
           tokenData: validateData,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
         return;
       }
-      
+
       // Then try to create user with the email from token
-      const createResponse = await fetch('/api/create-user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const createResponse = await fetch("/api/create-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: validateData.email,
-          password: 'testpassword123'
-        })
+          password: "testpassword123",
+        }),
       });
-      
+
       const createData = await createResponse.json();
-      console.log('Create user with real token:', createData);
-      
+      console.log("Create user with real token:", createData);
+
       setResult({
-        step: 'Real Token Test',
+        step: "Real Token Test",
         tokenValidation: validateData,
         createUser: createData,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
-      
     } catch (error) {
-      console.error('Error testing with real token:', error);
+      console.error("Error testing with real token:", error);
       setResult({
-        step: 'Real Token Test',
-        error: error instanceof Error ? error.message : 'Unknown error',
-        timestamp: new Date().toISOString()
+        step: "Real Token Test",
+        error: error instanceof Error ? error.message : "Unknown error",
+        timestamp: new Date().toISOString(),
       });
     } finally {
       setLoading(false);
@@ -162,24 +171,34 @@ export default function TestSignupPage() {
             <Button onClick={testTokenValidation} disabled={loading}>
               Test Token Validation
             </Button>
-            <Button onClick={testCreateUser} disabled={loading} variant="outline">
+            <Button
+              onClick={testCreateUser}
+              disabled={loading}
+              variant="outline"
+            >
               Test Create User
             </Button>
-            <Button onClick={testWithRealToken} disabled={loading} variant="secondary">
+            <Button
+              onClick={testWithRealToken}
+              disabled={loading}
+              variant="secondary"
+            >
               Test With Real Token
             </Button>
           </div>
-          
+
           {result && (
             <div className="mt-6">
               <Alert>
                 <AlertDescription>
-                  <strong>Step:</strong> {result.step}<br/>
-                  <strong>Status:</strong> {result.status || 'N/A'}<br/>
+                  <strong>Step:</strong> {result.step}
+                  <br />
+                  <strong>Status:</strong> {result.status || "N/A"}
+                  <br />
                   <strong>Timestamp:</strong> {result.timestamp}
                 </AlertDescription>
               </Alert>
-              
+
               <div className="mt-4">
                 <h3 className="text-lg font-semibold mb-2">Results:</h3>
                 <pre className="bg-gray-100 p-4 rounded-lg overflow-auto text-sm max-h-96">

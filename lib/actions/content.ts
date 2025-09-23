@@ -23,10 +23,10 @@ export async function getSiteContent(): Promise<SiteContent[]> {
     .order("key");
 
   if (error) throw new Error(error.message);
-  
+
   // Supabase Storage URLs are already full URLs, no conversion needed
   const processedData = data || [];
-  
+
   return processedData;
 }
 
@@ -44,9 +44,9 @@ export async function getSiteContentByKey(key: string): Promise<string | null> {
       console.warn(`Site content not found for key: ${key}`, error);
       return null;
     }
-    
+
     const value = data?.value || null;
-    
+
     // Supabase Storage URLs are already full URLs, no conversion needed
     return value;
   } catch (error) {
@@ -68,7 +68,7 @@ export async function updateSiteContent(
     .eq("key", key)
     .single();
 
-  if (selectError && selectError.code !== 'PGRST116') {
+  if (selectError && selectError.code !== "PGRST116") {
     throw new Error(selectError.message);
   }
 

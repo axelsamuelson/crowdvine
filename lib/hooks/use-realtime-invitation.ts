@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase-client';
-import { toast } from 'sonner';
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase-client";
+import { toast } from "sonner";
 
 interface Invitation {
   id: string;
@@ -22,7 +22,10 @@ interface UseRealtimeInvitationProps {
   onInvitationUpdate: (updatedInvitation: Invitation) => void;
 }
 
-export function useRealtimeInvitation({ invitation, onInvitationUpdate }: UseRealtimeInvitationProps) {
+export function useRealtimeInvitation({
+  invitation,
+  onInvitationUpdate,
+}: UseRealtimeInvitationProps) {
   const [isConnected, setIsConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
@@ -30,23 +33,26 @@ export function useRealtimeInvitation({ invitation, onInvitationUpdate }: UseRea
     if (!invitation?.id) return;
 
     // Use the imported supabase client
-    
-    console.log('Setting up realtime subscription for invitation:', invitation.id);
+
+    console.log(
+      "Setting up realtime subscription for invitation:",
+      invitation.id,
+    );
 
     // Subscribe to changes on the invitation_codes table
     const channel = supabase
       .channel(`invitation-${invitation.id}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'invitation_codes',
-          filter: `id=eq.${invitation.id}`
+          event: "UPDATE",
+          schema: "public",
+          table: "invitation_codes",
+          filter: `id=eq.${invitation.id}`,
         },
         (payload) => {
-          console.log('Realtime update received:', payload);
-          
+          console.log("Realtime update received:", payload);
+
           const updatedData = payload.new as any;
           const updatedInvitation: Invitation = {
             id: updatedData.id,
@@ -58,40 +64,43 @@ export function useRealtimeInvitation({ invitation, onInvitationUpdate }: UseRea
             currentUses: updatedData.current_uses,
             usedBy: updatedData.used_by,
             usedAt: updatedData.used_at,
-            isActive: updatedData.is_active
+            isActive: updatedData.is_active,
           };
 
           // Check if invitation was just used
-          const wasJustUsed = invitation.currentUses === 0 && updatedData.current_uses > 0;
-          
+          const wasJustUsed =
+            invitation.currentUses === 0 && updatedData.current_uses > 0;
+
           if (wasJustUsed) {
-            toast.success("🎉 Your invitation was used! You've earned a 5% reward! Earn 10% when they make a reservation.");
+            toast.success(
+              "🎉 Your invitation was used! You've earned a 5% reward! Earn 10% when they make a reservation.",
+            );
           }
 
           onInvitationUpdate(updatedInvitation);
           setLastUpdate(new Date());
-        }
+        },
       )
-      .on('system', {}, (status) => {
-        console.log('Realtime system status:', status);
-        if (status === 'SUBSCRIBED') {
+      .on("system", {}, (status) => {
+        console.log("Realtime system status:", status);
+        if (status === "SUBSCRIBED") {
           setIsConnected(true);
-          console.log('Successfully subscribed to realtime updates');
-        } else if (status === 'CHANNEL_ERROR') {
+          console.log("Successfully subscribed to realtime updates");
+        } else if (status === "CHANNEL_ERROR") {
           setIsConnected(false);
-          console.error('Realtime channel error');
-        } else if (status === 'TIMED_OUT') {
+          console.error("Realtime channel error");
+        } else if (status === "TIMED_OUT") {
           setIsConnected(false);
-          console.error('Realtime connection timed out');
-        } else if (status === 'CLOSED') {
+          console.error("Realtime connection timed out");
+        } else if (status === "CLOSED") {
           setIsConnected(false);
-          console.log('Realtime connection closed');
+          console.log("Realtime connection closed");
         }
       })
       .subscribe();
 
     return () => {
-      console.log('Cleaning up realtime subscription');
+      console.log("Cleaning up realtime subscription");
       supabase.removeChannel(channel);
       setIsConnected(false);
     };
@@ -99,6 +108,6 @@ export function useRealtimeInvitation({ invitation, onInvitationUpdate }: UseRea
 
   return {
     isConnected,
-    lastUpdate
+    lastUpdate,
   };
 }

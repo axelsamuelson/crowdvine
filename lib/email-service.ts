@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer';
+import nodemailer from "nodemailer";
 
 interface EmailConfig {
   host: string;
@@ -24,26 +24,28 @@ class EmailService {
 
   private initializeTransporter() {
     const emailConfig: EmailConfig = {
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: process.env.SMTP_SECURE === 'true',
+      host: process.env.SMTP_HOST || "smtp.gmail.com",
+      port: parseInt(process.env.SMTP_PORT || "587"),
+      secure: process.env.SMTP_SECURE === "true",
       auth: {
-        user: process.env.SMTP_USER || '',
-        pass: process.env.SMTP_PASS || '',
+        user: process.env.SMTP_USER || "",
+        pass: process.env.SMTP_PASS || "",
       },
     };
 
     if (!emailConfig.auth.user || !emailConfig.auth.pass) {
-      console.warn('Email service not configured - SMTP credentials missing');
+      console.warn("Email service not configured - SMTP credentials missing");
       return;
     }
 
     this.transporter = nodemailer.createTransporter(emailConfig);
   }
 
-  async sendAccessApprovalEmail(data: AccessApprovalEmailData): Promise<boolean> {
+  async sendAccessApprovalEmail(
+    data: AccessApprovalEmailData,
+  ): Promise<boolean> {
     if (!this.transporter) {
-      console.error('Email service not configured');
+      console.error("Email service not configured");
       return false;
     }
 
@@ -52,17 +54,17 @@ class EmailService {
     const mailOptions = {
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to: email,
-      subject: '🎉 Welcome to CrowdVine - Your Access Has Been Approved!',
+      subject: "🎉 Welcome to CrowdVine - Your Access Has Been Approved!",
       html: this.getAccessApprovalEmailTemplate(signupUrl),
       text: this.getAccessApprovalEmailText(signupUrl),
     };
 
     try {
       const result = await this.transporter.sendMail(mailOptions);
-      console.log('Access approval email sent:', result.messageId);
+      console.log("Access approval email sent:", result.messageId);
       return true;
     } catch (error) {
-      console.error('Failed to send access approval email:', error);
+      console.error("Failed to send access approval email:", error);
       return false;
     }
   }

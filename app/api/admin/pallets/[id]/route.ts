@@ -58,7 +58,7 @@ export async function DELETE(
 ) {
   const sb = await supabaseServer();
   const resolvedParams = await params;
-  
+
   // First check if there are any bookings/reservations for this pallet
   const { data: bookings, error: bookingsError } = await sb
     .from("bookings")
@@ -67,13 +67,19 @@ export async function DELETE(
     .limit(1);
 
   if (bookingsError) {
-    return NextResponse.json({ error: `Failed to check bookings: ${bookingsError.message}` }, { status: 500 });
+    return NextResponse.json(
+      { error: `Failed to check bookings: ${bookingsError.message}` },
+      { status: 500 },
+    );
   }
 
   if (bookings && bookings.length > 0) {
-    return NextResponse.json({ 
-      error: `Cannot delete pallet: It has ${bookings.length} associated booking(s). Please remove all bookings first.` 
-    }, { status: 400 });
+    return NextResponse.json(
+      {
+        error: `Cannot delete pallet: It has ${bookings.length} associated booking(s). Please remove all bookings first.`,
+      },
+      { status: 400 },
+    );
   }
 
   // Check reservations as well - reservations are linked to zones, not directly to pallets
@@ -86,24 +92,35 @@ export async function DELETE(
     .single();
 
   if (palletError) {
-    return NextResponse.json({ error: `Failed to get pallet: ${palletError.message}` }, { status: 500 });
+    return NextResponse.json(
+      { error: `Failed to get pallet: ${palletError.message}` },
+      { status: 500 },
+    );
   }
 
   // Check if any reservations use this pallet's zones
   const { data: reservations, error: reservationsError } = await sb
     .from("order_reservations")
     .select("id")
-    .or(`pickup_zone_id.eq.${pallet.pickup_zone_id},delivery_zone_id.eq.${pallet.delivery_zone_id}`)
+    .or(
+      `pickup_zone_id.eq.${pallet.pickup_zone_id},delivery_zone_id.eq.${pallet.delivery_zone_id}`,
+    )
     .limit(1);
 
   if (reservationsError) {
-    return NextResponse.json({ error: `Failed to check reservations: ${reservationsError.message}` }, { status: 500 });
+    return NextResponse.json(
+      { error: `Failed to check reservations: ${reservationsError.message}` },
+      { status: 500 },
+    );
   }
 
   if (reservations && reservations.length > 0) {
-    return NextResponse.json({ 
-      error: `Cannot delete pallet: Its zones are used in ${reservations.length} reservation(s). Please remove all reservations first.` 
-    }, { status: 400 });
+    return NextResponse.json(
+      {
+        error: `Cannot delete pallet: Its zones are used in ${reservations.length} reservation(s). Please remove all reservations first.`,
+      },
+      { status: 400 },
+    );
   }
 
   // If no dependencies, proceed with deletion
@@ -113,7 +130,10 @@ export async function DELETE(
     .eq("id", resolvedParams.id);
 
   if (error) {
-    return NextResponse.json({ error: `Failed to delete pallet: ${error.message}` }, { status: 500 });
+    return NextResponse.json(
+      { error: `Failed to delete pallet: ${error.message}` },
+      { status: 500 },
+    );
   }
 
   return NextResponse.json({ success: true });

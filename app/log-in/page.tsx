@@ -35,11 +35,11 @@ export default function LogInPage() {
   const router = useRouter();
 
   // Get next parameter from URL
-  const [nextUrl, setNextUrl] = useState('/profile');
-  
+  const [nextUrl, setNextUrl] = useState("/profile");
+
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const next = urlParams.get('next');
+    const next = urlParams.get("next");
     if (next) {
       setNextUrl(next);
     }
@@ -72,7 +72,9 @@ export default function LogInPage() {
 
         setSuccess(data.message);
         if (data.newPassword) {
-          setSuccess(`${data.message} Your new password is: ${data.newPassword}`);
+          setSuccess(
+            `${data.message} Your new password is: ${data.newPassword}`,
+          );
         }
         setEmail("");
         setIsForgotPassword(false);
@@ -125,7 +127,7 @@ export default function LogInPage() {
           src="https://cdn.pixabay.com/video/2022/10/19/135643-762117669_large.mp4"
           placeholder="/alt-placeholder.png"
         />
-        
+
         <div className="flex overflow-hidden relative flex-col gap-4 justify-center items-center w-full h-full max-w-md mx-auto z-10">
           {/* Logo */}
           <motion.div
@@ -155,12 +157,14 @@ export default function LogInPage() {
                     : "Enter your credentials to access your account"}
                 </p>
               </CardHeader>
-              
+
               <CardContent className="space-y-6">
                 <form className="space-y-4" onSubmit={handleSubmit}>
-
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="text-white/90 text-sm font-medium">
+                    <Label
+                      htmlFor="email"
+                      className="text-white/90 text-sm font-medium"
+                    >
                       Email address
                     </Label>
                     <div className="relative">
@@ -189,7 +193,10 @@ export default function LogInPage() {
                         transition={{ duration: DURATION, ease: EASE_OUT }}
                         className="space-y-2"
                       >
-                        <Label htmlFor="password" className="text-white/90 text-sm font-medium">
+                        <Label
+                          htmlFor="password"
+                          className="text-white/90 text-sm font-medium"
+                        >
                           Password
                         </Label>
                         <div className="relative">
@@ -218,8 +225,13 @@ export default function LogInPage() {
                         exit={{ opacity: 0, y: -10 }}
                         transition={{ duration: DURATION, ease: EASE_OUT }}
                       >
-                        <Alert variant="destructive" className="bg-red-500/20 border-red-500/50">
-                          <AlertDescription className="text-red-100">{error}</AlertDescription>
+                        <Alert
+                          variant="destructive"
+                          className="bg-red-500/20 border-red-500/50"
+                        >
+                          <AlertDescription className="text-red-100">
+                            {error}
+                          </AlertDescription>
                         </Alert>
                       </motion.div>
                     )}
@@ -232,7 +244,9 @@ export default function LogInPage() {
                         transition={{ duration: DURATION, ease: EASE_OUT }}
                       >
                         <Alert className="bg-green-500/20 border-green-500/50">
-                          <AlertDescription className="text-green-100">{success}</AlertDescription>
+                          <AlertDescription className="text-green-100">
+                            {success}
+                          </AlertDescription>
                         </Alert>
                       </motion.div>
                     )}
@@ -244,7 +258,7 @@ export default function LogInPage() {
                     className={cn(
                       "w-full bg-white/20 hover:bg-white/30 border-white/30 text-white font-semibold",
                       "backdrop-blur-sm shadow-lg",
-                      "transition-all duration-300 ease-out"
+                      "transition-all duration-300 ease-out",
                     )}
                     size="lg"
                   >
@@ -255,10 +269,10 @@ export default function LogInPage() {
                           ? "Resetting password..."
                           : "Signing in..."}
                       </>
+                    ) : isForgotPassword ? (
+                      "Reset password"
                     ) : (
-                      isForgotPassword
-                        ? "Reset password"
-                        : "Sign in"
+                      "Sign in"
                     )}
                   </Button>
                 </form>
@@ -289,7 +303,7 @@ export default function LogInPage() {
                         </Button>
                       </motion.div>
                     )}
-                    
+
                     {isForgotPassword && (
                       <motion.div
                         key="back-to-signin"

@@ -30,12 +30,12 @@ export async function addItem(
     console.log("revalidateTag completed");
 
     // Invalidate localStorage cache
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       try {
-        localStorage.removeItem('cart-cache');
-        localStorage.removeItem('cart-cache-time');
+        localStorage.removeItem("cart-cache");
+        localStorage.removeItem("cart-cache-time");
       } catch (error) {
-        console.warn('Failed to clear cart cache:', error);
+        console.warn("Failed to clear cart cache:", error);
       }
     }
 
@@ -63,17 +63,17 @@ export async function updateItem({
   try {
     const cart = await CartService.updateItem(lineId, quantity);
     revalidateTag(TAGS.cart);
-    
+
     // Invalidate localStorage cache
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       try {
-        localStorage.removeItem('cart-cache');
-        localStorage.removeItem('cart-cache-time');
+        localStorage.removeItem("cart-cache");
+        localStorage.removeItem("cart-cache-time");
       } catch (error) {
-        console.warn('Failed to clear cart cache:', error);
+        console.warn("Failed to clear cart cache:", error);
       }
     }
-    
+
     return cart;
   } catch (error) {
     console.error("updateItem error:", error);

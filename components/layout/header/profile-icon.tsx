@@ -20,7 +20,9 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
 
     // Listen for auth changes
     const supabase = createClient();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setIsAuthenticated(!!session?.user);
       setLoading(false);
     });
@@ -31,7 +33,9 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
   const checkAuthStatus = async () => {
     try {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       setIsAuthenticated(!!user);
     } catch (error) {
       console.error("Error checking auth status:", error);
@@ -44,13 +48,13 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
   // Listen for storage changes (logout from other tabs)
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'supabase.auth.token') {
+      if (e.key === "supabase.auth.token") {
         checkAuthStatus();
       }
     };
 
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
   const sizeClasses = {
@@ -79,7 +83,7 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
       variant="ghost"
       size="sm"
       className={`p-2 hover:bg-background/20 transition-colors ${className} ${
-        isAuthenticated ? 'text-green-600' : 'text-gray-600'
+        isAuthenticated ? "text-green-600" : "text-gray-600"
       }`}
       asChild
     >

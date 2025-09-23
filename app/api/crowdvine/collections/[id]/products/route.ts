@@ -20,77 +20,85 @@ export async function GET(
       try {
         // Get wine box calculations
         const calculations = await getAllWineBoxCalculations();
-        
+
         if (calculations.length === 0) {
           console.log("No wine boxes found in database");
           return NextResponse.json([]);
         }
 
-      // Convert to Shopify-compatible product format
-      const products = calculations.map((calc) => {
-        return {
-          id: calc.wineBoxId,
-          title: calc.name,
-          description: calc.description,
-          handle: `wine-box-${calc.wineBoxId}`,
-          productType: "wine-box",
-          categoryId: "wine-boxes-collection",
-          priceRange: {
-            minVariantPrice: { 
-              amount: calc.finalPrice.toFixed(2), 
-              currencyCode: "SEK" 
-            },
-            maxVariantPrice: { 
-              amount: calc.finalPrice.toFixed(2), 
-              currencyCode: "SEK" 
-            },
-          },
-          images: [
-            {
-              url: calc.imageUrl || "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
-              altText: calc.name,
-            },
-          ],
-          variants: [
-            {
-              id: `${calc.wineBoxId}-variant`,
-              title: `${calc.bottleCount} Bottles`,
-              availableForSale: true,
-              price: { 
-                amount: calc.finalPrice.toFixed(2), 
-                currencyCode: "SEK" 
+        // Convert to Shopify-compatible product format
+        const products = calculations.map((calc) => {
+          return {
+            id: calc.wineBoxId,
+            title: calc.name,
+            description: calc.description,
+            handle: `wine-box-${calc.wineBoxId}`,
+            productType: "wine-box",
+            categoryId: "wine-boxes-collection",
+            priceRange: {
+              minVariantPrice: {
+                amount: calc.finalPrice.toFixed(2),
+                currencyCode: "SEK",
               },
-              selectedOptions: [
-                { name: "Size", value: `${calc.bottleCount} Bottles` },
-                { name: "Discount", value: `${Math.round(calc.discountPercentage)}% off` },
-              ],
+              maxVariantPrice: {
+                amount: calc.finalPrice.toFixed(2),
+                currencyCode: "SEK",
+              },
             },
-          ],
-          options: [
-            {
-              id: "size",
-              name: "Size",
-              values: [`${calc.bottleCount} Bottles`],
+            images: [
+              {
+                url:
+                  calc.imageUrl ||
+                  "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
+                altText: calc.name,
+              },
+            ],
+            variants: [
+              {
+                id: `${calc.wineBoxId}-variant`,
+                title: `${calc.bottleCount} Bottles`,
+                availableForSale: true,
+                price: {
+                  amount: calc.finalPrice.toFixed(2),
+                  currencyCode: "SEK",
+                },
+                selectedOptions: [
+                  { name: "Size", value: `${calc.bottleCount} Bottles` },
+                  {
+                    name: "Discount",
+                    value: `${Math.round(calc.discountPercentage)}% off`,
+                  },
+                ],
+              },
+            ],
+            options: [
+              {
+                id: "size",
+                name: "Size",
+                values: [`${calc.bottleCount} Bottles`],
+              },
+              {
+                id: "discount",
+                name: "Discount",
+                values: [`${Math.round(calc.discountPercentage)}% off`],
+              },
+            ],
+            tags: [
+              `${calc.bottleCount}-bottles`,
+              `${calc.discountPercentage}-discount`,
+            ],
+            // Add custom fields for discount information
+            discountInfo: {
+              totalWinePrice: calc.totalWinePrice,
+              discountAmount: calc.discountAmount,
+              discountPercentage: calc.discountPercentage,
+              finalPrice: calc.finalPrice,
+              wines: calc.wines,
             },
-            {
-              id: "discount",
-              name: "Discount",
-              values: [`${Math.round(calc.discountPercentage)}% off`],
-            },
-          ],
-          tags: [`${calc.bottleCount}-bottles`, `${calc.discountPercentage}-discount`],
-          // Add custom fields for discount information
-          discountInfo: {
-            totalWinePrice: calc.totalWinePrice,
-            discountAmount: calc.discountAmount,
-            discountPercentage: calc.discountPercentage,
-            finalPrice: calc.finalPrice,
-            wines: calc.wines,
-          },
-          updatedAt: new Date().toISOString(),
-          createdAt: new Date().toISOString(),
-        };
-      });
+            updatedAt: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+          };
+        });
 
         return NextResponse.json(products.slice(0, limit));
       } catch (wineBoxError) {
@@ -122,21 +130,24 @@ export async function GET(
 
     // Helper function to convert relative paths to full URLs
     const convertToFullUrl = (path: string | null | undefined): string => {
-      if (!path) return "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop";
-      
+      if (!path)
+        return "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop";
+
       // Clean up any newline characters or whitespace
-      const cleanPath = path.trim().replace(/\n/g, '');
-      
-      if (cleanPath.startsWith('http')) return cleanPath; // Already a full URL
-      if (cleanPath.startsWith('/uploads/')) {
+      const cleanPath = path.trim().replace(/\n/g, "");
+
+      if (cleanPath.startsWith("http")) return cleanPath; // Already a full URL
+      if (cleanPath.startsWith("/uploads/")) {
         // Use our image proxy API to serve Supabase Storage files
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pactwines.com';
-        const fileName = cleanPath.replace('/uploads/', '');
+        const baseUrl =
+          process.env.NEXT_PUBLIC_APP_URL || "https://pactwines.com";
+        const fileName = cleanPath.replace("/uploads/", "");
         return `${baseUrl}/api/images/${fileName}`;
       }
       // For other relative paths, construct full URL
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pactwines.com';
-      return `${baseUrl}${cleanPath.startsWith('/') ? '' : '/'}${cleanPath}`;
+      const baseUrl =
+        process.env.NEXT_PUBLIC_APP_URL || "https://pactwines.com";
+      return `${baseUrl}${cleanPath.startsWith("/") ? "" : "/"}${cleanPath}`;
     };
 
     // Convert to Shopify-compatible product format

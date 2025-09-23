@@ -33,9 +33,11 @@ import { getSiteContentByKey } from "@/lib/actions/content";
 
 export async function generateMetadata(): Promise<Metadata> {
   try {
-    const siteTitle = await getSiteContentByKey("site_title") || "CrowdVine";
-    const siteDescription = await getSiteContentByKey("site_description") || "Premium Wine Community";
-    
+    const siteTitle = (await getSiteContentByKey("site_title")) || "CrowdVine";
+    const siteDescription =
+      (await getSiteContentByKey("site_description")) ||
+      "Premium Wine Community";
+
     return {
       title: siteTitle,
       description: siteDescription,

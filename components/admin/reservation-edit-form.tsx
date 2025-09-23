@@ -52,16 +52,18 @@ export default function ReservationEditForm({
 }: ReservationEditFormProps) {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    status: reservation.status || '',
-    order_id: reservation.order_id || '',
-    notes: reservation.notes || '',
-    pickup_zone_id: reservation.pickup_zone_id || '',
-    delivery_zone_id: reservation.delivery_zone_id || '',
-    address_id: reservation.address_id || '',
-    delivery_address: reservation.user_addresses ? 
-      `${reservation.user_addresses.address_street || ''}, ${reservation.user_addresses.address_postcode || ''} ${reservation.user_addresses.address_city || ''}, ${reservation.user_addresses.country_code || ''}`.replace(/^,\s*/, '').replace(/,\s*$/, '') : 
-      reservation.delivery_address || '',
-    pallet_id: reservation.pallet_id || '',
+    status: reservation.status || "",
+    order_id: reservation.order_id || "",
+    notes: reservation.notes || "",
+    pickup_zone_id: reservation.pickup_zone_id || "",
+    delivery_zone_id: reservation.delivery_zone_id || "",
+    address_id: reservation.address_id || "",
+    delivery_address: reservation.user_addresses
+      ? `${reservation.user_addresses.address_street || ""}, ${reservation.user_addresses.address_postcode || ""} ${reservation.user_addresses.address_city || ""}, ${reservation.user_addresses.country_code || ""}`
+          .replace(/^,\s*/, "")
+          .replace(/,\s*$/, "")
+      : reservation.delivery_address || "",
+    pallet_id: reservation.pallet_id || "",
   });
 
   const [items, setItems] = useState(
@@ -70,7 +72,7 @@ export default function ReservationEditForm({
       item_id: item.item_id,
       quantity: item.quantity,
       wine: item.wines,
-    })) || []
+    })) || [],
   );
 
   const [loading, setLoading] = useState(false);
@@ -78,18 +80,20 @@ export default function ReservationEditForm({
 
   // Debug: Log the reservation data when component mounts
   useEffect(() => {
-    console.log('Reservation data:', reservation);
-    console.log('Form data initialized:', {
-      status: reservation.status || '',
-      order_id: reservation.order_id || '',
-      notes: reservation.notes || '',
-      pickup_zone_id: reservation.pickup_zone_id || '',
-      delivery_zone_id: reservation.delivery_zone_id || '',
-      address_id: reservation.address_id || '',
-      pallet_id: reservation.pallet_id || '',
-      delivery_address: reservation.user_addresses ? 
-        `${reservation.user_addresses.address_street || ''}, ${reservation.user_addresses.address_postcode || ''} ${reservation.user_addresses.address_city || ''}, ${reservation.user_addresses.country_code || ''}`.replace(/^,\s*/, '').replace(/,\s*$/, '') : 
-        reservation.delivery_address || '',
+    console.log("Reservation data:", reservation);
+    console.log("Form data initialized:", {
+      status: reservation.status || "",
+      order_id: reservation.order_id || "",
+      notes: reservation.notes || "",
+      pickup_zone_id: reservation.pickup_zone_id || "",
+      delivery_zone_id: reservation.delivery_zone_id || "",
+      address_id: reservation.address_id || "",
+      pallet_id: reservation.pallet_id || "",
+      delivery_address: reservation.user_addresses
+        ? `${reservation.user_addresses.address_street || ""}, ${reservation.user_addresses.address_postcode || ""} ${reservation.user_addresses.address_city || ""}, ${reservation.user_addresses.country_code || ""}`
+            .replace(/^,\s*/, "")
+            .replace(/,\s*$/, "")
+        : reservation.delivery_address || "",
     });
   }, [reservation]);
 
@@ -111,7 +115,7 @@ export default function ReservationEditForm({
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleItemQuantityChange = (index: number, quantity: number) => {
@@ -121,7 +125,7 @@ export default function ReservationEditForm({
   };
 
   const handleItemWineChange = (index: number, wineId: string) => {
-    const selectedWine = wines.find(w => w.id === wineId);
+    const selectedWine = wines.find((w) => w.id === wineId);
     if (selectedWine) {
       const newItems = [...items];
       newItems[index].item_id = wineId;
@@ -133,7 +137,7 @@ export default function ReservationEditForm({
   const addNewItem = () => {
     const newItem = {
       id: `new-${Date.now()}`,
-      item_id: '',
+      item_id: "",
       quantity: 1,
       wine: null,
     };
@@ -148,7 +152,7 @@ export default function ReservationEditForm({
   const calculateTotalCost = () => {
     return items.reduce((total, item) => {
       const winePrice = item.wine?.base_price_cents || 0;
-      return total + (winePrice * item.quantity);
+      return total + winePrice * item.quantity;
     }, 0);
   };
 
@@ -159,30 +163,35 @@ export default function ReservationEditForm({
 
     try {
       // Update reservation
-      const reservationResponse = await fetch(`/api/admin/reservations/${reservation.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
+      const reservationResponse = await fetch(
+        `/api/admin/reservations/${reservation.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...formData,
+            items: items.map((item) => ({
+              id: item.id.startsWith("new-") ? null : item.id,
+              item_id: item.item_id,
+              quantity: item.quantity,
+            })),
+          }),
         },
-        body: JSON.stringify({
-          ...formData,
-          items: items.map(item => ({
-            id: item.id.startsWith('new-') ? null : item.id,
-            item_id: item.item_id,
-            quantity: item.quantity,
-          })),
-        }),
-      });
+      );
 
       if (!reservationResponse.ok) {
         const errorData = await reservationResponse.json();
-        throw new Error(errorData.error || 'Failed to update reservation');
+        throw new Error(errorData.error || "Failed to update reservation");
       }
 
-      router.push('/admin/reservations');
+      router.push("/admin/reservations");
     } catch (err) {
-      console.error('Error updating reservation:', err);
-      setError(err instanceof Error ? err.message : 'Failed to update reservation');
+      console.error("Error updating reservation:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to update reservation",
+      );
     } finally {
       setLoading(false);
     }
@@ -206,7 +215,7 @@ export default function ReservationEditForm({
         </Link>
         <Button type="submit" disabled={loading}>
           <Save className="w-4 h-4 mr-2" />
-          {loading ? 'Saving...' : 'Save Changes'}
+          {loading ? "Saving..." : "Save Changes"}
         </Button>
       </div>
 
@@ -223,7 +232,9 @@ export default function ReservationEditForm({
               <CardDescription>
                 Basic information about this reservation
                 {reservation.status && (
-                  <span className="ml-2 text-blue-600">• Current status: {reservation.status}</span>
+                  <span className="ml-2 text-blue-600">
+                    • Current status: {reservation.status}
+                  </span>
                 )}
               </CardDescription>
             </CardHeader>
@@ -231,7 +242,12 @@ export default function ReservationEditForm({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="status">Status</Label>
-                  <Select value={formData.status || undefined} onValueChange={(value) => handleInputChange('status', value)}>
+                  <Select
+                    value={formData.status || undefined}
+                    onValueChange={(value) =>
+                      handleInputChange("status", value)
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
@@ -251,7 +267,9 @@ export default function ReservationEditForm({
                   <Input
                     id="order_id"
                     value={formData.order_id}
-                    onChange={(e) => handleInputChange('order_id', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("order_id", e.target.value)
+                    }
                     placeholder="Order reference"
                   />
                 </div>
@@ -262,7 +280,7 @@ export default function ReservationEditForm({
                 <Textarea
                   id="notes"
                   value={formData.notes}
-                  onChange={(e) => handleInputChange('notes', e.target.value)}
+                  onChange={(e) => handleInputChange("notes", e.target.value)}
                   placeholder="Additional notes or comments"
                   rows={3}
                 />
@@ -277,40 +295,52 @@ export default function ReservationEditForm({
                 <MapPin className="w-5 h-5" />
                 Delivery Information
               </CardTitle>
-              <CardDescription>
-                Zones and delivery address
-              </CardDescription>
+              <CardDescription>Zones and delivery address</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="pickup_zone">Pickup Zone</Label>
-                  <Select value={formData.pickup_zone_id || undefined} onValueChange={(value) => handleInputChange('pickup_zone_id', value)}>
+                  <Select
+                    value={formData.pickup_zone_id || undefined}
+                    onValueChange={(value) =>
+                      handleInputChange("pickup_zone_id", value)
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select pickup zone" />
                     </SelectTrigger>
                     <SelectContent>
-                      {zones.filter(z => z.type === 'pickup').map((zone) => (
-                        <SelectItem key={zone.id} value={zone.id}>
-                          {zone.name}
-                        </SelectItem>
-                      ))}
+                      {zones
+                        .filter((z) => z.type === "pickup")
+                        .map((zone) => (
+                          <SelectItem key={zone.id} value={zone.id}>
+                            {zone.name}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="delivery_zone">Delivery Zone</Label>
-                  <Select value={formData.delivery_zone_id || undefined} onValueChange={(value) => handleInputChange('delivery_zone_id', value)}>
+                  <Select
+                    value={formData.delivery_zone_id || undefined}
+                    onValueChange={(value) =>
+                      handleInputChange("delivery_zone_id", value)
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select delivery zone" />
                     </SelectTrigger>
                     <SelectContent>
-                      {zones.filter(z => z.type === 'delivery').map((zone) => (
-                        <SelectItem key={zone.id} value={zone.id}>
-                          {zone.name}
-                        </SelectItem>
-                      ))}
+                      {zones
+                        .filter((z) => z.type === "delivery")
+                        .map((zone) => (
+                          <SelectItem key={zone.id} value={zone.id}>
+                            {zone.name}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -318,7 +348,12 @@ export default function ReservationEditForm({
 
               <div className="space-y-2">
                 <Label htmlFor="pallet_id">Pallet</Label>
-                <Select value={formData.pallet_id || undefined} onValueChange={(value) => handleInputChange('pallet_id', value)}>
+                <Select
+                  value={formData.pallet_id || undefined}
+                  onValueChange={(value) =>
+                    handleInputChange("pallet_id", value)
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select pallet" />
                   </SelectTrigger>
@@ -337,7 +372,9 @@ export default function ReservationEditForm({
                 <Textarea
                   id="delivery_address"
                   value={formData.delivery_address}
-                  onChange={(e) => handleInputChange('delivery_address', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("delivery_address", e.target.value)
+                  }
                   placeholder="Full delivery address"
                   rows={3}
                 />
@@ -358,7 +395,12 @@ export default function ReservationEditForm({
                     Wines and quantities in this reservation
                   </CardDescription>
                 </div>
-                <Button type="button" variant="outline" size="sm" onClick={addNewItem}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addNewItem}
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   Add Item
                 </Button>
@@ -379,12 +421,17 @@ export default function ReservationEditForm({
                         />
                       </div>
                     )}
-                    
+
                     <div className="flex-1 space-y-2">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-1">
                           <Label>Wine</Label>
-                          <Select value={item.item_id || undefined} onValueChange={(value) => handleItemWineChange(index, value)}>
+                          <Select
+                            value={item.item_id || undefined}
+                            onValueChange={(value) =>
+                              handleItemWineChange(index, value)
+                            }
+                          >
                             <SelectTrigger>
                               <SelectValue placeholder="Select wine" />
                             </SelectTrigger>
@@ -404,14 +451,22 @@ export default function ReservationEditForm({
                             type="number"
                             min="1"
                             value={item.quantity}
-                            onChange={(e) => handleItemQuantityChange(index, parseInt(e.target.value) || 1)}
+                            onChange={(e) =>
+                              handleItemQuantityChange(
+                                index,
+                                parseInt(e.target.value) || 1,
+                              )
+                            }
                           />
                         </div>
 
                         <div className="space-y-1">
                           <Label>Total</Label>
                           <div className="text-lg font-semibold text-green-600">
-                            {formatPrice((item.wine?.base_price_cents || 0) * item.quantity)}
+                            {formatPrice(
+                              (item.wine?.base_price_cents || 0) *
+                                item.quantity,
+                            )}
                           </div>
                         </div>
                       </div>
@@ -420,7 +475,9 @@ export default function ReservationEditForm({
                         <div className="flex gap-2">
                           <Badge variant="outline">{item.wine.color}</Badge>
                           {item.wine.grape_varieties && (
-                            <Badge variant="secondary">{item.wine.grape_varieties}</Badge>
+                            <Badge variant="secondary">
+                              {item.wine.grape_varieties}
+                            </Badge>
                           )}
                         </div>
                       )}
@@ -461,11 +518,15 @@ export default function ReservationEditForm({
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Reservation ID:</span>
-                  <span className="font-mono">{reservation.id.substring(0, 8)}...</span>
+                  <span className="font-mono">
+                    {reservation.id.substring(0, 8)}...
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Customer:</span>
-                  <span className="font-mono">{reservation.user_id?.substring(0, 8)}...</span>
+                  <span className="font-mono">
+                    {reservation.user_id?.substring(0, 8)}...
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Created:</span>
@@ -473,7 +534,9 @@ export default function ReservationEditForm({
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Items:</span>
-                  <span>{items.length} wine{items.length !== 1 ? 's' : ''}</span>
+                  <span>
+                    {items.length} wine{items.length !== 1 ? "s" : ""}
+                  </span>
                 </div>
               </div>
 

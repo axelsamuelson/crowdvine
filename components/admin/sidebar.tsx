@@ -6,17 +6,17 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { 
-  LayoutDashboard, 
-  Users, 
-  Wine, 
-  MapPin, 
-  Package, 
-  Calendar, 
-  FileText, 
+import {
+  LayoutDashboard,
+  Users,
+  Wine,
+  MapPin,
+  Package,
+  Calendar,
+  FileText,
   Gift,
   Shield,
-  LogOut
+  LogOut,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -105,7 +105,7 @@ export function Sidebar({ userEmail, onSignOut }: SidebarProps) {
                   "flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors",
                   isActive
                     ? "bg-gray-100 text-gray-900"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
                 )}
               >
                 <item.icon className="mr-3 h-5 w-5" />

@@ -192,7 +192,7 @@ export async function createWine(data: CreateWineData) {
   // Calculate price if pricing data is provided
   let finalPriceCents = data.base_price_cents;
   let calculatedSbPrice = null;
-  
+
   if (data.cost_amount && data.cost_amount > 0) {
     const exchangeRate = data.exchange_rate || 1.0;
     const costInSek = data.cost_amount * exchangeRate;
@@ -203,13 +203,13 @@ export async function createWine(data: CreateWineData) {
     const finalPrice =
       data.price_includes_vat !== false ? priceAfterTax : priceAfterTax * 1.25;
     finalPriceCents = Math.ceil(finalPrice * 100); // Round up to nearest cent
-    
+
     // Calculate Systembolaget price if cost_amount is provided
     if (data.cost_amount && data.cost_amount > 0) {
       calculatedSbPrice = calculateSystembolagetPrice(
         data.cost_amount,
         data.exchange_rate || 1.0,
-        data.alcohol_tax_cents || 0
+        data.alcohol_tax_cents || 0,
       );
     }
   }
@@ -312,9 +312,12 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
   if (data.margin_percentage !== undefined)
     updateData.margin_percentage = data.margin_percentage;
   if (data.description !== undefined) updateData.description = data.description;
-  if (data.description_html !== undefined) updateData.description_html = data.description_html;
-  if (data.supplier_price !== undefined) updateData.supplier_price = data.supplier_price;
-  if (data.volume_liters !== undefined) updateData.volume_liters = data.volume_liters;
+  if (data.description_html !== undefined)
+    updateData.description_html = data.description_html;
+  if (data.supplier_price !== undefined)
+    updateData.supplier_price = data.supplier_price;
+  if (data.volume_liters !== undefined)
+    updateData.volume_liters = data.volume_liters;
 
   // Calculate price manually to avoid trigger loop
   if (
@@ -358,9 +361,15 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
 
   // Calculate Systembolaget price if cost_amount is updated
   if (updateData.cost_amount !== undefined && updateData.cost_amount > 0) {
-    const exchangeRate = updateData.exchange_rate ?? currentWine?.exchange_rate ?? 1.0;
-    const alcoholTaxCents = updateData.alcohol_tax_cents ?? currentWine?.alcohol_tax_cents ?? 0;
-    updateData.sb_price = calculateSystembolagetPrice(updateData.cost_amount, exchangeRate, alcoholTaxCents);
+    const exchangeRate =
+      updateData.exchange_rate ?? currentWine?.exchange_rate ?? 1.0;
+    const alcoholTaxCents =
+      updateData.alcohol_tax_cents ?? currentWine?.alcohol_tax_cents ?? 0;
+    updateData.sb_price = calculateSystembolagetPrice(
+      updateData.cost_amount,
+      exchangeRate,
+      alcoholTaxCents,
+    );
   }
 
   // Update wine

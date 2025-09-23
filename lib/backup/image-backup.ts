@@ -16,26 +16,28 @@ export interface ImageBackupInfo {
  */
 export async function backupImage(
   file: File,
-  originalPath: string
+  originalPath: string,
 ): Promise<ImageBackupInfo> {
   const supabase = getSupabaseAdmin();
-  
+
   // Generate unique backup filename with timestamp
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const fileExtension = file.name.split('.').pop();
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const fileExtension = file.name.split(".").pop();
   const backupFileName = `backup-${timestamp}-${file.name}`;
-  
+
   // Create checksum for integrity verification
   const fileBuffer = await file.arrayBuffer();
-  const checksum = createHash('sha256').update(Buffer.from(fileBuffer)).digest('hex');
-  
+  const checksum = createHash("sha256")
+    .update(Buffer.from(fileBuffer))
+    .digest("hex");
+
   try {
     // Upload to backup folder in Supabase Storage
     const { data, error } = await supabase.storage
-      .from('uploads')
+      .from("uploads")
       .upload(`backups/${backupFileName}`, fileBuffer, {
         contentType: file.type,
-        upsert: false
+        upsert: false,
       });
 
     if (error) {
@@ -48,24 +50,23 @@ export async function backupImage(
       originalPath,
       backupPath: `backups/${backupFileName}`,
       checksum,
-      uploadedAt: new Date().toISOString()
+      uploadedAt: new Date().toISOString(),
     };
 
     // Save backup info to database (we'll create this table)
     const { error: dbError } = await supabase
-      .from('image_backups')
+      .from("image_backups")
       .insert(backupInfo);
 
     if (dbError) {
-      console.warn('Failed to save backup metadata:', dbError);
+      console.warn("Failed to save backup metadata:", dbError);
       // Don't fail the backup process if metadata save fails
     }
 
     console.log(`✅ Image backed up: ${backupFileName}`);
     return backupInfo;
-    
   } catch (error) {
-    console.error('Backup failed:', error);
+    console.error("Backup failed:", error);
     throw error;
   }
 }
@@ -73,13 +74,15 @@ export async function backupImage(
 /**
  * Restores an image from backup
  */
-export async function restoreFromBackup(backupInfo: ImageBackupInfo): Promise<string> {
+export async function restoreFromBackup(
+  backupInfo: ImageBackupInfo,
+): Promise<string> {
   const supabase = getSupabaseAdmin();
-  
+
   try {
     // Download from backup location
     const { data, error } = await supabase.storage
-      .from('uploads')
+      .from("uploads")
       .download(backupInfo.backupPath);
 
     if (error) {
@@ -88,18 +91,20 @@ export async function restoreFromBackup(backupInfo: ImageBackupInfo): Promise<st
 
     // Verify checksum
     const fileBuffer = await data.arrayBuffer();
-    const currentChecksum = createHash('sha256').update(Buffer.from(fileBuffer)).digest('hex');
-    
+    const currentChecksum = createHash("sha256")
+      .update(Buffer.from(fileBuffer))
+      .digest("hex");
+
     if (currentChecksum !== backupInfo.checksum) {
-      throw new Error('Backup file integrity check failed');
+      throw new Error("Backup file integrity check failed");
     }
 
     // Upload to original location
     const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('uploads')
+      .from("uploads")
       .upload(backupInfo.originalPath, fileBuffer, {
-        contentType: 'image/jpeg', // Default, could be improved
-        upsert: true
+        contentType: "image/jpeg", // Default, could be improved
+        upsert: true,
       });
 
     if (uploadError) {
@@ -108,9 +113,8 @@ export async function restoreFromBackup(backupInfo: ImageBackupInfo): Promise<st
 
     console.log(`✅ Image restored from backup: ${backupInfo.originalPath}`);
     return uploadData.path;
-    
   } catch (error) {
-    console.error('Restore failed:', error);
+    console.error("Restore failed:", error);
     throw error;
   }
 }
@@ -120,21 +124,21 @@ export async function restoreFromBackup(backupInfo: ImageBackupInfo): Promise<st
  */
 export async function listBackups(): Promise<ImageBackupInfo[]> {
   const supabase = getSupabaseAdmin();
-  
+
   try {
     const { data, error } = await supabase
-      .from('image_backups')
-      .select('*')
-      .order('uploadedAt', { ascending: false });
+      .from("image_backups")
+      .select("*")
+      .order("uploadedAt", { ascending: false });
 
     if (error) {
-      console.warn('Failed to list backups:', error);
+      console.warn("Failed to list backups:", error);
       return [];
     }
 
     return data || [];
   } catch (error) {
-    console.error('List backups failed:', error);
+    console.error("List backups failed:", error);
     return [];
   }
 }
@@ -150,43 +154,42 @@ export async function cleanupOldBackups(): Promise<void> {
   try {
     // Get old backups
     const { data: oldBackups, error: selectError } = await supabase
-      .from('image_backups')
-      .select('*')
-      .lt('uploadedAt', thirtyDaysAgo.toISOString());
+      .from("image_backups")
+      .select("*")
+      .lt("uploadedAt", thirtyDaysAgo.toISOString());
 
     if (selectError) {
       throw new Error(`Failed to select old backups: ${selectError.message}`);
     }
 
     if (!oldBackups || oldBackups.length === 0) {
-      console.log('No old backups to clean up');
+      console.log("No old backups to clean up");
       return;
     }
 
     // Delete files from storage
-    const filesToDelete = oldBackups.map(backup => backup.backupPath);
+    const filesToDelete = oldBackups.map((backup) => backup.backupPath);
     const { error: deleteError } = await supabase.storage
-      .from('uploads')
+      .from("uploads")
       .remove(filesToDelete);
 
     if (deleteError) {
-      console.warn('Failed to delete some backup files:', deleteError);
+      console.warn("Failed to delete some backup files:", deleteError);
     }
 
     // Delete metadata from database
     const { error: dbDeleteError } = await supabase
-      .from('image_backups')
+      .from("image_backups")
       .delete()
-      .lt('uploadedAt', thirtyDaysAgo.toISOString());
+      .lt("uploadedAt", thirtyDaysAgo.toISOString());
 
     if (dbDeleteError) {
-      console.warn('Failed to delete backup metadata:', dbDeleteError);
+      console.warn("Failed to delete backup metadata:", dbDeleteError);
     }
 
     console.log(`✅ Cleaned up ${oldBackups.length} old backups`);
-    
   } catch (error) {
-    console.error('Cleanup failed:', error);
+    console.error("Cleanup failed:", error);
     throw error;
   }
 }

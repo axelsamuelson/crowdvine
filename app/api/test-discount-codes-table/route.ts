@@ -7,31 +7,33 @@ export async function GET() {
 
     // Test if discount_codes table exists by trying to select from it
     const { data, error } = await supabase
-      .from('discount_codes')
-      .select('id')
+      .from("discount_codes")
+      .select("id")
       .limit(1);
 
     if (error) {
-      return NextResponse.json({ 
-        success: false, 
+      return NextResponse.json({
+        success: false,
         error: error.message,
         code: error.code,
-        hint: error.hint
+        hint: error.hint,
       });
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       message: "Discount codes table exists",
-      count: data?.length || 0
+      count: data?.length || 0,
     });
-
   } catch (error) {
-    console.error('Test discount codes table error:', error);
-    return NextResponse.json({ 
-      success: false,
-      error: "Internal server error",
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    console.error("Test discount codes table error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
   }
 }

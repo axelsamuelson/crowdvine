@@ -5,7 +5,17 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Package, MapPin, Calendar, ArrowRight, Eye, DollarSign, Truck, Home } from "lucide-react";
+import {
+  CheckCircle,
+  Package,
+  MapPin,
+  Calendar,
+  ArrowRight,
+  Eye,
+  DollarSign,
+  Truck,
+  Home,
+} from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
 import Link from "next/link";
@@ -37,7 +47,9 @@ interface ReservationDetails {
 function CheckoutConfirmationContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [reservation, setReservation] = useState<ReservationDetails | null>(null);
+  const [reservation, setReservation] = useState<ReservationDetails | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
 
   const reservationId = searchParams.get("reservationId");
@@ -55,8 +67,8 @@ function CheckoutConfirmationContent() {
     }
 
     // Clear cart cache when success page loads
-    localStorage.removeItem('cart-cache');
-    localStorage.removeItem('cart-cache-time');
+    localStorage.removeItem("cart-cache");
+    localStorage.removeItem("cart-cache-time");
   }, [reservationId, message]);
 
   const fetchReservationDetails = async () => {
@@ -65,7 +77,7 @@ function CheckoutConfirmationContent() {
       if (response.ok) {
         const data = await response.json();
         setReservation(data);
-        
+
         // Send order confirmation email
         await sendOrderConfirmationEmail(data);
       } else {
@@ -79,49 +91,57 @@ function CheckoutConfirmationContent() {
     }
   };
 
-  const sendOrderConfirmationEmail = async (reservationData: ReservationDetails) => {
+  const sendOrderConfirmationEmail = async (
+    reservationData: ReservationDetails,
+  ) => {
     try {
       // Get user email from auth or reservation data
-      const userEmail = reservationData.items[0]?.customer_email || 'customer@pactwines.com'; // Fallback
-      const userName = reservationData.items[0]?.customer_name || 'Valued Customer'; // Fallback
-      
+      const userEmail =
+        reservationData.items[0]?.customer_email || "customer@pactwines.com"; // Fallback
+      const userName =
+        reservationData.items[0]?.customer_name || "Valued Customer"; // Fallback
+
       const emailData = {
         customerEmail: userEmail,
         customerName: userName,
         orderId: reservationData.order_id || reservationData.id,
         orderDate: new Date(reservationData.created_at).toLocaleDateString(),
-        items: reservationData.items.map(item => ({
+        items: reservationData.items.map((item) => ({
           name: `${item.wine_name} ${item.vintage}`,
           quantity: item.quantity,
           price: item.price_cents / 100, // Convert to SEK
-          image: undefined // Could add wine images if available
+          image: undefined, // Could add wine images if available
         })),
-        subtotal: reservationData.items.reduce((sum, item) => sum + (item.price_cents * item.quantity), 0) / 100,
+        subtotal:
+          reservationData.items.reduce(
+            (sum, item) => sum + item.price_cents * item.quantity,
+            0,
+          ) / 100,
         tax: 0, // Could calculate tax if needed
         shipping: (reservationData.shipping_cost_cents || 0) / 100,
         total: (reservationData.total_amount_cents || 0) / 100,
         shippingAddress: {
           name: userName,
-          street: reservationData.delivery_address || 'Address not provided',
-          city: 'City', // Could extract from delivery address
-          postalCode: '12345', // Could extract from delivery address
-          country: 'Sweden'
-        }
+          street: reservationData.delivery_address || "Address not provided",
+          city: "City", // Could extract from delivery address
+          postalCode: "12345", // Could extract from delivery address
+          country: "Sweden",
+        },
       };
 
-      const response = await fetch('/api/email/order-confirmation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(emailData)
+      const response = await fetch("/api/email/order-confirmation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(emailData),
       });
 
       if (response.ok) {
-        console.log('Order confirmation email sent successfully');
+        console.log("Order confirmation email sent successfully");
       } else {
-        console.error('Failed to send order confirmation email');
+        console.error("Failed to send order confirmation email");
       }
     } catch (error) {
-      console.error('Error sending order confirmation email:', error);
+      console.error("Error sending order confirmation email:", error);
     }
   };
 
@@ -203,10 +223,13 @@ function CheckoutConfirmationContent() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-500">Reservation ID</p>
-                  <p className="font-mono text-lg font-semibold">{reservation.id}</p>
+                  <p className="font-mono text-lg font-semibold">
+                    {reservation.id}
+                  </p>
                 </div>
                 <Badge className={getStatusColor(reservation.status)}>
-                  {reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
+                  {reservation.status.charAt(0).toUpperCase() +
+                    reservation.status.slice(1)}
                 </Badge>
               </div>
 
@@ -215,7 +238,9 @@ function CheckoutConfirmationContent() {
                 <Calendar className="w-5 h-5 text-gray-500" />
                 <div>
                   <p className="text-sm text-gray-500">Placed on</p>
-                  <p className="font-medium">{formatDate(reservation.created_at)}</p>
+                  <p className="font-medium">
+                    {formatDate(reservation.created_at)}
+                  </p>
                 </div>
               </div>
 
@@ -230,7 +255,7 @@ function CheckoutConfirmationContent() {
                     </div>
                   </div>
                 )}
-                
+
                 {reservation.delivery_zone && (
                   <div className="flex items-center gap-2">
                     <MapPin className="w-5 h-5 text-green-500" />
@@ -260,7 +285,10 @@ function CheckoutConfirmationContent() {
                 </h3>
                 <div className="grid gap-4">
                   {reservation.items.map((item, index) => (
-                    <div key={index} className="flex gap-4 p-4 bg-gray-50 rounded-lg border">
+                    <div
+                      key={index}
+                      className="flex gap-4 p-4 bg-gray-50 rounded-lg border"
+                    >
                       {/* Wine Image */}
                       <div className="relative w-20 h-20 shrink-0 overflow-hidden rounded-md">
                         {item.image_url ? (
@@ -277,7 +305,7 @@ function CheckoutConfirmationContent() {
                           </div>
                         )}
                       </div>
-                      
+
                       {/* Wine Details */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-4">
@@ -295,14 +323,15 @@ function CheckoutConfirmationContent() {
                             </p>
                             <div className="flex items-center gap-4 mt-2">
                               <span className="text-sm text-gray-600">
-                                {item.quantity} {item.quantity === 1 ? 'bottle' : 'bottles'}
+                                {item.quantity}{" "}
+                                {item.quantity === 1 ? "bottle" : "bottles"}
                               </span>
                               <span className="text-sm font-medium text-gray-900">
                                 {formatPrice(item.price_cents * item.quantity)}
                               </span>
                             </div>
                           </div>
-                          
+
                           {/* View Product Link */}
                           {item.product_handle && (
                             <Link
@@ -330,18 +359,28 @@ function CheckoutConfirmationContent() {
                   <div className="flex justify-between">
                     <span className="text-gray-600">Wine Subtotal:</span>
                     <span className="font-medium">
-                      {formatPrice(reservation.items.reduce((sum, item) => sum + (item.price_cents * item.quantity), 0))}
+                      {formatPrice(
+                        reservation.items.reduce(
+                          (sum, item) => sum + item.price_cents * item.quantity,
+                          0,
+                        ),
+                      )}
                     </span>
                   </div>
-                  {reservation.shipping_cost_cents && reservation.shipping_cost_cents > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Shipping:</span>
-                      <span className="font-medium">{formatPrice(reservation.shipping_cost_cents)}</span>
-                    </div>
-                  )}
+                  {reservation.shipping_cost_cents &&
+                    reservation.shipping_cost_cents > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Shipping:</span>
+                        <span className="font-medium">
+                          {formatPrice(reservation.shipping_cost_cents)}
+                        </span>
+                      </div>
+                    )}
                   <div className="flex justify-between text-lg font-semibold border-t pt-2">
                     <span>Total:</span>
-                    <span>{formatPrice(reservation.total_amount_cents || 0)}</span>
+                    <span>
+                      {formatPrice(reservation.total_amount_cents || 0)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -354,7 +393,9 @@ function CheckoutConfirmationContent() {
                     Delivery Address
                   </h3>
                   <div className="p-4 bg-gray-50 rounded-lg">
-                    <p className="text-gray-900">{reservation.delivery_address}</p>
+                    <p className="text-gray-900">
+                      {reservation.delivery_address}
+                    </p>
                   </div>
                 </div>
               )}
@@ -368,19 +409,31 @@ function CheckoutConfirmationContent() {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="p-4 bg-blue-50 rounded-lg">
-                      <p className="text-sm text-blue-600 font-medium">Pallet Name</p>
-                      <p className="text-blue-900 font-semibold">{reservation.pallet_name}</p>
+                      <p className="text-sm text-blue-600 font-medium">
+                        Pallet Name
+                      </p>
+                      <p className="text-blue-900 font-semibold">
+                        {reservation.pallet_name}
+                      </p>
                     </div>
                     {reservation.pallet_cost_cents && (
                       <div className="p-4 bg-green-50 rounded-lg">
-                        <p className="text-sm text-green-600 font-medium">Pallet Cost</p>
-                        <p className="text-green-900 font-semibold">{formatPrice(reservation.pallet_cost_cents)}</p>
+                        <p className="text-sm text-green-600 font-medium">
+                          Pallet Cost
+                        </p>
+                        <p className="text-green-900 font-semibold">
+                          {formatPrice(reservation.pallet_cost_cents)}
+                        </p>
                       </div>
                     )}
                     {reservation.pallet_capacity && (
                       <div className="p-4 bg-purple-50 rounded-lg">
-                        <p className="text-sm text-purple-600 font-medium">Capacity</p>
-                        <p className="text-purple-900 font-semibold">{reservation.pallet_capacity} bottles</p>
+                        <p className="text-sm text-purple-600 font-medium">
+                          Capacity
+                        </p>
+                        <p className="text-purple-900 font-semibold">
+                          {reservation.pallet_capacity} bottles
+                        </p>
                       </div>
                     )}
                   </div>
@@ -402,27 +455,36 @@ function CheckoutConfirmationContent() {
               </div>
               <div>
                 <p className="font-medium">Confirmation Email</p>
-                <p className="text-sm text-gray-600">You'll receive a confirmation email with your reservation details and tracking information.</p>
+                <p className="text-sm text-gray-600">
+                  You'll receive a confirmation email with your reservation
+                  details and tracking information.
+                </p>
               </div>
             </div>
-            
+
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                 <span className="text-green-600 font-semibold text-sm">2</span>
               </div>
               <div>
                 <p className="font-medium">Preparation</p>
-                <p className="text-sm text-gray-600">Your wines will be prepared and loaded onto the assigned pallet for delivery.</p>
+                <p className="text-sm text-gray-600">
+                  Your wines will be prepared and loaded onto the assigned
+                  pallet for delivery.
+                </p>
               </div>
             </div>
-            
+
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0 w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
                 <span className="text-purple-600 font-semibold text-sm">3</span>
               </div>
               <div>
                 <p className="font-medium">Delivery</p>
-                <p className="text-sm text-gray-600">Your wines will be delivered to your specified address within the delivery zone.</p>
+                <p className="text-sm text-gray-600">
+                  Your wines will be delivered to your specified address within
+                  the delivery zone.
+                </p>
               </div>
             </div>
           </CardContent>
@@ -430,15 +492,15 @@ function CheckoutConfirmationContent() {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button 
+          <Button
             onClick={() => router.push("/profile/reservations")}
             className="flex items-center gap-2"
           >
             <Eye className="w-4 h-4" />
             View All Reservations
           </Button>
-          
-          <Button 
+
+          <Button
             variant="outline"
             onClick={() => router.push("/")}
             className="flex items-center gap-2"
@@ -454,15 +516,17 @@ function CheckoutConfirmationContent() {
 
 export default function CheckoutConfirmationPage() {
   return (
-    <Suspense fallback={
-      <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-gray-200 rounded mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded mb-2"></div>
-          <div className="h-4 bg-gray-200 rounded"></div>
+    <Suspense
+      fallback={
+        <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
+          <div className="animate-pulse space-y-6">
+            <div className="h-8 bg-gray-200 rounded mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded mb-2"></div>
+            <div className="h-4 bg-gray-200 rounded"></div>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <CheckoutConfirmationContent />
     </Suspense>
   );

@@ -42,22 +42,26 @@ export function DiscountInfo({
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex justify-between items-center">
-          <span className="text-sm text-muted-foreground">Individual prices:</span>
+          <span className="text-sm text-muted-foreground">
+            Individual prices:
+          </span>
           <span className="text-sm line-through text-muted-foreground">
             {formatPrice(originalPrice)}
           </span>
         </div>
-        
+
         <div className="flex justify-between items-center">
           <span className="text-sm text-muted-foreground">Box discount:</span>
           <span className="text-sm font-medium text-green-700">
             -{formatPrice(discountAmount)}
           </span>
         </div>
-        
+
         <div className="border-t pt-2">
           <div className="flex justify-between items-center">
-            <span className="font-semibold">Box price ({totalBottles} bottles):</span>
+            <span className="font-semibold">
+              Box price ({totalBottles} bottles):
+            </span>
             <span className="text-lg font-bold text-green-800">
               {formatPrice(finalPrice)}
             </span>
@@ -69,7 +73,9 @@ export function DiscountInfo({
           <ul className="space-y-1">
             {wines.map((wine) => (
               <li key={wine.wineId} className="flex justify-between">
-                <span>{wine.wineName} {wine.vintage}</span>
+                <span>
+                  {wine.wineName} {wine.vintage}
+                </span>
                 <span className="text-muted-foreground">
                   {wine.quantity}x {formatPrice(wine.price)}
                 </span>
@@ -81,4 +87,3 @@ export function DiscountInfo({
     </Card>
   );
 }
-

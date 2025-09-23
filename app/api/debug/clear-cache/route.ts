@@ -6,16 +6,16 @@ export async function POST() {
     clearGeocodeCache();
     return NextResponse.json({
       success: true,
-      message: "Geocoding cache cleared successfully"
+      message: "Geocoding cache cleared successfully",
     });
   } catch (error) {
-    console.error('❌ Error clearing cache:', error);
+    console.error("❌ Error clearing cache:", error);
     return NextResponse.json(
-      { 
-        error: 'Failed to clear cache', 
-        details: error instanceof Error ? error.message : 'Unknown error' 
+      {
+        error: "Failed to clear cache",
+        details: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

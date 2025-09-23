@@ -11,15 +11,17 @@ export async function GET(
   // Check if this is a wine box handle
   if (resolvedParams.handle.startsWith("wine-box-")) {
     const wineBoxId = resolvedParams.handle.replace("wine-box-", "");
-    
+
     try {
       // Get wine box calculations
-      const { getAllWineBoxCalculations } = await import("@/lib/wine-box-calculations");
+      const { getAllWineBoxCalculations } = await import(
+        "@/lib/wine-box-calculations"
+      );
       const calculations = await getAllWineBoxCalculations();
-      
+
       // Find the specific wine box
-      const calc = calculations.find(c => c.wineBoxId === wineBoxId);
-      
+      const calc = calculations.find((c) => c.wineBoxId === wineBoxId);
+
       if (!calc) {
         return NextResponse.json({ error: "not_found" }, { status: 404 });
       }
@@ -34,18 +36,20 @@ export async function GET(
         productType: "wine-box",
         categoryId: "wine-boxes-collection",
         priceRange: {
-          minVariantPrice: { 
-            amount: calc.finalPrice.toFixed(2), 
-            currencyCode: "SEK" 
+          minVariantPrice: {
+            amount: calc.finalPrice.toFixed(2),
+            currencyCode: "SEK",
           },
-          maxVariantPrice: { 
-            amount: calc.finalPrice.toFixed(2), 
-            currencyCode: "SEK" 
+          maxVariantPrice: {
+            amount: calc.finalPrice.toFixed(2),
+            currencyCode: "SEK",
           },
         },
         featuredImage: {
           id: `${calc.wineBoxId}-img`,
-          url: calc.imageUrl || "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
+          url:
+            calc.imageUrl ||
+            "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
           altText: calc.name,
           width: 600,
           height: 600,
@@ -53,7 +57,9 @@ export async function GET(
         images: [
           {
             id: `${calc.wineBoxId}-img`,
-            url: calc.imageUrl || "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
+            url:
+              calc.imageUrl ||
+              "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
             altText: calc.name,
             width: 600,
             height: 600,
@@ -64,14 +70,17 @@ export async function GET(
             id: `${calc.wineBoxId}-variant`,
             title: `${calc.bottleCount} Bottles`,
             availableForSale: true,
-            price: { 
-              amount: calc.finalPrice.toFixed(2), 
-              currencyCode: "SEK" 
+            price: {
+              amount: calc.finalPrice.toFixed(2),
+              currencyCode: "SEK",
             },
-              selectedOptions: [
-                { name: "Size", value: `${calc.bottleCount} Bottles` },
-                { name: "Discount", value: `${Math.round(calc.discountPercentage)}% off` },
-              ],
+            selectedOptions: [
+              { name: "Size", value: `${calc.bottleCount} Bottles` },
+              {
+                name: "Discount",
+                value: `${Math.round(calc.discountPercentage)}% off`,
+              },
+            ],
           },
         ],
         options: [
@@ -96,10 +105,13 @@ export async function GET(
             ],
           },
         ],
-        tags: [`${calc.bottleCount}-bottles`, `${calc.discountPercentage}-discount`],
-        seo: { 
-          title: calc.name, 
-          description: calc.description 
+        tags: [
+          `${calc.bottleCount}-bottles`,
+          `${calc.discountPercentage}-discount`,
+        ],
+        seo: {
+          title: calc.name,
+          description: calc.description,
         },
         availableForSale: true,
         currencyCode: "SEK",
@@ -196,41 +208,44 @@ export async function GET(
 
   // Helper function to convert relative paths to full URLs
   const convertToFullUrl = (path: string | null | undefined): string => {
-    if (!path) return "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop";
-    
+    if (!path)
+      return "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop";
+
     // Clean up any newline characters or whitespace
-    const cleanPath = path.trim().replace(/\n/g, '');
-    
-    if (cleanPath.startsWith('http')) return cleanPath; // Already a full URL
-    if (cleanPath.startsWith('/uploads/')) {
+    const cleanPath = path.trim().replace(/\n/g, "");
+
+    if (cleanPath.startsWith("http")) return cleanPath; // Already a full URL
+    if (cleanPath.startsWith("/uploads/")) {
       // Use our image proxy API to serve Supabase Storage files
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pactwines.com';
-      const fileName = cleanPath.replace('/uploads/', '');
+      const baseUrl =
+        process.env.NEXT_PUBLIC_APP_URL || "https://pactwines.com";
+      const fileName = cleanPath.replace("/uploads/", "");
       return `${baseUrl}/api/images/${fileName}`;
     }
     // For other relative paths, construct full URL
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pactwines.com';
-    return `${baseUrl}${cleanPath.startsWith('/') ? '' : '/'}${cleanPath}`;
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://pactwines.com";
+    return `${baseUrl}${cleanPath.startsWith("/") ? "" : "/"}${cleanPath}`;
   };
 
   // Get images for this wine
-  const images = wineImages && wineImages.length > 0 
-    ? wineImages.map((img: any) => ({
-        id: `${i.id}-img-${img.sort_order}`,
-        url: convertToFullUrl(img.image_path),
-        altText: img.alt_text || i.wine_name,
-        width: 600,
-        height: 600,
-      }))
-    : [
-        {
-          id: `${i.id}-img`,
-          url: convertToFullUrl(i.label_image_path),
-          altText: i.wine_name,
+  const images =
+    wineImages && wineImages.length > 0
+      ? wineImages.map((img: any) => ({
+          id: `${i.id}-img-${img.sort_order}`,
+          url: convertToFullUrl(img.image_path),
+          altText: img.alt_text || i.wine_name,
           width: 600,
           height: 600,
-        },
-      ];
+        }))
+      : [
+          {
+            id: `${i.id}-img`,
+            url: convertToFullUrl(i.label_image_path),
+            altText: i.wine_name,
+            width: 600,
+            height: 600,
+          },
+        ];
 
   const featuredImage = images[0] || {
     id: `${i.id}-img`,
@@ -241,9 +256,10 @@ export async function GET(
   };
 
   // Use custom description or generate default one
-  const wineDescription = i.description || 
-    `This exceptional ${i.color || 'wine'} wine from ${i.vintage} showcases the unique characteristics of ${i.grape_varieties || 'carefully selected grapes'}. Crafted with precision and passion, this wine offers a perfect balance of flavors and aromas that will delight your palate.`;
-  
+  const wineDescription =
+    i.description ||
+    `This exceptional ${i.color || "wine"} wine from ${i.vintage} showcases the unique characteristics of ${i.grape_varieties || "carefully selected grapes"}. Crafted with precision and passion, this wine offers a perfect balance of flavors and aromas that will delight your palate.`;
+
   const wineDescriptionHtml = i.description_html || `<p>${wineDescription}</p>`;
 
   const product = {
@@ -261,7 +277,7 @@ export async function GET(
         id: "grape-varieties",
         name: "Grape Varieties",
         values: grapeVarieties.map((variety: string) => ({
-          id: variety.toLowerCase().replace(/\s+/g, '-'),
+          id: variety.toLowerCase().replace(/\s+/g, "-"),
           name: variety,
         })),
       },
@@ -269,10 +285,14 @@ export async function GET(
       {
         id: "color",
         name: "Color",
-        values: colorName ? [{
-          id: colorName.toLowerCase().replace(/\s+/g, '-'),
-          name: colorName,
-        }] : [],
+        values: colorName
+          ? [
+              {
+                id: colorName.toLowerCase().replace(/\s+/g, "-"),
+                name: colorName,
+              },
+            ]
+          : [],
       },
     ],
     variants: [

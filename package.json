@@ -47,7 +47,6 @@
     "@radix-ui/react-tooltip": "latest",
     "@remix-run/react": "latest",
     "@sendgrid/mail": "^8.1.5",
-    "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.56.1",
     "@tailwindcss/line-clamp": "^0.4.4",

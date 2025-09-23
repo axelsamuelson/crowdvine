@@ -33,7 +33,11 @@ export function Header({ collections }: HeaderProps) {
       <div className="block flex-none md:hidden">
         <MobileMenu collections={collections} />
       </div>
-      <Link href="/" className="md:col-span-3 xl:col-span-2 flex justify-center md:justify-start" prefetch>
+      <Link
+        href="/"
+        className="md:col-span-3 xl:col-span-2 flex justify-center md:justify-start"
+        prefetch
+      >
         <LogoSvg className="h-8 md:h-12 w-auto" />
       </Link>
       <nav className="flex gap-2 justify-end items-center md:col-span-9 xl:col-span-10">

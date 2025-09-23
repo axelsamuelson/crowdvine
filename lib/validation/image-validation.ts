@@ -14,17 +14,19 @@ export interface ImageValidationResult {
 /**
  * Validates an uploaded image file
  */
-export async function validateImage(file: File): Promise<ImageValidationResult> {
+export async function validateImage(
+  file: File,
+): Promise<ImageValidationResult> {
   const errors: string[] = [];
   const warnings: string[] = [];
   const maxSize = 10 * 1024 * 1024; // 10MB
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
   const minDimensions = { width: 200, height: 200 };
   const maxDimensions = { width: 4000, height: 4000 };
 
   // Check file type
   if (!allowedTypes.includes(file.type)) {
-    errors.push(`Invalid file type. Allowed types: ${allowedTypes.join(', ')}`);
+    errors.push(`Invalid file type. Allowed types: ${allowedTypes.join(", ")}`);
   }
 
   // Check file size
@@ -33,8 +35,9 @@ export async function validateImage(file: File): Promise<ImageValidationResult> 
   }
 
   // Check minimum size
-  if (file.size < 1024) { // 1KB minimum
-    errors.push('File too small. Minimum size: 1KB');
+  if (file.size < 1024) {
+    // 1KB minimum
+    errors.push("File too small. Minimum size: 1KB");
   }
 
   let dimensions: { width: number; height: number } | undefined;
@@ -45,22 +48,33 @@ export async function validateImage(file: File): Promise<ImageValidationResult> 
     dimensions = imageData;
 
     // Check dimensions
-    if (dimensions.width < minDimensions.width || dimensions.height < minDimensions.height) {
-      errors.push(`Image too small. Minimum dimensions: ${minDimensions.width}x${minDimensions.height}px`);
+    if (
+      dimensions.width < minDimensions.width ||
+      dimensions.height < minDimensions.height
+    ) {
+      errors.push(
+        `Image too small. Minimum dimensions: ${minDimensions.width}x${minDimensions.height}px`,
+      );
     }
 
-    if (dimensions.width > maxDimensions.width || dimensions.height > maxDimensions.height) {
-      warnings.push(`Image very large. Consider resizing to max ${maxDimensions.width}x${maxDimensions.height}px for better performance`);
+    if (
+      dimensions.width > maxDimensions.width ||
+      dimensions.height > maxDimensions.height
+    ) {
+      warnings.push(
+        `Image very large. Consider resizing to max ${maxDimensions.width}x${maxDimensions.height}px for better performance`,
+      );
     }
 
     // Check aspect ratio
     const aspectRatio = dimensions.width / dimensions.height;
     if (aspectRatio < 0.5 || aspectRatio > 2) {
-      warnings.push('Unusual aspect ratio. Consider using images closer to 1:1 ratio');
+      warnings.push(
+        "Unusual aspect ratio. Consider using images closer to 1:1 ratio",
+      );
     }
-
   } catch (error) {
-    errors.push('Could not read image dimensions. File may be corrupted.');
+    errors.push("Could not read image dimensions. File may be corrupted.");
   }
 
   return {
@@ -70,29 +84,31 @@ export async function validateImage(file: File): Promise<ImageValidationResult> 
     fileInfo: {
       size: file.size,
       type: file.type,
-      dimensions
-    }
+      dimensions,
+    },
   };
 }
 
 /**
  * Gets image dimensions from a file
  */
-async function getImageDimensions(file: File): Promise<{ width: number; height: number }> {
+async function getImageDimensions(
+  file: File,
+): Promise<{ width: number; height: number }> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
-    
+
     img.onload = () => {
       URL.revokeObjectURL(url);
       resolve({ width: img.width, height: img.height });
     };
-    
+
     img.onerror = () => {
       URL.revokeObjectURL(url);
-      reject(new Error('Could not load image'));
+      reject(new Error("Could not load image"));
     };
-    
+
     img.src = url;
   });
 }
@@ -107,56 +123,59 @@ export async function validateImagePath(imagePath: string): Promise<{
 }> {
   try {
     // Clean the path
-    const cleanPath = imagePath.trim().replace(/\n/g, '');
-    
+    const cleanPath = imagePath.trim().replace(/\n/g, "");
+
     if (!cleanPath) {
-      return { exists: false, accessible: false, error: 'Empty image path' };
+      return { exists: false, accessible: false, error: "Empty image path" };
     }
 
     // If it's a full URL, test it directly
-    if (cleanPath.startsWith('http')) {
+    if (cleanPath.startsWith("http")) {
       try {
-        const response = await fetch(cleanPath, { method: 'HEAD' });
+        const response = await fetch(cleanPath, { method: "HEAD" });
         return {
           exists: response.ok,
           accessible: response.ok,
-          error: response.ok ? undefined : `HTTP ${response.status}: ${response.statusText}`
+          error: response.ok
+            ? undefined
+            : `HTTP ${response.status}: ${response.statusText}`,
         };
       } catch (error) {
         return {
           exists: false,
           accessible: false,
-          error: `Network error: ${error instanceof Error ? error.message : 'Unknown error'}`
+          error: `Network error: ${error instanceof Error ? error.message : "Unknown error"}`,
         };
       }
     }
 
     // For relative paths, test via our image proxy
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pactwines.com';
-    const testUrl = cleanPath.startsWith('/uploads/') 
-      ? `${baseUrl}/api/images/${cleanPath.replace('/uploads/', '')}`
-      : `${baseUrl}${cleanPath.startsWith('/') ? '' : '/'}${cleanPath}`;
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://pactwines.com";
+    const testUrl = cleanPath.startsWith("/uploads/")
+      ? `${baseUrl}/api/images/${cleanPath.replace("/uploads/", "")}`
+      : `${baseUrl}${cleanPath.startsWith("/") ? "" : "/"}${cleanPath}`;
 
     try {
-      const response = await fetch(testUrl, { method: 'HEAD' });
+      const response = await fetch(testUrl, { method: "HEAD" });
       return {
         exists: response.ok,
         accessible: response.ok,
-        error: response.ok ? undefined : `HTTP ${response.status}: ${response.statusText}`
+        error: response.ok
+          ? undefined
+          : `HTTP ${response.status}: ${response.statusText}`,
       };
     } catch (error) {
       return {
         exists: false,
         accessible: false,
-        error: `Network error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        error: `Network error: ${error instanceof Error ? error.message : "Unknown error"}`,
       };
     }
-
   } catch (error) {
     return {
       exists: false,
       accessible: false,
-      error: `Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      error: `Validation error: ${error instanceof Error ? error.message : "Unknown error"}`,
     };
   }
 }
@@ -165,24 +184,28 @@ export async function validateImagePath(imagePath: string): Promise<{
  * Checks if an image is a valid wine product image
  */
 export async function isValidWineImage(file: File): Promise<boolean> {
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
   const maxSize = 5 * 1024 * 1024; // 5MB for wine images
-  
+
   return allowedTypes.includes(file.type) && file.size <= maxSize;
 }
 
 /**
  * Generates a standardized filename for wine images
  */
-export async function generateWineImageFilename(wineName: string, vintage: string, index?: number): Promise<string> {
+export async function generateWineImageFilename(
+  wineName: string,
+  vintage: string,
+  index?: number,
+): Promise<string> {
   const sanitizedName = wineName
     .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '')
-    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9\s]/g, "")
+    .replace(/\s+/g, "-")
     .substring(0, 50);
-  
-  const sanitizedVintage = vintage.replace(/[^0-9]/g, '');
-  const suffix = index !== undefined ? `-${index}` : '';
-  
+
+  const sanitizedVintage = vintage.replace(/[^0-9]/g, "");
+  const suffix = index !== undefined ? `-${index}` : "";
+
   return `${sanitizedName}-${sanitizedVintage}${suffix}.jpg`;
 }

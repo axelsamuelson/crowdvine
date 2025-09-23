@@ -14,7 +14,7 @@ export function clearFooterLogoCache() {
   footerLogoCache = null;
   hasPreloadedFooter = false;
   // Trigger reload av alla FooterLogoSvg komponenter
-  window.dispatchEvent(new CustomEvent('footerLogoCacheCleared'));
+  window.dispatchEvent(new CustomEvent("footerLogoCacheCleared"));
 }
 
 export function FooterLogoSvg({ className }: { className?: string }) {
@@ -24,7 +24,10 @@ export function FooterLogoSvg({ className }: { className?: string }) {
 
   useEffect(() => {
     // Kontrollera cache först
-    if (footerLogoCache && Date.now() - footerLogoCache.timestamp < CACHE_DURATION) {
+    if (
+      footerLogoCache &&
+      Date.now() - footerLogoCache.timestamp < CACHE_DURATION
+    ) {
       setFooterLogo(footerLogoCache.value);
       setLoading(false);
       return;
@@ -36,22 +39,22 @@ export function FooterLogoSvg({ className }: { className?: string }) {
 
     fetch(`/api/site-content/footer_logo?t=${Date.now()}`, {
       signal: controller.signal,
-      cache: 'no-cache', // Ingen cache för att få senaste versionen
+      cache: "no-cache", // Ingen cache för att få senaste versionen
     })
-      .then(response => {
+      .then((response) => {
         clearTimeout(timeoutId);
         if (!response.ok) {
-          throw new Error('Failed to fetch footer logo');
+          throw new Error("Failed to fetch footer logo");
         }
         return response.json();
       })
-      .then(data => {
+      .then((data) => {
         const logoUrl = data.value?.trim();
-        if (logoUrl && logoUrl !== 'null') {
+        if (logoUrl && logoUrl !== "null") {
           setFooterLogo(logoUrl);
           // Uppdatera cache
           footerLogoCache = { value: logoUrl, timestamp: Date.now() };
-          
+
           // Preload bilden för första gången
           if (!hasPreloadedFooter) {
             const img = new Image();
@@ -63,9 +66,9 @@ export function FooterLogoSvg({ className }: { className?: string }) {
           footerLogoCache = { value: null, timestamp: Date.now() };
         }
       })
-      .catch(error => {
+      .catch((error) => {
         clearTimeout(timeoutId);
-        console.warn('Failed to load footer logo:', error);
+        console.warn("Failed to load footer logo:", error);
         setFooterLogo(null);
         footerLogoCache = { value: null, timestamp: Date.now() };
       })
@@ -82,21 +85,22 @@ export function FooterLogoSvg({ className }: { className?: string }) {
   // Lyssna på cache-clearing events
   useEffect(() => {
     const handleCacheCleared = () => {
-      setReloadTrigger(prev => prev + 1);
+      setReloadTrigger((prev) => prev + 1);
     };
 
-    window.addEventListener('footerLogoCacheCleared', handleCacheCleared);
-    return () => window.removeEventListener('footerLogoCacheCleared', handleCacheCleared);
+    window.addEventListener("footerLogoCacheCleared", handleCacheCleared);
+    return () =>
+      window.removeEventListener("footerLogoCacheCleared", handleCacheCleared);
   }, []);
 
   // Visa transparent placeholder medan vi laddar för att undvika layout shift
   if (loading) {
     return (
-      <div 
+      <div
         className={className}
-        style={{ 
-          backgroundColor: 'transparent',
-          minHeight: '60px', // Ungefärlig höjd för footer logo
+        style={{
+          backgroundColor: "transparent",
+          minHeight: "60px", // Ungefärlig höjd för footer logo
         }}
       />
     );
@@ -109,7 +113,7 @@ export function FooterLogoSvg({ className }: { className?: string }) {
         src={footerLogo}
         alt="Footer Logo"
         className={className}
-        style={{ objectFit: 'contain' }}
+        style={{ objectFit: "contain" }}
         loading="eager"
         fetchPriority="high"
         onLoad={() => {
@@ -132,7 +136,7 @@ export function FooterLogoSvg({ className }: { className?: string }) {
       viewBox="0 0 292 61"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className={`md:basis-3/4 max-md:w-full max-w-[1200px] h-auto block ${className || ''}`}
+      className={`md:basis-3/4 max-md:w-full max-w-[1200px] h-auto block ${className || ""}`}
     >
       <path
         d="M0 58.9432L20.7844 1.29902H35.3984L56.1828 58.9432H43.3549L39.1331 46.6837H16.9685L12.7467 58.9432H0ZM20.4596 36.535H35.7232L28.0914 14.2893L20.4596 36.535Z"

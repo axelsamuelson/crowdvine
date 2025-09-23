@@ -8,7 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ProfileInfoModal } from "@/components/checkout/profile-info-modal";
 import { PaymentMethodSelector } from "@/components/checkout/payment-method-selector";
@@ -16,7 +22,10 @@ import { ZoneDetails } from "@/components/checkout/zone-details";
 import { PalletDetails } from "@/components/checkout/pallet-details";
 import { toast } from "sonner";
 import { User, MapPin, CreditCard, Package, AlertCircle } from "lucide-react";
-import { calculateCartShippingCost, formatShippingCost } from "@/lib/shipping-calculations";
+import {
+  calculateCartShippingCost,
+  formatShippingCost,
+} from "@/lib/shipping-calculations";
 import type { PalletInfo } from "@/lib/zone-matching";
 
 interface UserProfile {
@@ -33,7 +42,7 @@ interface UserProfile {
 
 interface PaymentMethod {
   id: string;
-  type: 'card' | 'bank';
+  type: "card" | "bank";
   last4?: string;
   brand?: string;
   is_default: boolean;
@@ -55,7 +64,8 @@ function CheckoutContent() {
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] =
+    useState<PaymentMethod | null>(null);
   const [selectedPallet, setSelectedPallet] = useState<PalletInfo | null>(null);
   const [useProfileAddress, setUseProfileAddress] = useState(true);
   const [useCustomAddress, setUseCustomAddress] = useState(false);
@@ -117,18 +127,19 @@ function CheckoutContent() {
 
   const fetchProfile = async () => {
     try {
-      const response = await fetch('/api/user/profile');
+      const response = await fetch("/api/user/profile");
       if (response.ok) {
         const profileData = await response.json();
         setProfile(profileData);
-        
+
         // Check if profile has complete address information
-        const hasCompleteAddress = profileData.address && profileData.city && profileData.postal_code;
+        const hasCompleteAddress =
+          profileData.address && profileData.city && profileData.postal_code;
         setUseProfileAddress(hasCompleteAddress);
         setUseCustomAddress(!hasCompleteAddress);
       }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error("Error fetching profile:", error);
     }
   };
 
@@ -137,18 +148,27 @@ function CheckoutContent() {
 
     try {
       let deliveryAddress;
-      
+
       if (useProfileAddress && profile) {
         deliveryAddress = {
           postcode: profile.postal_code || "",
           city: profile.city || "",
-          countryCode: profile.country === "Sweden" ? "SE" : 
-                      profile.country === "Norway" ? "NO" :
-                      profile.country === "Denmark" ? "DK" :
-                      profile.country === "Finland" ? "FI" :
-                      profile.country === "Germany" ? "DE" :
-                      profile.country === "France" ? "FR" :
-                      profile.country === "United Kingdom" ? "GB" : "",
+          countryCode:
+            profile.country === "Sweden"
+              ? "SE"
+              : profile.country === "Norway"
+                ? "NO"
+                : profile.country === "Denmark"
+                  ? "DK"
+                  : profile.country === "Finland"
+                    ? "FI"
+                    : profile.country === "Germany"
+                      ? "DE"
+                      : profile.country === "France"
+                        ? "FR"
+                        : profile.country === "United Kingdom"
+                          ? "GB"
+                          : "",
         };
       } else if (useCustomAddress) {
         deliveryAddress = {
@@ -164,11 +184,11 @@ function CheckoutContent() {
         };
       }
 
-      console.log('🚀 Sending zone request:', {
+      console.log("🚀 Sending zone request:", {
         cartItems: cart.lines,
-        deliveryAddress
+        deliveryAddress,
       });
-      
+
       const zoneResponse = await fetch("/api/checkout/zones", {
         method: "POST",
         headers: {
@@ -182,23 +202,34 @@ function CheckoutContent() {
 
       if (zoneResponse.ok) {
         const zoneData = await zoneResponse.json();
-        const hasCompleteAddress = deliveryAddress.postcode && deliveryAddress.city && deliveryAddress.countryCode;
-        
-        console.log('✅ Zone response received:', {
+        const hasCompleteAddress =
+          deliveryAddress.postcode &&
+          deliveryAddress.city &&
+          deliveryAddress.countryCode;
+
+        console.log("✅ Zone response received:", {
           zoneData,
           hasCompleteAddress,
-          deliveryAddress
+          deliveryAddress,
         });
-        
+
         setZoneInfo({
           pickupZone: zoneData.pickupZoneName,
           deliveryZone: hasCompleteAddress ? zoneData.deliveryZoneName : null,
-          selectedDeliveryZoneId: hasCompleteAddress ? zoneData.deliveryZoneId : null,
-          availableDeliveryZones: hasCompleteAddress ? zoneData.availableDeliveryZones : [],
+          selectedDeliveryZoneId: hasCompleteAddress
+            ? zoneData.deliveryZoneId
+            : null,
+          availableDeliveryZones: hasCompleteAddress
+            ? zoneData.availableDeliveryZones
+            : [],
           pallets: hasCompleteAddress ? zoneData.pallets : [],
         });
       } else {
-        console.error('❌ Zone response failed:', zoneResponse.status, await zoneResponse.text());
+        console.error(
+          "❌ Zone response failed:",
+          zoneResponse.status,
+          await zoneResponse.text(),
+        );
       }
     } catch (error) {
       console.error("Failed to update zone info:", error);
@@ -213,9 +244,11 @@ function CheckoutContent() {
   };
 
   const handleDeliveryZoneChange = (zoneId: string) => {
-    const selectedZone = zoneInfo.availableDeliveryZones?.find(z => z.id === zoneId);
+    const selectedZone = zoneInfo.availableDeliveryZones?.find(
+      (z) => z.id === zoneId,
+    );
     if (selectedZone) {
-      setZoneInfo(prev => ({
+      setZoneInfo((prev) => ({
         ...prev,
         selectedDeliveryZoneId: zoneId,
         deliveryZone: selectedZone.name,
@@ -225,7 +258,7 @@ function CheckoutContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate required fields
     if (!profile?.email) {
       toast.error("Please add your profile information first");
@@ -238,12 +271,17 @@ function CheckoutContent() {
     }
 
     // Check if delivery zone is available
-    const hasCompleteAddress = useProfileAddress ? 
-      (profile?.address && profile?.city && profile?.postal_code) :
-      (customAddress.street && customAddress.city && customAddress.postcode && customAddress.countryCode);
-      
+    const hasCompleteAddress = useProfileAddress
+      ? profile?.address && profile?.city && profile?.postal_code
+      : customAddress.street &&
+        customAddress.city &&
+        customAddress.postcode &&
+        customAddress.countryCode;
+
     if (hasCompleteAddress && !zoneInfo.selectedDeliveryZoneId) {
-      toast.error("No delivery zone matches your address. Please contact support or try a different address.");
+      toast.error(
+        "No delivery zone matches your address. Please contact support or try a different address.",
+      );
       return;
     }
 
@@ -255,41 +293,55 @@ function CheckoutContent() {
 
     // Prepare form data
     const formData = new FormData();
-    
+
     // Customer details
     formData.append("fullName", profile?.full_name || "");
     formData.append("email", profile?.email || "");
     formData.append("phone", profile?.phone || "");
-    
+
     // Delivery address
     if (useProfileAddress && profile) {
       formData.append("street", profile.address || "");
       formData.append("postcode", profile.postal_code || "");
       formData.append("city", profile.city || "");
-      formData.append("countryCode", profile.country === "Sweden" ? "SE" : 
-                      profile.country === "Norway" ? "NO" :
-                      profile.country === "Denmark" ? "DK" :
-                      profile.country === "Finland" ? "FI" :
-                      profile.country === "Germany" ? "DE" :
-                      profile.country === "France" ? "FR" :
-                      profile.country === "United Kingdom" ? "GB" : "");
+      formData.append(
+        "countryCode",
+        profile.country === "Sweden"
+          ? "SE"
+          : profile.country === "Norway"
+            ? "NO"
+            : profile.country === "Denmark"
+              ? "DK"
+              : profile.country === "Finland"
+                ? "FI"
+                : profile.country === "Germany"
+                  ? "DE"
+                  : profile.country === "France"
+                    ? "FR"
+                    : profile.country === "United Kingdom"
+                      ? "GB"
+                      : "",
+      );
     } else {
       formData.append("street", customAddress.street);
       formData.append("postcode", customAddress.postcode);
       formData.append("city", customAddress.city);
       formData.append("countryCode", customAddress.countryCode);
     }
-    
+
     // Zone information
     if (zoneInfo.selectedDeliveryZoneId) {
-      formData.append("selectedDeliveryZoneId", zoneInfo.selectedDeliveryZoneId);
+      formData.append(
+        "selectedDeliveryZoneId",
+        zoneInfo.selectedDeliveryZoneId,
+      );
     }
-    
+
     // Pallet information
     if (selectedPallet) {
       formData.append("selectedPalletId", selectedPallet.id);
     }
-    
+
     // Payment method
     formData.append("paymentMethodId", selectedPaymentMethod.id);
 
@@ -330,7 +382,8 @@ function CheckoutContent() {
       <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
         <h1 className="text-2xl font-semibold mb-4">Checkout</h1>
         <p className="text-gray-600">
-          Your cart is empty. Please add some items before proceeding to checkout.
+          Your cart is empty. Please add some items before proceeding to
+          checkout.
         </p>
         <a
           href="/"
@@ -343,20 +396,23 @@ function CheckoutContent() {
   }
 
   const hasProfileInfo = profile?.full_name && profile?.email;
-  const hasCompleteProfileAddress = profile?.address && profile?.city && profile?.postal_code;
-  
+  const hasCompleteProfileAddress =
+    profile?.address && profile?.city && profile?.postal_code;
+
   // Calculate shipping cost
-  const shippingCost = selectedPallet ? calculateCartShippingCost(
-    cart.lines.map(line => ({ quantity: line.quantity })),
-    {
-      id: selectedPallet.id,
-      name: selectedPallet.name,
-      costCents: selectedPallet.costCents,
-      bottleCapacity: selectedPallet.maxBottles,
-      currentBottles: selectedPallet.currentBottles,
-      remainingBottles: selectedPallet.remainingBottles,
-    }
-  ) : null;
+  const shippingCost = selectedPallet
+    ? calculateCartShippingCost(
+        cart.lines.map((line) => ({ quantity: line.quantity })),
+        {
+          id: selectedPallet.id,
+          name: selectedPallet.name,
+          costCents: selectedPallet.costCents,
+          bottleCapacity: selectedPallet.maxBottles,
+          currentBottles: selectedPallet.currentBottles,
+          remainingBottles: selectedPallet.remainingBottles,
+        },
+      )
+    : null;
 
   return (
     <div className="max-w-4xl mx-auto p-6 pt-top-spacing space-y-8">
@@ -378,13 +434,21 @@ function CheckoutContent() {
             <CardContent>
               <div className="space-y-3">
                 {cart.lines.map((line) => (
-                  <div key={line.id} className="flex justify-between items-center">
+                  <div
+                    key={line.id}
+                    className="flex justify-between items-center"
+                  >
                     <div>
-                      <span className="font-medium">{line.merchandise.title}</span>
-                      <span className="text-gray-600 ml-2">x{line.quantity}</span>
+                      <span className="font-medium">
+                        {line.merchandise.title}
+                      </span>
+                      <span className="text-gray-600 ml-2">
+                        x{line.quantity}
+                      </span>
                     </div>
                     <span className="font-medium">
-                      {line.cost.totalAmount.amount} {line.cost.totalAmount.currencyCode}
+                      {line.cost.totalAmount.amount}{" "}
+                      {line.cost.totalAmount.currencyCode}
                     </span>
                   </div>
                 ))}
@@ -396,32 +460,42 @@ function CheckoutContent() {
                     <span className="text-sm text-gray-600">Shipping</span>
                     <span className="text-sm">
                       {shippingCost ? (
-                        <span className="font-medium">{formatShippingCost(shippingCost.totalShippingCostCents)}</span>
+                        <span className="font-medium">
+                          {formatShippingCost(
+                            shippingCost.totalShippingCostCents,
+                          )}
+                        </span>
                       ) : (
                         <span className="text-gray-400">No pallet chosen</span>
                       )}
                     </span>
                   </div>
-                  
+
                   {/* Subtotal */}
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Subtotal</span>
                     <span className="text-sm font-medium">
-                      {cart.cost.totalAmount.amount} {cart.cost.totalAmount.currencyCode}
+                      {cart.cost.totalAmount.amount}{" "}
+                      {cart.cost.totalAmount.currencyCode}
                     </span>
                   </div>
-                  
+
                   {/* Total */}
                   <div className="flex justify-between items-center font-semibold text-lg border-t pt-2">
                     <span>Total</span>
                     <span>
                       {shippingCost ? (
                         <>
-                          {(parseFloat(cart.cost.totalAmount.amount) + shippingCost.totalShippingCostSek).toFixed(2)} {cart.cost.totalAmount.currencyCode}
+                          {(
+                            parseFloat(cart.cost.totalAmount.amount) +
+                            shippingCost.totalShippingCostSek
+                          ).toFixed(2)}{" "}
+                          {cart.cost.totalAmount.currencyCode}
                         </>
                       ) : (
                         <>
-                          {cart.cost.totalAmount.amount} {cart.cost.totalAmount.currencyCode}
+                          {cart.cost.totalAmount.amount}{" "}
+                          {cart.cost.totalAmount.currencyCode}
                         </>
                       )}
                     </span>
@@ -432,9 +506,16 @@ function CheckoutContent() {
           </Card>
 
           {/* Zone Information */}
-          {(zoneInfo.pickupZone || zoneInfo.deliveryZone || 
-            ((useProfileAddress && profile?.address && profile?.city && profile?.postal_code) || 
-             (useCustomAddress && customAddress.street && customAddress.city && customAddress.postcode))) && (
+          {(zoneInfo.pickupZone ||
+            zoneInfo.deliveryZone ||
+            (useProfileAddress &&
+              profile?.address &&
+              profile?.city &&
+              profile?.postal_code) ||
+            (useCustomAddress &&
+              customAddress.street &&
+              customAddress.city &&
+              customAddress.postcode)) && (
             <div className="space-y-4">
               {/* Pickup Zone */}
               {zoneInfo.pickupZone && (
@@ -444,12 +525,15 @@ function CheckoutContent() {
                   zoneType="pickup"
                 />
               )}
-              
+
               {/* Delivery Zone */}
-              {zoneInfo.availableDeliveryZones && zoneInfo.availableDeliveryZones.length > 1 ? (
+              {zoneInfo.availableDeliveryZones &&
+              zoneInfo.availableDeliveryZones.length > 1 ? (
                 <div className="space-y-3">
                   <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                    <p className="font-medium text-green-900 mb-2">Multiple delivery zones available</p>
+                    <p className="font-medium text-green-900 mb-2">
+                      Multiple delivery zones available
+                    </p>
                     <Select
                       value={zoneInfo.selectedDeliveryZoneId || ""}
                       onValueChange={handleDeliveryZoneChange}
@@ -471,9 +555,21 @@ function CheckoutContent() {
                       zoneId={zoneInfo.selectedDeliveryZoneId}
                       zoneName={zoneInfo.deliveryZone || ""}
                       zoneType="delivery"
-                      centerLat={zoneInfo.availableDeliveryZones.find(z => z.id === zoneInfo.selectedDeliveryZoneId)?.centerLat}
-                      centerLon={zoneInfo.availableDeliveryZones.find(z => z.id === zoneInfo.selectedDeliveryZoneId)?.centerLon}
-                      radiusKm={zoneInfo.availableDeliveryZones.find(z => z.id === zoneInfo.selectedDeliveryZoneId)?.radiusKm}
+                      centerLat={
+                        zoneInfo.availableDeliveryZones.find(
+                          (z) => z.id === zoneInfo.selectedDeliveryZoneId,
+                        )?.centerLat
+                      }
+                      centerLon={
+                        zoneInfo.availableDeliveryZones.find(
+                          (z) => z.id === zoneInfo.selectedDeliveryZoneId,
+                        )?.centerLon
+                      }
+                      radiusKm={
+                        zoneInfo.availableDeliveryZones.find(
+                          (z) => z.id === zoneInfo.selectedDeliveryZoneId,
+                        )?.radiusKm
+                      }
                     />
                   )}
                 </div>
@@ -486,8 +582,14 @@ function CheckoutContent() {
                   centerLon={zoneInfo.availableDeliveryZones?.[0]?.centerLon}
                   radiusKm={zoneInfo.availableDeliveryZones?.[0]?.radiusKm}
                 />
-              ) : (useProfileAddress && profile?.address && profile?.city && profile?.postal_code) || 
-                  (useCustomAddress && customAddress.street && customAddress.city && customAddress.postcode) ? (
+              ) : (useProfileAddress &&
+                  profile?.address &&
+                  profile?.city &&
+                  profile?.postal_code) ||
+                (useCustomAddress &&
+                  customAddress.street &&
+                  customAddress.city &&
+                  customAddress.postcode) ? (
                 <Card className="border-l-4 border-l-red-500">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-red-700">
@@ -497,7 +599,8 @@ function CheckoutContent() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-red-600">
-                      No delivery zone matches this address. Please contact support or try a different address.
+                      No delivery zone matches this address. Please contact
+                      support or try a different address.
                     </p>
                   </CardContent>
                 </Card>
@@ -514,12 +617,15 @@ function CheckoutContent() {
                   Available Pallets
                 </h3>
                 {selectedPallet && (
-                  <Badge variant="default" className="bg-green-100 text-green-800">
+                  <Badge
+                    variant="default"
+                    className="bg-green-100 text-green-800"
+                  >
                     Selected: {selectedPallet.name}
                   </Badge>
                 )}
               </div>
-              
+
               <div className="space-y-3">
                 {zoneInfo.pallets.map((pallet) => (
                   <div key={pallet.id} className="relative">
@@ -527,30 +633,45 @@ function CheckoutContent() {
                     {pallet.remainingBottles > 0 && (
                       <div className="mt-3 flex justify-center">
                         <Button
-                          variant={selectedPallet?.id === pallet.id ? "default" : "outline"}
+                          variant={
+                            selectedPallet?.id === pallet.id
+                              ? "default"
+                              : "outline"
+                          }
                           size="sm"
                           onClick={() => setSelectedPallet(pallet)}
-                          className={selectedPallet?.id === pallet.id ? "bg-green-600 hover:bg-green-700" : ""}
+                          className={
+                            selectedPallet?.id === pallet.id
+                              ? "bg-green-600 hover:bg-green-700"
+                              : ""
+                          }
                         >
-                          {selectedPallet?.id === pallet.id ? "Selected" : "Select This Pallet"}
+                          {selectedPallet?.id === pallet.id
+                            ? "Selected"
+                            : "Select This Pallet"}
                         </Button>
                       </div>
                     )}
                   </div>
                 ))}
               </div>
-              
+
               {selectedPallet && (
                 <div className="p-4 bg-green-50 rounded-lg border border-green-200">
                   <div className="flex items-center gap-2 mb-2">
                     <Package className="w-4 h-4 text-green-600" />
-                    <span className="font-medium text-green-800">Reservation will be added to:</span>
+                    <span className="font-medium text-green-800">
+                      Reservation will be added to:
+                    </span>
                   </div>
                   <p className="text-sm text-green-700">
-                    <strong>{selectedPallet.name}</strong> ({selectedPallet.pickupZoneName} → {selectedPallet.deliveryZoneName})
+                    <strong>{selectedPallet.name}</strong> (
+                    {selectedPallet.pickupZoneName} →{" "}
+                    {selectedPallet.deliveryZoneName})
                   </p>
                   <p className="text-xs text-green-600 mt-1">
-                    {selectedPallet.remainingBottles} bottles available for your order
+                    {selectedPallet.remainingBottles} bottles available for your
+                    order
                   </p>
                 </div>
               )}
@@ -573,7 +694,9 @@ function CheckoutContent() {
                 {!hasProfileInfo ? (
                   <div className="text-center py-4">
                     <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
-                    <p className="text-gray-600 mb-4">Profile information missing</p>
+                    <p className="text-gray-600 mb-4">
+                      Profile information missing
+                    </p>
                     <ProfileInfoModal onProfileSaved={handleProfileSaved} />
                   </div>
                 ) : (
@@ -592,7 +715,7 @@ function CheckoutContent() {
                         <span className="text-gray-600">{profile.phone}</span>
                       </div>
                     )}
-                    <ProfileInfoModal 
+                    <ProfileInfoModal
                       onProfileSaved={handleProfileSaved}
                       trigger={
                         <Button variant="outline" size="sm" className="mt-2">
@@ -625,11 +748,15 @@ function CheckoutContent() {
                           setUseCustomAddress(!checked as boolean);
                         }}
                       />
-                      <Label htmlFor="useProfileAddress" className="text-sm font-medium">
-                        Use profile address: {profile?.address}, {profile?.postal_code} {profile?.city}
+                      <Label
+                        htmlFor="useProfileAddress"
+                        className="text-sm font-medium"
+                      >
+                        Use profile address: {profile?.address},{" "}
+                        {profile?.postal_code} {profile?.city}
                       </Label>
                     </div>
-                    
+
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="useCustomAddress"
@@ -639,7 +766,10 @@ function CheckoutContent() {
                           setUseProfileAddress(!checked as boolean);
                         }}
                       />
-                      <Label htmlFor="useCustomAddress" className="text-sm font-medium">
+                      <Label
+                        htmlFor="useCustomAddress"
+                        className="text-sm font-medium"
+                      >
                         Use different delivery address
                       </Label>
                     </div>
@@ -647,7 +777,9 @@ function CheckoutContent() {
                 ) : (
                   <div className="text-center py-4">
                     <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
-                    <p className="text-gray-600 mb-4">Delivery address missing from profile</p>
+                    <p className="text-gray-600 mb-4">
+                      Delivery address missing from profile
+                    </p>
                     <ProfileInfoModal onProfileSaved={handleProfileSaved} />
                   </div>
                 )}
@@ -659,7 +791,12 @@ function CheckoutContent() {
                       <Input
                         id="customStreet"
                         value={customAddress.street}
-                        onChange={(e) => setCustomAddress({ ...customAddress, street: e.target.value })}
+                        onChange={(e) =>
+                          setCustomAddress({
+                            ...customAddress,
+                            street: e.target.value,
+                          })
+                        }
                         placeholder="Enter street address"
                       />
                     </div>
@@ -669,7 +806,12 @@ function CheckoutContent() {
                         <Input
                           id="customPostcode"
                           value={customAddress.postcode}
-                          onChange={(e) => setCustomAddress({ ...customAddress, postcode: e.target.value })}
+                          onChange={(e) =>
+                            setCustomAddress({
+                              ...customAddress,
+                              postcode: e.target.value,
+                            })
+                          }
                           placeholder="Enter postal code"
                         />
                       </div>
@@ -678,7 +820,12 @@ function CheckoutContent() {
                         <Input
                           id="customCity"
                           value={customAddress.city}
-                          onChange={(e) => setCustomAddress({ ...customAddress, city: e.target.value })}
+                          onChange={(e) =>
+                            setCustomAddress({
+                              ...customAddress,
+                              city: e.target.value,
+                            })
+                          }
                           placeholder="Enter city"
                         />
                       </div>
@@ -687,7 +834,12 @@ function CheckoutContent() {
                       <Label htmlFor="customCountry">Country</Label>
                       <Select
                         value={customAddress.countryCode}
-                        onValueChange={(value) => setCustomAddress({ ...customAddress, countryCode: value })}
+                        onValueChange={(value) =>
+                          setCustomAddress({
+                            ...customAddress,
+                            countryCode: value,
+                          })
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select country" />
@@ -741,15 +893,17 @@ function CheckoutContent() {
 
 export default function CheckoutPage() {
   return (
-    <Suspense fallback={
-      <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-gray-200 rounded mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded mb-2"></div>
-          <div className="h-4 bg-gray-200 rounded"></div>
+    <Suspense
+      fallback={
+        <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
+          <div className="animate-pulse space-y-6">
+            <div className="h-8 bg-gray-200 rounded mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded mb-2"></div>
+            <div className="h-4 bg-gray-200 rounded"></div>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <CheckoutContent />
     </Suspense>
   );

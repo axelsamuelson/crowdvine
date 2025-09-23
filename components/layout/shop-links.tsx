@@ -23,14 +23,14 @@ export function ShopLinks({
 
       <ul className="flex flex-col gap-1.5 leading-5 mt-5">
         {collections
-          .filter((collection) => collection.handle !== 'wine-boxes')
+          .filter((collection) => collection.handle !== "wine-boxes")
           .map((item, index) => (
-          <li key={`${item.handle}-${index}`}>
-            <Link href={`/shop/${item.handle}`} prefetch>
-              {item.title}
-            </Link>
-          </li>
-        ))}
+            <li key={`${item.handle}-${index}`}>
+              <Link href={`/shop/${item.handle}`} prefetch>
+                {item.title}
+              </Link>
+            </li>
+          ))}
       </ul>
     </div>
   );

@@ -24,7 +24,7 @@ class RateLimiter {
       // No entry or window expired, create new entry
       this.requests.set(identifier, {
         count: 1,
-        resetTime: now + this.windowMs
+        resetTime: now + this.windowMs,
       });
       return true;
     }
@@ -72,49 +72,49 @@ export const generalLimiter = new RateLimiter(15 * 60 * 1000, 100); // 100 reque
 // Helper function to get client identifier
 export function getClientIdentifier(request: Request): string {
   // Try to get IP from various headers (for different deployment scenarios)
-  const forwarded = request.headers.get('x-forwarded-for');
-  const realIp = request.headers.get('x-real-ip');
-  const cfConnectingIp = request.headers.get('cf-connecting-ip');
-  
-  const ip = forwarded?.split(',')[0] || realIp || cfConnectingIp || 'unknown';
-  
+  const forwarded = request.headers.get("x-forwarded-for");
+  const realIp = request.headers.get("x-real-ip");
+  const cfConnectingIp = request.headers.get("cf-connecting-ip");
+
+  const ip = forwarded?.split(",")[0] || realIp || cfConnectingIp || "unknown";
+
   // For development, use a more permissive identifier
-  if (process.env.NODE_ENV === 'development') {
-    return 'dev-client';
+  if (process.env.NODE_ENV === "development") {
+    return "dev-client";
   }
-  
+
   return ip;
 }
 
 // Rate limiting middleware
 export function withRateLimit(
   limiter: RateLimiter,
-  errorMessage: string = 'Too many requests. Please try again later.'
+  errorMessage: string = "Too many requests. Please try again later.",
 ) {
-  return function(handler: Function) {
-    return async function(request: Request, ...args: any[]) {
+  return function (handler: Function) {
+    return async function (request: Request, ...args: any[]) {
       const identifier = getClientIdentifier(request);
-      
+
       if (!limiter.isAllowed(identifier)) {
         const resetTime = limiter.getResetTime(identifier);
         const retryAfter = Math.ceil((resetTime - Date.now()) / 1000);
-        
+
         return new Response(
-          JSON.stringify({ 
+          JSON.stringify({
             error: errorMessage,
             retryAfter: retryAfter,
-            resetTime: new Date(resetTime).toISOString()
+            resetTime: new Date(resetTime).toISOString(),
           }),
           {
             status: 429,
             headers: {
-              'Content-Type': 'application/json',
-              'Retry-After': retryAfter.toString(),
-              'X-RateLimit-Limit': limiter.maxRequests.toString(),
-              'X-RateLimit-Remaining': '0',
-              'X-RateLimit-Reset': resetTime.toString()
-            }
-          }
+              "Content-Type": "application/json",
+              "Retry-After": retryAfter.toString(),
+              "X-RateLimit-Limit": limiter.maxRequests.toString(),
+              "X-RateLimit-Remaining": "0",
+              "X-RateLimit-Reset": resetTime.toString(),
+            },
+          },
         );
       }
 
@@ -122,21 +122,27 @@ export function withRateLimit(
       const response = await handler(request, ...args);
       const remaining = limiter.getRemainingRequests(identifier);
       const resetTime = limiter.getResetTime(identifier);
-      
+
       if (response instanceof Response) {
-        response.headers.set('X-RateLimit-Limit', limiter.maxRequests.toString());
-        response.headers.set('X-RateLimit-Remaining', remaining.toString());
-        response.headers.set('X-RateLimit-Reset', resetTime.toString());
+        response.headers.set(
+          "X-RateLimit-Limit",
+          limiter.maxRequests.toString(),
+        );
+        response.headers.set("X-RateLimit-Remaining", remaining.toString());
+        response.headers.set("X-RateLimit-Reset", resetTime.toString());
       }
-      
+
       return response;
     };
   };
 }
 
 // Cleanup expired entries every 5 minutes
-setInterval(() => {
-  accessRequestLimiter.cleanup();
-  signupLimiter.cleanup();
-  generalLimiter.cleanup();
-}, 5 * 60 * 1000);
+setInterval(
+  () => {
+    accessRequestLimiter.cleanup();
+    signupLimiter.cleanup();
+    generalLimiter.cleanup();
+  },
+  5 * 60 * 1000,
+);

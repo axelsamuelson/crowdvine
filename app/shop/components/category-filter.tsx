@@ -29,30 +29,30 @@ export function CategoryFilter({
       </h3>
       <ul className="flex flex-col gap-1">
         {collections
-          .filter((collection) => collection.handle !== 'wine-boxes')
+          .filter((collection) => collection.handle !== "wine-boxes")
           .map((collection, index) => {
-          const isSelected = params.collection === collection.handle;
-          return (
-            <li key={`${collection.handle}-${index}`}>
-              <Link
-                className={cn(
-                  "flex w-full text-left transition-all transform cursor-pointer font-sm md:hover:translate-x-1 md:hover:opacity-80",
-                  isSelected
-                    ? "font-medium translate-x-1"
-                    : hasSelectedCategory
-                      ? "opacity-50"
-                      : "",
-                )}
-                href={`/shop/${collection.handle}`}
-                aria-pressed={isSelected}
-                aria-label={`Filter by category: ${collection.title}`}
-                prefetch
-              >
-                {collection.title}
-              </Link>
-            </li>
-          );
-        })}
+            const isSelected = params.collection === collection.handle;
+            return (
+              <li key={`${collection.handle}-${index}`}>
+                <Link
+                  className={cn(
+                    "flex w-full text-left transition-all transform cursor-pointer font-sm md:hover:translate-x-1 md:hover:opacity-80",
+                    isSelected
+                      ? "font-medium translate-x-1"
+                      : hasSelectedCategory
+                        ? "opacity-50"
+                        : "",
+                  )}
+                  href={`/shop/${collection.handle}`}
+                  aria-pressed={isSelected}
+                  aria-label={`Filter by category: ${collection.title}`}
+                  prefetch
+                >
+                  {collection.title}
+                </Link>
+              </li>
+            );
+          })}
       </ul>
     </div>
   );

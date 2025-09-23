@@ -3,7 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ path: string }> }
+  { params }: { params: Promise<{ path: string }> },
 ) {
   try {
     const resolvedParams = await params;
@@ -14,10 +14,10 @@ export async function GET(
     }
 
     // Clean up any newline characters or whitespace
-    const cleanPath = path.trim().replace(/\n/g, '');
-    
+    const cleanPath = path.trim().replace(/\n/g, "");
+
     // If it's already a full URL, redirect to it
-    if (cleanPath.startsWith('http')) {
+    if (cleanPath.startsWith("http")) {
       return NextResponse.redirect(cleanPath);
     }
 
@@ -25,11 +25,11 @@ export async function GET(
 
     // Get the file from Supabase Storage
     const { data, error } = await supabase.storage
-      .from('uploads')
+      .from("uploads")
       .download(cleanPath);
 
     if (error) {
-      console.error('Error downloading file:', error);
+      console.error("Error downloading file:", error);
       return NextResponse.json({ error: "File not found" }, { status: 404 });
     }
 
@@ -39,23 +39,23 @@ export async function GET(
 
     // Convert blob to buffer
     const buffer = await data.arrayBuffer();
-    
+
     // Determine content type based on file extension
-    const extension = cleanPath.split('.').pop()?.toLowerCase();
-    let contentType = 'image/jpeg'; // default
-    
+    const extension = cleanPath.split(".").pop()?.toLowerCase();
+    let contentType = "image/jpeg"; // default
+
     switch (extension) {
-      case 'png':
-        contentType = 'image/png';
+      case "png":
+        contentType = "image/png";
         break;
-      case 'gif':
-        contentType = 'image/gif';
+      case "gif":
+        contentType = "image/gif";
         break;
-      case 'webp':
-        contentType = 'image/webp';
+      case "webp":
+        contentType = "image/webp";
         break;
-      case 'svg':
-        contentType = 'image/svg+xml';
+      case "svg":
+        contentType = "image/svg+xml";
         break;
     }
 
@@ -63,14 +63,16 @@ export async function GET(
     return new NextResponse(buffer, {
       status: 200,
       headers: {
-        'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=31536000, immutable',
-        'Access-Control-Allow-Origin': '*',
+        "Content-Type": contentType,
+        "Cache-Control": "public, max-age=31536000, immutable",
+        "Access-Control-Allow-Origin": "*",
       },
     });
-
   } catch (error) {
-    console.error('Image proxy error:', error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.error("Image proxy error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

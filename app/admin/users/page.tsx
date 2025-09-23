@@ -6,12 +6,52 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { CheckCircle, XCircle, Clock, Search, Edit, Trash2, UserPlus, Shield, Mail, Key } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  CheckCircle,
+  XCircle,
+  Clock,
+  Search,
+  Edit,
+  Trash2,
+  UserPlus,
+  Shield,
+  Mail,
+  Key,
+} from "lucide-react";
 import { toast } from "sonner";
 
 interface User {
@@ -50,15 +90,15 @@ export default function UsersAdmin() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/admin/users');
+      const response = await fetch("/api/admin/users");
       if (!response.ok) {
-        throw new Error('Failed to fetch users');
+        throw new Error("Failed to fetch users");
       }
       const data = await response.json();
       setUsers(data);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error("Error fetching users:", error);
       toast.error("Failed to fetch users");
       setLoading(false);
     }
@@ -70,65 +110,67 @@ export default function UsersAdmin() {
       const updateData: Partial<User> = {
         role: updates.role,
       };
-      
+
       if (updates.hasAccess) {
         updateData.access_granted_at = new Date().toISOString();
       } else {
         updateData.access_granted_at = null;
       }
 
-      const response = await fetch('/api/admin/users', {
-        method: 'PATCH',
+      const response = await fetch("/api/admin/users", {
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ userId, updates: updateData }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update user');
+        throw new Error(errorData.error || "Failed to update user");
       }
 
       toast.success("User updated successfully");
       setIsEditDialogOpen(false);
       fetchUsers();
     } catch (error) {
-      console.error('Error updating user:', error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to update user";
+      console.error("Error updating user:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to update user";
       toast.error(`Failed to update user: ${errorMessage}`);
     }
   };
 
   const deleteUser = async (userId: string) => {
     try {
-      const response = await fetch('/api/admin/users', {
-        method: 'DELETE',
+      const response = await fetch("/api/admin/users", {
+        method: "DELETE",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ userId }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete user');
+        throw new Error(errorData.error || "Failed to delete user");
       }
 
       const responseData = await response.json();
-      
+
       if (responseData.warning) {
         toast.warning(responseData.message, {
-          description: responseData.warning
+          description: responseData.warning,
         });
       } else {
         toast.success(responseData.message || "User deleted successfully");
       }
-      
+
       fetchUsers();
     } catch (error) {
-      console.error('Error deleting user:', error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to delete user";
+      console.error("Error deleting user:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to delete user";
       toast.error(`Failed to delete user: ${errorMessage}`);
     }
   };
@@ -149,10 +191,20 @@ export default function UsersAdmin() {
 
   const getRoleBadge = (role: string) => {
     switch (role) {
-      case 'admin':
-        return <Badge variant="default" className="bg-red-600"><Shield className="w-3 h-3 mr-1" />Admin</Badge>;
-      case 'user':
-        return <Badge variant="secondary"><UserPlus className="w-3 h-3 mr-1" />User</Badge>;
+      case "admin":
+        return (
+          <Badge variant="default" className="bg-red-600">
+            <Shield className="w-3 h-3 mr-1" />
+            Admin
+          </Badge>
+        );
+      case "user":
+        return (
+          <Badge variant="secondary">
+            <UserPlus className="w-3 h-3 mr-1" />
+            User
+          </Badge>
+        );
       default:
         return <Badge variant="outline">{role}</Badge>;
     }
@@ -160,13 +212,25 @@ export default function UsersAdmin() {
 
   const getAccessBadge = (accessGrantedAt?: string) => {
     if (accessGrantedAt) {
-      return <Badge variant="default" className="bg-green-600"><CheckCircle className="w-3 h-3 mr-1" />Access Granted</Badge>;
+      return (
+        <Badge variant="default" className="bg-green-600">
+          <CheckCircle className="w-3 h-3 mr-1" />
+          Access Granted
+        </Badge>
+      );
     }
-    return <Badge variant="secondary"><Clock className="w-3 h-3 mr-1" />No Access</Badge>;
+    return (
+      <Badge variant="secondary">
+        <Clock className="w-3 h-3 mr-1" />
+        No Access
+      </Badge>
+    );
   };
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.email.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch = user.email
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === "all" || user.role === roleFilter;
     return matchesSearch && matchesRole;
   });
@@ -186,7 +250,9 @@ export default function UsersAdmin() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Users Management</h1>
-        <p className="text-gray-600 mt-2">Manage platform users and their access permissions</p>
+        <p className="text-gray-600 mt-2">
+          Manage platform users and their access permissions
+        </p>
       </div>
 
       {/* Filters */}
@@ -249,18 +315,24 @@ export default function UsersAdmin() {
                   <TableCell>
                     <div className="font-medium">{user.email}</div>
                     <div className="text-sm text-gray-500">
-                      {user.email_confirmed_at ? 'Email confirmed' : 'Email not confirmed'}
+                      {user.email_confirmed_at
+                        ? "Email confirmed"
+                        : "Email not confirmed"}
                     </div>
                   </TableCell>
                   <TableCell>{getRoleBadge(user.role)}</TableCell>
-                  <TableCell>{getAccessBadge(user.access_granted_at)}</TableCell>
+                  <TableCell>
+                    {getAccessBadge(user.access_granted_at)}
+                  </TableCell>
                   <TableCell>
                     {user.invite_code_used ? (
                       <Badge variant="outline" className="font-mono text-xs">
                         {user.invite_code_used.substring(0, 8)}...
                       </Badge>
                     ) : (
-                      <span className="text-gray-400 text-sm">No invite code</span>
+                      <span className="text-gray-400 text-sm">
+                        No invite code
+                      </span>
                     )}
                   </TableCell>
                   <TableCell>
@@ -269,7 +341,8 @@ export default function UsersAdmin() {
                     </div>
                     {user.last_sign_in_at && (
                       <div className="text-xs text-gray-500">
-                        Last login: {new Date(user.last_sign_in_at).toLocaleDateString()}
+                        Last login:{" "}
+                        {new Date(user.last_sign_in_at).toLocaleDateString()}
                       </div>
                     )}
                   </TableCell>
@@ -294,7 +367,8 @@ export default function UsersAdmin() {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Delete User</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Are you sure you want to delete {user.email}? This action cannot be undone.
+                              Are you sure you want to delete {user.email}? This
+                              action cannot be undone.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
@@ -340,7 +414,12 @@ export default function UsersAdmin() {
             </div>
             <div>
               <Label htmlFor="role">Role</Label>
-              <Select value={editForm.role} onValueChange={(value) => setEditForm({ ...editForm, role: value })}>
+              <Select
+                value={editForm.role}
+                onValueChange={(value) =>
+                  setEditForm({ ...editForm, role: value })
+                }
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -352,21 +431,25 @@ export default function UsersAdmin() {
             </div>
             <div className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
               <div className="space-y-1">
-                <Label htmlFor="access" className="text-base font-medium flex items-center">
+                <Label
+                  htmlFor="access"
+                  className="text-base font-medium flex items-center"
+                >
                   <Key className="w-4 h-4 mr-2" />
                   Platform Access
                 </Label>
                 <p className="text-sm text-gray-600">
-                  {editForm.hasAccess 
-                    ? "User has access to the platform" 
-                    : "User needs invitation code to access platform"
-                  }
+                  {editForm.hasAccess
+                    ? "User has access to the platform"
+                    : "User needs invitation code to access platform"}
                 </p>
               </div>
               <Switch
                 id="access"
                 checked={editForm.hasAccess}
-                onCheckedChange={(checked) => setEditForm({ ...editForm, hasAccess: checked })}
+                onCheckedChange={(checked) =>
+                  setEditForm({ ...editForm, hasAccess: checked })
+                }
               />
             </div>
             <div className="flex gap-3 pt-4">
@@ -377,10 +460,7 @@ export default function UsersAdmin() {
               >
                 Cancel
               </Button>
-              <Button
-                onClick={handleEditSubmit}
-                className="flex-1"
-              >
+              <Button onClick={handleEditSubmit} className="flex-1">
                 Save Changes
               </Button>
             </div>

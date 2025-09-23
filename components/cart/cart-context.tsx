@@ -213,60 +213,64 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     // Try to load from localStorage first for instant display
     const loadCachedCart = () => {
       try {
-        const cachedCart = localStorage.getItem('cart-cache');
+        const cachedCart = localStorage.getItem("cart-cache");
         if (cachedCart) {
           const parsedCart = JSON.parse(cachedCart);
           // Check if cache is not too old (5 minutes)
-          const cacheTime = localStorage.getItem('cart-cache-time');
+          const cacheTime = localStorage.getItem("cart-cache-time");
           if (cacheTime && Date.now() - parseInt(cacheTime) < 5 * 60 * 1000) {
             setCart(parsedCart);
             return parsedCart;
           }
         }
       } catch (error) {
-        console.warn('Failed to load cached cart:', error);
+        console.warn("Failed to load cached cart:", error);
       }
       return null;
     };
 
     // Load cached cart immediately
     const cachedCart = loadCachedCart();
-    
+
     // If we have cached data, we're already initialized
     if (cachedCart) {
       // Still fetch fresh data in background, but don't block UI
-      CartActions.getCart().then((freshCart) => {
+      CartActions.getCart()
+        .then((freshCart) => {
+          if (freshCart) {
+            setCart(freshCart);
+            // Cache the fresh cart data
+            try {
+              localStorage.setItem("cart-cache", JSON.stringify(freshCart));
+              localStorage.setItem("cart-cache-time", Date.now().toString());
+            } catch (error) {
+              console.warn("Failed to cache cart:", error);
+            }
+          }
+        })
+        .catch(() => {
+          // Silent fail for background refresh
+        });
+      return;
+    }
+
+    // No cached data, fetch from server
+    CartActions.getCart()
+      .then((freshCart) => {
         if (freshCart) {
           setCart(freshCart);
           // Cache the fresh cart data
           try {
-            localStorage.setItem('cart-cache', JSON.stringify(freshCart));
-            localStorage.setItem('cart-cache-time', Date.now().toString());
+            localStorage.setItem("cart-cache", JSON.stringify(freshCart));
+            localStorage.setItem("cart-cache-time", Date.now().toString());
           } catch (error) {
-            console.warn('Failed to cache cart:', error);
+            console.warn("Failed to cache cart:", error);
           }
-        }
-      }).catch(() => {
-        // Silent fail for background refresh
-      });
-      return;
-    }
-    
-    // No cached data, fetch from server
-    CartActions.getCart().then((freshCart) => {
-      if (freshCart) {
-        setCart(freshCart);
-        // Cache the fresh cart data
-        try {
-          localStorage.setItem('cart-cache', JSON.stringify(freshCart));
-          localStorage.setItem('cart-cache-time', Date.now().toString());
-        } catch (error) {
-          console.warn('Failed to cache cart:', error);
-        }
         } else {
           setCart(undefined);
         }
-      }).catch(() => {
+      })
+      .catch(() => {
         // Silent fail - cart will remain undefined
       });
   }, []);
@@ -329,7 +333,7 @@ export function useCart(): UseCartReturn {
   const context = useContext(CartContext);
   if (context === undefined) {
     // Check if we're in a server-side environment
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       console.warn("useCart called during SSR - this should not happen");
     }
     throw new Error("useCart must be used within a CartProvider");

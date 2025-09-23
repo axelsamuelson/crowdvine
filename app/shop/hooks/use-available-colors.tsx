@@ -15,7 +15,7 @@ const allColors: Color[] = [
   { name: "Purple", value: COLOR_MAP["purple"] },
   { name: "Pink", value: COLOR_MAP["pink"] },
   { name: "Blend", value: COLOR_MAP["blend"] },
-  
+
   // Wine variations
   { name: "Amber", value: COLOR_MAP["amber"] },
   { name: "Golden", value: COLOR_MAP["golden"] },
@@ -26,7 +26,7 @@ const allColors: Color[] = [
   { name: "Dark Red", value: COLOR_MAP["dark-red"] },
   { name: "Light Purple", value: COLOR_MAP["light-purple"] },
   { name: "Dark Purple", value: COLOR_MAP["dark-purple"] },
-  
+
   // Barrel and bottle colors
   { name: "Brown", value: COLOR_MAP["brown"] },
   { name: "Dark Brown", value: COLOR_MAP["dark-brown"] },
@@ -34,18 +34,18 @@ const allColors: Color[] = [
   { name: "Tan", value: COLOR_MAP["tan"] },
   { name: "Beige", value: COLOR_MAP["beige"] },
   { name: "Wood", value: COLOR_MAP["wood"] },
-  
+
   // Natural colors
   { name: "Green", value: COLOR_MAP["green"] },
   { name: "Olive", value: COLOR_MAP["olive"] },
   { name: "Sage", value: COLOR_MAP["sage"] },
   { name: "Emerald", value: COLOR_MAP["emerald"] },
-  
+
   // Metallic colors
   { name: "Gold", value: COLOR_MAP["gold"] },
   { name: "Silver", value: COLOR_MAP["silver"] },
   { name: "Copper", value: COLOR_MAP["copper"] },
-  
+
   // Neutral colors
   { name: "Black", value: COLOR_MAP["black"] },
   { name: "Gray", value: COLOR_MAP["gray"] },
@@ -53,7 +53,7 @@ const allColors: Color[] = [
   { name: "Light Gray", value: COLOR_MAP["light-gray"] },
   { name: "Cream", value: COLOR_MAP["cream"] },
   { name: "Ivory", value: COLOR_MAP["ivory"] },
-  
+
   // Additional wine-related colors
   { name: "Coral", value: COLOR_MAP["coral"] },
   { name: "Salmon", value: COLOR_MAP["salmon"] },
@@ -63,7 +63,7 @@ const allColors: Color[] = [
   { name: "Peach", value: COLOR_MAP["peach"] },
   { name: "Sand", value: COLOR_MAP["sand"] },
   { name: "Khaki", value: COLOR_MAP["khaki"] },
-  
+
   // Traditional colors (keeping for compatibility)
   { name: "Blue", value: COLOR_MAP["blue"] },
   { name: "Yellow", value: COLOR_MAP["yellow"] },

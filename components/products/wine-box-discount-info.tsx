@@ -33,23 +33,30 @@ export function WineBoxDiscountInfo({ product }: WineBoxDiscountInfoProps) {
           <div>
             <span className="text-muted-foreground">Individual Price:</span>
             <div className="font-semibold">
-              {formatPrice(Math.round(discountInfo.totalWinePrice).toString(), "SEK")}
+              {formatPrice(
+                Math.round(discountInfo.totalWinePrice).toString(),
+                "SEK",
+              )}
             </div>
           </div>
           <div>
             <span className="text-muted-foreground">You Save:</span>
             <div className="font-semibold text-green-600">
-              {formatPrice(Math.round(discountInfo.discountAmount).toString(), "SEK")}
+              {formatPrice(
+                Math.round(discountInfo.discountAmount).toString(),
+                "SEK",
+              )}
             </div>
           </div>
         </div>
-        
+
         <div>
           <span className="text-muted-foreground text-sm">Wines included:</span>
           <div className="mt-2 space-y-1">
             {wines.map((wine: any, index: number) => (
               <div key={index} className="text-sm">
-                • {wine.wine_name} {wine.vintage} - {formatPrice(wine.price.toFixed(2), "SEK")}
+                • {wine.wine_name} {wine.vintage} -{" "}
+                {formatPrice(wine.price.toFixed(2), "SEK")}
               </div>
             ))}
           </div>

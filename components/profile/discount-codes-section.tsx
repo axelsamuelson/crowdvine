@@ -4,16 +4,16 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Gift, 
-  Copy, 
-  Check, 
-  Calendar, 
+import {
+  Gift,
+  Copy,
+  Check,
+  Calendar,
   Percent,
   Tag,
   Clock,
   Wifi,
-  WifiOff
+  WifiOff,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -38,8 +38,14 @@ interface DiscountCodesSectionProps {
   isConnected?: boolean;
 }
 
-export default function DiscountCodesSection({ userId, discountCodes: propDiscountCodes, isConnected }: DiscountCodesSectionProps) {
-  const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>(propDiscountCodes || []);
+export default function DiscountCodesSection({
+  userId,
+  discountCodes: propDiscountCodes,
+  isConnected,
+}: DiscountCodesSectionProps) {
+  const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>(
+    propDiscountCodes || [],
+  );
   const [loading, setLoading] = useState(!propDiscountCodes);
   const [copiedCodes, setCopiedCodes] = useState<Set<string>>(new Set());
 
@@ -54,7 +60,7 @@ export default function DiscountCodesSection({ userId, discountCodes: propDiscou
 
   const fetchDiscountCodes = async () => {
     try {
-      const response = await fetch('/api/discount-codes');
+      const response = await fetch("/api/discount-codes");
       if (response.ok) {
         const data = await response.json();
         setDiscountCodes(data || []);
@@ -63,7 +69,7 @@ export default function DiscountCodesSection({ userId, discountCodes: propDiscou
         setDiscountCodes([]);
       }
     } catch (error) {
-      console.error('Error fetching discount codes:', error);
+      console.error("Error fetching discount codes:", error);
       setDiscountCodes([]);
     } finally {
       setLoading(false);
@@ -73,9 +79,9 @@ export default function DiscountCodesSection({ userId, discountCodes: propDiscou
   const copyToClipboard = async (code: string) => {
     try {
       await navigator.clipboard.writeText(code);
-      setCopiedCodes(prev => new Set([...prev, code]));
+      setCopiedCodes((prev) => new Set([...prev, code]));
       setTimeout(() => {
-        setCopiedCodes(prev => {
+        setCopiedCodes((prev) => {
           const newSet = new Set(prev);
           newSet.delete(code);
           return newSet;
@@ -103,8 +109,12 @@ export default function DiscountCodesSection({ userId, discountCodes: propDiscou
     return discountCode.used_by_user_id === userId;
   };
 
-  const earnedCodes = discountCodes.filter(code => code.earned_by_user_id === userId);
-  const usedCodes = discountCodes.filter(code => code.used_by_user_id === userId);
+  const earnedCodes = discountCodes.filter(
+    (code) => code.earned_by_user_id === userId,
+  );
+  const usedCodes = discountCodes.filter(
+    (code) => code.used_by_user_id === userId,
+  );
 
   if (loading) {
     return (
@@ -155,13 +165,16 @@ export default function DiscountCodesSection({ userId, discountCodes: propDiscou
         {earnedCodes.length === 0 && usedCodes.length === 0 ? (
           <div className="text-center py-8">
             <Gift className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Rewards Yet</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              No Rewards Yet
+            </h3>
             <p className="text-gray-600 mb-4">
               Invite friends to earn rewards and discount codes!
             </p>
             <div className="bg-blue-100 border border-blue-300 rounded-lg p-3">
               <p className="font-medium text-blue-800 text-sm">
-                💰 Earn rewards for each friend who joins and makes reservations!
+                💰 Earn rewards for each friend who joins and makes
+                reservations!
               </p>
             </div>
           </div>
@@ -180,8 +193,8 @@ export default function DiscountCodesSection({ userId, discountCodes: propDiscou
                       key={code.id}
                       className={`bg-white rounded-lg border-2 p-4 ${
                         !code.is_active || isExpired(code.expires_at || null)
-                          ? 'border-gray-200 bg-gray-50 opacity-60'
-                          : 'border-green-200 bg-green-50'
+                          ? "border-gray-200 bg-gray-50 opacity-60"
+                          : "border-green-200 bg-green-50"
                       }`}
                     >
                       <div className="flex items-center justify-between mb-2">
@@ -195,7 +208,10 @@ export default function DiscountCodesSection({ userId, discountCodes: propDiscou
                           size="sm"
                           variant="outline"
                           onClick={() => copyToClipboard(code.code)}
-                          disabled={!code.is_active || isExpired(code.expires_at || null)}
+                          disabled={
+                            !code.is_active ||
+                            isExpired(code.expires_at || null)
+                          }
                           className="px-3"
                         >
                           {copiedCodes.has(code.code) ? (
@@ -205,22 +221,23 @@ export default function DiscountCodesSection({ userId, discountCodes: propDiscou
                           )}
                         </Button>
                       </div>
-                      
+
                       <div className="space-y-1">
                         <p className="text-sm font-medium text-gray-900">
                           {code.discount_percentage}% OFF
                         </p>
-                        
+
                         <div className="flex items-center gap-4 text-xs text-gray-600">
                           {code.expires_at && (
                             <div className="flex items-center gap-1">
                               <Calendar className="w-3 h-3" />
                               <span>
-                                Expires {new Date(code.expires_at).toLocaleDateString()}
+                                Expires{" "}
+                                {new Date(code.expires_at).toLocaleDateString()}
                               </span>
                             </div>
                           )}
-                          
+
                           {code.usage_limit && (
                             <div className="flex items-center gap-1">
                               <Clock className="w-3 h-3" />
@@ -230,7 +247,7 @@ export default function DiscountCodesSection({ userId, discountCodes: propDiscou
                             </div>
                           )}
                         </div>
-                        
+
                         <div className="flex gap-2 mt-2">
                           {!code.is_active && (
                             <Badge variant="secondary" className="text-xs">
@@ -242,11 +259,12 @@ export default function DiscountCodesSection({ userId, discountCodes: propDiscou
                               Expired
                             </Badge>
                           )}
-                          {code.is_active && !isExpired(code.expires_at || null) && (
-                            <Badge className="bg-green-100 text-green-800 text-xs">
-                              Active
-                            </Badge>
-                          )}
+                          {code.is_active &&
+                            !isExpired(code.expires_at || null) && (
+                              <Badge className="bg-green-100 text-green-800 text-xs">
+                                Active
+                              </Badge>
+                            )}
                         </div>
                       </div>
                     </div>
@@ -279,15 +297,16 @@ export default function DiscountCodesSection({ userId, discountCodes: propDiscou
                           Used
                         </Badge>
                       </div>
-                      
+
                       <div className="space-y-1">
                         <p className="text-sm font-medium text-gray-900">
                           {code.discount_percentage}% OFF
                         </p>
-                        
+
                         {code.used_at && (
                           <p className="text-xs text-gray-600">
-                            Used on {new Date(code.used_at).toLocaleDateString()}
+                            Used on{" "}
+                            {new Date(code.used_at).toLocaleDateString()}
                           </p>
                         )}
                       </div>

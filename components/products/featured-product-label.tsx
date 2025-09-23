@@ -118,18 +118,10 @@ export function FeaturedProductLabel({
       </div>
       <Suspense
         fallback={
-            <AddToCartButton
-              product={product}
-              iconOnly
-              variant="default"
-            />
+          <AddToCartButton product={product} iconOnly variant="default" />
         }
       >
-        <AddToCart
-          product={product}
-          iconOnly
-          variant="default"
-        />
+        <AddToCart product={product} iconOnly variant="default" />
       </Suspense>
     </div>
   );

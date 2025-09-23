@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 // Disable static generation for now - make it dynamic
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export default async function ShopPage({
   searchParams,

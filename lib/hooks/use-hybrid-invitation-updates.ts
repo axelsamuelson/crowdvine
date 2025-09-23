@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 interface Invitation {
   id: string;
@@ -16,25 +16,31 @@ interface Invitation {
   isActive?: boolean;
 }
 
-       interface UseHybridInvitationUpdatesProps {
-         invitation: Invitation | null;
-         onInvitationUpdate: (updatedInvitation: Invitation) => void;
-         onDiscountCodesUpdate?: (codes: any[]) => void;
-       }
+interface UseHybridInvitationUpdatesProps {
+  invitation: Invitation | null;
+  onInvitationUpdate: (updatedInvitation: Invitation) => void;
+  onDiscountCodesUpdate?: (codes: any[]) => void;
+}
 
-export function useHybridInvitationUpdates({ invitation, onInvitationUpdate, onDiscountCodesUpdate }: UseHybridInvitationUpdatesProps) {
+export function useHybridInvitationUpdates({
+  invitation,
+  onInvitationUpdate,
+  onDiscountCodesUpdate,
+}: UseHybridInvitationUpdatesProps) {
   const [isConnected, setIsConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
-  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(
+    null,
+  );
 
   const checkInvitationStatus = async () => {
     if (!invitation?.code) return;
-    
+
     try {
-      const response = await fetch('/api/invitations/validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: invitation.code })
+      const response = await fetch("/api/invitations/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: invitation.code }),
       });
 
       if (response.ok) {
@@ -46,25 +52,28 @@ export function useHybridInvitationUpdates({ invitation, onInvitationUpdate, onD
             maxUses: data.invitation.maxUses,
             usedBy: data.invitation.usedBy,
             usedAt: data.invitation.usedAt,
-            isActive: data.invitation.isActive
+            isActive: data.invitation.isActive,
           };
 
           // Check if invitation was just used
-          const wasJustUsed = invitation.currentUses === 0 && data.invitation.currentUses > 0;
-          
+          const wasJustUsed =
+            invitation.currentUses === 0 && data.invitation.currentUses > 0;
+
           if (wasJustUsed) {
-            toast.success("🎉 Your invitation was used! You've earned a 5% reward! Earn 10% when they make a reservation.");
-            
+            toast.success(
+              "🎉 Your invitation was used! You've earned a 5% reward! Earn 10% when they make a reservation.",
+            );
+
             // Also fetch updated discount codes
             if (onDiscountCodesUpdate) {
               try {
-                const response = await fetch('/api/discount-codes');
+                const response = await fetch("/api/discount-codes");
                 if (response.ok) {
                   const codes = await response.json();
                   onDiscountCodesUpdate(codes);
                 }
               } catch (error) {
-                console.error('Error fetching updated discount codes:', error);
+                console.error("Error fetching updated discount codes:", error);
               }
             }
           }
@@ -74,14 +83,14 @@ export function useHybridInvitationUpdates({ invitation, onInvitationUpdate, onD
         }
       }
     } catch (error) {
-      console.error('Error checking invitation status:', error);
+      console.error("Error checking invitation status:", error);
     }
   };
 
   useEffect(() => {
     if (!invitation?.code) return;
 
-    console.log('Setting up hybrid invitation updates for:', invitation.code);
+    console.log("Setting up hybrid invitation updates for:", invitation.code);
 
     // Start with immediate check
     checkInvitationStatus();
@@ -97,18 +106,18 @@ export function useHybridInvitationUpdates({ invitation, onInvitationUpdate, onD
     // Set up visibility change listener for immediate updates when user returns to tab
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        console.log('Tab became visible, checking invitation status');
+        console.log("Tab became visible, checking invitation status");
         checkInvitationStatus();
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       if (interval) {
         clearInterval(interval);
       }
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       setIsConnected(false);
     };
   }, [invitation?.code]);
@@ -116,6 +125,6 @@ export function useHybridInvitationUpdates({ invitation, onInvitationUpdate, onD
   return {
     isConnected,
     lastUpdate,
-    checkStatus: checkInvitationStatus
+    checkStatus: checkInvitationStatus,
   };
 }
