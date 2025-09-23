@@ -32,8 +32,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { PaymentMethodCard } from "@/components/ui/payment-method-card";
 import DiscountCodesSection from "@/components/profile/discount-codes-section";
-import { useRealtimeInvitation } from "@/lib/hooks/use-realtime-invitation";
-import { useRealtimeDiscountCodes } from "@/lib/hooks/use-realtime-discount-codes";
+import { useHybridInvitationUpdates } from "@/lib/hooks/use-hybrid-invitation-updates";
 
 interface UserProfile {
   id: string;
@@ -87,21 +86,13 @@ export default function ProfilePage() {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [discountCodes, setDiscountCodes] = useState<any[]>([]);
 
-  // Realtime hooks
-  const { isConnected: invitationConnected, lastUpdate: invitationLastUpdate } = useRealtimeInvitation({
+  // Hybrid updates (polling + webhooks)
+  const { isConnected: invitationConnected, lastUpdate: invitationLastUpdate, checkStatus } = useHybridInvitationUpdates({
     invitation,
     onInvitationUpdate: (updatedInvitation) => {
-      console.log('Invitation updated via realtime:', updatedInvitation);
+      console.log('Invitation updated via hybrid system:', updatedInvitation);
       setInvitation(updatedInvitation);
       localStorage.setItem('currentInvitation', JSON.stringify(updatedInvitation));
-    }
-  });
-
-  const { isConnected: discountCodesConnected, lastUpdate: discountCodesLastUpdate } = useRealtimeDiscountCodes({
-    userId: profile?.id || '',
-    onDiscountCodesUpdate: (codes) => {
-      console.log('Discount codes updated via realtime:', codes);
-      setDiscountCodes(codes);
     }
   });
 
@@ -878,7 +869,7 @@ export default function ProfilePage() {
           <DiscountCodesSection 
             userId={profile.id} 
             discountCodes={discountCodes}
-            isConnected={discountCodesConnected}
+            isConnected={invitationConnected}
           />
         )}
 

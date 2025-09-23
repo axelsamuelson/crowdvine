@@ -26,6 +26,9 @@ const PUBLIC = [
   // Debug/development APIs (remove in production)
   '/api/debug', '/api/test-simple', '/api/test-supabase', '/api/test-email',
   
+  // Webhooks
+  '/api/webhooks',
+  
   // Debug pages
   '/debug-realtime', '/test-cookies'
 ];
