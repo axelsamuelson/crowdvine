@@ -34,13 +34,14 @@ export async function middleware(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!isPublic) {
+    // Först kontrollera om användaren är inloggad
     if (!user) {
       const login = new URL("/log-in", req.url);
       login.searchParams.set("redirectedFrom", pathname);
       return NextResponse.redirect(login);
     }
 
-    // Gate via DB (profiles.access_granted_at), inte via cv-access-cookie
+    // Sedan kontrollera om användaren har access
     const { data: profile } = await supabase
       .from("profiles")
       .select("access_granted_at, role")
@@ -53,6 +54,7 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(ask);
     }
 
+    // Slutligen kontrollera admin-behörighet
     if (pathname.startsWith("/admin") && profile.role !== "admin") {
       return NextResponse.redirect(new URL("/", req.url));
     }
