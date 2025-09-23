@@ -140,9 +140,9 @@ export async function DELETE(request: NextRequest) {
       // Access requests (references reviewed_by)
       { table: "access_requests", direct: "reviewed_by" },
 
-      // Invitation codes (references created_by and used_by)
-      { table: "invitation_codes", direct: "created_by" },
-      { table: "invitation_codes", direct: "used_by" },
+      // Invitation codes - handle created_by and used_by separately
+      // For created_by: update to null instead of deleting
+      // For used_by: update to null instead of deleting
 
       // User access (references user_id and granted_by)
       { table: "user_access", direct: "user_id" },
@@ -214,6 +214,53 @@ export async function DELETE(request: NextRequest) {
         );
         // Continue with other tables even if one fails
       }
+    }
+
+    // Handle invitation codes separately - update references to null instead of deleting
+    console.log("Handling invitation codes references...");
+    try {
+      // Update created_by references to null
+      const { error: createdByError } = await adminSupabase
+        .from("invitation_codes")
+        .update({ created_by: null })
+        .eq("created_by", userId);
+
+      if (createdByError) {
+        console.warn("Warning: Could not update invitation_codes.created_by:", createdByError.message);
+      } else {
+        console.log("Updated invitation_codes.created_by references to null");
+      }
+
+      // Update used_by references to null
+      const { error: usedByError } = await adminSupabase
+        .from("invitation_codes")
+        .update({ used_by: null })
+        .eq("used_by", userId);
+
+      if (usedByError) {
+        console.warn("Warning: Could not update invitation_codes.used_by:", usedByError.message);
+      } else {
+        console.log("Updated invitation_codes.used_by references to null");
+      }
+    } catch (invitationError) {
+      console.warn("Warning: Could not handle invitation codes:", invitationError);
+    }
+
+    // Handle discount codes separately - update earned_by_user_id to null
+    console.log("Handling discount codes references...");
+    try {
+      const { error: discountError } = await adminSupabase
+        .from("discount_codes")
+        .update({ earned_by_user_id: null })
+        .eq("earned_by_user_id", userId);
+
+      if (discountError) {
+        console.warn("Warning: Could not update discount_codes.earned_by_user_id:", discountError.message);
+      } else {
+        console.log("Updated discount_codes.earned_by_user_id references to null");
+      }
+    } catch (discountError) {
+      console.warn("Warning: Could not handle discount codes:", discountError);
     }
 
     // Delete from profiles table
