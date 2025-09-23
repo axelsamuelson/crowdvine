@@ -231,7 +231,7 @@ export default function ReservationEditForm({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="status">Status</Label>
-                  <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
+                  <Select value={formData.status || undefined} onValueChange={(value) => handleInputChange('status', value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
@@ -285,7 +285,7 @@ export default function ReservationEditForm({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="pickup_zone">Pickup Zone</Label>
-                  <Select value={formData.pickup_zone_id} onValueChange={(value) => handleInputChange('pickup_zone_id', value)}>
+                  <Select value={formData.pickup_zone_id || undefined} onValueChange={(value) => handleInputChange('pickup_zone_id', value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select pickup zone" />
                     </SelectTrigger>
@@ -301,7 +301,7 @@ export default function ReservationEditForm({
 
                 <div className="space-y-2">
                   <Label htmlFor="delivery_zone">Delivery Zone</Label>
-                  <Select value={formData.delivery_zone_id} onValueChange={(value) => handleInputChange('delivery_zone_id', value)}>
+                  <Select value={formData.delivery_zone_id || undefined} onValueChange={(value) => handleInputChange('delivery_zone_id', value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select delivery zone" />
                     </SelectTrigger>
@@ -318,12 +318,11 @@ export default function ReservationEditForm({
 
               <div className="space-y-2">
                 <Label htmlFor="pallet_id">Pallet</Label>
-                <Select value={formData.pallet_id} onValueChange={(value) => handleInputChange('pallet_id', value)}>
+                <Select value={formData.pallet_id || undefined} onValueChange={(value) => handleInputChange('pallet_id', value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select pallet" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No pallet assigned</SelectItem>
                     {pallets.map((pallet) => (
                       <SelectItem key={pallet.id} value={pallet.id}>
                         {pallet.name}
@@ -385,7 +384,7 @@ export default function ReservationEditForm({
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-1">
                           <Label>Wine</Label>
-                          <Select value={item.item_id} onValueChange={(value) => handleItemWineChange(index, value)}>
+                          <Select value={item.item_id || undefined} onValueChange={(value) => handleItemWineChange(index, value)}>
                             <SelectTrigger>
                               <SelectValue placeholder="Select wine" />
                             </SelectTrigger>
