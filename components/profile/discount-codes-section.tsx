@@ -57,10 +57,14 @@ export default function DiscountCodesSection({ userId, discountCodes: propDiscou
       const response = await fetch('/api/discount-codes');
       if (response.ok) {
         const data = await response.json();
-        setDiscountCodes(data.discountCodes || []);
+        setDiscountCodes(data || []);
+      } else {
+        console.error("Failed to load discount codes");
+        setDiscountCodes([]);
       }
     } catch (error) {
       console.error('Error fetching discount codes:', error);
+      setDiscountCodes([]);
     } finally {
       setLoading(false);
     }

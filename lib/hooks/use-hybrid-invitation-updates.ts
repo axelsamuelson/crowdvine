@@ -16,12 +16,13 @@ interface Invitation {
   isActive?: boolean;
 }
 
-interface UseHybridInvitationUpdatesProps {
-  invitation: Invitation | null;
-  onInvitationUpdate: (updatedInvitation: Invitation) => void;
-}
+       interface UseHybridInvitationUpdatesProps {
+         invitation: Invitation | null;
+         onInvitationUpdate: (updatedInvitation: Invitation) => void;
+         onDiscountCodesUpdate?: (codes: any[]) => void;
+       }
 
-export function useHybridInvitationUpdates({ invitation, onInvitationUpdate }: UseHybridInvitationUpdatesProps) {
+export function useHybridInvitationUpdates({ invitation, onInvitationUpdate, onDiscountCodesUpdate }: UseHybridInvitationUpdatesProps) {
   const [isConnected, setIsConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
@@ -53,6 +54,19 @@ export function useHybridInvitationUpdates({ invitation, onInvitationUpdate }: U
           
           if (wasJustUsed) {
             toast.success("🎉 Your invitation was used! You've earned a 5% reward! Earn 10% when they make a reservation.");
+            
+            // Also fetch updated discount codes
+            if (onDiscountCodesUpdate) {
+              try {
+                const response = await fetch('/api/discount-codes');
+                if (response.ok) {
+                  const codes = await response.json();
+                  onDiscountCodesUpdate(codes);
+                }
+              } catch (error) {
+                console.error('Error fetching updated discount codes:', error);
+              }
+            }
           }
 
           onInvitationUpdate(updatedInvitation);
