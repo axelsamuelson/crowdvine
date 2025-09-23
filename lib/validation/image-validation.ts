@@ -164,7 +164,7 @@ export async function validateImagePath(imagePath: string): Promise<{
 /**
  * Checks if an image is a valid wine product image
  */
-export function isValidWineImage(file: File): boolean {
+export async function isValidWineImage(file: File): Promise<boolean> {
   const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
   const maxSize = 5 * 1024 * 1024; // 5MB for wine images
   
@@ -174,7 +174,7 @@ export function isValidWineImage(file: File): boolean {
 /**
  * Generates a standardized filename for wine images
  */
-export function generateWineImageFilename(wineName: string, vintage: string, index?: number): string {
+export async function generateWineImageFilename(wineName: string, vintage: string, index?: number): Promise<string> {
   const sanitizedName = wineName
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, '')
