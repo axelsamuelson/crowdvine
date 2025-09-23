@@ -6,9 +6,11 @@ export async function ensureAccessCookie() {
   if (v !== '1') {
   jar.set('cv-access', '1', { 
     httpOnly: true, 
-    sameSite: 'strict', 
+    sameSite: 'lax', // Changed from 'strict' to 'lax' for better incognito support
     path: '/', 
-    maxAge: 60*60*24*365 // 1 year
+    maxAge: 60*60*24*365, // 1 year
+    secure: process.env.NODE_ENV === 'production',
+    domain: process.env.NODE_ENV === 'production' ? '.pactwines.com' : undefined
   });
   }
 }

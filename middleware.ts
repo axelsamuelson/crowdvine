@@ -55,11 +55,17 @@ export async function middleware(req: NextRequest) {
   const hasValidAuth = isAuthenticated && accessCookie;
   
   // Debug logging for troubleshooting
+  const allCookies = req.cookies.getAll();
+  const cookieNames = allCookies.map(c => c.name);
+  
   console.log(`Middleware check for ${p}:`, {
     hasSupabaseAuth,
     accessCookie,
     hasValidAuth,
-    cookies: Object.fromEntries(req.cookies.getAll().map(c => [c.name, c.value.substring(0, 10) + '...']))
+    totalCookies: allCookies.length,
+    cookieNames,
+    userAgent: req.headers.get('user-agent')?.substring(0, 50) + '...',
+    isIncognito: req.headers.get('user-agent')?.includes('Incognito') || false
   });
   
   if (!hasValidAuth) {
