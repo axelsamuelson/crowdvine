@@ -126,7 +126,7 @@ export async function GET(
       if (path.startsWith('http')) return path;
       if (path.startsWith('/uploads/')) {
         // This is a Supabase Storage file, construct proper Supabase Storage URL
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://abrnvjqwpdkodgrtezeg.supabase.co';
         const fileName = path.replace('/uploads/', '');
         return `${supabaseUrl}/storage/v1/object/public/uploads/${fileName}`;
       }
