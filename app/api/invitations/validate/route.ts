@@ -25,31 +25,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Check if invitation is valid
-    const now = new Date();
-    const expiresAt = new Date(invitation.expires_at);
-    
-    if (!invitation.is_active) {
-      return NextResponse.json({ 
-        success: false, 
-        error: "Invitation code is no longer active" 
-      });
-    }
-
-    if (expiresAt < now) {
-      return NextResponse.json({ 
-        success: false, 
-        error: "Invitation code has expired" 
-      });
-    }
-
-    if (invitation.max_uses && invitation.current_uses >= invitation.max_uses) {
-      return NextResponse.json({ 
-        success: false, 
-        error: "Invitation code has been used up" 
-      });
-    }
-
+    // Always return invitation data, regardless of status
+    // This allows the frontend to show the current status
     return NextResponse.json({
       success: true,
       invitation: {

@@ -105,9 +105,10 @@ export default function ProfilePage() {
     // Set up periodic refresh of invitation status
     const interval = setInterval(() => {
       if (invitation?.code) {
+        console.log('Periodic refresh triggered');
         refreshInvitationStatus();
       }
-    }, 30000); // Check every 30 seconds
+    }, 10000); // Check every 10 seconds for faster updates
     
     return () => clearInterval(interval);
     
@@ -310,7 +311,12 @@ export default function ProfilePage() {
   };
 
   const refreshInvitationStatus = async () => {
-    if (!invitation?.code) return;
+    if (!invitation?.code) {
+      console.log('No invitation code to refresh');
+      return;
+    }
+    
+    console.log('Refreshing invitation status for code:', invitation.code);
     
     try {
       const response = await fetch('/api/invitations/validate', {
@@ -319,8 +325,12 @@ export default function ProfilePage() {
         body: JSON.stringify({ code: invitation.code })
       });
 
+      console.log('Refresh response status:', response.status);
+
       if (response.ok) {
         const data = await response.json();
+        console.log('Refresh response data:', data);
+        
         if (data.success && data.invitation) {
           const updatedInvitation = {
             ...invitation,
@@ -330,9 +340,19 @@ export default function ProfilePage() {
             usedAt: data.invitation.usedAt,
             isActive: data.invitation.isActive
           };
+          
+          console.log('Updated invitation:', updatedInvitation);
           setInvitation(updatedInvitation);
           localStorage.setItem('currentInvitation', JSON.stringify(updatedInvitation));
+          
+          // Show toast if invitation was just used
+          if (data.invitation.currentUses > 0 && invitation.currentUses === 0) {
+            toast.success("🎉 Your invitation was used! You've earned a discount code!");
+          }
         }
+      } else {
+        const errorData = await response.json();
+        console.error('Refresh failed:', errorData);
       }
     } catch (error) {
       console.error('Error refreshing invitation status:', error);
@@ -726,12 +746,15 @@ export default function ProfilePage() {
                       </div>
                     </div>
                     <Button
-                      onClick={refreshInvitationStatus}
+                      onClick={() => {
+                        console.log('Manual refresh clicked');
+                        refreshInvitationStatus();
+                      }}
                       variant="outline"
                       size="sm"
                       className="text-xs hover:bg-white/50"
                     >
-                      🔄 Refresh
+                      🔄 Refresh Status
                     </Button>
                   </div>
                   
