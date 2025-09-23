@@ -54,6 +54,14 @@ export async function middleware(req: NextRequest) {
   // User must be both authenticated AND have access cookie to proceed
   const hasValidAuth = isAuthenticated && accessCookie;
   
+  // Debug logging for troubleshooting
+  console.log(`Middleware check for ${p}:`, {
+    hasSupabaseAuth,
+    accessCookie,
+    hasValidAuth,
+    cookies: Object.fromEntries(req.cookies.getAll().map(c => [c.name, c.value.substring(0, 10) + '...']))
+  });
+  
   if (!hasValidAuth) {
     // Not authenticated or no access, redirect to access request
     const url = req.nextUrl.clone();

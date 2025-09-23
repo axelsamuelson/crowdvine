@@ -100,9 +100,10 @@ export default function LogInPage() {
         setPassword("");
 
         // Redirect using Next.js router to the intended destination
+        // Use window.location.href to ensure cookies are properly set before redirect
         setTimeout(() => {
-          router.push(nextUrl);
-        }, 1000);
+          window.location.href = nextUrl;
+        }, 500);
       }
     } catch (err) {
       setError(
@@ -280,7 +281,6 @@ export default function LogInPage() {
                             setSuccess("");
                             setEmail("");
                             setPassword("");
-                            setFullName("");
                           }}
                           variant="outline"
                           className="w-full bg-transparent border-white/30 text-white hover:bg-white/20"
@@ -305,7 +305,6 @@ export default function LogInPage() {
                             setSuccess("");
                             setEmail("");
                             setPassword("");
-                            setFullName("");
                           }}
                           variant="outline"
                           className="w-full bg-transparent border-white/30 text-white hover:bg-white/20"

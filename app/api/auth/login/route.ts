@@ -65,6 +65,10 @@ export async function POST(request: Request) {
         maxAge: 60 * 60 * 24 * 365, // 1 year
         path: '/'
       });
+      
+      console.log('Set cv-access cookie for user:', authData.user.id);
+    } else {
+      console.log('User has no access, not setting cv-access cookie:', authData.user.id);
     }
 
     // Set Supabase auth session cookies
