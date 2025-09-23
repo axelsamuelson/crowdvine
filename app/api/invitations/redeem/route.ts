@@ -177,18 +177,19 @@ export async function POST(request: NextRequest) {
     } else {
       console.log('Invitation usage updated successfully');
       
-      // Create reward discount code for the inviter
+      // Create initial reward discount code for the inviter (5% for account creation)
       try {
         const { data: inviterReward, error: rewardError } = await supabase.rpc('create_invitation_reward_discount', {
           p_user_id: invitation.created_by, // The user who created the invitation
           p_invitation_id: invitation.id,
-          p_discount_percentage: 10 // 10% discount
+          p_discount_percentage: 5, // 5% discount for account creation
+          p_reward_tier: 'account_created'
         });
 
         if (rewardError) {
           console.error('Error creating reward for inviter:', rewardError);
         } else {
-          console.log('Reward discount code created for inviter:', rewardError);
+          console.log('Initial reward discount code created for inviter:', inviterReward);
         }
       } catch (rewardError) {
         console.error('Error creating invitation reward:', rewardError);

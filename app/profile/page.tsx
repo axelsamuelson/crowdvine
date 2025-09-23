@@ -108,9 +108,22 @@ export default function ProfilePage() {
         console.log('Periodic refresh triggered');
         refreshInvitationStatus();
       }
-    }, 10000); // Check every 10 seconds for faster updates
+    }, 5000); // Check every 5 seconds for faster updates
     
-    return () => clearInterval(interval);
+    // Set up visibility change listener for immediate updates when user returns to tab
+    const handleVisibilityChange = () => {
+      if (!document.hidden && invitation?.code) {
+        console.log('Tab became visible, refreshing invitation status');
+        refreshInvitationStatus();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
     
     // Check for payment method success/cancel messages
     const urlParams = new URLSearchParams(window.location.search);
@@ -347,7 +360,7 @@ export default function ProfilePage() {
           
           // Show toast if invitation was just used
           if (data.invitation.currentUses > 0 && invitation.currentUses === 0) {
-            toast.success("🎉 Your invitation was used! You've earned a discount code!");
+            toast.success("🎉 Your invitation was used! You've earned a 5% reward! Earn 10% when they make a reservation.");
           }
         }
       } else {
@@ -661,10 +674,10 @@ export default function ProfilePage() {
         </div>
 
         {/* Invite Friends */}
-        <Card className="border border-gray-200 bg-gradient-to-br from-blue-50 to-indigo-50">
+        <Card className="border border-gray-200">
           <CardHeader className="pb-4">
             <CardTitle className="text-lg font-medium text-gray-900 flex items-center gap-2">
-              <UserPlus className="w-5 h-5 text-blue-600" />
+              <UserPlus className="w-5 h-5" />
               Invite Friends
             </CardTitle>
             <p className="text-sm text-gray-600 mt-1">
@@ -673,120 +686,100 @@ export default function ProfilePage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {!invitation ? (
-              <div className="text-center py-8">
-                <div className="relative">
-                  <UserPlus className="w-16 h-16 text-blue-400 mx-auto mb-6" />
-                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
-                    <span className="text-xs font-bold text-white">✨</span>
-                  </div>
-                </div>
+              <div className="text-center py-6">
+                <UserPlus className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">Invite Your Friends</h3>
                 <p className="text-gray-600 mb-6 max-w-sm mx-auto">
                   Generate a unique invitation code to share with friends and family. 
-                  <span className="font-medium text-blue-600"> Earn rewards when they join!</span>
+                  <span className="font-medium text-gray-900"> Earn rewards when they join!</span>
                 </p>
                 <Button 
                   onClick={generateInvitation}
                   disabled={generatingInvite}
-                  className="bg-blue-600 hover:bg-blue-700 px-8 py-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+                  className="w-full"
                 >
                   {generatingInvite ? (
                     <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
-                      Generating Magic...
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Generating...
                     </>
                   ) : (
                     <>
-                      <UserPlus className="w-5 h-5 mr-3" />
-                      Create Invitation
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      Generate Invitation
                     </>
                   )}
                 </Button>
               </div>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {/* Status Header */}
-                <div className={`rounded-xl p-6 border-2 ${
+                <div className={`rounded-lg p-4 border ${
                   invitation.currentUses && invitation.currentUses > 0 
-                    ? 'bg-gradient-to-r from-orange-50 to-amber-50 border-orange-300' 
-                    : 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300'
+                    ? 'bg-green-50 border-green-200' 
+                    : 'bg-blue-50 border-blue-200'
                 }`}>
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                         invitation.currentUses && invitation.currentUses > 0 
-                          ? 'bg-orange-100' 
-                          : 'bg-green-100'
+                          ? 'bg-green-100' 
+                          : 'bg-blue-100'
                       }`}>
                         {invitation.currentUses && invitation.currentUses > 0 ? (
-                          <Check className="w-5 h-5 text-orange-600" />
+                          <Check className="w-4 h-4 text-green-600" />
                         ) : (
-                          <UserPlus className="w-5 h-5 text-green-600" />
+                          <UserPlus className="w-4 h-4 text-blue-600" />
                         )}
                       </div>
                       <div>
-                        <h3 className={`font-semibold text-lg ${
+                        <h3 className={`font-medium ${
                           invitation.currentUses && invitation.currentUses > 0 
-                            ? 'text-orange-800' 
-                            : 'text-green-800'
+                            ? 'text-green-800' 
+                            : 'text-blue-800'
                         }`}>
                           {invitation.currentUses && invitation.currentUses > 0 
-                            ? 'Invitation Successful! 🎉' 
-                            : 'Invitation Ready! ✨'}
+                            ? 'Invitation Used Successfully!' 
+                            : 'Invitation Active'}
                         </h3>
                         <p className={`text-sm ${
                           invitation.currentUses && invitation.currentUses > 0 
-                            ? 'text-orange-600' 
-                            : 'text-green-600'
+                            ? 'text-green-600' 
+                            : 'text-blue-600'
                         }`}>
                           {invitation.currentUses && invitation.currentUses > 0 
-                            ? 'Your friend has joined!' 
+                            ? 'Your friend has joined the platform!' 
                             : 'Share with friends to earn rewards'}
                         </p>
                       </div>
                     </div>
-                    <Button
-                      onClick={() => {
-                        console.log('Manual refresh clicked');
-                        refreshInvitationStatus();
-                      }}
-                      variant="outline"
-                      size="sm"
-                      className="text-xs hover:bg-white/50"
-                    >
-                      🔄 Refresh Status
-                    </Button>
                   </div>
                   
-                  <div className={`text-sm ${
-                    invitation.currentUses && invitation.currentUses > 0 
-                      ? 'text-orange-700' 
-                      : 'text-green-700'
-                  }`}>
+                  <div className="text-sm mt-3">
                     {invitation.currentUses && invitation.currentUses > 0 ? (
                       <div className="space-y-2">
-                        <p className="font-medium">
-                          🎉 Congratulations! Your invitation was used {invitation.currentUses} time{invitation.currentUses > 1 ? 's' : ''}!
+                        <p className="text-gray-700">
+                          Used {invitation.currentUses} time{invitation.currentUses > 1 ? 's' : ''}
+                          {invitation.usedAt && (
+                            <span className="text-gray-500 ml-2">
+                              • {new Date(invitation.usedAt).toLocaleDateString()}
+                            </span>
+                          )}
                         </p>
-                        {invitation.usedAt && (
-                          <p className="text-xs bg-white/50 rounded px-2 py-1 inline-block">
-                            Last used: {new Date(invitation.usedAt).toLocaleDateString()} at {new Date(invitation.usedAt).toLocaleTimeString()}
-                          </p>
-                        )}
-                        <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-3 mt-3">
-                          <p className="font-medium text-yellow-800 text-sm">
-                            🎁 Reward: You've earned a discount code! Check your email or generate a new invitation for more rewards.
+                        <div className="bg-green-100 border border-green-300 rounded p-2">
+                          <p className="font-medium text-green-800 text-sm">
+                            🎁 You've earned a 5% reward! Check your rewards section below.
                           </p>
                         </div>
                       </div>
                     ) : (
                       <div className="space-y-2">
-                        <p>
-                          📅 Expires: {new Date(invitation.expiresAt).toLocaleDateString()}
+                        <p className="text-gray-700">
+                          Expires: {new Date(invitation.expiresAt).toLocaleDateString()}
                         </p>
-                        <div className="bg-blue-100 border border-blue-300 rounded-lg p-3">
+                        <div className="bg-blue-100 border border-blue-300 rounded p-2">
                           <p className="font-medium text-blue-800 text-sm">
-                            💰 Earn 10% discount when your friend joins!
+                            💰 Earn 5% when friend joins, 10% when they make a reservation!
                           </p>
                         </div>
                       </div>
@@ -795,69 +788,67 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Invitation Code & Link */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-4">
                   {/* Invitation Code */}
-                  <div className="bg-white rounded-xl border border-gray-200 p-4">
-                    <Label className="text-sm font-medium text-gray-700 mb-3 block">
-                      📝 Invitation Code
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                      Invitation Code
                     </Label>
                     <div className="flex gap-2">
                       <Input
                         value={invitation.code}
                         readOnly
-                        className="font-mono text-lg tracking-wider bg-gray-50 border-2 focus:border-blue-300"
+                        className="font-mono text-lg tracking-wider"
                       />
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => copyToClipboard(invitation.code, 'code')}
-                        className="px-4 hover:bg-blue-50"
                       >
-                        {copiedCode ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                        {copiedCode ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                       </Button>
                     </div>
-                    <p className="text-xs text-gray-500 mt-2">
+                    <p className="text-xs text-gray-500 mt-1">
                       Share this code with friends. They can enter it on the access request page.
                     </p>
                   </div>
 
                   {/* Signup Link */}
-                  <div className="bg-white rounded-xl border border-gray-200 p-4">
-                    <Label className="text-sm font-medium text-gray-700 mb-3 block">
-                      🔗 Direct Signup Link
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                      Direct Signup Link
                     </Label>
                     <div className="flex gap-2">
                       <Input
                         value={invitation.signupUrl}
                         readOnly
-                        className="text-sm bg-gray-50 border-2 focus:border-blue-300"
+                        className="text-sm"
                       />
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => copyToClipboard(invitation.signupUrl, 'url')}
-                        className="px-4 hover:bg-blue-50"
                       >
-                        {copiedUrl ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                        {copiedUrl ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                       </Button>
                     </div>
-                    <p className="text-xs text-gray-500 mt-2">
+                    <p className="text-xs text-gray-500 mt-1">
                       Share this link for direct signup without entering a code.
                     </p>
                   </div>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="flex gap-3">
                   <Button
                     onClick={generateInvitation}
                     disabled={generatingInvite}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 shadow-lg hover:shadow-xl transition-all duration-200"
+                    className="flex-1"
                   >
                     {generatingInvite ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Creating New Magic...
+                        Generating...
                       </>
                     ) : (
                       <>
@@ -874,10 +865,10 @@ export default function ProfilePage() {
                       toast.success("Invitation cleared");
                     }}
                     variant="outline"
-                    className="border-gray-300 hover:bg-gray-50 font-medium py-3 transition-all duration-200"
+                    className="flex-1"
                   >
                     <X className="w-4 h-4 mr-2" />
-                    Clear Invitation
+                    Clear
                   </Button>
                 </div>
               </div>

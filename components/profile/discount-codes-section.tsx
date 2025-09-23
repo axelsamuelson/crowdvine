@@ -98,8 +98,8 @@ export default function DiscountCodesSection({ userId }: DiscountCodesSectionPro
       <Card className="border border-gray-200">
         <CardHeader>
           <CardTitle className="text-lg font-medium text-gray-900 flex items-center gap-2">
-            <Gift className="w-5 h-5 text-purple-600" />
-            My Discount Codes
+            <Gift className="w-5 h-5" />
+            My Rewards
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -113,11 +113,11 @@ export default function DiscountCodesSection({ userId }: DiscountCodesSectionPro
   }
 
   return (
-    <Card className="border border-gray-200 bg-gradient-to-br from-purple-50 to-pink-50">
+    <Card className="border border-gray-200">
       <CardHeader>
         <CardTitle className="text-lg font-medium text-gray-900 flex items-center gap-2">
-          <Gift className="w-5 h-5 text-purple-600" />
-          My Discount Codes
+          <Gift className="w-5 h-5" />
+          My Rewards
         </CardTitle>
         <p className="text-sm text-gray-600 mt-1">
           Earned rewards and discount codes from inviting friends
@@ -126,14 +126,14 @@ export default function DiscountCodesSection({ userId }: DiscountCodesSectionPro
       <CardContent className="space-y-4">
         {earnedCodes.length === 0 && usedCodes.length === 0 ? (
           <div className="text-center py-8">
-            <Gift className="w-12 h-12 text-purple-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Discount Codes Yet</h3>
+            <Gift className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Rewards Yet</h3>
             <p className="text-gray-600 mb-4">
-              Invite friends to earn discount codes and rewards!
+              Invite friends to earn rewards and discount codes!
             </p>
-            <div className="bg-purple-100 border border-purple-300 rounded-lg p-3">
-              <p className="font-medium text-purple-800 text-sm">
-                💰 Earn 10% discount for each friend who joins!
+            <div className="bg-blue-100 border border-blue-300 rounded-lg p-3">
+              <p className="font-medium text-blue-800 text-sm">
+                💰 Earn rewards for each friend who joins and makes reservations!
               </p>
             </div>
           </div>
