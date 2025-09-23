@@ -84,16 +84,20 @@ export async function GET(request: Request) {
     // Helper function to convert relative paths to full URLs
     const convertToFullUrl = (path: string | null | undefined): string => {
       if (!path) return "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop";
-      if (path.startsWith('http')) return path; // Already a full URL
-      if (path.startsWith('/uploads/')) {
+      
+      // Clean up any newline characters or whitespace
+      const cleanPath = path.trim().replace(/\n/g, '');
+      
+      if (cleanPath.startsWith('http')) return cleanPath; // Already a full URL
+      if (cleanPath.startsWith('/uploads/')) {
         // Use our image proxy API to serve Supabase Storage files
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pactwines.com';
-        const fileName = path.replace('/uploads/', '');
+        const fileName = cleanPath.replace('/uploads/', '');
         return `${baseUrl}/api/images/${fileName}`;
       }
       // For other relative paths, construct full URL
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pactwines.com';
-      return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+      return `${baseUrl}${cleanPath.startsWith('/') ? '' : '/'}${cleanPath}`;
     };
 
     // Get images for this wine
