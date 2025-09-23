@@ -70,6 +70,7 @@ export default function ProfilePage() {
   const [invitation, setInvitation] = useState<{
     code: string;
     signupUrl: string;
+    codeSignupUrl?: string;
     expiresAt: string;
     currentUses?: number;
     maxUses?: number;
@@ -836,6 +837,32 @@ export default function ProfilePage() {
                       Share this link for direct signup without entering a code.
                     </p>
                   </div>
+
+                  {/* Code Signup Link */}
+                  {invitation.codeSignupUrl && (
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                        Code Signup Link
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={invitation.codeSignupUrl}
+                          readOnly
+                          className="text-sm"
+                        />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => copyToClipboard(invitation.codeSignupUrl, 'url')}
+                        >
+                          {copiedUrl ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Share this link for signup with code pre-filled.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Action Buttons */}

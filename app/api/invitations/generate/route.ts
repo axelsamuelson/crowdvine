@@ -64,9 +64,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to create invitation" }, { status: 500 });
     }
 
-    // Generate signup URL
+    // Generate signup URLs
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const signupUrl = `${baseUrl}/invite-signup?invite=${code}`;
+    const codeSignupUrl = `${baseUrl}/code-signup?code=${code}`;
 
     return NextResponse.json({
       success: true,
@@ -74,6 +75,7 @@ export async function POST(request: NextRequest) {
         id: data.id,
         code,
         signupUrl,
+        codeSignupUrl,
         expiresAt: data.expires_at,
         maxUses: data.max_uses
       }

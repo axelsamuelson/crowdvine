@@ -134,8 +134,8 @@ export const FormAccessRequest = ({
     
     if (isInvitationCode) {
       console.log('Processing as invitation code');
-      setInviteCode(input);
-      setShowInviteModal(true);
+      // Redirect to dedicated code signup page
+      window.location.href = `/code-signup?code=${input}`;
     } else {
       console.log('Processing as email');
       // Handle email access request

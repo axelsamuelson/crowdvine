@@ -6,7 +6,7 @@ const PUBLIC = [
   '/_next', '/favicon', '/images', '/public',
   
   // Authentication and access control pages
-  '/access-request', '/log-in', '/signup', '/invite-signup',
+  '/access-request', '/log-in', '/signup', '/invite-signup', '/code-signup',
   
   // Access control APIs
   '/api/access-request', '/api/me/access', '/api/auth', 
