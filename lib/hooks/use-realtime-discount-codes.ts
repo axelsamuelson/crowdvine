@@ -68,6 +68,12 @@ export function useRealtimeDiscountCodes({ userId, onDiscountCodesUpdate }: UseR
         } else if (status === 'CHANNEL_ERROR') {
           setIsConnected(false);
           console.error('Discount codes realtime channel error');
+        } else if (status === 'TIMED_OUT') {
+          setIsConnected(false);
+          console.error('Discount codes realtime connection timed out');
+        } else if (status === 'CLOSED') {
+          setIsConnected(false);
+          console.log('Discount codes realtime connection closed');
         }
       })
       .subscribe();

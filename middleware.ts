@@ -24,7 +24,10 @@ const PUBLIC = [
   '/admin', '/admin-auth', '/api/admin',
   
   // Debug/development APIs (remove in production)
-  '/api/debug', '/api/test-simple', '/api/test-supabase', '/api/test-email'
+  '/api/debug', '/api/test-simple', '/api/test-supabase', '/api/test-email',
+  
+  // Debug pages
+  '/debug-realtime', '/test-cookies'
 ];
 
 export async function middleware(req: NextRequest) {

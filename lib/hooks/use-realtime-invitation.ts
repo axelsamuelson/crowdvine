@@ -80,6 +80,12 @@ export function useRealtimeInvitation({ invitation, onInvitationUpdate }: UseRea
         } else if (status === 'CHANNEL_ERROR') {
           setIsConnected(false);
           console.error('Realtime channel error');
+        } else if (status === 'TIMED_OUT') {
+          setIsConnected(false);
+          console.error('Realtime connection timed out');
+        } else if (status === 'CLOSED') {
+          setIsConnected(false);
+          console.log('Realtime connection closed');
         }
       })
       .subscribe();

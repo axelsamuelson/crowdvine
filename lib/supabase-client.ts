@@ -16,4 +16,10 @@ if (!supabaseUrl || !supabaseKey) {
   );
 }
 
-export const supabase = createBrowserClient(supabaseUrl, supabaseKey);
+export const supabase = createBrowserClient(supabaseUrl, supabaseKey, {
+  realtime: {
+    params: {
+      eventsPerSecond: 10,
+    },
+  },
+});
