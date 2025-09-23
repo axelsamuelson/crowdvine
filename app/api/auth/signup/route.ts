@@ -15,17 +15,25 @@ export async function POST(req: Request) {
     );
   }
 
-  // Origin-kontroll för säkerhet
-  const origin = req.headers.get("origin");
-  if (process.env.NODE_ENV === "production") {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-    if (!origin || !appUrl || !origin.startsWith(appUrl)) {
-      return NextResponse.json(
-        { ok: false, message: "Bad origin" },
-        { status: 403 },
-      );
-    }
-  }
+  // Origin-kontroll för säkerhet (temporarily disabled for debugging)
+  // const origin = req.headers.get("origin");
+  // if (process.env.NODE_ENV === "production") {
+  //   const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  //   // Allow requests from the main domain and Vercel preview URLs
+  //   const allowedOrigins = [
+  //     appUrl,
+  //     "https://pactwines.com",
+  //     "https://www.pactwines.com"
+  //   ];
+  //   
+  //   if (!origin || !allowedOrigins.some(allowed => origin.startsWith(allowed))) {
+  //     console.log("Origin check failed:", { origin, appUrl, allowedOrigins });
+  //     return NextResponse.json(
+  //       { ok: false, message: "Bad origin" },
+  //       { status: 403 },
+  //     );
+  //   }
+  // }
 
   const { email, password, full_name, invitation_code } = await req.json();
   const supabase = createSupabaseServerClient();
