@@ -698,6 +698,21 @@ export default function ProfilePage() {
                         <p className="text-xs text-green-600">
                           Used {usedInvite.currentUses} time{usedInvite.currentUses > 1 ? 's' : ''} • {new Date(usedInvite.usedAt).toLocaleDateString()}
                         </p>
+                        {/* Rewards Section */}
+                        <div className="mt-1 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 bg-green-200 rounded-full flex items-center justify-center">
+                              <Check className="w-1.5 h-1.5 text-green-700" />
+                            </div>
+                            <span className="text-xs font-medium text-green-700">5% reward earned</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 bg-gray-200 rounded-full flex items-center justify-center">
+                              <div className="w-1 h-1 bg-gray-500 rounded-full"></div>
+                            </div>
+                            <span className="text-xs text-gray-500">10% reward pending</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -735,17 +750,32 @@ export default function ProfilePage() {
             ) : invitation.currentUses && invitation.currentUses > 0 ? (
               // Used invitation - minimal display
               <div className="space-y-4">
-                {/* Success Status */}
+                {/* Success Status with Rewards */}
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                       <Check className="w-4 h-4 text-green-600" />
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <h3 className="font-medium text-green-800">Invitation Successful!</h3>
                       <p className="text-sm text-green-600">
                         Used {invitation.currentUses} time{invitation.currentUses > 1 ? 's' : ''} • {invitation.usedAt && new Date(invitation.usedAt).toLocaleDateString()}
                       </p>
+                      {/* Rewards Section */}
+                      <div className="mt-2 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 bg-green-200 rounded-full flex items-center justify-center">
+                            <Check className="w-2 h-2 text-green-700" />
+                          </div>
+                          <span className="text-xs font-medium text-green-700">5% reward earned - Account created</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 bg-gray-200 rounded-full flex items-center justify-center">
+                            <div className="w-1.5 h-1.5 bg-gray-500 rounded-full"></div>
+                          </div>
+                          <span className="text-xs text-gray-500">10% reward pending - Reservation made</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -902,14 +932,6 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Discount Codes */}
-        {profile && (
-          <DiscountCodesSection 
-            userId={profile.id} 
-            discountCodes={discountCodes}
-            isConnected={invitationConnected}
-          />
-        )}
 
         {/* Quick Actions */}
         <Card className="border border-gray-200">

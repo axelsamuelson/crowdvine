@@ -103,6 +103,63 @@ export async function POST(request: NextRequest) {
         console.error('Update invitation error:', updateError);
       }
 
+      // Always try to create reward discount code, regardless of invitation update status
+      // Create initial reward discount code for the inviter (5% for account creation)
+      try {
+        console.log('Creating reward discount code for inviter (existing profile):', invitation.created_by);
+        console.log('Invitation ID:', invitation.id);
+        
+        // Generate a unique discount code
+        const generateDiscountCode = () => {
+          return Math.random().toString(36).substring(2, 10).toUpperCase();
+        };
+        
+        let discountCode = generateDiscountCode();
+        let codeExists = true;
+        
+        // Ensure code is unique
+        while (codeExists) {
+          const { data: existingCode } = await supabase
+            .from('discount_codes')
+            .select('id')
+            .eq('code', discountCode)
+            .single();
+          
+          if (!existingCode) {
+            codeExists = false;
+          } else {
+            discountCode = generateDiscountCode();
+          }
+        }
+
+        console.log('Generated unique discount code (existing profile):', discountCode);
+
+        // Create discount code directly
+        const { data: newDiscountCode, error: rewardError } = await supabase
+          .from('discount_codes')
+          .insert({
+            code: discountCode,
+            discount_percentage: 5,
+            is_active: true,
+            usage_limit: 1,
+            current_usage: 0,
+            expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
+            earned_by_user_id: invitation.created_by,
+            earned_for_invitation_id: invitation.id
+          })
+          .select()
+          .single();
+
+        if (rewardError) {
+          console.error('Error creating reward for inviter (existing profile):', rewardError);
+          console.error('Reward error details:', JSON.stringify(rewardError, null, 2));
+        } else {
+          console.log('Initial reward discount code created for inviter (existing profile):', newDiscountCode);
+        }
+      } catch (rewardError) {
+        console.error('Error creating invitation reward (existing profile):', rewardError);
+      }
+
       return NextResponse.json({
         success: true,
         user: {
@@ -176,56 +233,63 @@ export async function POST(request: NextRequest) {
       // Don't fail the signup if we can't update the invitation
     } else {
       console.log('Invitation usage updated successfully');
+    }
+
+    // Always try to create reward discount code, regardless of invitation update status
+    // Create initial reward discount code for the inviter (5% for account creation)
+    try {
+      console.log('Creating reward discount code for inviter:', invitation.created_by);
+      console.log('Invitation ID:', invitation.id);
       
-      // Create initial reward discount code for the inviter (5% for account creation)
-      try {
-        // Generate a unique discount code
-        const generateDiscountCode = () => {
-          return Math.random().toString(36).substring(2, 10).toUpperCase();
-        };
-        
-        let discountCode = generateDiscountCode();
-        let codeExists = true;
-        
-        // Ensure code is unique
-        while (codeExists) {
-          const { data: existingCode } = await supabase
-            .from('discount_codes')
-            .select('id')
-            .eq('code', discountCode)
-            .single();
-          
-          if (!existingCode) {
-            codeExists = false;
-          } else {
-            discountCode = generateDiscountCode();
-          }
-        }
-
-        // Create discount code directly
-        const { data: newDiscountCode, error: rewardError } = await supabase
+      // Generate a unique discount code
+      const generateDiscountCode = () => {
+        return Math.random().toString(36).substring(2, 10).toUpperCase();
+      };
+      
+      let discountCode = generateDiscountCode();
+      let codeExists = true;
+      
+      // Ensure code is unique
+      while (codeExists) {
+        const { data: existingCode } = await supabase
           .from('discount_codes')
-          .insert({
-            code: discountCode,
-            discount_percentage: 5,
-            is_active: true,
-            usage_limit: 1,
-            current_usage: 0,
-            expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
-            earned_by_user_id: invitation.created_by,
-            earned_for_invitation_id: invitation.id
-          })
-          .select()
+          .select('id')
+          .eq('code', discountCode)
           .single();
-
-        if (rewardError) {
-          console.error('Error creating reward for inviter:', rewardError);
+        
+        if (!existingCode) {
+          codeExists = false;
         } else {
-          console.log('Initial reward discount code created for inviter:', newDiscountCode);
+          discountCode = generateDiscountCode();
         }
-      } catch (rewardError) {
-        console.error('Error creating invitation reward:', rewardError);
       }
+
+      console.log('Generated unique discount code:', discountCode);
+
+      // Create discount code directly
+      const { data: newDiscountCode, error: rewardError } = await supabase
+        .from('discount_codes')
+        .insert({
+          code: discountCode,
+          discount_percentage: 5,
+          is_active: true,
+          usage_limit: 1,
+          current_usage: 0,
+          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
+          earned_by_user_id: invitation.created_by,
+          earned_for_invitation_id: invitation.id
+        })
+        .select()
+        .single();
+
+      if (rewardError) {
+        console.error('Error creating reward for inviter:', rewardError);
+        console.error('Reward error details:', JSON.stringify(rewardError, null, 2));
+      } else {
+        console.log('Initial reward discount code created for inviter:', newDiscountCode);
+      }
+    } catch (rewardError) {
+      console.error('Error creating invitation reward:', rewardError);
     }
 
     // Return success - frontend will handle sign in
