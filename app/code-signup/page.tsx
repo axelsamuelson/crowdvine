@@ -115,11 +115,17 @@ function CodeSignupContent() {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        toast.success("Account created successfully! Please log in.");
-        // Redirect to login page
-        router.push(
-          "/log-in?message=Account created successfully! Please log in.",
-        );
+        if (data.autoSignedIn) {
+          toast.success("Account created and signed in successfully!");
+          // Redirect to home page since user is now logged in
+          router.push("/");
+        } else {
+          toast.success("Account created successfully! Please log in.");
+          // Redirect to login page
+          router.push(
+            "/log-in?message=Account created successfully! Please log in.",
+          );
+        }
       } else {
         toast.error(data.error || "Failed to create account");
       }

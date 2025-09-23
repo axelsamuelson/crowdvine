@@ -120,9 +120,9 @@ function InviteSignupContent() {
       if (inviteData.success && inviteData.user) {
         setSuccess(true);
 
-        // Redirect to login page after 2 seconds
+        // Redirect to home page after 2 seconds since user is now logged in
         setTimeout(() => {
-          router.push("/log-in");
+          router.push("/");
         }, 2000);
       } else {
         setError("Failed to create account");
@@ -187,12 +187,12 @@ function InviteSignupContent() {
           </CardHeader>
           <CardContent>
             <p className="text-center text-gray-600 mb-4">
-              Your account has been created successfully with invitation access.
-              You can now sign in to explore our exclusive wine community.
+              Your account has been created and you're now signed in!
+              Welcome to our exclusive wine community.
             </p>
             <div className="text-center">
-              <Button onClick={() => router.push("/log-in")} className="w-full">
-                Sign In to Continue
+              <Button onClick={() => router.push("/")} className="w-full">
+                Continue to Platform
               </Button>
             </div>
           </CardContent>

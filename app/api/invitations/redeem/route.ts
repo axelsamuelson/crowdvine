@@ -215,14 +215,34 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Automatically sign in the user after successful account creation
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.toLowerCase().trim(),
+        password,
+      });
+
+      if (signInError) {
+        // If auto sign-in fails, still return success but user will need to sign in manually
+        console.error("Auto sign-in failed:", signInError);
+        return NextResponse.json({
+          success: true,
+          user: {
+            id: authData.user.id,
+            email: authData.user.email,
+          },
+          autoSignedIn: false,
+          message: "Account created successfully. Please sign in with your credentials.",
+        });
+      }
+
       return NextResponse.json({
         success: true,
         user: {
-          id: authData.user.id,
-          email: authData.user.email,
+          id: signInData.user?.id,
+          email: signInData.user?.email,
         },
-        message:
-          "Account created successfully. Please sign in with your credentials.",
+        autoSignedIn: true,
+        message: "Account created and signed in successfully.",
       });
     }
 
@@ -368,19 +388,36 @@ export async function POST(request: NextRequest) {
       console.error("Error creating invitation reward:", rewardError);
     }
 
-    // Return success - frontend will handle sign in
+    // Automatically sign in the user after successful account creation
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.toLowerCase().trim(),
+      password,
+    });
+
+    if (signInError) {
+      // If auto sign-in fails, still return success but user will need to sign in manually
+      console.error("Auto sign-in failed:", signInError);
+      return NextResponse.json({
+        success: true,
+        user: {
+          id: authData.user.id,
+          email: authData.user.email,
+        },
+        autoSignedIn: false,
+        message: "Account created successfully. Please sign in with your credentials.",
+      });
+    }
+
+    // Return success with auto sign-in information
     const response = NextResponse.json({
       success: true,
       user: {
-        id: authData.user.id,
-        email: authData.user.email,
+        id: signInData.user?.id,
+        email: signInData.user?.email,
       },
-      message:
-        "Account created successfully. Please sign in with your credentials.",
+      autoSignedIn: true,
+      message: "Account created and signed in successfully.",
     });
-
-    // Note: We don't set auth cookies here since the user needs to sign in manually
-    // The frontend will redirect to login page
 
     return response;
   } catch (error) {

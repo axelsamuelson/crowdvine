@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { signupLimiter, getClientIdentifier } from "@/lib/rate-limiter";
 
 export async function POST(request: NextRequest) {
@@ -282,83 +283,64 @@ export async function POST(request: NextRequest) {
 
     // User and profile created/updated successfully
     console.log("5. User creation completed successfully");
-    const response = NextResponse.json({
-      success: true,
-      message: "User account created/updated successfully",
-      user: {
-        id: authUserId,
-        email: normalizedEmail,
-      },
-    });
 
-    // Set access cookie so user can access the app
-    response.cookies.set("cv-access", "1", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 60 * 60 * 24 * 365, // 1 year
-    });
-
-    // CRITICAL: Create a proper auth session for the new user
-    // This prevents the user from being logged into someone else's account
+    // Automatically sign in the user after successful account creation
     console.log("6. Creating auth session for new user...");
     try {
-      // Use admin API to create a session for the user
-      const { data: sessionData, error: sessionError } =
-        await supabase.auth.admin.generateLink({
-          type: "magiclink",
-          email: normalizedEmail,
-        });
+      // Create a server client for signing in
+      const serverSupabase = createSupabaseServerClient();
+      
+      const { data: signInData, error: signInError } = await serverSupabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password,
+      });
 
-      if (sessionError) {
-        console.error("Error generating magic link:", sessionError);
-        // Fallback: try to create a session using password
-        console.log("6b. Trying password-based session creation...");
-        const { data: passwordSession, error: passwordError } =
-          await supabase.auth.signInWithPassword({
+      if (signInError) {
+        console.error("Auto sign-in failed:", signInError);
+        return NextResponse.json({
+          success: true,
+          user: {
+            id: authUserId,
             email: normalizedEmail,
-            password: password,
-          });
-
-        if (passwordError) {
-          console.error("Error creating password session:", passwordError);
-        } else if (passwordSession?.session?.access_token) {
-          // Set the auth session cookie with the access token
-          response.cookies.set(
-            "sb-access-auth-token",
-            passwordSession.session.access_token,
-            {
-              httpOnly: true,
-              secure: process.env.NODE_ENV === "production",
-              sameSite: "strict",
-              maxAge: 60 * 60 * 24 * 7, // 7 days
-              path: "/",
-            },
-          );
-          console.log("6c. Auth session cookie set via password login");
-        }
-      } else if (sessionData?.properties?.hashed_token) {
-        // Set the auth session cookie
-        response.cookies.set(
-          "sb-access-auth-token",
-          sessionData.properties.hashed_token,
-          {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
-            maxAge: 60 * 60 * 24 * 7, // 7 days
-            path: "/",
           },
-        );
-        console.log("6a. Auth session cookie set via magic link");
+          autoSignedIn: false,
+          message: "Account created successfully. Please sign in.",
+        });
       }
+
+      console.log("6a. User automatically signed in successfully");
+      
+      // Update response to indicate auto sign-in
+      const updatedResponse = NextResponse.json({
+        success: true,
+        user: {
+          id: signInData.user?.id,
+          email: signInData.user?.email,
+        },
+        autoSignedIn: true,
+        message: "Account created and signed in successfully.",
+      });
+
+      // Copy cookies from the server client to the response
+      const cookies = await serverSupabase.auth.getSession();
+      // The cookies are automatically set by the server client
+      
+      return updatedResponse;
     } catch (sessionError) {
       console.error("Error creating auth session:", sessionError);
-      // Don't fail the request for session creation errors
+      // Return success but indicate manual sign-in required
+      return NextResponse.json({
+        success: true,
+        user: {
+          id: authUserId,
+          email: normalizedEmail,
+        },
+        autoSignedIn: false,
+        message: "Account created successfully. Please sign in.",
+      });
     }
 
     console.log("=== CREATE USER API END ===");
-    return response;
   } catch (error) {
     console.error("=== CREATE USER API ERROR ===");
     console.error("Unexpected error:", error);

@@ -60,11 +60,18 @@ export async function POST(req: Request) {
       { status: 400 },
     );
 
-  await supabase.from("profiles").insert({
+  // Create profile with access granted for invitation signups
+  const profileData: any = {
     id: data.user?.id,
     full_name,
-    // access_granted_at: null (pending) eller sätt direkt om ni auto-grantar
-  });
+  };
+
+  if (invitation_code) {
+    profileData.access_granted_at = new Date().toISOString();
+    profileData.invite_code_used = invitation_code;
+  }
+
+  await supabase.from("profiles").insert(profileData);
 
   if (invitation_code) {
     await supabase
@@ -73,8 +80,27 @@ export async function POST(req: Request) {
       .eq("code", invitation_code);
   }
 
+  // Automatically sign in the user after successful signup
+  const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (signInError) {
+    // If auto sign-in fails, still return success but user will need to sign in manually
+    console.error("Auto sign-in failed:", signInError);
+    return NextResponse.json({
+      ok: true,
+      user: { id: data.user?.id, email: data.user?.email },
+      autoSignedIn: false,
+      message: "Account created successfully. Please sign in.",
+    });
+  }
+
   return NextResponse.json({
     ok: true,
-    user: { id: data.user?.id, email: data.user?.email },
+    user: { id: signInData.user?.id, email: signInData.user?.email },
+    autoSignedIn: true,
+    message: "Account created and signed in successfully.",
   });
 }
