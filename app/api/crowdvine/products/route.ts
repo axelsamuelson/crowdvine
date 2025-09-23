@@ -86,9 +86,10 @@ export async function GET(request: Request) {
       if (!path) return "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop";
       if (path.startsWith('http')) return path;
       if (path.startsWith('/uploads/')) {
-        // This is a relative path to uploads, construct full URL
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pactwines.com';
-        return `${baseUrl}${path}`;
+        // This is a Supabase Storage file, construct proper Supabase Storage URL
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const fileName = path.replace('/uploads/', '');
+        return `${supabaseUrl}/storage/v1/object/public/uploads/${fileName}`;
       }
       // For other relative paths, construct full URL
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pactwines.com';

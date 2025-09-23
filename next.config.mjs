@@ -17,6 +17,14 @@ const nextConfig = {
         protocol: "https",
         hostname: "edge.disstg.commercecloud.salesforce.com",
       },
+      {
+        protocol: "https",
+        hostname: "*.supabase.co",
+      },
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
     ],
   },
   eslint: {
