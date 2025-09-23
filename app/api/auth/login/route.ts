@@ -12,26 +12,26 @@ export async function POST(req: Request) {
     );
   }
 
-  // Origin-kontroll för säkerhet
-  const origin = req.headers.get("origin");
-  if (process.env.NODE_ENV === "production") {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-    // Allow requests from the main domain and development subdomain
-    const allowedOrigins = [
-      appUrl,
-      "https://pactwines.com",
-      "https://www.pactwines.com",
-      "https://dev.pactwines.com"
-    ];
-    
-    if (!origin || !allowedOrigins.some(allowed => origin.startsWith(allowed))) {
-      console.log("Origin check failed:", { origin, appUrl, allowedOrigins });
-      return NextResponse.json(
-        { ok: false, message: "Bad origin" },
-        { status: 403 },
-      );
-    }
-  }
+  // Origin-kontroll för säkerhet (temporarily disabled for debugging)
+  // const origin = req.headers.get("origin");
+  // if (process.env.NODE_ENV === "production") {
+  //   const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  //   // Allow requests from the main domain and development subdomain
+  //   const allowedOrigins = [
+  //     appUrl,
+  //     "https://pactwines.com",
+  //     "https://www.pactwines.com",
+  //     "https://dev.pactwines.com"
+  //   ];
+  //   
+  //   if (!origin || !allowedOrigins.some(allowed => origin.startsWith(allowed))) {
+  //     console.log("Origin check failed:", { origin, appUrl, allowedOrigins });
+  //     return NextResponse.json(
+  //       { ok: false, message: "Bad origin" },
+  //       { status: 403 },
+  //     );
+  //   }
+  // }
 
   const { email, password } = await req.json();
   const supabase = createSupabaseServerClient();
