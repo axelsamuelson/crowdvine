@@ -11,10 +11,10 @@ export async function middleware(req: NextRequest) {
   ];
   const isPublic = PUBLIC.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
-  // Skip statik / webhooks
+  // Skip statik / webhooks / API routes
   if (
     pathname.startsWith("/_next") ||
-    pathname.startsWith("/api/stripe/webhook") ||
+    pathname.startsWith("/api/") ||
     pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|ico)$/)
   ) return NextResponse.next();
 
