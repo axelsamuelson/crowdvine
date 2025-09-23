@@ -8,6 +8,9 @@ const PUBLIC = [
   // Authentication and access control pages
   '/access-request', '/log-in', '/signup', '/invite-signup', '/code-signup',
   
+  // Short invitation URLs
+  '/i', '/c',
+  
   // Access control APIs
   '/api/access-request', '/api/me/access', '/api/auth', 
   '/api/validate-access-token', '/api/use-access-token', '/api/grant-access', 

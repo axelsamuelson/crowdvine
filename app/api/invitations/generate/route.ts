@@ -64,10 +64,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to create invitation" }, { status: 500 });
     }
 
-    // Generate signup URLs
+    // Generate signup URLs with shorter, more robust structure
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const signupUrl = `${baseUrl}/invite-signup?invite=${code}`;
-    const codeSignupUrl = `${baseUrl}/code-signup?code=${code}`;
+    
+    // Create shorter URLs that are less likely to be broken by Instagram
+    // Use shorter path structure: /i/{code} instead of /invite-signup?invite={code}
+    const signupUrl = `${baseUrl}/i/${code}`;
+    const codeSignupUrl = `${baseUrl}/c/${code}`;
 
     return NextResponse.json({
       success: true,
@@ -90,7 +93,8 @@ export async function POST(request: NextRequest) {
 function generateInvitationCode(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let result = '';
-  for (let i = 0; i < 20; i++) {
+  // Shorter code (12 characters) to make URLs more compact
+  for (let i = 0; i < 12; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return result;
