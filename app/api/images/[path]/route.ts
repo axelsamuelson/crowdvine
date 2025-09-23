@@ -13,12 +13,20 @@ export async function GET(
       return NextResponse.json({ error: "Path is required" }, { status: 400 });
     }
 
+    // Clean up any newline characters or whitespace
+    const cleanPath = path.trim().replace(/\n/g, '');
+    
+    // If it's already a full URL, redirect to it
+    if (cleanPath.startsWith('http')) {
+      return NextResponse.redirect(cleanPath);
+    }
+
     const supabase = getSupabaseAdmin();
 
     // Get the file from Supabase Storage
     const { data, error } = await supabase.storage
       .from('uploads')
-      .download(path);
+      .download(cleanPath);
 
     if (error) {
       console.error('Error downloading file:', error);
@@ -33,7 +41,7 @@ export async function GET(
     const buffer = await data.arrayBuffer();
     
     // Determine content type based on file extension
-    const extension = path.split('.').pop()?.toLowerCase();
+    const extension = cleanPath.split('.').pop()?.toLowerCase();
     let contentType = 'image/jpeg'; // default
     
     switch (extension) {
