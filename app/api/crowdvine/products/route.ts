@@ -81,12 +81,26 @@ export async function GET(request: Request) {
     // Use color_name if available, otherwise use color
     const colorName = i.color_name || i.color;
 
+    // Helper function to convert relative paths to full URLs
+    const convertToFullUrl = (path: string | null | undefined): string => {
+      if (!path) return "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop";
+      if (path.startsWith('http')) return path;
+      if (path.startsWith('/uploads/')) {
+        // This is a relative path to uploads, construct full URL
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pactwines.com';
+        return `${baseUrl}${path}`;
+      }
+      // For other relative paths, construct full URL
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pactwines.com';
+      return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+    };
+
     // Get images for this wine
     const wineImages = wineImagesMap.get(i.id) || [];
     const images = wineImages.length > 0 
       ? wineImages.map((img: any) => ({
           id: `${i.id}-img-${img.sort_order}`,
-          url: img.image_path,
+          url: convertToFullUrl(img.image_path),
           altText: img.alt_text || i.wine_name,
           width: 600,
           height: 600,
@@ -94,7 +108,7 @@ export async function GET(request: Request) {
       : [
           {
             id: `${i.id}-img`,
-            url: i.label_image_path || "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
+            url: convertToFullUrl(i.label_image_path),
             altText: i.wine_name,
             width: 600,
             height: 600,
@@ -103,7 +117,7 @@ export async function GET(request: Request) {
 
     const featuredImage = images[0] || {
       id: `${i.id}-img`,
-      url: i.label_image_path || "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
+      url: convertToFullUrl(i.label_image_path),
       altText: i.wine_name,
       width: 600,
       height: 600,

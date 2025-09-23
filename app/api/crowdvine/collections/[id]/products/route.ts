@@ -120,6 +120,20 @@ export async function GET(
 
     if (error) throw error;
 
+    // Helper function to convert relative paths to full URLs
+    const convertToFullUrl = (path: string | null | undefined): string => {
+      if (!path) return "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop";
+      if (path.startsWith('http')) return path;
+      if (path.startsWith('/uploads/')) {
+        // This is a relative path to uploads, construct full URL
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pactwines.com';
+        return `${baseUrl}${path}`;
+      }
+      // For other relative paths, construct full URL
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pactwines.com';
+      return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+    };
+
     // Convert to Shopify-compatible product format
     const products = (data ?? []).map((i: any) => {
       const grapeVarieties = Array.isArray(i.grape_varieties)
@@ -187,7 +201,7 @@ export async function GET(
         },
         featuredImage: {
           id: `${i.id}-img`,
-          url: i.label_image_path,
+          url: convertToFullUrl(i.label_image_path),
           altText: i.wine_name,
           width: 600,
           height: 600,
@@ -195,7 +209,7 @@ export async function GET(
         images: [
           {
             id: `${i.id}-img`,
-            url: i.label_image_path,
+            url: convertToFullUrl(i.label_image_path),
             altText: i.wine_name,
             width: 600,
             height: 600,
