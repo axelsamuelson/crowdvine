@@ -72,8 +72,13 @@ export default function CodeSignupPage() {
       const data = await response.json();
 
       if (data.success) {
-        toast.success("Account created successfully! Please log in.");
-        router.push("/log-in");
+        if (data.autoSignedIn) {
+          toast.success("Account created and signed in successfully! Welcome to PACT Wines!");
+          router.push("/");
+        } else {
+          toast.success("Account created successfully! Please log in.");
+          router.push("/log-in");
+        }
       } else {
         toast.error(data.error || "Failed to create account");
       }
