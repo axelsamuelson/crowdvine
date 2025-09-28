@@ -14,6 +14,9 @@ interface Invitation {
   usedBy?: string;
   usedAt?: string;
   isActive?: boolean;
+  profiles?: {
+    email: string;
+  };
 }
 
 interface UseHybridInvitationUpdatesProps {
@@ -53,6 +56,7 @@ export function useHybridInvitationUpdates({
             usedBy: data.invitation.usedBy,
             usedAt: data.invitation.usedAt,
             isActive: data.invitation.isActive,
+            profiles: data.invitation.profiles,
           };
 
           // Check if invitation was just used
@@ -60,8 +64,9 @@ export function useHybridInvitationUpdates({
             invitation.currentUses === 0 && data.invitation.currentUses > 0;
 
           if (wasJustUsed) {
+            const userEmail = data.invitation.profiles?.email || 'someone';
             toast.success(
-              "🎉 Your invitation was used! You've earned a 5% reward! Earn 10% when they make a reservation.",
+              `🎉 Your invitation was accepted by ${userEmail}! You've earned a 5% reward! Earn 10% when they make a reservation.`,
             );
 
             // Also fetch updated discount codes

@@ -14,12 +14,20 @@ export async function POST(request: NextRequest) {
 
     const supabase = getSupabaseAdmin();
 
-    // Find the invitation code with usage information
+    // Find the invitation code with usage information and email from profiles
     const { data: invitation, error } = await supabase
       .from("invitation_codes")
-      .select(
-        "id, code, expires_at, max_uses, current_uses, is_active, used_at, used_by",
-      )
+      .select(`
+        id, 
+        code, 
+        expires_at, 
+        max_uses, 
+        current_uses, 
+        is_active, 
+        used_at, 
+        used_by,
+        profiles!invitation_codes_used_by_fkey(email)
+      `)
       .eq("code", code)
       .single();
 
@@ -43,6 +51,7 @@ export async function POST(request: NextRequest) {
         usedAt: invitation.used_at,
         usedBy: invitation.used_by,
         isActive: invitation.is_active,
+        profiles: invitation.profiles,
       },
     });
   } catch (error) {

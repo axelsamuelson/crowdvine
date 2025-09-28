@@ -775,7 +775,7 @@ export default function ProfilePage() {
                       </div>
                       <div className="flex-1">
                         <p className="text-sm font-medium text-green-800">
-                          Invitation Successful
+                          Invitation Accepted by {usedInvite.profiles?.email || 'Unknown User'}
                         </p>
                         <p className="text-xs text-green-600">
                           Used {usedInvite.currentUses} time
@@ -852,7 +852,7 @@ export default function ProfilePage() {
                     </div>
                     <div className="flex-1">
                       <h3 className="font-medium text-green-800">
-                        Invitation Successful!
+                        Invitation Accepted by {invitation.profiles?.email || 'Unknown User'}!
                       </h3>
                       <p className="text-sm text-green-600">
                         Used {invitation.currentUses} time

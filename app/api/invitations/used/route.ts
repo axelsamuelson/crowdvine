@@ -34,10 +34,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get user's used invitations
+    // Get user's used invitations with email from profiles
     const { data: usedInvitations, error } = await supabase
       .from("invitation_codes")
-      .select("code, used_at, used_by, current_uses, created_at")
+      .select(`
+        code, 
+        used_at, 
+        used_by, 
+        current_uses, 
+        created_at,
+        profiles!invitation_codes_used_by_fkey(email)
+      `)
       .eq("created_by", user.id)
       .gt("current_uses", 0)
       .order("used_at", { ascending: false });
