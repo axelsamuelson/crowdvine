@@ -1,18 +1,42 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
 
 export async function GET() {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
+    const supabase = createSupabaseServerClient();
+    
+    // Get current user with proper session validation
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      console.error("Auth error:", userError);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    console.log("🔍 Fetching payment methods for user:", {
+    // Get user profile to verify access
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("role, producer_id")
+      .eq("id", user.id)
+      .single();
+
+    if (profileError) {
+      console.error("Profile error:", profileError);
+      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+    }
+
+    console.log("🔍 SECURITY: Fetching payment methods for user:", {
       id: user.id,
       email: user.email,
-      role: user.role,
+      role: profile.role,
+    });
+    
+    // CRITICAL SECURITY: Log the actual user making the request
+    console.log("🔒 SECURITY LOG: Payment methods request from user:", {
+      userId: user.id,
+      userEmail: user.email,
+      timestamp: new Date().toISOString(),
+      endpoint: "/api/user/payment-methods"
     });
 
     if (!stripe) {
@@ -25,32 +49,40 @@ export async function GET() {
     // Get user profile to find Stripe customer ID
     // We already have the user from getCurrentUser(), no need to fetch profile again
 
-    // For now, we'll create a customer if one doesn't exist
-    // In a real implementation, you'd store the Stripe customer ID in the user profile
+    // CRITICAL SECURITY: Use user ID as unique identifier for Stripe customers
+    // This prevents cross-user data contamination
     let customer;
     try {
-      console.log("🔍 Looking for Stripe customer with email:", user.email);
+      console.log("🔍 SECURITY: Looking for Stripe customer with user ID:", user.id);
 
-      // Try to find existing customer by email
-      const customers = await stripe.customers.list({ email: user.email });
-      customer = customers.data[0];
+      // First, try to find customer by metadata (user ID)
+      const customers = await stripe.customers.list({ 
+        limit: 100 // Get more customers to search through
+      });
+      
+      // Find customer by user ID in metadata
+      customer = customers.data.find(c => c.metadata?.user_id === user.id);
 
       if (!customer) {
         console.log(
-          "🔍 No existing customer found, creating new one for:",
-          user.email,
+          "🔍 SECURITY: No existing customer found, creating new one for user ID:",
+          user.id,
         );
-        // Create new customer
+        // Create new customer with user ID in metadata
         customer = await stripe.customers.create({
           email: user.email,
           name: user.user_metadata?.full_name || user.email,
+          metadata: {
+            user_id: user.id, // CRITICAL: Use user ID as unique identifier
+            email: user.email
+          }
         });
-        console.log("✅ Created new Stripe customer:", customer.id);
+        console.log("✅ SECURITY: Created new Stripe customer:", customer.id, "for user:", user.id);
       } else {
-        console.log("✅ Found existing Stripe customer:", customer.id);
+        console.log("✅ SECURITY: Found existing Stripe customer:", customer.id, "for user:", user.id);
       }
     } catch (error) {
-      console.error("❌ Error handling customer:", error);
+      console.error("❌ SECURITY ERROR: Error handling customer:", error);
       return NextResponse.json(
         { error: "Failed to handle customer" },
         { status: 500 },

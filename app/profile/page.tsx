@@ -284,10 +284,8 @@ export default function ProfilePage() {
         return;
       }
 
-      // Redirect to Stripe setup
-      const response = await fetch(
-        `/api/checkout/setup?email=${encodeURIComponent(profile.email)}&name=${encodeURIComponent(profile.full_name || "")}`,
-      );
+      // Redirect to Stripe setup (no parameters needed - user is authenticated)
+      const response = await fetch(`/api/checkout/setup`);
 
       if (!response.ok) {
         const errorData = await response.json();

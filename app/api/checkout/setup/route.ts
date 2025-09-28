@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { stripe, STRIPE_CONFIG } from "@/lib/stripe";
 
 export async function GET(request: Request) {
@@ -25,42 +26,67 @@ export async function GET(request: Request) {
       );
     }
 
-    const { searchParams } = new URL(request.url);
-    const email = searchParams.get("email");
-    const name = searchParams.get("name");
-
-    console.log("DEBUG: Email:", email);
-    console.log("DEBUG: Name:", name);
-
-    if (!email) {
-      console.error("ERROR: Email is required");
-      return NextResponse.json({ error: "Email is required" }, { status: 400 });
+    // CRITICAL SECURITY: Require authentication for checkout setup
+    const supabase = createSupabaseServerClient();
+    
+    // Get current user with proper session validation
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      console.error("SECURITY ERROR: Unauthenticated checkout setup attempt");
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     }
 
-    // Create or get customer
+    // CRITICAL SECURITY: Log the actual user making the request
+    console.log("🔒 SECURITY LOG: Checkout setup request from user:", {
+      userId: user.id,
+      userEmail: user.email,
+      timestamp: new Date().toISOString(),
+      endpoint: "/api/checkout/setup"
+    });
+
+    const email = user.email;
+    const name = user.user_metadata?.full_name || user.email;
+
+    console.log("DEBUG: Authenticated user email:", email);
+    console.log("DEBUG: Authenticated user name:", name);
+
+    // CRITICAL SECURITY: Use user ID as unique identifier for Stripe customers
     let customer;
     try {
-      console.log("DEBUG: Creating Stripe customer...");
-      customer = await stripe!.customers.create({
-        email,
-        name: name || undefined,
+      console.log("🔍 SECURITY: Looking for Stripe customer with user ID:", user.id);
+
+      // First, try to find customer by metadata (user ID)
+      const customers = await stripe!.customers.list({ 
+        limit: 100 // Get more customers to search through
       });
-      console.log("DEBUG: Customer created:", customer.id);
-    } catch (error: any) {
-      console.error("ERROR: Creating customer failed:", error);
-      // If customer already exists, try to retrieve it
-      if (error.code === "resource_missing") {
-        console.log("DEBUG: Customer not found, searching for existing...");
-        const customers = await stripe!.customers.list({ email });
-        customer = customers.data[0];
-        console.log("DEBUG: Found existing customer:", customer?.id);
-      } else {
-        console.error("ERROR: Failed to create customer:", error);
-        return NextResponse.json(
-          { error: "Failed to create customer", details: error.message },
-          { status: 500 },
+      
+      // Find customer by user ID in metadata
+      customer = customers.data.find(c => c.metadata?.user_id === user.id);
+
+      if (!customer) {
+        console.log(
+          "🔍 SECURITY: No existing customer found, creating new one for user ID:",
+          user.id,
         );
+        // Create new customer with user ID in metadata
+        customer = await stripe!.customers.create({
+          email,
+          name: name || undefined,
+          metadata: {
+            user_id: user.id, // CRITICAL: Use user ID as unique identifier
+            email: user.email
+          }
+        });
+        console.log("✅ SECURITY: Created new Stripe customer:", customer.id, "for user:", user.id);
+      } else {
+        console.log("✅ SECURITY: Found existing Stripe customer:", customer.id, "for user:", user.id);
       }
+    } catch (error: any) {
+      console.error("❌ SECURITY ERROR: Error handling customer:", error);
+      return NextResponse.json(
+        { error: "Failed to handle customer", details: error.message },
+        { status: 500 },
+      );
     }
 
     // Create Stripe Checkout session for setup

@@ -1,13 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET() {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
+    const supabase = createSupabaseServerClient();
+    
+    // Get current user with proper session validation
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      console.error("Auth error:", userError);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // CRITICAL SECURITY: Log the actual user making the request
+    console.log("🔒 SECURITY LOG: Profile request from user:", {
+      userId: user.id,
+      userEmail: user.email,
+      timestamp: new Date().toISOString(),
+      endpoint: "/api/user/profile"
+    });
 
     const supabase = getSupabaseAdmin();
 
@@ -53,10 +65,22 @@ export async function GET() {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
+    const supabase = createSupabaseServerClient();
+    
+    // Get current user with proper session validation
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      console.error("Auth error:", userError);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // CRITICAL SECURITY: Log the actual user making the request
+    console.log("🔒 SECURITY LOG: Profile update request from user:", {
+      userId: user.id,
+      userEmail: user.email,
+      timestamp: new Date().toISOString(),
+      endpoint: "/api/user/profile"
+    });
 
     const updates = await request.json();
     const supabase = getSupabaseAdmin();
