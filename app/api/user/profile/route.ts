@@ -21,11 +21,11 @@ export async function GET() {
       endpoint: "/api/user/profile"
     });
 
-    const supabase = getSupabaseAdmin();
+    const adminSupabase = getSupabaseAdmin();
 
     // Get user profile from profiles table
     // Only select columns that exist (graceful fallback for missing columns)
-    const { data: profile, error } = await supabase
+    const { data: profile, error } = await adminSupabase
       .from("profiles")
       .select(
         `
@@ -83,7 +83,7 @@ export async function PATCH(request: NextRequest) {
     });
 
     const updates = await request.json();
-    const supabase = getSupabaseAdmin();
+    const adminSupabase = getSupabaseAdmin();
 
     // Filter out non-existent columns to prevent errors
     const allowedColumns = [
@@ -104,7 +104,7 @@ export async function PATCH(request: NextRequest) {
       }, {} as any);
 
     // Update user profile
-    const { data, error } = await supabase
+    const { data, error } = await adminSupabase
       .from("profiles")
       .update({
         ...filteredUpdates,
