@@ -393,8 +393,9 @@ export default function ProfilePage() {
 
   const copyToClipboard = async (text: string, type: "code" | "url") => {
     try {
-      // Clean the text to remove any potential line breaks or whitespace
-      const cleanText = text.trim().replace(/\s+/g, " ");
+      // Clean the text to remove any potential line breaks and normalize whitespace
+      // For URLs, preserve the structure but remove unwanted line breaks
+      const cleanText = text.trim().replace(/\n/g, "").replace(/\r/g, "").replace(/\s+/g, " ");
       await navigator.clipboard.writeText(cleanText);
       if (type === "code") {
         setCopiedCode(true);
@@ -999,7 +1000,7 @@ export default function ProfilePage() {
                     </Label>
                     <div className="flex gap-2">
                       <Input
-                        value={invitation.signupUrl}
+                        value={invitation.signupUrl?.replace(/\s+/g, "") || ""}
                         readOnly
                         className="text-sm font-mono whitespace-nowrap overflow-hidden"
                         style={{ wordBreak: "keep-all" }}
@@ -1008,7 +1009,7 @@ export default function ProfilePage() {
                         size="sm"
                         variant="outline"
                         onClick={() =>
-                          copyToClipboard(invitation.signupUrl, "url")
+                          copyToClipboard(invitation.signupUrl?.replace(/\s+/g, "") || "", "url")
                         }
                       >
                         {copiedUrl ? (
