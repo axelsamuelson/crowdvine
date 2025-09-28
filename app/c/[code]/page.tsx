@@ -80,7 +80,13 @@ export default function CodeSignupPage() {
           router.push("/log-in");
         }
       } else {
-        toast.error(data.error || "Failed to create account");
+        // Handle security validation errors
+        if (data.error && data.error.includes("Security validation failed")) {
+          toast.error("Security validation failed. Please try signing in manually.");
+          router.push("/log-in");
+        } else {
+          toast.error(data.error || "Failed to create account");
+        }
       }
     } catch (error) {
       console.error("Error creating account:", error);

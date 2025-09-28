@@ -118,14 +118,28 @@ function InviteSignupContent() {
       const inviteData = await inviteResponse.json();
 
       if (inviteData.success && inviteData.user) {
-        setSuccess(true);
-
-        // Redirect to home page after 2 seconds since user is now logged in
-        setTimeout(() => {
-          router.push("/");
-        }, 2000);
+        if (inviteData.autoSignedIn) {
+          setSuccess(true);
+          // Redirect to home page after 2 seconds since user is now logged in
+          setTimeout(() => {
+            router.push("/");
+          }, 2000);
+        } else {
+          setError("Account created successfully. Please log in manually.");
+          setTimeout(() => {
+            router.push("/log-in");
+          }, 2000);
+        }
       } else {
-        setError("Failed to create account");
+        // Handle security validation errors
+        if (inviteData.error && inviteData.error.includes("Security validation failed")) {
+          setError("Security validation failed. Please try signing in manually.");
+          setTimeout(() => {
+            router.push("/log-in");
+          }, 2000);
+        } else {
+          setError(inviteData.error || "Failed to create account");
+        }
       }
     } catch (error) {
       setError("Failed to create account");

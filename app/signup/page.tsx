@@ -149,38 +149,53 @@ function SignupPageContent() {
       const createUserData = await createUserResponse.json();
 
       if (createUserData.success && createUserData.user) {
-        // Mark token as used
-        await fetch("/api/use-access-token", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token }),
-        });
+        if (createUserData.autoSignedIn) {
+          // Mark token as used
+          await fetch("/api/use-access-token", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token }),
+          });
 
-        // Remove access request from Access Control (moves to Users)
-        await fetch("/api/delete-access-request-on-signup", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        });
+          // Remove access request from Access Control (moves to Users)
+          await fetch("/api/delete-access-request-on-signup", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email }),
+          });
 
-        // Send welcome email
-        await fetch("/api/email/welcome", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            customerEmail: email,
-            customerName: email.split("@")[0], // Use email prefix as name
-          }),
-        });
+          // Send welcome email
+          await fetch("/api/email/welcome", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              customerEmail: email,
+              customerName: email.split("@")[0], // Use email prefix as name
+            }),
+          });
 
-        setSuccess(true);
+          setSuccess(true);
 
-        // Redirect to home page after 2 seconds since user is now logged in
-        setTimeout(() => {
-          router.push("/");
-        }, 2000);
+          // Redirect to home page after 2 seconds since user is now logged in
+          setTimeout(() => {
+            router.push("/");
+          }, 2000);
+        } else {
+          setError("Account created successfully. Please log in manually.");
+          setTimeout(() => {
+            router.push("/log-in");
+          }, 2000);
+        }
       } else {
-        setError("Failed to create account");
+        // Handle security validation errors
+        if (createUserData.error && createUserData.error.includes("Security validation failed")) {
+          setError("Security validation failed. Please try signing in manually.");
+          setTimeout(() => {
+            router.push("/log-in");
+          }, 2000);
+        } else {
+          setError(createUserData.error || "Failed to create account");
+        }
       }
     } catch (error) {
       setError("Failed to create account");

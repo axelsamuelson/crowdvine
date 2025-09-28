@@ -215,6 +215,11 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // CRITICAL SECURITY: Clear any existing sessions before signing in the new user
+      // This prevents users from being logged into the wrong account
+      console.log("Clearing existing sessions for security (existing profile)...");
+      await supabase.auth.signOut({ scope: "global" });
+
       // Automatically sign in the user after successful account creation
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.toLowerCase().trim(),
@@ -233,6 +238,21 @@ export async function POST(request: NextRequest) {
           autoSignedIn: false,
           message: "Account created successfully. Please sign in with your credentials.",
         });
+      }
+
+      // CRITICAL SECURITY: Verify that the signed-in user matches the created user
+      if (signInData.user?.id !== authData.user.id) {
+        console.error("SECURITY ALERT: Signed-in user ID does not match created user ID (existing profile)!");
+        console.error("Created user ID:", authData.user.id);
+        console.error("Signed-in user ID:", signInData.user?.id);
+        
+        // Sign out immediately for security
+        await supabase.auth.signOut({ scope: "global" });
+        
+        return NextResponse.json({
+          success: false,
+          error: "Security validation failed. Please try signing in manually.",
+        }, { status: 500 });
       }
 
       return NextResponse.json({
@@ -388,6 +408,11 @@ export async function POST(request: NextRequest) {
       console.error("Error creating invitation reward:", rewardError);
     }
 
+    // CRITICAL SECURITY: Clear any existing sessions before signing in the new user
+    // This prevents users from being logged into the wrong account
+    console.log("Clearing existing sessions for security...");
+    await supabase.auth.signOut({ scope: "global" });
+
     // Automatically sign in the user after successful account creation
     const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
       email: email.toLowerCase().trim(),
@@ -406,6 +431,21 @@ export async function POST(request: NextRequest) {
         autoSignedIn: false,
         message: "Account created successfully. Please sign in with your credentials.",
       });
+    }
+
+    // CRITICAL SECURITY: Verify that the signed-in user matches the created user
+    if (signInData.user?.id !== authData.user.id) {
+      console.error("SECURITY ALERT: Signed-in user ID does not match created user ID!");
+      console.error("Created user ID:", authData.user.id);
+      console.error("Signed-in user ID:", signInData.user?.id);
+      
+      // Sign out immediately for security
+      await supabase.auth.signOut({ scope: "global" });
+      
+      return NextResponse.json({
+        success: false,
+        error: "Security validation failed. Please try signing in manually.",
+      }, { status: 500 });
     }
 
     // Return success with auto sign-in information

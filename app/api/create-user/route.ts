@@ -290,6 +290,11 @@ export async function POST(request: NextRequest) {
       // Create a server client for signing in
       const serverSupabase = createSupabaseServerClient();
       
+      // CRITICAL SECURITY: Clear any existing sessions before signing in the new user
+      // This prevents users from being logged into the wrong account
+      console.log("Clearing existing sessions for security...");
+      await serverSupabase.auth.signOut({ scope: "global" });
+      
       const { data: signInData, error: signInError } = await serverSupabase.auth.signInWithPassword({
         email: normalizedEmail,
         password,
@@ -306,6 +311,21 @@ export async function POST(request: NextRequest) {
           autoSignedIn: false,
           message: "Account created successfully. Please sign in.",
         });
+      }
+
+      // CRITICAL SECURITY: Verify that the signed-in user matches the created user
+      if (signInData.user?.id !== authUserId) {
+        console.error("SECURITY ALERT: Signed-in user ID does not match created user ID!");
+        console.error("Created user ID:", authUserId);
+        console.error("Signed-in user ID:", signInData.user?.id);
+        
+        // Sign out immediately for security
+        await serverSupabase.auth.signOut({ scope: "global" });
+        
+        return NextResponse.json({
+          success: false,
+          error: "Security validation failed. Please try signing in manually.",
+        }, { status: 500 });
       }
 
       console.log("6a. User automatically signed in successfully");
