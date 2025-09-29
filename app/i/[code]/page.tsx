@@ -64,8 +64,14 @@ export default function InviteSignupPage() {
 
   useEffect(() => {
     if (code) {
-      validateInvitation();
-      fetchCurrentPallet();
+      // Run both functions in parallel but ensure loading is set to false
+      Promise.all([
+        validateInvitation(),
+        fetchCurrentPallet()
+      ]).catch((error) => {
+        console.error("Error in useEffect:", error);
+        setLoading(false);
+      });
     }
   }, [code]);
 
@@ -89,6 +95,8 @@ export default function InviteSignupPage() {
       console.error("Error validating invitation:", error);
       toast.error("Failed to validate invitation");
       router.push("/access-request");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -270,8 +278,18 @@ export default function InviteSignupPage() {
     );
   }
 
-  // Get sender name from invitation data
-  const senderName = invitation.profiles?.email?.split('@')[0] || "A friend";
+  // Get sender name from invitation data with safe access
+  const senderName = (() => {
+    try {
+      if (invitation?.profiles?.email) {
+        return invitation.profiles.email.split('@')[0];
+      }
+      return "A friend";
+    } catch (error) {
+      console.error("Error getting sender name:", error);
+      return "A friend";
+    }
+  })();
 
   return (
     <PageLayout>
