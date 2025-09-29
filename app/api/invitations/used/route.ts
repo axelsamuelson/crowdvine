@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user's used invitations with email from profiles
+    // Only include invitations where the referenced user still exists
     const { data: usedInvitations, error } = await supabase
       .from("invitation_codes")
       .select(`
@@ -47,6 +48,7 @@ export async function GET(request: NextRequest) {
       `)
       .eq("created_by", user.id)
       .gt("current_uses", 0)
+      .not("profiles", "is", null)
       .order("used_at", { ascending: false });
 
     if (error) {
