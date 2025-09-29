@@ -5,41 +5,8 @@ export async function GET() {
   try {
     const sb = getSupabaseAdmin();
     
-    console.log("🔍 Debug: Starting pallet fetch...");
-    
-    // First try a simple query to check if the table exists
+    // Get pallets with full data
     const { data, error } = await sb
-      .from("pallets")
-      .select("id, name, bottle_capacity")
-      .limit(1);
-
-    console.log("🔍 Debug: Simple query result:", { data, error });
-
-    if (error) {
-      console.error("Error fetching pallets:", error);
-      // Return debug info instead of empty array
-      return NextResponse.json({ 
-        debug: true,
-        error: error.message,
-        errorCode: error.code,
-        errorDetails: error.details,
-        errorHint: error.hint
-      });
-    }
-
-    // Handle case when no pallets exist
-    if (!data || data.length === 0) {
-      console.log("🔍 Debug: No pallets found in database");
-      return NextResponse.json({ 
-        debug: true,
-        message: "No pallets found",
-        data: data,
-        count: 0
-      });
-    }
-
-    // If we have pallets, try to get full data
-    const { data: fullData, error: fullError } = await sb
       .from("pallets")
       .select(
         `
@@ -66,22 +33,18 @@ export async function GET() {
       )
       .order("created_at", { ascending: false });
 
-    if (fullError) {
-      console.error("Error fetching full pallet data:", fullError);
-      // Return simple data if complex query fails
-      return NextResponse.json(data.map(pallet => ({
-        ...pallet,
-        total_booked_bottles: 0,
-        remaining_bottles: pallet.bottle_capacity,
-        completion_percentage: 0,
-        wine_summary: [],
-        is_complete: false,
-        needs_ordering: true,
-      })));
+    if (error) {
+      console.error("Error fetching pallets:", error);
+      return NextResponse.json([]);
+    }
+
+    // Handle case when no pallets exist
+    if (!data || data.length === 0) {
+      return NextResponse.json([]);
     }
 
     // Transform data to include calculated fields
-    const transformedData = fullData.map((pallet) => {
+    const transformedData = data.map((pallet) => {
       const totalBookedBottles =
         pallet.bookings?.reduce((sum, booking) => sum + booking.quantity, 0) || 0;
       const remainingBottles = pallet.bottle_capacity - totalBookedBottles;
