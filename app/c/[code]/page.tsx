@@ -106,8 +106,8 @@ export default function CodeSignupPage() {
         // Create mock pallet data for demonstration
         setPallet({
           id: "mock-pallet",
-          name: "The Languedoc Mixed Pallet",
-          description: "A curated selection of exceptional wines from the Languedoc region",
+          name: "Beziers to Stockholm",
+          description: "A curated selection of exceptional wines from Beziers, delivered to Stockholm",
           bottle_capacity: 600,
           total_booked_bottles: 542,
           remaining_bottles: 58,
@@ -463,9 +463,9 @@ export default function CodeSignupPage() {
           <div className="bg-white rounded-2xl shadow-lg p-8 mb-8">
             <h3 className="text-2xl font-bold text-gray-900 mb-4">About This Pallet</h3>
             <p className="text-lg text-gray-700 leading-relaxed">
-              This pallet brings together some of the most exciting producers in southern France. 
-              By joining, you don't just buy wine – you unlock access to bottles usually reserved 
-              for restaurants and importers.
+              This pallet brings together some of the most exciting producers from Beziers in southern France, 
+              delivered directly to Stockholm. By joining, you don't just buy wine – you unlock access to bottles 
+              usually reserved for restaurants and importers.
             </p>
           </div>
 
