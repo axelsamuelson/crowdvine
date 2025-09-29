@@ -3,7 +3,8 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password, code } = await request.json();
+    const { email, password, invitation_code, full_name } = await request.json();
+    const code = invitation_code;
 
     console.log("Redeem invitation request:", {
       email,
@@ -113,6 +114,7 @@ export async function POST(request: NextRequest) {
         .update({
           access_granted_at:
             existingProfile.access_granted_at || new Date().toISOString(),
+          full_name: full_name || existingProfile.full_name,
           invite_code_used: code,
           updated_at: new Date().toISOString(),
         })
@@ -291,6 +293,7 @@ export async function POST(request: NextRequest) {
     const { error: profileError } = await supabase.from("profiles").insert({
       id: authData.user.id,
       email: email.toLowerCase().trim(),
+      full_name: full_name || null,
       access_granted_at: new Date().toISOString(),
       invite_code_used: code,
     });
