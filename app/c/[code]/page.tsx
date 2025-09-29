@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { PageLayout } from "@/components/layout/page-layout";
 import { UserPlus, Check, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function CodeSignupPage() {
   const params = useParams();
