@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user's used invitations with email from profiles
-    // Only include invitations where the referenced user still exists
+    // Use LEFT JOIN to handle cases where the referenced user might be deleted
     const { data: usedInvitations, error } = await supabase
       .from("invitation_codes")
       .select(`
@@ -48,8 +48,12 @@ export async function GET(request: NextRequest) {
       `)
       .eq("created_by", user.id)
       .gt("current_uses", 0)
-      .not("profiles", "is", null)
       .order("used_at", { ascending: false });
+    
+    // Filter out invitations where the referenced user no longer exists
+    const validInvitations = usedInvitations?.filter(invitation => 
+      invitation.profiles?.email // Only include invitations where the user still exists
+    ) || [];
 
     if (error) {
       console.error("Error fetching used invitations:", error);
@@ -61,7 +65,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      usedInvitations: usedInvitations || [],
+      usedInvitations: validInvitations,
     });
   } catch (error) {
     console.error("Used invitations API error:", error);
