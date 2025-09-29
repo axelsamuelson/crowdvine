@@ -7,7 +7,7 @@ export async function middleware(req: NextRequest) {
   // Offentliga paths (UI oförändrad, bara backend-gate)
   const PUBLIC = [
     "/log-in", "/signup", "/invite-signup", "/code-signup",
-    "/access-request", "/i", "/c",
+    "/access-request", "/i", "/c", "/pallet",
   ];
   const isPublic = PUBLIC.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
