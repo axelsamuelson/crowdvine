@@ -120,10 +120,10 @@ function InviteSignupContent() {
       if (inviteData.success && inviteData.user) {
         if (inviteData.autoSignedIn) {
           setSuccess(true);
-          // Redirect to profile page after 3 seconds since user is now logged in
+          // Redirect to profile page after 2 seconds since user is now logged in
           setTimeout(() => {
-            router.push("/profile");
-          }, 3000);
+            window.location.href = "/profile";
+          }, 2000);
         } else {
           setError("Account created successfully. Please log in manually.");
           setTimeout(() => {

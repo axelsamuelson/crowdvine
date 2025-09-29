@@ -74,10 +74,10 @@ export default function CodeSignupPage() {
       if (data.success) {
         if (data.autoSignedIn) {
           toast.success("Account created and signed in successfully! Welcome to PACT Wines!");
-          // Use longer delay to ensure session is properly established
+          // Use window.location.href to force full page reload and session establishment
           setTimeout(() => {
-            router.push("/profile");
-          }, 3000);
+            window.location.href = "/profile";
+          }, 2000);
         } else {
           toast.success("Account created successfully! Please log in.");
           router.push("/log-in");
