@@ -5,21 +5,37 @@ export async function GET() {
   try {
     const sb = getSupabaseAdmin();
     
+    console.log("🔍 Debug: Starting pallet fetch...");
+    
     // First try a simple query to check if the table exists
     const { data, error } = await sb
       .from("pallets")
       .select("id, name, bottle_capacity")
       .limit(1);
 
+    console.log("🔍 Debug: Simple query result:", { data, error });
+
     if (error) {
       console.error("Error fetching pallets:", error);
-      // Return empty array if table doesn't exist or has issues
-      return NextResponse.json([]);
+      // Return debug info instead of empty array
+      return NextResponse.json({ 
+        debug: true,
+        error: error.message,
+        errorCode: error.code,
+        errorDetails: error.details,
+        errorHint: error.hint
+      });
     }
 
     // Handle case when no pallets exist
     if (!data || data.length === 0) {
-      return NextResponse.json([]);
+      console.log("🔍 Debug: No pallets found in database");
+      return NextResponse.json({ 
+        debug: true,
+        message: "No pallets found",
+        data: data,
+        count: 0
+      });
     }
 
     // If we have pallets, try to get full data
