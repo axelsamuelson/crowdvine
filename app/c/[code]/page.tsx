@@ -138,8 +138,8 @@ export default function CodeSignupPage() {
               total_quantity: 192
             }
           ],
-          delivery_zone: { name: "Stockholm" },
-          pickup_zone: { name: "Stockholm Central" }
+          delivery_zone: { name: "Stockholm 50km" },
+          pickup_zone: { name: "Stockholm Pickup Point" }
         });
       }
     } catch (error) {
