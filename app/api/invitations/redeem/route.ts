@@ -216,6 +216,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Automatically sign in the user after successful account creation
+      console.log("🔄 Attempting auto-login for user (existing profile):", email);
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.toLowerCase().trim(),
         password,
@@ -223,7 +224,7 @@ export async function POST(request: NextRequest) {
 
       if (signInError) {
         // If auto sign-in fails, still return success but user will need to sign in manually
-        console.error("Auto sign-in failed:", signInError);
+        console.error("❌ Auto sign-in failed (existing profile):", signInError);
         return NextResponse.json({
           success: true,
           user: {
@@ -234,6 +235,14 @@ export async function POST(request: NextRequest) {
           message: "Account created successfully. Please sign in with your credentials.",
         });
       }
+
+      console.log("✅ Auto-login successful for user (existing profile):", email);
+      console.log("🔍 Session data (existing profile):", {
+        hasSession: !!signInData.session,
+        hasAccessToken: !!signInData.session?.access_token,
+        hasRefreshToken: !!signInData.session?.refresh_token,
+        sessionExpiresAt: signInData.session?.expires_at
+      });
 
       // CRITICAL SECURITY: Verify that the signed-in user matches the created user
       if (signInData.user?.id !== authData.user.id) {
@@ -250,7 +259,8 @@ export async function POST(request: NextRequest) {
         }, { status: 500 });
       }
 
-      return NextResponse.json({
+      // Return success with auto sign-in information
+      const response = NextResponse.json({
         success: true,
         user: {
           id: signInData.user?.id,
@@ -259,6 +269,31 @@ export async function POST(request: NextRequest) {
         autoSignedIn: true,
         message: "Account created and signed in successfully.",
       });
+
+      // Set session cookies for the frontend
+      if (signInData.session) {
+        console.log("🍪 Setting session cookies (existing profile)...");
+        response.cookies.set('sb-access-token', signInData.session.access_token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 7, // 7 days
+          path: '/'
+        });
+        
+        response.cookies.set('sb-refresh-token', signInData.session.refresh_token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 30, // 30 days
+          path: '/'
+        });
+        console.log("✅ Session cookies set successfully (existing profile)");
+      } else {
+        console.error("❌ No session data available to set cookies (existing profile)");
+      }
+
+      return response;
     }
 
     // Create profile with access granted
