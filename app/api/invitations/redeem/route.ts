@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -217,7 +218,9 @@ export async function POST(request: NextRequest) {
 
       // Automatically sign in the user after successful account creation
       console.log("🔄 Attempting auto-login for user (existing profile):", email);
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      // Create a new Supabase client with cookie handling for auto-login
+      const authSupabase = createSupabaseServerClient();
+      const { data: signInData, error: signInError } = await authSupabase.auth.signInWithPassword({
         email: email.toLowerCase().trim(),
         password,
       });
@@ -260,7 +263,9 @@ export async function POST(request: NextRequest) {
       }
 
       // Return success with auto sign-in information
-      const response = NextResponse.json({
+      // Note: Supabase SSR automatically handles cookie setting via createSupabaseServerClient()
+      console.log("✅ Auto-login completed successfully (existing profile), cookies set by Supabase SSR");
+      return NextResponse.json({
         success: true,
         user: {
           id: signInData.user?.id,
@@ -269,31 +274,6 @@ export async function POST(request: NextRequest) {
         autoSignedIn: true,
         message: "Account created and signed in successfully.",
       });
-
-      // Set session cookies for the frontend
-      if (signInData.session) {
-        console.log("🍪 Setting session cookies (existing profile)...");
-        response.cookies.set('sb-access-token', signInData.session.access_token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 60 * 60 * 24 * 7, // 7 days
-          path: '/'
-        });
-        
-        response.cookies.set('sb-refresh-token', signInData.session.refresh_token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 60 * 60 * 24 * 30, // 30 days
-          path: '/'
-        });
-        console.log("✅ Session cookies set successfully (existing profile)");
-      } else {
-        console.error("❌ No session data available to set cookies (existing profile)");
-      }
-
-      return response;
     }
 
     // Create profile with access granted
@@ -440,7 +420,9 @@ export async function POST(request: NextRequest) {
 
     // Automatically sign in the user after successful account creation
     console.log("🔄 Attempting auto-login for user:", email);
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+    // Create a new Supabase client with cookie handling for auto-login
+    const authSupabase = createSupabaseServerClient();
+    const { data: signInData, error: signInError } = await authSupabase.auth.signInWithPassword({
       email: email.toLowerCase().trim(),
       password,
     });
@@ -483,7 +465,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Return success with auto sign-in information
-    const response = NextResponse.json({
+    // Note: Supabase SSR automatically handles cookie setting via createSupabaseServerClient()
+    console.log("✅ Auto-login completed successfully, cookies set by Supabase SSR");
+    return NextResponse.json({
       success: true,
       user: {
         id: signInData.user?.id,
@@ -492,31 +476,6 @@ export async function POST(request: NextRequest) {
       autoSignedIn: true,
       message: "Account created and signed in successfully.",
     });
-
-    // Set session cookies for the frontend
-    if (signInData.session) {
-      console.log("🍪 Setting session cookies...");
-      response.cookies.set('sb-access-token', signInData.session.access_token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7, // 7 days
-        path: '/'
-      });
-      
-      response.cookies.set('sb-refresh-token', signInData.session.refresh_token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 30, // 30 days
-        path: '/'
-      });
-      console.log("✅ Session cookies set successfully");
-    } else {
-      console.error("❌ No session data available to set cookies");
-    }
-
-    return response;
   } catch (error) {
     console.error("Redeem invitation error:", error);
     console.error(
