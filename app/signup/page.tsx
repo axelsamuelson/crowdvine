@@ -176,9 +176,10 @@ function SignupPageContent() {
 
           setSuccess(true);
 
-          // Redirect to profile page after 2 seconds since user is now logged in
+          console.log("✅ Auto-login successful, redirecting to home page");
+          // Redirect to home page after 2 seconds since user is now logged in
           setTimeout(() => {
-            window.location.href = "/profile";
+            window.location.href = "/";
           }, 2000);
         } else {
           setError("Account created successfully. Please log in manually.");

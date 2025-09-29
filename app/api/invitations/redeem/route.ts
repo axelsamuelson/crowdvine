@@ -404,6 +404,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Automatically sign in the user after successful account creation
+    console.log("🔄 Attempting auto-login for user:", email);
     const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
       email: email.toLowerCase().trim(),
       password,
@@ -411,7 +412,7 @@ export async function POST(request: NextRequest) {
 
     if (signInError) {
       // If auto sign-in fails, still return success but user will need to sign in manually
-      console.error("Auto sign-in failed:", signInError);
+      console.error("❌ Auto sign-in failed:", signInError);
       return NextResponse.json({
         success: true,
         user: {
@@ -422,6 +423,8 @@ export async function POST(request: NextRequest) {
         message: "Account created successfully. Please sign in with your credentials.",
       });
     }
+
+    console.log("✅ Auto-login successful for user:", email);
 
     // CRITICAL SECURITY: Verify that the signed-in user matches the created user
     if (signInData.user?.id !== authData.user.id) {

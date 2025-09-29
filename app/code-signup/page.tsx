@@ -117,9 +117,10 @@ function CodeSignupContent() {
       if (response.ok && data.success) {
         if (data.autoSignedIn) {
           toast.success("Account created and signed in successfully!");
-          // Redirect to profile page since user is now logged in
+          console.log("✅ Auto-login successful, redirecting to home page");
+          // Redirect to home page since user is now logged in
           setTimeout(() => {
-            window.location.href = "/profile";
+            window.location.href = "/";
           }, 2000);
         } else {
           toast.success("Account created successfully! Please log in.");

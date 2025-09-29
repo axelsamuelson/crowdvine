@@ -74,11 +74,13 @@ export default function InviteSignupPage() {
       if (data.success) {
         if (data.autoSignedIn) {
           toast.success("Account created and signed in successfully! Welcome to PACT Wines!");
+          console.log("✅ Auto-login successful, redirecting to home page");
           // Use window.location.href to force full page reload and session establishment
           setTimeout(() => {
-            window.location.href = "/profile";
+            window.location.href = "/";
           }, 2000);
         } else {
+          console.log("❌ Auto-login failed, redirecting to login page");
           toast.success("Account created successfully! Please log in.");
           router.push("/log-in");
         }
