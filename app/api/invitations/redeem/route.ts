@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
 
     console.log("Redeem invitation request:", {
       email,
-      code: code.substring(0, 10) + "...",
+      code: code ? code.substring(0, 10) + "..." : "undefined",
     });
 
     if (!email || !password || !code) {
