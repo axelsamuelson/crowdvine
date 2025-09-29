@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabase-server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET() {
   try {
-    const sb = await supabaseServer();
+    const sb = getSupabaseAdmin();
     
     // First try a simple query to check if the table exists
     const { data, error } = await sb
@@ -115,7 +115,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const sb = await supabaseServer();
+  const sb = getSupabaseAdmin();
   const body = await request.json();
 
   const { data, error } = await sb
