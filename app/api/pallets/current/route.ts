@@ -39,10 +39,44 @@ export async function GET() {
     }
 
     if (!pallet) {
-      return NextResponse.json(
-        { error: "No active pallet found" },
-        { status: 404 }
-      );
+      // Return mock data for demonstration
+      const mockPallet = {
+        id: "mock-pallet-1",
+        name: "The Languedoc Mixed Pallet",
+        description: "This pallet brings together some of the most exciting producers in southern France. By joining, you don't just buy wine – you unlock access to bottles usually reserved for restaurants and importers.",
+        bottle_capacity: 600,
+        cost_cents: 15000, // 150 SEK
+        delivery_zone: {
+          id: "mock-delivery-zone",
+          name: "Stockholm Delivery Zone",
+          zone_type: "delivery"
+        },
+        pickup_zone: {
+          id: "mock-pickup-zone", 
+          name: "Stockholm Pickup Point",
+          zone_type: "pickup"
+        },
+        created_at: new Date().toISOString(),
+      };
+
+      const mockProgress = {
+        bottles_reserved: 542,
+        total_capacity: 600,
+        percentage: 90,
+        days_until_deadline: 3,
+      };
+
+      const mockProducers = [
+        { id: "1", name: "Domaine de la Clape", region: "Languedoc", country_code: "FR" },
+        { id: "2", name: "Château de Lascaux", region: "Languedoc", country_code: "FR" },
+        { id: "3", name: "Mas de Daumas Gassac", region: "Languedoc", country_code: "FR" },
+      ];
+
+      return NextResponse.json({
+        pallet: mockPallet,
+        progress: mockProgress,
+        producers: mockProducers,
+      });
     }
 
     // Get current reservations for this pallet
