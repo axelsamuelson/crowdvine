@@ -72,13 +72,21 @@ export default function InviteSignupPage() {
       const data = await response.json();
 
       if (data.success) {
-        if (data.autoSignedIn) {
+        if (data.autoSignedIn && data.session) {
           toast.success("Account created and signed in successfully! Welcome to PACT Wines!");
-          console.log("✅ Auto-login successful, redirecting to home page");
+          console.log("✅ Auto-login successful, setting session and redirecting to home page");
+          
+          // Set session using Supabase client
+          const supabase = getSupabaseBrowserClient();
+          await supabase.auth.setSession({
+            access_token: data.session.access_token,
+            refresh_token: data.session.refresh_token,
+          });
+          
           // Use window.location.href to force full page reload and session establishment
           setTimeout(() => {
             window.location.href = "/";
-          }, 2000);
+          }, 1000);
         } else {
           console.log("❌ Auto-login failed, redirecting to login page");
           toast.success("Account created successfully! Please log in.");
