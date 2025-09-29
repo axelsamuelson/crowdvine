@@ -31,11 +31,17 @@ export async function GET() {
     .order("created_at", { ascending: false });
 
   if (error) {
+    console.error("Error fetching pallets:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  // Handle case when no pallets exist
+  if (!data || data.length === 0) {
+    return NextResponse.json([]);
+  }
+
   // Transform data to include calculated fields
-  const transformedData = (data || []).map((pallet) => {
+  const transformedData = data.map((pallet) => {
     const totalBookedBottles =
       pallet.bookings?.reduce((sum, booking) => sum + booking.quantity, 0) || 0;
     const remainingBottles = pallet.bottle_capacity - totalBookedBottles;
