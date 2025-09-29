@@ -119,8 +119,8 @@ function CodeSignupContent() {
           toast.success("Account created and signed in successfully!");
           // Redirect to profile page since user is now logged in
           setTimeout(() => {
-            window.location.href = "/profile";
-          }, 1000);
+            router.push("/profile");
+          }, 3000);
         } else {
           toast.success("Account created successfully! Please log in.");
           // Redirect to login page

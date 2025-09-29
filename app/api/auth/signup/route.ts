@@ -80,11 +80,6 @@ export async function POST(req: Request) {
       .eq("code", invitation_code);
   }
 
-  // CRITICAL SECURITY: Clear any existing sessions before signing in the new user
-  // This prevents users from being logged into the wrong account
-  console.log("Clearing existing sessions for security...");
-  await supabase.auth.signOut({ scope: "global" });
-
   // Automatically sign in the user after successful signup
   const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
     email,

@@ -290,11 +290,6 @@ export async function POST(request: NextRequest) {
       // Create a server client for signing in
       const serverSupabase = createSupabaseServerClient();
       
-      // CRITICAL SECURITY: Clear any existing sessions before signing in the new user
-      // This prevents users from being logged into the wrong account
-      console.log("Clearing existing sessions for security...");
-      await serverSupabase.auth.signOut({ scope: "global" });
-      
       const { data: signInData, error: signInError } = await serverSupabase.auth.signInWithPassword({
         email: normalizedEmail,
         password,
