@@ -1,6 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
+
+// Helper function to create a Supabase client with NextResponse cookie handling for API routes
+function createSupabaseClientWithCookies(request: NextRequest, response: NextResponse) {
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get: (name) => {
+          return request.cookies.get(name)?.value;
+        },
+        set: (name, value, options: CookieOptions) => {
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+            sameSite: options.sameSite === "strict" || options.sameSite === "lax" ? options.sameSite : "lax",
+          });
+        },
+        remove: (name, options: CookieOptions) => {
+          response.cookies.set({
+            name,
+            value: "",
+            ...options,
+            maxAge: 0,
+          });
+        },
+      },
+    }
+  );
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -218,8 +249,19 @@ export async function POST(request: NextRequest) {
 
       // Automatically sign in the user after successful account creation
       console.log("🔄 Attempting auto-login for user (existing profile):", email);
-      // Create a new Supabase client with cookie handling for auto-login
-      const authSupabase = createSupabaseServerClient();
+      // Create a response object first
+      const response = NextResponse.json({
+        success: true,
+        user: {
+          id: authData.user.id,
+          email: authData.user.email,
+        },
+        autoSignedIn: true,
+        message: "Account created and signed in successfully.",
+      });
+
+      // Create a new Supabase client with NextResponse cookie handling for auto-login
+      const authSupabase = createSupabaseClientWithCookies(request, response);
       const { data: signInData, error: signInError } = await authSupabase.auth.signInWithPassword({
         email: email.toLowerCase().trim(),
         password,
@@ -262,18 +304,9 @@ export async function POST(request: NextRequest) {
         }, { status: 500 });
       }
 
-      // Return success with auto sign-in information
-      // Note: Supabase SSR automatically handles cookie setting via createSupabaseServerClient()
+      // Return response with cookies set by Supabase SSR
       console.log("✅ Auto-login completed successfully (existing profile), cookies set by Supabase SSR");
-      return NextResponse.json({
-        success: true,
-        user: {
-          id: signInData.user?.id,
-          email: signInData.user?.email,
-        },
-        autoSignedIn: true,
-        message: "Account created and signed in successfully.",
-      });
+      return response;
     }
 
     // Create profile with access granted
@@ -420,8 +453,19 @@ export async function POST(request: NextRequest) {
 
     // Automatically sign in the user after successful account creation
     console.log("🔄 Attempting auto-login for user:", email);
-    // Create a new Supabase client with cookie handling for auto-login
-    const authSupabase = createSupabaseServerClient();
+    // Create a response object first
+    const response = NextResponse.json({
+      success: true,
+      user: {
+        id: authData.user.id,
+        email: authData.user.email,
+      },
+      autoSignedIn: true,
+      message: "Account created and signed in successfully.",
+    });
+
+    // Create a new Supabase client with NextResponse cookie handling for auto-login
+    const authSupabase = createSupabaseClientWithCookies(request, response);
     const { data: signInData, error: signInError } = await authSupabase.auth.signInWithPassword({
       email: email.toLowerCase().trim(),
       password,
@@ -464,18 +508,9 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    // Return success with auto sign-in information
-    // Note: Supabase SSR automatically handles cookie setting via createSupabaseServerClient()
+    // Return response with cookies set by Supabase SSR
     console.log("✅ Auto-login completed successfully, cookies set by Supabase SSR");
-    return NextResponse.json({
-      success: true,
-      user: {
-        id: signInData.user?.id,
-        email: signInData.user?.email,
-      },
-      autoSignedIn: true,
-      message: "Account created and signed in successfully.",
-    });
+    return response;
   } catch (error) {
     console.error("Redeem invitation error:", error);
     console.error(
