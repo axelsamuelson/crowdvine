@@ -48,7 +48,17 @@ export async function middleware(req: NextRequest) {
       .eq("id", user.id)
       .maybeSingle();
 
+    console.log("🔍 MIDDLEWARE: User profile check:", {
+      userId: user.id,
+      userEmail: user.email,
+      pathname,
+      hasProfile: !!profile,
+      accessGrantedAt: profile?.access_granted_at,
+      role: profile?.role
+    });
+
     if (!profile?.access_granted_at) {
+      console.log("🚫 MIDDLEWARE: Access denied, redirecting to access-request");
       const ask = new URL("/access-request", req.url);
       ask.searchParams.set("redirectedFrom", pathname);
       return NextResponse.redirect(ask);
