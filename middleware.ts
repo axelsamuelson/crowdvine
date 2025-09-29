@@ -31,11 +31,28 @@ export async function middleware(req: NextRequest) {
     }
   );
 
+  // Log cookie information for debugging
+  const cookieNames = Array.from(req.cookies.getAll().map(c => c.name));
+  console.log("🍪 MIDDLEWARE: Cookie info:", {
+    hasAuthCookie: !!req.cookies.get("sb-access-token"),
+    hasRefreshCookie: !!req.cookies.get("sb-refresh-token"),
+    cookieNames: cookieNames
+  });
+
   const { data: { user } } = await supabase.auth.getUser();
+
+  console.log("🔍 MIDDLEWARE: Request details:", {
+    pathname,
+    isPublic,
+    hasUser: !!user,
+    userEmail: user?.email,
+    userAgent: req.headers.get("user-agent")?.substring(0, 50)
+  });
 
   if (!isPublic) {
     // Först kontrollera om användaren är inloggad
     if (!user) {
+      console.log("🚫 MIDDLEWARE: No user found, redirecting to access-request");
       const ask = new URL("/access-request", req.url);
       ask.searchParams.set("redirectedFrom", pathname);
       return NextResponse.redirect(ask);
@@ -59,10 +76,17 @@ export async function middleware(req: NextRequest) {
 
     if (!profile?.access_granted_at) {
       console.log("🚫 MIDDLEWARE: Access denied, redirecting to access-request");
+      console.log("🚫 MIDDLEWARE: Profile details:", {
+        hasProfile: !!profile,
+        accessGrantedAt: profile?.access_granted_at,
+        role: profile?.role
+      });
       const ask = new URL("/access-request", req.url);
       ask.searchParams.set("redirectedFrom", pathname);
       return NextResponse.redirect(ask);
     }
+
+    console.log("✅ MIDDLEWARE: Access granted, allowing request to:", pathname);
 
     // Slutligen kontrollera admin-behörighet
     if (pathname.startsWith("/admin") && profile.role !== "admin") {
