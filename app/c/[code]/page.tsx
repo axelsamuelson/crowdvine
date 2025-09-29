@@ -290,40 +290,6 @@ export default function InviteSignupPage() {
             </p>
           </div>
 
-          {/* Progress Bar Section */}
-          {pallet && (
-            <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-              <div className="text-center mb-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
-                  {pallet.name}
-                </h3>
-                <div className="flex items-center justify-center gap-4 text-sm text-gray-600">
-                  <div className="flex items-center gap-1">
-                    <Users className="w-4 h-4" />
-                    <span>{pallet.total_booked_bottles} / {pallet.bottle_capacity} bottles reserved</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
-                    <span>Closes in 3 days</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Animated Progress Bar */}
-              <div className="mb-6">
-                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                  <div 
-                    className="bg-gradient-to-r from-green-600 to-green-500 h-3 rounded-full transition-all duration-1000 ease-out"
-                    style={{ width: `${Math.min(pallet.completion_percentage, 100)}%` }}
-                  />
-                </div>
-                <div className="text-center mt-2 text-sm text-gray-600">
-                  {pallet.completion_percentage.toFixed(1)}% complete
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Signup Form */}
           <Card className="border border-gray-200">
             <CardHeader className="text-center pb-4">
@@ -334,7 +300,7 @@ export default function InviteSignupPage() {
                 Join PACT Wines
               </CardTitle>
               <p className="text-gray-600 mt-2">
-                Create your account to join the pallet
+                Create your account to join the platform
               </p>
             </CardHeader>
             <CardContent>
@@ -394,7 +360,7 @@ export default function InviteSignupPage() {
                     </>
                   ) : (
                     <>
-                      Join the pallet
+                      Join the platform
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </>
                   )}
@@ -416,12 +382,38 @@ export default function InviteSignupPage() {
             </CardContent>
           </Card>
 
-          {/* Social Proof & Exclusivity */}
-          <div className="text-center mt-8">
-            <p className="text-gray-600 text-sm">
-              PACT members already saved 37% vs retail prices. Invitation-only access means only a few can join each pallet.
-            </p>
-          </div>
+          {/* Progress Bar Section */}
+          {pallet && (
+            <div className="bg-white rounded-2xl shadow-lg p-6 mt-8">
+              <div className="text-center mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Help {senderName === "A friend" ? "your friend" : senderName} bring this pallet home
+                </h3>
+                <h4 className="text-xl font-bold text-gray-900 mb-2">
+                  {pallet.name}
+                </h4>
+                <div className="flex items-center justify-center gap-4 text-sm text-gray-600">
+                  <div className="flex items-center gap-1">
+                    <Users className="w-4 h-4" />
+                    <span>{pallet.total_booked_bottles} / {pallet.bottle_capacity} bottles reserved</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Animated Progress Bar */}
+              <div className="mb-6">
+                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                  <div 
+                    className="bg-gradient-to-r from-green-600 to-green-500 h-3 rounded-full transition-all duration-1000 ease-out"
+                    style={{ width: `${Math.min(pallet.completion_percentage, 100)}%` }}
+                  />
+                </div>
+                <div className="text-center mt-2 text-sm text-gray-600">
+                  {pallet.completion_percentage.toFixed(1)}% complete
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </PageLayout>
