@@ -96,6 +96,13 @@ export default function CodeSignupPage() {
   const fetchCurrentPallet = async () => {
     try {
       const response = await fetch("/api/admin/pallets");
+      
+      if (!response.ok) {
+        console.log("Pallet API not available, using mock data");
+        setMockPalletData();
+        return;
+      }
+      
       const pallets = await response.json();
       
       if (pallets && pallets.length > 0) {
@@ -104,85 +111,53 @@ export default function CodeSignupPage() {
         setPallet(activePallet);
       } else {
         // Create mock pallet data for demonstration
-        setPallet({
-          id: "mock-pallet",
-          name: "Beziers to Stockholm",
-          description: "A curated selection of exceptional wines from Beziers, delivered to Stockholm",
-          bottle_capacity: 600,
-          total_booked_bottles: 542,
-          remaining_bottles: 58,
-          completion_percentage: 90.3,
-          wine_summary: [
-            {
-              wine_name: "Matiere Noire",
-              vintage: "2024",
-              grape_varieties: "Grenache",
-              color: "White",
-              producer: "Domaine de la Côte",
-              total_quantity: 150
-            },
-            {
-              wine_name: "Les Vignes de l'Étoile",
-              vintage: "2023",
-              grape_varieties: "Syrah, Grenache",
-              color: "Red",
-              producer: "Château de la Mer",
-              total_quantity: 200
-            },
-            {
-              wine_name: "Côte de Languedoc",
-              vintage: "2023",
-              grape_varieties: "Carignan, Cinsault",
-              color: "Red",
-              producer: "Domaine des Collines",
-              total_quantity: 192
-            }
-          ],
-          delivery_zone: { name: "Stockholm 50km" },
-          pickup_zone: { name: "Stockholm Pickup Point" }
-        });
+        setMockPalletData();
       }
     } catch (error) {
       console.error("Error fetching pallet:", error);
       // Create mock pallet data for demonstration
-      setPallet({
-        id: "mock-pallet",
-        name: "The Languedoc Mixed Pallet",
-        description: "A curated selection of exceptional wines from the Languedoc region",
-        bottle_capacity: 600,
-        total_booked_bottles: 542,
-        remaining_bottles: 58,
-        completion_percentage: 90.3,
-        wine_summary: [
-          {
-            wine_name: "Matiere Noire",
-            vintage: "2024",
-            grape_varieties: "Grenache",
-            color: "White",
-            producer: "Domaine de la Côte",
-            total_quantity: 150
-          },
-          {
-            wine_name: "Les Vignes de l'Étoile",
-            vintage: "2023",
-            grape_varieties: "Syrah, Grenache",
-            color: "Red",
-            producer: "Château de la Mer",
-            total_quantity: 200
-          },
-          {
-            wine_name: "Côte de Languedoc",
-            vintage: "2023",
-            grape_varieties: "Carignan, Cinsault",
-            color: "Red",
-            producer: "Domaine des Collines",
-            total_quantity: 192
-          }
-        ],
-        delivery_zone: { name: "Stockholm" },
-        pickup_zone: { name: "Stockholm Central" }
-      });
+      setMockPalletData();
     }
+  };
+
+  const setMockPalletData = () => {
+    setPallet({
+      id: "mock-pallet",
+      name: "Beziers to Stockholm",
+      description: "A curated selection of exceptional wines from Beziers, delivered to Stockholm",
+      bottle_capacity: 600,
+      total_booked_bottles: 542,
+      remaining_bottles: 58,
+      completion_percentage: 90.3,
+      wine_summary: [
+        {
+          wine_name: "Matiere Noire",
+          vintage: "2024",
+          grape_varieties: "Grenache",
+          color: "White",
+          producer: "Domaine de la Côte",
+          total_quantity: 150
+        },
+        {
+          wine_name: "Les Vignes de l'Étoile",
+          vintage: "2023",
+          grape_varieties: "Syrah, Grenache",
+          color: "Red",
+          producer: "Château de la Mer",
+          total_quantity: 200
+        },
+        {
+          wine_name: "Côte de Languedoc",
+          vintage: "2023",
+          grape_varieties: "Carignan, Cinsault",
+          color: "Red",
+          producer: "Domaine des Collines",
+          total_quantity: 192
+        }
+      ],
+      delivery_zone: { name: "Stockholm 50km" },
+      pickup_zone: { name: "Stockholm Pickup Point" }
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
