@@ -100,6 +100,7 @@ export default function InviteSignupPage() {
       if (!response.ok) {
         console.log("Pallet API not available, using mock data");
         setMockPalletData();
+        setLoading(false);
         return;
       }
       
@@ -113,10 +114,12 @@ export default function InviteSignupPage() {
         // Create mock pallet data for demonstration
         setMockPalletData();
       }
+      setLoading(false);
     } catch (error) {
       console.error("Error fetching pallet:", error);
       // Create mock pallet data for demonstration
       setMockPalletData();
+      setLoading(false);
     }
   };
 
