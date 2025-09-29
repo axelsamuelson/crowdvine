@@ -425,6 +425,12 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("✅ Auto-login successful for user:", email);
+    console.log("🔍 Session data:", {
+      hasSession: !!signInData.session,
+      hasAccessToken: !!signInData.session?.access_token,
+      hasRefreshToken: !!signInData.session?.refresh_token,
+      sessionExpiresAt: signInData.session?.expires_at
+    });
 
     // CRITICAL SECURITY: Verify that the signed-in user matches the created user
     if (signInData.user?.id !== authData.user.id) {
@@ -454,6 +460,7 @@ export async function POST(request: NextRequest) {
 
     // Set session cookies for the frontend
     if (signInData.session) {
+      console.log("🍪 Setting session cookies...");
       response.cookies.set('sb-access-token', signInData.session.access_token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -469,6 +476,9 @@ export async function POST(request: NextRequest) {
         maxAge: 60 * 60 * 24 * 30, // 30 days
         path: '/'
       });
+      console.log("✅ Session cookies set successfully");
+    } else {
+      console.error("❌ No session data available to set cookies");
     }
 
     return response;
