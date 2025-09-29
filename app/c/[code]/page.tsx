@@ -47,14 +47,13 @@ interface Invitation {
   };
 }
 
-export default function CodeSignupPage() {
+export default function InviteSignupPage() {
   const params = useParams();
   const router = useRouter();
   const [invitation, setInvitation] = useState<Invitation | null>(null);
   const [pallet, setPallet] = useState<Pallet | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [showSignup, setShowSignup] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -172,8 +171,10 @@ export default function CodeSignupPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          code,
-          ...formData,
+          invitation_code: code,
+          email: formData.email.toLowerCase().trim(),
+          password: formData.password,
+          full_name: formData.full_name,
         }),
       });
 
@@ -181,22 +182,21 @@ export default function CodeSignupPage() {
 
       if (data.success) {
         if (data.autoSignedIn && data.session) {
-          toast.success("Account created and signed in successfully! Welcome to PACT Wines!");
-          console.log("✅ Auto-login successful, setting session and redirecting to home page");
-          
-          // Set session using Supabase client
+          // User was automatically signed in
           const supabase = getSupabaseBrowserClient();
           await supabase.auth.setSession({
             access_token: data.session.access_token,
             refresh_token: data.session.refresh_token,
           });
+
+          toast.success("Account created and signed in successfully!");
           
-          // Use window.location.href to force full page reload and session establishment
+          // Redirect to home page after a short delay
           setTimeout(() => {
             window.location.href = "/";
           }, 1000);
         } else {
-          console.log("❌ Auto-login failed, redirecting to login page");
+          // Auto sign-in failed, redirect to login
           toast.success("Account created successfully! Please log in.");
           router.push("/log-in");
         }
@@ -270,23 +270,71 @@ export default function CodeSignupPage() {
     );
   }
 
+  // Get sender name from invitation data
   const senderName = invitation.profiles?.email?.split('@')[0] || "A friend";
-  const friendName = "Friend"; // This would ideally come from the invitation data
 
-  if (showSignup) {
-    return (
-      <PageLayout>
-        <div className="max-w-md mx-auto py-8">
+  return (
+    <PageLayout>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="max-w-2xl mx-auto px-4 py-12">
+          {/* Personal Intro Section */}
+          <div className="text-center mb-8">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
+              🎉 Congratulations!
+            </h1>
+            <p className="text-lg text-gray-700 mb-4">
+              {senderName} has given you access to PACT.
+            </p>
+            <p className="text-base text-gray-600 max-w-xl mx-auto">
+              PACT is a members-only platform where people buy wine together by sharing pallets – just like a wine importer.
+            </p>
+          </div>
+
+          {/* Progress Bar Section */}
+          {pallet && (
+            <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
+              <div className="text-center mb-6">
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  {pallet.name}
+                </h3>
+                <div className="flex items-center justify-center gap-4 text-sm text-gray-600">
+                  <div className="flex items-center gap-1">
+                    <Users className="w-4 h-4" />
+                    <span>{pallet.total_booked_bottles} / {pallet.bottle_capacity} bottles reserved</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-4 h-4" />
+                    <span>Closes in 3 days</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Animated Progress Bar */}
+              <div className="mb-6">
+                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                  <div 
+                    className="bg-gradient-to-r from-green-600 to-green-500 h-3 rounded-full transition-all duration-1000 ease-out"
+                    style={{ width: `${Math.min(pallet.completion_percentage, 100)}%` }}
+                  />
+                </div>
+                <div className="text-center mt-2 text-sm text-gray-600">
+                  {pallet.completion_percentage.toFixed(1)}% complete
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Signup Form */}
           <Card className="border border-gray-200">
             <CardHeader className="text-center pb-4">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <UserPlus className="w-8 h-8 text-blue-600" />
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <UserPlus className="w-6 h-6 text-blue-600" />
               </div>
-              <CardTitle className="text-2xl font-bold text-gray-900">
+              <CardTitle className="text-xl font-bold text-gray-900">
                 Join PACT Wines
               </CardTitle>
               <p className="text-gray-600 mt-2">
-                You've been invited to join our exclusive wine community!
+                Create your account to join the pallet
               </p>
             </CardHeader>
             <CardContent>
@@ -334,7 +382,11 @@ export default function CodeSignupPage() {
                   />
                 </div>
 
-                <Button type="submit" className="w-full" disabled={submitting}>
+                <Button
+                  type="submit"
+                  className="w-full bg-black hover:bg-gray-800 text-white"
+                  disabled={submitting}
+                >
                   {submitting ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -342,8 +394,8 @@ export default function CodeSignupPage() {
                     </>
                   ) : (
                     <>
-                      <UserPlus className="w-4 h-4 mr-2" />
-                      Create Account
+                      Join the pallet
+                      <ArrowRight className="w-4 h-4 ml-2" />
                     </>
                   )}
                 </Button>
@@ -363,106 +415,9 @@ export default function CodeSignupPage() {
               </div>
             </CardContent>
           </Card>
-        </div>
-      </PageLayout>
-    );
-  }
-
-  return (
-    <PageLayout>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-        <div className="max-w-4xl mx-auto px-4 py-12">
-          {/* Personal Intro Section */}
-          <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-              🎉 Congratulations, {friendName}!
-            </h1>
-            <h2 className="text-xl md:text-2xl text-gray-700 mb-4">
-              {senderName} has given you access to PACT.
-            </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              PACT is a members-only platform where people buy wine together by sharing pallets – just like a wine importer.
-            </p>
-          </div>
-
-          {/* Progress Bar Section */}
-          {pallet && (
-            <div className="bg-white rounded-2xl shadow-lg p-8 mb-8">
-              <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                  {pallet.name}
-                </h3>
-                <div className="flex items-center justify-center gap-4 text-sm text-gray-600">
-                  <div className="flex items-center gap-1">
-                    <Users className="w-4 h-4" />
-                    <span>{pallet.total_booked_bottles} / {pallet.bottle_capacity} bottles reserved</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
-                    <span>Closes in 3 days</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Animated Progress Bar */}
-              <div className="mb-6">
-                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                  <div 
-                    className="bg-gradient-to-r from-red-600 to-red-500 h-3 rounded-full transition-all duration-1000 ease-out"
-                    style={{ width: `${Math.min(pallet.completion_percentage, 100)}%` }}
-                  />
-                </div>
-                <div className="text-center mt-2 text-sm text-gray-600">
-                  {pallet.completion_percentage.toFixed(1)}% complete
-                </div>
-              </div>
-
-              {/* Wine Highlights */}
-              {pallet.wine_summary && pallet.wine_summary.length > 0 && (
-                <div className="mb-8">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Featured Producers:</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {pallet.wine_summary.slice(0, 4).map((wine, index) => (
-                      <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                        <div>
-                          <div className="font-medium text-gray-900">{wine.wine_name}</div>
-                          <div className="text-sm text-gray-600">{wine.producer} • {wine.vintage}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Pallet Description */}
-          <div className="bg-white rounded-2xl shadow-lg p-8 mb-8">
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">About This Pallet</h3>
-            <p className="text-lg text-gray-700 leading-relaxed">
-              This pallet brings together some of the most exciting producers from Beziers in southern France, 
-              delivered directly to Stockholm. By joining, you don't just buy wine – you unlock access to bottles 
-              usually reserved for restaurants and importers.
-            </p>
-          </div>
-
-          {/* Call-to-Action */}
-          <div className="text-center mb-8">
-            <Button 
-              onClick={() => setShowSignup(true)}
-              className="bg-black hover:bg-gray-800 text-white px-12 py-4 text-lg font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
-            >
-              Join the pallet
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-            <p className="text-sm text-gray-600 mt-4 max-w-md mx-auto">
-              No commitment – just reserve your share. Your spot is safe until the pallet is full.
-            </p>
-          </div>
 
           {/* Social Proof & Exclusivity */}
-          <div className="text-center">
+          <div className="text-center mt-8">
             <p className="text-gray-600 text-sm">
               PACT members already saved 37% vs retail prices. Invitation-only access means only a few can join each pallet.
             </p>
