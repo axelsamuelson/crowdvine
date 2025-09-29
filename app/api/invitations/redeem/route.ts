@@ -452,6 +452,25 @@ export async function POST(request: NextRequest) {
       message: "Account created and signed in successfully.",
     });
 
+    // Set session cookies for the frontend
+    if (signInData.session) {
+      response.cookies.set('sb-access-token', signInData.session.access_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+        path: '/'
+      });
+      
+      response.cookies.set('sb-refresh-token', signInData.session.refresh_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 30, // 30 days
+        path: '/'
+      });
+    }
+
     return response;
   } catch (error) {
     console.error("Redeem invitation error:", error);
