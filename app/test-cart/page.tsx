@@ -116,8 +116,36 @@ export default function TestCartPage() {
       const serverActionResult = await addItem(mockProduct.variants[0], mockProduct);
       addTestResult(`📥 Full cart server action returned: ${serverActionResult ? 'success' : 'null/undefined'}`);
       
-      // Test 3: Try new cart API route
-      addTestResult("📤 Testing new cart API route...");
+      // Test 3: Try test API route
+      addTestResult("📤 Testing test API route...");
+      const testApiResponse = await fetch('/api/cart/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ variantId: mockProduct.variants[0].id })
+      });
+      
+      const testApiResult = await testApiResponse.json();
+      addTestResult(`📥 Test API response: ${testApiResult.success ? 'success' : 'failed'}`);
+      
+      // Test 4: Try step-by-step API route
+      addTestResult("📤 Testing step-by-step API route...");
+      const stepApiResponse = await fetch('/api/cart/add-item-step', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ variantId: mockProduct.variants[0].id })
+      });
+      
+      const stepApiResult = await stepApiResponse.json();
+      addTestResult(`📥 Step API response: ${stepApiResult.success ? 'success' : 'failed'}`);
+      
+      if (stepApiResult.success && stepApiResult.cart) {
+        addTestResult(`📊 Step API has ${stepApiResult.cart.lines.length} items, total quantity: ${stepApiResult.cart.totalQuantity}`);
+      } else {
+        addTestResult(`❌ Step API error: ${stepApiResult.error}`);
+      }
+      
+      // Test 5: Try original cart API route
+      addTestResult("📤 Testing original cart API route...");
       const cartApiResponse = await fetch('/api/cart/add-item', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
