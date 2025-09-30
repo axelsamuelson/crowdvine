@@ -22,6 +22,7 @@ import { ZoneDetails } from "@/components/checkout/zone-details";
 import { PalletDetails } from "@/components/checkout/pallet-details";
 import { toast } from "sonner";
 import { User, MapPin, CreditCard, Package, AlertCircle } from "lucide-react";
+import { clearZoneCache } from "@/lib/zone-matching";
 import {
   calculateCartShippingCost,
   formatShippingCost,
@@ -63,6 +64,7 @@ interface PalletInfo {
 function CheckoutContent() {
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(true);
+  const [zoneLoading, setZoneLoading] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
     useState<PaymentMethod | null>(null);
@@ -156,6 +158,7 @@ function CheckoutContent() {
       return;
     }
     updateZoneInfo.inProgress = true;
+    setZoneLoading(true);
 
     try {
       let deliveryAddress;
@@ -246,6 +249,7 @@ function CheckoutContent() {
       console.error("Failed to update zone info:", error);
     } finally {
       updateZoneInfo.inProgress = false;
+      setZoneLoading(false);
     }
   };
 
@@ -546,6 +550,7 @@ function CheckoutContent() {
           {/* Zone Information */}
           {(zoneInfo.pickupZone ||
             zoneInfo.deliveryZone ||
+            zoneLoading ||
             (useProfileAddress &&
               profile?.address &&
               profile?.city &&
@@ -555,6 +560,22 @@ function CheckoutContent() {
               customAddress.city &&
               customAddress.postcode)) && (
             <div className="space-y-4">
+              {/* Zone Loading Indicator */}
+              {zoneLoading && (
+                <Card className="border-l-4 border-l-blue-500">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-blue-700">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                      Finding Delivery Zones
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-blue-600">
+                      Please wait while we determine the best delivery zones for your address...
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
               {/* Pickup Zone */}
               {zoneInfo.pickupZone && (
                 <ZoneDetails
@@ -636,10 +657,32 @@ function CheckoutContent() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-red-600">
+                    <p className="text-sm text-red-600 mb-3">
                       No delivery zone matches this address. Please contact
                       support or try a different address.
                     </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        clearZoneCache();
+                        updateZoneInfo();
+                      }}
+                      disabled={zoneLoading}
+                      className="text-red-600 border-red-300 hover:bg-red-50"
+                    >
+                      {zoneLoading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600 mr-2"></div>
+                          Retrying...
+                        </>
+                      ) : (
+                        <>
+                          <AlertCircle className="w-4 h-4 mr-2" />
+                          Retry Zone Detection
+                        </>
+                      )}
+                    </Button>
                   </CardContent>
                 </Card>
               ) : null}
@@ -647,12 +690,15 @@ function CheckoutContent() {
           )}
 
           {/* Pallet Information */}
-          {zoneInfo.pallets && zoneInfo.pallets.length > 0 && (
+          {(zoneInfo.pallets && zoneInfo.pallets.length > 0) || zoneLoading ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
                   <Package className="w-5 h-5" />
                   Available Pallets
+                  {zoneLoading && (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  )}
                 </h3>
                 {selectedPallet && (
                   <Badge
@@ -665,7 +711,18 @@ function CheckoutContent() {
               </div>
 
               <div className="space-y-3">
-                {zoneInfo.pallets.map((pallet) => (
+                {zoneLoading ? (
+                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="flex items-center gap-3">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                      <div>
+                        <p className="font-medium text-gray-700">Loading available pallets...</p>
+                        <p className="text-sm text-gray-500">Finding pallets for your delivery zone</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  zoneInfo.pallets?.map((pallet) => (
                   <div key={pallet.id} className="relative">
                     <PalletDetails pallet={pallet} />
                     {pallet.remainingBottles > 0 && (
@@ -691,7 +748,8 @@ function CheckoutContent() {
                       </div>
                     )}
                   </div>
-                ))}
+                  ))
+                )}
               </div>
 
               {selectedPallet && (
@@ -714,7 +772,7 @@ function CheckoutContent() {
                 </div>
               )}
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* Right Column - Checkout Form */}
@@ -919,8 +977,16 @@ function CheckoutContent() {
               type="submit"
               className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
               size="lg"
+              disabled={zoneLoading}
             >
-              Place Reservation
+              {zoneLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  Finding Zones...
+                </>
+              ) : (
+                "Place Reservation"
+              )}
             </Button>
           </form>
         </div>
