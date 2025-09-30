@@ -332,8 +332,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       
       // Perform server update
       console.log("🛒 Calling CartActions.addItem...");
-      const fresh = await CartActions.addItem(variant.id);
-      console.log("🛒 CartActions.addItem returned:", fresh ? "success" : "null");
+      let fresh = null;
+      try {
+        fresh = await CartActions.addItem(variant.id);
+        console.log("🛒 CartActions.addItem returned:", fresh ? "success" : "null");
+      } catch (serverActionError) {
+        console.error("🛒 Server action error:", serverActionError);
+        console.error("🛒 Server action error stack:", serverActionError instanceof Error ? serverActionError.stack : "No stack trace");
+        fresh = null;
+      }
       
       if (fresh) {
         console.log("🛒 Setting cart with fresh data, items:", fresh.lines.length);
