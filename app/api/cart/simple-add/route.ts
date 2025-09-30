@@ -75,46 +75,29 @@ export async function POST(request: Request) {
       console.log("🔧 Existing cart found:", dbCartId);
     }
     
-    // Check if item already exists
-    const { data: existingItem } = await supabase
+    // Use upsert to add/update item in a single operation (faster)
+    const { error: upsertError } = await supabase
       .from("cart_items")
-      .select("id, quantity")
-      .eq("cart_id", dbCartId)
-      .eq("wine_id", baseId)
-      .single();
-    
-    if (existingItem) {
-      // Update quantity
-      const { error: updateError } = await supabase
-        .from("cart_items")
-        .update({ quantity: existingItem.quantity + 1 })
-        .eq("id", existingItem.id);
-      
-      if (updateError) {
-        console.error("🔧 Error updating item:", updateError);
-        return NextResponse.json({ error: "Failed to update item" }, { status: 500 });
-      }
-      
-      console.log("🔧 Item quantity updated");
-    } else {
-      // Add new item
-      const { error: insertError } = await supabase
-        .from("cart_items")
-        .insert({
+      .upsert(
+        {
           cart_id: dbCartId,
           wine_id: baseId,
           quantity: 1
-        });
-      
-      if (insertError) {
-        console.error("🔧 Error inserting item:", insertError);
-        return NextResponse.json({ error: "Failed to add item" }, { status: 500 });
-      }
-      
-      console.log("🔧 New item added");
+        },
+        {
+          onConflict: "cart_id,wine_id",
+          ignoreDuplicates: false
+        }
+      );
+    
+    if (upsertError) {
+      console.error("🔧 Error upserting item:", upsertError);
+      return NextResponse.json({ error: "Failed to add item" }, { status: 500 });
     }
     
-    // Get updated cart
+    console.log("🔧 Item upserted successfully");
+    
+    // Get updated cart with wine details in a single query
     const { data: cartItems, error: fetchError } = await supabase
       .from("cart_items")
       .select(`
@@ -163,6 +146,10 @@ export async function POST(request: Request) {
             id: item.wines.id,
             title: `${item.wines.wine_name} ${item.wines.vintage}`,
             handle: item.wines.handle,
+            featuredImage: {
+              url: item.wines.label_image_path || "/placeholder-wine.jpg",
+              altText: `${item.wines.wine_name} ${item.wines.vintage}`
+            }
           },
         },
       };

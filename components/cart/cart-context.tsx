@@ -330,7 +330,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         });
       });
       
-      // Perform server update using simple API route
+      // Perform server update using simple API route (optimized)
       console.log("🛒 Calling simple API route for addItem...");
       let fresh = null;
       try {
@@ -344,29 +344,27 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           const result = await response.json();
           fresh = result.cart;
           console.log("🛒 Simple API route returned:", fresh ? "success" : "null");
+          
+          if (fresh) {
+            console.log("🛒 Setting cart with fresh data, items:", fresh.lines.length);
+            setCart(fresh);
+            // Update localStorage cache
+            try {
+              localStorage.setItem("cart-cache", JSON.stringify(fresh));
+              localStorage.setItem("cart-cache-time", Date.now().toString());
+            } catch (error) {
+              console.warn("Failed to cache cart:", error);
+            }
+          }
         } else {
           console.error("🛒 Simple API route failed with status:", response.status);
           const errorText = await response.text();
           console.error("🛒 Error response:", errorText);
-          fresh = null;
+          // If add failed, revert optimistic update
+          setCart(cart);
         }
       } catch (apiError) {
         console.error("🛒 Simple API route error:", apiError);
-        fresh = null;
-      }
-      
-      if (fresh) {
-        console.log("🛒 Setting cart with fresh data, items:", fresh.lines.length);
-        setCart(fresh);
-        // Update localStorage cache
-        try {
-          localStorage.setItem("cart-cache", JSON.stringify(fresh));
-          localStorage.setItem("cart-cache-time", Date.now().toString());
-        } catch (error) {
-          console.warn("Failed to cache cart:", error);
-        }
-      } else {
-        console.log("🛒 Server update failed, reverting to previous cart");
         // If add failed, revert optimistic update
         setCart(cart);
       }
