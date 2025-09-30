@@ -1,182 +1,202 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useCart } from "@/components/cart/cart-context";
+
+// Mock product data for testing
+const mockProduct = {
+  id: "test-wine-123",
+  title: "Test Wine 2020",
+  handle: "test-wine-2020",
+  description: "A test wine for cart functionality",
+  descriptionHtml: "<p>A test wine for cart functionality</p>",
+  productType: "wine",
+  categoryId: "",
+  options: [
+    {
+      id: "color",
+      name: "Color",
+      values: [
+        { id: "red", name: "Red" }
+      ]
+    }
+  ],
+  variants: [
+    {
+      id: "test-wine-123-default",
+      title: "750 ml",
+      availableForSale: true,
+      price: {
+        amount: "299.00",
+        currencyCode: "SEK"
+      },
+      selectedOptions: [
+        { name: "Color", value: "Red" }
+      ]
+    }
+  ],
+  priceRange: {
+    minVariantPrice: {
+      amount: "299.00",
+      currencyCode: "SEK"
+    },
+    maxVariantPrice: {
+      amount: "299.00",
+      currencyCode: "SEK"
+    }
+  },
+  featuredImage: {
+    id: "test-wine-123-img",
+    url: "/placeholder-wine.jpg",
+    altText: "Test Wine 2020",
+    width: 600,
+    height: 600
+  },
+  images: [
+    {
+      id: "test-wine-123-img",
+      url: "/placeholder-wine.jpg",
+      altText: "Test Wine 2020",
+      width: 600,
+      height: 600
+    }
+  ],
+  seo: { title: "Test Wine 2020", description: "A test wine" },
+  tags: ["red", "wine"],
+  availableForSale: true,
+  currencyCode: "SEK",
+  updatedAt: new Date().toISOString(),
+  createdAt: new Date().toISOString()
+};
 
 export default function TestCartPage() {
-  const [cart, setCart] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const { cart, addItem, isPending } = useCart();
+  const [testResults, setTestResults] = useState<string[]>([]);
 
-  const fetchCart = async () => {
+  const addTestResult = (message: string) => {
+    setTestResults(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+  };
+
+  const testAddToCart = async () => {
+    addTestResult("🚀 Starting add to cart test...");
+    
+    const initialItemCount = cart?.lines.length || 0;
+    const initialTotalQuantity = cart?.totalQuantity || 0;
+    
+    addTestResult(`📊 Initial state: ${initialItemCount} items, total quantity: ${initialTotalQuantity}`);
+    
     try {
-      const response = await fetch("/api/crowdvine/cart");
-      const data = await response.json();
-      setCart(data);
+      // Add item to cart
+      await addItem(mockProduct.variants[0], mockProduct);
+      
+      // Wait a bit for the update to complete
+      setTimeout(() => {
+        const finalItemCount = cart?.lines.length || 0;
+        const finalTotalQuantity = cart?.totalQuantity || 0;
+        
+        addTestResult(`📊 Final state: ${finalItemCount} items, total quantity: ${finalTotalQuantity}`);
+        
+        if (finalItemCount === 1 && finalTotalQuantity === initialTotalQuantity + 1) {
+          addTestResult("✅ SUCCESS: Item added correctly!");
+        } else if (finalItemCount > initialItemCount) {
+          addTestResult("❌ ISSUE: New item created instead of incrementing existing");
+        } else {
+          addTestResult("❌ ISSUE: Item not added or disappeared");
+        }
+      }, 1000);
+      
     } catch (error) {
-      console.error("Failed to fetch cart:", error);
+      addTestResult(`❌ ERROR: ${error}`);
     }
   };
 
-  const addToCart = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch("/api/crowdvine/cart", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          lines: [
-            {
-              merchandiseId: "1fc52e4d-a4b9-4c99-b00f-9f5678cd2f61",
-              quantity: 1,
-            },
-          ],
-        }),
-      });
-      const data = await response.json();
-      setCart(data);
-    } catch (error) {
-      console.error("Failed to add to cart:", error);
-    } finally {
-      setLoading(false);
-    }
+  const clearCart = () => {
+    setTestResults([]);
   };
 
-  const updateQuantity = async (lineId: string, quantity: number) => {
-    setLoading(true);
-    try {
-      const response = await fetch("/api/crowdvine/cart/lines/update", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          lineId,
-          quantity,
-        }),
-      });
-      const data = await response.json();
-      setCart(data);
-    } catch (error) {
-      console.error("Failed to update cart:", error);
-    } finally {
-      setLoading(false);
-    }
+  const clearTestResults = () => {
+    setTestResults([]);
   };
-
-  const removeItem = async (lineId: string) => {
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `/api/crowdvine/cart/lines/remove?lineId=${lineId}`,
-        {
-          method: "DELETE",
-        },
-      );
-      const data = await response.json();
-      setCart(data);
-    } catch (error) {
-      console.error("Failed to remove item:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchCart();
-  }, []);
 
   return (
-    <div className="max-w-4xl mx-auto p-8">
-      <h1 className="text-3xl font-bold mb-8">Cart Test Page</h1>
+    <div className="container mx-auto p-8">
+      <Card className="max-w-4xl mx-auto">
+        <CardHeader>
+          <CardTitle>🧪 Cart Functionality Test</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Current Cart State */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="font-semibold mb-2">Current Cart State:</h3>
+            <div className="text-sm space-y-1">
+              <div>Items: {cart?.lines.length || 0}</div>
+              <div>Total Quantity: {cart?.totalQuantity || 0}</div>
+              <div>Total Amount: {cart?.cost.totalAmount.amount} {cart?.cost.totalAmount.currencyCode}</div>
+              <div>Is Pending: {isPending ? "Yes" : "No"}</div>
+            </div>
+          </div>
 
-      <div className="mb-8">
-        <button
-          onClick={addToCart}
-          disabled={loading}
-          className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50"
-        >
-          {loading ? "Adding..." : "Add Extralucide to Cart"}
-        </button>
-      </div>
-
-      <div className="mb-8">
-        <button
-          onClick={fetchCart}
-          disabled={loading}
-          className="bg-green-500 text-white px-4 py-2 rounded disabled:opacity-50"
-        >
-          Refresh Cart
-        </button>
-      </div>
-
-      {cart && (
-        <div className="border rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Cart Details</h2>
-          <p>
-            <strong>Cart ID:</strong> {cart.id}
-          </p>
-          <p>
-            <strong>Total Quantity:</strong> {cart.totalQuantity}
-          </p>
-          <p>
-            <strong>Total Amount:</strong> {cart.cost?.totalAmount?.amount}{" "}
-            {cart.cost?.totalAmount?.currencyCode}
-          </p>
-
-          <h3 className="text-lg font-semibold mt-6 mb-4">Items:</h3>
-          {cart.lines && cart.lines.length > 0 ? (
-            <div className="space-y-4">
-              {cart.lines.map((line: any) => (
-                <div key={line.id} className="border rounded p-4">
-                  <p>
-                    <strong>Product:</strong> {line.merchandise?.title}
-                  </p>
-                  <p>
-                    <strong>Quantity:</strong> {line.quantity}
-                  </p>
-                  <p>
-                    <strong>Price:</strong> {line.cost?.totalAmount?.amount}{" "}
-                    {line.cost?.totalAmount?.currencyCode}
-                  </p>
-
-                  <div className="mt-4 space-x-2">
-                    <button
-                      onClick={() => updateQuantity(line.id, line.quantity + 1)}
-                      disabled={loading}
-                      className="bg-yellow-500 text-white px-3 py-1 rounded text-sm disabled:opacity-50"
-                    >
-                      +
-                    </button>
-                    <button
-                      onClick={() =>
-                        updateQuantity(line.id, Math.max(0, line.quantity - 1))
-                      }
-                      disabled={loading}
-                      className="bg-yellow-500 text-white px-3 py-1 rounded text-sm disabled:opacity-50"
-                    >
-                      -
-                    </button>
-                    <button
-                      onClick={() => removeItem(line.id)}
-                      disabled={loading}
-                      className="bg-red-500 text-white px-3 py-1 rounded text-sm disabled:opacity-50"
-                    >
-                      Remove
-                    </button>
-                  </div>
+          {/* Cart Items */}
+          {cart?.lines && cart.lines.length > 0 && (
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h3 className="font-semibold mb-2">Cart Items:</h3>
+              {cart.lines.map((item, index) => (
+                <div key={item.id} className="text-sm border-b pb-2 mb-2 last:border-b-0">
+                  <div>ID: {item.id}</div>
+                  <div>Merchandise ID: {item.merchandise.id}</div>
+                  <div>Title: {item.merchandise.title}</div>
+                  <div>Quantity: {item.quantity}</div>
+                  <div>Price: {item.cost.totalAmount.amount} {item.cost.totalAmount.currencyCode}</div>
+                  <div>Color: {item.merchandise.selectedOptions.find(opt => opt.name === "Color")?.value || "None"}</div>
                 </div>
               ))}
             </div>
-          ) : (
-            <p className="text-gray-500">No items in cart</p>
           )}
-        </div>
-      )}
 
-      <pre className="mt-8 bg-gray-100 p-4 rounded text-sm overflow-auto">
-        {JSON.stringify(cart, null, 2)}
-      </pre>
+          {/* Test Controls */}
+          <div className="flex gap-4">
+            <Button 
+              onClick={testAddToCart} 
+              disabled={isPending}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {isPending ? "Adding..." : "Add Test Wine to Cart"}
+            </Button>
+            <Button 
+              onClick={clearTestResults} 
+              variant="outline"
+            >
+              Clear Test Results
+            </Button>
+          </div>
+
+          {/* Test Results */}
+          {testResults.length > 0 && (
+            <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm max-h-96 overflow-y-auto">
+              <h3 className="font-semibold mb-2 text-white">Test Results:</h3>
+              {testResults.map((result, index) => (
+                <div key={index} className="mb-1">
+                  {result}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Instructions */}
+          <div className="bg-yellow-50 p-4 rounded-lg">
+            <h3 className="font-semibold mb-2">Test Instructions:</h3>
+            <ol className="text-sm space-y-1 list-decimal list-inside">
+              <li>Click "Add Test Wine to Cart" multiple times</li>
+              <li>Watch the cart state and test results</li>
+              <li>Verify that quantity increments instead of creating new items</li>
+              <li>Check that the color information is preserved</li>
+              <li>Ensure items don't disappear after adding</li>
+            </ol>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
