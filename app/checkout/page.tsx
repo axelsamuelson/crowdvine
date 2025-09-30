@@ -702,19 +702,11 @@ function CheckoutContent() {
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
                   <Package className="w-5 h-5" />
-                  Available Pallets
+                  Selected Pallet
                   {zoneLoading && (
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
                   )}
                 </h3>
-                {selectedPallet && (
-                  <Badge
-                    variant="default"
-                    className="bg-green-100 text-green-800"
-                  >
-                    Selected: {selectedPallet.name}
-                  </Badge>
-                )}
               </div>
 
               <div className="space-y-3">
@@ -723,42 +715,18 @@ function CheckoutContent() {
                     <div className="flex items-center gap-3">
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                       <div>
-                        <p className="font-medium text-gray-700">Loading available pallets...</p>
-                        <p className="text-sm text-gray-500">Finding pallets for your delivery zone</p>
+                        <p className="font-medium text-gray-700">Finding your pallet...</p>
+                        <p className="text-sm text-gray-500">Matching your wines with available pallets</p>
                       </div>
                     </div>
                   </div>
                 ) : selectedPallet ? (
                   <div className="relative">
                     <PalletDetails pallet={selectedPallet} />
-                    <div className="mt-3 flex justify-center">
-                      <div className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                        ✓ Auto-selected (most popular)
-                      </div>
-                    </div>
                   </div>
                 ) : null}
               </div>
 
-              {selectedPallet && (
-                <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Package className="w-4 h-4 text-green-600" />
-                    <span className="font-medium text-green-800">
-                      Reservation will be added to:
-                    </span>
-                  </div>
-                  <p className="text-sm text-green-700">
-                    <strong>{selectedPallet.name}</strong> (
-                    {selectedPallet.pickupZoneName} →{" "}
-                    {selectedPallet.deliveryZoneName})
-                  </p>
-                  <p className="text-xs text-green-600 mt-1">
-                    {selectedPallet.remainingBottles} bottles available for your
-                    order
-                  </p>
-                </div>
-              )}
             </div>
           ) : null}
         </div>
