@@ -330,11 +330,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         });
       });
       
-      // Perform server update using API route instead of server action
-      console.log("🛒 Calling API route for addItem...");
+      // Perform server update using simple API route
+      console.log("🛒 Calling simple API route for addItem...");
       let fresh = null;
       try {
-        const response = await fetch('/api/cart/add-item', {
+        const response = await fetch('/api/cart/simple-add', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ variantId: variant.id })
@@ -343,13 +343,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         if (response.ok) {
           const result = await response.json();
           fresh = result.cart;
-          console.log("🛒 API route returned:", fresh ? "success" : "null");
+          console.log("🛒 Simple API route returned:", fresh ? "success" : "null");
         } else {
-          console.error("🛒 API route failed with status:", response.status);
+          console.error("🛒 Simple API route failed with status:", response.status);
+          const errorText = await response.text();
+          console.error("🛒 Error response:", errorText);
           fresh = null;
         }
       } catch (apiError) {
-        console.error("🛒 API route error:", apiError);
+        console.error("🛒 Simple API route error:", apiError);
         fresh = null;
       }
       
