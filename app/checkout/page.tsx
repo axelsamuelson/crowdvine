@@ -242,14 +242,40 @@ function CheckoutContent() {
           isUsingFallback,
         });
 
+        // Auto-select the best delivery zone (closest/smallest radius)
+        let selectedDeliveryZoneId = zoneData.deliveryZoneId;
+        let selectedDeliveryZoneName = zoneData.deliveryZoneName;
+        
+        if (zoneData.availableDeliveryZones && zoneData.availableDeliveryZones.length > 0) {
+          // Sort by radius (smallest first) to get the most specific zone
+          const sortedZones = [...zoneData.availableDeliveryZones].sort((a, b) => a.radiusKm - b.radiusKm);
+          selectedDeliveryZoneId = sortedZones[0].id;
+          selectedDeliveryZoneName = sortedZones[0].name;
+          console.log(`🎯 Auto-selected delivery zone: ${selectedDeliveryZoneName} (${sortedZones[0].radiusKm}km radius)`);
+        }
+
+        // Auto-select the pallet with the most reserved bottles
+        let autoSelectedPallet = null;
+        if (zoneData.pallets && zoneData.pallets.length > 0) {
+          // Sort by current bottles (most reserved first)
+          const sortedPallets = [...zoneData.pallets].sort((a, b) => b.currentBottles - a.currentBottles);
+          autoSelectedPallet = sortedPallets[0];
+          console.log(`🎯 Auto-selected pallet: ${autoSelectedPallet.name} (${autoSelectedPallet.currentBottles} bottles reserved)`);
+        }
+
         setZoneInfo({
           pickupZone: zoneData.pickupZoneName,
-          deliveryZone: zoneData.deliveryZoneName,
-          selectedDeliveryZoneId: zoneData.deliveryZoneId,
+          deliveryZone: selectedDeliveryZoneName,
+          selectedDeliveryZoneId: selectedDeliveryZoneId,
           availableDeliveryZones: zoneData.availableDeliveryZones || [],
           pallets: zoneData.pallets || [],
           usingFallbackAddress: isUsingFallback,
         });
+
+        // Auto-select the best pallet
+        if (autoSelectedPallet) {
+          setSelectedPallet(autoSelectedPallet);
+        }
       } else {
         console.error(
           "❌ Zone response failed:",
@@ -272,18 +298,6 @@ function CheckoutContent() {
     toast.success("Profile information saved!");
   };
 
-  const handleDeliveryZoneChange = (zoneId: string) => {
-    const selectedZone = zoneInfo.availableDeliveryZones?.find(
-      (z) => z.id === zoneId,
-    );
-    if (selectedZone) {
-      setZoneInfo((prev) => ({
-        ...prev,
-        selectedDeliveryZoneId: zoneId,
-        deliveryZone: selectedZone.name,
-      }));
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -314,9 +328,9 @@ function CheckoutContent() {
       return;
     }
 
-    // Check if pallet is selected when zones are available
+    // Check if pallet is available (should be auto-selected)
     if (zoneInfo.pallets && zoneInfo.pallets.length > 0 && !selectedPallet) {
-      toast.error("Please select a pallet for your reservation.");
+      toast.error("No suitable pallet found for your location. Please contact support.");
       return;
     }
 
@@ -618,60 +632,20 @@ function CheckoutContent() {
               )}
 
               {/* Delivery Zone */}
-              {zoneInfo.availableDeliveryZones &&
-              zoneInfo.availableDeliveryZones.length > 1 ? (
-                <div className="space-y-3">
-                  <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                    <p className="font-medium text-green-900 mb-2">
-                      Multiple delivery zones available
-                    </p>
-                    <Select
-                      value={zoneInfo.selectedDeliveryZoneId || ""}
-                      onValueChange={handleDeliveryZoneChange}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select delivery zone" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {zoneInfo.availableDeliveryZones.map((zone) => (
-                          <SelectItem key={zone.id} value={zone.id}>
-                            {zone.name} ({zone.radiusKm}km radius)
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {zoneInfo.selectedDeliveryZoneId && (
-                    <ZoneDetails
-                      zoneId={zoneInfo.selectedDeliveryZoneId}
-                      zoneName={zoneInfo.deliveryZone || ""}
-                      zoneType="delivery"
-                      centerLat={
-                        zoneInfo.availableDeliveryZones.find(
-                          (z) => z.id === zoneInfo.selectedDeliveryZoneId,
-                        )?.centerLat
-                      }
-                      centerLon={
-                        zoneInfo.availableDeliveryZones.find(
-                          (z) => z.id === zoneInfo.selectedDeliveryZoneId,
-                        )?.centerLon
-                      }
-                      radiusKm={
-                        zoneInfo.availableDeliveryZones.find(
-                          (z) => z.id === zoneInfo.selectedDeliveryZoneId,
-                        )?.radiusKm
-                      }
-                    />
-                  )}
-                </div>
-              ) : zoneInfo.deliveryZone ? (
+              {zoneInfo.deliveryZone ? (
                 <ZoneDetails
                   zoneId={zoneInfo.selectedDeliveryZoneId || ""}
                   zoneName={zoneInfo.deliveryZone}
                   zoneType="delivery"
-                  centerLat={zoneInfo.availableDeliveryZones?.[0]?.centerLat}
-                  centerLon={zoneInfo.availableDeliveryZones?.[0]?.centerLon}
-                  radiusKm={zoneInfo.availableDeliveryZones?.[0]?.radiusKm}
+                  centerLat={zoneInfo.availableDeliveryZones?.find(
+                    (z) => z.id === zoneInfo.selectedDeliveryZoneId
+                  )?.centerLat}
+                  centerLon={zoneInfo.availableDeliveryZones?.find(
+                    (z) => z.id === zoneInfo.selectedDeliveryZoneId
+                  )?.centerLon}
+                  radiusKm={zoneInfo.availableDeliveryZones?.find(
+                    (z) => z.id === zoneInfo.selectedDeliveryZoneId
+                  )?.radiusKm}
                 />
               ) : !zoneInfo.usingFallbackAddress && 
                 ((useProfileAddress &&
@@ -754,35 +728,16 @@ function CheckoutContent() {
                       </div>
                     </div>
                   </div>
-                ) : (
-                  zoneInfo.pallets?.map((pallet) => (
-                  <div key={pallet.id} className="relative">
-                    <PalletDetails pallet={pallet} />
-                    {pallet.remainingBottles > 0 && (
-                      <div className="mt-3 flex justify-center">
-                        <Button
-                          variant={
-                            selectedPallet?.id === pallet.id
-                              ? "default"
-                              : "outline"
-                          }
-                          size="sm"
-                          onClick={() => setSelectedPallet(pallet)}
-                          className={
-                            selectedPallet?.id === pallet.id
-                              ? "bg-green-600 hover:bg-green-700"
-                              : ""
-                          }
-                        >
-                          {selectedPallet?.id === pallet.id
-                            ? "Selected"
-                            : "Select This Pallet"}
-                        </Button>
+                ) : selectedPallet ? (
+                  <div className="relative">
+                    <PalletDetails pallet={selectedPallet} />
+                    <div className="mt-3 flex justify-center">
+                      <div className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                        ✓ Auto-selected (most popular)
                       </div>
-                    )}
+                    </div>
                   </div>
-                  ))
-                )}
+                ) : null}
               </div>
 
               {selectedPallet && (
