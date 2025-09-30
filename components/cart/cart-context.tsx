@@ -277,17 +277,30 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const update = useCallback(
     async (lineId: string, merchandiseId: string, nextQuantity: number) => {
+      // Optimistic update for instant UI feedback
       startTransition(() => {
         updateOptimisticCart({
           type: "UPDATE_ITEM",
           payload: { merchandiseId, nextQuantity },
         });
       });
+      
+      // Perform server update
       const fresh = await CartActions.updateItem({
         lineId,
         quantity: nextQuantity,
       });
-      if (fresh) setCart(fresh);
+      
+      if (fresh) {
+        setCart(fresh);
+        // Update localStorage cache
+        try {
+          localStorage.setItem("cart-cache", JSON.stringify(fresh));
+          localStorage.setItem("cart-cache-time", Date.now().toString());
+        } catch (error) {
+          console.warn("Failed to cache cart:", error);
+        }
+      }
     },
     [updateOptimisticCart],
   );
@@ -297,15 +310,27 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const previousQuantity =
         optimisticCart?.lines.find((l) => l.merchandise.id === variant.id)
           ?.quantity || 0;
+      
+      // Optimistic update for instant UI feedback
       startTransition(() => {
         updateOptimisticCart({
           type: "ADD_ITEM",
           payload: { variant, product, previousQuantity },
         });
       });
+      
+      // Perform server update
       const fresh = await CartActions.addItem(variant.id);
+      
       if (fresh) {
         setCart(fresh);
+        // Update localStorage cache
+        try {
+          localStorage.setItem("cart-cache", JSON.stringify(fresh));
+          localStorage.setItem("cart-cache-time", Date.now().toString());
+        } catch (error) {
+          console.warn("Failed to cache cart:", error);
+        }
       } else {
         // If add failed, revert optimistic update
         setCart(cart);

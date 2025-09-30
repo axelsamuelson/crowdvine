@@ -8,9 +8,6 @@ import { CartService } from "../../src/lib/cart-service";
 export async function addItem(
   variantId: string | undefined,
 ): Promise<Cart | null> {
-  console.log("=== ADD ITEM SERVER ACTION START ===");
-  console.log("addItem server action called with variantId:", variantId);
-
   if (!variantId) {
     console.error("addItem: No variantId provided");
     return null;
@@ -19,36 +16,16 @@ export async function addItem(
   try {
     // Extract base ID from variant ID (remove -default suffix)
     const baseId = variantId.replace("-default", "");
-    console.log("Extracted base ID from variant ID:", { variantId, baseId });
-
-    console.log("Calling CartService.addItem...");
+    
+    // Add item to cart
     const cart = await CartService.addItem(baseId, 1);
-    console.log("CartService.addItem completed with result:", cart);
-
-    console.log("Calling revalidateTag...");
-    revalidateTag(TAGS.cart);
-    console.log("revalidateTag completed");
-
-    // Invalidate localStorage cache
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.removeItem("cart-cache");
-        localStorage.removeItem("cart-cache-time");
-      } catch (error) {
-        console.warn("Failed to clear cart cache:", error);
-      }
-    }
-
-    console.log("=== ADD ITEM SERVER ACTION END ===");
+    
+    // Note: We don't revalidateTag here because it causes unnecessary re-renders
+    // The cart context will handle the UI update via setCart
+    
     return cart;
   } catch (error) {
-    console.error("=== ADD ITEM SERVER ACTION ERROR ===");
     console.error("addItem error:", error);
-    console.error(
-      "Error stack:",
-      error instanceof Error ? error.stack : "No stack trace",
-    );
-    console.error("=== ADD ITEM SERVER ACTION ERROR END ===");
     return null;
   }
 }
@@ -62,18 +39,8 @@ export async function updateItem({
 }): Promise<Cart | null> {
   try {
     const cart = await CartService.updateItem(lineId, quantity);
-    revalidateTag(TAGS.cart);
-
-    // Invalidate localStorage cache
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.removeItem("cart-cache");
-        localStorage.removeItem("cart-cache-time");
-      } catch (error) {
-        console.warn("Failed to clear cart cache:", error);
-      }
-    }
-
+    // Note: We don't revalidateTag here because it causes unnecessary re-renders
+    // The cart context will handle the UI update via setCart
     return cart;
   } catch (error) {
     console.error("updateItem error:", error);

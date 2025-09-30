@@ -186,62 +186,60 @@ export class CartService {
   ): Promise<Cart | null> {
     try {
       const cartId = await this.ensureCart();
-
       const sb = await supabaseServer();
 
-      // Check if item already exists in cart
-      const { data: existingItem, error: checkError } = await sb
+      // Use upsert to either insert or update in a single operation
+      const { error: upsertError } = await sb
         .from("cart_items")
-        .select("id, quantity")
-        .eq("cart_id", cartId)
-        .eq("wine_id", wineId)
-        .single();
-
-      if (checkError && checkError.code !== "PGRST116") {
-        console.error("Error checking for existing item:", checkError);
-      }
-
-      if (existingItem) {
-        // Update quantity
-        const { data: updatedItem, error: updateError } = await sb
-          .from("cart_items")
-          .update({ quantity: existingItem.quantity + quantity })
-          .eq("id", existingItem.id)
-          .select("*")
-          .single();
-
-        if (updateError) {
-          console.error("Failed to update cart item:", updateError);
-          throw new Error("Failed to update cart item");
-        }
-      } else {
-        // Add new item
-        const { data: newItem, error: insertError } = await sb
-          .from("cart_items")
-          .insert({
+        .upsert(
+          {
             cart_id: cartId,
             wine_id: wineId,
-            quantity,
-          })
-          .select("*")
+            quantity: sb.raw(`COALESCE(quantity, 0) + ${quantity}`),
+          },
+          {
+            onConflict: "cart_id,wine_id",
+            ignoreDuplicates: false,
+          }
+        );
+
+      if (upsertError) {
+        // Fallback to manual check and update if upsert fails
+        const { data: existingItem } = await sb
+          .from("cart_items")
+          .select("id, quantity")
+          .eq("cart_id", cartId)
+          .eq("wine_id", wineId)
           .single();
 
-        if (insertError) {
-          console.error("Failed to add cart item:", insertError);
-          throw new Error("Failed to add cart item");
+        if (existingItem) {
+          const { error: updateError } = await sb
+            .from("cart_items")
+            .update({ quantity: existingItem.quantity + quantity })
+            .eq("id", existingItem.id);
+
+          if (updateError) {
+            throw new Error("Failed to update cart item");
+          }
+        } else {
+          const { error: insertError } = await sb
+            .from("cart_items")
+            .insert({
+              cart_id: cartId,
+              wine_id: wineId,
+              quantity,
+            });
+
+          if (insertError) {
+            throw new Error("Failed to add cart item");
+          }
         }
       }
 
-      const cart = await this.getCart();
-      return cart;
+      // Return updated cart
+      return await this.getCart();
     } catch (error) {
-      console.error("=== CART SERVICE ADD ITEM ERROR ===");
       console.error("CartService.addItem error:", error);
-      console.error(
-        "Error stack:",
-        error instanceof Error ? error.stack : "No stack trace",
-      );
-      console.error("=== CART SERVICE ADD ITEM ERROR END ===");
       return null;
     }
   }
