@@ -91,10 +91,28 @@ export default function TestCartPage() {
     addTestResult(`🔍 Is Pending: ${isPending}`);
     
     try {
-      // Add item to cart
-      addTestResult("📤 Calling addItem...");
-      const result = await addItem(mockProduct.variants[0], mockProduct);
-      addTestResult(`📥 addItem returned: ${result ? 'success' : 'null/undefined'}`);
+      // Test 1: Try server action first
+      addTestResult("📤 Testing server action...");
+      const serverActionResult = await addItem(mockProduct.variants[0], mockProduct);
+      addTestResult(`📥 Server action returned: ${serverActionResult ? 'success' : 'null/undefined'}`);
+      
+      // Test 2: Try API route
+      addTestResult("📤 Testing API route...");
+      const baseId = mockProduct.variants[0].id.replace("-default", "");
+      const apiResponse = await fetch('/api/test-server-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wineId: baseId })
+      });
+      
+      const apiResult = await apiResponse.json();
+      addTestResult(`📥 API response: ${apiResult.success ? 'success' : 'failed'}`);
+      
+      if (apiResult.success && apiResult.cart) {
+        addTestResult(`📊 API cart has ${apiResult.cart.lines.length} items, total quantity: ${apiResult.cart.totalQuantity}`);
+      } else {
+        addTestResult(`❌ API error: ${apiResult.error}`);
+      }
       
       // Check immediate state
       const immediateItemCount = cart?.lines.length || 0;
