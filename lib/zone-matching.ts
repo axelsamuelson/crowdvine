@@ -231,10 +231,18 @@ export async function determineZones(
             }
           }
 
-          // If we have matching zones, use the first one as default
+          // If we have matching zones, prioritize by smallest radius (most specific)
           if (matchingZones.length > 0) {
+            // Sort by radius (smallest first) to prefer more specific zones
+            matchingZones.sort((a, b) => a.radiusKm - b.radiusKm);
+            
             deliveryZoneId = matchingZones[0].id;
             deliveryZoneName = matchingZones[0].name;
+            
+            console.log(`✅ Selected zone: ${deliveryZoneName} (${matchingZones[0].radiusKm}km radius)`);
+            if (matchingZones.length > 1) {
+              console.log(`ℹ️  Also within range of: ${matchingZones.slice(1).map(z => z.name).join(', ')}`);
+            }
 
             console.log("✅ Found matching delivery zone:", deliveryZoneName);
 
