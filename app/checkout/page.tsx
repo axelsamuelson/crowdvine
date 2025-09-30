@@ -455,6 +455,24 @@ function CheckoutContent() {
               </div>
               <div className="border-t pt-3 mt-3">
                 <div className="space-y-2">
+                  {/* Bottle Cost */}
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Bottle Cost</span>
+                    <span className="text-sm font-medium">
+                      {Math.round(parseFloat(cart.cost.totalAmount.amount))}{" "}
+                      {cart.cost.totalAmount.currencyCode}
+                    </span>
+                  </div>
+
+                  {/* VAT */}
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">VAT (25%)</span>
+                    <span className="text-sm font-medium">
+                      {Math.round(parseFloat(cart.cost.totalAmount.amount) * 0.25)}{" "}
+                      {cart.cost.totalAmount.currencyCode}
+                    </span>
+                  </div>
+
                   {/* Shipping Cost */}
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Shipping</span>
@@ -473,9 +491,12 @@ function CheckoutContent() {
 
                   {/* Subtotal */}
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Subtotal</span>
+                    <span className="text-sm text-gray-600">Subtotal (incl. VAT)</span>
                     <span className="text-sm font-medium">
-                      {Math.round(parseFloat(cart.cost.totalAmount.amount))}{" "}
+                      {Math.round(
+                        parseFloat(cart.cost.totalAmount.amount) +
+                        (parseFloat(cart.cost.totalAmount.amount) * 0.25)
+                      )}{" "}
                       {cart.cost.totalAmount.currencyCode}
                     </span>
                   </div>
@@ -488,13 +509,17 @@ function CheckoutContent() {
                         <>
                           {Math.round(
                             parseFloat(cart.cost.totalAmount.amount) +
+                            (parseFloat(cart.cost.totalAmount.amount) * 0.25) +
                             shippingCost.totalShippingCostSek
                           )}{" "}
                           {cart.cost.totalAmount.currencyCode}
                         </>
                       ) : (
                         <>
-                          {Math.round(parseFloat(cart.cost.totalAmount.amount))}{" "}
+                          {Math.round(
+                            parseFloat(cart.cost.totalAmount.amount) +
+                            (parseFloat(cart.cost.totalAmount.amount) * 0.25)
+                          )}{" "}
                           {cart.cost.totalAmount.currencyCode}
                         </>
                       )}
