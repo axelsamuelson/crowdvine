@@ -93,9 +93,11 @@ function cartReducer(state: Cart | undefined, action: CartAction): Cart {
   switch (action.type) {
     case "UPDATE_ITEM": {
       const { merchandiseId, nextQuantity } = action.payload;
+      // Normalize merchandise ID by removing -default suffix for comparison
+      const normalizedMerchandiseId = merchandiseId.replace("-default", "");
       const updatedLines = currentCart.lines
         .map((item) => {
-          if (item.merchandise.id !== merchandiseId) return item;
+          if (item.merchandise.id !== normalizedMerchandiseId) return item;
           if (nextQuantity <= 0) return null;
 
           const singleItemAmount =
@@ -139,14 +141,16 @@ function cartReducer(state: Cart | undefined, action: CartAction): Cart {
     }
     case "ADD_ITEM": {
       const { variant, product, previousQuantity } = action.payload;
+      // Normalize variant ID by removing -default suffix for comparison
+      const normalizedVariantId = variant.id.replace("-default", "");
       const existingItem = currentCart.lines.find(
-        (item) => item.merchandise.id === variant.id,
+        (item) => item.merchandise.id === normalizedVariantId,
       );
       const targetQuantity = previousQuantity + 1;
 
       const updatedLines = existingItem
         ? currentCart.lines.map((item) => {
-            if (item.merchandise.id !== variant.id) return item;
+            if (item.merchandise.id !== normalizedVariantId) return item;
 
             const singleItemAmount =
               Number(item.cost.totalAmount.amount) / item.quantity;
@@ -181,7 +185,7 @@ function cartReducer(state: Cart | undefined, action: CartAction): Cart {
                 },
               },
               merchandise: {
-                id: variant.id,
+                id: normalizedVariantId, // Use normalized ID to match database format
                 title: variant.title,
                 selectedOptions: variant.selectedOptions,
                 product: product,
@@ -307,8 +311,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const add = useCallback(
     async (variant: ProductVariant, product: Product) => {
+      // Normalize variant ID by removing -default suffix for comparison
+      const normalizedVariantId = variant.id.replace("-default", "");
       const previousQuantity =
-        optimisticCart?.lines.find((l) => l.merchandise.id === variant.id)
+        optimisticCart?.lines.find((l) => l.merchandise.id === normalizedVariantId)
           ?.quantity || 0;
       
       // Optimistic update for instant UI feedback
