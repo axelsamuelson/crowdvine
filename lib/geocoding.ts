@@ -41,73 +41,93 @@ export async function geocodeAddress(
     return geocodeCache.get(cleanAddress)!;
   }
 
-  try {
-    console.log("🌍 Geocoding address:", cleanAddress);
+  // Retry logic for geocoding
+  const maxRetries = 3;
+  let lastError: Error | null = null;
 
-    // Use OpenStreetMap Nominatim API (free, no API key required)
-    // Add User-Agent header to avoid 403 errors
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?` +
-        `format=json&` +
-        `q=${encodeURIComponent(cleanAddress)}&` +
-        `limit=1&` +
-        `addressdetails=1&` +
-        `countrycodes=se,no,dk,fi,fr,de,gb,es,it&` + // Nordic + European countries
-        `accept-language=en`,
-      {
-        headers: {
-          "User-Agent": "CrowdVine/1.0 (https://pactwines.com)",
-          Accept: "application/json",
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`🌍 Geocoding address (attempt ${attempt}/${maxRetries}):`, cleanAddress);
+
+      // Use OpenStreetMap Nominatim API (free, no API key required)
+      // Add User-Agent header to avoid 403 errors
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?` +
+          `format=json&` +
+          `q=${encodeURIComponent(cleanAddress)}&` +
+          `limit=1&` +
+          `addressdetails=1&` +
+          `countrycodes=se,no,dk,fi,fr,de,gb,es,it&` + // Nordic + European countries
+          `accept-language=en`,
+        {
+          headers: {
+            "User-Agent": "CrowdVine/1.0 (https://pactwines.com)",
+            Accept: "application/json",
+          },
+          // Add timeout to prevent hanging requests
+          signal: AbortSignal.timeout(10000), // 10 second timeout
         },
-      },
-    );
+      );
 
-    if (!response.ok) {
-      throw new Error(`Geocoding API error: ${response.status}`);
-    }
+      if (!response.ok) {
+        throw new Error(`Geocoding API error: ${response.status}`);
+      }
 
-    const data = await response.json();
+      const data = await response.json();
 
-    if (!data || data.length === 0) {
-      return {
-        error: "NO_RESULTS",
-        message: "No coordinates found for this address",
+      if (!data || data.length === 0) {
+        return {
+          error: "NO_RESULTS",
+          message: "No coordinates found for this address",
+        };
+      }
+
+      const result = data[0];
+      const geocodeResult: GeocodeResult = {
+        lat: parseFloat(result.lat),
+        lon: parseFloat(result.lon),
+        display_name: result.display_name,
+        address: result.address
+          ? {
+              house_number: result.address.house_number,
+              road: result.address.road,
+              city:
+                result.address.city ||
+                result.address.town ||
+                result.address.village,
+              postcode: result.address.postcode,
+              country: result.address.country,
+              country_code: result.address.country_code?.toUpperCase(),
+            }
+          : undefined,
       };
+
+      // Cache the result
+      geocodeCache.set(cleanAddress, geocodeResult);
+
+      console.log("✅ Geocoded successfully:", {
+        address: cleanAddress,
+        lat: geocodeResult.lat,
+        lon: geocodeResult.lon,
+        city: geocodeResult.address?.city,
+      });
+
+      return geocodeResult;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      console.error(`❌ Geocoding attempt ${attempt} failed:`, lastError.message);
+      
+      // If this isn't the last attempt, wait before retrying
+      if (attempt < maxRetries) {
+        const delay = Math.pow(2, attempt) * 1000; // Exponential backoff: 2s, 4s, 8s
+        console.log(`⏳ Waiting ${delay}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
     }
+  }
 
-    const result = data[0];
-    const geocodeResult: GeocodeResult = {
-      lat: parseFloat(result.lat),
-      lon: parseFloat(result.lon),
-      display_name: result.display_name,
-      address: result.address
-        ? {
-            house_number: result.address.house_number,
-            road: result.address.road,
-            city:
-              result.address.city ||
-              result.address.town ||
-              result.address.village,
-            postcode: result.address.postcode,
-            country: result.address.country,
-            country_code: result.address.country_code?.toUpperCase(),
-          }
-        : undefined,
-    };
-
-    // Cache the result
-    geocodeCache.set(cleanAddress, geocodeResult);
-
-    console.log("✅ Geocoded successfully:", {
-      address: cleanAddress,
-      lat: geocodeResult.lat,
-      lon: geocodeResult.lon,
-      city: geocodeResult.address?.city,
-    });
-
-    return geocodeResult;
-  } catch (error) {
-    console.error("❌ Primary geocoding failed:", error);
+  // All retries failed, try fallback
+  console.error("❌ All geocoding attempts failed, trying fallback...");
 
     // Fallback: Try with a simpler address format
     try {
@@ -168,10 +188,10 @@ export async function geocodeAddress(
       console.error("❌ Fallback geocoding also failed:", fallbackError);
     }
 
-    return {
-      error: "GEOCODING_FAILED",
-      message: `Failed to geocode address: ${error instanceof Error ? error.message : "Unknown error"}`,
-    };
+  return {
+    error: "GEOCODING_FAILED",
+    message: `Failed to geocode address after ${maxRetries} attempts: ${lastError?.message || "Unknown error"}`,
+  };
   }
 }
 

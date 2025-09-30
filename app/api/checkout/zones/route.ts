@@ -13,19 +13,7 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log("🚀 Zone determination request:", {
-      cartItems: cartItems.length,
-      deliveryAddress
-    });
-
     const zones = await determineZones(cartItems, deliveryAddress);
-
-    console.log("✅ Zone determination result:", {
-      pickupZone: zones.pickupZoneName,
-      deliveryZone: zones.deliveryZoneName,
-      availableZones: zones.availableDeliveryZones?.length || 0,
-      pallets: zones.pallets?.length || 0
-    });
 
     return NextResponse.json({
       pickupZoneId: zones.pickupZoneId,
@@ -38,10 +26,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Zone determination error:", error);
     return NextResponse.json(
-      { 
-        error: "Failed to determine zones",
-        details: error instanceof Error ? error.message : "Unknown error"
-      },
+      { error: "Failed to determine zones" },
       { status: 500 },
     );
   }

@@ -6,6 +6,15 @@ import {
   isValidCoordinates,
 } from "./geocoding";
 
+// Cache for zone matching results to avoid repeated API calls
+const zoneCache = new Map<string, ZoneMatchResult>();
+
+// Function to clear zone cache (useful for debugging)
+export function clearZoneCache() {
+  zoneCache.clear();
+  console.log("🧹 Zone cache cleared");
+}
+
 // Calculate distance between two points using Haversine formula
 function calculateDistance(
   lat1: number,
@@ -74,27 +83,42 @@ export async function determineZones(
   cartItems: CartItem[],
   deliveryAddress: DeliveryAddress,
 ): Promise<ZoneMatchResult> {
+  // Create cache key from cart items and delivery address
+  const cacheKey = JSON.stringify({
+    cartItems: cartItems.map(item => item.merchandise.id).sort(),
+    deliveryAddress: {
+      postcode: deliveryAddress.postcode,
+      city: deliveryAddress.city,
+      countryCode: deliveryAddress.countryCode,
+    }
+  });
+
+  // Check cache first
+  if (zoneCache.has(cacheKey)) {
+    console.log("📍 Using cached zone result for:", deliveryAddress.city, deliveryAddress.countryCode);
+    return zoneCache.get(cacheKey)!;
+  }
+
   const sb = getSupabaseAdmin(); // Use admin client to bypass RLS
 
-  try {
-    // Get unique producer IDs from cart items
-    const { data: wines, error: winesError } = await sb
-      .from("wines")
-      .select("id, producer_id")
-      .in(
-        "id",
-        cartItems.map((item) => item.merchandise.id),
-      );
+  // Get unique producer IDs from cart items
+  const { data: wines, error: winesError } = await sb
+    .from("wines")
+    .select("id, producer_id")
+    .in(
+      "id",
+      cartItems.map((item) => item.merchandise.id),
+    );
 
-    if (winesError || !wines) {
-      console.error("Failed to fetch wines for zone matching:", winesError);
-      return {
-        pickupZoneId: null,
-        deliveryZoneId: null,
-        pickupZoneName: null,
-        deliveryZoneName: null,
-      };
-    }
+  if (winesError || !wines) {
+    console.error("Failed to fetch wines for zone matching:", winesError);
+    return {
+      pickupZoneId: null,
+      deliveryZoneId: null,
+      pickupZoneName: null,
+      deliveryZoneName: null,
+    };
+  }
 
   const producerIds = [...new Set(wines.map((wine) => wine.producer_id))];
 
@@ -295,8 +319,8 @@ export async function determineZones(
               }
             }
 
-            // Return all matching zones for user selection
-            return {
+            // Cache and return all matching zones for user selection
+            const result = {
               pickupZoneId,
               deliveryZoneId,
               pickupZoneName,
@@ -304,6 +328,12 @@ export async function determineZones(
               availableDeliveryZones: matchingZones,
               pallets,
             };
+            
+            // Cache the result
+            zoneCache.set(cacheKey, result);
+            console.log("💾 Cached zone result for:", deliveryAddress.city, deliveryAddress.countryCode);
+            
+            return result;
           } else {
             console.log("❌ No delivery zones match this address");
             deliveryZoneId = null;
@@ -363,20 +393,17 @@ export async function determineZones(
     }
   }
 
-    return {
-      pickupZoneId,
-      deliveryZoneId,
-      pickupZoneName,
-      deliveryZoneName,
-      pallets,
-    };
-  } catch (error) {
-    console.error("Error in determineZones:", error);
-    return {
-      pickupZoneId: null,
-      deliveryZoneId: null,
-      pickupZoneName: null,
-      deliveryZoneName: null,
-    };
-  }
+  const result = {
+    pickupZoneId,
+    deliveryZoneId,
+    pickupZoneName,
+    deliveryZoneName,
+    pallets,
+  };
+  
+  // Cache the result (even if no zones found)
+  zoneCache.set(cacheKey, result);
+  console.log("💾 Cached zone result (no zones) for:", deliveryAddress.city, deliveryAddress.countryCode);
+  
+  return result;
 }
