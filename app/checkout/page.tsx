@@ -477,8 +477,8 @@ function CheckoutContent() {
             <CardContent>
               <div className="space-y-3">
                 {cart.lines.map((line) => {
-                  // Calculate price per bottle (total / quantity)
-                  const pricePerBottle = parseFloat(line.cost.totalAmount.amount) / line.quantity;
+                  // Get price per bottle from product priceRange
+                  const pricePerBottle = parseFloat(line.merchandise.product.priceRange.minVariantPrice.amount);
                   const totalForLine = pricePerBottle * line.quantity;
                   
                   return (
@@ -496,7 +496,7 @@ function CheckoutContent() {
                       </div>
                       <span className="font-medium">
                         {Math.round(totalForLine)}{" "}
-                        {line.cost.totalAmount.currencyCode}
+                        {line.merchandise.product.priceRange.minVariantPrice.currencyCode}
                       </span>
                     </div>
                   );
@@ -508,7 +508,12 @@ function CheckoutContent() {
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Bottle Cost (incl. VAT)</span>
                     <span className="text-sm font-medium">
-                      {Math.round(parseFloat(cart.cost.totalAmount.amount))}{" "}
+                      {Math.round(
+                        cart.lines.reduce((total, line) => {
+                          const pricePerBottle = parseFloat(line.merchandise.product.priceRange.minVariantPrice.amount);
+                          return total + (pricePerBottle * line.quantity);
+                        }, 0)
+                      )}{" "}
                       {cart.cost.totalAmount.currencyCode}
                     </span>
                   </div>
@@ -533,7 +538,12 @@ function CheckoutContent() {
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Subtotal</span>
                     <span className="text-sm font-medium">
-                      {Math.round(parseFloat(cart.cost.totalAmount.amount))}{" "}
+                      {Math.round(
+                        cart.lines.reduce((total, line) => {
+                          const pricePerBottle = parseFloat(line.merchandise.product.priceRange.minVariantPrice.amount);
+                          return total + (pricePerBottle * line.quantity);
+                        }, 0)
+                      )}{" "}
                       {cart.cost.totalAmount.currencyCode}
                     </span>
                   </div>
@@ -542,20 +552,24 @@ function CheckoutContent() {
                   <div className="flex justify-between items-center font-semibold text-lg border-t pt-2">
                     <span>Total</span>
                     <span>
-                      {shippingCost ? (
-                        <>
-                          {Math.round(
-                            parseFloat(cart.cost.totalAmount.amount) +
-                            shippingCost.totalShippingCostSek
-                          )}{" "}
-                          {cart.cost.totalAmount.currencyCode}
-                        </>
-                      ) : (
-                        <>
-                          {Math.round(parseFloat(cart.cost.totalAmount.amount))}{" "}
-                          {cart.cost.totalAmount.currencyCode}
-                        </>
-                      )}
+                      {(() => {
+                        const bottleCost = cart.lines.reduce((total, line) => {
+                          const pricePerBottle = parseFloat(line.merchandise.product.priceRange.minVariantPrice.amount);
+                          return total + (pricePerBottle * line.quantity);
+                        }, 0);
+                        
+                        return shippingCost ? (
+                          <>
+                            {Math.round(bottleCost + shippingCost.totalShippingCostSek)}{" "}
+                            {cart.cost.totalAmount.currencyCode}
+                          </>
+                        ) : (
+                          <>
+                            {Math.round(bottleCost)}{" "}
+                            {cart.cost.totalAmount.currencyCode}
+                          </>
+                        );
+                      })()}
                     </span>
                   </div>
                 </div>
