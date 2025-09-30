@@ -447,7 +447,7 @@ function CheckoutContent() {
                       </span>
                     </div>
                     <span className="font-medium">
-                      {line.cost.totalAmount.amount}{" "}
+                      {Math.round(parseFloat(line.cost.totalAmount.amount))}{" "}
                       {line.cost.totalAmount.currencyCode}
                     </span>
                   </div>
@@ -475,7 +475,7 @@ function CheckoutContent() {
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Subtotal</span>
                     <span className="text-sm font-medium">
-                      {cart.cost.totalAmount.amount}{" "}
+                      {Math.round(parseFloat(cart.cost.totalAmount.amount))}{" "}
                       {cart.cost.totalAmount.currencyCode}
                     </span>
                   </div>
@@ -486,15 +486,15 @@ function CheckoutContent() {
                     <span>
                       {shippingCost ? (
                         <>
-                          {(
+                          {Math.round(
                             parseFloat(cart.cost.totalAmount.amount) +
                             shippingCost.totalShippingCostSek
-                          ).toFixed(2)}{" "}
+                          )}{" "}
                           {cart.cost.totalAmount.currencyCode}
                         </>
                       ) : (
                         <>
-                          {cart.cost.totalAmount.amount}{" "}
+                          {Math.round(parseFloat(cart.cost.totalAmount.amount))}{" "}
                           {cart.cost.totalAmount.currencyCode}
                         </>
                       )}

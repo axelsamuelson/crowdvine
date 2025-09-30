@@ -92,7 +92,7 @@ export class CartService {
           cost: {
             subtotalAmount: { amount: "0.00", currencyCode: "SEK" },
             totalAmount: { amount: "0.00", currencyCode: "SEK" },
-            totalTaxAmount: { amount: "0.00", currencyCode: "SEK" },
+            totalTaxAmount: { amount: "0", currencyCode: "SEK" },
           },
           totalQuantity: 0,
           lines: [],
@@ -114,7 +114,7 @@ export class CartService {
               amount: (
                 (item.wines.base_price_cents * item.quantity) /
                 100
-              ).toFixed(2),
+              ).toString(),
               currencyCode: "SEK",
             },
           },
@@ -137,7 +137,7 @@ export class CartService {
                   title: "750 ml",
                   availableForSale: true,
                   price: {
-                    amount: (item.wines.base_price_cents / 100).toFixed(2),
+                    amount: Math.round(item.wines.base_price_cents / 100).toString(),
                     currencyCode: "SEK",
                   },
                   selectedOptions,
@@ -145,11 +145,11 @@ export class CartService {
               ],
               priceRange: {
                 minVariantPrice: {
-                  amount: (item.wines.base_price_cents / 100).toFixed(2),
+                  amount: Math.round(item.wines.base_price_cents / 100).toString(),
                   currencyCode: "SEK",
                 },
                 maxVariantPrice: {
-                  amount: (item.wines.base_price_cents / 100).toFixed(2),
+                  amount: Math.round(item.wines.base_price_cents / 100).toString(),
                   currencyCode: "SEK",
                 },
               },
@@ -189,9 +189,9 @@ export class CartService {
         id: await this.ensureCart(), // Use the actual database cart ID
         checkoutUrl: "/checkout",
         cost: {
-          subtotalAmount: { amount: subtotal.toFixed(2), currencyCode: "SEK" },
-          totalAmount: { amount: subtotal.toFixed(2), currencyCode: "SEK" },
-          totalTaxAmount: { amount: "0.00", currencyCode: "SEK" },
+          subtotalAmount: { amount: Math.round(subtotal).toString(), currencyCode: "SEK" },
+          totalAmount: { amount: Math.round(subtotal).toString(), currencyCode: "SEK" },
+          totalTaxAmount: { amount: "0", currencyCode: "SEK" },
         },
         totalQuantity: lines.reduce((sum, line) => sum + line.quantity, 0),
         lines,

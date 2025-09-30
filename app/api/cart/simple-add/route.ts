@@ -134,7 +134,7 @@ export async function POST(request: Request) {
         quantity: item.quantity,
         cost: {
           totalAmount: {
-            amount: ((item.wines.base_price_cents * item.quantity) / 100).toFixed(2),
+            amount: Math.round((item.wines.base_price_cents * item.quantity) / 100).toString(),
             currencyCode: "SEK",
           },
         },
@@ -164,9 +164,9 @@ export async function POST(request: Request) {
       id: dbCartId,
       checkoutUrl: "/checkout",
       cost: {
-        subtotalAmount: { amount: subtotal.toFixed(2), currencyCode: "SEK" },
-        totalAmount: { amount: subtotal.toFixed(2), currencyCode: "SEK" },
-        totalTaxAmount: { amount: "0.00", currencyCode: "SEK" },
+        subtotalAmount: { amount: Math.round(subtotal).toString(), currencyCode: "SEK" },
+        totalAmount: { amount: Math.round(subtotal).toString(), currencyCode: "SEK" },
+        totalTaxAmount: { amount: "0", currencyCode: "SEK" },
       },
       totalQuantity: lines.reduce((sum, line) => sum + line.quantity, 0),
       lines,

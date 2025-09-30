@@ -173,7 +173,7 @@ function CheckoutConfirmationContent() {
   };
 
   const formatPrice = (cents: number) => {
-    return `${(cents / 100).toFixed(2)} SEK`;
+    return `${Math.round(cents / 100)} SEK`;
   };
 
   if (loading) {

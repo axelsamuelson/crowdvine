@@ -70,7 +70,7 @@ export function calculateShippingCostBreakdown(
  * @returns Formatted cost string
  */
 export function formatShippingCost(costCents: number): string {
-  return `${(costCents / 100).toFixed(2)} SEK`;
+  return `${Math.round(costCents / 100)} SEK`;
 }
 
 /**
