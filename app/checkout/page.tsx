@@ -504,28 +504,6 @@ function CheckoutContent() {
               </div>
               <div className="border-t pt-3 mt-3">
                 <div className="space-y-2">
-                  {/* Bottle Cost (including VAT) */}
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Bottle Cost (incl. VAT)</span>
-                    <span className="text-sm font-medium">
-                      {(() => {
-                        // Calculate actual cost in EUR converted to SEK
-                        // For now, using a fixed exchange rate of 11.25 SEK per EUR
-                        // This should eventually come from the database (cost_amount * exchange_rate)
-                        const exchangeRate = 11.25; // SEK per EUR
-                        
-                        return Math.round(
-                          cart.lines.reduce((total, line) => {
-                            // For now, estimate cost per bottle as 9 EUR (this should come from cost_amount in DB)
-                            const costPerBottleEUR = 9; // This should be line.merchandise.product.costAmount
-                            const costPerBottleSEK = costPerBottleEUR * exchangeRate;
-                            return total + (costPerBottleSEK * line.quantity);
-                          }, 0)
-                        );
-                      })()}{" "}
-                      {cart.cost.totalAmount.currencyCode}
-                    </span>
-                  </div>
 
                   {/* Shipping Cost */}
                   <div className="flex justify-between items-center">
