@@ -192,7 +192,6 @@ export async function geocodeAddress(
     error: "GEOCODING_FAILED",
     message: `Failed to geocode address after ${maxRetries} attempts: ${lastError?.message || "Unknown error"}`,
   };
-  }
 }
 
 // Helper function to create a full address string
