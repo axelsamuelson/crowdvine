@@ -647,7 +647,7 @@ function CheckoutContent() {
                     (z) => z.id === zoneInfo.selectedDeliveryZoneId
                   )?.radiusKm}
                 />
-              ) : !zoneInfo.usingFallbackAddress && 
+              ) : !zoneLoading && !zoneInfo.usingFallbackAddress && 
                 ((useProfileAddress &&
                   profile?.address &&
                   profile?.city &&
