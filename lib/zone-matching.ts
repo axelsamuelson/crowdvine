@@ -76,24 +76,25 @@ export async function determineZones(
 ): Promise<ZoneMatchResult> {
   const sb = getSupabaseAdmin(); // Use admin client to bypass RLS
 
-  // Get unique producer IDs from cart items
-  const { data: wines, error: winesError } = await sb
-    .from("wines")
-    .select("id, producer_id")
-    .in(
-      "id",
-      cartItems.map((item) => item.merchandise.id),
-    );
+  try {
+    // Get unique producer IDs from cart items
+    const { data: wines, error: winesError } = await sb
+      .from("wines")
+      .select("id, producer_id")
+      .in(
+        "id",
+        cartItems.map((item) => item.merchandise.id),
+      );
 
-  if (winesError || !wines) {
-    console.error("Failed to fetch wines for zone matching:", winesError);
-    return {
-      pickupZoneId: null,
-      deliveryZoneId: null,
-      pickupZoneName: null,
-      deliveryZoneName: null,
-    };
-  }
+    if (winesError || !wines) {
+      console.error("Failed to fetch wines for zone matching:", winesError);
+      return {
+        pickupZoneId: null,
+        deliveryZoneId: null,
+        pickupZoneName: null,
+        deliveryZoneName: null,
+      };
+    }
 
   const producerIds = [...new Set(wines.map((wine) => wine.producer_id))];
 
@@ -362,11 +363,20 @@ export async function determineZones(
     }
   }
 
-  return {
-    pickupZoneId,
-    deliveryZoneId,
-    pickupZoneName,
-    deliveryZoneName,
-    pallets,
-  };
+    return {
+      pickupZoneId,
+      deliveryZoneId,
+      pickupZoneName,
+      deliveryZoneName,
+      pallets,
+    };
+  } catch (error) {
+    console.error("Error in determineZones:", error);
+    return {
+      pickupZoneId: null,
+      deliveryZoneId: null,
+      pickupZoneName: null,
+      deliveryZoneName: null,
+    };
+  }
 }

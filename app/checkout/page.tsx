@@ -96,6 +96,11 @@ function CheckoutContent() {
       deliveryZoneName: string;
     }>;
   }>({ pickupZone: null, deliveryZone: null, selectedDeliveryZoneId: null });
+  
+  const [zoneLoading, setZoneLoading] = useState(false);
+  const [zoneError, setZoneError] = useState<string | null>(null);
+  const [zoneCache, setZoneCache] = useState<Map<string, any>>(new Map());
+  const [retryCount, setRetryCount] = useState(0);
 
   const searchParams = useSearchParams();
 
@@ -147,6 +152,9 @@ function CheckoutContent() {
     if (!cart || cart.totalQuantity === 0) return;
 
     try {
+      setZoneLoading(true);
+      setZoneError(null);
+      
       let deliveryAddress;
 
       if (useProfileAddress && profile) {
@@ -184,6 +192,18 @@ function CheckoutContent() {
         };
       }
 
+      // Create cache key
+      const cacheKey = `${deliveryAddress.postcode}-${deliveryAddress.city}-${deliveryAddress.countryCode}`;
+      
+      // Check cache first
+      if (zoneCache.has(cacheKey)) {
+        console.log("🚀 Using cached zone data for:", cacheKey);
+        const cachedData = zoneCache.get(cacheKey);
+        setZoneInfo(cachedData);
+        setZoneLoading(false);
+        return;
+      }
+
       console.log("🚀 Sending zone request:", {
         cartItems: cart.lines,
         deliveryAddress,
@@ -213,7 +233,7 @@ function CheckoutContent() {
           deliveryAddress,
         });
 
-        setZoneInfo({
+        const newZoneInfo = {
           pickupZone: zoneData.pickupZoneName,
           deliveryZone: hasCompleteAddress ? zoneData.deliveryZoneName : null,
           selectedDeliveryZoneId: hasCompleteAddress
@@ -223,16 +243,49 @@ function CheckoutContent() {
             ? zoneData.availableDeliveryZones
             : [],
           pallets: hasCompleteAddress ? zoneData.pallets : [],
-        });
+        };
+
+        setZoneInfo(newZoneInfo);
+        
+        // Cache the result
+        setZoneCache(prev => new Map(prev.set(cacheKey, newZoneInfo)));
+        
       } else {
+        const errorText = await zoneResponse.text();
         console.error(
           "❌ Zone response failed:",
           zoneResponse.status,
-          await zoneResponse.text(),
+          errorText,
         );
+        
+        // Retry logic for failed requests
+        if (retryCount < 2) {
+          console.log(`🔄 Retrying zone lookup (attempt ${retryCount + 1}/3)`);
+          setRetryCount(prev => prev + 1);
+          setTimeout(() => {
+            updateZoneInfo();
+          }, 1000 * (retryCount + 1)); // Exponential backoff
+          return;
+        }
+        
+        setZoneError(`Zone lookup failed: ${zoneResponse.status}`);
       }
     } catch (error) {
       console.error("Failed to update zone info:", error);
+      
+      // Retry logic for network errors
+      if (retryCount < 2) {
+        console.log(`🔄 Retrying zone lookup after error (attempt ${retryCount + 1}/3)`);
+        setRetryCount(prev => prev + 1);
+        setTimeout(() => {
+          updateZoneInfo();
+        }, 1000 * (retryCount + 1)); // Exponential backoff
+        return;
+      }
+      
+      setZoneError(`Zone lookup error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setZoneLoading(false);
     }
   };
 
@@ -254,6 +307,12 @@ function CheckoutContent() {
         deliveryZone: selectedZone.name,
       }));
     }
+  };
+
+  const retryZoneLookup = () => {
+    setRetryCount(0);
+    setZoneError(null);
+    updateZoneInfo();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -533,6 +592,8 @@ function CheckoutContent() {
           {/* Zone Information */}
           {(zoneInfo.pickupZone ||
             zoneInfo.deliveryZone ||
+            zoneLoading ||
+            zoneError ||
             (useProfileAddress &&
               profile?.address &&
               profile?.city &&
@@ -542,8 +603,50 @@ function CheckoutContent() {
               customAddress.city &&
               customAddress.postcode)) && (
             <div className="space-y-4">
+              {/* Loading State */}
+              {zoneLoading && (
+                <Card className="border-l-4 border-l-blue-500">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-blue-700">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                      Looking up delivery zones...
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-blue-600">
+                      Finding the best delivery options for your address.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Error State */}
+              {zoneError && (
+                <Card className="border-l-4 border-l-red-500">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-red-700">
+                      <AlertCircle className="w-5 h-5" />
+                      Zone Lookup Error
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-red-600 mb-3">
+                      {zoneError}
+                    </p>
+                    <Button 
+                      onClick={retryZoneLookup}
+                      variant="outline"
+                      size="sm"
+                      className="text-red-600 border-red-300 hover:bg-red-50"
+                    >
+                      Try Again
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Pickup Zone */}
-              {zoneInfo.pickupZone && (
+              {zoneInfo.pickupZone && !zoneLoading && !zoneError && (
                 <ZoneDetails
                   zoneId={zoneInfo.pickupZoneId || ""}
                   zoneName={zoneInfo.pickupZone}
@@ -553,7 +656,7 @@ function CheckoutContent() {
 
               {/* Delivery Zone */}
               {zoneInfo.availableDeliveryZones &&
-              zoneInfo.availableDeliveryZones.length > 1 ? (
+              zoneInfo.availableDeliveryZones.length > 1 && !zoneLoading && !zoneError ? (
                 <div className="space-y-3">
                   <div className="p-3 bg-green-50 rounded-lg border border-green-200">
                     <p className="font-medium text-green-900 mb-2">
@@ -598,7 +701,7 @@ function CheckoutContent() {
                     />
                   )}
                 </div>
-              ) : zoneInfo.deliveryZone ? (
+              ) : zoneInfo.deliveryZone && !zoneLoading && !zoneError ? (
                 <ZoneDetails
                   zoneId={zoneInfo.selectedDeliveryZoneId || ""}
                   zoneName={zoneInfo.deliveryZone}
@@ -607,7 +710,7 @@ function CheckoutContent() {
                   centerLon={zoneInfo.availableDeliveryZones?.[0]?.centerLon}
                   radiusKm={zoneInfo.availableDeliveryZones?.[0]?.radiusKm}
                 />
-              ) : (useProfileAddress &&
+              ) : !zoneLoading && !zoneError && (useProfileAddress &&
                   profile?.address &&
                   profile?.city &&
                   profile?.postal_code) ||
