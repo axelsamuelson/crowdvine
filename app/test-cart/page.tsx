@@ -86,17 +86,29 @@ export default function TestCartPage() {
     const initialTotalQuantity = cart?.totalQuantity || 0;
     
     addTestResult(`📊 Initial state: ${initialItemCount} items, total quantity: ${initialTotalQuantity}`);
+    addTestResult(`🔍 Variant ID: ${mockProduct.variants[0].id}`);
+    addTestResult(`🔍 Product ID: ${mockProduct.id}`);
+    addTestResult(`🔍 Is Pending: ${isPending}`);
     
     try {
       // Add item to cart
-      await addItem(mockProduct.variants[0], mockProduct);
+      addTestResult("📤 Calling addItem...");
+      const result = await addItem(mockProduct.variants[0], mockProduct);
+      addTestResult(`📥 addItem returned: ${result ? 'success' : 'null/undefined'}`);
+      
+      // Check immediate state
+      const immediateItemCount = cart?.lines.length || 0;
+      const immediateTotalQuantity = cart?.totalQuantity || 0;
+      addTestResult(`📊 Immediate state: ${immediateItemCount} items, total quantity: ${immediateTotalQuantity}`);
       
       // Wait a bit for the update to complete
       setTimeout(() => {
         const finalItemCount = cart?.lines.length || 0;
         const finalTotalQuantity = cart?.totalQuantity || 0;
+        const finalIsPending = isPending;
         
         addTestResult(`📊 Final state: ${finalItemCount} items, total quantity: ${finalTotalQuantity}`);
+        addTestResult(`📊 Final isPending: ${finalIsPending}`);
         
         if (finalItemCount === 1 && finalTotalQuantity === initialTotalQuantity + 1) {
           addTestResult("✅ SUCCESS: Item added correctly!");
@@ -105,10 +117,11 @@ export default function TestCartPage() {
         } else {
           addTestResult("❌ ISSUE: Item not added or disappeared");
         }
-      }, 1000);
+      }, 2000);
       
     } catch (error) {
       addTestResult(`❌ ERROR: ${error}`);
+      console.error("Add to cart error:", error);
     }
   };
 

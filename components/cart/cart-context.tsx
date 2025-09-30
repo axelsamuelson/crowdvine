@@ -311,14 +311,19 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const add = useCallback(
     async (variant: ProductVariant, product: Product) => {
+      console.log("🛒 Cart add() called with variant:", variant.id, "product:", product.id);
+      
       // Normalize variant ID by removing -default suffix for comparison
       const normalizedVariantId = variant.id.replace("-default", "");
       const previousQuantity =
         optimisticCart?.lines.find((l) => l.merchandise.id === normalizedVariantId)
           ?.quantity || 0;
       
+      console.log("🛒 Previous quantity:", previousQuantity, "normalized ID:", normalizedVariantId);
+      
       // Optimistic update for instant UI feedback
       startTransition(() => {
+        console.log("🛒 Performing optimistic update...");
         updateOptimisticCart({
           type: "ADD_ITEM",
           payload: { variant, product, previousQuantity },
@@ -326,9 +331,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       });
       
       // Perform server update
+      console.log("🛒 Calling CartActions.addItem...");
       const fresh = await CartActions.addItem(variant.id);
+      console.log("🛒 CartActions.addItem returned:", fresh ? "success" : "null");
       
       if (fresh) {
+        console.log("🛒 Setting cart with fresh data, items:", fresh.lines.length);
         setCart(fresh);
         // Update localStorage cache
         try {
@@ -338,6 +346,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           console.warn("Failed to cache cart:", error);
         }
       } else {
+        console.log("🛒 Server update failed, reverting to previous cart");
         // If add failed, revert optimistic update
         setCart(cart);
       }
