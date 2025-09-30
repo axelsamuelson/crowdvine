@@ -476,42 +476,39 @@ function CheckoutContent() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {cart.lines.map((line) => (
-                  <div
-                    key={line.id}
-                    className="flex justify-between items-center"
-                  >
-                    <div>
+                {cart.lines.map((line) => {
+                  // Calculate price per bottle (total / quantity)
+                  const pricePerBottle = parseFloat(line.cost.totalAmount.amount) / line.quantity;
+                  const totalForLine = pricePerBottle * line.quantity;
+                  
+                  return (
+                    <div
+                      key={line.id}
+                      className="flex justify-between items-center"
+                    >
+                      <div>
+                        <span className="font-medium">
+                          {line.merchandise.title}
+                        </span>
+                        <span className="text-gray-600 ml-2">
+                          x{line.quantity}
+                        </span>
+                      </div>
                       <span className="font-medium">
-                        {line.merchandise.title}
-                      </span>
-                      <span className="text-gray-600 ml-2">
-                        x{line.quantity}
+                        {Math.round(totalForLine)}{" "}
+                        {line.cost.totalAmount.currencyCode}
                       </span>
                     </div>
-                    <span className="font-medium">
-                      {Math.round(parseFloat(line.cost.totalAmount.amount))}{" "}
-                      {line.cost.totalAmount.currencyCode}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               <div className="border-t pt-3 mt-3">
                 <div className="space-y-2">
-                  {/* Bottle Cost */}
+                  {/* Bottle Cost (including VAT) */}
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Bottle Cost</span>
+                    <span className="text-sm text-gray-600">Bottle Cost (incl. VAT)</span>
                     <span className="text-sm font-medium">
                       {Math.round(parseFloat(cart.cost.totalAmount.amount))}{" "}
-                      {cart.cost.totalAmount.currencyCode}
-                    </span>
-                  </div>
-
-                  {/* VAT */}
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">VAT (25%)</span>
-                    <span className="text-sm font-medium">
-                      {Math.round(parseFloat(cart.cost.totalAmount.amount) * 0.25)}{" "}
                       {cart.cost.totalAmount.currencyCode}
                     </span>
                   </div>
@@ -534,12 +531,9 @@ function CheckoutContent() {
 
                   {/* Subtotal */}
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Subtotal (incl. VAT)</span>
+                    <span className="text-sm text-gray-600">Subtotal</span>
                     <span className="text-sm font-medium">
-                      {Math.round(
-                        parseFloat(cart.cost.totalAmount.amount) +
-                        (parseFloat(cart.cost.totalAmount.amount) * 0.25)
-                      )}{" "}
+                      {Math.round(parseFloat(cart.cost.totalAmount.amount))}{" "}
                       {cart.cost.totalAmount.currencyCode}
                     </span>
                   </div>
@@ -552,17 +546,13 @@ function CheckoutContent() {
                         <>
                           {Math.round(
                             parseFloat(cart.cost.totalAmount.amount) +
-                            (parseFloat(cart.cost.totalAmount.amount) * 0.25) +
                             shippingCost.totalShippingCostSek
                           )}{" "}
                           {cart.cost.totalAmount.currencyCode}
                         </>
                       ) : (
                         <>
-                          {Math.round(
-                            parseFloat(cart.cost.totalAmount.amount) +
-                            (parseFloat(cart.cost.totalAmount.amount) * 0.25)
-                          )}{" "}
+                          {Math.round(parseFloat(cart.cost.totalAmount.amount))}{" "}
                           {cart.cost.totalAmount.currencyCode}
                         </>
                       )}
