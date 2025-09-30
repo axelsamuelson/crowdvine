@@ -116,8 +116,25 @@ export default function TestCartPage() {
       const serverActionResult = await addItem(mockProduct.variants[0], mockProduct);
       addTestResult(`📥 Full cart server action returned: ${serverActionResult ? 'success' : 'null/undefined'}`);
       
-      // Test 2: Try API route
-      addTestResult("📤 Testing API route...");
+      // Test 3: Try new cart API route
+      addTestResult("📤 Testing new cart API route...");
+      const cartApiResponse = await fetch('/api/cart/add-item', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ variantId: mockProduct.variants[0].id })
+      });
+      
+      const cartApiResult = await cartApiResponse.json();
+      addTestResult(`📥 Cart API response: ${cartApiResult.success ? 'success' : 'failed'}`);
+      
+      if (cartApiResult.success && cartApiResult.cart) {
+        addTestResult(`📊 Cart API has ${cartApiResult.cart.lines.length} items, total quantity: ${cartApiResult.cart.totalQuantity}`);
+      } else {
+        addTestResult(`❌ Cart API error: ${cartApiResult.error}`);
+      }
+      
+      // Test 4: Try old test API route
+      addTestResult("📤 Testing old test API route...");
       const baseId = mockProduct.variants[0].id.replace("-default", "");
       const apiResponse = await fetch('/api/test-server-action', {
         method: 'POST',
@@ -126,12 +143,12 @@ export default function TestCartPage() {
       });
       
       const apiResult = await apiResponse.json();
-      addTestResult(`📥 API response: ${apiResult.success ? 'success' : 'failed'}`);
+      addTestResult(`📥 Old API response: ${apiResult.success ? 'success' : 'failed'}`);
       
       if (apiResult.success && apiResult.cart) {
-        addTestResult(`📊 API cart has ${apiResult.cart.lines.length} items, total quantity: ${apiResult.cart.totalQuantity}`);
+        addTestResult(`📊 Old API cart has ${apiResult.cart.lines.length} items, total quantity: ${apiResult.cart.totalQuantity}`);
       } else {
-        addTestResult(`❌ API error: ${apiResult.error}`);
+        addTestResult(`❌ Old API error: ${apiResult.error}`);
       }
       
       // Check immediate state

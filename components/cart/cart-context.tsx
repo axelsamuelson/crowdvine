@@ -330,15 +330,26 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         });
       });
       
-      // Perform server update
-      console.log("🛒 Calling CartActions.addItem...");
+      // Perform server update using API route instead of server action
+      console.log("🛒 Calling API route for addItem...");
       let fresh = null;
       try {
-        fresh = await CartActions.addItem(variant.id);
-        console.log("🛒 CartActions.addItem returned:", fresh ? "success" : "null");
-      } catch (serverActionError) {
-        console.error("🛒 Server action error:", serverActionError);
-        console.error("🛒 Server action error stack:", serverActionError instanceof Error ? serverActionError.stack : "No stack trace");
+        const response = await fetch('/api/cart/add-item', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ variantId: variant.id })
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          fresh = result.cart;
+          console.log("🛒 API route returned:", fresh ? "success" : "null");
+        } else {
+          console.error("🛒 API route failed with status:", response.status);
+          fresh = null;
+        }
+      } catch (apiError) {
+        console.error("🛒 API route error:", apiError);
         fresh = null;
       }
       
