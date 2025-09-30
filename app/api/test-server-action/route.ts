@@ -19,6 +19,8 @@ export async function POST(request: Request) {
       console.log("🧪 Cart has", cart.lines.length, "items, total quantity:", cart.totalQuantity);
     }
     
+    console.log("🧪 API route returning:", { success: true, cart: cart ? "has cart" : "null", message: "Server action test completed" });
+    
     return NextResponse.json({ 
       success: true, 
       cart: cart,

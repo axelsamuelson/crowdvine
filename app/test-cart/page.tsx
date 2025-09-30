@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCart } from "@/components/cart/cart-context";
 import { testServerAction, testServerActionWithError } from "@/components/cart/test-actions";
+import { simpleAddItem } from "@/components/cart/simple-actions";
 
 // Mock product data for testing
 const mockProduct = {
@@ -101,10 +102,19 @@ export default function TestCartPage() {
         addTestResult(`❌ Basic server action failed: ${error}`);
       }
       
-      // Test 1: Try server action first
-      addTestResult("📤 Testing cart server action...");
+      // Test 1: Try simple server action
+      addTestResult("📤 Testing simple cart server action...");
+      try {
+        const simpleResult = await simpleAddItem(mockProduct.variants[0].id);
+        addTestResult(`📥 Simple cart server action: ${simpleResult}`);
+      } catch (error) {
+        addTestResult(`❌ Simple cart server action failed: ${error}`);
+      }
+      
+      // Test 2: Try full cart server action
+      addTestResult("📤 Testing full cart server action...");
       const serverActionResult = await addItem(mockProduct.variants[0], mockProduct);
-      addTestResult(`📥 Cart server action returned: ${serverActionResult ? 'success' : 'null/undefined'}`);
+      addTestResult(`📥 Full cart server action returned: ${serverActionResult ? 'success' : 'null/undefined'}`);
       
       // Test 2: Try API route
       addTestResult("📤 Testing API route...");
