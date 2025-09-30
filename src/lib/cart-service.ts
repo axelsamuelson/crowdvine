@@ -50,7 +50,8 @@ export class CartService {
             wine_name,
             vintage,
             label_image_path,
-            base_price_cents
+            base_price_cents,
+            color
           )
         `,
         )
@@ -77,78 +78,85 @@ export class CartService {
         return emptyCart;
       }
 
-      const lines: CartItem[] = cartItems.map((item) => ({
-        id: item.id,
-        quantity: item.quantity,
-        cost: {
-          totalAmount: {
-            amount: (
-              (item.wines.base_price_cents * item.quantity) /
-              100
-            ).toFixed(2),
-            currencyCode: "SEK",
+      const lines: CartItem[] = cartItems.map((item) => {
+        // Build selectedOptions from wine color
+        const selectedOptions = item.wines.color 
+          ? [{ name: "Color", value: item.wines.color }]
+          : [];
+
+        return {
+          id: item.id,
+          quantity: item.quantity,
+          cost: {
+            totalAmount: {
+              amount: (
+                (item.wines.base_price_cents * item.quantity) /
+                100
+              ).toFixed(2),
+              currencyCode: "SEK",
+            },
           },
-        },
-        merchandise: {
-          id: item.wines.id,
-          title: `${item.wines.wine_name} ${item.wines.vintage}`,
-          selectedOptions: [],
-          product: {
+          merchandise: {
             id: item.wines.id,
             title: `${item.wines.wine_name} ${item.wines.vintage}`,
-            handle: item.wines.handle,
-            description: "",
-            descriptionHtml: "",
-            productType: "wine",
-            categoryId: "",
-            options: [],
-            variants: [
-              {
-                id: `${item.wines.id}-default`,
-                title: "750 ml",
-                availableForSale: true,
-                price: {
+            selectedOptions,
+            product: {
+              id: item.wines.id,
+              title: `${item.wines.wine_name} ${item.wines.vintage}`,
+              handle: item.wines.handle,
+              description: "",
+              descriptionHtml: "",
+              productType: "wine",
+              categoryId: "",
+              options: [],
+              variants: [
+                {
+                  id: `${item.wines.id}-default`,
+                  title: "750 ml",
+                  availableForSale: true,
+                  price: {
+                    amount: (item.wines.base_price_cents / 100).toFixed(2),
+                    currencyCode: "SEK",
+                  },
+                  selectedOptions,
+                },
+              ],
+              priceRange: {
+                minVariantPrice: {
                   amount: (item.wines.base_price_cents / 100).toFixed(2),
                   currencyCode: "SEK",
                 },
-                selectedOptions: [],
+                maxVariantPrice: {
+                  amount: (item.wines.base_price_cents / 100).toFixed(2),
+                  currencyCode: "SEK",
+                },
               },
-            ],
-            priceRange: {
-              minVariantPrice: {
-                amount: (item.wines.base_price_cents / 100).toFixed(2),
-                currencyCode: "SEK",
-              },
-              maxVariantPrice: {
-                amount: (item.wines.base_price_cents / 100).toFixed(2),
-                currencyCode: "SEK",
-              },
-            },
-            featuredImage: {
-              id: `${item.wines.id}-img`,
-              url: item.wines.label_image_path,
-              altText: item.wines.wine_name,
-              width: 600,
-              height: 600,
-            },
-            images: [
-              {
+              featuredImage: {
                 id: `${item.wines.id}-img`,
                 url: item.wines.label_image_path,
                 altText: item.wines.wine_name,
                 width: 600,
                 height: 600,
               },
-            ],
-            seo: { title: item.wines.wine_name, description: "" },
-            tags: [],
-            availableForSale: true,
-            currencyCode: "SEK",
-            updatedAt: new Date().toISOString(),
-            createdAt: new Date().toISOString(),
+              images: [
+                {
+                  id: `${item.wines.id}-img`,
+                  url: item.wines.label_image_path,
+                  altText: item.wines.wine_name,
+                  width: 600,
+                  height: 600,
+                },
+              ],
+              seo: { title: item.wines.wine_name, description: "" },
+              tags: [],
+              availableForSale: true,
+              currencyCode: "SEK",
+              updatedAt: new Date().toISOString(),
+              createdAt: new Date().toISOString(),
+            },
           },
-        },
-      }));
+        };
+      });
 
       const subtotal = lines.reduce(
         (sum, line) => sum + parseFloat(line.cost.totalAmount.amount),
