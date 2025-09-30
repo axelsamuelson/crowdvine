@@ -97,6 +97,7 @@ function CheckoutContent() {
       pickupZoneName: string;
       deliveryZoneName: string;
     }>;
+    usingFallbackAddress?: boolean;
   }>({ pickupZone: null, deliveryZone: null, selectedDeliveryZoneId: null });
 
   const searchParams = useSearchParams();
@@ -106,10 +107,19 @@ function CheckoutContent() {
     fetchProfile();
   }, []);
 
+  // Initial zone matching when cart and profile are loaded
+  useEffect(() => {
+    if (cart && cart.totalQuantity > 0 && !loading) {
+      console.log("🚀 Initial zone matching triggered");
+      updateZoneInfo();
+    }
+  }, [cart, loading]);
+
   useEffect(() => {
     // Update zone info when address changes (with debouncing)
     if (cart && cart.totalQuantity > 0) {
       const timeoutId = setTimeout(() => {
+        console.log("🔄 Address change triggered zone matching");
         updateZoneInfo();
       }, 500); // 500ms debounce
 
@@ -191,12 +201,16 @@ function CheckoutContent() {
           countryCode: customAddress.countryCode,
         };
       } else {
+        // Fallback: Use Stockholm as default address when no address is provided
         deliveryAddress = {
-          postcode: "",
-          city: "",
-          countryCode: "",
+          postcode: "11129",
+          city: "Stockholm",
+          countryCode: "SE",
         };
+        console.log("📍 No address provided, using Stockholm as fallback");
       }
+
+      const isUsingFallback = !useProfileAddress && !useCustomAddress;
 
       console.log("🚀 Sending zone request:", {
         cartItems: cart.lines,
@@ -225,18 +239,16 @@ function CheckoutContent() {
           zoneData,
           hasCompleteAddress,
           deliveryAddress,
+          isUsingFallback,
         });
 
         setZoneInfo({
           pickupZone: zoneData.pickupZoneName,
-          deliveryZone: hasCompleteAddress ? zoneData.deliveryZoneName : null,
-          selectedDeliveryZoneId: hasCompleteAddress
-            ? zoneData.deliveryZoneId
-            : null,
-          availableDeliveryZones: hasCompleteAddress
-            ? zoneData.availableDeliveryZones
-            : [],
-          pallets: hasCompleteAddress ? zoneData.pallets : [],
+          deliveryZone: zoneData.deliveryZoneName,
+          selectedDeliveryZoneId: zoneData.deliveryZoneId,
+          availableDeliveryZones: zoneData.availableDeliveryZones || [],
+          pallets: zoneData.pallets || [],
+          usingFallbackAddress: isUsingFallback,
         });
       } else {
         console.error(
@@ -576,6 +588,26 @@ function CheckoutContent() {
                   </CardContent>
                 </Card>
               )}
+              {/* Fallback Address Notice */}
+              {zoneInfo.usingFallbackAddress && (
+                <Card className="border-l-4 border-l-amber-500">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-amber-700">
+                      <AlertCircle className="w-5 h-5" />
+                      Using Default Address
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-amber-600 mb-3">
+                      No delivery address found. Showing zones for Stockholm, Sweden as default.
+                    </p>
+                    <p className="text-xs text-amber-500">
+                      Please add your delivery address below to see zones for your location.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Pickup Zone */}
               {zoneInfo.pickupZone && (
                 <ZoneDetails
@@ -641,14 +673,15 @@ function CheckoutContent() {
                   centerLon={zoneInfo.availableDeliveryZones?.[0]?.centerLon}
                   radiusKm={zoneInfo.availableDeliveryZones?.[0]?.radiusKm}
                 />
-              ) : (useProfileAddress &&
+              ) : !zoneInfo.usingFallbackAddress && 
+                ((useProfileAddress &&
                   profile?.address &&
                   profile?.city &&
                   profile?.postal_code) ||
                 (useCustomAddress &&
                   customAddress.street &&
                   customAddress.city &&
-                  customAddress.postcode) ? (
+                  customAddress.postcode)) ? (
                 <Card className="border-l-4 border-l-red-500">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-red-700">
