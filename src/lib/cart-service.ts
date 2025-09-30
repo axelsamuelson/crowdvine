@@ -4,18 +4,27 @@ import type { Cart, CartItem } from "../../lib/shopify/types";
 
 export class CartService {
   private static async ensureCart() {
+    console.log("🔧 ensureCart called");
     const cartId = await getOrSetCartId();
+    console.log("🔧 Cart ID from cookies:", cartId);
 
     const sb = await supabaseServer();
+    console.log("🔧 Supabase client obtained in ensureCart");
 
     // Check if cart exists, create if not
+    console.log("🔧 Checking if cart exists...");
     const { data: existingCart, error: checkError } = await sb
       .from("carts")
       .select("id")
       .eq("session_id", cartId)
       .single();
 
+    if (checkError && checkError.code !== "PGRST116") {
+      console.error("🔧 Error checking for existing cart:", checkError);
+    }
+
     if (!existingCart) {
+      console.log("🔧 No existing cart, creating new one...");
       const { data: newCart, error } = await sb
         .from("carts")
         .insert({ session_id: cartId })
@@ -23,21 +32,31 @@ export class CartService {
         .single();
 
       if (error) {
+        console.error("🔧 Error creating cart:", error);
         throw new Error("Failed to create cart");
       }
 
+      console.log("🔧 New cart created with ID:", newCart.id);
       return newCart.id;
     }
 
+    console.log("🔧 Existing cart found with ID:", existingCart.id);
     return existingCart.id;
   }
 
   static async getCart(): Promise<Cart | null> {
+    console.log("🔧 getCart called");
     try {
       const cartId = await getOrSetCartId();
+      console.log("🔧 Cart ID from cookies:", cartId);
 
       const sb = await supabaseServer();
+      console.log("🔧 Supabase client obtained in getCart");
 
+      const ensureCartId = await this.ensureCart();
+      console.log("🔧 Ensure cart ID:", ensureCartId);
+
+      console.log("🔧 Fetching cart items...");
       const { data: cartItems, error } = await sb
         .from("cart_items")
         .select(
@@ -55,17 +74,20 @@ export class CartService {
           )
         `,
         )
-        .eq("cart_id", await this.ensureCart())
+        .eq("cart_id", ensureCartId)
         .order("created_at", { ascending: false });
 
       if (error) {
-        console.error("Failed to get cart items:", error);
+        console.error("🔧 Failed to get cart items:", error);
         return null;
       }
 
+      console.log("🔧 Cart items fetched:", cartItems?.length || 0, "items");
+
       if (!cartItems || cartItems.length === 0) {
+        console.log("🔧 No cart items, returning empty cart");
         const emptyCart = {
-          id: await this.ensureCart(), // Use the actual database cart ID
+          id: ensureCartId, // Use the actual database cart ID
           checkoutUrl: "/checkout",
           cost: {
             subtotalAmount: { amount: "0.00", currencyCode: "SEK" },
@@ -192,11 +214,19 @@ export class CartService {
     wineId: string,
     quantity: number = 1,
   ): Promise<Cart | null> {
+    console.log("🔧 CartService.addItem called with wineId:", wineId, "quantity:", quantity);
+    
     try {
+      console.log("🔧 Calling ensureCart...");
       const cartId = await this.ensureCart();
+      console.log("🔧 Cart ID:", cartId);
+      
+      console.log("🔧 Getting supabase server client...");
       const sb = await supabaseServer();
+      console.log("🔧 Supabase client obtained");
 
       // Use upsert to either insert or update in a single operation
+      console.log("🔧 Attempting upsert...");
       const { error: upsertError } = await sb
         .from("cart_items")
         .upsert(
@@ -212,6 +242,7 @@ export class CartService {
         );
 
       if (upsertError) {
+        console.log("🔧 Upsert failed, trying fallback method:", upsertError);
         // Fallback to manual check and update if upsert fails
         const { data: existingItem } = await sb
           .from("cart_items")
@@ -221,15 +252,18 @@ export class CartService {
           .single();
 
         if (existingItem) {
+          console.log("🔧 Found existing item, updating quantity");
           const { error: updateError } = await sb
             .from("cart_items")
             .update({ quantity: existingItem.quantity + quantity })
             .eq("id", existingItem.id);
 
           if (updateError) {
+            console.error("🔧 Update error:", updateError);
             throw new Error("Failed to update cart item");
           }
         } else {
+          console.log("🔧 No existing item, inserting new");
           const { error: insertError } = await sb
             .from("cart_items")
             .insert({
@@ -239,15 +273,22 @@ export class CartService {
             });
 
           if (insertError) {
+            console.error("🔧 Insert error:", insertError);
             throw new Error("Failed to add cart item");
           }
         }
+      } else {
+        console.log("🔧 Upsert successful");
       }
 
       // Return updated cart
-      return await this.getCart();
+      console.log("🔧 Getting updated cart...");
+      const cart = await this.getCart();
+      console.log("🔧 CartService.addItem returning cart with", cart?.lines.length || 0, "items");
+      return cart;
     } catch (error) {
-      console.error("CartService.addItem error:", error);
+      console.error("🔧 CartService.addItem error:", error);
+      console.error("🔧 Error stack:", error instanceof Error ? error.stack : "No stack trace");
       return null;
     }
   }
