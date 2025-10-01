@@ -95,11 +95,16 @@ function CheckoutConfirmationContent() {
     reservationData: ReservationDetails,
   ) => {
     try {
+      console.log("📧 Attempting to send order confirmation email...");
+      console.log("📧 Reservation data:", reservationData);
+
       // Get user email from auth or reservation data
       const userEmail =
         reservationData.items[0]?.customer_email || "customer@pactwines.com"; // Fallback
       const userName =
         reservationData.items[0]?.customer_name || "Valued Customer"; // Fallback
+
+      console.log("📧 Using email:", userEmail, "and name:", userName);
 
       const emailData = {
         customerEmail: userEmail,
@@ -129,6 +134,8 @@ function CheckoutConfirmationContent() {
         },
       };
 
+      console.log("📧 Email data prepared:", emailData);
+
       const response = await fetch("/api/email/order-confirmation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -136,12 +143,17 @@ function CheckoutConfirmationContent() {
       });
 
       if (response.ok) {
-        console.log("Order confirmation email sent successfully");
+        const result = await response.json();
+        console.log("📧 Order confirmation email sent successfully:", result);
+        toast.success("Confirmation email sent!");
       } else {
-        console.error("Failed to send order confirmation email");
+        const errorText = await response.text();
+        console.error("📧 Failed to send order confirmation email:", errorText);
+        toast.error("Failed to send confirmation email");
       }
     } catch (error) {
-      console.error("Error sending order confirmation email:", error);
+      console.error("📧 Error sending order confirmation email:", error);
+      toast.error("Error sending confirmation email");
     }
   };
 

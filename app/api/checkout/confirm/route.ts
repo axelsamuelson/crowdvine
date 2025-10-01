@@ -243,6 +243,50 @@ export async function POST(request: Request) {
       console.log("Tracking record created:", trackingRecord);
     }
 
+    // Send order confirmation email immediately
+    try {
+      console.log("📧 Sending order confirmation email...");
+      const emailData = {
+        customerEmail: address.email,
+        customerName: address.fullName,
+        orderId: reservation.id,
+        orderDate: new Date().toLocaleDateString(),
+        items: cart.lines.map((line) => ({
+          name: `${line.merchandise.product.title}`,
+          quantity: line.quantity,
+          price: parseFloat(line.merchandise.product.priceRange.minVariantPrice.amount),
+          image: undefined,
+        })),
+        subtotal: parseFloat(cart.cost.totalAmount.amount),
+        tax: 0,
+        shipping: 0, // Will be calculated based on zones
+        total: parseFloat(cart.cost.totalAmount.amount),
+        shippingAddress: {
+          name: address.fullName,
+          street: address.street,
+          city: address.city,
+          postalCode: address.postcode,
+          country: address.countryCode,
+        },
+      };
+
+      const emailResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/email/order-confirmation`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(emailData),
+      });
+
+      if (emailResponse.ok) {
+        console.log("📧 Order confirmation email sent successfully");
+      } else {
+        const errorText = await emailResponse.text();
+        console.error("📧 Failed to send order confirmation email:", errorText);
+      }
+    } catch (emailError) {
+      console.error("📧 Error sending order confirmation email:", emailError);
+      // Email failure should not break the checkout process
+    }
+
     // Clear cart
     console.log("Clearing cart");
     await CartService.clearCart();
