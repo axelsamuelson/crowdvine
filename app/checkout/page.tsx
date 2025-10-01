@@ -21,7 +21,7 @@ import { PaymentMethodSelector } from "@/components/checkout/payment-method-sele
 import { ZoneDetails } from "@/components/checkout/zone-details";
 import { PalletDetails } from "@/components/checkout/pallet-details";
 import { toast } from "sonner";
-import { User, MapPin, CreditCard, Package, AlertCircle } from "lucide-react";
+import { User, MapPin, CreditCard, Package, AlertCircle, Gift, Check } from "lucide-react";
 import { clearZoneCache } from "@/lib/zone-matching";
 import {
   calculateCartShippingCost,
@@ -61,6 +61,21 @@ interface PalletInfo {
   deliveryZoneName: string;
 }
 
+interface DiscountCode {
+  id: string;
+  code: string;
+  discount_percentage: number;
+  discount_amount_cents?: number;
+  is_active: boolean;
+  usage_limit?: number;
+  current_usage: number;
+  expires_at?: string;
+  earned_by_user_id?: string;
+  used_by_user_id?: string;
+  used_at?: string;
+  created_at: string;
+}
+
 function CheckoutContent() {
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(true);
@@ -69,6 +84,8 @@ function CheckoutContent() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
     useState<PaymentMethod | null>(null);
   const [selectedPallet, setSelectedPallet] = useState<PalletInfo | null>(null);
+  const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([]);
+  const [selectedDiscountCode, setSelectedDiscountCode] = useState<DiscountCode | null>(null);
   const [useProfileAddress, setUseProfileAddress] = useState(true);
   const [useCustomAddress, setUseCustomAddress] = useState(false);
   const [customAddress, setCustomAddress] = useState({
@@ -105,6 +122,7 @@ function CheckoutContent() {
   useEffect(() => {
     fetchCart();
     fetchProfile();
+    fetchDiscountCodes();
   }, []);
 
   // Initial zone matching when cart and profile are loaded
@@ -156,6 +174,22 @@ function CheckoutContent() {
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
+    }
+  };
+
+  const fetchDiscountCodes = async () => {
+    try {
+      const response = await fetch("/api/discount-codes");
+      if (response.ok) {
+        const data = await response.json();
+        setDiscountCodes(data || []);
+      } else {
+        console.error("Failed to load discount codes");
+        setDiscountCodes([]);
+      }
+    } catch (error) {
+      console.error("Error fetching discount codes:", error);
+      setDiscountCodes([]);
     }
   };
 
@@ -388,6 +422,11 @@ function CheckoutContent() {
     // Payment method
     formData.append("paymentMethodId", selectedPaymentMethod.id);
 
+    // Discount code
+    if (selectedDiscountCode) {
+      formData.append("discountCodeId", selectedDiscountCode.id);
+    }
+
     try {
       const response = await fetch("/api/checkout/confirm", {
         method: "POST",
@@ -457,6 +496,27 @@ function CheckoutContent() {
       )
     : null;
 
+  // Calculate bottle cost and discount
+  const bottleCost = cart.lines.reduce((total, line) => {
+    const pricePerBottle = parseFloat(line.merchandise.product.priceRange.minVariantPrice.amount);
+    return total + (pricePerBottle * line.quantity);
+  }, 0);
+
+  const discountAmount = selectedDiscountCode 
+    ? (bottleCost * selectedDiscountCode.discount_percentage) / 100
+    : 0;
+
+  const subtotal = bottleCost - discountAmount;
+  const total = subtotal + (shippingCost ? shippingCost.totalShippingCostSek : 0);
+
+  // Filter available discount codes
+  const availableDiscountCodes = discountCodes.filter(code => 
+    code.is_active && 
+    code.earned_by_user_id === profile?.id &&
+    (!code.expires_at || new Date(code.expires_at) > new Date()) &&
+    (!code.usage_limit || code.current_usage < code.usage_limit)
+  );
+
   return (
     <div className="max-w-4xl mx-auto p-6 pt-top-spacing space-y-8">
       <div>
@@ -521,16 +581,22 @@ function CheckoutContent() {
                     </span>
                   </div>
 
+                  {/* Discount */}
+                  {selectedDiscountCode && (
+                    <div className="flex justify-between items-center text-green-600">
+                      <span className="text-sm">Discount ({selectedDiscountCode.discount_percentage}%)</span>
+                      <span className="text-sm font-medium">
+                        -{Math.round(discountAmount)}{" "}
+                        {cart.cost.totalAmount.currencyCode}
+                      </span>
+                    </div>
+                  )}
+
                   {/* Subtotal */}
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Subtotal</span>
                     <span className="text-sm font-medium">
-                      {Math.round(
-                        cart.lines.reduce((total, line) => {
-                          const pricePerBottle = parseFloat(line.merchandise.product.priceRange.minVariantPrice.amount);
-                          return total + (pricePerBottle * line.quantity);
-                        }, 0)
-                      )}{" "}
+                      {Math.round(subtotal)}{" "}
                       {cart.cost.totalAmount.currencyCode}
                     </span>
                   </div>
@@ -539,24 +605,8 @@ function CheckoutContent() {
                   <div className="flex justify-between items-center font-semibold text-lg border-t pt-2">
                     <span>Total</span>
                     <span>
-                      {(() => {
-                        const bottleCost = cart.lines.reduce((total, line) => {
-                          const pricePerBottle = parseFloat(line.merchandise.product.priceRange.minVariantPrice.amount);
-                          return total + (pricePerBottle * line.quantity);
-                        }, 0);
-                        
-                        return shippingCost ? (
-                          <>
-                            {Math.round(bottleCost + shippingCost.totalShippingCostSek)}{" "}
-                            {cart.cost.totalAmount.currencyCode}
-                          </>
-                        ) : (
-                          <>
-                            {Math.round(bottleCost)}{" "}
-                            {cart.cost.totalAmount.currencyCode}
-                          </>
-                        );
-                      })()}
+                      {Math.round(total)}{" "}
+                      {cart.cost.totalAmount.currencyCode}
                     </span>
                   </div>
                 </div>
@@ -902,6 +952,74 @@ function CheckoutContent() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Rewards */}
+            {availableDiscountCodes.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Gift className="w-5 h-5" />
+                    Available Rewards
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    {availableDiscountCodes.map((code) => (
+                      <div
+                        key={code.id}
+                        className={`border rounded-lg p-3 cursor-pointer transition-colors ${
+                          selectedDiscountCode?.id === code.id
+                            ? "border-gray-600 bg-gray-50"
+                            : "border-gray-200 hover:border-gray-300"
+                        }`}
+                        onClick={() => setSelectedDiscountCode(
+                          selectedDiscountCode?.id === code.id ? null : code
+                        )}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                              selectedDiscountCode?.id === code.id
+                                ? "border-gray-600 bg-gray-600"
+                                : "border-gray-300"
+                            }`}>
+                              {selectedDiscountCode?.id === code.id && (
+                                <Check className="w-2.5 h-2.5 text-white" />
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-900">
+                                {code.code}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                {code.discount_percentage}% off
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-medium text-gray-900">
+                              -{Math.round((bottleCost * code.discount_percentage) / 100)} SEK
+                            </p>
+                            {code.expires_at && (
+                              <p className="text-xs text-gray-500">
+                                Expires {new Date(code.expires_at).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {selectedDiscountCode && (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                      <p className="text-sm text-gray-600">
+                        <strong>{selectedDiscountCode.discount_percentage}% discount</strong> will be applied to your order
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Payment Method */}
             <Card>
