@@ -100,6 +100,7 @@
     "dotenv": "^17.2.1",
     "eslint-config-next": "^15.5.2",
     "postcss": "^8.5",
+    "puppeteer": "^24.22.3",
     "stripe-event-types": "^3.1.0",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.20.5",
