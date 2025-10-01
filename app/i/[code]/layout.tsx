@@ -15,10 +15,10 @@ export async function generateMetadata(props: {
       siteName: "PACT Wines",
       images: [
         {
-          url: "/pact-og-invitation.jpg",
+          url: "/pact-og-simple.jpg",
           width: 1200,
           height: 630,
-          alt: "PACT Wines Invitation",
+          alt: "PACT Wines",
         },
       ],
     },
@@ -26,7 +26,7 @@ export async function generateMetadata(props: {
       card: "summary_large_image",
       title: "You're Invited to PACT!",
       description: "Congratulations! You've been invited to join PACT - an exclusive wine community where members share pallets and discover exceptional wines together.",
-      images: ["/pact-og-invitation.jpg"],
+      images: ["/pact-og-simple.jpg"],
     },
   };
 }
