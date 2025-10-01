@@ -382,6 +382,7 @@ function CheckoutContent() {
 
     // Customer details
     formData.append("fullName", profile?.full_name || "");
+    // Use profile email if available, otherwise we'll need to get it from auth
     formData.append("email", profile?.email || "");
     formData.append("phone", profile?.phone || "");
 

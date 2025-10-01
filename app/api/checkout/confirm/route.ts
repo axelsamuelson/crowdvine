@@ -45,6 +45,18 @@ export async function POST(request: Request) {
       );
     }
 
+    // Get current user to ensure we have an email address
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    
+    // Ensure we have an email address - use authenticated user's email as fallback
+    if (!address.email || address.email.trim() === "") {
+      address.email = user.email;
+      console.log("📧 Using authenticated user email as fallback:", user.email);
+    }
+
     // Get current cart
     const cart = await CartService.getCart();
     if (!cart || cart.totalQuantity === 0) {
@@ -246,9 +258,24 @@ export async function POST(request: Request) {
     // Send order confirmation email immediately
     try {
       console.log("📧 Sending order confirmation email...");
+      console.log("📧 Address data:", {
+        email: address.email,
+        fullName: address.fullName,
+        street: address.street,
+        city: address.city,
+        postcode: address.postcode,
+        countryCode: address.countryCode
+      });
+      console.log("📧 Cart data:", {
+        linesCount: cart.lines.length,
+        totalAmount: cart.cost.totalAmount.amount,
+        currency: cart.cost.totalAmount.currencyCode
+      });
+      console.log("📧 Reservation ID:", reservation.id);
+      
       const { sendGridService } = await import("@/lib/sendgrid-service");
       
-      const emailSent = await sendGridService.sendOrderConfirmation({
+      const emailData = {
         customerEmail: address.email,
         customerName: address.fullName,
         orderId: reservation.id,
@@ -270,7 +297,11 @@ export async function POST(request: Request) {
           postalCode: address.postcode,
           country: address.countryCode,
         },
-      });
+      };
+      
+      console.log("📧 Prepared email data:", emailData);
+      
+      const emailSent = await sendGridService.sendOrderConfirmation(emailData);
 
       if (emailSent) {
         console.log("📧 Order confirmation email sent successfully to:", address.email);
@@ -279,6 +310,7 @@ export async function POST(request: Request) {
       }
     } catch (emailError) {
       console.error("📧 Error sending order confirmation email:", emailError);
+      console.error("📧 Error details:", emailError);
       // Email failure should not break the checkout process
     }
 
