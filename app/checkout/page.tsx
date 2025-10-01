@@ -81,6 +81,7 @@ function CheckoutContent() {
   const [selectedPallet, setSelectedPallet] = useState<PalletInfo | null>(null);
   const [userRewards, setUserRewards] = useState<UserReward[]>([]);
   const [selectedRewards, setSelectedRewards] = useState<UserReward[]>([]);
+  const [useRewards, setUseRewards] = useState(false);
   const [useProfileAddress, setUseProfileAddress] = useState(true);
   const [useCustomAddress, setUseCustomAddress] = useState(false);
   const [customAddress, setCustomAddress] = useState({
@@ -431,9 +432,11 @@ function CheckoutContent() {
     formData.append("paymentMethodId", selectedPaymentMethod.id);
 
     // User rewards
-    selectedRewards.forEach((reward, index) => {
-      formData.append(`rewardId_${index}`, reward.id);
-    });
+    if (useRewards) {
+      selectedRewards.forEach((reward, index) => {
+        formData.append(`rewardId_${index}`, reward.id);
+      });
+    }
 
     try {
       const response = await fetch("/api/checkout/confirm", {
@@ -510,9 +513,9 @@ function CheckoutContent() {
     return total + (pricePerBottle * line.quantity);
   }, 0);
 
-  const discountAmount = selectedRewards.reduce((total, reward) => {
+  const discountAmount = useRewards ? selectedRewards.reduce((total, reward) => {
     return total + (bottleCost * reward.discount_percentage) / 100;
-  }, 0);
+  }, 0) : 0;
 
   const subtotal = bottleCost - discountAmount;
   const total = subtotal + (shippingCost ? shippingCost.totalShippingCostSek : 0);
@@ -587,7 +590,7 @@ function CheckoutContent() {
                   </div>
 
                   {/* Discount */}
-                  {selectedRewards.length > 0 && (
+                  {useRewards && selectedRewards.length > 0 && (
                     <div className="flex justify-between items-center text-green-600">
                       <span className="text-sm">Rewards ({selectedRewards.length} rewards applied)</span>
                       <span className="text-sm font-medium">
@@ -959,68 +962,107 @@ function CheckoutContent() {
             </Card>
 
 
-            {/* Rewards */}
+            {/* Rewards Toggle */}
             {availableRewards.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Gift className="w-5 h-5" />
-                      Available Rewards ({availableRewards.length})
-                    </div>
-                    {selectedRewards.length > 0 && (
-                      <span className="text-sm font-medium text-gray-600">
-                        {selectedRewards.length} selected
-                      </span>
-                    )}
+                  <CardTitle className="flex items-center gap-2">
+                    <Gift className="w-5 h-5" />
+                    Use Rewards
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="grid grid-cols-2 gap-2">
-                    {availableRewards.map((reward) => (
-                      <div
-                        key={reward.id}
-                        className={`border rounded-lg p-2 cursor-pointer transition-colors ${
-                          selectedRewards.some(r => r.id === reward.id)
-                            ? "border-gray-600 bg-gray-50"
-                            : "border-gray-200 hover:border-gray-300"
-                        }`}
-                        onClick={() => {
-                          const isSelected = selectedRewards.some(r => r.id === reward.id);
-                          if (isSelected) {
-                            setSelectedRewards(selectedRewards.filter(r => r.id !== reward.id));
-                          } else {
-                            setSelectedRewards([...selectedRewards, reward]);
+                <CardContent className="space-y-4">
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="useRewardsYes"
+                        checked={useRewards}
+                        onCheckedChange={(checked) => {
+                          setUseRewards(checked as boolean);
+                          if (!checked) {
+                            setSelectedRewards([]);
                           }
                         }}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className={`w-3 h-3 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                            selectedRewards.some(r => r.id === reward.id)
-                              ? "border-gray-600 bg-gray-600"
-                              : "border-gray-300"
-                          }`}>
-                            {selectedRewards.some(r => r.id === reward.id) && (
-                              <Check className="w-1.5 h-1.5 text-white" />
-                            )}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs font-medium text-gray-900 truncate">
-                              {reward.bottles}b @ {reward.discount_percentage}%
-                            </p>
-                            <p className="text-xs text-gray-500 truncate">
-                              {reward.friend_email}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                      />
+                      <Label htmlFor="useRewardsYes" className="text-sm font-medium">
+                        Yes, use my rewards ({availableRewards.length} available)
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="useRewardsNo"
+                        checked={!useRewards}
+                        onCheckedChange={(checked) => {
+                          setUseRewards(!checked as boolean);
+                          if (checked) {
+                            setSelectedRewards([]);
+                          }
+                        }}
+                      />
+                      <Label htmlFor="useRewardsNo" className="text-sm font-medium">
+                        No, don't use rewards
+                      </Label>
+                    </div>
                   </div>
-                  {selectedRewards.length > 0 && (
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                      <p className="text-sm text-gray-600">
-                        <strong>{selectedRewards.length} reward{selectedRewards.length > 1 ? 's' : ''}</strong> selected for a total discount of <strong>{Math.round(discountAmount)} SEK</strong>
-                      </p>
+
+                  {/* Rewards Selection - Only show when useRewards is true */}
+                  {useRewards && (
+                    <div className="space-y-3 pt-4 border-t">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-gray-900">Select Rewards</h4>
+                        {selectedRewards.length > 0 && (
+                          <span className="text-sm font-medium text-gray-600">
+                            {selectedRewards.length} selected
+                          </span>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {availableRewards.map((reward) => (
+                          <div
+                            key={reward.id}
+                            className={`border rounded-lg p-2 cursor-pointer transition-colors ${
+                              selectedRewards.some(r => r.id === reward.id)
+                                ? "border-gray-600 bg-gray-50"
+                                : "border-gray-200 hover:border-gray-300"
+                            }`}
+                            onClick={() => {
+                              const isSelected = selectedRewards.some(r => r.id === reward.id);
+                              if (isSelected) {
+                                setSelectedRewards(selectedRewards.filter(r => r.id !== reward.id));
+                              } else {
+                                setSelectedRewards([...selectedRewards, reward]);
+                              }
+                            }}
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className={`w-3 h-3 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                                selectedRewards.some(r => r.id === reward.id)
+                                  ? "border-gray-600 bg-gray-600"
+                                  : "border-gray-300"
+                              }`}>
+                                {selectedRewards.some(r => r.id === reward.id) && (
+                                  <Check className="w-1.5 h-1.5 text-white" />
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-medium text-gray-900 truncate">
+                                  {reward.bottles}b @ {reward.discount_percentage}%
+                                </p>
+                                <p className="text-xs text-gray-500 truncate">
+                                  {reward.friend_email}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      {selectedRewards.length > 0 && (
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                          <p className="text-sm text-gray-600">
+                            <strong>{selectedRewards.length} reward{selectedRewards.length > 1 ? 's' : ''}</strong> selected for a total discount of <strong>{Math.round(discountAmount)} SEK</strong>
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </CardContent>
