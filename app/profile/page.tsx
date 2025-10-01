@@ -760,11 +760,11 @@ export default function ProfilePage() {
           <CardContent className="space-y-6">
             {/* Rewards Summary */}
             {usedInvitations.length > 0 && (
-              <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                      <Gift className="w-5 h-5 text-purple-600" />
+                      <Gift className="w-5 h-5 text-gray-600" />
                       Total Rewards Earned
                     </h3>
                     <p className="text-sm text-gray-600 mt-1">
@@ -772,13 +772,13 @@ export default function ProfilePage() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-purple-600">
+                    <p className="text-2xl font-bold text-gray-900">
                       {usedInvitations.length * 5}%
                     </p>
                     <p className="text-xs text-gray-500">Account rewards</p>
                   </div>
                 </div>
-                <div className="mt-3 pt-3 border-t border-purple-200">
+                <div className="mt-3 pt-3 border-t border-gray-200">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-600">Pending reservation rewards:</span>
                     <span className="font-medium text-gray-900">
@@ -795,7 +795,7 @@ export default function ProfilePage() {
                 <details className="group">
                   <summary className="flex items-center justify-between cursor-pointer list-none">
                     <h4 className="font-medium text-gray-900 text-sm flex items-center gap-2">
-                      <Check className="w-4 h-4 text-green-600" />
+                      <Check className="w-4 h-4 text-gray-600" />
                       Accepted Invitations ({usedInvitations.length})
                     </h4>
                     <div className="flex items-center gap-2">
@@ -814,8 +814,8 @@ export default function ProfilePage() {
                         className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow"
                       >
                         <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            <Check className="w-4 h-4 text-green-600" />
+                          <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <Check className="w-4 h-4 text-gray-600" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-2">
@@ -830,9 +830,9 @@ export default function ProfilePage() {
                             {/* Status and Rewards */}
                             <div className="space-y-2">
                               <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
                                 <span className="text-sm text-gray-600">Account created</span>
-                                <Badge className="bg-green-100 text-green-800 text-xs ml-auto">
+                                <Badge className="bg-gray-100 text-gray-800 text-xs ml-auto">
                                   +5% reward
                                 </Badge>
                               </div>
@@ -855,31 +855,31 @@ export default function ProfilePage() {
 
             {/* Current invitation section */}
             {!invitation ? (
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6 text-center">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <UserPlus className="w-8 h-8 text-blue-600" />
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <UserPlus className="w-8 h-8 text-gray-600" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
                   Invite Your Friends
                 </h3>
                 <p className="text-gray-600 mb-6 max-w-md mx-auto">
                   Generate a unique invitation code to share with friends and family.
-                  <span className="font-semibold text-blue-600 block mt-1">
+                  <span className="font-semibold text-gray-900 block mt-1">
                     Earn rewards when they join!
                   </span>
                 </p>
-                <div className="bg-white rounded-lg p-4 mb-6 border border-blue-100">
+                <div className="bg-white rounded-lg p-4 mb-6 border border-gray-200">
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div className="text-center">
-                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                        <Check className="w-4 h-4 text-green-600" />
+                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                        <Check className="w-4 h-4 text-gray-600" />
                       </div>
                       <p className="font-medium text-gray-900">5% Reward</p>
                       <p className="text-gray-500 text-xs">Account created</p>
                     </div>
                     <div className="text-center">
-                      <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                        <Gift className="w-4 h-4 text-purple-600" />
+                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                        <Gift className="w-4 h-4 text-gray-600" />
                       </div>
                       <p className="font-medium text-gray-900">10% Reward</p>
                       <p className="text-gray-500 text-xs">First reservation</p>
@@ -889,7 +889,7 @@ export default function ProfilePage() {
                 <Button
                   onClick={generateInvitation}
                   disabled={generatingInvite}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                  className="w-full bg-gray-900 hover:bg-gray-800 text-white"
                   size="lg"
                 >
                   {generatingInvite ? (
@@ -907,10 +907,10 @@ export default function ProfilePage() {
               </div>
             ) : invitation.currentUses && invitation.currentUses > 0 ? (
               // Used invitation - success state
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6">
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
                 <div className="text-center mb-6">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Check className="w-8 h-8 text-green-600" />
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Check className="w-8 h-8 text-gray-600" />
                   </div>
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">
                     Invitation Accepted!
@@ -921,22 +921,22 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Rewards Earned */}
-                <div className="bg-white rounded-lg p-4 mb-6 border border-green-100">
+                <div className="bg-white rounded-lg p-4 mb-6 border border-gray-200">
                   <h4 className="font-semibold text-gray-900 mb-3 text-center">Rewards Earned</h4>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center">
-                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                        <Check className="w-5 h-5 text-green-600" />
+                      <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                        <Check className="w-5 h-5 text-gray-600" />
                       </div>
-                      <p className="font-semibold text-green-600">5% Reward</p>
+                      <p className="font-semibold text-gray-900">5% Reward</p>
                       <p className="text-xs text-gray-500">Account created</p>
-                      <Badge className="bg-green-100 text-green-800 text-xs mt-1">Earned</Badge>
+                      <Badge className="bg-gray-100 text-gray-800 text-xs mt-1">Earned</Badge>
                     </div>
                     <div className="text-center">
                       <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
                         <Gift className="w-5 h-5 text-gray-400" />
                       </div>
-                      <p className="font-semibold text-gray-600">10% Reward</p>
+                      <p className="font-semibold text-gray-900">10% Reward</p>
                       <p className="text-xs text-gray-500">First reservation</p>
                       <Badge variant="outline" className="text-xs mt-1">Pending</Badge>
                     </div>
@@ -947,7 +947,7 @@ export default function ProfilePage() {
                 <Button
                   onClick={generateInvitation}
                   disabled={generatingInvite}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                  className="w-full bg-gray-900 hover:bg-gray-800 text-white"
                   size="lg"
                 >
                   {generatingInvite ? (
@@ -965,11 +965,11 @@ export default function ProfilePage() {
               </div>
             ) : (
               // Active invitation - show sharing options
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
                 {/* Status Header */}
                 <div className="text-center mb-6">
-                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <UserPlus className="w-8 h-8 text-blue-600" />
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <UserPlus className="w-8 h-8 text-gray-600" />
                   </div>
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">
                     Invitation Ready to Share
@@ -999,7 +999,7 @@ export default function ProfilePage() {
                         className="bg-white hover:bg-gray-50"
                       >
                         {copiedCode ? (
-                          <Check className="w-4 h-4 text-green-600" />
+                          <Check className="w-4 h-4 text-gray-600" />
                         ) : (
                           <Copy className="w-4 h-4" />
                         )}
@@ -1028,7 +1028,7 @@ export default function ProfilePage() {
                         className="bg-white hover:bg-gray-50"
                       >
                         {copiedUrl ? (
-                          <Check className="w-4 h-4 text-green-600" />
+                          <Check className="w-4 h-4 text-gray-600" />
                         ) : (
                           <Copy className="w-4 h-4" />
                         )}
@@ -1042,7 +1042,7 @@ export default function ProfilePage() {
                   <Button
                     onClick={generateInvitation}
                     disabled={generatingInvite}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                    className="flex-1 bg-gray-900 hover:bg-gray-800 text-white"
                   >
                     {generatingInvite ? (
                       <>
