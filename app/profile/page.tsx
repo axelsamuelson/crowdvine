@@ -27,6 +27,7 @@ import {
   Check,
   Wifi,
   WifiOff,
+  Gift,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -756,76 +757,140 @@ export default function ProfilePage() {
               Share the love and earn rewards when friends join!
             </p>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Show used invitations first */}
+          <CardContent className="space-y-6">
+            {/* Rewards Summary */}
+            {usedInvitations.length > 0 && (
+              <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                      <Gift className="w-5 h-5 text-purple-600" />
+                      Total Rewards Earned
+                    </h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {usedInvitations.length} friend{usedInvitations.length > 1 ? 's' : ''} joined
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-purple-600">
+                      {usedInvitations.length * 5}%
+                    </p>
+                    <p className="text-xs text-gray-500">Account rewards</p>
+                  </div>
+                </div>
+                <div className="mt-3 pt-3 border-t border-purple-200">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Pending reservation rewards:</span>
+                    <span className="font-medium text-gray-900">
+                      {usedInvitations.length * 10}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Accepted Invitations - Collapsible */}
             {usedInvitations.length > 0 && (
               <div className="space-y-3">
-                <h4 className="font-medium text-gray-900 text-sm">
-                  Previous Invitations
-                </h4>
-                {usedInvitations.map((usedInvite, index) => (
-                  <div
-                    key={index}
-                    className="bg-green-50 border border-green-200 rounded-lg p-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
-                        <Check className="w-3 h-3 text-green-600" />
+                <details className="group">
+                  <summary className="flex items-center justify-between cursor-pointer list-none">
+                    <h4 className="font-medium text-gray-900 text-sm flex items-center gap-2">
+                      <Check className="w-4 h-4 text-green-600" />
+                      Accepted Invitations ({usedInvitations.length})
+                    </h4>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500 group-open:hidden">Click to expand</span>
+                      <div className="w-4 h-4 flex items-center justify-center">
+                        <svg className="w-3 h-3 text-gray-400 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
                       </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-green-800">
-                          Invitation Accepted by {usedInvite.profiles?.email || 'Unknown User'}
-                        </p>
-                        <p className="text-xs text-green-600">
-                          Used {usedInvite.currentUses} time
-                          {usedInvite.currentUses > 1 ? "s" : ""} •{" "}
-                          {new Date(usedInvite.usedAt).toLocaleDateString()}
-                        </p>
-                        {/* Rewards Section */}
-                        <div className="mt-1 space-y-1">
-                          <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 bg-green-200 rounded-full flex items-center justify-center">
-                              <Check className="w-1.5 h-1.5 text-green-700" />
-                            </div>
-                            <span className="text-xs font-medium text-green-700">
-                              5% reward earned
-                            </span>
+                    </div>
+                  </summary>
+                  <div className="mt-3 space-y-3">
+                    {usedInvitations.map((usedInvite, index) => (
+                      <div
+                        key={index}
+                        className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <Check className="w-4 h-4 text-green-600" />
                           </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 bg-gray-200 rounded-full flex items-center justify-center">
-                              <div className="w-1 h-1 bg-gray-500 rounded-full"></div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="font-medium text-gray-900 truncate">
+                                {usedInvite.profiles?.email || 'Unknown User'}
+                              </p>
+                              <span className="text-xs text-gray-500 flex-shrink-0 ml-2">
+                                {new Date(usedInvite.usedAt).toLocaleDateString()}
+                              </span>
                             </div>
-                            <span className="text-xs text-gray-500">
-                              10% reward pending
-                            </span>
+                            
+                            {/* Status and Rewards */}
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                <span className="text-sm text-gray-600">Account created</span>
+                                <Badge className="bg-green-100 text-green-800 text-xs ml-auto">
+                                  +5% reward
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                                <span className="text-sm text-gray-500">Reservation pending</span>
+                                <Badge variant="outline" className="text-xs ml-auto">
+                                  +10% pending
+                                </Badge>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
+                </details>
               </div>
             )}
 
             {/* Current invitation section */}
             {!invitation ? (
-              <div className="text-center py-6">
-                <UserPlus className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6 text-center">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <UserPlus className="w-8 h-8 text-blue-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
                   Invite Your Friends
                 </h3>
-                <p className="text-gray-600 mb-6 max-w-sm mx-auto">
-                  Generate a unique invitation code to share with friends and
-                  family.
-                  <span className="font-medium text-gray-900">
-                    {" "}
+                <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                  Generate a unique invitation code to share with friends and family.
+                  <span className="font-semibold text-blue-600 block mt-1">
                     Earn rewards when they join!
                   </span>
                 </p>
+                <div className="bg-white rounded-lg p-4 mb-6 border border-blue-100">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="text-center">
+                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                        <Check className="w-4 h-4 text-green-600" />
+                      </div>
+                      <p className="font-medium text-gray-900">5% Reward</p>
+                      <p className="text-gray-500 text-xs">Account created</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                        <Gift className="w-4 h-4 text-purple-600" />
+                      </div>
+                      <p className="font-medium text-gray-900">10% Reward</p>
+                      <p className="text-gray-500 text-xs">First reservation</p>
+                    </div>
+                  </div>
+                </div>
                 <Button
                   onClick={generateInvitation}
                   disabled={generatingInvite}
-                  className="w-full"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                  size="lg"
                 >
                   {generatingInvite ? (
                     <>
@@ -841,81 +906,39 @@ export default function ProfilePage() {
                 </Button>
               </div>
             ) : invitation.currentUses && invitation.currentUses > 0 ? (
-              // Used invitation - minimal display
-              <div className="space-y-4">
-                {/* Success Status with Rewards */}
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                      <Check className="w-4 h-4 text-green-600" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-medium text-green-800">
-                        Invitation Accepted by {invitation.profiles?.email || 'Unknown User'}!
-                      </h3>
-                      <p className="text-sm text-green-600">
-                        Used {invitation.currentUses} time
-                        {invitation.currentUses > 1 ? "s" : ""} •{" "}
-                        {invitation.usedAt &&
-                          new Date(invitation.usedAt).toLocaleDateString()}
-                      </p>
-                      {/* Rewards Section */}
-                      <div className="mt-2 space-y-1">
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 bg-green-200 rounded-full flex items-center justify-center">
-                            <Check className="w-2 h-2 text-green-700" />
-                          </div>
-                          <span className="text-xs font-medium text-green-700">
-                            5% reward earned - Account created
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 bg-gray-200 rounded-full flex items-center justify-center">
-                            <div className="w-1.5 h-1.5 bg-gray-500 rounded-full"></div>
-                          </div>
-                          <span className="text-xs text-gray-500">
-                            10% reward pending - Reservation made
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+              // Used invitation - success state
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6">
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Check className="w-8 h-8 text-green-600" />
                   </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                    Invitation Accepted!
+                  </h3>
+                  <p className="text-gray-600">
+                    {invitation.profiles?.email || 'Your friend'} has joined PACT
+                  </p>
                 </div>
 
-                {/* Progress Steps */}
-                <div className="space-y-3">
-                  <h4 className="font-medium text-gray-900 text-sm">
-                    Invitation Progress
-                  </h4>
-                  <div className="space-y-2">
-                    {/* Step 1: Invitation Sent */}
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
-                        <Check className="w-3 h-3 text-green-600" />
+                {/* Rewards Earned */}
+                <div className="bg-white rounded-lg p-4 mb-6 border border-green-100">
+                  <h4 className="font-semibold text-gray-900 mb-3 text-center">Rewards Earned</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center">
+                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                        <Check className="w-5 h-5 text-green-600" />
                       </div>
-                      <span className="text-sm text-gray-700">
-                        Invitation sent
-                      </span>
+                      <p className="font-semibold text-green-600">5% Reward</p>
+                      <p className="text-xs text-gray-500">Account created</p>
+                      <Badge className="bg-green-100 text-green-800 text-xs mt-1">Earned</Badge>
                     </div>
-
-                    {/* Step 2: Account Created */}
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
-                        <Check className="w-3 h-3 text-green-600" />
+                    <div className="text-center">
+                      <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                        <Gift className="w-5 h-5 text-gray-400" />
                       </div>
-                      <span className="text-sm text-gray-700">
-                        Account created
-                      </span>
-                    </div>
-
-                    {/* Step 3: Reservation Made (placeholder for future) */}
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center">
-                        <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                      </div>
-                      <span className="text-sm text-gray-500">
-                        Reservation made
-                      </span>
+                      <p className="font-semibold text-gray-600">10% Reward</p>
+                      <p className="text-xs text-gray-500">First reservation</p>
+                      <Badge variant="outline" className="text-xs mt-1">Pending</Badge>
                     </div>
                   </div>
                 </div>
@@ -924,7 +947,8 @@ export default function ProfilePage() {
                 <Button
                   onClick={generateInvitation}
                   disabled={generatingInvite}
-                  className="w-full"
+                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                  size="lg"
                 >
                   {generatingInvite ? (
                     <>
@@ -934,38 +958,29 @@ export default function ProfilePage() {
                   ) : (
                     <>
                       <UserPlus className="w-4 h-4 mr-2" />
-                      Generate New Invitation
+                      Invite Another Friend
                     </>
                   )}
                 </Button>
               </div>
             ) : (
               // Active invitation - show sharing options
-              <div className="space-y-4">
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
                 {/* Status Header */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <UserPlus className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-blue-800">
-                        Invitation Active
-                      </h3>
-                      <p className="text-sm text-blue-600">
-                        Expires:{" "}
-                        {new Date(invitation.expiresAt).toLocaleDateString()}
-                      </p>
-                    </div>
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <UserPlus className="w-8 h-8 text-blue-600" />
                   </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                    Invitation Ready to Share
+                  </h3>
+                  <p className="text-gray-600">
+                    Expires: {new Date(invitation.expiresAt).toLocaleDateString()}
+                  </p>
                 </div>
 
                 {/* Sharing Options */}
-                <div className="space-y-3">
-                  <h4 className="font-medium text-gray-900 text-sm">
-                    Share Invitation
-                  </h4>
-
+                <div className="space-y-4">
                   {/* Invitation Code */}
                   <div>
                     <Label className="text-sm font-medium text-gray-700 mb-2 block">
@@ -975,15 +990,16 @@ export default function ProfilePage() {
                       <Input
                         value={invitation.code}
                         readOnly
-                        className="font-mono text-sm"
+                        className="font-mono text-sm bg-white"
                       />
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => copyToClipboard(invitation.code, "code")}
+                        className="bg-white hover:bg-gray-50"
                       >
                         {copiedCode ? (
-                          <Check className="w-4 h-4" />
+                          <Check className="w-4 h-4 text-green-600" />
                         ) : (
                           <Copy className="w-4 h-4" />
                         )}
@@ -1000,7 +1016,7 @@ export default function ProfilePage() {
                       <Input
                         value={invitation.signupUrl?.replace(/\s+/g, "") || ""}
                         readOnly
-                        className="text-sm font-mono whitespace-nowrap overflow-hidden"
+                        className="text-sm font-mono whitespace-nowrap overflow-hidden bg-white"
                         style={{ wordBreak: "keep-all" }}
                       />
                       <Button
@@ -1009,9 +1025,10 @@ export default function ProfilePage() {
                         onClick={() =>
                           copyToClipboard(invitation.signupUrl?.replace(/\s+/g, "") || "", "url")
                         }
+                        className="bg-white hover:bg-gray-50"
                       >
                         {copiedUrl ? (
-                          <Check className="w-4 h-4" />
+                          <Check className="w-4 h-4 text-green-600" />
                         ) : (
                           <Copy className="w-4 h-4" />
                         )}
@@ -1021,11 +1038,11 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex gap-3">
+                <div className="flex gap-3 mt-6">
                   <Button
                     onClick={generateInvitation}
                     disabled={generatingInvite}
-                    className="flex-1"
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     {generatingInvite ? (
                       <>
@@ -1047,7 +1064,7 @@ export default function ProfilePage() {
                       toast.success("Invitation cleared");
                     }}
                     variant="outline"
-                    className="flex-1"
+                    className="flex-1 bg-white hover:bg-gray-50"
                   >
                     <X className="w-4 h-4 mr-2" />
                     Clear
