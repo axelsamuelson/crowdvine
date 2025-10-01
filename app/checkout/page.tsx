@@ -80,7 +80,7 @@ function CheckoutContent() {
     useState<PaymentMethod | null>(null);
   const [selectedPallet, setSelectedPallet] = useState<PalletInfo | null>(null);
   const [userRewards, setUserRewards] = useState<UserReward[]>([]);
-  const [selectedReward, setSelectedReward] = useState<UserReward | null>(null);
+  const [selectedRewards, setSelectedRewards] = useState<UserReward[]>([]);
   const [useProfileAddress, setUseProfileAddress] = useState(true);
   const [useCustomAddress, setUseCustomAddress] = useState(false);
   const [customAddress, setCustomAddress] = useState({
@@ -430,10 +430,10 @@ function CheckoutContent() {
     // Payment method
     formData.append("paymentMethodId", selectedPaymentMethod.id);
 
-    // User reward
-    if (selectedReward) {
-      formData.append("rewardId", selectedReward.id);
-    }
+    // User rewards
+    selectedRewards.forEach((reward, index) => {
+      formData.append(`rewardId_${index}`, reward.id);
+    });
 
     try {
       const response = await fetch("/api/checkout/confirm", {
@@ -510,9 +510,9 @@ function CheckoutContent() {
     return total + (pricePerBottle * line.quantity);
   }, 0);
 
-  const discountAmount = selectedReward 
-    ? (bottleCost * selectedReward.discount_percentage) / 100
-    : 0;
+  const discountAmount = selectedRewards.reduce((total, reward) => {
+    return total + (bottleCost * reward.discount_percentage) / 100;
+  }, 0);
 
   const subtotal = bottleCost - discountAmount;
   const total = subtotal + (shippingCost ? shippingCost.totalShippingCostSek : 0);
@@ -587,9 +587,9 @@ function CheckoutContent() {
                   </div>
 
                   {/* Discount */}
-                  {selectedReward && (
+                  {selectedRewards.length > 0 && (
                     <div className="flex justify-between items-center text-green-600">
-                      <span className="text-sm">Reward ({selectedReward.discount_percentage}% on {selectedReward.bottles} bottles)</span>
+                      <span className="text-sm">Rewards ({selectedRewards.length} rewards applied)</span>
                       <span className="text-sm font-medium">
                         -{Math.round(discountAmount)}{" "}
                         {cart.cost.totalAmount.currencyCode}
@@ -616,6 +616,138 @@ function CheckoutContent() {
                   </div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Delivery Address */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="w-5 h-5" />
+                Delivery Address
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {hasCompleteProfileAddress ? (
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="useProfileAddress"
+                      checked={useProfileAddress}
+                      onCheckedChange={(checked) => {
+                        setUseProfileAddress(checked as boolean);
+                        setUseCustomAddress(!checked as boolean);
+                      }}
+                    />
+                    <Label
+                      htmlFor="useProfileAddress"
+                      className="text-sm font-medium"
+                    >
+                      Use profile address: {profile?.address},{" "}
+                      {profile?.postal_code} {profile?.city}
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="useCustomAddress"
+                      checked={useCustomAddress}
+                      onCheckedChange={(checked) => {
+                        setUseCustomAddress(checked as boolean);
+                        setUseProfileAddress(!checked as boolean);
+                      }}
+                    />
+                    <Label
+                      htmlFor="useCustomAddress"
+                      className="text-sm font-medium"
+                    >
+                      Use different delivery address
+                    </Label>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-4">
+                    Delivery address missing from profile
+                  </p>
+                  <ProfileInfoModal onProfileSaved={handleProfileSaved} />
+                </div>
+              )}
+
+              {useCustomAddress && (
+                <div className="space-y-4 pt-4 border-t">
+                  <div>
+                    <Label htmlFor="customStreet">Street Address</Label>
+                    <Input
+                      id="customStreet"
+                      value={customAddress.street}
+                      onChange={(e) =>
+                        setCustomAddress({
+                          ...customAddress,
+                          street: e.target.value,
+                        })
+                      }
+                      placeholder="Enter street address"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="customPostcode">Postal Code</Label>
+                      <Input
+                        id="customPostcode"
+                        value={customAddress.postcode}
+                        onChange={(e) =>
+                          setCustomAddress({
+                            ...customAddress,
+                            postcode: e.target.value,
+                          })
+                        }
+                        placeholder="Enter postal code"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="customCity">City</Label>
+                      <Input
+                        id="customCity"
+                        value={customAddress.city}
+                        onChange={(e) =>
+                          setCustomAddress({
+                            ...customAddress,
+                            city: e.target.value,
+                          })
+                        }
+                        placeholder="Enter city"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="customCountry">Country</Label>
+                    <Select
+                      value={customAddress.countryCode}
+                      onValueChange={(value) =>
+                        setCustomAddress({
+                          ...customAddress,
+                          countryCode: value,
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select country" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="SE">Sweden</SelectItem>
+                        <SelectItem value="NO">Norway</SelectItem>
+                        <SelectItem value="DK">Denmark</SelectItem>
+                        <SelectItem value="FI">Finland</SelectItem>
+                        <SelectItem value="DE">Germany</SelectItem>
+                        <SelectItem value="FR">France</SelectItem>
+                        <SelectItem value="GB">United Kingdom</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -826,197 +958,68 @@ function CheckoutContent() {
               </CardContent>
             </Card>
 
-            {/* Delivery Address */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="w-5 h-5" />
-                  Delivery Address
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {hasCompleteProfileAddress ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="useProfileAddress"
-                        checked={useProfileAddress}
-                        onCheckedChange={(checked) => {
-                          setUseProfileAddress(checked as boolean);
-                          setUseCustomAddress(!checked as boolean);
-                        }}
-                      />
-                      <Label
-                        htmlFor="useProfileAddress"
-                        className="text-sm font-medium"
-                      >
-                        Use profile address: {profile?.address},{" "}
-                        {profile?.postal_code} {profile?.city}
-                      </Label>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="useCustomAddress"
-                        checked={useCustomAddress}
-                        onCheckedChange={(checked) => {
-                          setUseCustomAddress(checked as boolean);
-                          setUseProfileAddress(!checked as boolean);
-                        }}
-                      />
-                      <Label
-                        htmlFor="useCustomAddress"
-                        className="text-sm font-medium"
-                      >
-                        Use different delivery address
-                      </Label>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-4">
-                    <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
-                    <p className="text-gray-600 mb-4">
-                      Delivery address missing from profile
-                    </p>
-                    <ProfileInfoModal onProfileSaved={handleProfileSaved} />
-                  </div>
-                )}
-
-                {useCustomAddress && (
-                  <div className="space-y-4 pt-4 border-t">
-                    <div>
-                      <Label htmlFor="customStreet">Street Address</Label>
-                      <Input
-                        id="customStreet"
-                        value={customAddress.street}
-                        onChange={(e) =>
-                          setCustomAddress({
-                            ...customAddress,
-                            street: e.target.value,
-                          })
-                        }
-                        placeholder="Enter street address"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="customPostcode">Postal Code</Label>
-                        <Input
-                          id="customPostcode"
-                          value={customAddress.postcode}
-                          onChange={(e) =>
-                            setCustomAddress({
-                              ...customAddress,
-                              postcode: e.target.value,
-                            })
-                          }
-                          placeholder="Enter postal code"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="customCity">City</Label>
-                        <Input
-                          id="customCity"
-                          value={customAddress.city}
-                          onChange={(e) =>
-                            setCustomAddress({
-                              ...customAddress,
-                              city: e.target.value,
-                            })
-                          }
-                          placeholder="Enter city"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="customCountry">Country</Label>
-                      <Select
-                        value={customAddress.countryCode}
-                        onValueChange={(value) =>
-                          setCustomAddress({
-                            ...customAddress,
-                            countryCode: value,
-                          })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select country" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="SE">Sweden</SelectItem>
-                          <SelectItem value="NO">Norway</SelectItem>
-                          <SelectItem value="DK">Denmark</SelectItem>
-                          <SelectItem value="FI">Finland</SelectItem>
-                          <SelectItem value="DE">Germany</SelectItem>
-                          <SelectItem value="FR">France</SelectItem>
-                          <SelectItem value="GB">United Kingdom</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
 
             {/* Rewards */}
             {availableRewards.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Gift className="w-5 h-5" />
-                    Available Rewards
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Gift className="w-5 h-5" />
+                      Available Rewards ({availableRewards.length})
+                    </div>
+                    {selectedRewards.length > 0 && (
+                      <span className="text-sm font-medium text-gray-600">
+                        {selectedRewards.length} selected
+                      </span>
+                    )}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
                     {availableRewards.map((reward) => (
                       <div
                         key={reward.id}
-                        className={`border rounded-lg p-3 cursor-pointer transition-colors ${
-                          selectedReward?.id === reward.id
+                        className={`border rounded-lg p-2 cursor-pointer transition-colors ${
+                          selectedRewards.some(r => r.id === reward.id)
                             ? "border-gray-600 bg-gray-50"
                             : "border-gray-200 hover:border-gray-300"
                         }`}
-                        onClick={() => setSelectedReward(
-                          selectedReward?.id === reward.id ? null : reward
-                        )}
+                        onClick={() => {
+                          const isSelected = selectedRewards.some(r => r.id === reward.id);
+                          if (isSelected) {
+                            setSelectedRewards(selectedRewards.filter(r => r.id !== reward.id));
+                          } else {
+                            setSelectedRewards([...selectedRewards, reward]);
+                          }
+                        }}
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                              selectedReward?.id === reward.id
-                                ? "border-gray-600 bg-gray-600"
-                                : "border-gray-300"
-                            }`}>
-                              {selectedReward?.id === reward.id && (
-                                <Check className="w-2.5 h-2.5 text-white" />
-                              )}
-                            </div>
-                            <div>
-                              <p className="font-medium text-gray-900">
-                                {reward.bottles} bottles @ {reward.discount_percentage}%
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                From {reward.friend_email}
-                              </p>
-                            </div>
+                        <div className="flex items-center gap-2">
+                          <div className={`w-3 h-3 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                            selectedRewards.some(r => r.id === reward.id)
+                              ? "border-gray-600 bg-gray-600"
+                              : "border-gray-300"
+                          }`}>
+                            {selectedRewards.some(r => r.id === reward.id) && (
+                              <Check className="w-1.5 h-1.5 text-white" />
+                            )}
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium text-gray-900">
-                              -{Math.round((bottleCost * reward.discount_percentage) / 100)} SEK
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-medium text-gray-900 truncate">
+                              {reward.bottles}b @ {reward.discount_percentage}%
                             </p>
-                            <p className="text-xs text-gray-500">
-                              Earned {new Date(reward.earned_at).toLocaleDateString()}
+                            <p className="text-xs text-gray-500 truncate">
+                              {reward.friend_email}
                             </p>
                           </div>
                         </div>
                       </div>
                     ))}
                   </div>
-                  {selectedReward && (
+                  {selectedRewards.length > 0 && (
                     <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                       <p className="text-sm text-gray-600">
-                        <strong>{selectedReward.discount_percentage}% discount on {selectedReward.bottles} bottles</strong> will be applied to your order
+                        <strong>{selectedRewards.length} reward{selectedRewards.length > 1 ? 's' : ''}</strong> selected for a total discount of <strong>{Math.round(discountAmount)} SEK</strong>
                       </p>
                     </div>
                   )}
