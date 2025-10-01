@@ -29,6 +29,7 @@ export async function GET(
         delivery_address,
         total_amount_cents,
         shipping_cost_cents,
+        user_id,
         pallets(name, cost_cents, bottle_capacity),
         pallet_zones!order_reservations_pickup_zone_id_fkey(name),
         pallet_zones!order_reservations_delivery_zone_id_fkey(name),
@@ -71,6 +72,13 @@ export async function GET(
         )
       : reservation.pallet_zones;
 
+    // Get user profile information for email
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name, email")
+      .eq("id", user.id)
+      .single();
+
     // Transform the data to match the expected format
     const transformedReservation = {
       id: reservation.id,
@@ -86,12 +94,16 @@ export async function GET(
       delivery_address: reservation.delivery_address || null,
       total_amount_cents: reservation.total_amount_cents || 0,
       shipping_cost_cents: reservation.shipping_cost_cents || 0,
+      customer_email: profile?.email || user.email,
+      customer_name: profile?.full_name || "Valued Customer",
       items:
         reservation.order_reservation_items?.map((item) => ({
           wine_name: item.wines?.wine_name || "Unknown Wine",
           quantity: item.quantity,
           vintage: item.wines?.vintage || "N/A",
           price_cents: item.wines?.base_price_cents || 0,
+          customer_email: profile?.email || user.email,
+          customer_name: profile?.full_name || "Valued Customer",
         })) || [],
     };
 

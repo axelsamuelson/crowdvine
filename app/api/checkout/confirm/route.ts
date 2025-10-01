@@ -246,7 +246,9 @@ export async function POST(request: Request) {
     // Send order confirmation email immediately
     try {
       console.log("📧 Sending order confirmation email...");
-      const emailData = {
+      const { sendGridService } = await import("@/lib/sendgrid-service");
+      
+      const emailSent = await sendGridService.sendOrderConfirmation({
         customerEmail: address.email,
         customerName: address.fullName,
         orderId: reservation.id,
@@ -268,19 +270,12 @@ export async function POST(request: Request) {
           postalCode: address.postcode,
           country: address.countryCode,
         },
-      };
-
-      const emailResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/email/order-confirmation`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(emailData),
       });
 
-      if (emailResponse.ok) {
-        console.log("📧 Order confirmation email sent successfully");
+      if (emailSent) {
+        console.log("📧 Order confirmation email sent successfully to:", address.email);
       } else {
-        const errorText = await emailResponse.text();
-        console.error("📧 Failed to send order confirmation email:", errorText);
+        console.error("📧 Failed to send order confirmation email to:", address.email);
       }
     } catch (emailError) {
       console.error("📧 Error sending order confirmation email:", emailError);

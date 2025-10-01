@@ -33,6 +33,8 @@ interface ReservationDetails {
   delivery_address?: string;
   total_amount_cents?: number;
   shipping_cost_cents?: number;
+  customer_email?: string;
+  customer_name?: string;
   items: Array<{
     wine_name: string;
     quantity: number;
@@ -41,6 +43,8 @@ interface ReservationDetails {
     image_url?: string;
     product_handle?: string;
     producer_name?: string;
+    customer_email?: string;
+    customer_name?: string;
   }>;
 }
 
@@ -98,11 +102,15 @@ function CheckoutConfirmationContent() {
       console.log("📧 Attempting to send order confirmation email...");
       console.log("📧 Reservation data:", reservationData);
 
-      // Get user email from auth or reservation data
+      // Get user email from reservation data
       const userEmail =
-        reservationData.items[0]?.customer_email || "customer@pactwines.com"; // Fallback
+        reservationData.customer_email || 
+        reservationData.items[0]?.customer_email || 
+        "customer@pactwines.com"; // Fallback
       const userName =
-        reservationData.items[0]?.customer_name || "Valued Customer"; // Fallback
+        reservationData.customer_name || 
+        reservationData.items[0]?.customer_name || 
+        "Valued Customer"; // Fallback
 
       console.log("📧 Using email:", userEmail, "and name:", userName);
 
