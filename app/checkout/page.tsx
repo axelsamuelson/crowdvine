@@ -61,19 +61,14 @@ interface PalletInfo {
   deliveryZoneName: string;
 }
 
-interface DiscountCode {
+interface UserReward {
   id: string;
-  code: string;
+  bottles: number;
   discount_percentage: number;
-  discount_amount_cents?: number;
-  is_active: boolean;
-  usage_limit?: number;
-  current_usage: number;
-  expires_at?: string;
-  earned_by_user_id?: string;
-  used_by_user_id?: string;
-  used_at?: string;
-  created_at: string;
+  type: 'account_created' | 'reservation_made';
+  friend_email?: string;
+  earned_at: string;
+  used: boolean;
 }
 
 function CheckoutContent() {
@@ -84,8 +79,8 @@ function CheckoutContent() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
     useState<PaymentMethod | null>(null);
   const [selectedPallet, setSelectedPallet] = useState<PalletInfo | null>(null);
-  const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([]);
-  const [selectedDiscountCode, setSelectedDiscountCode] = useState<DiscountCode | null>(null);
+  const [userRewards, setUserRewards] = useState<UserReward[]>([]);
+  const [selectedReward, setSelectedReward] = useState<UserReward | null>(null);
   const [useProfileAddress, setUseProfileAddress] = useState(true);
   const [useCustomAddress, setUseCustomAddress] = useState(false);
   const [customAddress, setCustomAddress] = useState({
@@ -122,7 +117,7 @@ function CheckoutContent() {
   useEffect(() => {
     fetchCart();
     fetchProfile();
-    fetchDiscountCodes();
+    fetchUserRewards();
   }, []);
 
   // Initial zone matching when cart and profile are loaded
@@ -177,19 +172,32 @@ function CheckoutContent() {
     }
   };
 
-  const fetchDiscountCodes = async () => {
+  const fetchUserRewards = async () => {
     try {
-      const response = await fetch("/api/discount-codes");
+      const response = await fetch("/api/invitations/used");
       if (response.ok) {
         const data = await response.json();
-        setDiscountCodes(data || []);
+        const usedInvitations = data.usedInvitations || [];
+        
+        // Convert used invitations to user rewards
+        const rewards: UserReward[] = usedInvitations.map((invitation: any, index: number) => ({
+          id: `reward-${index}`,
+          bottles: 6, // 6 bottles per friend
+          discount_percentage: 5, // 5% for account created
+          type: 'account_created' as const,
+          friend_email: invitation.profiles?.email,
+          earned_at: invitation.used_at,
+          used: false
+        }));
+        
+        setUserRewards(rewards);
       } else {
-        console.error("Failed to load discount codes");
-        setDiscountCodes([]);
+        console.error("Failed to load user rewards");
+        setUserRewards([]);
       }
     } catch (error) {
-      console.error("Error fetching discount codes:", error);
-      setDiscountCodes([]);
+      console.error("Error fetching user rewards:", error);
+      setUserRewards([]);
     }
   };
 
@@ -422,9 +430,9 @@ function CheckoutContent() {
     // Payment method
     formData.append("paymentMethodId", selectedPaymentMethod.id);
 
-    // Discount code
-    if (selectedDiscountCode) {
-      formData.append("discountCodeId", selectedDiscountCode.id);
+    // User reward
+    if (selectedReward) {
+      formData.append("rewardId", selectedReward.id);
     }
 
     try {
@@ -502,19 +510,16 @@ function CheckoutContent() {
     return total + (pricePerBottle * line.quantity);
   }, 0);
 
-  const discountAmount = selectedDiscountCode 
-    ? (bottleCost * selectedDiscountCode.discount_percentage) / 100
+  const discountAmount = selectedReward 
+    ? (bottleCost * selectedReward.discount_percentage) / 100
     : 0;
 
   const subtotal = bottleCost - discountAmount;
   const total = subtotal + (shippingCost ? shippingCost.totalShippingCostSek : 0);
 
-  // Filter available discount codes
-  const availableDiscountCodes = discountCodes.filter(code => 
-    code.is_active && 
-    code.earned_by_user_id === profile?.id &&
-    (!code.expires_at || new Date(code.expires_at) > new Date()) &&
-    (!code.usage_limit || code.current_usage < code.usage_limit)
+  // Filter available rewards
+  const availableRewards = userRewards.filter(reward => 
+    !reward.used
   );
 
   return (
@@ -582,9 +587,9 @@ function CheckoutContent() {
                   </div>
 
                   {/* Discount */}
-                  {selectedDiscountCode && (
+                  {selectedReward && (
                     <div className="flex justify-between items-center text-green-600">
-                      <span className="text-sm">Discount ({selectedDiscountCode.discount_percentage}%)</span>
+                      <span className="text-sm">Reward ({selectedReward.discount_percentage}% on {selectedReward.bottles} bottles)</span>
                       <span className="text-sm font-medium">
                         -{Math.round(discountAmount)}{" "}
                         {cart.cost.totalAmount.currencyCode}
@@ -954,7 +959,7 @@ function CheckoutContent() {
             </Card>
 
             {/* Rewards */}
-            {availableDiscountCodes.length > 0 && (
+            {availableRewards.length > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -964,56 +969,54 @@ function CheckoutContent() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-3">
-                    {availableDiscountCodes.map((code) => (
+                    {availableRewards.map((reward) => (
                       <div
-                        key={code.id}
+                        key={reward.id}
                         className={`border rounded-lg p-3 cursor-pointer transition-colors ${
-                          selectedDiscountCode?.id === code.id
+                          selectedReward?.id === reward.id
                             ? "border-gray-600 bg-gray-50"
                             : "border-gray-200 hover:border-gray-300"
                         }`}
-                        onClick={() => setSelectedDiscountCode(
-                          selectedDiscountCode?.id === code.id ? null : code
+                        onClick={() => setSelectedReward(
+                          selectedReward?.id === reward.id ? null : reward
                         )}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                              selectedDiscountCode?.id === code.id
+                              selectedReward?.id === reward.id
                                 ? "border-gray-600 bg-gray-600"
                                 : "border-gray-300"
                             }`}>
-                              {selectedDiscountCode?.id === code.id && (
+                              {selectedReward?.id === reward.id && (
                                 <Check className="w-2.5 h-2.5 text-white" />
                               )}
                             </div>
                             <div>
                               <p className="font-medium text-gray-900">
-                                {code.code}
+                                {reward.bottles} bottles @ {reward.discount_percentage}%
                               </p>
                               <p className="text-sm text-gray-600">
-                                {code.discount_percentage}% off
+                                From {reward.friend_email}
                               </p>
                             </div>
                           </div>
                           <div className="text-right">
                             <p className="text-sm font-medium text-gray-900">
-                              -{Math.round((bottleCost * code.discount_percentage) / 100)} SEK
+                              -{Math.round((bottleCost * reward.discount_percentage) / 100)} SEK
                             </p>
-                            {code.expires_at && (
-                              <p className="text-xs text-gray-500">
-                                Expires {new Date(code.expires_at).toLocaleDateString()}
-                              </p>
-                            )}
+                            <p className="text-xs text-gray-500">
+                              Earned {new Date(reward.earned_at).toLocaleDateString()}
+                            </p>
                           </div>
                         </div>
                       </div>
                     ))}
                   </div>
-                  {selectedDiscountCode && (
+                  {selectedReward && (
                     <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                       <p className="text-sm text-gray-600">
-                        <strong>{selectedDiscountCode.discount_percentage}% discount</strong> will be applied to your order
+                        <strong>{selectedReward.discount_percentage}% discount on {selectedReward.bottles} bottles</strong> will be applied to your order
                       </p>
                     </div>
                   )}
@@ -1040,7 +1043,7 @@ function CheckoutContent() {
             {/* Submit Button */}
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              className="w-full bg-black hover:bg-black/90 text-white border-black rounded-md"
               size="lg"
               disabled={zoneLoading}
             >
