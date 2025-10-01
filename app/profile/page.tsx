@@ -773,16 +773,16 @@ export default function ProfilePage() {
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-bold text-gray-900">
-                      {usedInvitations.length * 5}%
+                      {usedInvitations.length * 6}
                     </p>
-                    <p className="text-xs text-gray-500">Account rewards</p>
+                    <p className="text-xs text-gray-500">bottles with 5% discount</p>
                   </div>
                 </div>
                 <div className="mt-3 pt-3 border-t border-gray-200">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-600">Pending reservation rewards:</span>
                     <span className="font-medium text-gray-900">
-                      {usedInvitations.length * 10}%
+                      {usedInvitations.length * 6} bottles with 10% discount
                     </span>
                   </div>
                 </div>
@@ -833,14 +833,14 @@ export default function ProfilePage() {
                                 <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
                                 <span className="text-sm text-gray-600">Account created</span>
                                 <Badge className="bg-gray-100 text-gray-800 text-xs ml-auto">
-                                  +5% reward
+                                  6 bottles @ 5%
                                 </Badge>
                               </div>
                               <div className="flex items-center gap-2">
                                 <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
                                 <span className="text-sm text-gray-500">Reservation pending</span>
                                 <Badge variant="outline" className="text-xs ml-auto">
-                                  +10% pending
+                                  6 bottles @ 10%
                                 </Badge>
                               </div>
                             </div>
@@ -874,14 +874,14 @@ export default function ProfilePage() {
                       <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
                         <Check className="w-4 h-4 text-gray-600" />
                       </div>
-                      <p className="font-medium text-gray-900">5% Reward</p>
+                      <p className="font-medium text-gray-900">6 bottles @ 5%</p>
                       <p className="text-gray-500 text-xs">Account created</p>
                     </div>
                     <div className="text-center">
                       <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
                         <Gift className="w-4 h-4 text-gray-600" />
                       </div>
-                      <p className="font-medium text-gray-900">10% Reward</p>
+                      <p className="font-medium text-gray-900">6 bottles @ 10%</p>
                       <p className="text-gray-500 text-xs">First reservation</p>
                     </div>
                   </div>
@@ -928,7 +928,7 @@ export default function ProfilePage() {
                       <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
                         <Check className="w-5 h-5 text-gray-600" />
                       </div>
-                      <p className="font-semibold text-gray-900">5% Reward</p>
+                      <p className="font-semibold text-gray-900">6 bottles @ 5%</p>
                       <p className="text-xs text-gray-500">Account created</p>
                       <Badge className="bg-gray-100 text-gray-800 text-xs mt-1">Earned</Badge>
                     </div>
@@ -936,7 +936,7 @@ export default function ProfilePage() {
                       <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
                         <Gift className="w-5 h-5 text-gray-400" />
                       </div>
-                      <p className="font-semibold text-gray-900">10% Reward</p>
+                      <p className="font-semibold text-gray-900">6 bottles @ 10%</p>
                       <p className="text-xs text-gray-500">First reservation</p>
                       <Badge variant="outline" className="text-xs mt-1">Pending</Badge>
                     </div>
