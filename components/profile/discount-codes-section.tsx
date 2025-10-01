@@ -97,6 +97,8 @@ export default function DiscountCodesSection({
     return new Intl.NumberFormat("sv-SE", {
       style: "currency",
       currency: "SEK",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(cents / 100);
   };
 

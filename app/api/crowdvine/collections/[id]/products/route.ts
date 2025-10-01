@@ -37,11 +37,11 @@ export async function GET(
             categoryId: "wine-boxes-collection",
             priceRange: {
               minVariantPrice: {
-                amount: calc.finalPrice.toFixed(2),
+                amount: Math.round(calc.finalPrice).toString(),
                 currencyCode: "SEK",
               },
               maxVariantPrice: {
-                amount: calc.finalPrice.toFixed(2),
+                amount: Math.round(calc.finalPrice).toString(),
                 currencyCode: "SEK",
               },
             },
@@ -58,10 +58,10 @@ export async function GET(
                 id: `${calc.wineBoxId}-variant`,
                 title: `${calc.bottleCount} Bottles`,
                 availableForSale: true,
-                price: {
-                  amount: calc.finalPrice.toFixed(2),
-                  currencyCode: "SEK",
-                },
+                  price: {
+                    amount: Math.round(calc.finalPrice).toString(),
+                    currencyCode: "SEK",
+                  },
                 selectedOptions: [
                   { name: "Size", value: `${calc.bottleCount} Bottles` },
                   {
