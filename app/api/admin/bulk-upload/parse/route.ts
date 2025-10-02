@@ -1,6 +1,107 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
+// Known grape varieties database
+const KNOWN_GRAPES = [
+  'syrah', 'grenache', 'mourvèdre', 'mourvedre', 'cinfandel', 'merlot', 'cabernet sauvignon', 
+  'cab\\\\ernet franc', 'malbec', 'petit verdot', 'sangiovese', 'pinot noir', 'tempranillo', 
+  'nebbiolo', 'barbera', 'dolcetto', 'corvina', 'chardonnay', 'sauvignon blanc', 'riesling',
+  'pinot grigio', 'pinot gris', 'gewurztraminer', 'muscat', 'viognier', 'semillon',
+  'chenin blanc', 'albarino', 'vermentino', 'fiano', 'garganega', 'carignan', 'macabeo',
+  'tempranillo', 'monastrell', 'mourvèdre', 'cinsault', 'cinsaut', 'mourvèdre'
+];
+
+// Function to intelligently parse grape varieties
+function parseGrapeVarieties(rawText: string): {
+  grapes: string[];
+  originalText: string;
+  needsReview: boolean;
+  suggestions?: string[];
+} {
+  if (!rawText || rawText.trim() === '') {
+    return {
+      grapes: ['Mixed varieties'],
+      originalText: rawText || '',
+      needsReview: true
+    };
+  }
+
+  const originalText = rawText.trim();
+  let detectedGrapes: string[] = [];
+  const unknownTerms: string[] = [];
+
+  // Method 1: Split by semicolon, comma, or "and"
+  const commonSeparators = /[;,]/g;
+  const andSeparators = /\s+(and|&|\+)\s+/gi;
+  
+  let terms = originalText
+    .replace(andSeparators, '; ')
+    .split(commonSeparators)
+    .map(term => term.trim().toLowerCase())
+    .filter(term => term.length > 0);
+
+  // Method 2: If no separators, try to detect by word capitalization or common patterns
+  if (terms.length === 1 && !originalText.includes(';') && !originalText.includes(',')) {
+    // Try splitting by spaces and look for capitalized words (likely grape names)
+    const words = originalText.split(' ');
+    terms = [];
+    
+    for (const word of words) {
+      if (word.length > 2 && /^[A-Z]/.test(word)) {
+        terms.push(word.toLowerCase());
+      }
+    }
+    
+    // If no capitalized words found, treat as single term
+    if (terms.length === 0) {
+      terms = [originalText.toLowerCase()];
+    }
+  }
+
+  // Detect and match grapes
+  for (const term of terms) {
+    const normalizedTerm = term.toLowerCase().trim();
+    
+    // Direct match
+    const directMatch = KNOWN_GRAPES.find(grape => 
+      grape === normalizedTerm || 
+      grape.includes(normalizedTerm) || 
+      normalizedTerm.includes(grape)
+    );
+    
+    if (directMatch) {
+      detectedGrapes.push(directMatch.charAt(0).toUpperCase() + directMatch.slice(1));
+    } else {
+      // Try fuzzy matching
+      const fuzzyMatch = KNOWN_GRAPES.find(grape => {
+        const similarity = calculateSimilarity(grape, normalizedTerm);
+        return similarity > 0.7;
+      });
+      
+      if (fuzzyMatch) {
+        detectedGrapes.push(fuzzyMatch.charAt(0).toUpperCase() + fuzzyMatch.slice(1));
+      } else {
+        unknownTerms.push(term);
+      }
+    }
+  }
+
+  // Remove duplicates
+  detectedGrapes = [...new Set(detectedGrapes)];
+  
+  const needsReview = unknownTerms.length > 0 || detectedGrapes.length === 0;
+  const suggestions = unknownTerms.length > 0 ? 
+    [...KNOWN_GRAPES.slice(0, 5).map(g => g.charAt(0).toUpperCase() + g.slice(1))] : 
+    undefined;
+
+  return {
+    grapes: detectedGrapes.length > 0 ? detectedGrapes : ['Unknown varieties'],
+    originalText,
+    needsReview,
+    suggestions
+  };
+}
+
 // Import the same parsing functions from bulk-upload route
 // Copy the helper functions here (we can refactor later)
 function calculateSimilarity(str1: string, str2: string): number {
@@ -147,19 +248,26 @@ async function parseCSV(csvContent: string): Promise<{
     'description html', 'image url'
   ];
 
-  // Check for missing headers but continue parsing - show as issues in review
-  const missingHeaders = expectedHeaders.filter(h => !headers.includes(h));
-  
-  // Add severity levels to errors
-  const missingHeadersStr = missingHeaders.join(', ');
-  if (missingHeadersStr) {
-    const severityLevel = missingHeaders.includes('wine name') || missingHeaders.includes('vintage') ? 'critical' : 'warning';
-    errors.push(`${severityLevel}: Missing headers: ${missingHeadersStr}`);
-    if (missingHeadersStr.includes('wine name') || missingHeadersStr.includes('vintage')) {
-      errors.push(`Critical: Cannot parse without required fields: Wine Name and Vintage`);
-      return { products: [], errors };
+    // Check for missing headers but continue parsing - show as issues in review
+    const missingHeaders = expectedHeaders.filter(h => !headers.includes(h));
+    
+    // Provide detailed error messages with specific guidance
+    const missingHeadersStr = missingHeaders.join(', ');
+    if (missingHeadersStr) {
+      const severityLevel = missingHeaders.includes('wine name') || missingHeaders.includes('vintage') ? 'critical' : 'warning';
+      errors.push(`${severityLevel}: Missing headers: ${missingHeadersStr}`);
+      errors.push(`Your CSV headers: ${headers.join(', ')}`);
+      errors.push(`Expected headers: ${expectedHeaders.join(', ')}`);
+      
+      if (missingHeadersStr.includes('wine name') || missingHeadersStr.includes('vintage')) {
+        errors.push(`Critical: Cannot parse without required fields: Wine Name and Vintage`);
+        return { products: [], errors };
+      }
+      
+      if (missingHeadersStr.includes('cost') || missingHeadersStr.includes('currency') || missingHeadersStr.includes('margin')) {
+        errors.push(`Warning: You're missing pricing headers (Cost, Currency, Margin %). Please use the new CSV template format.`);
+      }
     }
-  }
 
   const products: ProductData[] = [];
 
@@ -197,11 +305,23 @@ async function parseCSV(csvContent: string): Promise<{
       if (!product.wine_name) rowIssues.push(`Critical: Wine name is required`);
       if (!product.vintage) rowIssues.push(`Critical: Vintage is required`);
       
-      // Required fields with defaults
-      if (!product.grape_varieties) {
-        product.grape_varieties = "Mixed varieties"; // Default value
-        rowIssues.push(`Warning: Grape varieties missing - using default`);
+      // Intelligently parse grape varieties
+      const grapeAnalysis = parseGrapeVarieties(product.grape_varieties);
+      product.grape_varieties = grapeAnalysis.grapes.join('; ');
+      
+      if (grapeAnalysis.needsReview) {
+        if (grapeAnalysis.originalText.trim() === '') {
+          rowIssues.push(`Warning: Grape varieties missing - using default`);
+        } else {
+          rowIssues.push(`Warning: Unknown grape varieties detected: "${grapeAnalysis.originalText}" - please review`);
+          if (grapeAnalysis.suggestions) {
+            (product as any).grapeSuggestions = grapeAnalysis.suggestions;
+          }
+        }
       }
+      
+      // Store original grape text for review
+      (product as any).originalGrapeText = grapeAnalysis.originalText;
       if (!product.description) {
         product.description = "Premium wine from this producer"; // Default value
         rowIssues.push(`Warning: Description missing - using default`);

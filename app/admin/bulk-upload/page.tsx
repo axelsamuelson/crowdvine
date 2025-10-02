@@ -68,18 +68,13 @@ export default function BulkUploadPage() {
 
       if (response.ok) {
         setReviewProducts(data.products);
-        // Select products that can be uploaded (no critical errors)
-        setSelectedProducts(new Set(data.products
-          .map((p: any, index: number) => {
-            const hasCriticalIssues = p.rowIssues?.some((issue: string) => 
-              issue.includes('Critical:') || issue.includes('Error:')
-            );
-            return (p.canUpload !== false && !hasCriticalIssues) ? index : null;
-          })
-          .filter((index: number | null) => index !== null)
-        ));
+        // Store products in sessionStorage for review page
+        sessionStorage.setItem('bulkUploadProducts', JSON.stringify(data.products));
         setStep('review');
         toast.success(`CSV parsed successfully. Found ${data.products.length} products to review`);
+        
+        // Redirect to dedicated review page
+        window.location.href = '/admin/bulk-upload/review';
       } else {
         toast.error(data.error || "Parse failed");
         setResult({
