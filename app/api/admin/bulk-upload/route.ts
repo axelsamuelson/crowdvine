@@ -157,9 +157,10 @@ interface ProductData {
   vintage: string;
   grape_varieties: string;
   color: string;
-  base_price_cents: number;
+  cost_amount: number;
+  cost_currency: string;
+  margin_percentage: number;
   producer_name: string;
-  handle: string;
   description: string;
   description_html: string;
   label_image_path: string;
@@ -181,7 +182,7 @@ async function parseCSV(csvContent: string): Promise<{
   const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
   const expectedHeaders = [
     'wine name', 'vintage', 'grape varieties', 'color',
-    'base price (sek)', 'producer name', 'handle', 'description',
+    'cost', 'currency', 'margin (%)', 'producer name', 'description',
     'description html', 'image url'
   ];
 
@@ -211,9 +212,10 @@ async function parseCSV(csvContent: string): Promise<{
         vintage: values[headers.indexOf('vintage')]?.trim() || '',
         grape_varieties: values[headers.indexOf('grape varieties')]?.trim() || '',
         color: values[headers.indexOf('color')]?.trim().toLowerCase() || '',
-        base_price_cents: Math.round(parseFloat(values[headers.indexOf('base price (sek)')] || '0') * 100),
+        cost_amount: parseFloat(values[headers.indexOf('cost')] || '0') || 0,
+        cost_currency: values[headers.indexOf('currency')]?.trim().toUpperCase() || 'EUR',
+        margin_percentage: parseFloat(values[headers.indexOf('margin (%)')] || '10') || 10,
         producer_name: values[headers.indexOf('producer name')]?.trim() || '',
-        handle: values[headers.indexOf('handle')]?.trim() || '',
         description: values[headers.indexOf('description')]?.trim() || '',
         description_html: values[headers.indexOf('description html')]?.trim() || '',
         label_image_path: values[headers.indexOf('image url')]?.trim() || ''
@@ -227,16 +229,11 @@ async function parseCSV(csvContent: string): Promise<{
       if (!['red', 'white', 'rose'].includes(product.color)) {
         errors.push(`Row ${i + 1}: Color must be 'red', 'white', or 'rose'`);
       }
-      if (product.base_price_cents <= 0) errors.push(`Row ${i + 1}: Base price must be greater than 0`);
+      if (product.cost_amount <= 0) errors.push(`Row ${i + 1}: Cost must be greater than 0`);
       if (!product.producer_name) errors.push(`Row ${i + 1}: Producer name is required`);
-      if (!product.handle) errors.push(`Row ${i + 1}: Handle is required`);
+      if (product.margin_percentage <= 0 || product.margin_percentage >= 100) errors.push(`Row ${i + 1}: Margin must be between 1 and 99`);
       if (!product.description) errors.push(`Row ${i + 1}: Description is required`);
       if (!product.label_image_path) errors.push(`Row ${i + 1}: Image URL is required`);
-
-      // Generate handle if not provided
-      if (!product.handle) {
-        product.handle = generateHandle(product.wine_name, product.vintage);
-      }
 
       // Generate HTML description if not provided
       if (!product.description_html) {
@@ -369,15 +366,18 @@ async function uploadProducts(supabase: any, products: ProductData[]): Promise<{
         }
       }
 
+      // Generate handle automatically
+      const generatedHandle = generateHandle(product.wine_name, product.vintage);
+
       // Check if wine already exists
       const { data: existingWine } = await supabase
         .from('wines')
         .select('id')
-        .eq('handle', product.handle)
+        .eq('handle', generatedHandle)
         .single();
 
       if (existingWine) {
-        errors.push(`Wine with handle "${product.handle}" already exists`);
+        errors.push(`Wine with handle "${generatedHandle}" already exists`);
         continue;
       }
 
@@ -390,12 +390,18 @@ async function uploadProducts(supabase: any, products: ProductData[]): Promise<{
           vintage: product.vintage,
           grape_varieties: product.grape_varieties,
           color: product.color,
-          base_price_cents: product.base_price_cents,
+          base_price_cents: 0, // Will be calculated by gross margin formula
           producer_id: producerId,
-          handle: product.handle,
+          handle: generatedHandle,
           description: product.description,
           description_html: product.description_html,
           label_image_path: product.label_image_path,
+          // New pricing fields
+          cost_currency: product.cost_currency,
+          cost_amount: product.cost_amount,
+          alcohol_tax_cents: 2219, // Fixed 22.19 SEK = 2219 cents
+          price_includes_vat: true,
+          margin_percentage: product.margin_percentage,
           created_at: new Date().toISOString()
         });
 
