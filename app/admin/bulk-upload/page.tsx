@@ -14,8 +14,16 @@ interface UploadResult {
     total: number;
     created: number;
     errors: number;
+    warnings: number;
   };
   errors?: string[];
+  warnings?: Array<{
+    row: number;
+    wine: string;
+    type: string;
+    message: string;
+    suggestions?: string[];
+  }>;
 }
 
 export default function BulkUploadPage() {
@@ -245,7 +253,7 @@ export default function BulkUploadPage() {
                 {result.stats && (
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                     <h4 className="font-medium text-gray-900 mb-2">Statistics:</h4>
-                    <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div className="grid grid-cols-4 gap-4 text-sm">
                       <div>
                         <span className="font-medium text-gray-600">Total Rows:</span>
                         <span className="ml-1 font-semibold text-gray-900">{result.stats.total}</span>
@@ -253,6 +261,10 @@ export default function BulkUploadPage() {
                       <div>
                         <span className="font-medium text-green-600">Created:</span>
                         <span className="ml-1 font-semibold text-green-700">{result.stats.created}</span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-yellow-600">Warnings:</span>
+                        <span className="ml-1 font-semibold text-yellow-700">{result.stats.warnings}</span>
                       </div>
                       <div>
                         <span className="font-medium text-red-600">Errors:</span>
@@ -273,6 +285,35 @@ export default function BulkUploadPage() {
                         </li>
                       ))}
                     </ul>
+                  </div>
+                )}
+
+                {result.warnings && result.warnings.length > 0 && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <h4 className="font-medium text-yellow-900 mb-2">⚠️ Suggestions:</h4>
+                    <div className="space-y-3">
+                      {result.warnings.map((warning, index) => (
+                        <div key={index} className="bg-white border border-yellow-200 rounded-lg p-3">
+                          <div className="text-sm">
+                            <span className="font-medium text-yellow-800">Row {warning.row}:</span>
+                            <span className="text-yellow-700"> {warning.wine} ({warning.message})</span>
+                          </div>
+                          {warning.suggestions && warning.suggestions.length > 0 && (
+                            <div className="mt-2">
+                              <p className="text-sm font-medium text-yellow-800 mb-1">Did you mean:</p>
+                              <ul className="space-y-1">
+                                {warning.suggestions.map((suggestion, idx) => (
+                                  <li key={idx} className="text-sm text-yellow-700 flex items-start">
+                                    <span className="w-1 h-1 bg-yellow-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                                    <span>{suggestion}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

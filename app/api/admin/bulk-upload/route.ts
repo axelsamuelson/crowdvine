@@ -2,6 +2,72 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { randomUUID } from "crypto";
 
+// Simple fuzzy string matching function
+function calculateSimilarity(str1: string, str2: string): number {
+  const longer = str1.length > str2.length ? str1 : str2;
+  const shorter = str1.length > str2.length ? str2 : str1;
+  
+  if (longer.length === 0) return 1.0;
+  
+  const editDistance = levenshteinDistance(longer.toLowerCase(), shorter.toLowerCase());
+  return (longer.length - editDistance) / longer.length;
+}
+
+// Calculate Levenshtein distance between two strings
+function levenshteinDistance(str1: string, str2: string): number {
+  const matrix = [];
+  
+  for (let i = 0; i <= str2.length; i++) {
+    matrix[i] = [i];
+  }
+  
+  for (let j = 0; j <= str1.length; j++) {
+    matrix[0][j] = j;
+  }
+  
+  for (let i = 1; i <= str2.length; i++) {
+    for (let j = 1; j <= str1.length; j++) {
+      if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+  
+  return matrix[str2.length][str1.length];
+}
+
+async function findSimilarProducers(supabase: any, producerName: string): Promise<Array<{
+  name: string;
+  similarity: number;
+}>> {
+  // Get all existing producers
+  const { data: producers } = await supabase
+    .from('producers')
+    .select('name');
+  
+  if (!producers || producers.length === 0) return [];
+  
+  // Calculate similarity for each producer
+  const similarities = producers.map(producer => ({
+    name: producer.name,
+    similarity: calculateSimilarity(producerName, producer.name)
+  }));
+  
+  // Filter for reasonably similar names (>70% similarity)
+  const similar = similarities
+    .filter(item => item.similarity > 0.7)
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, 3); // Top 3 matches
+  
+  return similar;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -46,13 +112,15 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `${results.created} products uploaded successfully`,
+      message: `${results.created} products uploaded successfully${results.warnings.length > 0 ? ` with ${results.warnings.length} warnings` : ''}`,
       stats: {
         total: products.length,
         created: results.created,
-        errors: results.errors.length
+        errors: results.errors.length,
+        warnings: results.warnings.length
       },
-      errors: results.errors
+      errors: results.errors,
+      warnings: results.warnings
     });
 
   } catch (error) {
@@ -197,13 +265,30 @@ function generateHandle(wineName: string, vintage: string): string {
 async function uploadProducts(supabase: any, products: ProductData[]): Promise<{
   created: number;
   errors: string[];
+  warnings: Array<{
+    row: number;
+    wine: string;
+    type: string;
+    message: string;
+    suggestions?: string[];
+  }>;
 }> {
   let created = 0;
   const errors: string[] = [];
+  const warnings: Array<{
+    row: number;
+    wine: string;
+    type: string;
+    message: string;
+    suggestions?: string[];
+  }> = [];
 
-  for (const product of products) {
+  for (let index = 0; index < products.length; index++) {
+    const product = products[index];
+    const rowNumber = index + 2; // +2 because index starts at 0 and CSV starts at row 2
+    
     try {
-      // Check if producer exists, create if not
+      // Check if producer exists exactly
       let producerId = null;
       const { data: existingProducer } = await supabase
         .from('producers')
@@ -214,21 +299,54 @@ async function uploadProducts(supabase: any, products: ProductData[]): Promise<{
       if (existingProducer) {
         producerId = existingProducer.id;
       } else {
-        const { data: newProducer, error: producerError } = await supabase
-          .from('producers')
-          .insert({
-            id: randomUUID(),
-            name: product.producer_name,
-            created_at: new Date().toISOString()
-          })
-          .select('id')
-          .single();
+        // Check for similar producers before creating new one
+       const similarProducers = await findSimilarProducers(supabase, product.producer_name);
+        
+        if (similarProducers.length > 0) {
+          const suggestions = similarProducers.map(p => `${p.name} (${Math.round(p.similarity * 100)}% match)`);
+          
+          warnings.push({
+            row: rowNumber,
+            wine: product.wine_name,
+            type: 'producer_suggestion',
+            message: `Producer "${product.producer_name}" not found. Did you mean one of these?`,
+            suggestions: suggestions
+          });
+          
+          // Still create the producer but warn the user
+          const { data: newProducer, error: producerError } = await supabase
+            .from('producers')
+            .insert({
+              id: randomUUID(),
+              name: product.producer_name,
+              created_at: new Date().toISOString()
+            })
+            .select('id')
+            .single();
 
-        if (producerError) {
-          errors.push(`Producer "${product.producer_name}": ${producerError.message}`);
-          continue;
+          if (producerError) {
+            errors.push(`Producer "${product.producer_name}": ${producerError.message}`);
+            continue;
+          }
+          producerId = newProducer.id;
+        } else {
+          // No similar producers found, create new one silently
+          const { data: newProducer, error: producerError } = await supabase
+           .from('producers')
+           .insert({
+             id: randomUUID(),
+             name: product.producer_name,
+             created_at: new Date().toISOString()
+           })
+           .select('id')
+           .single();
+
+         if (producerError) {
+           errors.push(`Producer "${product.producer_name}": ${producerError.message}`);
+           continue;
+         }
+         producerId = newProducer.id;
         }
-        producerId = newProducer.id;
       }
 
       // Check if wine already exists
@@ -271,5 +389,5 @@ async function uploadProducts(supabase: any, products: ProductData[]): Promise<{
     }
   }
 
-  return { created, errors };
+  return { created, errors, warnings };
 }

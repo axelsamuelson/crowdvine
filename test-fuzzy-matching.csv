@@ -1,0 +1,4 @@
+Wine Name,Vintage,Grape Varieties,Color,Base Price (SEK),Producer Name,Handle,Description,Description HTML,Image URL
+Test Wine Perfect,2024,Chardonnay; Sauvignon Blanc,white,199.00,Thomas Chany,test-wine-perfect-2024,"Perfect match wine","<p>Perfect match wine</p>",https://images.unsplash.com/photo-1553361371-9b22f78e8b5d?w=600&h=600&fit=crop
+Test Wine Typo,2024,Merlot; Cabernet Sauvignon,red,299.00,Thomas Chay,test-wine-typo-2024,"Typo in producer name","<p>Typo in producer name</p>",https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop
+Test Wine Another,5,Shiraz,red,89.00,Thom Chnany,test-wine-another-2023,"Another typo variation","<p>Another typo variation</p>",https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop
