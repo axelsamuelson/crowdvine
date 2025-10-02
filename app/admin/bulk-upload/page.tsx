@@ -286,12 +286,13 @@ export default function BulkUploadPage() {
                 <div>HTML formatted description (optional)</div>
                 
                 <div className="font-mono text-xs bg-white p-1 rounded border">Image URL</div>
-                <div>URL to product image</div>
+                <div>Optional - uses default "Coming Soon" image if empty</div>
               </div>
               
               <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="text-sm text-blue-900">
-                  <strong>Auto-generated:</strong> Handle (wine-name-vintage) and alcohol tax (22.19 SEK) are automatically added.
+                  <strong>Auto-generated:</strong> Handle (wine-name-vintage) and alcohol tax (22.19 SEK) are automatically added.<br/>
+                  <strong>Default image:</strong> All bulk upload wines will use the same "Coming Soon" image unless Image URL is specified.
                 </div>
               </div>
             </div>

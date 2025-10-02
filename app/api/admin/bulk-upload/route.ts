@@ -218,7 +218,7 @@ async function parseCSV(csvContent: string): Promise<{
         producer_name: values[headers.indexOf('producer name')]?.trim() || '',
         description: values[headers.indexOf('description')]?.trim() || '',
         description_html: values[headers.indexOf('description html')]?.trim() || '',
-        label_image_path: values[headers.indexOf('image url')]?.trim() || ''
+        label_image_path: values[headers.indexOf('image url')]?.trim() || 'https://images.unsplash.com/photo-1553361371-9b22f78e8b5d?w=600&h=600&fit=crop&q=80'
       };
 
       // Validate required fields
@@ -233,7 +233,6 @@ async function parseCSV(csvContent: string): Promise<{
       if (!product.producer_name) errors.push(`Row ${i + 1}: Producer name is required`);
       if (product.margin_percentage <= 0 || product.margin_percentage >= 100) errors.push(`Row ${i + 1}: Margin must be between 1 and 99`);
       if (!product.description) errors.push(`Row ${i + 1}: Description is required`);
-      if (!product.label_image_path) errors.push(`Row ${i + 1}: Image URL is required`);
 
       // Generate HTML description if not provided
       if (!product.description_html) {
