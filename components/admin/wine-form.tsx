@@ -53,9 +53,9 @@ export default function WineForm({ wine, producers }: WineFormProps) {
     // Simplified pricing fields
     cost_currency: wine?.cost_currency || "EUR",
     cost_amount: wine?.cost_amount || 0,
-    alcohol_tax_cents: wine?.alcohol_tax_cents || 0,
+    alcohol_tax_cents: 2219, // Fixed 22.19 SEK = 2219 cents
     price_includes_vat: wine?.price_includes_vat ?? true,
-    margin_percentage: wine?.margin_percentage || 30.0,
+    margin_percentage: wine?.margin_percentage || 10.0,
     // Keep base_price_cents for backward compatibility
     base_price_cents: wine?.base_price_cents || 0,
     // Set the existing label_image_path if editing
@@ -157,11 +157,13 @@ export default function WineForm({ wine, producers }: WineFormProps) {
     setLoading(true);
     setError("");
 
+    // Generate handle from wine name and vintage
+    const generatedHandle = `${formData.wine_name.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "")}-${formData.vintage}`;
+
     // Validate required fields
     const missingFields: string[] = [];
 
     if (!formData.wine_name.trim()) missingFields.push("Wine Name");
-    if (!formData.handle.trim()) missingFields.push("Handle");
     if (!formData.vintage.trim()) missingFields.push("Vintage");
     if (!formData.producer_id) missingFields.push("Producer");
 
@@ -198,6 +200,7 @@ export default function WineForm({ wine, producers }: WineFormProps) {
       // Use first uploaded image as main image if available, otherwise keep existing
       const wineData = {
         ...formData,
+        handle: generatedHandle,
         label_image_path:
           imagePaths.length > 0 ? imagePaths[0] : formData.label_image_path,
       };
@@ -292,16 +295,6 @@ export default function WineForm({ wine, producers }: WineFormProps) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="handle">Handle *</Label>
-              <Input
-                id="handle"
-                value={formData.handle}
-                onChange={(e) => handleChange("handle", e.target.value)}
-                placeholder="wine-name-vintage"
-                required
-              />
-            </div>
 
             <div className="space-y-2">
               <Label htmlFor="color">Color *</Label>
@@ -400,7 +393,6 @@ export default function WineForm({ wine, producers }: WineFormProps) {
             pricingData={{
               cost_currency: formData.cost_currency,
               cost_amount: formData.cost_amount,
-              alcohol_tax_cents: formData.alcohol_tax_cents,
               price_includes_vat: formData.price_includes_vat,
               margin_percentage: formData.margin_percentage,
               calculated_price_cents: 0,
@@ -410,7 +402,6 @@ export default function WineForm({ wine, producers }: WineFormProps) {
                 ...prev,
                 cost_currency: pricingData.cost_currency,
                 cost_amount: pricingData.cost_amount,
-                alcohol_tax_cents: pricingData.alcohol_tax_cents,
                 price_includes_vat: pricingData.price_includes_vat,
                 margin_percentage: pricingData.margin_percentage,
                 base_price_cents: pricingData.finalPriceCents,

@@ -31,7 +31,6 @@ import {
 interface PricingData {
   cost_currency: string;
   cost_amount: number;
-  alcohol_tax_cents: number;
   price_includes_vat: boolean;
   margin_percentage: number;
   calculated_price_cents: number;
@@ -91,7 +90,7 @@ export function PricingCalculator({
     
     // Calculate inclusive cost (C): cost_amount + alcohol_tax converted to SEK
     const costAmountInSek = pricingData.cost_amount * exchangeRate;
-    const alcoholTaxInSek = pricingData.alcohol_tax_cents / 100;
+    const alcoholTaxInSek = 22.19; // Fixed SEK 22.19 per bottle
     const costInSek = costAmountInSek + alcoholTaxInSek; // C = Cost including alcohol tax, ex VAT
     
     // Gross margin as decimal (e.g., 10% = 0.10)
@@ -217,41 +216,25 @@ export function PricingCalculator({
           </div>
         )}
 
-        {/* Tax and Margin Configuration */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="alcohol_tax_cents">Alcohol Tax (SEK)</Label>
-            <Input
-              id="alcohol_tax_cents"
-              type="number"
-              step="0.01"
-              value={pricingData.alcohol_tax_cents / 100}
-              onChange={(e) =>
-                updatePricingData(
-                  "alcohol_tax_cents",
-                  (parseFloat(e.target.value) || 0) * 100,
-                )
-              }
-              placeholder="7.50"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="margin_percentage">Margin Percentage (%)</Label>
-            <Input
-              id="margin_percentage"
-              type="number"
-              step="0.1"
-              value={pricingData.margin_percentage}
-              onChange={(e) =>
-                updatePricingData(
-                  "margin_percentage",
-                  parseFloat(e.target.value) || 0,
-                )
-              }
-              placeholder="30.0"
-            />
-          </div>
+        {/* Margin Configuration */}
+        <div className="space-y-2">
+          <Label htmlFor="margin_percentage">Margin Percentage (%) </Label>
+          <Input
+            id="margin_percentage"
+            type="number"
+            step="0.1"
+            value={pricingData.margin_percentage}
+            onChange={(e) =>
+              updatePricingData(
+                "margin_percentage",
+                parseFloat(e.target.value) || 0,
+              )
+            }
+            placeholder="10.0"
+          />
+          <p className="text-xs text-gray-500">
+            Alcohol tax (22.19 SEK per bottle) is automatically added
+          </p>
         </div>
 
         {/* VAT Configuration */}
@@ -294,20 +277,6 @@ export function PricingCalculator({
             </div>
           </div>
 
-          {/* Pricing Formula Display */}
-          <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-            <h5 className="font-medium text-blue-900 mb-2">Pricing Formula (Gross Margin)</h5>
-            <div className="text-sm space-y-1">
-              <div className="font-mono text-blue-800">P = C ÷ (1 - M)</div>
-              <div className="text-gray-700">P = {breakdown.costInSek} ÷ (1 - {pricingData.margin_percentage / 100}) = {breakdown.priceExVat} SEK</div>
-              {pricingData.price_includes_vat && (
-                <div className="font-mono text-blue-800 mt-2">F = P × (1 + V)</div>
-              )}
-              {pricingData.price_includes_vat && (
-                <div className="text-gray-700">F = {breakdown.priceExVat} × 1.25 = {breakdown.finalPrice} SEK</div>
-              )}
-            </div>
-          </div>
 
           {/* Results */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">

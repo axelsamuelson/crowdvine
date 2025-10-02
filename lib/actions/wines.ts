@@ -201,7 +201,7 @@ export async function createWine(data: CreateWineData) {
 
     // Calculate inclusive cost (C): cost_amount + alcohol_tax converted to SEK
     const costAmountInSek = data.cost_amount * exchangeRate;
-    const alcoholTaxInSek = (data.alcohol_tax_cents || 0) / 100;
+    const alcoholTaxInSek = 22.19; // Fixed SEK 22.19 per bottle
     const costInSek = costAmountInSek + alcoholTaxInSek; // C = Total cost ex VAT
     
     // Gross margin as decimal (e.g., 10% = 0.10)
@@ -223,7 +223,7 @@ export async function createWine(data: CreateWineData) {
       calculatedSbPrice = calculateSystembolagetPrice(
         data.cost_amount,
         exchangeRate,
-        data.alcohol_tax_cents || 0,
+        2219, // Fixed 22.19 SEK = 2219 cents
       );
     }
   }
@@ -241,7 +241,7 @@ export async function createWine(data: CreateWineData) {
     // Simplified pricing fields
     cost_currency: data.cost_currency,
     cost_amount: data.cost_amount,
-    alcohol_tax_cents: data.alcohol_tax_cents,
+    alcohol_tax_cents: 2219, // Fixed 22.19 SEK = 2219 cents
     price_includes_vat: data.price_includes_vat,
     margin_percentage: data.margin_percentage,
     // Systembolaget fields
@@ -324,8 +324,6 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
   if (data.cost_currency !== undefined)
     updateData.cost_currency = data.cost_currency;
   if (data.cost_amount !== undefined) updateData.cost_amount = data.cost_amount;
-  if (data.alcohol_tax_cents !== undefined)
-    updateData.alcohol_tax_cents = data.alcohol_tax_cents;
   if (data.price_includes_vat !== undefined)
     updateData.price_includes_vat = data.price_includes_vat;
   if (data.margin_percentage !== undefined)
@@ -342,7 +340,6 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
   let currentWine = null;
   if (
     updateData.cost_amount !== undefined ||
-    updateData.alcohol_tax_cents !== undefined ||
     updateData.price_includes_vat !== undefined ||
     updateData.margin_percentage !== undefined ||
     updateData.cost_currency !== undefined
@@ -360,7 +357,6 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
   // Calculate price manually to avoid trigger loop
   if (
     updateData.cost_amount !== undefined ||
-    updateData.alcohol_tax_cents !== undefined ||
     updateData.price_includes_vat !== undefined ||
     updateData.margin_percentage !== undefined ||
     updateData.cost_currency !== undefined
@@ -369,8 +365,6 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
     // Use updated values or current values
     const costAmount = updateData.cost_amount ?? currentWine?.cost_amount ?? 0;
     const costCurrency = updateData.cost_currency ?? currentWine?.cost_currency ?? "SEK";
-    const alcoholTaxCents =
-      updateData.alcohol_tax_cents ?? currentWine?.alcohol_tax_cents ?? 0;
     const priceIncludesVat =
       updateData.price_includes_vat ?? currentWine?.price_includes_vat ?? true;
     const marginPercentage =
@@ -395,7 +389,7 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
 
     // Use new gross margin formula
     const costAmountInSek = costAmount * exchangeRate;
-    const alcoholTaxInSek = alcoholTaxCents / 100;
+    const alcoholTaxInSek = 22.19; // Fixed SEK 22.19 per bottle
     const costInSek = costAmountInSek + alcoholTaxInSek; // C = Total cost ex VAT
     
     const marginDecimal = marginPercentage / 100; // M
@@ -434,12 +428,10 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
       }
     }
     
-    const alcoholTaxCents =
-      updateData.alcohol_tax_cents ?? currentWine?.alcohol_tax_cents ?? 0;
     updateData.sb_price = calculateSystembolagetPrice(
       updateData.cost_amount,
       exchangeRate,
-      alcoholTaxCents,
+      2219, // Fixed 22.19 SEK = 2219 cents
     );
   }
 
