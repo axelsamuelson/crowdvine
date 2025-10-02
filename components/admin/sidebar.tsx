@@ -17,6 +17,7 @@ import {
   Gift,
   Shield,
   LogOut,
+  Upload,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -26,56 +27,61 @@ interface SidebarProps {
 
 const navigation = [
   {
-    name: "Dashboard",
-    href: "/admin",
-    icon: LayoutDashboard,
-  },
-  {
-    name: "Users",
-    href: "/admin/users",
-    icon: Users,
-  },
-  {
-    name: "Producers",
-    href: "/admin/producers",
-    icon: Wine,
-  },
-  {
-    name: "Wines",
-    href: "/admin/wines",
-    icon: Wine,
-  },
-  {
-    name: "Zones",
-    href: "/admin/zones",
-    icon: MapPin,
-  },
-  {
-    name: "Pallets",
-    href: "/admin/pallets",
-    icon: Package,
-  },
-  {
-    name: "Bookings",
-    href: "/admin/bookings",
-    icon: Calendar,
-  },
-  {
-    name: "Reservations",
-    href: "/admin/reservations",
-    icon: FileText,
-  },
-  {
-    name: "Wine Boxes",
-    href: "/admin/wine-boxes",
-    icon: Gift,
-  },
-  {
-    name: "Access Control",
-    href: "/admin/access-control",
-    icon: Shield,
-  },
-];
+     name: "Dashboard",
+     href: "/admin",
+     icon: LayoutDashboard,
+   },
+   {
+     name: "Users",
+     href: "/admin/users",
+     icon: Users,
+   },
+   {
+     name: "Producers",
+     href: "/admin/producers",
+     icon: Wine,
+   },
+   {
+     name: "Wines",
+     href: "/admin/wines",
+     icon: Wine,
+   },
+   {
+     name: "Bulk Upload",
+     href: "/admin/bulk-upload",
+     icon: Upload,
+   },
+   {
+     name: "Zones",
+     href: "/admin/zones",
+     icon: MapPin,
+   },
+   {
+     name: "Pallets",
+     href: "/admin/pallets",
+     icon: Package,
+   },
+   {
+     name: "Bookings",
+     href: "/admin/bookings",
+     icon: Calendar,
+   },
+   {
+     name: "Reservations",
+     href: "/admin/reservations",
+     icon: FileText,
+   },
+   {
+     name: "Wine Boxes",
+     href: "/admin/wine-boxes",
+     icon: Gift,
+   },
+   {
+     name: "Access Control",
+     href: "/admin/access-control",
+     icon: Shield,
+   },
+ ];
 
 export function Sidebar({ userEmail, onSignOut }: SidebarProps) {
   const pathname = usePathname();
