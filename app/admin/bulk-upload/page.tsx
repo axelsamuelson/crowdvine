@@ -145,7 +145,9 @@ export default function BulkUploadPage() {
   };
 
   const downloadTemplate = () => {
-    window.open("/templates/bulk-products-template.csv", "_blank");
+    // Add timestamp to bust cache
+    const timestamp = new Date().getTime();
+    window.open(`/templates/bulk-products-template.csv?v=${timestamp}`, "_blank");
   };
 
   return (
@@ -265,14 +267,17 @@ export default function BulkUploadPage() {
                 <div className="font-mono text-xs bg-white p-1 rounded border">Color</div>
                 <div>Must be "red", "white", or "rose"</div>
                 
-                <div className="font-mono text-xs bg-white p-1 rounded border">Base Price (SEK)</div>
-                <div>Price in Swedish Kronor (e.g., "148.00")</div>
+                <div className="font-mono text-xs bg-white p-1 rounded border">Cost</div>
+                <div>Purchase cost (e.g., "7.50")</div>
+                
+                <div className="font-mono text-xs bg-white p-1 rounded border">Currency</div>
+                <div>Currency code: EUR, USD, GBP, SEK</div>
+                
+                <div className="font-mono text-xs bg-white p-1 rounded border">Margin (%)</div>
+                <div>Gross margin percentage (e.g., "10")</div>
                 
                 <div className="font-mono text-xs bg-white p-1 rounded border">Producer Name</div>
                 <div>Winery name (will be created if doesn't exist)</div>
-                
-                <div className="font-mono text-xs bg-white p-1 rounded border">Handle</div>
-                <div>Unique URL slug (auto-generated if empty)</div>
                 
                 <div className="font-mono text-xs bg-white p-1 rounded border">Description</div>
                 <div>Short product description</div>
@@ -282,6 +287,12 @@ export default function BulkUploadPage() {
                 
                 <div className="font-mono text-xs bg-white p-1 rounded border">Image URL</div>
                 <div>URL to product image</div>
+              </div>
+              
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="text-sm text-blue-900">
+                  <strong>Auto-generated:</strong> Handle (wine-name-vintage) and alcohol tax (22.19 SEK) are automatically added.
+                </div>
               </div>
             </div>
           </CardContent>
