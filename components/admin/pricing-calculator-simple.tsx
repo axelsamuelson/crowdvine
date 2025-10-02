@@ -47,7 +47,7 @@ export function PricingCalculator({
   onPricingChange,
 }: PricingCalculatorProps) {
   const [currentRate, setCurrentRate] = useState<number | null>(null);
-  const [loading,:**
+  const [loading, setLoading] = useState(false);
 
   const currencies = [
     { code: "EUR", name: "Euro (EUR)" },
