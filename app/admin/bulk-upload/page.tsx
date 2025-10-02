@@ -10,6 +10,32 @@ import { toast } from "sonner";
 interface UploadResult {
   success: boolean;
   message: string;
+  details?: {
+    summary?: {
+      totalRows: number;
+      parsedRows: number;
+      errorCount: number;
+      criticalErrors: number;
+      headerErrors: number;
+      rowErrors: number;
+    };
+    headerIssues?: string[];
+    rowIssues?: string[];
+    csvStructure?: {
+      headerRow: string;
+      expectedHeaders: string[];
+      actualHeaders: string[];
+      columnCount: number;
+    };
+    debugInfo?: {
+      fileLines: number;
+      fileSize: number;
+      fileName: string;
+      hasContent: boolean;
+      isEmptyFile: boolean;
+    };
+    allErrors?: string[];
+  };
   stats?: {
     total: number;
     created: number;
@@ -79,8 +105,11 @@ export default function BulkUploadPage() {
         toast.error(data.error || "Parse failed");
         setResult({
           success: false,
-          message: data.error || "Parse failed"
+          message: data.error || "Parse failed",
+          details: data.details, // Include detailed error information
+          errors: data.details?.allErrors || data.details || []
         });
+        setStep('complete'); // Show errors in complete step if parsing failed
       }
     } catch (error) {
       console.error("Parse error:", error);
@@ -552,7 +581,7 @@ export default function BulkUploadPage() {
         )}
 
         {/* Upload Results */}
-        {result && (
+        {step === 'complete' && result && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -561,8 +590,11 @@ export default function BulkUploadPage() {
                 ) : (
                   <AlertCircle className="w-5 h-5 text-red-600" />
                 )}
-                Upload Results
+                {result.success ? "Upload Complete" : "CSV Parsing Failed - Detailed Report"}
               </CardTitle>
+              <CardDescription>
+                {result.success ? "Your products have been processed." : "Detailed breakdown of what went wrong with your CSV."}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -571,6 +603,143 @@ export default function BulkUploadPage() {
                     {result.message}
                   </AlertDescription>
                 </Alert>
+
+                {/* Detailed Error Analysis for CSV failures */}
+                {result.details && !result.success && (
+                  <div className="space-y-6">
+                    {/* Summary Statistics */}
+                    {result.details.summary && (
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <h4 className="font-semibold text-gray-900 mb-3">📊 Error Summary</h4>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                          <div className="text-center p-3 bg-white rounded">
+                            <div className="text-xl font-bold text-gray-900">{result.details.summary.totalRows}</div>
+                            <div className="text-xs text-gray-500">Total Rows</div>
+                          </div>
+                          <div className="text-center p-3 bg-green-100 rounded">
+                            <div className="text-xl font-bold text-green-700">{result.details.summary.parsedRows}</div>
+                            <div className="text-xs text-green-600">Parsed</div>
+                          </div>
+                          <div className="text-center p-3 bg-red-100 rounded">
+                            <div className="text-xl font-bold text-red-700">{result.details.summary.errorCount}</div>
+                            <div className="text-xs text-red-600">Errors</div>
+                          </div>
+                          <div className="text-center p-3 bg-red-200 rounded">
+                            <div className="text-xl font-bold text-red-800">{result.details.summary.criticalErrors}</div>
+                            <div className="text-xs text-red-700">Critical</div>
+                          </div>
+                          <div className="text-center p-3 bg-yellow-100 rounded">
+                            <div className="text-xl font-bold text-yellow-700">{result.details.summary.headerErrors}</div>
+                            <div className="text-xs text-yellow-600">Headers</div>
+                          </div>
+                          <div className="text-center p-3 bg-orange-100 rounded">
+                            <div className="text-xl font-bold text-orange-700">{result.details.summary.rowErrors}</div>
+                            <div className="text-xs text-orange-600">Row Issues</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* CSV Structure Analysis */}
+                    {result.details.csvStructure && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h4 className="font-semibold text-blue-900 mb-3">📋 CSV Format Analysis</h4>
+                        
+                        <div className="space-y-3">
+                          <div>
+                            <h5 className="font-medium text-blue-800 mb-1">Your Header Row:</h5>
+                            <code className="block bg-white p-2 rounded text-xs break-all">{result.details.csvStructure.headerRow}</code>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <h5 className="font-medium text-blue-800 mb-2">✅ Expected Headers:</h5>
+                              <div className="space-y-1">
+                                {result.details.csvStructure.expectedHeaders.map((header, idx) => (
+                                  <div key={idx} className={`text-xs px-2 py-1 rounded ${
+                                    result.details?.csvStructure?.actualHeaders.includes(header)
+                                      ? 'bg-green-100 text-green-800'
+                                      : 'bg-red-100 text-red-800'
+                                  }`}>
+                                    {(result.details?.csvStructure?.actualHeaders.includes(header) ? '✓' : '✗')} {header}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <h5 className="font-medium text-blue-800 mb-2">🔍 Your Headers:</h5>
+                              <div className="space-y-1">
+                                {result.details.csvStructure.actualHeaders.map((header, idx) => (
+                                  <div key={idx} className="text-xs px-2 py-1 bg-white rounded">
+                                    {header}
+                                  </div>
+                                ))}
+                              </div>
+                              {result.details.csvStructure.columnCount !== result.details.csvStructure.expectedHeaders.length && (
+                                <div className="mt-2 text-xs text-orange-600">
+                                  ⚠️ Column count mismatch: {result.details.csvStructure.columnCount} columns vs {result.details.csvStructure.expectedHeaders.length} expected
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                            <div className="text-sm text-red-800">
+                              <strong>💡 Quick Fix:</strong> Download the latest CSV template above and copy your data into it, ensuring all headers match exactly (case-sensitive).
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Header Issues */}
+                    {result.details.headerIssues && result.details.headerIssues.length > 0 && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <h4 className="font-semibold text-red-900 mb-3">🚫 Header Problems</h4>
+                        <div className="space-y-2">
+                          {result.details.headerIssues.map((issue, idx) => (
+                            <div key={idx} className="p-2 bg-red-100 border border-red-300 rounded text-sm text-red-800">
+                              {issue}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Row Issues */}
+                    {result.details.rowIssues && result.details.rowIssues.length > 0 && (
+                      <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                        <h4 className="font-semibold text-orange-900 mb-3">⚠️ Row-by-Row Issues</h4>
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {result.details.rowIssues.map((issue, idx) => (
+                            <div key={idx} className="p-2 bg-orange-100 border border-orange-300 rounded text-sm text-orange-800">
+                              {issue}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Debug Info */}
+                    {result.details.debugInfo && (
+                      <div className="bg-gray-100 border border-gray-300 rounded-lg p-4">
+                        <h4 className="font-semibold text-gray-900 mb-3">🔧 Technical Details</h4>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div><strong>File:</strong> {result.details.debugInfo.fileName}</div>
+                          <div><strong>Size:</strong> {(result.details.debugInfo.fileSize / 1024).toFixed(1)} KB</div>
+                          <div><strong>Lines:</strong> {result.details.debugInfo.fileLines}</div>
+                          <div><strong>Has Content:</strong> {result.details.debugInfo.hasContent ? 'Yes' : 'No'}</div>
+                          {result.details.debugInfo.isEmptyFile && (
+                            <div className="col-span-2 text-red-600 font-medium">
+                              ⚠️ Your file appears to be empty or corrupted!
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {result.stats && (
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
@@ -638,6 +807,16 @@ export default function BulkUploadPage() {
                     </div>
                   </div>
                 )}
+                
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-4 border-t">
+                  <Button onClick={() => setStep('upload')} className="bg-gray-900 hover:bg-gray-800">
+                    Upload New CSV
+                  </Button>
+                  <Button onClick={() => setResult(null)}>
+                    Clear Results
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>

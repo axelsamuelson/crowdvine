@@ -186,13 +186,43 @@ export async function POST(request: NextRequest) {
 
     // Parse CSV content
     const csvContent = await file.text();
-    const { products, errors } = await parseCSV(csvContent);
+    const parsingResult = await parseCSVWithDetailedErrors(csvContent);
+    const { products, errors } = parsingResult;
     
     if (errors.length > 0) {
       return NextResponse.json({
-        error: "CSV parsing errors found",
-        details: errors,
-        parsedProducts: products.length
+        error: "CSV parsing errors found - detailed breakdown below",
+        details: {
+          summary: {
+            totalRows: csvContent.split('\n').length - 1, // Subtract header row
+            parsedRows: products.length,
+            errorCount: errors.length,
+            criticalErrors: errors.filter(e => e.includes('Critical:')).length,
+            headerErrors: errors.filter(e => e.includes('headers:')).length,
+            rowErrors: errors.filter(e => e.includes('Row ')).length
+          },
+          headerIssues: errors.filter(e => e.includes('Headers:')),
+          rowIssues: errors.filter(e => e.includes('Row ')),
+          allErrors: errors,
+          csvStructure: {
+            headerRow: csvContent.split('\n')[0],
+            expectedHeaders: [
+              'wine name', 'vintage', 'grape varieties', 'color',
+              'cost', 'currency', 'margin (%)', 'producer name', 'description',
+              'description html', 'image url'
+            ],
+            actualHeaders: csvContent.split('\n')[0]?.split(',').map(h => h.trim().toLowerCase()) || [],
+            columnCount: csvContent.split('\n')[0]?.split(',').length || 0
+          },
+          parsedProducts: products.length,
+          debugInfo: {
+            fileLines: csvContent.split('\n').length,
+            fileSize: file.size,
+            fileName: file.name,
+            hasContent: csvContent.trim().length > 0,
+            isEmptyFile: csvContent.trim().length === 0
+          }
+        }
       }, { status: 400 });
     }
 
@@ -222,13 +252,26 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("CSV parse error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { 
+        error: "CSV parsing failed with detailed report below",
+        details: {
+          type: "CSV parsing error",
+          message: error instanceof Error ? error.message : String(error),
+          timestamp: new Date().toISOString(),
+          debuggingInfo: {
+            hasFile: !!file,
+            fileSize: file?.size,
+            fileName: file?.name,
+            errorStack: error instanceof Error ? error.stack : undefined
+          }
+        }
+      },
       { status: 500 }
     );
   }
 }
 
-async function parseCSV(csvContent: string): Promise<{
+async function parseCSVWithDetailedErrors(csvContent: string): Promise<{
   products: ProductData[];
   errors: string[];
 }> {
