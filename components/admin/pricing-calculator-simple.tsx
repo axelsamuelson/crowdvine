@@ -88,32 +88,45 @@ export function PricingCalculator({
 
   const calculatePriceBreakdown = () => {
     const exchangeRate = pricingData.cost_currency === "SEK" ? 1 : (currentRate || 1);
-    const costInSek = pricingData.cost_amount * exchangeRate;
-    const priceBeforeTax =
-      costInSek * (1 + pricingData.margin_percentage / 100);
-    const priceAfterTax = priceBeforeTax + pricingData.alcohol_tax_cents / 100;
-    const finalPrice = pricingData.price_includes_vat
-      ? priceAfterTax
-      : priceAfterTax * 1.25;
-
-    // Calculate Systembolaget price using same formula but with 14.7% margin
-    const sbPrice = calculateSystembolagetPrice(
-      pricingData.cost_amount,
-      exchangeRate,
-      pricingData.alcohol_tax_cents,
-    );
-
+    
+    // Calculate inclusive cost (C): cost_amount + alcohol_tax converted to SEK
+    const costAmountInSek = pricingData.cost_amount * exchangeRate;
+    const alcoholTaxInSek = pricingData.alcohol_tax_cents / 100;
+    const costInSek = costAmountInSek + alcoholTaxInSek; // C = Cost including alcohol tax, ex VAT
+    
+    // Gross margin as decimal (e.g., 10% = 0.10)
+    const marginDecimal = pricingData.margin_percentage / 100; // M
+    
+    // VAT rate as decimal (Sweden = 25% = 0.25)
+    const vatRate = pricingData.price_includes_vat ? 0.25 : 0; // V
+    
+    // Step 1: Price ex VAT using gross margin formula: P = C / (1 - M)
+    const priceExVat = costInSek / (1 - marginDecimal); // P
+    
+    // Step 2: Final price incl VAT: F = P × (1 + V)
+    const finalPrice = priceExVat * (1 + vatRate); // F
+    
     // Calculate our margin in SEK
     const ourMarginSek = finalPrice - costInSek;
+    
+    // Calculate Systembolaget price using same gross margin formula (they use ~14.7% margin)
+    const sbMarginDecimal = 0.147;
+    const sbPriceExVat = costInSek / (1 - sbMarginDecimal);
+    const sbPrice = sbPriceExVat * 1.25; // Systembolaget includes VAT
+    
+    // Calculate what margin percentage this becomes of our final price
+    const effectiveMarginPercent = ((finalPrice - costInSek) / finalPrice) * 100;
 
     return {
       costInSek: costInSek.toFixed(2),
-      priceBeforeTax: priceBeforeTax.toFixed(2),
-      priceAfterTax: priceAfterTax.toFixed(2),
+      costAmountInSek: costAmountInSek.toFixed(2),
+      alcoholTaxInSek: alcoholTaxInSek.toFixed(2),
+      priceExVat: priceExVat.toFixed(2),
       finalPrice: finalPrice.toFixed(2),
-      finalPriceCents: Math.ceil(finalPrice * 100), // Round up to nearest cent
+      finalPriceCents: Math.round(finalPrice * 100), // Round to nearest whole number
       sbPrice: sbPrice.toFixed(2),
       ourMarginSek: ourMarginSek.toFixed(2),
+      effectiveMarginPercent: effectiveMarginPercent.toFixed(1),
       priceDifference: (sbPrice - finalPrice).toFixed(2),
       priceDifferencePercent: (
         ((sbPrice - finalPrice) / finalPrice) *
@@ -256,25 +269,62 @@ export function PricingCalculator({
         </div>
 
         {/* Price Breakdown */}
-        <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+        <div className="bg-gray-50 rounded-lg p-4 space-y-4">
           <h4 className="font-semibold text-gray-900 flex items-center gap-2">
             <Store />
-            Price Breakdown
+            Gross Margin Price Breakdown
           </h4>
           
+          {/* Cost Structure */}
+          <div className="bg-white rounded-lg p-3 border border-gray-200">
+            <h5 className="font-medium text-gray-900 mb-3">Cost Structure (ex VAT)</h5>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Wine cost ({pricingData.cost_currency}):</span>
+                <span className="font-medium">{breakdown.costAmountInSek} SEK</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Alcohol tax:</span>
+                <span className="font-medium">{breakdown.alcoholTaxInSek} SEK</span>
+              </div>
+              <div className="flex justify-between border-t pt-2">
+                <span className="text-gray-800 font-medium">Total cost (C):</span>
+                <span className="font-semibold">{breakdown.costInSek} SEK</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Pricing Formula Display */}
+          <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+            <h5 className="font-medium text-blue-900 mb-2">Pricing Formula (Gross Margin)</h5>
+            <div className="text-sm space-y-1">
+              <div className="font-mono text-blue-800">P = C ÷ (1 - M)</div>
+              <div className="text-gray-700">P = {breakdown.costInSek} ÷ (1 - {pricingData.margin_percentage / 100}) = {breakdown.priceExVat} SEK</div>
+              {pricingData.price_includes_vat && (
+                <div className="font-mono text-blue-800 mt-2">F = P × (1 + V)</div>
+              )}
+              {pricingData.price_includes_vat && (
+                <div className="text-gray-700">F = {breakdown.priceExVat} × 1.25 = {breakdown.finalPrice} SEK</div>
+              )}
+            </div>
+          </div>
+
+          {/* Results */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span className="text-gray-600">Cost in SEK:</span>
-                <span className="font-medium">{breakdown.costInSek} SEK</span>
+                <span className="text-gray-600">Price ex VAT (P):</span>
+                <span className="font-semibold">{breakdown.priceExVat} SEK</span>
               </div>
+              {pricingData.price_includes_vat && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Final price inc VAT (F):</span>
+                  <span className="font-bold text-lg">{breakdown.finalPrice} SEK</span>
+                </div>
+              )}
               <div className="flex justify-between">
-                <span className="text-gray-600">Price before tax:</span>
-                <span className="font-medium">{breakdown.priceBeforeTax} SEK</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Final price:</span>
-                <span className="font-bold text-lg">{breakdown.finalPrice} SEK</span>
+                <span className="text-gray-600">Effective margin:</span>
+                <span className="font-medium text-green-600">{breakdown.effectiveMarginPercent}%</span>
               </div>
             </div>
             
@@ -284,7 +334,7 @@ export function PricingCalculator({
                 <span className="font-medium">{breakdown.sbPrice} SEK</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Our margin:</span>
+                <span className="text-gray-600">Our margin (SEK):</span>
                 <span className="font-medium text-green-600">{breakdown.ourMarginSek} SEK</span>
               </div>
               <div className="flex justify-between">
@@ -300,7 +350,7 @@ export function PricingCalculator({
 
           <div className="pt-2 border-t border-gray-200">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-700">Final Price (rounded up to nearest SEK):</span>
+              <span className="text-sm text-gray-700">Final Price (rounded):</span>
               <Badge variant="secondary" className="bg-gray-100 text-gray-900 font-semibold">
                 {breakdown.finalPriceCents / 100} SEK
               </Badge>

@@ -1,14 +1,16 @@
 /**
- * Calculate Systembolaget price using the same formula as our prices but with 14.7% margin
+ * Calculate Systembolaget price using gross margin formula with ~12.5% effective margin
  *
- * Formula (same as our pricing):
- * 1. cost_amount * exchange_rate = costInSek
- * 2. costInSek * (1 + 14.7%) = priceBeforeTax (instead of our margin_percentage)
- * 3. priceBeforeTax + alcohol_tax_cents = priceAfterTax
- * 4. priceAfterTax * 1.25 = finalPrice (VAT included)
+ * Formula (gross margin approach):
+ * 1. cost_amount * exchange_rate + alcohol_tax = costInSek (total cost ex VAT)
+ * 2. priceExVat = costInSek ÷ (1 - margin) where margin = effective margin ex VAT
+ * 3. finalPrice = priceExVat × 1.25 (VAT included)
+ *
+ * Systembolaget's effective margin appears to be around 12.5% of final price
+ * This translates to roughly 14.7% gross margin ex VAT
  *
  * @param costAmount - The cost amount in original currency
- * @param exchangeRate - Exchange rate to SEK (default 1.0)
+ * @param exchangeRate - Exchange_rate to SEK (default 1.0)
  * @param alcoholTaxCents - Alcohol tax in cents (default 0)
  * @returns The calculated Systembolaget price
  */
@@ -17,46 +19,68 @@ export function calculateSystembolagetPrice(
   exchangeRate: number = 1.0,
   alcoholTaxCents: number = 0,
 ): number {
-  // Same calculation as our prices but with 14.7% margin instead of our margin
-  const costInSek = costAmount * exchangeRate;
-  const priceBeforeTax = costInSek * (1 + 0.147); // 14.7% margin
-  const priceAfterTax = priceBeforeTax + alcoholTaxCents / 100.0;
-  const finalPrice = priceAfterTax * 1.25; // VAT included
+  // Calculate total cost (C): cost_amount + alcohol_tax converted to SEK
+  const costAmountInSek = costAmount * exchangeRate;
+  const alcoholTaxInSek = alcoholTaxCents / 100;
+  const costInSek = costAmountInSek + alcoholTaxInSek; // C = Total cost ex VAT
+  
+  // Systembolaget's gross margin appears to be around 14.7% ex VAT
+  const sbMarginDecimal = 0.147;
+  
+  // Price ex VAT using gross margin formula: P = C ÷ (1 - M)
+  const priceExVat = costInSek / (1 - sbMarginDecimal);
+  
+  // Final price incl VAT: F = P × 1.25
+  const finalPrice = priceExVat * 1.25;
 
   return Math.round(finalPrice * 100) / 100; // Round to 2 decimal places
 }
 
 /**
- * Calculate Systembolaget price for a wine with detailed breakdown
+ * Calculate Systembolaget price for a wine with detailed breakdown using gross margin
  *
  * @param costAmount - The cost amount in original currency
  * @param exchangeRate - Exchange rate to SEK (default 1.0)
  * @param alcoholTaxCents - Alcohol tax in cents (default 0)
- * @returns Detailed breakdown of the price calculation
+ * @returns Detailed breakdown of the price calculation using gross margin formula
  */
 export function calculateSystembolagetPriceBreakdown(
   costAmount: number,
   exchangeRate: number = 1.0,
   alcoholTaxCents: number = 0,
 ) {
-  const costInSek = costAmount * exchangeRate;
-  const marginAmount = costInSek * 0.147; // 14.7% margin
-  const priceBeforeTax = costInSek + marginAmount;
-  const priceAfterTax = priceBeforeTax + alcoholTaxCents / 100.0;
-  const vat = priceAfterTax * 0.25;
-  const finalPrice = priceAfterTax + vat;
+  // Calculate total cost (C): cost_amount + alcohol_tax converted to SEK
+  const costAmountInSek = costAmount * exchangeRate;
+  const alcoholTaxInSek = alcoholTaxCents / 100;
+  const costInSek = costAmountInSek + alcoholTaxInSek; // C = Total cost ex VAT
+  
+  // Systembolaget's gross margin appears to be around 14.7% ex VAT
+  const sbMarginDecimal = 0.147;
+  
+  // Price ex VAT using gross margin formula: P = C ÷ (1 - M)
+  const priceExVat = costInSek / (1 - sbMarginDecimal);
+  
+  // Calculate VAT (25%)
+  const vat = priceExVat * 0.25;
+  
+  // Final price incl VAT: F = P × 1.25
+  const finalPrice = priceExVat + vat;
+  
+  // Calculate margin amount
+  const marginAmount = priceExVat - costInSek;
 
   return {
     costAmount,
     exchangeRate,
-    costInSek: Math.round(costInSek * 100) / 100,
-    marginPercentage: 14.7,
-    marginAmount: Math.round(marginAmount * 100) / 100,
-    priceBeforeTax: Math.round(priceBeforeTax * 100) / 100,
+    costAmountInSek: Math.round(costAmountInSek * 100) / 100,
     alcoholTaxCents,
-    alcoholTaxSek: Math.round((alcoholTaxCents / 100.0) * 100) / 100,
-    priceAfterTax: Math.round(priceAfterTax * 100) / 100,
+    alcoholTaxInSek: Math.round(alcoholTaxInSek * 100) / 100,
+    costInSek: Math.round(costInSek * 100) / 100,
+    marginPercentageExVat: 14.7,
+    marginAmount: Math.round(marginAmount * 100) / 100,
+    priceExVat: Math.round(priceExVat * 100) / 100,
     vat: Math.round(vat * 100) / 100,
     finalPrice: Math.round(finalPrice * 100) / 100,
+    effectiveMarginPercent: Math.round(((finalPrice - costInSek) / finalPrice) * 100 * 100) / 100,
   };
 }
