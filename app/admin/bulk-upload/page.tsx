@@ -5,6 +5,7 @@ import { Upload, Download, CheckCircle, AlertCircle, Loader2 } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 
 interface UploadResult {
@@ -56,9 +57,14 @@ export default function BulkUploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<UploadResult | null>(null);
-  const [step, setStep] = useState<'upload' | 'review' | 'complete'>('upload');
+  const [step, settep] = useState<'upload' | 'review' | 'complete'>('upload');
   const [reviewProducts, setReviewProducts] = useState<any[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
+  const [parseProgress, setParseProgress] = useState<{
+    stage: string;
+    percentage: number;
+    details?: string;
+  }>({ stage: '', percentage: 0 });
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -80,17 +86,45 @@ export default function BulkUploadPage() {
 
     setUploading(true);
     setResult(null);
+    
+    // Reset progress
+    setParseProgress({ stage: 'Starting upload...', percentage: 0 });
 
     try {
+      // Calculate estimated parsing time based on file size
+      const rows = (file.size / 50); // Rough estimate: ~50 bytes per row in CSV
+      const estimatedTime = Math.max(2, Math.min(10, rows / 100)); // Between 2-10 seconds
+      
+      // Stage 1: Preparing file
+      setParseProgress({ stage: 'Reading CSV file...', percentage: 5, details: `Processing ${file.name} (${file.size > 1024 ? (file.size/1024).toFixed(1) + ' KB' : file.size + ' bytes'})` });
+      
       const formData = new FormData();
       formData.append("file", file);
 
+      // Stage 2: Sending to server
+      setParseProgress({ stage: 'Uploading to server...', percentage: 15, details: `Uploading file to server...` });
+      
+      const startTime = Date.now();
+      
       const response = await fetch("/api/admin/bulk-upload/parse", {
         method: "POST",
         body: formData,
       });
 
+      // Stage 3: Processing response  
+      const uploadTime = Date.now() - startTime;
+      setParseProgress({ stage: 'Parsing CSV data...', percentage: 60, details: `Server processing complete, parsing ${Math.round(rows)} estimated rows` });
+
       const data = await response.json();
+      
+      // Stage 4: Complete processing
+      setParseProgress({ stage: 'Finalizing results...', percentage: 95, details: `Found ${data.products?.length || 0} products` });
+      
+      // Brief pause before showing final result
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Stage 5: Complete
+      setParseProgress({ stage: 'Parse complete!', percentage: 100, details: `Ready to review ${data.products?.length || 0} products` });
 
       if (response.ok) {
         setReviewProducts(data.products);
@@ -115,6 +149,7 @@ export default function BulkUploadPage() {
     } catch (error) {
       console.error("Parse error:", error);
       toast.error("Parse failed");
+      setParseProgress({ stage: 'Parse failed!', percentage: 0, details: 'An error occurred during parsing' });
       setResult({
         success: false,
         message: "Parse failed due to network error"
@@ -254,23 +289,45 @@ export default function BulkUploadPage() {
               </div>
             )}
 
-            <Button 
-              onClick={handleParse}
-              disabled={!file || uploading}
-              className="w-full sm:w-auto bg-gray-900 hover:bg-gray-800"
-            >
-              {uploading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Parsing...
-                </>
-              ) : (
-                <>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Parse & Review
-                </>
-              )}
-            </Button>
+                  <Button
+                    onClick={handleParse}
+                    disabled={!file || uploading}
+                    className="w-full sm:w-auto bg-gray-900 hover:bg-gray-800"
+                  >
+                    {uploading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Parsing...
+                      </>
+                    ) : (
+                      <>
+                        <Upload {...uploading && { className: "w-4 h-4 mr-2 animate-pulse" }} />
+                        Parse & Review
+                      </>
+                    )}
+                  </Button>
+
+                  {/* Progress Bar */}
+                  {uploading && parseProgress.stage && (
+                    <div className="space-y-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium text-gray-700 flex items-center gap-2">
+                          <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
+                          {parseProgress.stage}
+                        </span>
+                        <span className="text-gray-500 font-mono">{parseProgress.percentage}%</span>
+                      </div>
+                      <Progress value={parseProgress.percentage} className="h-3 w-full" />
+                      {parseProgress.details && (
+                        <p className="text-xs text-gray-600 italic">{parseProgress.details}</p>
+                      )}
+                      {parseProgress.percentage < 100 && (
+                        <p className="text-xs text-blue-600">
+                          💡 Large files may take longer to process...
+                        </p>
+                      )}
+                    </div>
+                  )}
           </CardContent>
         </Card>
 

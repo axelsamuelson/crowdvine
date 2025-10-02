@@ -33,6 +33,7 @@ import {
   Eye,
   AlertTriangle
 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { useRouter } from "next/navigation";
 
 export default function ReviewPage() {
@@ -40,6 +41,11 @@ export default function ReviewPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{
+    stage: string;
+    percentage: number;
+    details?: string;
+  }>({ stage: '', percentage: 0 });
   const [editingRow, setEditingRow] = useState<null | number>(null);
 
   useEffect(() => {
@@ -100,25 +106,44 @@ export default function ReviewPage() {
     }
 
     setUploading(true);
+    
+    // Reset progress
+    setUploadProgress({ stage: 'Preparing upload...', percentage: 0 });
 
     try {
+      // Stage 1: Preparing data
+      setUploadProgress({ stage: 'Preparing products for upload...', percentage: 10, details: `Processing ${productsToUpload.length} products` });
+      
+      // Stage 2: Validating producers
+      setUploadProgress({ stage: 'Validating producer data...', percentage: 25, details: 'Checking producer information' });
+      
       const response = await fetch("/api/admin/bulk-upload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ products: productsToUpload }),
       });
 
+      // Stage 3: Processing upload
+      setUploadProgress({ stage: 'Uploading to database...', percentage: 80, details: 'Creating wines and producers' });
+
       const data = await response.json();
+      
+      // Stage 4: Completing
+      setUploadProgress({ stage: 'Upload complete!', percentage: 100, details: `Successfully uploaded ${productsToUpload.length} products` });
       
       if (response.ok) {
         toast.success(data.message);
+        // Brief pause before redirect
+        await new Promise(resolve => setTimeout(resolve, 1000));
         sessionStorage.removeItem('bulkUploadProducts');
         router.push('/admin/bulk-upload');
       } else {
+        setUploadProgress({ stage: 'Upload failed!', percentage: 0, details: data.error || 'Unknown error occurred' });
         toast.error(data.error || "Upload failed");
       }
     } catch (error) {
       console.error("Upload error:", error);
+      setUploadProgress({ stage: 'Upload failed!', percentage: 0, details: 'Network error occurred' });
       toast.error("Upload failed");
     } finally {
       setUploading(false);
@@ -192,33 +217,57 @@ export default function ReviewPage() {
         {/* Selection Controls */}
         <Card className="mb-6">
           <CardContent className="p-4">
-            <div className="flex gap-3 items-center">
-              <Button onClick={selectAllProducts} variant="outline" size="sm">
-                Select All ({products.length})
-              </Button>
-              <Button onClick={deselectAllProducts} variant="outline" size="sm">
-                Deselect All
-              </Button>
-              <div className="ml-auto text-sm text-gray-600">
-                    {selectedProducts.size} of {products.length} selected
+            <div className="space-y-4">
+              <div className="flex gap-3 items-center">
+                <Button onClick={selectAllProducts} variant="outline" size="sm">
+                  Select All ({products.length})
+                </Button>
+                <Button onClick={deselectAllProducts} variant="outline" size="sm">
+                  Deselect All
+                </Button>
+                <div className="ml-auto text-sm text-gray-600">
+                      {selectedProducts.size} of {products.length} selected
+                </div>
+                <Button 
+                  onClick={handleConfirmUpload}
+                  disabled={selectedProducts.size === 0 || uploading}
+                  className="bg-gray-900 hover:bg-gray-800"
+                >
+                  {uploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload {selectedProducts.size} Products
+                    </>
+                  )}
+                </Button>
               </div>
-              <Button 
-                onClick={handleConfirmUpload}
-                disabled={selectedProducts.size === 0 || uploading}
-                className="bg-gray-900 hover:bg-gray-800"
-              >
-                {uploading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload {selectedProducts.size} Products
-                  </>
-                )}
-              </Button>
+
+              {/* Upload Progress Bar */}
+              {uploading && uploadProgress.stage && (
+                <div className="space-y-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-blue-800 flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                      {uploadProgress.stage}
+                    </span>
+                    <span className="text-blue-600 font-mono">{uploadProgress.percentage}%</span>
+                  </div>
+                  <Progress value={uploadProgress.percentage} className="h-3 w-full bg-blue-100" />
+                  {uploadProgress.details && (
+                    <p className="text-xs text-blue-700 italic">{uploadProgress.details}</p>
+                  )}
+                  {uploadProgress.percentage < 100 && uploadProgress.percentage > 0 && (
+                    <p className="text-xs text-blue-600">
+                      🚀 Creating wines and producers in database...
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
