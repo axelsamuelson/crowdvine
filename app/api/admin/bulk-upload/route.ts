@@ -183,7 +183,7 @@ async function parseCSV(csvContent: string): Promise<{
   const expectedHeaders = [
     'wine name', 'vintage', 'grape varieties', 'color',
     'cost', 'currency', 'margin (%)', 'producer name', 'description',
-    'description html', 'image url'
+    'image url'
   ];
 
   // Validate headers and provide detailed error info
@@ -220,7 +220,6 @@ async function parseCSV(csvContent: string): Promise<{
         margin_percentage: parseFloat(values[headers.indexOf('margin (%)')] || '10') || 10,
         producer_name: values[headers.indexOf('producer name')]?.trim() || '',
         description: values[headers.indexOf('description')]?.trim() || '',
-        description_html: values[headers.indexOf('description html')]?.trim() || '',
         label_image_path: values[headers.indexOf('image url')]?.trim() || 'https://images.unsplash.com/photo-1553361371-9b22f78e8b5d?w=600&h=600&fit=crop&q=80'
       };
 

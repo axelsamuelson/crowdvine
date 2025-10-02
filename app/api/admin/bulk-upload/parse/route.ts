@@ -209,7 +209,7 @@ export async function POST(request: NextRequest) {
             expectedHeaders: [
               'wine name', 'vintage', 'grape varieties', 'color',
               'cost', 'currency', 'margin (%)', 'producer name', 'description',
-              'description html', 'image url'
+              'image url'
             ],
             actualHeaders: csvContent.split('\n')[0]?.split(',').map(h => h.trim().toLowerCase()) || [],
             columnCount: csvContent.split('\n')[0]?.split(',').length || 0
@@ -288,7 +288,7 @@ async function parseCSVWithDetailedErrors(csvContent: string): Promise<{
   const expectedHeaders = [
     'wine name', 'vintage', 'grape varieties', 'color',
     'cost', 'currency', 'margin (%)', 'producer name', 'description',
-    'description html', 'image url'
+    'image url'
   ];
 
     // Check for missing headers but continue parsing - show as issues in review
@@ -337,7 +337,6 @@ async function parseCSVWithDetailedErrors(csvContent: string): Promise<{
         producer_name: values[headers.indexOf('producer name')]?.trim() || '',
         handle: generateHandle(values[headers.indexOf('wine name')] || '', values[headers.indexOf('vintage')] || ''),
         description: values[headers.indexOf('description')]?.trim() || '',
-        description_html: values[headers.indexOf('description html')]?.trim() || '',
         label_image_path: values[headers.indexOf('image url')]?.trim() || 'https://images.unsplash.com/photo-1553361371-9b22f78e8b5d?w=600&h=600&fit=crop&q=80'
       };
 
@@ -365,9 +364,9 @@ async function parseCSVWithDetailedErrors(csvContent: string): Promise<{
       
       // Store original grape text for review
       (product as any).originalGrapeText = grapeAnalysis.originalText;
+      // Apply defaults for optional fields now made truly optional
       if (!product.description) {
-        product.description = "Premium wine from this producer"; // Default value
-        rowIssues.push(`Warning: Description missing - using default`);
+        product.description = "Premium wine"; // Default value - no warning since truly optional
       }
       
       // Required fields that must be fixed

@@ -102,6 +102,7 @@ export default function BulkUploadPage() {
         // Redirect to dedicated review page
         window.location.href = '/admin/bulk-upload/review';
       } else {
+        console.log("Parse failed with details:", data);
         toast.error(data.error || "Parse failed");
         setResult({
           success: false,
@@ -312,10 +313,7 @@ export default function BulkUploadPage() {
                 <div>Winery name (will be created if doesn't exist)</div>
                 
                 <div className="font-mono text-xs bg-white p-1 rounded border">Description</div>
-                <div>Short product description</div>
-                
-                <div className="font-mono text-xs bg-white p-1 rounded border">Description HTML</div>
-                <div>HTML formatted description (optional)</div>
+                <div>Short product description (optional - auto-generated if empty)</div>
                 
                 <div className="font-mono text-xs bg-white p-1 rounded border">Image URL</div>
                 <div>Optional - uses default "Coming Soon" image if empty</div>
@@ -607,6 +605,12 @@ export default function BulkUploadPage() {
                 {/* Detailed Error Analysis for CSV failures */}
                 {result.details && !result.success && (
                   <div className="space-y-6">
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <h4 className="font-semibold text-red-900 mb-2">🧪 Debug Info:</h4>
+                      <pre className="text-xs text-red-800 overflow-auto">
+                        {JSON.stringify(result.details, null, 2)}
+                      </pre>
+                    </div>
                     {/* Summary Statistics */}
                     {result.details.summary && (
                       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
