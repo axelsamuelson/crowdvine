@@ -49,14 +49,9 @@ export interface CreateWineData {
   label_image_path?: string;
   base_price_cents: number;
   producer_id: string;
-  // New pricing fields
+  // Simplified pricing fields
   cost_currency: string;
   cost_amount: number;
-  exchange_rate_source: string;
-  exchange_rate_date?: string;
-  exchange_rate_period_start?: string;
-  exchange_rate_period_end?: string;
-  exchange_rate?: number;
   alcohol_tax_cents: number;
   price_includes_vat: boolean;
   margin_percentage: number;
@@ -88,11 +83,6 @@ export async function getWines() {
       producer_id,
       cost_currency,
       cost_amount,
-      exchange_rate_source,
-      exchange_rate_date,
-      exchange_rate_period_start,
-      exchange_rate_period_end,
-      exchange_rate,
       alcohol_tax_cents,
       price_includes_vat,
       margin_percentage,
@@ -148,11 +138,6 @@ export async function getWine(id: string) {
       producer_id,
       cost_currency,
       cost_amount,
-      exchange_rate_source,
-      exchange_rate_date,
-      exchange_rate_period_start,
-      exchange_rate_period_end,
-      exchange_rate,
       alcohol_tax_cents,
       price_includes_vat,
       margin_percentage,
@@ -194,7 +179,26 @@ export async function createWine(data: CreateWineData) {
   let calculatedSbPrice = null;
 
   if (data.cost_amount && data.cost_amount > 0) {
-    const exchangeRate = data.exchange_rate || 1.0;
+    let exchangeRate = 1.0; // Default for SEK
+    
+    if (data.cost_currency !== "SEK") {
+      try {
+        // Fetch current exchange rate
+        const rateResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/exchange-rates?from=${data.cost_currency}&to=SEK`
+        );
+        
+        if (rateResponse.ok) {
+          const rateData = await rateResponse.json();
+          exchangeRate = rateData.rate;
+        } else {
+          console.warn(`Failed to fetch exchange rate for ${data.cost_currency}, using 1.0`);
+        }
+      } catch (error) {
+        console.error("Error fetching exchange rate:", error);
+      }
+    }
+
     const costInSek = data.cost_amount * exchangeRate;
     const priceBeforeTax =
       costInSek * (1 + (data.margin_percentage || 30) / 100);
@@ -208,18 +212,36 @@ export async function createWine(data: CreateWineData) {
     if (data.cost_amount && data.cost_amount > 0) {
       calculatedSbPrice = calculateSystembolagetPrice(
         data.cost_amount,
-        data.exchange_rate || 1.0,
+        exchangeRate,
         data.alcohol_tax_cents || 0,
       );
     }
   }
 
-  // Prepare insert data
+  // Prepare insert data - only include simplified pricing fields
   const insertData = {
-    ...data,
+    handle: data.handle,
+    wine_name: data.wine_name,
+    vintage: data.vintage,
+    grape_varieties: data.grape_varieties,
+    color: data.color,
+    label_image_path: data.label_image_path,
     base_price_cents: finalPriceCents,
+    producer_id: data.producer_id,
+    // Simplified pricing fields
+    cost_currency: data.cost_currency,
+    cost_amount: data.cost_amount,
+    alcohol_tax_cents: data.alcohol_tax_cents,
+    price_includes_vat: data.price_includes_vat,
+    margin_percentage: data.margin_percentage,
+    // Systembolaget fields
     calculated_price_cents: finalPriceCents,
+    supplier_price: data.supplier_price,
     sb_price: calculatedSbPrice,
+    volume_liters: data.volume_liters,
+    // Description fields
+    description: data.description,
+    description_html: data.description_html,
   };
 
   // First create the wine
@@ -239,11 +261,6 @@ export async function createWine(data: CreateWineData) {
       producer_id,
       cost_currency,
       cost_amount,
-      exchange_rate_source,
-      exchange_rate_date,
-      exchange_rate_period_start,
-      exchange_rate_period_end,
-      exchange_rate,
       alcohol_tax_cents,
       price_includes_vat,
       margin_percentage,
@@ -251,6 +268,8 @@ export async function createWine(data: CreateWineData) {
       supplier_price,
       sb_price,
       volume_liters,
+      description,
+      description_html,
       created_at,
       updated_at
     `,
@@ -390,11 +409,6 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
       producer_id,
       cost_currency,
       cost_amount,
-      exchange_rate_source,
-      exchange_rate_date,
-      exchange_rate_period_start,
-      exchange_rate_period_end,
-      exchange_rate,
       alcohol_tax_cents,
       price_includes_vat,
       margin_percentage,

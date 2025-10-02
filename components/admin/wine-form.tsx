@@ -30,7 +30,7 @@ import {
 import { Producer } from "@/lib/actions/producers";
 import { WineImageUpload } from "@/components/admin/wine-image-upload";
 import { WineImage } from "@/lib/types/wine-images";
-import { PricingCalculator } from "@/components/admin/pricing-calculator";
+import { PricingCalculator } from "@/components/admin/pricing-calculator-simple";
 import GrapeVarietiesSelector from "@/components/admin/grape-varieties-selector";
 import {
   getGrapeVarieties,
@@ -45,19 +45,14 @@ interface WineFormProps {
 export default function WineForm({ wine, producers }: WineFormProps) {
   const [formData, setFormData] = useState<CreateWineData>({
     handle: wine?.handle || "",
-    wine_name: wine?.wine_name || "",
+    wine_name: wine?.wine_name === "" ? "" : wine?.wine_name,
     vintage: wine?.vintage || "",
     grape_varieties: wine?.grape_varieties || "",
     color: wine?.color || "red",
     producer_id: wine?.producer_id || "",
-    // New pricing fields
+    // Simplified pricing fields
     cost_currency: wine?.cost_currency || "EUR",
     cost_amount: wine?.cost_amount || 0,
-    exchange_rate_source: wine?.exchange_rate_source || "current",
-    exchange_rate_date: wine?.exchange_rate_date || undefined,
-    exchange_rate_period_start: wine?.exchange_rate_period_start || undefined,
-    exchange_rate_period_end: wine?.exchange_rate_period_end || undefined,
-    exchange_rate: wine?.exchange_rate || undefined,
     alcohol_tax_cents: wine?.alcohol_tax_cents || 0,
     price_includes_vat: wine?.price_includes_vat ?? true,
     margin_percentage: wine?.margin_percentage || 30.0,
@@ -405,11 +400,6 @@ export default function WineForm({ wine, producers }: WineFormProps) {
             pricingData={{
               cost_currency: formData.cost_currency,
               cost_amount: formData.cost_amount,
-              exchange_rate_source: formData.exchange_rate_source,
-              exchange_rate_date: formData.exchange_rate_date,
-              exchange_rate_period_start: formData.exchange_rate_period_start,
-              exchange_rate_period_end: formData.exchange_rate_period_end,
-              exchange_rate: formData.exchange_rate,
               alcohol_tax_cents: formData.alcohol_tax_cents,
               price_includes_vat: formData.price_includes_vat,
               margin_percentage: formData.margin_percentage,
@@ -420,12 +410,6 @@ export default function WineForm({ wine, producers }: WineFormProps) {
                 ...prev,
                 cost_currency: pricingData.cost_currency,
                 cost_amount: pricingData.cost_amount,
-                exchange_rate_source: pricingData.exchange_rate_source,
-                exchange_rate_date: pricingData.exchange_rate_date,
-                exchange_rate_period_start:
-                  pricingData.exchange_rate_period_start,
-                exchange_rate_period_end: pricingData.exchange_rate_period_end,
-                exchange_rate: pricingData.exchange_rate,
                 alcohol_tax_cents: pricingData.alcohol_tax_cents,
                 price_includes_vat: pricingData.price_includes_vat,
                 margin_percentage: pricingData.margin_percentage,

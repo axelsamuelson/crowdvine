@@ -1,103 +1,79 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabase-server";
 
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const fromCurrency = searchParams.get("from");
-    const toCurrency = searchParams.get("to") || "SEK";
-    const date =
-      searchParams.get("date") || new Date().toISOString().split("T")[0];
+  const { searchParams } = new URL(request.url);
+  const from = searchParams.get("from")?.toUpperCase();
+  const to = searchParams.get("to")?.toUpperCase();
 
-    const sb = await supabaseServer();
-
-    if (fromCurrency) {
-      // Get specific exchange rate
-      const { data, error } = await sb
-        .from("exchange_rates")
-        .select("*")
-        .eq("from_currency", fromCurrency)
-        .eq("to_currency", toCurrency)
-        .eq("date", date)
-        .order("created_at", { ascending: false })
-        .limit(1);
-
-      if (error) {
-        console.error("Exchange rate error:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
-      }
-
-      return NextResponse.json({
-        rate: data?.[0]?.rate || null,
-        date: date,
-        from_currency: fromCurrency,
-        to_currency: toCurrency,
-      });
-    } else {
-      // Get all recent exchange rates
-      const { data, error } = await sb
-        .from("exchange_rates")
-        .select("*")
-        .eq("to_currency", toCurrency)
-        .gte(
-          "date",
-          new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-            .toISOString()
-            .split("T")[0],
-        )
-        .order("date", { ascending: false });
-
-      if (error) {
-        console.error("Exchange rates error:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
-      }
-
-      return NextResponse.json({ rates: data || [] });
-    }
-  } catch (error) {
-    console.error("Exchange rates API error:", error);
+  if (!from || !to) {
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
+      { error: "Missing 'from' or 'to' currency parameters" },
+      { status: 400 },
     );
   }
-}
 
-export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { from_currency, to_currency, rate, date } = body;
+    // Use an exchange rate API - using exchangerate-api.com which is free
+    const response = await fetch(
+      `https://api.exchangerate-api.com/v4/latest/${from}`,
+      {
+        next: { revalidate: 3600 }, // Cache for 1 hour
+      },
+    );
 
-    if (!from_currency || !to_currency || !rate || !date) {
+    if (!response.ok) {
+      throw new Error(`Exchange rate API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const rate = data.rates[to];
+
+    if (!rate) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: `Cannot convert ${from} to ${to}` },
         { status: 400 },
       );
     }
 
-    const sb = await supabaseServer();
+    return NextResponse.json({
+      from,
+      to,
+      rate,
+      timestamp: data.date,
+    });
+  } catch (error) {
+    console.error("Exchange rate fetch error:", error);
 
-    const { data, error } = await sb
-      .from("exchange_rates")
-      .insert({
-        from_currency,
-        to_currency,
-        rate: parseFloat(rate),
-        date,
-      })
-      .select()
-      .single();
+    // Fallback to hardcoded rates for EUR and USD if API fails
+    const fallbackRates: Record<string, Record<string, number>> = {
+      EUR: {
+        SEK: 11.25, // Approximate EUR to SEK rate
+      },
+      USD: {
+        SEK: 10.50, // Approximate USD to SEK rate
+      },
+      GBP: {
+        SEK: 13.20, // Approximate GBP to SEK rate
+      },
+    };
 
-    if (error) {
-      console.error("Insert exchange rate error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    const fallbackRate = fallbackRates[from]?.[to];
+    if (fallbackRate) {
+      console.warn(`Using fallback rate for ${from} to ${to}: ${fallbackRate}`);
+      return NextResponse.json({
+        from,
+        to,
+        rate: fallbackRate,
+        timestamp: new Date().toISOString().split("T")[0],
+        fallback: true,
+      });
     }
 
-    return NextResponse.json({ success: true, data });
-  } catch (error) {
-    console.error("Exchange rates POST error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error: "Failed to fetch exchange rate and no fallback available",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 },
     );
   }
