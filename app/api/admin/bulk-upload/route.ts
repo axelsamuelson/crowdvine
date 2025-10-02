@@ -70,38 +70,58 @@ async function findSimilarProducers(supabase: any, producerName: string): Promis
 
 export async function POST(request: NextRequest) {
   try {
-    const formData = await request.formData();
-    const file = formData.get("file") as File;
+    const contentType = request.headers.get("content-type");
     
-    if (!file) {
-      return NextResponse.json(
-        { error: "No file uploaded" },
-        { status: 400 }
-      );
-    }
+    let products: ProductData[];
+    let errors: string[] = [];
 
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-      return NextResponse.json(
-        { error: "Only CSV files are supported" },
-        { status: 400 }
-      );
-    }
+    if (contentType?.includes("application/json")) {
+      // Handle JSON data from review step
+      const body = await request.json();
+      if (!body.products || !Array.isArray(body.products)) {
+        return NextResponse.json(
+          { error: "Invalid JSON data. Expected array of products" },
+          { status: 400 }
+        );
+      }
+      products = body.products;
+    } else {
+      // Handle CSV file upload (legacy endpoint)
+      const formData = await request.formData();
+      const file = formData.get("file") as File;
+      
+      if (!file) {
+        return NextResponse.json(
+          { error: "No file uploaded" },
+          { status: 400 }
+        );
+      }
 
-    // Read CSV content
-    const csvContent = await file.text();
-    const { products, errors } = await parseCSV(csvContent);
-    
-    if (errors.length > 0) {
-      return NextResponse.json({
-        error: "CSV parsing errors found",
-        details: errors,
-        parsedProducts: products.length
-      }, { status: 400 });
+      if (!file.name.toLowerCase().endsWith('.csv')) {
+        return NextResponse.json(
+          { error: "Only CSV files are supported" },
+          { status: 400 }
+        );
+      }
+
+      // Read CSV content
+      const csvContent = await file.text();
+      const parsed = await parseCSV(csvContent);
+      products = parsed.products;
+      errors = parsed.errors;
+      
+      if (errors.length > 0) {
+        return NextResponse.json({
+          error: "CSV parsing errors found",
+          details: errors,
+          parsedProducts: products.length
+        }, { status: 400 });
+      }
     }
 
     if (products.length === 0) {
       return NextResponse.json(
-        { error: "No valid products found in CSV" },
+        { error: "No valid products found" },
         { status: 400 }
       );
     }
