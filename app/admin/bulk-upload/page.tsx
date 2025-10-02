@@ -68,8 +68,16 @@ export default function BulkUploadPage() {
 
       if (response.ok) {
         setReviewProducts(data.products);
-        // Select all products by default
-        setSelectedProducts(new Set(data.products.map((_: any, index: number) => index)));
+        // Select products that can be uploaded (no critical errors)
+        setSelectedProducts(new Set(data.products
+          .map((p: any, index: number) => {
+            const hasCriticalIssues = p.rowIssues?.some((issue: string) => 
+              issue.includes('Critical:') || issue.includes('Error:')
+            );
+            return (p.canUpload !== false && !hasCriticalIssues) ? index : null;
+          })
+          .filter((index: number | null) => index !== null)
+        ));
         setStep('review');
         toast.success(`CSV parsed successfully. Found ${data.products.length} products to review`);
       } else {
@@ -358,7 +366,14 @@ export default function BulkUploadPage() {
                           type="checkbox"
                           checked={selectedProducts.has(index)}
                           onChange={() => toggleProductSelection(index)}
-                          className="w-4 h-4 text-gray-600 bg-gray-100 border-gray-300 rounded focus:ring-gray-500"
+                          disabled={product.rowIssues?.some((issue: string) => 
+                            issue.includes('Critical:') || issue.includes('Error: Cost')
+                          )}
+                          className={`w-4 h-4 text-gray-600 bg-gray-100 border-gray-300 rounded focus:ring-gray-500 ${
+                            product.rowIssues?.some((issue: string) => 
+                              issue.includes('Critical:') || issue.includes('Error: Cost')
+                            ) ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
                         />
                       </div>
 
@@ -373,7 +388,10 @@ export default function BulkUploadPage() {
                               Row {product.rowNumber} • {product.grape_varieties} • {product.color}
                             </div>
                             <div className="text-xs text-gray-600 mt-1">
-                              Price: {Math.ceil(product.base_price_cents / 100)} SEK
+                              {product.cost_amount && product.cost_currency ? 
+                                `Cost: ${product.cost_amount} ${product.cost_currency}, Margin: ${product.margin_percentage}%` :
+                                `Price: ${Math.ceil(product.base_price_cents / 100)} SEK`
+                              }
                             </div>
                             <div className="text-xs text-gray-500 mt-1">
                               Handle: <span className="font-mono">{product.handle}</span>
@@ -400,11 +418,54 @@ export default function BulkUploadPage() {
                           </div>
                         </div>
 
-                        {/* Producer Info and Suggestions */}
-                        <div className="mt-3">
+                        {/* Editable Fields */}
+                        <div className="mt-3 space-y-3">
+                          {/* Grape Varieties - Editable */}
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-gray-700">Producer:</span>
-                            <span className="text-sm text-gray-900">{product.producer_name}</span>
+                            <span className="text-sm font-medium text-gray-700 w-24">Grapes:</span>
+                            <input
+                              type="text"
+                              value={product.grape_varieties || product.grapeVarieties || ''}
+                              onChange={(e) => {
+                                const newProducts = [...reviewProducts];
+                                newProducts[index].grape_varieties = e.target.value;
+                                setReviewProducts(newProducts);
+                              }}
+                              className="flex-1 text-sm border border-gray-300 rounded px-2 py-1"
+                              placeholder="Grape varieties (optional)"
+                            />
+                          </div>
+                          
+                          {/* Producer - Editable */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-gray-700 w-24">Producer:</span>
+                            <input
+                              type="text"
+                              value={product.producer_name || ''}
+                              onChange={(e) => {
+                                const newProducts = [...reviewProducts];
+                                newProducts[index].producer_name = e.target.value;
+                                setReviewProducts(newProducts);
+                              }}
+                              className="flex-1 text-sm border border-gray-300 rounded px-2 py-1"
+                              placeholder="Producer name"
+                            />
+                          </div>
+                          
+                          {/* Description - Editable */}
+                          <div className="flex items-start gap-2">
+                            <span className="text-sm font-medium text-gray-700 w-24">Description:</span>
+                            <textarea
+                              value={product.description || ''}
+                              onChange={(e) => {
+                                const newProducts = [...reviewProducts];
+                                newProducts[index].description = e.target.value;
+                                setReviewProducts(newProducts);
+                              }}
+                              className="flex-1 text-sm border border-gray-300 rounded px-2 py-1"
+                              rows={2}
+                              placeholder="Description (optional)"
+                            />
                           </div>
                           
                           {/* Producer Suggestions */}
@@ -428,13 +489,28 @@ export default function BulkUploadPage() {
                             </div>
                           )}
 
-                          {/* Issues */}
+                          {/* Issues - Show parsing issues */}
+                          {(product.rowIssues && product.rowIssues.length > 0) && (
+                            <div className="mt-2 space-y-1">
+                              {product.rowIssues.map((issue: string, idx: number) => (
+                                <div key={idx} className={`text-xs p-2 rounded ${
+                                  issue.includes('Critical:') || issue.includes('Error:')
+                                    ? 'bg-red-50 text-red-700 border border-red-200'
+                                    : 'bg-yellow-50 text-yellow-700 border border-yellow-200'
+                                }`}>
+                                  {issue.includes('Critical:') ? '🚨' : issue.includes('Error:') ? '⚠️' : 'ℹ️'} {issue}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          
+                          {/* Legacy Issues */}
                           {product.issues && product.issues.length > 0 && (
                             <div className="mt-2">
                               {product.issues.map((issue: string, idx: number) => (
                                 <div key={idx} className={`text-xs p-2 rounded ${
-                                  product.status === 'error' 
-                                    ? 'bg-red-50 text-red-700 border border-red-200' 
+                                  product.status === 'error'
+                                    ? 'bg-red-50 text-red-700 border border-red-200'
                                     : 'bg-yellow-50 text-yellow-700 border border-yellow-200'
                                 }`}>
                                   ⚠️ {issue}

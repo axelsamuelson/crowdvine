@@ -147,14 +147,18 @@ async function parseCSV(csvContent: string): Promise<{
     'description html', 'image url'
   ];
 
-  // Validate headers and provide detailed error info
+  // Check for missing headers but continue parsing - show as issues in review
   const missingHeaders = expectedHeaders.filter(h => !headers.includes(h));
-  if (missingHeaders.length > 0) {
-    errors.push(`Missing required headers: ${missingHeaders.join(', ')}`);
-    errors.push(`Your CSV headers: ${headers.join(', ')}`);
-    errors.push(`Expected headers: ${expectedHeaders.join(', ')}`);
-    errors.push(`Make sure to use the latest CSV template downloaded from the bulk upload page.`);
-    return { products: [], errors };
+  
+  // Add severity levels to errors
+  const missingHeadersStr = missingHeaders.join(', ');
+  if (missingHeadersStr) {
+    const severityLevel = missingHeaders.includes('wine name') || missingHeaders.includes('vintage') ? 'critical' : 'warning';
+    errors.push(`${severityLevel}: Missing headers: ${missingHeadersStr}`);
+    if (missingHeadersStr.includes('wine name') || missingHeadersStr.includes('vintage')) {
+      errors.push(`Critical: Cannot parse without required fields: Wine Name and Vintage`);
+      return { products: [], errors };
+    }
   }
 
   const products: ProductData[] = [];
@@ -186,26 +190,44 @@ async function parseCSV(csvContent: string): Promise<{
         label_image_path: values[headers.indexOf('image url')]?.trim() || 'https://images.unsplash.com/photo-1553361371-9b22f78e8b5d?w=600&h=600&fit=crop&q=80'
       };
 
-      // Validate required fields
-      if (!product.wine_name) errors.push(`Row ${i + 1}: Wine name is required`);
-      if (!product.vintage) errors.push(`Row ${i + 1}: Vintage is required`);
-      if (!product.grape_varieties) errors.push(`Row ${i + 1}: Grape varieties is required`);
-      if (!product.color) errors.push(`Row ${i + 1}: Color is required`);
-      if (!['red', 'white', 'rose'].includes(product.color)) {
-        errors.push(`Row ${i + 1}: Color must be 'red', 'white', or 'rose'`);
+      // Collect issues instead of returning errors immediately
+      const rowIssues: string[] = [];
+      
+      // Critical fields - cannot proceed without these
+      if (!product.wine_name) rowIssues.push(`Critical: Wine name is required`);
+      if (!product.vintage) rowIssues.push(`Critical: Vintage is required`);
+      
+      // Required fields with defaults
+      if (!product.grape_varieties) {
+        product.grape_varieties = "Mixed varieties"; // Default value
+        rowIssues.push(`Warning: Grape varieties missing - using default`);
       }
-      if (product.cost_amount <= 0) errors.push(`Row ${i + 1}: Cost must be greater than 0`);
-      if (!product.producer_name) errors.push(`Row ${i + 1}: Producer name is required`);
-      if (!product.description) errors.push(`Row ${i + 1}: Description is required`);
+      if (!product.description) {
+        product.description = "Premium wine from this producer"; // Default value
+        rowIssues.push(`Warning: Description missing - using default`);
+      }
+      
+      // Required fields that must be fixed
+      if (!product.color) rowIssues.push(`Error: Color is required`);
+      else if (!['red', 'white', 'rose'].includes(product.color)) {
+        rowIssues.push(`Error: Color must be 'red', 'white', or 'rose'`);
+      }
+      
+      if (product.cost_amount <= 0) rowIssues.push(`Error: Cost must be greater than 0`);
+      if (!product.producer_name) rowIssues.push(`Error: Producer name is required`);
       if (product.margin_percentage <= 0 || product.margin_percentage >= 100) {
-        errors.push(`Row ${i + 1}: Margin must be between 1 and 99`);
+        rowIssues.push(`Error: Margin must be between 1 and 99`);
       }
-
+      
       // Generate HTML description if not provided
       if (!product.description_html) {
         product.description_html = `<p>${product.description}</p>`;
       }
 
+      // Add to products list - collect all issues for review
+      (product as any).rowIssues = rowIssues.length > 0 ? rowIssues.map(issue => `Row ${i + 1}: ${issue}`) : [];
+      (product as any).canUpload = !rowIssues.some(issue => issue.startsWith('Critical:') || issue.startsWith('Error:'));
+      
       products.push(product);
     } catch (error) {
       errors.push(`Row ${i + 1}: Invalid data format`);

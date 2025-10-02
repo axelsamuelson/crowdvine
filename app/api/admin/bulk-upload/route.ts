@@ -224,18 +224,36 @@ async function parseCSV(csvContent: string): Promise<{
         label_image_path: values[headers.indexOf('image url')]?.trim() || 'https://images.unsplash.com/photo-1553361371-9b22f78e8b5d?w=600&h=600&fit=crop&q=80'
       };
 
-      // Validate required fields
-      if (!product.wine_name) errors.push(`Row ${i + 1}: Wine name is required`);
-      if (!product.vintage) errors.push(`Row ${i + 1}: Vintage is required`);
-      if (!product.grape_varieties) errors.push(`Row ${i + 1}: Grape varieties is required`);
-      if (!product.color) errors.push(`Row ${i + 1}: Color is required`);
-      if (!['red', 'white', 'rose'].includes(product.color)) {
-        errors.push(`Row ${i + 1}: Color must be 'red', 'white', or 'rose'`);
+      // Validate and set defaults for flexible parsing
+      const rowErrors: string[] = [];
+      
+      // Critical fields - cannot proceed without these
+      if (!product.wine_name) rowErrors.push(`Row ${i + 1}: Wine name is required`);
+      if (!product.vintage) rowErrors.push(`Row ${i + 1}: Vintage is required`);
+      
+      // Apply defaults for optional fields
+      if (!product.grape_varieties) {
+        product.grape_varieties = "Mixed varieties";
       }
-      if (product.cost_amount <= 0) errors.push(`Row ${i + 1}: Cost must be greater than 0`);
-      if (!product.producer_name) errors.push(`Row ${i + 1}: Producer name is required`);
-      if (product.margin_percentage <= 0 || product.margin_percentage >= 100) errors.push(`Row ${i + 1}: Margin must be between 1 and 99`);
-      if (!product.description) errors.push(`Row ${i + 1}: Description is required`);
+      if (!product.description) {
+        product.description = "Premium wine from this producer";
+      }
+      
+      // Other validations
+      if (!product.color) rowErrors.push(`Row ${i + 1}: Color is required`);
+      else if (!['red', 'white', 'rose'].includes(product.color)) {
+        rowErrors.push(`Row ${i + 1}: Color must be 'red', 'white', or 'rose'`);
+      }
+      if (product.cost_amount <= 0) rowErrors.push(`Row ${i + 1}: Cost must be greater than 0`);
+      if (!product.producer_name) rowErrors.push(`Row ${i + 1}: Producer name is required`);
+      if (product.margin_percentage <= 0 || product.margin_percentage >= 100) {
+        rowErrors.push(`Row ${i + 1}: Margin must be between 1 and 99`);
+      }
+      
+      // Add errors if any
+      if (rowErrors.length > 0) {
+        errors.push(...rowErrors);
+      }
 
       // Generate HTML description if not provided
       if (!product.description_html) {
