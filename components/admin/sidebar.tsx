@@ -17,7 +17,6 @@ import {
   Gift,
   Shield,
   LogOut,
-  Upload,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -45,11 +44,6 @@ const navigation = [
      name: "Wines",
      href: "/admin/wines",
      icon: Wine,
-   },
-   {
-     name: "Bulk Upload",
-     href: "/admin/bulk-upload",
-     icon: Upload,
    },
    {
      name: "Zones",

@@ -156,7 +156,7 @@ async function parseCSV(csvContent: string): Promise<{
       }
 
       products.push(product);
-    } } catch (error) {
+    } catch (error) {
       errors.push(`Row ${i + 1}: Invalid data format`);
     }
   }

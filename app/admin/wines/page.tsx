@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DeleteWineButton } from "@/components/admin/delete-wine-button";
+import { Upload } from "lucide-react";
 
 const colorColors = {
   red: "bg-red-100 text-red-800",
@@ -28,9 +29,17 @@ export default async function WinesPage() {
           <h1 className="text-3xl font-bold text-gray-900">Wines</h1>
           <p className="text-gray-600">Manage wine products</p>
         </div>
-        <Link href="/admin/wines/new">
-          <Button>Add Wine</Button>
-        </Link>
+        <div className="flex gap-3">
+          <Link href="/admin/bulk-upload">
+            <Button variant="outline" className="bg-gray-50 hover:bg-gray-100">
+              <Upload className="w-4 h-4 mr-2" />
+              Bulk Upload
+            </Button>
+          </Link>
+          <Link href="/admin/wines/new">
+            <Button>Add Wine</Button>
+          </Link>
+        </div>
       </div>
 
       {/* Wines Table */}
