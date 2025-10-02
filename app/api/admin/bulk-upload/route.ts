@@ -186,10 +186,13 @@ async function parseCSV(csvContent: string): Promise<{
     'description html', 'image url'
   ];
 
-  // Validate headers
+  // Validate headers and provide detailed error info
   const missingHeaders = expectedHeaders.filter(h => !headers.includes(h));
   if (missingHeaders.length > 0) {
     errors.push(`Missing required headers: ${missingHeaders.join(', ')}`);
+    errors.push(`Your CSV headers: ${headers.join(', ')}`);
+    errors.push(`Expected headers: ${expectedHeaders.join(', ')}`);
+    errors.push(`Make sure to use the latest CSV template downloaded from the bulk upload page.`);
     return { products: [], errors };
   }
 

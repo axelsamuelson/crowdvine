@@ -296,6 +296,13 @@ export default function BulkUploadPage() {
                 </div>
               </div>
             </div>
+            
+            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="text-sm text-yellow-800">
+                <strong>⚠️ If you get CSV parsing errors:</strong> Make sure to download the latest template from above. 
+                Old templates may have different column names like "Base Price (SEK)" and "Handle" which are no longer valid.
+              </div>
+            </div>
           </CardContent>
         </Card>
 
