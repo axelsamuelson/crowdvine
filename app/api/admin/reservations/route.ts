@@ -31,12 +31,6 @@ export async function GET() {
         pickup_zone_id,
         payment_status,
         fulfillment_status,
-        profiles(
-          email,
-          first_name,
-          last_name,
-          full_name
-        )
       `,
       )
       .order("created_at", { ascending: false });

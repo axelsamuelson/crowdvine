@@ -136,8 +136,8 @@ export default function ReservationsPage() {
     const searchLower = searchTerm.toLowerCase();
     return (
       reservation.order_id?.toLowerCase().includes(searchLower) ||
-      reservation.profiles?.email?.toLowerCase().includes(searchLower) ||
-      reservation.profiles?.full_name?.toLowerCase().includes(searchLower) ||
+      reservation.user_id?.toLowerCase().includes(searchLower) ||
+      // Note: profiles data not available until foreign key is set up
       reservation.status?.toLowerCase().includes(searchLower)
     );
   });
@@ -355,12 +355,10 @@ export default function ReservationsPage() {
                       <td className="p-2">
                         <div className="text-xs">
                           <div className="font-medium text-gray-900">
-                            {reservation.profiles?.full_name || 
-                             reservation.profiles?.email || 
-                             "Unknown"}
+                            User: {reservation.user_id?.substring(0, 8) || "Unknown"}
                           </div>
                           <div className="text-xs text-gray-500 truncate max-w-[120px]">
-                            {reservation.profiles?.email}
+                            ID: {reservation.user_id}
                           </div>
                         </div>
                       </td>
