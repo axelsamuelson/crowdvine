@@ -31,7 +31,7 @@ export async function GET() {
         pickup_zone_id,
         payment_status,
         fulfillment_status,
-        profiles!inner(
+        profiles(
           email,
           first_name,
           last_name,

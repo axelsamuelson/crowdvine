@@ -61,7 +61,7 @@ export async function GET() {
         order_id,
         payment_status,
         fulfillment_status,
-        profiles!inner(
+        profiles(
           email,
           first_name,
           last_name,
