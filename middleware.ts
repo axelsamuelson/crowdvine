@@ -36,6 +36,9 @@ export async function middleware(req: NextRequest) {
   console.log("🍪 MIDDLEWARE: Cookie info:", {
     hasAuthCookie: !!req.cookies.get("sb-access-token"),
     hasRefreshCookie: !!req.cookies.get("sb-refresh-token"),
+    hasAdminAuthCookie: !!req.cookies.get("admin-auth"),
+    hasAdminEmailCookie: !!req.cookies.get("admin-email"),
+    adminEmailValue: req.cookies.get("admin-email")?.value,
     cookieNames: cookieNames
   });
 
@@ -50,7 +53,17 @@ export async function middleware(req: NextRequest) {
   });
 
   if (!isPublic) {
-    // Först kontrollera om användaren är inloggad
+    // Check for admin authentication first (for admin routes)
+    const adminAuthCookie = req.cookies.get("admin-auth")?.value;
+    const adminEmailCookie = req.cookies.get("admin-email")?.value;
+    const isAdminPath = pathname.startsWith("/admin");
+    
+    if (isAdminPath && adminAuthCookie === "true" && adminEmailCookie) {
+      console.log("✅ MIDDLEWARE: Admin access detected, allowing:", pathname);
+      return res;
+    }
+
+    // Först kontrollera om användaren är inloggad (normal auth)
     if (!user) {
       console.log("🚫 MIDDLEWARE: No user found, redirecting to access-request");
       const ask = new URL("/access-request", req.url);
