@@ -2,6 +2,9 @@ import { redirect } from "next/navigation";
 import { getCurrentAdmin } from "@/lib/admin-auth-server";
 import { AdminLayoutClient } from "./admin-layout-client";
 
+// Force dynamic rendering for admin layout since it uses cookies
+export const dynamic = 'force-dynamic';
+
 export default async function AdminLayout({
   children,
 }: {
