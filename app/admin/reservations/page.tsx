@@ -26,11 +26,10 @@ import {
   Download,
   MoreHorizontal,
   Trash2,
-  Edit,
-  Eye,
 } from "lucide-react";
 
 export default function ReservationsPage() {
+  const router = useRouter();
   const [reservations, setReservations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedReservations, setSelectedReservations] = useState<string[]>(
@@ -135,11 +134,20 @@ export default function ReservationsPage() {
     if (!searchTerm) return true;
     const searchLower = searchTerm.toLowerCase();
     return (
-      reservation.id?.toLowerCase().includes(searchLower) ||
-      reservation.user_id?.toLowerCase().includes(searchLower) ||
+      reservation.order_id?.toLowerCase().includes(searchLower) ||
+      reservation.profiles?.email?.toLowerCase().includes(searchLower) ||
+      reservation.profiles?.full_name?.toLowerCase().includes(searchLower) ||
       reservation.status?.toLowerCase().includes(searchLower)
     );
   });
+
+  const handleRowClick = (reservation: any) => {
+    // Navigate to order details using reservation's order_id
+    const orderId = reservation.order_id;
+    if (orderId) {
+      router.push(`/admin/orders/${orderId}`);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -289,26 +297,29 @@ export default function ReservationsPage() {
                         onCheckedChange={handleSelectAll}
                       />
                     </th>
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">
-                      Reservation ID
+                    <th className="text-left p-2 text-xs font-medium text-gray-600">
+                      Order ID
                     </th>
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">
-                      Customer
-                    </th>
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">
-                      Status
-                    </th>
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">
-                      Delivery Zone
-                    </th>
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">
-                      Pickup Zone
-                    </th>
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">
+                    <th className="text-left p-2 text-xs font-medium text-gray-600">
                       Date
                     </th>
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">
-                      Actions
+                    <th className="text-left p-2 text-xs font-medium text-gray-600">
+                      Customer
+                    </th>
+                    <th className="text-left p-2 text-xs font-medium text-gray-600">
+                      Total (Cost)
+                    </th>
+                    <th className="text-left p-2 text-xs font-medium text-gray-600">
+                      Payment Status
+                    </th>
+                    <th className="text-left p-2 text-xs font-medium text-gray-600">
+                      Fulfillment Status
+                    </th>
+                    <th className="text-left p-2 text-xs font-medium text-gray-600">
+                      Delivery Zone
+                    </th>
+                    <th className="text-left p-2 text-xs font-medium text-gray-600">
+                      Pickup Zone
                     </th>
                   </tr>
                 </thead>
@@ -316,9 +327,10 @@ export default function ReservationsPage() {
                   {filteredReservations.map((reservation) => (
                     <tr
                       key={reservation.id}
-                      className="border-b border-gray-100 hover:bg-gray-50"
-                    >
-                      <td className="p-3">
+                      className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
+                      onClick={() => handleRowClick(reservation)}
+                >
+                      <td className="p-2" onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={selectedReservations.includes(
                             reservation.id,
@@ -331,63 +343,66 @@ export default function ReservationsPage() {
                           }
                         />
                       </td>
-                      <td className="p-3">
-                        <div className="font-mono text-sm text-gray-600">
-                          {reservation.id?.substring(0, 8)}...
+                      <td className="p-2">
+                        <div className="font-mono text-xs text-gray-600">
+                          {reservation.order_id?.substring(0, 8) || reservation.id?.substring(0, 8) || "N/A"}
                         </div>
                       </td>
-                      <td className="p-3">
-                        <div>
+                      <td className="p-2 text-xs text-gray-500">
+                        {new Date(reservation.created_at).toLocaleDateString("sv-SE")}
+                      </td>
+                      <td className="p-2">
+                        <div className="text-xs">
                           <div className="font-medium text-gray-900">
-                            {reservation.user_id
-                              ? `User ${reservation.user_id.substring(0, 8)}...`
-                              : "Unknown"}
+                            {reservation.profiles?.full_name || 
+                             reservation.profiles?.email || 
+                             "Unknown"}
                           </div>
-                          <div className="text-sm text-gray-500">Customer</div>
+                          <div className="text-xs text-gray-500 truncate max-w-[120px]">
+                            {reservation.profiles?.email}
+                          </div>
                         </div>
                       </td>
-                      <td className="p-3">
+                      <td className="p-2 text-xs text-gray-500">
+                        N/A
+                      </td>
+                      <td className="p-2">
                         <Badge
                           variant="secondary"
                           className={
-                            reservation.status === "placed"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-orange-100 text-orange-800"
+                            reservation.payment_status === "paid"
+                              ? "bg-green-100 text-green-800 text-xs"
+                              : reservation.payment_status === "pending"
+                                ? "bg-yellow-100 text-yellow-800 text-xs"
+                                : "bg-red-100 text-red-800 text-xs"
                           }
                         >
-                          {reservation.status || "Unknown"}
+                          {reservation.payment_status || "Pending"}
                         </Badge>
                       </td>
-                      <td className="p-3 text-gray-900">
+                      <td className="p-2">
+                        <Badge
+                          variant="secondary"
+                          className={
+                            reservation.fulfillment_status === "fulfilled"
+                              ? "bg-green-100 text-green-800 text-xs"
+                              : reservation.fulfillment_status === "processing"
+                                ? "bg-blue-100 text-blue-800 text-xs"
+                                : "bg-gray-100 text-gray-800 text-xs"
+                          }
+                        >
+                          {reservation.fulfillment_status || "Pending"}
+                        </Badge>
+                      </td>
+                      <td className="p-2 text-xs text-gray-900">
                         {reservation.delivery_zone_id
                           ? `Zone ${reservation.delivery_zone_id}`
                           : "None"}
                       </td>
-                      <td className="p-3 text-gray-900">
+                      <td className="p-2 text-xs text-gray-900">
                         {reservation.pickup_zone_id
                           ? `Zone ${reservation.pickup_zone_id}`
                           : "None"}
-                      </td>
-                      <td className="p-3 text-sm text-gray-500">
-                        {new Date(reservation.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="p-3">
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs"
-                          >
-                            <Eye className="h-3 w-3 mr-1" />
-                            View
-                          </Button>
-                          <Link href={`/admin/reservations/${reservation.id}`}>
-                            <Button size="sm" className="text-xs">
-                              <Edit className="h-3 w-3 mr-1" />
-                              Edit
-                            </Button>
-                          </Link>
-                        </div>
                       </td>
                     </tr>
                   ))}

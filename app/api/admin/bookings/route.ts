@@ -49,7 +49,7 @@ export async function GET() {
 
     console.log(`Found ${bookings?.length || 0} bookings`);
 
-    // Hämta reservations för att få kundinformation och order ID
+    // Hämta reservations för att få kundinformation och order ID med user profiles
     const { data: reservations, error: reservationsError } = await sb
       .from("order_reservations")
       .select(
@@ -58,7 +58,15 @@ export async function GET() {
         status,
         created_at,
         user_id,
-        order_id
+        order_id,
+        payment_status,
+        fulfillment_status,
+        profiles!inner(
+          email,
+          first_name,
+          last_name,
+          full_name
+        )
       `,
       )
       .order("created_at", { ascending: false });

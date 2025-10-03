@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -26,11 +27,10 @@ import {
   Download,
   MoreHorizontal,
   Trash2,
-  Edit,
-  Eye,
 } from "lucide-react";
 
 export default function BookingsPage() {
+  const router = useRouter();
   const [bookings, setBookings] = useState<any[]>([]);
   const [reservations, setReservations] = useState<any[]>([]);
   const [bookingsWithReservationInfo, setBookingsWithReservationInfo] =
@@ -68,12 +68,15 @@ export default function BookingsPage() {
             ...booking,
             reservation: matchingReservation || {
               id: booking.user_id, // Use user_id as fallback
+              order_id: booking.id, // Use booking ID as fallback order ID
               status: booking.status || "reserved",
               created_at: booking.created_at,
               user_id: booking.user_id,
+              payment_status: "pending",
+              fulfillment_status: "pending",
               profiles: {
                 email: `user-${booking.user_id.substring(0, 8)}`,
-                role: "customer",
+                full_name: "Unknown Customer",
               },
             },
           };
@@ -169,9 +172,20 @@ export default function BookingsPage() {
       booking.reservation?.profiles?.email
         ?.toLowerCase()
         .includes(searchLower) ||
-      booking.reservation?.id?.toLowerCase().includes(searchLower)
+      booking.reservation?.profiles?.full_name
+        ?.toLowerCase()
+        .includes(searchLower) ||
+      booking.reservation?.order_id?.toLowerCase().includes(searchLower)
     );
   });
+
+  const handleRowClick = (booking: any) => {
+    // Navigate to order details using reservation's order_id
+    const orderId = booking.reservation?.order_id;
+    if (orderId) {
+      router.push(`/admin/orders/${orderId}`);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -299,7 +313,7 @@ export default function BookingsPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">
+                    <th className="text-left p-2 text-xs font-medium text-gray-600">
                       <Checkbox
                         checked={
                           selectedBookings.length === filteredBookings.length &&
@@ -308,48 +322,42 @@ export default function BookingsPage() {
                         onCheckedChange={handleSelectAll}
                       />
                     </th>
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">
+                    <th className="text-left p-2 text-xs font-medium text-gray-600">
                       Order ID
                     </th>
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">
+                    <th className="text-left p-2 text-xs font-medium text-gray-600">
+                      Date
+                  </th>
+                    <th className="text-left p-2 text-xs font-medium text-gray-600">
                       Customer
                     </th>
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">
-                      Status
+                    <th className="text-left p-2 text-xs font-medium text-gray-600">
+                      Total (Cost)
                     </th>
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">
+                    <th className="text-left p-2 text-xs font-medium text-gray-600">
+                      Payment Status
+                    </th>
+                    <th className="text-left p-2 text-xs font-medium text-gray-600">
+                      Fulfillment Status
+                    </th>
+                    <th className="text-left p-2 text-xs font-medium text-gray-600">
                       Wine
                     </th>
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">
+                    <th className="text-left p-2 text-xs font-medium text-gray-600">
                       Producer
                     </th>
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">
-                      Pallet
-                    </th>
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">
+                    <th className="text-left p-2 text-xs font-medium text-gray-600">
                       Quantity
                     </th>
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">
-                      Price Band
-                    </th>
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">
-                      Value
-                    </th>
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">
-                      Date
-                    </th>
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">
-                      Actions
+                    <th className="text-left p-2 text-xs font-medium text-gray-600">
+                      Pallet
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredBookings.map((booking) => (
-                    <tr
-                      key={booking.id}
-                      className="border-b border-gray-100 hover:bg-gray-50"
-                    >
-                      <td className="p-3">
+                      <tr<｜tool▁sep｜>key={booking.id}className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"onClick={() => handleRowClick(booking)}>
+                      <td className="p-2" onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={selectedBookings.includes(booking.id)}
                           onCheckedChange={(checked) =>
@@ -357,86 +365,78 @@ export default function BookingsPage() {
                           }
                         />
                       </td>
-                      <td className="p-3">
-                        <div className="font-mono text-sm text-gray-600">
-                          {booking.reservation?.id?.substring(0, 8) || "N/A"}
+                      <td className="p-2">
+                        <div className="font-mono text-xs text-gray-600">
+                          {booking.reservation?.order_id?.substring(0, 8) || booking.id?.substring(0, 8) || "N/A"}
                         </div>
                       </td>
-                      <td className="p-3">
-                        <div>
+                      <td className="p-2 text-xs text-gray-500">
+                        {new Date(booking.created_at).toLocaleDateString("sv-SE")}
+                      </td>
+                      <td className="p-2">
+                        <div className="text-xs">
                           <div className="font-medium text-gray-900">
-                            {booking.reservation?.profiles?.email || "Unknown"}
+                            {booking.reservation?.profiles?.full_name || 
+                             booking.reservation?.profiles?.email || 
+                             "Unknown"}
                           </div>
-                          <div className="text-sm text-gray-500">
-                            {booking.reservation?.profiles?.role || "Customer"}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-3">
-                        <Badge
-                          variant="secondary"
-                          className={
-                            booking.reservation?.status === "placed"
-                              ? "bg-blue-100 text-blue-800"
-                              : booking.reservation?.status === "confirmed"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-gray-100 text-gray-800"
-                          }
-                        >
-                          {booking.reservation?.status ||
-                            booking.status ||
-                            "Unknown"}
-                        </Badge>
-                      </td>
-                      <td className="p-3">
-                        <div>
-                          <div className="font-medium text-gray-900">
-                            {booking.wines?.wine_name} {booking.wines?.vintage}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {booking.wines?.grape_varieties}
+                          <div className="text-xs text-gray-500 truncate max-w-[120px]">
+                            {booking.reservation?.profiles?.email}
                           </div>
                         </div>
                       </td>
-                      <td className="p-3 text-gray-900">
-                        {booking.wines?.producers?.name}
-                      </td>
-                      <td className="p-3 text-gray-900">
-                        {booking.pallets?.name || "No Pallet Assigned"}
-                      </td>
-                      <td className="p-3">
-                        <Badge
-                          variant="secondary"
-                          className="bg-blue-100 text-blue-800"
-                        >
-                          {booking.quantity} bottles
-                        </Badge>
-                      </td>
-                      <td className="p-3 text-gray-900">{booking.band}</td>
-                      <td className="p-3 font-medium text-gray-900">
+                      <td className="p-2 text-xs font-medium text-gray-900">
                         {formatPrice(
                           (booking.wines?.base_price_cents || 0) *
                             booking.quantity,
                         )}
                       </td>
-                      <td className="p-3 text-sm text-gray-500">
-                        {new Date(booking.created_at).toLocaleDateString()}
+                      <td className="p-2">
+                        <Badge
+                          variant="secondary"
+                          className={
+                            booking.reservation?.payment_status === "paid"
+                              ? "bg-green-100 text-green-800 text-xs"
+                              : booking.reservation?.payment_status === "pending"
+                                ? "bg-yellow-100 text-yellow-800 text-xs"
+                                : "bg-red-100 text-red-800 text-xs"
+                          }
+                        >
+                          {booking.reservation?.payment_status || "Pending"}
+                        </Badge>
                       </td>
-                      <td className="p-3">
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs"
-                          >
-                            <Eye className="h-3 w-3 mr-1" />
-                            View
-                          </Button>
-                          <Button size="sm" className="text-xs">
-                            <Edit className="h-3 w-3 mr-1" />
-                            Edit
-                          </Button>
+                      <td className="p-2">
+                        <Badge
+                          variant="secondary"
+                          className={
+                            booking.reservation?.fulfillment_status === "fulfilled"
+                              ? "bg-green-100 text-green-800 text-xs"
+                              : booking.reservation?.fulfillment_status === "processing"
+                                ? "bg-blue-100 text-blue-800 text-xs"
+                                : "bg-gray-100 text-gray-800 text-xs"
+                          }
+                        >
+                          {booking.reservation?.fulfillment_status || "Pending"}
+                        </Badge>
+                      </td>
+                      <td className="p-2">
+                        <div className="text-xs font-medium text-gray-900">
+                          {booking.wines?.wine_name} {booking.wines?.vintage}
                         </div>
+                      </td>
+                      <td className="p-2 text-xs text-gray-900">
+                        {booking.wines?.producers?.name}
+                      </td>
+                      <td className="p-2">
+                        <Badge
+                          variant="secondary"
+                          className="bg-blue-100 text-blue-800 text-xs"
+                        >
+                          {booking.quantity}
+                        </Badge>
+                      </td>
+                      <td className="p-2 text-xs text-gray-900">
+                        {booking.pallets?.name || "Unassigned"}
                       </td>
                     </tr>
                   ))}

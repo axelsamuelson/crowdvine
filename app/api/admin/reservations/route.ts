@@ -17,7 +17,7 @@ export async function GET() {
   try {
     const sb = getSupabaseAdmin();
 
-    // Hämta alla reservations med relaterad data
+    // Hämta alla reservations med relaterad data inklusive customer info
     const { data: reservations, error: reservationsError } = await sb
       .from("order_reservations")
       .select(
@@ -26,8 +26,17 @@ export async function GET() {
         status,
         created_at,
         user_id,
+        order_id,
         delivery_zone_id,
-        pickup_zone_id
+        pickup_zone_id,
+        payment_status,
+        fulfillment_status,
+        profiles!inner(
+          email,
+          first_name,
+          last_name,
+          full_name
+        )
       `,
       )
       .order("created_at", { ascending: false });
