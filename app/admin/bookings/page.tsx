@@ -356,7 +356,11 @@ export default function BookingsPage() {
                 </thead>
                 <tbody>
                   {filteredBookings.map((booking) => (
-                      <tr<｜tool▁sep｜>key={booking.id}className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"onClick={() => handleRowClick(booking)}>
+                      <tr
+                        key={booking.id}
+                        className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
+                        onClick={() => handleRowClick(booking)}
+                      >
                       <td className="p-2" onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={selectedBookings.includes(booking.id)}
