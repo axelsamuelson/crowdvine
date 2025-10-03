@@ -144,6 +144,7 @@ export async function GET(
     const { id } = resolvedParams;
     const supabase = getSupabaseAdmin();
 
+    // First try to find by order_id, then by id as fallback
     const { data: reservation, error } = await supabase
       .from("order_reservations")
       .select(
@@ -158,7 +159,12 @@ export async function GET(
             grape_varieties,
             color,
             base_price_cents,
-            label_image_path
+            label_image_path,
+            producers(
+              name,
+              region,
+              country_code
+            )
           )
         ),
         user_addresses(
@@ -166,11 +172,68 @@ export async function GET(
           address_city,
           address_postcode,
           country_code
+        ),
+        profiles!inner(
+          email,
+          first_name,
+          last_name,
+          full_name
         )
       `,
       )
-      .eq("id", id)
+      .eq("order_id", id)
       .single();
+
+    if (error && error.code === 'PGRST116') {
+      // Not found by order_id, try by id instead
+      const { data: reservationById, error: errorById } = await supabase
+        .from("order_reservations")
+        .select(
+          `
+          *,
+          order_reservation_items(
+            *,
+            wines(
+              id,
+              wine_name,
+              vintage,
+              grape_varieties,
+              color,
+                      base_price_cents,
+              label_image_path,
+              producers(
+                name,
+                region,
+                country_code
+              )
+            )
+          ),
+          user_addresses(
+            address_street,
+            address_city,
+            address_postcode,
+            country_code
+          ),
+          profiles!inner(
+            email,
+            first_name,
+            last_name,
+            full_name
+          )
+        `,
+        )
+        .eq("id", id)
+        .single();
+
+      if (errorById || !reservationById) {
+        return NextResponse.json(
+          { error: "Reservation not found" },
+          { status: 404 },
+        );
+      }
+
+      return NextResponse.json({ reservation: reservationById });
+    }
 
     if (error || !reservation) {
       return NextResponse.json(

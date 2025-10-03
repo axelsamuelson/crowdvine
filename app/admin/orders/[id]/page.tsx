@@ -16,7 +16,7 @@ import { ArrowLeft, Calendar, User, Package, MapPin, CreditCard, CheckCircle } f
 export default function OrderDetailsPage() {
   const params = useParams();
   const router = useRouter();
-  const orderId = params.orderId as string;
+  const orderId = params.id as string; // Change to 'id' to match existing dynamic route pattern
   
   const [orderData, setOrderData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -28,23 +28,25 @@ export default function OrderDetailsPage() {
 
   const fetchOrderDetails = async () => {
     try {
-      // Fetch order details from reservations API
+      // Fetch reservation details (handles both order_id and id lookup)
       const reservationResponse = await fetch(`/api/admin/reservations/${orderId}`);
       const reservationData = await reservationResponse.json();
       
-      // Fetch booking details 
-      const bookingsResponse = await fetch("/api/admin/bookings");
-      const bookingsData = await bookingsResponse.json();
+      if (!reservationData.reservation) {
+        throw new Error("Reservation not found");
+      }
       
-      // Filter bookings for this specific reservation
-      const reservationBookings = bookingsData.bookings?.filter((booking: any) => 
-        bookingsData.reservations.some((reservation: any) => 
-          reservation.user_id === booking.user_id && 
-          reservation.id === orderId
-        )
-      ) || [];
+      const reservation = reservationData.reservation;
       
-      const reservation = reservationsData.reservations?.find((r: any) => r.id === orderId);
+      // Convert reservation items to booking-like structure for easier display
+      const reservationBookings = reservation.order_reservation_items?.map((item: any) => ({
+        id: item.id,
+        quantity: item.quantity,
+        wines: item.wines,
+        pallets: { name: "No Pallet" }, // No pallet info available in reservation_items
+        created_at: reservation.created_at,
+        band: null, // Not available in reservation data
+      })) || [];
       
       setOrderData(reservation);
       setBookings(reservationBookings);
