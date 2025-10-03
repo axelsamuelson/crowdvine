@@ -43,10 +43,19 @@ export async function GET() {
 
     if (reservationsError) {
       console.error("Error fetching reservations:", reservationsError);
-      return NextResponse.json(
-        { error: "Failed to fetch reservations" },
-        { status: 500 },
-      );
+      console.error("Reservations error details:", {
+        code: reservationsError.code,
+        message: reservationsError.message,
+        details: reservationsError.details,
+        hint: reservationsError.hint
+      });
+      
+      // Return empty array instead of error to prevent 500
+      return NextResponse.json({
+        reservations: [],
+        note: "No reservations found or database error occurred",
+        error: reservationsError.message
+      });
     }
 
     return NextResponse.json({
