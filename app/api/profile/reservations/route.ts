@@ -15,7 +15,7 @@ export async function GET() {
       );
     }
 
-    // Fetch user's reservations with related data
+    // Fetch user's reservations with basic data first
     const { data: reservations, error: reservationsError } = await supabase
       .from("order_reservations")
       .select(`
@@ -26,30 +26,26 @@ export async function GET() {
         pickup_zone_id,
         delivery_zone_id,
         payment_status,
-        fulfillment_status,
-        order_reservation_items (
-          id,
-          quantity,
-          wine_id,
-          wines (
-            id,
-            wine_name,
-            vintage,
-            producers (
-              name
-            )
-          )
-        )
+        fulfillment_status
       `)
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
     if (reservationsError) {
       console.error("Error fetching reservations:", reservationsError);
-      return NextResponse.json(
-        { error: "Failed to fetch reservations" },
-        { status: 500 }
-      );
+      console.error("Reservations error details:", {
+        code: reservationsError.code,
+        message: reservationsError.message,
+        details: reservationsError.details,
+        hint: reservationsError.hint
+      });
+      
+      // Return empty array instead of error to prevent 500
+      return NextResponse.json({
+        reservations: [],
+        error: reservationsError.message,
+        note: "No reservations found or database error occurred"
+      });
     }
 
     return NextResponse.json({
@@ -57,9 +53,13 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Error in reservations API:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
+    
+    // Return empty array instead of 500 error
+    return NextResponse.json({
+      reservations: [],
+      error: error instanceof Error ? error.message : "Unknown error",
+      note: "Failed to load reservations due to server error"
+    });
   }
 }

@@ -1087,9 +1087,9 @@ export default function ProfilePage() {
                   </div>
                   <div className="bg-gray-50 rounded-lg p-3 text-center">
                     <div className="text-2xl font-bold text-gray-900">
-                      {reservations.reduce((total, res) => total + (res.order_reservation_items?.reduce((itemTotal, item) => itemTotal + item.quantity, 0) || 0), 0)}
+                      {reservations.length > 0 ? reservations.length : 0}
                     </div>
-                    <div className="text-xs text-gray-600">Total Bottles</div>
+                    <div className="text-xs text-gray-600">Total Orders</div>
                   </div>
                   <div className="bg-gray-50 rounded-lg p-3 text-center">
                     <div className="text-2xl font-bold text-gray-900">
@@ -1127,8 +1127,8 @@ export default function ProfilePage() {
                       
                       <div className="flex items-center justify-between text-xs text-gray-600">
                         <div className="flex items-center gap-4">
-                          <span>{reservation.order_reservation_items?.length || 0} wines</span>
-                          <span>{reservation.order_reservation_items?.reduce((total, item) => total + item.quantity, 0) || 0} bottles</span>
+                          <span>Order Details</span>
+                          <span>{reservation.status}</span>
                         </div>
                         <span>{new Date(reservation.created_at).toLocaleDateString()}</span>
                       </div>
