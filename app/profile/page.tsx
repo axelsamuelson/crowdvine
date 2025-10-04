@@ -479,7 +479,7 @@ export default function ProfilePage() {
 
   return (
     <PageLayout className="pt-12">
-      <div className="max-w-4xl mx-auto space-y-12">
+      <div className="max-w-6xl mx-auto space-y-12">
         {/* Premium Header with subtle background */}
         <div className="relative bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-2xl p-8 border border-gray-200/50">
           <div className="flex items-start justify-between">
@@ -510,9 +510,10 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
+        {/* Profile Top Sections - Responsive Layout */}
+        <div className="profile-top grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 items-start">
           {/* Personal Information - Premium Design */}
-          <div className="space-y-6">
+          <section data-section="personal-info" className="space-y-6">
             <div className="flex items-center justify-between pt-2">
               <h2 className="text-xl font-light text-gray-900">Personal Information</h2>
               <Button
@@ -670,9 +671,10 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
+          </section>
 
           {/* Payment Methods - Premium Design */}
-          <div className="space-y-6">
+          <section data-section="payment-methods" className="space-y-6">
             <div className="flex items-center justify-between pt-2">
               <h2 className="text-xl font-light text-gray-900">Payment Methods</h2>
               <div className="flex items-center gap-2 text-xs text-gray-400">
@@ -728,8 +730,7 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
-          </div>
-        </div>
+          </section>
         </div>
 
         {/* Invite Friends - Premium Design */}
