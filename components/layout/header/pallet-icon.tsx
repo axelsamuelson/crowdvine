@@ -114,8 +114,8 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
     lg: "h-6 w-6",
   };
 
-  // Don't show if not authenticated or no active pallets
-  if (!isAuthenticated || !hasActivePallets) {
+  // Don't show if not authenticated
+  if (!isAuthenticated) {
     return null;
   }
 
@@ -139,7 +139,7 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
       variant="ghost"
       size="sm"
       className={`p-2 hover:bg-background/20 transition-colors ${className} ${
-        hasActivePallets ? "text-green-600" : "text-gray-600"
+        isAuthenticated ? "text-green-600" : "text-gray-600"
       }`}
       asChild
     >
@@ -156,7 +156,7 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
           )}
         </div>
         <span className="sr-only">
-          Active Pallets ({maxPalletPercent}% filled)
+          {hasActivePallets ? `Active Pallets (${maxPalletPercent}% filled)` : "Pallets"}
         </span>
       </Link>
     </Button>
