@@ -10,12 +10,20 @@ export interface PalletProgressData {
 }
 
 /**
- * Calculate pallet fill percentage
+ * Calculate pallet fill percentage according to specifications:
+ * 1. Use percent_filled if available
+ * 2. Calculate: clamp(round((reserved_bottles / capacity_bottles) * 100), 0, 100)
+ * 3. Return null for SHIPPED/DELIVERED or when capacity_bottles is missing
  * @param data Pallet progress data
- * @returns Percentage (0-100) or null if data insufficient
+ * @returns Percentage (0-100) or null
  */
 export function getPercentFilled(data: PalletProgressData): number | null {
   const { reserved_bottles, capacity_bottles, percent_filled, status } = data;
+  
+  // Do not show percentage for SHIPPED/DELIVERED
+  if (status === 'SHIPPED' || status === 'DELIVERED') {
+    return null;
+  }
   
   // Use provided percent_filled if available
   if (typeof percent_filled === 'number') {
@@ -28,12 +36,7 @@ export function getPercentFilled(data: PalletProgressData): number | null {
     return Math.max(0, Math.min(100, Math.round(calculated)));
   }
   
-  // For SHIPPED/DELIVERED, assume 100% if no capacity data
-  if (status === 'SHIPPED' || status === 'DELIVERED') {
-    return 100;
-  }
-  
-  // No capacity data available
+  // Fallback to null if capacity_bottles is missing
   return null;
 }
 

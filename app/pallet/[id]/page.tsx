@@ -217,6 +217,7 @@ export default function PalletPage() {
                   </CardTitle>
                   <div className="flex items-center gap-4 text-sm text-gray-500">
                     <span>Status: <span className="font-medium">{pallet.status}</span></span>
+                    <span>•</span>
                     <span>ETA: <span className="font-medium">{pallet.eta || 'TBD'}</span></span>
                   </div>
                 </div>

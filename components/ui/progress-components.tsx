@@ -6,15 +6,19 @@ interface MiniProgressProps {
 }
 
 /**
- * Mini progress bar for dropdown lists
+ * Mini progress bar for dropdown pallet rows.
+ * 2px height, neutral colors, full width under meta-row.
  */
 export function MiniProgress({ valuePercent, className = "" }: MiniProgressProps) {
-  const percent = valuePercent || 0;
+  const percent = valuePercent !== null ? Math.max(0, Math.min(100, valuePercent)) : 0;
+  const display = valuePercent !== null;
+
+  if (!display) return null;
   
   return (
-    <div className={`w-full h-0.5 bg-gray-200 rounded-full overflow-hidden ${className}`}>
+    <div className={`w-full h-0.5 bg-gray-100 rounded-full overflow-hidden ${className}`}>
       <div 
-        className="h-full bg-gray-400 transition-all duration-300 ease-out"
+        className="h-full bg-gray-300 transition-all duration-300 ease-out"
         style={{ width: `${percent}%` }}
       />
     </div>
@@ -35,7 +39,9 @@ interface ProgressHaloProps {
 }
 
 /**
- * Pallet progress indicator for pallet pages
+ * Pallet progress indicator for pallet page headers.
+ * Variant A (bar): 8-10px bar + large number "64% full"
+ * Variant B (ring): 48-56px ring with number in middle
  */
 export function PalletProgress({ 
   valuePercent, 
@@ -43,7 +49,7 @@ export function PalletProgress({
   size = 'md',
   className = "" 
 }: PalletProgressProps) {
-  const percent = valuePercent || 0;
+  const percent = valuePercent !== null ? Math.max(0, Math.min(100, valuePercent)) : 0;
   const displayPercent = valuePercent !== null ? `${percent}%` : '—%';
   
   const sizeClasses = {
@@ -53,8 +59,8 @@ export function PalletProgress({
       text: 'text-sm'
     },
     md: {
-      bar: 'h-2.5 w-20',
-      ring: 'w-12 h-12',
+      bar: 'h-2.5 w-20', // 8-10px height
+      ring: 'w-12 h-12', // 48-56px
       text: 'text-base'
     },
     lg: {
