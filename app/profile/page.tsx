@@ -510,10 +510,10 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
           {/* Personal Information - Premium Design */}
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between pt-2">
               <h2 className="text-xl font-light text-gray-900">Personal Information</h2>
               <Button
                 onClick={() => setEditing(true)}
@@ -673,7 +673,7 @@ export default function ProfilePage() {
 
           {/* Payment Methods - Premium Design */}
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between pt-2">
               <h2 className="text-xl font-light text-gray-900">Payment Methods</h2>
               <div className="flex items-center gap-2 text-xs text-gray-400">
                 <svg viewBox="0 0 24 24" className="w-4 h-4">
@@ -734,7 +734,7 @@ export default function ProfilePage() {
 
         {/* Invite Friends - Premium Design */}
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between pt-2">
             <div>
               <h2 className="text-xl font-light text-gray-900">Invite Friends</h2>
               <p className="text-gray-500 mt-1">Invite friends, unlock rewards</p>
@@ -780,45 +780,28 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {/* Total Rewards Progress */}
+            {/* Rewards Levels */}
             {usedInvitations.length > 0 && (
               <div className="mb-8">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-light text-gray-900">Total Rewards</h3>
-                  <div className="text-right">
-                    <p className="text-2xl font-light text-gray-900">
-                      {usedInvitations.length * 6}
-                    </p>
-                    <p className="text-xs text-gray-500">bottles unlocked</p>
-                  </div>
-                </div>
+                <h3 className="text-lg font-light text-gray-900 mb-4">Your Rewards</h3>
                 
-                {/* Progress Ring */}
-                <div className="relative w-24 h-24 mx-auto mb-4">
-                  <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 100 100">
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="40"
-                      stroke="currentColor"
-                      strokeWidth="8"
-                      fill="none"
-                      className="text-gray-200"
-                    />
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="40"
-                      stroke="currentColor"
-                      strokeWidth="8"
-                      fill="none"
-                      strokeDasharray={`${(usedInvitations.length * 6) * 2.5} 250`}
-                      className="text-gray-900"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-lg font-light text-gray-900">{usedInvitations.length}</span>
+                {/* Two-level rewards display */}
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="bg-gray-50/50 rounded-xl p-4 border border-gray-200/50">
+                    <div className="text-center">
+                      <div className="text-2xl font-light text-gray-900">
+                        {usedInvitations.length * 6}
+                      </div>
+                      <div className="text-sm text-gray-500">5% — bottles eligible</div>
+                    </div>
+                  </div>
+                  <div className="bg-gray-50/50 rounded-xl p-4 border border-gray-200/50">
+                    <div className="text-center">
+                      <div className="text-2xl font-light text-gray-900">
+                        {usedInvitations.length * 6}
+                      </div>
+                      <div className="text-sm text-gray-500">10% — bottles eligible</div>
+                    </div>
                   </div>
                 </div>
 
@@ -826,10 +809,9 @@ export default function ProfilePage() {
                   <p className="text-sm text-gray-500 mb-2">
                     {usedInvitations.length} friend{usedInvitations.length > 1 ? 's' : ''} joined
                   </p>
-                  <div className="flex justify-center gap-6 text-xs text-gray-400">
-                    <span>6 bottles @ 5%</span>
-                    <span>6 bottles @ 10%</span>
-                  </div>
+                  <p className="text-xs text-gray-400">
+                    Rewards visas per nivå. Summan uppdateras när vänner går med och gör köp.
+                  </p>
                 </div>
               </div>
             )}
@@ -1063,7 +1045,7 @@ export default function ProfilePage() {
 
         {/* My Reservations - Premium Design */}
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between pt-2">
             <h2 className="text-xl font-light text-gray-900">My Reservations</h2>
             <Link href="/profile/reservations">
               <Button variant="outline" size="sm" className="rounded-full border-gray-200 hover:bg-gray-50">
@@ -1080,7 +1062,7 @@ export default function ProfilePage() {
             ) : reservations && reservations.length > 0 ? (
               <div className="space-y-8">
                 {/* Summary Stats - Premium */}
-                <div className="grid grid-cols-3 gap-6">
+                <div className="grid grid-cols-2 gap-6">
                   <div className="text-center">
                     <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
                       <Package className="w-6 h-6 text-gray-400" />
@@ -1097,20 +1079,11 @@ export default function ProfilePage() {
                     </div>
                     <div className="text-sm text-gray-500">Total Bottles</div>
                   </div>
-                  <div className="text-center">
-                    <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                      <MapPin className="w-6 h-6 text-gray-400" />
-                    </div>
-                    <div className="text-2xl font-light text-gray-900">
-                      {new Set(reservations.map(res => res.pickup_zone_id || res.delivery_zone_id).filter(Boolean)).size}
-                    </div>
-                    <div className="text-sm text-gray-500">Zones</div>
-                  </div>
                 </div>
 
-                {/* Recent Reservations - Ghost Cards */}
+                {/* Recent Reservations - Pallet Level */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-light text-gray-900">Recent Reservations</h3>
+                  <h3 className="text-lg font-light text-gray-900">Pallet Overview</h3>
                   <div className="space-y-3">
                     {reservations.slice(0, 3).map((reservation) => (
                       <div key={reservation.id} className="bg-gray-50/50 rounded-xl p-4 border border-gray-200/50 hover:bg-gray-100/50 transition-colors cursor-pointer">
@@ -1121,7 +1094,7 @@ export default function ProfilePage() {
                             </div>
                             <div>
                               <p className="font-light text-gray-900">
-                                Order {reservation.order_id?.substring(0, 8) || reservation.id.substring(0, 8)}
+                                {reservation.pallet_name || 'Pallet Assignment Pending'}
                               </p>
                               <p className="text-xs text-gray-500">
                                 {new Date(reservation.created_at).toLocaleDateString()}
@@ -1135,14 +1108,18 @@ export default function ProfilePage() {
                               'bg-gray-100 text-gray-600 border-gray-200'
                             }`}
                           >
-                            {reservation.status?.toUpperCase()}
+                            {reservation.status === 'confirmed' ? 'CONSOLIDATING' : 
+                             reservation.status === 'pending' ? 'OPEN' : 'OPEN'}
                           </Badge>
                         </div>
                         
-                        <div className="flex items-center justify-between text-sm text-gray-500">
-                          <div className="flex items-center gap-4">
-                            <span>{reservation.items?.length || 0} wines</span>
-                            <span>{reservation.items?.reduce((total, item) => total + item.quantity, 0) || 0} bottles</span>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-sm text-gray-500">
+                            <span>Reserved: {reservation.items?.reduce((total, item) => total + item.quantity, 0) || 0} bottles</span>
+                            <span>Delivered: 0</span>
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            ETA: {reservation.status === 'confirmed' ? 'Q1 2025' : 'TBD'}
                           </div>
                         </div>
                       </div>
