@@ -32,6 +32,7 @@ import {
 import Link from "next/link";
 import { toast } from "sonner";
 import { PaymentMethodCard } from "@/components/ui/payment-method-card";
+import { RewardTierCard } from "@/components/ui/reward-tier-card";
 import { useHybridInvitationUpdates } from "@/lib/hooks/use-hybrid-invitation-updates";
 
 interface UserProfile {
@@ -738,7 +739,7 @@ export default function ProfilePage() {
           <div className="flex items-center justify-between pt-2">
             <div>
               <h2 className="text-xl font-light text-gray-900">Invite Friends</h2>
-              <p className="text-gray-500 mt-1">Invite friends, unlock rewards</p>
+              <p className="text-gray-500 mt-1">Invite friends, unlock rewards.</p>
             </div>
             {invitation && (
               <div className="flex items-center gap-2">
@@ -782,40 +783,52 @@ export default function ProfilePage() {
             )}
 
             {/* Rewards Levels */}
-            {usedInvitations.length > 0 && (
-              <div className="mb-8">
-                <h3 className="text-lg font-light text-gray-900 mb-4">Your Rewards</h3>
+            <div className="mb-8">
+              <h3 className="text-lg font-light text-gray-900 mb-4">Your Rewards</h3>
+              
+              {/* Calculate rewards based on invitations */}
+              {(() => {
+                // For now, we'll use the current logic but show Used/Available
+                // In the future, this should come from backend with actual applied bottles
+                const eligible5Percent = usedInvitations.length * 6;
+                const eligible10Percent = usedInvitations.length * 6;
                 
-                {/* Two-level rewards display */}
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div className="bg-gray-50/50 rounded-xl p-4 border border-gray-200/50">
-                    <div className="text-center">
-                      <div className="text-2xl font-light text-gray-900">
-                        {usedInvitations.length * 6}
-                      </div>
-                      <div className="text-sm text-gray-500">5% — bottles eligible</div>
+                // For demonstration: assume some bottles are used
+                // TODO: Replace with actual backend data for applied bottles
+                const used5Percent = 0; // Should come from backend
+                const used10Percent = 0; // Should come from backend
+                
+                const available5Percent = Math.max(eligible5Percent - used5Percent, 0);
+                const available10Percent = Math.max(eligible10Percent - used10Percent, 0);
+                
+                return (
+                  <>
+                    {/* Two-level rewards display */}
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <RewardTierCard 
+                        tierPercent={5}
+                        used={used5Percent}
+                        available={available5Percent}
+                      />
+                      <RewardTierCard 
+                        tierPercent={10}
+                        used={used10Percent}
+                        available={available10Percent}
+                      />
                     </div>
-                  </div>
-                  <div className="bg-gray-50/50 rounded-xl p-4 border border-gray-200/50">
-                    <div className="text-center">
-                      <div className="text-2xl font-light text-gray-900">
-                        {usedInvitations.length * 6}
-                      </div>
-                      <div className="text-sm text-gray-500">10% — bottles eligible</div>
-                    </div>
-                  </div>
-                </div>
 
-                <div className="text-center">
-                  <p className="text-sm text-gray-500 mb-2">
-                    {usedInvitations.length} friend{usedInvitations.length > 1 ? 's' : ''} joined
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    Rewards visas per nivå. Summan uppdateras när vänner går med och gör köp.
-                  </p>
-                </div>
-              </div>
-            )}
+                    <div className="text-center">
+                      <p className="text-sm text-gray-500 mb-2">
+                        {usedInvitations.length} friend{usedInvitations.length > 1 ? 's' : ''} joined
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        Used = discount already applied. Available = can be used now.
+                      </p>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
 
             {/* Accepted Invitations - Premium Collapsible */}
             {usedInvitations.length > 0 && (
