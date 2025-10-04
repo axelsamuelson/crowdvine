@@ -669,8 +669,7 @@ export default function ProfilePage() {
                   )}
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
 
           {/* Payment Methods - Premium Design */}
           <div className="space-y-6">
@@ -730,6 +729,7 @@ export default function ProfilePage() {
               )}
             </div>
           </div>
+        </div>
         </div>
 
         {/* Invite Friends - Premium Design */}
@@ -1060,8 +1060,6 @@ export default function ProfilePage() {
             )}
           </div>
         </div>
-          </CardContent>
-        </Card>
 
         {/* My Reservations - Premium Design */}
         <div className="space-y-6">
