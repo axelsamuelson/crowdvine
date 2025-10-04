@@ -788,18 +788,26 @@ export default function ProfilePage() {
               
               {/* Calculate rewards based on invitations */}
               {(() => {
-                // For now, we'll use the current logic but show Used/Available
-                // In the future, this should come from backend with actual applied bottles
-                const eligible5Percent = usedInvitations.length * 6;
-                const eligible10Percent = usedInvitations.length * 6;
+                // Calculate rewards based on invitation status
+                // 5% rewards: 6 bottles per friend who joined (account created)
+                // 10% rewards: same 6 bottles but upgraded when friend makes reservation
                 
-                // For demonstration: assume some bottles are used
+                const totalEligibleBottles = usedInvitations.length * 6;
+                
+                // For now, assume no bottles have been used/applied
                 // TODO: Replace with actual backend data for applied bottles
                 const used5Percent = 0; // Should come from backend
                 const used10Percent = 0; // Should come from backend
                 
-                const available5Percent = Math.max(eligible5Percent - used5Percent, 0);
-                const available10Percent = Math.max(eligible10Percent - used10Percent, 0);
+                // TODO: Get actual reservation data from backend
+                // For now, assume no friends have made reservations yet
+                const friendsWithReservations = 0; // Should come from backend
+                
+                // 5% rewards: available for all friends who joined
+                const available5Percent = Math.max(totalEligibleBottles - used5Percent, 0);
+                
+                // 10% rewards: only available for friends who have made reservations
+                const available10Percent = Math.max((friendsWithReservations * 6) - used10Percent, 0);
                 
                 return (
                   <>
@@ -822,7 +830,7 @@ export default function ProfilePage() {
                         {usedInvitations.length} friend{usedInvitations.length > 1 ? 's' : ''} joined
                       </p>
                       <p className="text-xs text-gray-400">
-                        Used = discount already applied. Available = can be used now.
+                        Used = discount already applied. Available = can be used now. 10% rewards unlock when friends make reservations.
                       </p>
                     </div>
                   </>
