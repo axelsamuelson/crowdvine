@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { LogoSvg } from "./logo-svg";
 import CartModal from "@/components/cart/modal";
 import { ProfileIcon } from "./profile-icon";
+import { PalletIcon } from "./pallet-icon";
 import { NavItem } from "@/lib/types";
 import { Collection } from "@/lib/shopify/types";
 
@@ -59,6 +60,7 @@ export function Header({ collections }: HeaderProps) {
             </li>
           ))}
         </ul>
+        <PalletIcon />
         <ProfileIcon />
         <CartModal />
       </nav>

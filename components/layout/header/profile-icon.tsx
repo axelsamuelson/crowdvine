@@ -5,8 +5,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { User } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
-import { ProgressHalo } from "@/components/ui/progress-components";
-import { getPercentFilled } from "@/lib/utils/pallet-progress";
 
 interface ProfileIconProps {
   className?: string;
@@ -16,7 +14,6 @@ interface ProfileIconProps {
 export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
-  const [maxPalletPercent, setMaxPalletPercent] = useState<number | null>(null);
 
   useEffect(() => {
     checkAuthStatus();
@@ -40,53 +37,11 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
         data: { user },
       } = await supabase.auth.getUser();
       setIsAuthenticated(!!user);
-      
-      // If authenticated, fetch reservations to calculate max pallet percent
-      if (user) {
-        fetchMaxPalletPercent();
-      } else {
-        setMaxPalletPercent(null);
-      }
     } catch (error) {
       console.error("Error checking auth status:", error);
       setIsAuthenticated(false);
-      setMaxPalletPercent(null);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchMaxPalletPercent = async () => {
-    try {
-      const response = await fetch("/api/user/reservations");
-      if (response.ok) {
-        const reservations = await response.json();
-        
-        // Calculate max percent among active pallets
-        const activePallets = reservations.filter((res: any) => 
-          res.status === 'OPEN' || res.status === 'CONSOLIDATING'
-        );
-        
-        if (activePallets.length === 0) {
-          setMaxPalletPercent(null);
-          return;
-        }
-        
-        const maxPercent = Math.max(...activePallets.map((res: any) => {
-          const percent = getPercentFilled({
-            reserved_bottles: res.items?.reduce((total: number, item: any) => total + item.quantity, 0) || 0,
-            capacity_bottles: undefined, // TODO: Get from backend
-            percent_filled: undefined, // TODO: Get from backend
-            status: res.status.toUpperCase() as any
-          });
-          return percent || 0;
-        }));
-        
-        setMaxPalletPercent(maxPercent > 0 ? maxPercent : null);
-      }
-    } catch (error) {
-      console.error("Error fetching reservations:", error);
-      setMaxPalletPercent(null);
     }
   };
 
@@ -133,17 +88,7 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
       asChild
     >
       <Link href={isAuthenticated ? "/profile" : "/log-in"} prefetch>
-        <div className="relative">
-          <User className={sizeClasses[size]} />
-          {/* Progress halo for active pallets */}
-          {isAuthenticated && maxPalletPercent !== null && (
-            <ProgressHalo 
-              valuePercent={maxPalletPercent} 
-              size="sm" 
-              className="absolute inset-0"
-            />
-          )}
-        </div>
+        <User className={sizeClasses[size]} />
         <span className="sr-only">
           {isAuthenticated ? "Profile" : "Sign In"}
         </span>
