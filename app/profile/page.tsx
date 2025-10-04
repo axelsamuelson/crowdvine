@@ -510,7 +510,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
           {/* Personal Information - Premium Design */}
           <div className="space-y-6">
             <div className="flex items-center justify-between pt-2">
