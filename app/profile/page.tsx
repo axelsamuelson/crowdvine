@@ -32,7 +32,6 @@ import {
 import Link from "next/link";
 import { toast } from "sonner";
 import { PaymentMethodCard } from "@/components/ui/payment-method-card";
-import DiscountCodesSection from "@/components/profile/discount-codes-section";
 import { useHybridInvitationUpdates } from "@/lib/hooks/use-hybrid-invitation-updates";
 
 interface UserProfile {
@@ -93,7 +92,6 @@ export default function ProfilePage() {
   const [generatingInvite, setGeneratingInvite] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
-  const [discountCodes, setDiscountCodes] = useState<any[]>([]);
   const [reservations, setReservations] = useState<any[]>([]);
   const [reservationsLoading, setReservationsLoading] = useState(false);
 
@@ -122,16 +120,11 @@ export default function ProfilePage() {
         fetchUsedInvitations();
       }
     },
-    onDiscountCodesUpdate: (codes) => {
-      console.log("Discount codes updated via hybrid system:", codes);
-      setDiscountCodes(codes);
-    },
   });
 
   useEffect(() => {
     fetchProfile();
     fetchPaymentMethods();
-    fetchDiscountCodes();
     fetchUsedInvitations(); // Fetch used invitations from database
     fetchReservations(); // Fetch user reservations
 
@@ -217,21 +210,6 @@ export default function ProfilePage() {
     }
   };
 
-  const fetchDiscountCodes = async () => {
-    try {
-      const response = await fetch("/api/discount-codes");
-      if (response.ok) {
-        const data = await response.json();
-        setDiscountCodes(data || []);
-      } else {
-        console.error("Failed to load discount codes");
-        setDiscountCodes([]);
-      }
-    } catch (error) {
-      console.error("Error fetching discount codes:", error);
-      setDiscountCodes([]);
-    }
-  };
 
   const fetchUsedInvitations = async () => {
     try {
