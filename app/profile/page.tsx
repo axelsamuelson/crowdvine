@@ -230,16 +230,22 @@ export default function ProfilePage() {
   const fetchReservations = async () => {
     try {
       setReservationsLoading(true);
-      const response = await fetch("/api/profile/reservations");
+      console.log("🔄 Fetching reservations...");
+      const response = await fetch("/api/user/reservations");
+      console.log("📡 Reservations response status:", response.status);
+      
       if (response.ok) {
         const data = await response.json();
-        setReservations(data.reservations || []);
+        console.log("📊 Reservations data:", data);
+        // /api/user/reservations returns array directly, not {reservations: [...]}
+        setReservations(Array.isArray(data) ? data : []);
       } else {
-        console.error("Failed to load reservations");
+        const errorData = await response.json().catch(() => ({}));
+        console.error("❌ Failed to load reservations:", response.status, errorData);
         setReservations([]);
       }
     } catch (error) {
-      console.error("Error fetching reservations:", error);
+      console.error("💥 Error fetching reservations:", error);
       setReservations([]);
     } finally {
       setReservationsLoading(false);
@@ -1087,9 +1093,9 @@ export default function ProfilePage() {
                   </div>
                   <div className="bg-gray-50 rounded-lg p-3 text-center">
                     <div className="text-2xl font-bold text-gray-900">
-                      {reservations.length > 0 ? reservations.length : 0}
+                      {reservations.reduce((total, res) => total + (res.items?.reduce((itemTotal, item) => itemTotal + item.quantity, 0) || 0), 0)}
                     </div>
-                    <div className="text-xs text-gray-600">Total Orders</div>
+                    <div className="text-xs text-gray-600">Total Bottles</div>
                   </div>
                   <div className="bg-gray-50 rounded-lg p-3 text-center">
                     <div className="text-2xl font-bold text-gray-900">
@@ -1127,8 +1133,8 @@ export default function ProfilePage() {
                       
                       <div className="flex items-center justify-between text-xs text-gray-600">
                         <div className="flex items-center gap-4">
-                          <span>Order Details</span>
-                          <span>{reservation.status}</span>
+                          <span>{reservation.items?.length || 0} wines</span>
+                          <span>{reservation.items?.reduce((total, item) => total + item.quantity, 0) || 0} bottles</span>
                         </div>
                         <span>{new Date(reservation.created_at).toLocaleDateString()}</span>
                       </div>
