@@ -853,155 +853,157 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {/* Current invitation section */}
+            {/* Current invitation section - Compact */}
             {!invitation ? (
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <UserPlus className="w-8 h-8 text-gray-600" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  Invite Your Friends
-                </h3>
-                <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                  Generate a unique invitation code to share with friends and family.
-                  <span className="font-semibold text-gray-900 block mt-1">
-                    Earn rewards when they join!
-                  </span>
-                </p>
-                <div className="bg-white rounded-lg p-4 mb-6 border border-gray-200">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="text-center">
-                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                        <Check className="w-4 h-4 text-gray-600" />
-                      </div>
-                      <p className="font-medium text-gray-900">6 bottles @ 5%</p>
-                      <p className="text-gray-500 text-xs">Account created</p>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                      <UserPlus className="w-4 h-4 text-gray-600" />
                     </div>
-                    <div className="text-center">
-                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                        <Gift className="w-4 h-4 text-gray-600" />
-                      </div>
-                      <p className="font-medium text-gray-900">6 bottles @ 10%</p>
-                      <p className="text-gray-500 text-xs">First reservation</p>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Invite Your Friends</h3>
+                      <p className="text-sm text-gray-600">Earn rewards when they join</p>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={generateInvitation}
+                    disabled={generatingInvite}
+                    className="bg-gray-900 hover:bg-gray-800 text-white"
+                    size="sm"
+                  >
+                    {generatingInvite ? (
+                      <>
+                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-2"></div>
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="w-3 h-3 mr-2" />
+                        Generate
+                      </>
+                    )}
+                  </Button>
+                </div>
+                
+                {/* Rewards info - compact */}
+                <div className="bg-white rounded-md p-3 border border-gray-200">
+                  <div className="flex justify-between items-center text-xs">
+                    <div className="flex items-center gap-2">
+                      <Check className="w-3 h-3 text-gray-600" />
+                      <span className="text-gray-700">6 bottles @ 5%</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Gift className="w-3 h-3 text-gray-600" />
+                      <span className="text-gray-700">6 bottles @ 10%</span>
                     </div>
                   </div>
                 </div>
-                <Button
-                  onClick={generateInvitation}
-                  disabled={generatingInvite}
-                  className="w-full bg-gray-900 hover:bg-gray-800 text-white"
-                  size="lg"
-                >
-                  {generatingInvite ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="w-4 h-4 mr-2" />
-                      Generate Invitation
-                    </>
-                  )}
-                </Button>
               </div>
             ) : invitation.currentUses && invitation.currentUses > 0 ? (
-              // Used invitation - success state
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-                <div className="text-center mb-6">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Check className="w-8 h-8 text-gray-600" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                    Invitation Accepted!
-                  </h3>
-                  <p className="text-gray-600">
-                    {invitation.profiles?.email || 'Your friend'} has joined PACT
-                  </p>
-                </div>
-
-                {/* Rewards Earned */}
-                <div className="bg-white rounded-lg p-4 mb-6 border border-gray-200">
-                  <h4 className="font-semibold text-gray-900 mb-3 text-center">Rewards Earned</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center">
-                      <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                        <Check className="w-5 h-5 text-gray-600" />
-                      </div>
-                      <p className="font-semibold text-gray-900">6 bottles @ 5%</p>
-                      <p className="text-xs text-gray-500">Account created</p>
-                      <Badge className="bg-gray-100 text-gray-800 text-xs mt-1">Earned</Badge>
+              // Used invitation - success state - compact
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                      <Check className="w-4 h-4 text-green-600" />
                     </div>
-                    <div className="text-center">
-                      <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                        <Gift className="w-5 h-5 text-gray-400" />
-                      </div>
-                      <p className="font-semibold text-gray-900">6 bottles @ 10%</p>
-                      <p className="text-xs text-gray-500">First reservation</p>
-                      <Badge variant="outline" className="text-xs mt-1">Pending</Badge>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Invitation Accepted!</h3>
+                      <p className="text-sm text-gray-600">{invitation.profiles?.email || 'Your friend'} joined PACT</p>
                     </div>
                   </div>
+                  <Button
+                    onClick={generateInvitation}
+                    disabled={generatingInvite}
+                    className="bg-gray-900 hover:bg-gray-800 text-white"
+                    size="sm"
+                  >
+                    {generatingInvite ? (
+                      <>
+                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-2"></div>
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="w-3 h-3 mr-2" />
+                        Invite Another
+                      </>
+                    )}
+                  </Button>
                 </div>
 
-                {/* Action Button */}
-                <Button
-                  onClick={generateInvitation}
-                  disabled={generatingInvite}
-                  className="w-full bg-gray-900 hover:bg-gray-800 text-white"
-                  size="lg"
-                >
-                  {generatingInvite ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="w-4 h-4 mr-2" />
-                      Invite Another Friend
-                    </>
-                  )}
-                </Button>
+                {/* Rewards status - compact */}
+                <div className="bg-white rounded-md p-3 border border-gray-200">
+                  <div className="flex justify-between items-center text-xs">
+                    <div className="flex items-center gap-2">
+                      <Check className="w-3 h-3 text-green-600" />
+                      <span className="text-gray-700">6 bottles @ 5%</span>
+                      <Badge className="bg-green-100 text-green-800 text-xs">Earned</Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Gift className="w-3 h-3 text-gray-400" />
+                      <span className="text-gray-700">6 bottles @ 10%</span>
+                      <Badge variant="outline" className="text-xs">Pending</Badge>
+                    </div>
+                  </div>
+                </div>
               </div>
             ) : (
-              // Active invitation - show sharing options
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-                {/* Status Header */}
-                <div className="text-center mb-6">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <UserPlus className="w-8 h-8 text-gray-600" />
+              // Active invitation - compact sharing options
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                {/* Status Header - compact */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                      <UserPlus className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Invitation Ready</h3>
+                      <p className="text-sm text-gray-600">Expires: {new Date(invitation.expiresAt).toLocaleDateString()}</p>
+                    </div>
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                    Invitation Ready to Share
-                  </h3>
-                  <p className="text-gray-600">
-                    Expires: {new Date(invitation.expiresAt).toLocaleDateString()}
-                  </p>
+                  <Button
+                    onClick={generateInvitation}
+                    disabled={generatingInvite}
+                    className="bg-gray-900 hover:bg-gray-800 text-white"
+                    size="sm"
+                  >
+                    {generatingInvite ? (
+                      <>
+                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-2"></div>
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="w-3 h-3 mr-2" />
+                        New Invite
+                      </>
+                    )}
+                  </Button>
                 </div>
 
-                {/* Sharing Options */}
-                <div className="space-y-4">
+                {/* Sharing Options - compact */}
+                <div className="space-y-3">
                   {/* Invitation Code */}
                   <div>
-                    <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                      Invitation Code
-                    </Label>
+                    <Label className="text-xs font-medium text-gray-700 mb-1 block">Invitation Code</Label>
                     <div className="flex gap-2">
                       <Input
                         value={invitation.code}
                         readOnly
-                        className="font-mono text-sm bg-white"
+                        className="font-mono text-sm bg-white h-8"
                       />
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => copyToClipboard(invitation.code, "code")}
-                        className="bg-white hover:bg-gray-50"
+                        className="bg-white hover:bg-gray-50 h-8 px-2"
                       >
                         {copiedCode ? (
-                          <Check className="w-4 h-4 text-gray-600" />
+                          <Check className="w-3 h-3 text-gray-600" />
                         ) : (
-                          <Copy className="w-4 h-4" />
+                          <Copy className="w-3 h-3" />
                         )}
                       </Button>
                     </div>
@@ -1009,14 +1011,12 @@ export default function ProfilePage() {
 
                   {/* Direct Signup Link */}
                   <div>
-                    <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                      Direct Signup Link
-                    </Label>
+                    <Label className="text-xs font-medium text-gray-700 mb-1 block">Signup Link</Label>
                     <div className="flex gap-2">
                       <Input
                         value={invitation.signupUrl?.replace(/\s+/g, "") || ""}
                         readOnly
-                        className="text-sm font-mono whitespace-nowrap overflow-hidden bg-white"
+                        className="text-xs font-mono whitespace-nowrap overflow-hidden bg-white h-8"
                         style={{ wordBreak: "keep-all" }}
                       />
                       <Button
@@ -1025,38 +1025,20 @@ export default function ProfilePage() {
                         onClick={() =>
                           copyToClipboard(invitation.signupUrl?.replace(/\s+/g, "") || "", "url")
                         }
-                        className="bg-white hover:bg-gray-50"
+                        className="bg-white hover:bg-gray-50 h-8 px-2"
                       >
                         {copiedUrl ? (
-                          <Check className="w-4 h-4 text-gray-600" />
+                          <Check className="w-3 h-3 text-gray-600" />
                         ) : (
-                          <Copy className="w-4 h-4" />
+                          <Copy className="w-3 h-3" />
                         )}
                       </Button>
                     </div>
                   </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex gap-3 mt-6">
-                  <Button
-                    onClick={generateInvitation}
-                    disabled={generatingInvite}
-                    className="flex-1 bg-gray-900 hover:bg-gray-800 text-white"
-                  >
-                    {generatingInvite ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <UserPlus className="w-4 h-4 mr-2" />
-                        Generate New
-                      </>
-                    )}
-                  </Button>
-
+                {/* Action Buttons - compact */}
+                <div className="flex gap-2 mt-3">
                   <Button
                     onClick={() => {
                       setInvitation(null);
@@ -1064,9 +1046,10 @@ export default function ProfilePage() {
                       toast.success("Invitation cleared");
                     }}
                     variant="outline"
-                    className="flex-1 bg-white hover:bg-gray-50"
+                    size="sm"
+                    className="bg-white hover:bg-gray-50"
                   >
-                    <X className="w-4 h-4 mr-2" />
+                    <X className="w-3 h-3 mr-2" />
                     Clear
                   </Button>
                 </div>
