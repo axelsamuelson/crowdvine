@@ -33,6 +33,8 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { PaymentMethodCard } from "@/components/ui/payment-method-card";
 import { RewardTierCard } from "@/components/ui/reward-tier-card";
+import { MiniProgress } from "@/components/ui/progress-components";
+import { getPercentFilled, formatPercent, shouldShowPercent } from "@/lib/utils/pallet-progress";
 import { useHybridInvitationUpdates } from "@/lib/hooks/use-hybrid-invitation-updates";
 
 interface UserProfile {
@@ -1171,47 +1173,62 @@ export default function ProfilePage() {
                         return new Date(b.latestDate) - new Date(a.latestDate);
                       });
                       
-                      return sortedPallets.slice(0, 3).map((pallet) => (
-                        <div key={pallet.id} className="bg-gray-50/50 rounded-xl p-4 border border-gray-200/50 hover:bg-gray-100/50 transition-colors cursor-pointer">
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                                <Package className="w-4 h-4 text-gray-400" />
+                      return sortedPallets.slice(0, 3).map((pallet) => {
+                        // Calculate pallet fill percentage
+                        const percentFilled = getPercentFilled({
+                          reserved_bottles: pallet.reservedBottles,
+                          capacity_bottles: undefined, // TODO: Get from backend
+                          percent_filled: undefined, // TODO: Get from backend
+                          status: pallet.status.toUpperCase() as any
+                        });
+                        
+                        const showPercent = shouldShowPercent(pallet.status);
+                        const displayPercent = showPercent ? formatPercent(percentFilled) : '—%';
+                        
+                        return (
+                          <div key={pallet.id} className="bg-gray-50/50 rounded-xl p-4 border border-gray-200/50 hover:bg-gray-100/50 transition-colors cursor-pointer">
+                            {/* Row 1: Pallet name + status tag */}
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                                  <Package className="w-4 h-4 text-gray-400" />
+                                </div>
+                                <div>
+                                  <p className="font-light text-gray-900">{pallet.name}</p>
+                                  <p className="text-xs text-gray-500">
+                                    {new Date(pallet.latestDate).toLocaleDateString()}
+                                  </p>
+                                </div>
                               </div>
-                              <div>
-                                <p className="font-light text-gray-900">{pallet.name}</p>
-                                <p className="text-xs text-gray-500">
-                                  {new Date(pallet.latestDate).toLocaleDateString()}
-                                </p>
+                              <Badge 
+                                className={`text-xs rounded-full ${
+                                  pallet.status === 'confirmed' ? 'bg-green-100 text-green-700 border-green-200' :
+                                  pallet.status === 'pending' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                                  pallet.status === 'shipped' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                                  pallet.status === 'delivered' ? 'bg-gray-100 text-gray-700 border-gray-200' :
+                                  'bg-gray-100 text-gray-600 border-gray-200'
+                                }`}
+                              >
+                                {pallet.status === 'confirmed' ? 'CONSOLIDATING' : 
+                                 pallet.status === 'pending' ? 'OPEN' : 
+                                 pallet.status === 'shipped' ? 'SHIPPED' :
+                                 pallet.status === 'delivered' ? 'DELIVERED' : 'OPEN'}
+                              </Badge>
+                            </div>
+                            
+                            {/* Row 2: Meta info with percentage */}
+                            <div className="space-y-2">
+                              <div className="text-sm text-gray-500">
+                                <span className="font-medium">{displayPercent}</span>
+                                <span> • Reserved: {pallet.reservedBottles} • ETA: {pallet.status === 'confirmed' ? 'Q1 2025' : 'TBD'}</span>
                               </div>
-                            </div>
-                            <Badge 
-                              className={`text-xs rounded-full ${
-                                pallet.status === 'confirmed' ? 'bg-green-100 text-green-700 border-green-200' :
-                                pallet.status === 'pending' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
-                                pallet.status === 'shipped' ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                                pallet.status === 'delivered' ? 'bg-gray-100 text-gray-700 border-gray-200' :
-                                'bg-gray-100 text-gray-600 border-gray-200'
-                              }`}
-                            >
-                              {pallet.status === 'confirmed' ? 'CONSOLIDATING' : 
-                               pallet.status === 'pending' ? 'OPEN' : 
-                               pallet.status === 'shipped' ? 'SHIPPED' :
-                               pallet.status === 'delivered' ? 'DELIVERED' : 'OPEN'}
-                            </Badge>
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between text-sm text-gray-500">
-                              <span>Reserved: {pallet.reservedBottles} bottles</span>
-                              <span>Delivered: {pallet.deliveredBottles}</span>
-                            </div>
-                            <div className="text-xs text-gray-400">
-                              ETA: {pallet.status === 'confirmed' ? 'Q1 2025' : 'TBD'}
+                              
+                              {/* Micro progress bar */}
+                              <MiniProgress valuePercent={showPercent ? percentFilled : null} />
                             </div>
                           </div>
-                        </div>
-                      ));
+                        );
+                      });
                     })()}
                   </div>
                 </div>
