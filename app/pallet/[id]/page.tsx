@@ -65,66 +65,78 @@ export default function PalletPage() {
   const fetchPallet = async (palletId: string) => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      // const response = await fetch(`/api/pallets/${palletId}`);
-      // const data = await response.json();
       
-      // Mock data for demonstration
-      const mockPallet: PalletData = {
+      // Fetch user's reservations to find the specific pallet
+      const response = await fetch("/api/user/reservations");
+      if (!response.ok) {
+        throw new Error("Failed to fetch reservations");
+      }
+      const reservations = await response.json();
+
+      // Find reservations for this specific pallet
+      const palletReservations = reservations.filter((res: any) => res.pallet_id === palletId);
+
+      if (palletReservations.length === 0) {
+        throw new Error("Pallet not found or no reservations for this pallet");
+      }
+
+      // Aggregate pallet data from reservations
+      const firstReservation = palletReservations[0];
+      let totalReservedBottles = 0;
+      let totalDeliveredBottles = 0;
+      const allItems: any[] = [];
+
+      palletReservations.forEach((res: any) => {
+        totalReservedBottles += res.items?.reduce((total: number, item: any) => total + item.quantity, 0) || 0;
+        // totalDeliveredBottles += res.delivered_bottles || 0; // TODO: Get from backend
+        allItems.push(...res.items);
+      });
+
+      // Get unique wines (aggregate by wine name + vintage)
+      const uniqueWines = allItems.reduce((acc: any, item: any) => {
+        const key = `${item.wine_name}_${item.vintage}`;
+        if (!acc[key]) {
+          acc[key] = {
+            wine_name: item.wine_name,
+            vintage: item.vintage,
+            color: item.color || 'Unknown',
+            grape_varieties: item.grape_varieties || 'Unknown',
+            total_reserved: 0,
+            total_delivered: 0,
+            image_path: item.image_path,
+          };
+        }
+        acc[key].total_reserved += item.quantity;
+        return acc;
+      }, {});
+
+      // Create pallet data structure
+      const palletData: PalletData = {
         id: palletId,
-        name: `Pallet ${palletId}`,
-        status: 'CONSOLIDATING',
-        percent_filled: 64,
-        capacity_bottles: 100,
-        reserved_bottles: 64,
-        delivered_bottles: 0,
-        pickup_zone: 'Stockholm Central',
-        delivery_zone: 'Stockholm North',
-        eta: 'Oct 12–19',
-        created_at: '2024-01-15T10:00:00Z',
-        reservations: [
-          {
-            id: '1',
-            user_name: 'Anna Andersson',
-            user_email: 'anna@example.com',
-            bottles_reserved: 12,
-            bottles_delivered: 0,
-            created_at: '2024-01-15T10:00:00Z',
-          },
-          {
-            id: '2',
-            user_name: 'Erik Eriksson',
-            user_email: 'erik@example.com',
-            bottles_reserved: 8,
-            bottles_delivered: 0,
-            created_at: '2024-01-16T14:30:00Z',
-          },
-        ],
-        wines: [
-          {
-            wine_name: 'Château Margaux 2019',
-            vintage: '2019',
-            color: 'Red',
-            grape_varieties: 'Cabernet Sauvignon, Merlot',
-            total_reserved: 15,
-            total_delivered: 0,
-            image_path: '/images/wines/chateau-margaux-2019.jpg',
-          },
-          {
-            wine_name: 'Dom Pérignon 2015',
-            vintage: '2015',
-            color: 'White',
-            grape_varieties: 'Chardonnay, Pinot Noir',
-            total_reserved: 5,
-            total_delivered: 0,
-            image_path: '/images/wines/dom-perignon-2015.jpg',
-          },
-        ],
+        name: firstReservation.pallet_name || `Pallet ${palletId}`,
+        status: firstReservation.status || 'OPEN',
+        capacity_bottles: firstReservation.pallet_capacity,
+        reserved_bottles: totalReservedBottles,
+        delivered_bottles: totalDeliveredBottles,
+        pickup_zone: firstReservation.pickup_zone || 'TBD',
+        delivery_zone: firstReservation.delivery_zone || 'TBD',
+        eta: firstReservation.eta || 'TBD',
+        created_at: firstReservation.created_at,
+        reservations: palletReservations.map((res: any) => ({
+          id: res.id,
+          user_name: res.user_name || 'Unknown User',
+          user_email: res.user_email || '',
+          bottles_reserved: res.items?.reduce((total: number, item: any) => total + item.quantity, 0) || 0,
+          bottles_delivered: 0, // TODO: Get from backend
+          created_at: res.created_at,
+        })),
+        wines: Object.values(uniqueWines),
       };
       
-      setPallet(mockPallet);
+      setPallet(palletData);
     } catch (error) {
       console.error('Error fetching pallet:', error);
+      setPallet(null);
     } finally {
       setLoading(false);
     }
@@ -178,8 +190,8 @@ export default function PalletPage() {
 
   // Calculate progress data
   const percentFilled = getPercentFilled({
-    reserved_bottles: pallet.reservedBottles,
-    capacity_bottles: pallet.capacity,
+    reserved_bottles: pallet.reserved_bottles,
+    capacity_bottles: pallet.capacity_bottles,
     percent_filled: pallet.percent_filled,
     status: pallet.status,
   });
