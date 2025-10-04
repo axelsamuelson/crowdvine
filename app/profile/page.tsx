@@ -1058,35 +1058,111 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Quick Actions */}
+        {/* Reservations Overview */}
         <Card className="border border-gray-200">
           <CardHeader className="pb-4">
-            <CardTitle className="text-lg font-medium text-gray-900">
-              Quick Actions
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg font-medium text-gray-900">
+                My Reservations
+              </CardTitle>
               <Link href="/profile/reservations">
-                <Button
-                  variant="outline"
-                  className="w-full h-16 flex items-center gap-3"
-                >
-                  <Package className="w-5 h-5" />
-                  <span>View Reservations</span>
-                </Button>
-              </Link>
-
-              <Link href="/shop">
-                <Button
-                  variant="outline"
-                  className="w-full h-16 flex items-center gap-3"
-                >
-                  <Wine className="w-5 h-5" />
-                  <span>Browse Wines</span>
+                <Button variant="outline" size="sm" className="bg-white hover:bg-gray-50">
+                  View All
                 </Button>
               </Link>
             </div>
+          </CardHeader>
+          <CardContent>
+            {reservations && reservations.length > 0 ? (
+              <div className="space-y-4">
+                {/* Summary Stats */}
+                <div className="grid grid-cols-3 gap-4 mb-4">
+                  <div className="bg-gray-50 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-gray-900">{reservations.length}</div>
+                    <div className="text-xs text-gray-600">Reservations</div>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-gray-900">
+                      {reservations.reduce((total, res) => total + (res.order_reservation_items?.reduce((itemTotal, item) => itemTotal + item.quantity, 0) || 0), 0)}
+                    </div>
+                    <div className="text-xs text-gray-600">Total Bottles</div>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-gray-900">
+                      {new Set(reservations.map(res => res.pickup_zone_id || res.delivery_zone_id).filter(Boolean)).size}
+                    </div>
+                    <div className="text-xs text-gray-600">Zones</div>
+                  </div>
+                </div>
+
+                {/* Recent Reservations Preview */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-gray-700">Recent Reservations</h4>
+                  {reservations.slice(0, 3).map((reservation) => (
+                    <div key={reservation.id} className="bg-white border border-gray-200 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center">
+                            <Package className="w-3 h-3 text-gray-600" />
+                          </div>
+                          <span className="text-sm font-medium text-gray-900">
+                            Order {reservation.order_id?.substring(0, 8) || reservation.id.substring(0, 8)}
+                          </span>
+                        </div>
+                        <Badge 
+                          variant="secondary" 
+                          className={`text-xs ${
+                            reservation.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                            reservation.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}
+                        >
+                          {reservation.status}
+                        </Badge>
+                      </div>
+                      
+                      <div className="flex items-center justify-between text-xs text-gray-600">
+                        <div className="flex items-center gap-4">
+                          <span>{reservation.order_reservation_items?.length || 0} wines</span>
+                          <span>{reservation.order_reservation_items?.reduce((total, item) => total + item.quantity, 0) || 0} bottles</span>
+                        </div>
+                        <span>{new Date(reservation.created_at).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Quick Actions */}
+                <div className="flex gap-3 pt-2">
+                  <Link href="/profile/reservations" className="flex-1">
+                    <Button variant="outline" className="w-full bg-white hover:bg-gray-50">
+                      <Package className="w-4 h-4 mr-2" />
+                      View All Reservations
+                    </Button>
+                  </Link>
+                  <Link href="/shop" className="flex-1">
+                    <Button variant="outline" className="w-full bg-white hover:bg-gray-50">
+                      <Wine className="w-4 h-4 mr-2" />
+                      Browse Wines
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Package className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Reservations Yet</h3>
+                <p className="text-gray-600 mb-6">Start exploring our wine collection and make your first reservation.</p>
+                <Link href="/shop">
+                  <Button className="bg-gray-900 hover:bg-gray-800 text-white">
+                    <Wine className="w-4 h-4 mr-2" />
+                    Browse Wines
+                  </Button>
+                </Link>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
