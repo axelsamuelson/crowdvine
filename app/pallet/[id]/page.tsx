@@ -178,8 +178,8 @@ export default function PalletPage() {
 
   // Calculate progress data
   const percentFilled = getPercentFilled({
-    reserved_bottles: pallet.reserved_bottles,
-    capacity_bottles: pallet.capacity_bottles,
+    reserved_bottles: pallet.reservedBottles,
+    capacity_bottles: pallet.capacity,
     percent_filled: pallet.percent_filled,
     status: pallet.status,
   });

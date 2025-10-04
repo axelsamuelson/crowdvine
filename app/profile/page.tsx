@@ -1133,8 +1133,8 @@ export default function ProfilePage() {
                             const maxPercent = Math.max(...activePallets.map(res => {
                               const percent = getPercentFilled({
                                 reserved_bottles: res.items?.reduce((total, item) => total + item.quantity, 0) || 0,
-                                capacity_bottles: undefined, // TODO: Get from backend
-                                percent_filled: undefined, // TODO: Get from backend
+                                capacity_bottles: res.pallet_capacity, // Use pallet_capacity from API
+                                percent_filled: undefined, // TODO: Get from backend if available
                                 status: res.status.toUpperCase() as any
                               });
                               return percent || 0;
@@ -1172,6 +1172,7 @@ export default function ProfilePage() {
                           palletMap.set(palletId, {
                             id: palletId,
                             name: palletName,
+                            capacity: reservation.pallet_capacity,
                             status: reservation.status || 'OPEN',
                             reservedBottles: 0,
                             deliveredBottles: 0,
@@ -1204,8 +1205,8 @@ export default function ProfilePage() {
                         // Calculate pallet fill percentage
                         const percentFilled = getPercentFilled({
                           reserved_bottles: pallet.reservedBottles,
-                          capacity_bottles: undefined, // TODO: Get from backend
-                          percent_filled: undefined, // TODO: Get from backend
+                          capacity_bottles: pallet.capacity, // Use pallet capacity
+                          percent_filled: undefined, // TODO: Get from backend if available
                           status: pallet.status.toUpperCase() as any
                         });
                         

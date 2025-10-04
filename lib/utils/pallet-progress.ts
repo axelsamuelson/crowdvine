@@ -4,9 +4,9 @@
 
 export interface PalletProgressData {
   reserved_bottles: number;
-  capacity_bottles?: number;
+  capacity_bottles?: number; // Also accepts bottle_capacity from database
   percent_filled?: number;
-  status: 'OPEN' | 'CONSOLIDATING' | 'SHIPPED' | 'DELIVERED';
+  status: 'OPEN' | 'CONSOLIDATING' | 'SHIPPED' | 'DELIVERED' | string;
 }
 
 /**

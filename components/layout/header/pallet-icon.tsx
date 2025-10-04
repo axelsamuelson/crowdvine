@@ -85,8 +85,8 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
         const maxPercent = Math.max(...activePallets.map((res: any) => {
           const percent = getPercentFilled({
             reserved_bottles: res.items?.reduce((total: number, item: any) => total + item.quantity, 0) || 0,
-            capacity_bottles: undefined, // TODO: Get from backend
-            percent_filled: undefined, // TODO: Get from backend
+            capacity_bottles: res.pallet_capacity, // Use pallet_capacity from API
+            percent_filled: undefined, // TODO: Get from backend if available
             status: res.status.toUpperCase() as any
           });
           return percent || 0;
@@ -167,6 +167,7 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
       palletMap.set(palletId, {
         id: palletId,
         name: palletName,
+        capacity: reservation.pallet_capacity,
         status: reservation.status || 'OPEN',
         reservedBottles: 0,
         latestDate: reservation.created_at,
@@ -231,8 +232,8 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
               // Calculate pallet fill percentage
               const percentFilled = getPercentFilled({
                 reserved_bottles: pallet.reservedBottles,
-                capacity_bottles: undefined, // TODO: Get from backend
-                percent_filled: undefined, // TODO: Get from backend
+                capacity_bottles: pallet.capacity, // Use pallet capacity
+                percent_filled: undefined, // TODO: Get from backend if available
                 status: pallet.status.toUpperCase() as any
               });
               

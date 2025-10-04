@@ -44,23 +44,25 @@ export async function GET() {
     // Transform the data to match the expected format
     const transformedReservations = await Promise.all(
       reservations.map(async (reservation) => {
-        // Get pallet name based on zones
-        let palletName = "Unassigned Pallet";
-        let palletId = null;
+            // Get pallet name and capacity based on zones
+            let palletName = "Unassigned Pallet";
+            let palletId = null;
+            let palletCapacity = null;
 
-        if (reservation.pickup_zone_id && reservation.delivery_zone_id) {
-          const { data: pallet } = await supabase
-            .from("pallets")
-            .select("id, name")
-            .eq("pickup_zone_id", reservation.pickup_zone_id)
-            .eq("delivery_zone_id", reservation.delivery_zone_id)
-            .single();
+            if (reservation.pickup_zone_id && reservation.delivery_zone_id) {
+              const { data: pallet } = await supabase
+                .from("pallets")
+                .select("id, name, bottle_capacity")
+                .eq("pickup_zone_id", reservation.pickup_zone_id)
+                .eq("delivery_zone_id", reservation.delivery_zone_id)
+                .single();
 
-          if (pallet) {
-            palletName = pallet.name;
-            palletId = pallet.id;
-          }
-        }
+              if (pallet) {
+                palletName = pallet.name;
+                palletId = pallet.id;
+                palletCapacity = pallet.bottle_capacity;
+              }
+            }
 
         // Get delivery address instead of zone names
         let deliveryAddress = "No delivery address";
@@ -117,17 +119,18 @@ export async function GET() {
           0,
         );
 
-        return {
-          id: reservation.id,
-          order_id: reservation.order_id || reservation.id,
-          status: reservation.status,
-          created_at: reservation.created_at,
-          pallet_id: palletId,
-          pallet_name: palletName,
-          delivery_address: deliveryAddress,
-          total_cost_cents: totalCostCents,
-          items: itemsWithCosts,
-        };
+            return {
+              id: reservation.id,
+              order_id: reservation.order_id || reservation.id,
+              status: reservation.status,
+              created_at: reservation.created_at,
+              pallet_id: palletId,
+              pallet_name: palletName,
+              pallet_capacity: palletCapacity,
+              delivery_address: deliveryAddress,
+              total_cost_cents: totalCostCents,
+              items: itemsWithCosts,
+            };
       }),
     );
 
