@@ -33,7 +33,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { PaymentMethodCard } from "@/components/ui/payment-method-card";
 import { RewardTierCard } from "@/components/ui/reward-tier-card";
-import { MiniProgress } from "@/components/ui/progress-components";
+import { MiniProgress, ProgressHalo } from "@/components/ui/progress-components";
 import { getPercentFilled, formatPercent, shouldShowPercent } from "@/lib/utils/pallet-progress";
 import { useHybridInvitationUpdates } from "@/lib/hooks/use-hybrid-invitation-updates";
 
@@ -1119,8 +1119,35 @@ export default function ProfilePage() {
                         <div className="text-sm text-gray-500">Unique Bottles</div>
                       </div>
                       <div className="text-center">
-                        <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                          <Package className="w-6 h-6 text-gray-400" />
+                        <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3 relative">
+                          <Package className="w-6 h-6 text-gray-400 relative z-10" />
+                          {/* Progress halo showing max % among active pallets */}
+                          {(() => {
+                            // Calculate max percent among active pallets
+                            const activePallets = reservations.filter(res => 
+                              res.status === 'OPEN' || res.status === 'CONSOLIDATING'
+                            );
+                            
+                            if (activePallets.length === 0) return null;
+                            
+                            const maxPercent = Math.max(...activePallets.map(res => {
+                              const percent = getPercentFilled({
+                                reserved_bottles: res.items?.reduce((total, item) => total + item.quantity, 0) || 0,
+                                capacity_bottles: undefined, // TODO: Get from backend
+                                percent_filled: undefined, // TODO: Get from backend
+                                status: res.status.toUpperCase() as any
+                              });
+                              return percent || 0;
+                            }));
+                            
+                            return maxPercent > 0 ? (
+                              <ProgressHalo 
+                                valuePercent={maxPercent} 
+                                size="lg" 
+                                className="absolute inset-0"
+                              />
+                            ) : null;
+                          })()}
                         </div>
                         <div className="text-2xl font-light text-gray-900">{totalBottles}</div>
                         <div className="text-sm text-gray-500">Total Bottles</div>
@@ -1186,7 +1213,8 @@ export default function ProfilePage() {
                         const displayPercent = showPercent ? formatPercent(percentFilled) : '—%';
                         
                         return (
-                          <div key={pallet.id} className="bg-gray-50/50 rounded-xl p-4 border border-gray-200/50 hover:bg-gray-100/50 transition-colors cursor-pointer">
+                          <Link key={pallet.id} href={`/pallet/${pallet.id}`}>
+                            <div className="bg-gray-50/50 rounded-xl p-4 border border-gray-200/50 hover:bg-gray-100/50 transition-colors cursor-pointer">
                             {/* Row 1: Pallet name + status tag */}
                             <div className="flex items-center justify-between mb-3">
                               <div className="flex items-center gap-3">
@@ -1226,7 +1254,8 @@ export default function ProfilePage() {
                               {/* Micro progress bar */}
                               <MiniProgress valuePercent={showPercent ? percentFilled : null} />
                             </div>
-                          </div>
+                            </div>
+                          </Link>
                         );
                       });
                     })()}

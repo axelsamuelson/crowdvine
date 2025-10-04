@@ -28,6 +28,12 @@ interface PalletProgressProps {
   className?: string;
 }
 
+interface ProgressHaloProps {
+  valuePercent: number | null;
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+}
+
 /**
  * Pallet progress indicator for pallet pages
  */
@@ -125,4 +131,63 @@ export function PalletProgress({
   }
   
   return null;
+}
+
+/**
+ * Progress halo for header icons
+ */
+export function ProgressHalo({ 
+  valuePercent, 
+  size = 'md',
+  className = "" 
+}: ProgressHaloProps) {
+  const percent = valuePercent || 0;
+  
+  const sizeClasses = {
+    sm: {
+      container: 'w-6 h-6',
+      radius: 12,
+      strokeWidth: 1
+    },
+    md: {
+      container: 'w-8 h-8',
+      radius: 16,
+      strokeWidth: 1.5
+    },
+    lg: {
+      container: 'w-10 h-10',
+      radius: 20,
+      strokeWidth: 2
+    }
+  };
+  
+  const { container, radius, strokeWidth } = sizeClasses[size];
+  const circumference = 2 * Math.PI * radius;
+  const strokeDasharray = circumference;
+  const strokeDashoffset = circumference - (percent / 100) * circumference;
+  
+  return (
+    <div className={`${container} relative ${className}`}>
+      <svg
+        className="absolute inset-0 w-full h-full -rotate-90"
+        viewBox={`0 0 ${radius * 2 + strokeWidth * 2} ${radius * 2 + strokeWidth * 2}`}
+      >
+        {/* Progress halo circle */}
+        {percent > 0 && (
+          <circle
+            cx={radius + strokeWidth}
+            cy={radius + strokeWidth}
+            r={radius}
+            stroke="currentColor"
+            strokeWidth={strokeWidth}
+            fill="none"
+            strokeDasharray={strokeDasharray}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+            className="text-gray-300 opacity-60"
+          />
+        )}
+      </svg>
+    </div>
+  );
 }
