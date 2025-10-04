@@ -1084,68 +1084,135 @@ export default function ProfilePage() {
             ) : reservations && reservations.length > 0 ? (
               <div className="space-y-8">
                 {/* Summary Stats - Premium */}
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="text-center">
-                    <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                      <Package className="w-6 h-6 text-gray-400" />
-                    </div>
-                    <div className="text-2xl font-light text-gray-900">{reservations.length}</div>
-                    <div className="text-sm text-gray-500">Reservations</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                      <Wine className="w-6 h-6 text-gray-400" />
-                    </div>
-                    <div className="text-2xl font-light text-gray-900">
-                      {reservations.reduce((total, res) => total + (res.items?.reduce((itemTotal, item) => itemTotal + item.quantity, 0) || 0), 0)}
-                    </div>
-                    <div className="text-sm text-gray-500">Total Bottles</div>
-                  </div>
-                </div>
+                {(() => {
+                  // Calculate unique bottles based on wine characteristics
+                  const uniqueBottles = new Set();
+                  const totalBottles = reservations.reduce((total, res) => {
+                    if (res.items) {
+                      res.items.forEach(item => {
+                        // Create unique key for each wine
+                        const wineKey = `${item.wine_name}_${item.vintage || 'unknown'}_${item.color || 'unknown'}`;
+                        uniqueBottles.add(wineKey);
+                        total += item.quantity;
+                      });
+                    }
+                    return total;
+                  }, 0);
 
-                {/* Recent Reservations - Pallet Level */}
+                  // Calculate unique pallets
+                  const uniquePallets = new Set();
+                  reservations.forEach(res => {
+                    if (res.pallet_id) {
+                      uniquePallets.add(res.pallet_id);
+                    }
+                  });
+
+                  return (
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="text-center">
+                        <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                          <Wine className="w-6 h-6 text-gray-400" />
+                        </div>
+                        <div className="text-2xl font-light text-gray-900">{uniqueBottles.size}</div>
+                        <div className="text-sm text-gray-500">Unique Bottles</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                          <Package className="w-6 h-6 text-gray-400" />
+                        </div>
+                        <div className="text-2xl font-light text-gray-900">{totalBottles}</div>
+                        <div className="text-sm text-gray-500">Total Bottles</div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Pallet Overview - De-duplicated */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-light text-gray-900">Pallet Overview</h3>
                   <div className="space-y-3">
-                    {reservations.slice(0, 3).map((reservation) => (
-                      <div key={reservation.id} className="bg-gray-50/50 rounded-xl p-4 border border-gray-200/50 hover:bg-gray-100/50 transition-colors cursor-pointer">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                              <Package className="w-4 h-4 text-gray-400" />
-                            </div>
-                            <div>
-                              <p className="font-light text-gray-900">
-                                {reservation.pallet_name || 'Pallet Assignment Pending'}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {new Date(reservation.created_at).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                          <Badge 
-                            className={`text-xs rounded-full ${
-                              reservation.status === 'confirmed' ? 'bg-green-100 text-green-700 border-green-200' :
-                              reservation.status === 'pending' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
-                              'bg-gray-100 text-gray-600 border-gray-200'
-                            }`}
-                          >
-                            {reservation.status === 'confirmed' ? 'CONSOLIDATING' : 
-                             reservation.status === 'pending' ? 'OPEN' : 'OPEN'}
-                          </Badge>
-                        </div>
+                    {(() => {
+                      // Group reservations by pallet_id and aggregate data
+                      const palletMap = new Map();
+                      
+                      reservations.forEach(reservation => {
+                        const palletId = reservation.pallet_id || 'unassigned';
+                        const palletName = reservation.pallet_name || 'Pallet Assignment Pending';
                         
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between text-sm text-gray-500">
-                            <span>Reserved: {reservation.items?.reduce((total, item) => total + item.quantity, 0) || 0} bottles</span>
-                            <span>Delivered: 0</span>
+                        if (!palletMap.has(palletId)) {
+                          palletMap.set(palletId, {
+                            id: palletId,
+                            name: palletName,
+                            status: reservation.status || 'OPEN',
+                            reservedBottles: 0,
+                            deliveredBottles: 0,
+                            latestDate: reservation.created_at,
+                            reservations: []
+                          });
+                        }
+                        
+                        const pallet = palletMap.get(palletId);
+                        pallet.reservedBottles += reservation.items?.reduce((total, item) => total + item.quantity, 0) || 0;
+                        pallet.deliveredBottles += 0; // TODO: Get from backend
+                        pallet.reservations.push(reservation);
+                        
+                        // Use most recent status
+                        if (new Date(reservation.created_at) > new Date(pallet.latestDate)) {
+                          pallet.latestDate = reservation.created_at;
+                        }
+                      });
+                      
+                      // Sort pallets: OPEN/CONSOLIDATING first, then by date
+                      const sortedPallets = Array.from(palletMap.values()).sort((a, b) => {
+                        const statusOrder = { 'OPEN': 0, 'CONSOLIDATING': 1, 'SHIPPED': 2, 'DELIVERED': 3 };
+                        const aOrder = statusOrder[a.status] || 0;
+                        const bOrder = statusOrder[b.status] || 0;
+                        if (aOrder !== bOrder) return aOrder - bOrder;
+                        return new Date(b.latestDate) - new Date(a.latestDate);
+                      });
+                      
+                      return sortedPallets.slice(0, 3).map((pallet) => (
+                        <div key={pallet.id} className="bg-gray-50/50 rounded-xl p-4 border border-gray-200/50 hover:bg-gray-100/50 transition-colors cursor-pointer">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                                <Package className="w-4 h-4 text-gray-400" />
+                              </div>
+                              <div>
+                                <p className="font-light text-gray-900">{pallet.name}</p>
+                                <p className="text-xs text-gray-500">
+                                  {new Date(pallet.latestDate).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                            <Badge 
+                              className={`text-xs rounded-full ${
+                                pallet.status === 'confirmed' ? 'bg-green-100 text-green-700 border-green-200' :
+                                pallet.status === 'pending' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                                pallet.status === 'shipped' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                                pallet.status === 'delivered' ? 'bg-gray-100 text-gray-700 border-gray-200' :
+                                'bg-gray-100 text-gray-600 border-gray-200'
+                              }`}
+                            >
+                              {pallet.status === 'confirmed' ? 'CONSOLIDATING' : 
+                               pallet.status === 'pending' ? 'OPEN' : 
+                               pallet.status === 'shipped' ? 'SHIPPED' :
+                               pallet.status === 'delivered' ? 'DELIVERED' : 'OPEN'}
+                            </Badge>
                           </div>
-                          <div className="text-xs text-gray-400">
-                            ETA: {reservation.status === 'confirmed' ? 'Q1 2025' : 'TBD'}
+                          
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between text-sm text-gray-500">
+                              <span>Reserved: {pallet.reservedBottles} bottles</span>
+                              <span>Delivered: {pallet.deliveredBottles}</span>
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              ETA: {pallet.status === 'confirmed' ? 'Q1 2025' : 'TBD'}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ));
+                    })()}
                   </div>
                 </div>
 
@@ -1170,7 +1237,7 @@ export default function ProfilePage() {
                 <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
                   <Package className="w-10 h-10 text-gray-400" />
                 </div>
-                <h3 className="text-xl font-light text-gray-900 mb-3">No reservations yet</h3>
+                <h3 className="text-xl font-light text-gray-900 mb-3">No active pallets yet</h3>
                 <p className="text-gray-500 mb-8 max-w-md mx-auto">Start exploring our wine collection and make your first reservation</p>
                 <Link href="/shop">
                   <Button className="rounded-full px-8 bg-gray-900 hover:bg-gray-800 text-white">
