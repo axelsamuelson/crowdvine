@@ -94,6 +94,8 @@ export default function ProfilePage() {
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [discountCodes, setDiscountCodes] = useState<any[]>([]);
+  const [reservations, setReservations] = useState<any[]>([]);
+  const [reservationsLoading, setReservationsLoading] = useState(false);
 
   // Hybrid updates (polling + webhooks)
   const {
@@ -131,6 +133,7 @@ export default function ProfilePage() {
     fetchPaymentMethods();
     fetchDiscountCodes();
     fetchUsedInvitations(); // Fetch used invitations from database
+    fetchReservations(); // Fetch user reservations
 
     // Load invitation from localStorage
     const savedInvitation = localStorage.getItem("currentInvitation");
@@ -243,6 +246,25 @@ export default function ProfilePage() {
     } catch (error) {
       console.error("Error fetching used invitations:", error);
       setUsedInvitations([]);
+    }
+  };
+
+  const fetchReservations = async () => {
+    try {
+      setReservationsLoading(true);
+      const response = await fetch("/api/profile/reservations");
+      if (response.ok) {
+        const data = await response.json();
+        setReservations(data.reservations || []);
+      } else {
+        console.error("Failed to load reservations");
+        setReservations([]);
+      }
+    } catch (error) {
+      console.error("Error fetching reservations:", error);
+      setReservations([]);
+    } finally {
+      setReservationsLoading(false);
     }
   };
 
@@ -1073,7 +1095,11 @@ export default function ProfilePage() {
             </div>
           </CardHeader>
           <CardContent>
-            {reservations && reservations.length > 0 ? (
+            {reservationsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-sm text-gray-500">Loading reservations...</div>
+              </div>
+            ) : reservations && reservations.length > 0 ? (
               <div className="space-y-4">
                 {/* Summary Stats */}
                 <div className="grid grid-cols-3 gap-4 mb-4">
