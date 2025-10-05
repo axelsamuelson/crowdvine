@@ -82,12 +82,27 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
           return;
         }
         
-        const maxPercent = Math.max(...activePallets.map((res: any) => {
+        // Group by pallet_id to get total bottles per pallet for percentage calculation
+        const palletTotals = new Map();
+        activePallets.forEach((res: any) => {
+          const palletId = res.pallet_id || 'unassigned';
+          const bottles = res.items?.reduce((total: number, item: any) => total + item.quantity, 0) || 0;
+          const capacity = res.pallet_capacity;
+          
+          if (!palletTotals.has(palletId)) {
+            palletTotals.set(palletId, { totalBottles: 0, capacity });
+          }
+          
+          const pallet = palletTotals.get(palletId);
+          pallet.totalBottles += bottles;
+        });
+        
+        const maxPercent = Math.max(...Array.from(palletTotals.values()).map((pallet: any) => {
           const percent = getPercentFilled({
-            reserved_bottles: res.items?.reduce((total: number, item: any) => total + item.quantity, 0) || 0,
-            capacity_bottles: res.pallet_capacity, // Use pallet_capacity from API
+            reserved_bottles: pallet.totalBottles,
+            capacity_bottles: pallet.capacity,
             percent_filled: undefined, // TODO: Get from backend if available
-            status: res.status.toUpperCase() as any
+            status: 'OPEN' // Assume OPEN for active pallets
           });
           return percent || 0;
         }));
@@ -169,14 +184,22 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
         name: palletName,
         capacity: reservation.pallet_capacity,
         status: reservation.status || 'OPEN',
-        reservedBottles: 0,
+        totalReservedBottles: 0, // Total bottles reserved by all users
+        myReservedBottles: 0,    // Bottles reserved by current user
         latestDate: reservation.created_at,
         reservations: []
       });
     }
     
     const pallet = palletMap.get(palletId);
-    pallet.reservedBottles += reservation.items?.reduce((total: number, item: any) => total + item.quantity, 0) || 0;
+    const reservationBottles = reservation.items?.reduce((total: number, item: any) => total + item.quantity, 0) || 0;
+    
+    // Count all reserved bottles (total)
+    pallet.totalReservedBottles += reservationBottles;
+    
+    // Count current user's bottles (since these are user's own reservations)
+    pallet.myReservedBottles += reservationBottles;
+    
     pallet.reservations.push(reservation);
     
     // Use most recent status
@@ -229,10 +252,10 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
           </div>
           <div className="max-h-64 overflow-y-auto">
             {sortedPallets.slice(0, 5).map((pallet) => {
-              // Calculate pallet fill percentage
+              // Calculate pallet fill percentage using total reserved bottles
               const percentFilled = getPercentFilled({
-                reserved_bottles: pallet.reservedBottles,
-                capacity_bottles: pallet.capacity, // Use pallet capacity
+                reserved_bottles: pallet.totalReservedBottles,
+                capacity_bottles: pallet.capacity,
                 percent_filled: undefined, // TODO: Get from backend if available
                 status: pallet.status.toUpperCase() as any
               });
@@ -267,11 +290,11 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
                       </Badge>
                     </div>
                     
-                    {/* Row 2: Meta info with percentage */}
+                    {/* Row 2: Meta info with percentage and user's reservation */}
                     <div className="space-y-1">
                       <div className="text-xs text-gray-500">
                         <span className="font-medium">{displayPercent}</span>
-                        <span> • Reserved: {pallet.reservedBottles} • ETA: {pallet.status === 'confirmed' ? 'Q1 2025' : 'TBD'}</span>
+                        <span> • Total: {pallet.totalReservedBottles} • My bottles: {pallet.myReservedBottles}</span>
                       </div>
                       
                       {/* Micro progress bar */}
