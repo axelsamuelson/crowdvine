@@ -83,48 +83,53 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
           return;
         }
         
-        // Get unique pallet IDs from user's reservations
-        const palletIds = [...new Set(activePallets.map((res: any) => res.pallet_id).filter(Boolean))];
+        // For now, since pallet IDs are "unassigned", let's calculate percentage based on user's own reservations
+        // This is a temporary solution until pallet assignment is properly implemented
+        console.log(`🔍 Active pallets data:`, activePallets);
         
-        // Fetch pallet data for each unique pallet to get correct fill percentages
-        console.log(`🔍 Fetching data for pallet IDs:`, palletIds);
-        const palletPromises = palletIds.map(async (palletId: string) => {
-          try {
-            console.log(`📡 Fetching pallet data for ID: ${palletId}`);
-            const palletResponse = await fetch(`/api/pallet/${palletId}`);
-            if (palletResponse.ok) {
-              const data = await palletResponse.json();
-              console.log(`✅ Got pallet data for ${palletId}:`, data);
-              return data;
-            } else {
-              console.error(`❌ Failed to fetch pallet ${palletId}:`, palletResponse.status);
-            }
-          } catch (error) {
-            console.error(`💥 Error fetching pallet ${palletId}:`, error);
+        // Group reservations by pickup/delivery zone combination to simulate pallets
+        const zoneGroups = new Map();
+        activePallets.forEach((res: any) => {
+          const zoneKey = `${res.pickup_zone_id || 'unknown'}-${res.delivery_zone_id || 'unknown'}`;
+          if (!zoneGroups.has(zoneKey)) {
+            zoneGroups.set(zoneKey, {
+              zoneKey,
+              pickupZone: res.pickup_zone || 'Unknown',
+              deliveryZone: res.delivery_zone || 'Unknown',
+              totalBottles: 0,
+              reservations: []
+            });
           }
-          return null;
+          
+          const group = zoneGroups.get(zoneKey);
+          const bottles = res.items?.reduce((total: number, item: any) => total + item.quantity, 0) || 0;
+          group.totalBottles += bottles;
+          group.reservations.push(res);
         });
         
-        const palletDataArray = (await Promise.all(palletPromises)).filter(Boolean);
+        console.log(`📊 Zone groups:`, Array.from(zoneGroups.values()));
         
-        // Store pallet data for dropdown use
+        // Calculate max percentage based on total bottles (assuming 120 bottle capacity per "pallet")
+        const maxBottles = Math.max(...Array.from(zoneGroups.values()).map(group => group.totalBottles));
+        const estimatedMaxPercent = Math.min(Math.round((maxBottles / 120) * 100), 100);
+        
+        console.log(`📈 Estimated max percentage: ${estimatedMaxPercent}% (${maxBottles} bottles)`);
+        
+        setMaxPalletPercent(estimatedMaxPercent > 0 ? estimatedMaxPercent : null);
+        
+        // Store zone group data for dropdown use
         const palletDataMap = new Map();
-        palletDataArray.forEach((pallet: any) => {
-          if (pallet) {
-            palletDataMap.set(pallet.id, pallet);
-          }
+        Array.from(zoneGroups.values()).forEach((group, index) => {
+          const fakePalletId = `zone-${group.zoneKey}`;
+          palletDataMap.set(fakePalletId, {
+            id: fakePalletId,
+            name: `${group.pickupZone} to ${group.deliveryZone}`,
+            total_reserved_bottles: group.totalBottles,
+            percentage_filled: Math.min(Math.round((group.totalBottles / 120) * 100), 100),
+            reservations: group.reservations
+          });
         });
         setPalletData(palletDataMap);
-        
-        if (palletDataArray.length > 0) {
-          const maxPercent = Math.max(...palletDataArray.map((pallet: any) => {
-            return pallet.percentage_filled || 0;
-          }));
-          
-          setMaxPalletPercent(maxPercent > 0 ? maxPercent : null);
-        } else {
-          setMaxPalletPercent(null);
-        }
       }
     } catch (error) {
       console.error("Error fetching reservations:", error);
@@ -190,17 +195,18 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
     );
   }
 
-  // Group reservations by pallet_id
+  // Group reservations by pickup/delivery zone combination (since pallet_id is "unassigned")
   const palletMap = new Map();
   reservations.forEach((reservation) => {
-    const palletId = reservation.pallet_id || 'unassigned';
-    const palletName = reservation.pallet_name || 'Pallet Assignment Pending';
+    const zoneKey = `${reservation.pickup_zone_id || 'unknown'}-${reservation.delivery_zone_id || 'unknown'}`;
+    const palletId = `zone-${zoneKey}`;
+    const palletName = `${reservation.pickup_zone || 'Unknown'} to ${reservation.delivery_zone || 'Unknown'}`;
     
     if (!palletMap.has(palletId)) {
       palletMap.set(palletId, {
         id: palletId,
         name: palletName,
-        capacity: reservation.pallet_capacity,
+        capacity: 120, // Assume 120 bottle capacity per pallet
         status: reservation.status || 'OPEN',
         totalReservedBottles: 0, // Total bottles reserved by all users
         myReservedBottles: 0,    // Bottles reserved by current user
@@ -212,7 +218,7 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
     const pallet = palletMap.get(palletId);
     const reservationBottles = reservation.items?.reduce((total: number, item: any) => total + item.quantity, 0) || 0;
     
-    // Count all reserved bottles (total)
+    // Count all reserved bottles (total) - for now, this is just the user's bottles
     pallet.totalReservedBottles += reservationBottles;
     
     // Count current user's bottles (since these are user's own reservations)
