@@ -86,14 +86,21 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
         // For now, since pallet IDs are "unassigned", let's calculate percentage based on user's own reservations
         // This is a temporary solution until pallet assignment is properly implemented
         console.log(`🔍 Active pallets data:`, activePallets);
+        console.log(`🔍 First reservation sample:`, activePallets[0]);
         
         // Group reservations by pickup/delivery zone combination to simulate pallets
         const zoneGroups = new Map();
         activePallets.forEach((res: any) => {
+          // Use pallet_name from API if available, otherwise construct from zones
+          const palletName = res.pallet_name || `${res.pickup_zone || 'Unknown'} to ${res.delivery_zone || 'Unknown'}`;
           const zoneKey = `${res.pickup_zone_id || 'unknown'}-${res.delivery_zone_id || 'unknown'}`;
+          
+          console.log(`🔍 Reservation ${res.id}: pallet_name="${res.pallet_name}", pickup_zone="${res.pickup_zone}", delivery_zone="${res.delivery_zone}"`);
+          
           if (!zoneGroups.has(zoneKey)) {
             zoneGroups.set(zoneKey, {
               zoneKey,
+              palletName,
               pickupZone: res.pickup_zone || 'Unknown',
               deliveryZone: res.delivery_zone || 'Unknown',
               totalBottles: 0,
@@ -123,7 +130,7 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
           const fakePalletId = `zone-${group.zoneKey}`;
           palletDataMap.set(fakePalletId, {
             id: fakePalletId,
-            name: `${group.pickupZone} to ${group.deliveryZone}`,
+            name: group.palletName, // Use the pallet name from API
             total_reserved_bottles: group.totalBottles,
             percentage_filled: Math.min(Math.round((group.totalBottles / 120) * 100), 100),
             reservations: group.reservations
@@ -200,7 +207,8 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
   reservations.forEach((reservation) => {
     const zoneKey = `${reservation.pickup_zone_id || 'unknown'}-${reservation.delivery_zone_id || 'unknown'}`;
     const palletId = `zone-${zoneKey}`;
-    const palletName = `${reservation.pickup_zone || 'Unknown'} to ${reservation.delivery_zone || 'Unknown'}`;
+    // Use pallet_name from API if available, otherwise construct from zones
+    const palletName = reservation.pallet_name || `${reservation.pickup_zone || 'Unknown'} to ${reservation.delivery_zone || 'Unknown'}`;
     
     if (!palletMap.has(palletId)) {
       palletMap.set(palletId, {
