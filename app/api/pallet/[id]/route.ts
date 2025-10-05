@@ -10,6 +10,8 @@ export async function GET(
     const resolvedParams = await params;
     const palletId = resolvedParams.id;
 
+    console.log(`🔍 Fetching pallet data for ID: ${palletId}`);
+
     // Get pallet information
     const { data: pallet, error: palletError } = await sb
       .from("pallets")
@@ -18,8 +20,11 @@ export async function GET(
       .single();
 
     if (palletError || !pallet) {
+      console.error(`❌ Pallet not found: ${palletError?.message}`);
       return NextResponse.json({ error: "Pallet not found" }, { status: 404 });
     }
+
+    console.log(`✅ Found pallet: ${pallet.name}, capacity: ${pallet.bottle_capacity}, pickup: ${pallet.pickup_zone_id}, delivery: ${pallet.delivery_zone_id}`);
 
     // Get all reservations for this pallet
     const { data: reservations, error: reservationsError } = await sb
@@ -43,9 +48,11 @@ export async function GET(
       .eq("delivery_zone_id", pallet.delivery_zone_id);
 
     if (reservationsError) {
-      console.error("Error fetching reservations:", reservationsError);
+      console.error("❌ Error fetching reservations:", reservationsError);
       return NextResponse.json({ error: "Failed to fetch reservations" }, { status: 500 });
     }
+
+    console.log(`📊 Found ${reservations?.length || 0} reservations for this pallet`);
 
     // Calculate total reserved bottles across all reservations
     let totalReservedBottles = 0;
@@ -64,6 +71,8 @@ export async function GET(
         });
       });
     });
+
+    console.log(`🍷 Total reserved bottles: ${totalReservedBottles}, pallet capacity: ${pallet.bottle_capacity}`);
 
     // Group wines by name + vintage to get totals
     const wineTotals = allWines.reduce((acc: any, wine) => {
@@ -87,7 +96,9 @@ export async function GET(
       ? Math.round((totalReservedBottles / pallet.bottle_capacity) * 100)
       : 0;
 
-    return NextResponse.json({
+    console.log(`📈 Calculated percentage: ${percentageFilled}% (${totalReservedBottles}/${pallet.bottle_capacity})`);
+
+    const result = {
       id: pallet.id,
       name: pallet.name,
       status: pallet.status,
@@ -96,7 +107,10 @@ export async function GET(
       percentage_filled: percentageFilled,
       wines: Object.values(wineTotals),
       reservations: reservations || [],
-    });
+    };
+
+    console.log(`✅ Returning pallet data:`, result);
+    return NextResponse.json(result);
   } catch (error) {
     console.error("Unexpected error in pallet API:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

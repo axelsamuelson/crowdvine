@@ -87,14 +87,20 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
         const palletIds = [...new Set(activePallets.map((res: any) => res.pallet_id).filter(Boolean))];
         
         // Fetch pallet data for each unique pallet to get correct fill percentages
+        console.log(`🔍 Fetching data for pallet IDs:`, palletIds);
         const palletPromises = palletIds.map(async (palletId: string) => {
           try {
+            console.log(`📡 Fetching pallet data for ID: ${palletId}`);
             const palletResponse = await fetch(`/api/pallet/${palletId}`);
             if (palletResponse.ok) {
-              return await palletResponse.json();
+              const data = await palletResponse.json();
+              console.log(`✅ Got pallet data for ${palletId}:`, data);
+              return data;
+            } else {
+              console.error(`❌ Failed to fetch pallet ${palletId}:`, palletResponse.status);
             }
           } catch (error) {
-            console.error(`Error fetching pallet ${palletId}:`, error);
+            console.error(`💥 Error fetching pallet ${palletId}:`, error);
           }
           return null;
         });
@@ -266,6 +272,7 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
             {sortedPallets.slice(0, 5).map((pallet) => {
               // Get pallet data from API for accurate percentages
               const palletApiData = palletData.get(pallet.id);
+              console.log(`🎯 Pallet ${pallet.id} (${pallet.name}) - API data:`, palletApiData);
               
               // Use API data if available, otherwise fall back to calculated data
               const totalReservedBottles = palletApiData?.total_reserved_bottles || pallet.totalReservedBottles;
@@ -276,6 +283,8 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
                   percent_filled: undefined,
                   status: pallet.status.toUpperCase() as any
                 });
+              
+              console.log(`📊 Pallet ${pallet.id}: API percentage=${palletApiData?.percentage_filled}, fallback=${percentageFilled}, showPercent=${shouldShowPercent(pallet.status)}`);
               
               const showPercent = shouldShowPercent(pallet.status);
               const displayPercent = showPercent ? formatPercent(percentageFilled) : '—%';
