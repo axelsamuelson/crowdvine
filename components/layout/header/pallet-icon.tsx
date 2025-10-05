@@ -87,50 +87,56 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
         // This is a temporary solution until pallet assignment is properly implemented
         console.log(`🔍 Active pallets data:`, activePallets);
         console.log(`🔍 First reservation sample:`, activePallets[0]);
+        console.log(`🔍 All reservation keys:`, activePallets[0] ? Object.keys(activePallets[0]) : 'No reservations');
+        console.log(`🔍 Zone data check:`, {
+          pickup_zone_id: activePallets[0]?.pickup_zone_id,
+          delivery_zone_id: activePallets[0]?.delivery_zone_id,
+          pickup_zone: activePallets[0]?.pickup_zone,
+          delivery_zone: activePallets[0]?.delivery_zone,
+          pallet_id: activePallets[0]?.pallet_id,
+          pallet_name: activePallets[0]?.pallet_name
+        });
         
-        // Group reservations by pickup/delivery zone combination to simulate pallets
-        const zoneGroups = new Map();
+        // Group reservations by pallet_id (or create fallback groups)
+        const palletGroups = new Map();
         activePallets.forEach((res: any) => {
-          // Use pallet_name from API if available, otherwise construct from zones
-          const palletName = res.pallet_name || `${res.pickup_zone || 'Unknown'} to ${res.delivery_zone || 'Unknown'}`;
-          const zoneKey = `${res.pickup_zone_id || 'unknown'}-${res.delivery_zone_id || 'unknown'}`;
+          // Use pallet_id if available, otherwise create a fallback group
+          const palletId = res.pallet_id || 'unassigned';
+          const palletName = res.pallet_name || 'Unassigned Pallet';
           
-          console.log(`🔍 Reservation ${res.id}: pallet_name="${res.pallet_name}", pickup_zone="${res.pickup_zone}", delivery_zone="${res.delivery_zone}"`);
+          console.log(`🔍 Reservation ${res.id}: pallet_id="${res.pallet_id}", pallet_name="${res.pallet_name}"`);
           
-          if (!zoneGroups.has(zoneKey)) {
-            zoneGroups.set(zoneKey, {
-              zoneKey,
+          if (!palletGroups.has(palletId)) {
+            palletGroups.set(palletId, {
+              palletId,
               palletName,
-              pickupZone: res.pickup_zone || 'Unknown',
-              deliveryZone: res.delivery_zone || 'Unknown',
               totalBottles: 0,
               reservations: []
             });
           }
           
-          const group = zoneGroups.get(zoneKey);
+          const group = palletGroups.get(palletId);
           const bottles = res.items?.reduce((total: number, item: any) => total + item.quantity, 0) || 0;
           group.totalBottles += bottles;
           group.reservations.push(res);
         });
         
-        console.log(`📊 Zone groups:`, Array.from(zoneGroups.values()));
+        console.log(`📊 Pallet groups:`, Array.from(palletGroups.values()));
         
         // Calculate max percentage based on total bottles (assuming 120 bottle capacity per "pallet")
-        const maxBottles = Math.max(...Array.from(zoneGroups.values()).map(group => group.totalBottles));
+        const maxBottles = Math.max(...Array.from(palletGroups.values()).map(group => group.totalBottles));
         const estimatedMaxPercent = Math.min(Math.round((maxBottles / 120) * 100), 100);
         
         console.log(`📈 Estimated max percentage: ${estimatedMaxPercent}% (${maxBottles} bottles)`);
         
         setMaxPalletPercent(estimatedMaxPercent > 0 ? estimatedMaxPercent : null);
         
-        // Store zone group data for dropdown use
+        // Store pallet group data for dropdown use
         const palletDataMap = new Map();
-        Array.from(zoneGroups.values()).forEach((group, index) => {
-          const fakePalletId = `zone-${group.zoneKey}`;
-          palletDataMap.set(fakePalletId, {
-            id: fakePalletId,
-            name: group.palletName, // Use the pallet name from API
+        Array.from(palletGroups.values()).forEach((group) => {
+          palletDataMap.set(group.palletId, {
+            id: group.palletId,
+            name: group.palletName,
             total_reserved_bottles: group.totalBottles,
             percentage_filled: Math.min(Math.round((group.totalBottles / 120) * 100), 100),
             reservations: group.reservations
@@ -202,13 +208,11 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
     );
   }
 
-  // Group reservations by pickup/delivery zone combination (since pallet_id is "unassigned")
+  // Group reservations by pallet_id
   const palletMap = new Map();
   reservations.forEach((reservation) => {
-    const zoneKey = `${reservation.pickup_zone_id || 'unknown'}-${reservation.delivery_zone_id || 'unknown'}`;
-    const palletId = `zone-${zoneKey}`;
-    // Use pallet_name from API if available, otherwise construct from zones
-    const palletName = reservation.pallet_name || `${reservation.pickup_zone || 'Unknown'} to ${reservation.delivery_zone || 'Unknown'}`;
+    const palletId = reservation.pallet_id || 'unassigned';
+    const palletName = reservation.pallet_name || 'Unassigned Pallet';
     
     if (!palletMap.has(palletId)) {
       palletMap.set(palletId, {
