@@ -21,6 +21,7 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
   const [hasActivePallets, setHasActivePallets] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [reservations, setReservations] = useState<any[]>([]);
+  const [palletData, setPalletData] = useState<Map<string, any>>(new Map());
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -82,38 +83,49 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
           return;
         }
         
-        // Group by pallet_id to get total bottles per pallet for percentage calculation
-        const palletTotals = new Map();
-        activePallets.forEach((res: any) => {
-          const palletId = res.pallet_id || 'unassigned';
-          const bottles = res.items?.reduce((total: number, item: any) => total + item.quantity, 0) || 0;
-          const capacity = res.pallet_capacity;
-          
-          if (!palletTotals.has(palletId)) {
-            palletTotals.set(palletId, { totalBottles: 0, capacity });
+        // Get unique pallet IDs from user's reservations
+        const palletIds = [...new Set(activePallets.map((res: any) => res.pallet_id).filter(Boolean))];
+        
+        // Fetch pallet data for each unique pallet to get correct fill percentages
+        const palletPromises = palletIds.map(async (palletId: string) => {
+          try {
+            const palletResponse = await fetch(`/api/pallet/${palletId}`);
+            if (palletResponse.ok) {
+              return await palletResponse.json();
+            }
+          } catch (error) {
+            console.error(`Error fetching pallet ${palletId}:`, error);
           }
-          
-          const pallet = palletTotals.get(palletId);
-          pallet.totalBottles += bottles;
+          return null;
         });
         
-        const maxPercent = Math.max(...Array.from(palletTotals.values()).map((pallet: any) => {
-          const percent = getPercentFilled({
-            reserved_bottles: pallet.totalBottles,
-            capacity_bottles: pallet.capacity,
-            percent_filled: undefined, // TODO: Get from backend if available
-            status: 'OPEN' // Assume OPEN for active pallets
-          });
-          return percent || 0;
-        }));
+        const palletDataArray = (await Promise.all(palletPromises)).filter(Boolean);
         
-        setMaxPalletPercent(maxPercent > 0 ? maxPercent : null);
+        // Store pallet data for dropdown use
+        const palletDataMap = new Map();
+        palletDataArray.forEach((pallet: any) => {
+          if (pallet) {
+            palletDataMap.set(pallet.id, pallet);
+          }
+        });
+        setPalletData(palletDataMap);
+        
+        if (palletDataArray.length > 0) {
+          const maxPercent = Math.max(...palletDataArray.map((pallet: any) => {
+            return pallet.percentage_filled || 0;
+          }));
+          
+          setMaxPalletPercent(maxPercent > 0 ? maxPercent : null);
+        } else {
+          setMaxPalletPercent(null);
+        }
       }
     } catch (error) {
       console.error("Error fetching reservations:", error);
       setMaxPalletPercent(null);
       setHasActivePallets(false);
       setReservations([]);
+      setPalletData(new Map());
     }
   };
 
@@ -252,16 +264,21 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
           </div>
           <div className="max-h-64 overflow-y-auto">
             {sortedPallets.slice(0, 5).map((pallet) => {
-              // Calculate pallet fill percentage using total reserved bottles
-              const percentFilled = getPercentFilled({
-                reserved_bottles: pallet.totalReservedBottles,
-                capacity_bottles: pallet.capacity,
-                percent_filled: undefined, // TODO: Get from backend if available
-                status: pallet.status.toUpperCase() as any
-              });
+              // Get pallet data from API for accurate percentages
+              const palletApiData = palletData.get(pallet.id);
+              
+              // Use API data if available, otherwise fall back to calculated data
+              const totalReservedBottles = palletApiData?.total_reserved_bottles || pallet.totalReservedBottles;
+              const percentageFilled = palletApiData?.percentage_filled || 
+                getPercentFilled({
+                  reserved_bottles: pallet.totalReservedBottles,
+                  capacity_bottles: pallet.capacity,
+                  percent_filled: undefined,
+                  status: pallet.status.toUpperCase() as any
+                });
               
               const showPercent = shouldShowPercent(pallet.status);
-              const displayPercent = showPercent ? formatPercent(percentFilled) : '—%';
+              const displayPercent = showPercent ? formatPercent(percentageFilled) : '—%';
               
               return (
                 <Link key={pallet.id} href={`/pallet/${pallet.id}`}>
@@ -294,11 +311,11 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
                     <div className="space-y-1">
                       <div className="text-xs text-gray-500">
                         <span className="font-medium">{displayPercent}</span>
-                        <span> • Total: {pallet.totalReservedBottles} • My bottles: {pallet.myReservedBottles}</span>
+                        <span> • Total: {totalReservedBottles} • My bottles: {pallet.myReservedBottles}</span>
                       </div>
                       
                       {/* Micro progress bar */}
-                      <MiniProgress valuePercent={showPercent ? percentFilled : null} />
+                      <MiniProgress valuePercent={showPercent ? percentageFilled : null} />
                     </div>
                   </div>
                 </Link>
