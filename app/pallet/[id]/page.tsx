@@ -66,18 +66,7 @@ export default function PalletPage() {
     try {
       setLoading(true);
       
-      // Fetch all reservations for this pallet (including other users)
-      const response = await fetch(`/api/pallet/${palletId}/reservations`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch pallet reservations");
-      }
-      const palletReservations = await response.json();
-
-      if (palletReservations.length === 0) {
-        throw new Error("Pallet not found or no reservations for this pallet");
-      }
-
-      // Fetch real pallet data from backend for accurate totals
+      // First, fetch real pallet data from backend for accurate info
       let realPalletData: any = null;
       try {
         console.log(`🔄 Fetching real pallet data for ID: ${palletId}`);
@@ -91,24 +80,39 @@ export default function PalletPage() {
           const palletDataResponse = await palletResponse.json();
           console.log(`📊 Fetched pallet data:`, palletDataResponse);
           realPalletData = palletDataResponse.pallets?.[0];
+          
+          if (!realPalletData) {
+            throw new Error("Pallet not found in database");
+          }
         } else {
           console.error(`❌ Pallet API error:`, await palletResponse.text());
+          throw new Error("Failed to fetch pallet data");
         }
       } catch (error) {
         console.error('❌ Error fetching pallet data:', error);
+        throw error;
       }
+      
+      // Then fetch all reservations for this pallet (including other users)
+      const response = await fetch(`/api/pallet/${palletId}/reservations`);
+      if (!response.ok) {
+        // If no reservations yet, that's okay - show empty pallet
+        console.log("No reservations found for this pallet yet");
+      }
+      const palletReservations = await response.json();
 
-      // Aggregate pallet data from reservations
-      const firstReservation = palletReservations[0];
-      let userReservedBottles = 0;
+      // Aggregate data from reservations if any exist
       let totalDeliveredBottles = 0;
       const allItems: any[] = [];
-
-      palletReservations.forEach((res: any) => {
-        userReservedBottles += res.items?.reduce((total: number, item: any) => total + item.quantity, 0) || 0;
-        // totalDeliveredBottles += res.delivered_bottles || 0; // TODO: Get from backend
-        allItems.push(...res.items);
-      });
+      
+      if (Array.isArray(palletReservations) && palletReservations.length > 0) {
+        palletReservations.forEach((res: any) => {
+          // totalDeliveredBottles += res.delivered_bottles || 0; // TODO: Get from backend
+          if (res.items && Array.isArray(res.items)) {
+            allItems.push(...res.items);
+          }
+        });
+      }
 
       // Get unique wines (aggregate by wine name + vintage)
       const uniqueWines = allItems.reduce((acc: any, item: any) => {
@@ -128,10 +132,10 @@ export default function PalletPage() {
         return acc;
       }, {});
 
-      // Use real pallet data if available, otherwise fall back to user's data
-      const totalReservedBottles = realPalletData?.current_bottles || userReservedBottles;
-      const capacityBottles = realPalletData?.bottle_capacity || firstReservation.pallet_capacity;
-      const palletName = realPalletData?.name || firstReservation.pallet_name || `Pallet ${palletId}`;
+      // Use real pallet data from backend
+      const totalReservedBottles = realPalletData.current_bottles;
+      const capacityBottles = realPalletData.bottle_capacity;
+      const palletName = realPalletData.name;
       
       console.log(`✅ Pallet Page - ${palletName}: ${totalReservedBottles}/${capacityBottles} bottles`);
 
@@ -139,22 +143,22 @@ export default function PalletPage() {
       const palletData: PalletData = {
         id: palletId,
         name: palletName,
-        status: firstReservation.status || 'OPEN',
+        status: 'OPEN', // Default status, can be updated from backend if available
         capacity_bottles: capacityBottles,
         reserved_bottles: totalReservedBottles,
         delivered_bottles: totalDeliveredBottles,
-        pickup_zone: firstReservation.pickup_zone || 'TBD',
-        delivery_zone: firstReservation.delivery_zone || 'TBD',
-        eta: firstReservation.eta || 'TBD',
-        created_at: firstReservation.created_at,
-        reservations: palletReservations.map((res: any) => ({
+        pickup_zone: 'TBD', // TODO: Get from backend
+        delivery_zone: 'TBD', // TODO: Get from backend
+        eta: 'TBD', // TODO: Get from backend
+        created_at: new Date().toISOString(),
+        reservations: Array.isArray(palletReservations) ? palletReservations.map((res: any) => ({
           id: res.id,
           user_name: res.user_name,
           user_email: res.user_email,
           bottles_reserved: res.bottles_reserved,
           bottles_delivered: res.bottles_delivered,
           created_at: res.created_at,
-        })),
+        })) : [],
         wines: Object.values(uniqueWines),
       };
       
