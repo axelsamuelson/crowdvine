@@ -30,18 +30,18 @@ export function Header({ collections }: HeaderProps) {
   const pathname = usePathname();
 
   return (
-    <header className="grid fixed top-0 left-0 z-50 grid-cols-4 items-start w-full px-4 md:grid-cols-12 md:gap-sides md:p-sides">
+    <header className="grid fixed top-0 left-0 z-50 grid-cols-3 items-start w-full p-sides md:grid-cols-12 md:gap-sides">
       <div className="block flex-none md:hidden">
         <MobileMenu collections={collections} />
       </div>
       <Link
         href="/"
-        className="col-span-2 md:col-span-3 xl:col-span-2 flex justify-center md:justify-start"
+        className="md:col-span-3 xl:col-span-2 flex justify-center md:justify-start"
         prefetch
       >
-        <LogoSvg className="h-6 md:h-12 w-auto" />
+        <LogoSvg className="h-8 md:h-12 w-auto" />
       </Link>
-      <nav className="flex gap-1 justify-end items-center md:col-span-9 xl:col-span-10 md:gap-2">
+      <nav className="flex gap-2 justify-end items-center md:col-span-9 xl:col-span-10">
         <ul className="items-center gap-5 py-0.5 px-3 bg-background/10 rounded-sm backdrop-blur-md hidden md:flex">
           {navItems.map((item) => (
             <li key={item.href}>
@@ -61,7 +61,7 @@ export function Header({ collections }: HeaderProps) {
           ))}
         </ul>
         <PalletIcon />
-        <ProfileIcon />
+        <ProfileIcon className="hidden md:block" />
         <CartModal />
       </nav>
     </header>
