@@ -69,7 +69,7 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
       <Button
         variant="ghost"
         size="sm"
-        className={`p-2 hover:bg-background/20 transition-colors ${className}`}
+        className={`p-2 hover:bg-background/20 transition-colors inline-flex items-center justify-center ${className}`}
         disabled
       >
         <User className={sizeClasses[size]} />
@@ -82,12 +82,12 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
     <Button
       variant="ghost"
       size="sm"
-      className={`p-2 hover:bg-background/20 transition-colors ${className} ${
+      className={`p-2 hover:bg-background/20 transition-colors inline-flex items-center justify-center ${className} ${
         isAuthenticated ? "text-green-600" : "text-gray-600"
       }`}
       asChild
     >
-      <Link href={isAuthenticated ? "/profile" : "/log-in"} prefetch>
+      <Link href={isAuthenticated ? "/profile" : "/log-in"} prefetch className="inline-flex items-center justify-center">
         <User className={sizeClasses[size]} />
         <span className="sr-only">
           {isAuthenticated ? "Profile" : "Sign In"}
