@@ -10,9 +10,11 @@ export const PageLayout = ({
   noPadding?: boolean;
 }) => {
   return (
-    <div className={`${noPadding ? "" : "pt-top-spacing"} ${className || ""}`}>
-      {children}
+    <>
+      <div className={`${noPadding ? "" : "pt-top-spacing"} ${className || ""}`}>
+        {children}
+      </div>
       <Footer />
-    </div>
+    </>
   );
 };
