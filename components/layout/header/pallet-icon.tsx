@@ -230,9 +230,7 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
           className={`p-2 hover:bg-background/20 transition-colors ${className}`}
           disabled
         >
-          <div className="relative">
-            <Package className={sizeClasses[size]} />
-          </div>
+          <Package className={sizeClasses[size]} />
           <span className="sr-only">Pallets</span>
         </Button>
       </div>
@@ -299,32 +297,30 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
       <Button
         variant="ghost"
         size="sm"
-        className={`p-2 hover:bg-background/20 transition-colors ${className}`}
+        className={`p-2 hover:bg-background/20 transition-colors relative ${className}`}
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
       >
-        <div className="relative">
-          {/* Ultra-thin progress halo for active pallets */}
-          <Package className={`${sizeClasses[size]} text-foreground`} />
-          {maxPalletPercent !== null && (
-            <ProgressHalo 
-              valuePercent={maxPalletPercent} 
-              size="sm" 
-              className="absolute inset-0 opacity-40 pointer-events-none"
-            />
-          )}
-          {/* Number indicator for active pallets */}
-          {hasActivePallets && sortedPallets.length > 0 && (
-            <div className="absolute -top-0.5 -right-0.5 min-w-[10px] h-[10px] flex items-center justify-center bg-foreground text-background rounded-full">
-              <span className="text-[7px] font-semibold leading-none px-[2px]">
-                {sortedPallets.length}
-              </span>
-            </div>
-          )}
-        </div>
+        {/* Ultra-thin progress halo for active pallets */}
+        <Package className={`${sizeClasses[size]} text-foreground`} />
+        {maxPalletPercent !== null && (
+          <ProgressHalo 
+            valuePercent={maxPalletPercent} 
+            size="sm" 
+            className="absolute inset-2 opacity-40 pointer-events-none"
+          />
+        )}
         <span className="sr-only">
           {hasActivePallets ? `${sortedPallets.length} Active Pallets` : "Pallets"}
         </span>
       </Button>
+      {/* Number indicator for active pallets - outside Button */}
+      {hasActivePallets && sortedPallets.length > 0 && (
+        <div className="absolute top-0 right-0 min-w-[10px] h-[10px] flex items-center justify-center bg-foreground text-background rounded-full pointer-events-none">
+          <span className="text-[7px] font-semibold leading-none px-[2px]">
+            {sortedPallets.length}
+          </span>
+        </div>
+      )}
 
       {/* Dropdown */}
       {isDropdownOpen && sortedPallets.length > 0 && (

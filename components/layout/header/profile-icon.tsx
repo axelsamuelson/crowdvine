@@ -78,9 +78,7 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
           className={`p-2 hover:bg-background/20 transition-colors ${className}`}
           disabled
         >
-          <div className="relative">
-            <User className={sizeClasses[size]} />
-          </div>
+          <User className={sizeClasses[size]} />
           <span className="sr-only">Profile</span>
         </Button>
       </div>
@@ -100,9 +98,7 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
         className={`p-2 hover:bg-background/20 transition-colors ${className}`}
         onClick={handleClick}
       >
-        <div className="relative">
-          <User className={sizeClasses[size]} />
-        </div>
+        <User className={sizeClasses[size]} />
         <span className="sr-only">Profile</span>
       </Button>
     </div>
