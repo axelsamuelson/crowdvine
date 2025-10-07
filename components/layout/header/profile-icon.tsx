@@ -71,19 +71,15 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
   // Show loading state briefly
   if (loading) {
     return (
-      <div className="relative">
-        <Button
-          variant="ghost"
-          size="sm"
-          className={`p-2 hover:bg-background/20 transition-colors ${className}`}
-          disabled
-        >
-          <div className="relative flex items-center justify-center" onClick={handleClick}>
-            <User className={`${sizeClasses[size]} text-foreground`} />
-          </div>
-          <span className="sr-only">Profile</span>
-        </Button>
-      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        className={`p-2 hover:bg-background/20 transition-colors ${className}`}
+        disabled
+      >
+        <User className={sizeClasses[size]} />
+        <span className="sr-only">Profile</span>
+      </Button>
     );
   }
 
@@ -93,17 +89,14 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
   }
 
   return (
-    <div className="relative">
-      <Button
-        variant="ghost"
-        size="sm"
-        className={`p-2 hover:bg-background/20 transition-colors ${className}`}
-      >
-        <div className="relative flex items-center justify-center" onClick={handleClick}>
-          <User className={`${sizeClasses[size]} text-foreground`} />
-        </div>
-        <span className="sr-only">Profile</span>
-      </Button>
-    </div>
+    <Button
+      variant="ghost"
+      size="sm"
+      className={`p-2 hover:bg-background/20 transition-colors ${className}`}
+      onClick={handleClick}
+    >
+      <User className={sizeClasses[size]} />
+      <span className="sr-only">Profile</span>
+    </Button>
   );
 }
