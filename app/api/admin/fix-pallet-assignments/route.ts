@@ -44,7 +44,7 @@ export async function POST() {
       // Find reservations matching this pallet's zones but not assigned to it
       const { data: reservations, error: reservationsError } = await supabase
         .from("order_reservations")
-        .select("id, order_id, pickup_zone_id, delivery_zone_id, pallet_id")
+        .select("id, pickup_zone_id, delivery_zone_id, pallet_id")
         .eq("pickup_zone_id", pallet.pickup_zone_id)
         .eq("delivery_zone_id", pallet.delivery_zone_id)
         .or(`pallet_id.is.null,pallet_id.neq.${pallet.id}`);
@@ -83,7 +83,7 @@ export async function POST() {
           pallet: pallet.name,
           status: "success",
           updated: count || 0,
-          reservationIds: reservations.map(r => r.order_id || r.id),
+          reservationIds: reservations.map(r => r.id),
         });
       }
     }
