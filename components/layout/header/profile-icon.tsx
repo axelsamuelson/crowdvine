@@ -73,13 +73,13 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
       <div className="relative inline-block">
         <button
           type="button"
-          className={`p-2 hover:bg-background/20 transition-colors rounded-md opacity-50 cursor-not-allowed ${className}`}
+          className={`p-2 hover:bg-background/20 transition-colors rounded-md opacity-50 cursor-not-allowed relative ${className}`}
           disabled
         >
           <div className="relative">
             <User className={sizeClasses[size]} />
           </div>
-          <span className="sr-only">Profile</span>
+          <span className="absolute sr-only">Profile</span>
         </button>
       </div>
     );
@@ -94,13 +94,13 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
     <div className="relative inline-block">
       <button
         type="button"
-        className={`p-2 hover:bg-background/20 transition-colors rounded-md ${className}`}
+        className={`p-2 hover:bg-background/20 transition-colors rounded-md relative ${className}`}
         onClick={handleClick}
       >
         <div className="relative">
           <User className={sizeClasses[size]} />
         </div>
-        <span className="sr-only">Profile</span>
+        <span className="absolute sr-only">Profile</span>
       </button>
     </div>
   );

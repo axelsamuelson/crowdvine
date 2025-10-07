@@ -225,13 +225,13 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
       <div className="relative inline-block">
         <button
           type="button"
-          className={`p-2 hover:bg-background/20 transition-colors rounded-md opacity-50 cursor-not-allowed ${className}`}
+          className={`p-2 hover:bg-background/20 transition-colors rounded-md opacity-50 cursor-not-allowed relative ${className}`}
           disabled
         >
           <div className="relative">
             <Package className={sizeClasses[size]} />
           </div>
-          <span className="sr-only">Pallets</span>
+          <span className="absolute sr-only">Pallets</span>
         </button>
       </div>
     );
@@ -296,7 +296,7 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
     <div className="relative inline-block" ref={dropdownRef}>
       <button
         type="button"
-        className={`p-2 hover:bg-background/20 transition-colors rounded-md ${className}`}
+        className={`p-2 hover:bg-background/20 transition-colors rounded-md relative ${className}`}
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
       >
         {/* Ultra-thin progress halo for active pallets */}
@@ -318,7 +318,7 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
             </div>
           )}
         </div>
-        <span className="sr-only">
+        <span className="absolute sr-only">
           {hasActivePallets ? `${sortedPallets.length} Active Pallets` : "Pallets"}
         </span>
       </button>
