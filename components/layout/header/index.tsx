@@ -60,7 +60,7 @@ export function Header({ collections }: HeaderProps) {
             </li>
           ))}
         </ul>
-        <PalletIcon />
+        {/* <PalletIcon /> */}
         <ProfileIcon className="hidden md:block" />
         <CartModal />
       </nav>
