@@ -71,11 +71,11 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
   // Show loading state briefly
   if (loading) {
     return (
-      <div className="relative inline-flex">
+      <div className="relative inline-block">
         <Button
           variant="ghost"
           size="sm"
-          className={`p-2 hover:bg-background/20 transition-colors ${className}`}
+          className={`p-2 hover:bg-background/20 transition-colors gap-0 ${className}`}
           disabled
         >
           <div className="relative">
@@ -93,11 +93,11 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
   }
 
   return (
-    <div className="relative inline-flex">
+    <div className="relative inline-block">
       <Button
         variant="ghost"
         size="sm"
-        className={`p-2 hover:bg-background/20 transition-colors ${className}`}
+        className={`p-2 hover:bg-background/20 transition-colors gap-0 ${className}`}
         onClick={handleClick}
       >
         <div className="relative">

@@ -223,11 +223,11 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
   // Show loading state briefly
   if (loading) {
     return (
-      <div className="relative inline-flex">
+      <div className="relative inline-block">
         <Button
           variant="ghost"
           size="sm"
-          className={`p-2 hover:bg-background/20 transition-colors ${className}`}
+          className={`p-2 hover:bg-background/20 transition-colors gap-0 ${className}`}
           disabled
         >
           <div className="relative">
@@ -295,11 +295,11 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
   });
 
   return (
-    <div className="relative inline-flex" ref={dropdownRef}>
+    <div className="relative inline-block" ref={dropdownRef}>
       <Button
         variant="ghost"
         size="sm"
-        className={`p-2 hover:bg-background/20 transition-colors ${className}`}
+        className={`p-2 hover:bg-background/20 transition-colors gap-0 ${className}`}
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
       >
         {/* Ultra-thin progress halo for active pallets */}
