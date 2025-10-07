@@ -100,7 +100,43 @@ export async function POST(request: Request) {
 
     console.log("Address saved:", savedAddress);
 
-    // Create order reservation
+    // Determine pickup and delivery zones FIRST (before creating reservation)
+    console.log("Determining zones based on cart items and delivery address");
+    const zones = await determineZones(cart.lines, {
+      postcode: address.postcode,
+      city: address.city,
+      countryCode: address.countryCode,
+    });
+
+    console.log("Zones determined:", zones);
+
+    // Use selected delivery zone if provided
+    let finalDeliveryZoneId = zones.deliveryZoneId;
+    if (body.selectedDeliveryZoneId) {
+      finalDeliveryZoneId = body.selectedDeliveryZoneId;
+      console.log("Using selected delivery zone:", finalDeliveryZoneId);
+    }
+
+    // Use selected pallet if provided, otherwise find matching pallet
+    let palletId = null;
+    if (body.selectedPalletId) {
+      palletId = body.selectedPalletId;
+      console.log("Using selected pallet:", palletId);
+    } else if (zones.pickupZoneId && finalDeliveryZoneId) {
+      const { data: matchingPallets, error: palletsError } = await sb
+        .from("pallets")
+        .select("id")
+        .eq("pickup_zone_id", zones.pickupZoneId)
+        .eq("delivery_zone_id", finalDeliveryZoneId)
+        .limit(1);
+
+      if (!palletsError && matchingPallets && matchingPallets.length > 0) {
+        palletId = matchingPallets[0].id;
+        console.log("Found matching pallet:", palletId);
+      }
+    }
+
+    // Create order reservation (now with pallet_id and zones)
     console.log("Creating order reservation");
     const { data: reservation, error: reservationError } = await sbAdmin
       .from("order_reservations")
@@ -108,6 +144,9 @@ export async function POST(request: Request) {
         user_id: currentUser?.id || null,
         cart_id: cart.id,
         address_id: savedAddress.id,
+        pickup_zone_id: zones.pickupZoneId,
+        delivery_zone_id: finalDeliveryZoneId,
+        pallet_id: palletId,
         status: "placed",
       })
       .select()
@@ -146,44 +185,8 @@ export async function POST(request: Request) {
 
     console.log("Reservation items created");
 
-    // Convert cart items to bookings
-    console.log("Converting cart items to bookings");
-
-    // Determine pickup and delivery zones first
-    console.log("Determining zones based on cart items and delivery address");
-    const zones = await determineZones(cart.lines, {
-      postcode: address.postcode,
-      city: address.city,
-      countryCode: address.countryCode,
-    });
-
-    console.log("Zones determined:", zones);
-
-    // Use selected delivery zone if provided
-    let finalDeliveryZoneId = zones.deliveryZoneId;
-    if (body.selectedDeliveryZoneId) {
-      finalDeliveryZoneId = body.selectedDeliveryZoneId;
-      console.log("Using selected delivery zone:", finalDeliveryZoneId);
-    }
-
-    // Use selected pallet if provided, otherwise find matching pallet
-    let palletId = null;
-    if (body.selectedPalletId) {
-      palletId = body.selectedPalletId;
-      console.log("Using selected pallet:", palletId);
-    } else if (zones.pickupZoneId && finalDeliveryZoneId) {
-      const { data: matchingPallets, error: palletsError } = await sb
-        .from("pallets")
-        .select("id")
-        .eq("pickup_zone_id", zones.pickupZoneId)
-        .eq("delivery_zone_id", finalDeliveryZoneId)
-        .limit(1);
-
-      if (!palletsError && matchingPallets && matchingPallets.length > 0) {
-        palletId = matchingPallets[0].id;
-        console.log("Found matching pallet:", palletId);
-      }
-    }
+    // Convert cart items to bookings (reuse palletId from above)
+    console.log("Converting cart items to bookings with pallet:", palletId);
 
     const bookings = cart.lines.map((line) => ({
       user_id: currentUser?.id || null,

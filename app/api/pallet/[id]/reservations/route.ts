@@ -35,7 +35,7 @@ export async function GET(
       );
     }
 
-    // Get all reservations for this pallet (using zone matching)
+    // Get all reservations for this pallet (using pallet_id directly)
     const { data: reservations, error: reservationsError } = await supabase
       .from("order_reservations")
       .select(`
@@ -48,8 +48,7 @@ export async function GET(
           full_name
         )
       `)
-      .eq("pickup_zone_id", pallet.pickup_zone_id)
-      .eq("delivery_zone_id", pallet.delivery_zone_id)
+      .eq("pallet_id", palletId)
       .order("created_at", { ascending: false });
 
     if (reservationsError) {
