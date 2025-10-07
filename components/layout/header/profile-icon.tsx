@@ -74,7 +74,9 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
         className={`p-2 hover:bg-background/20 transition-colors ${className}`}
         disabled
       >
-        <User className={sizeClasses[size]} />
+        <div className="relative inline-flex items-center justify-center">
+          <User className={sizeClasses[size]} />
+        </div>
         <span className="sr-only">Profile</span>
       </Button>
       </div>
@@ -95,7 +97,9 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
         }`}
         onClick={handleClick}
       >
-        <User className={sizeClasses[size]} />
+        <div className="relative inline-flex items-center justify-center">
+          <User className={sizeClasses[size]} />
+        </div>
         <span className="sr-only">
           {isAuthenticated ? "Profile" : "Sign In"}
         </span>
