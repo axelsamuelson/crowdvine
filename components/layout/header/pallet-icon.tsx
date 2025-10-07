@@ -69,12 +69,16 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
       const response = await fetch("/api/user/reservations");
       if (response.ok) {
         const reservationsData = await response.json();
+        console.log(`📦 Total reservations fetched:`, reservationsData.length);
+        console.log(`📦 First reservation status:`, reservationsData[0]?.status);
         setReservations(reservationsData);
         
         // Calculate max percent among active pallets
         const activePallets = reservationsData.filter((res: any) => 
-          res.status === 'OPEN' || res.status === 'CONSOLIDATING'
+          res.status === 'pending' || res.status === 'confirmed' || res.status === 'OPEN' || res.status === 'CONSOLIDATING'
         );
+        
+        console.log(`📦 Active pallets after filter:`, activePallets.length);
         
         setHasActivePallets(activePallets.length > 0);
         
