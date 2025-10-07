@@ -20,8 +20,12 @@ export interface PalletProgressData {
 export function getPercentFilled(data: PalletProgressData): number | null {
   const { reserved_bottles, capacity_bottles, percent_filled, status } = data;
   
+  // Normalize status for comparison
+  const normalizedStatus = status.toUpperCase();
+  
   // Do not show percentage for SHIPPED/DELIVERED
-  if (status === 'SHIPPED' || status === 'DELIVERED') {
+  if (normalizedStatus === 'SHIPPED' || normalizedStatus === 'DELIVERED' || 
+      status === 'shipped' || status === 'delivered') {
     return null;
   }
   
@@ -52,9 +56,21 @@ export function formatPercent(percent: number | null): string {
 
 /**
  * Check if pallet should show percentage
- * @param status Pallet status
+ * @param status Pallet status (from database or mapped)
  * @returns Whether to show percentage
  */
 export function shouldShowPercent(status: string): boolean {
-  return status === 'OPEN' || status === 'CONSOLIDATING';
+  // Map database statuses to display statuses
+  const normalizedStatus = status.toUpperCase();
+  
+  // Show percentage for OPEN and CONSOLIDATING states
+  // Database statuses: 'placed', 'pending' -> OPEN
+  // Database statuses: 'confirmed' -> CONSOLIDATING
+  return (
+    normalizedStatus === 'OPEN' || 
+    normalizedStatus === 'CONSOLIDATING' ||
+    status === 'placed' ||
+    status === 'pending' ||
+    status === 'confirmed'
+  );
 }
