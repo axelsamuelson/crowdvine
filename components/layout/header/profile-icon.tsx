@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { User } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
@@ -12,6 +12,7 @@ interface ProfileIconProps {
 }
 
 export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
+  const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -82,24 +83,27 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
     );
   }
 
+  const handleClick = () => {
+    router.push(isAuthenticated ? "/profile" : "/log-in");
+  };
+
   return (
     <div className="relative">
-      <Link href={isAuthenticated ? "/profile" : "/log-in"} prefetch>
-        <Button
-          variant="ghost"
-          size="sm"
-          className={`p-2 hover:bg-background/20 transition-colors ${className} ${
-            isAuthenticated ? "text-green-600" : "text-gray-600"
-          }`}
-        >
-          <div className="relative inline-flex items-center justify-center">
-            <User className={sizeClasses[size]} />
-          </div>
-          <span className="sr-only">
-            {isAuthenticated ? "Profile" : "Sign In"}
-          </span>
-        </Button>
-      </Link>
+      <Button
+        variant="ghost"
+        size="sm"
+        className={`p-2 hover:bg-background/20 transition-colors ${className} ${
+          isAuthenticated ? "text-green-600" : "text-gray-600"
+        }`}
+        onClick={handleClick}
+      >
+        <div className="relative inline-flex items-center justify-center">
+          <User className={sizeClasses[size]} />
+        </div>
+        <span className="sr-only">
+          {isAuthenticated ? "Profile" : "Sign In"}
+        </span>
+      </Button>
     </div>
   );
 }
