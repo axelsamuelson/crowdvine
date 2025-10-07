@@ -16,9 +16,9 @@ export function MiniProgress({ valuePercent, className = "" }: MiniProgressProps
   if (!display) return null;
   
   return (
-    <div className={`w-full h-0.5 bg-gray-100 rounded-full overflow-hidden ${className}`}>
+    <div className={`w-full h-[2px] bg-gray-100/50 rounded-full overflow-hidden ${className}`}>
       <div 
-        className="h-full bg-gray-300 transition-all duration-300 ease-out"
+        className="h-full bg-gray-400 transition-all duration-500 ease-out"
         style={{ width: `${percent}%` }}
       />
     </div>
@@ -153,17 +153,17 @@ export function ProgressHalo({
     sm: {
       container: 'w-6 h-6',
       radius: 12,
-      strokeWidth: 1
+      strokeWidth: 0.75 // Ultra-thin for minimalist look
     },
     md: {
       container: 'w-8 h-8',
       radius: 16,
-      strokeWidth: 1.5
+      strokeWidth: 1 // Thinner than before
     },
     lg: {
       container: 'w-10 h-10',
       radius: 20,
-      strokeWidth: 2
+      strokeWidth: 1.25 // Thinner than before
     }
   };
   

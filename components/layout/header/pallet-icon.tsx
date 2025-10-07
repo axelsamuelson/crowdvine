@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Package, ChevronDown } from "lucide-react";
+import { Package } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { ProgressHalo, MiniProgress } from "@/components/ui/progress-components";
 import { getPercentFilled, formatPercent, shouldShowPercent } from "@/lib/utils/pallet-progress";
@@ -295,35 +295,40 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
       <Button
         variant="ghost"
         size="sm"
-        className={`p-2 hover:bg-background/20 transition-colors ${className} ${
-          isAuthenticated ? "text-green-600" : "text-gray-600"
-        }`}
+        className={`p-2 hover:opacity-70 transition-opacity relative ${className}`}
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
       >
         <div className="relative">
-          <Package className={sizeClasses[size]} />
-          {/* Progress halo for active pallets */}
+          <Package className={`${sizeClasses[size]} text-foreground`} />
+          {/* Ultra-thin progress halo for active pallets */}
           {maxPalletPercent !== null && (
             <ProgressHalo 
               valuePercent={maxPalletPercent} 
               size="sm" 
-              className="absolute inset-0"
+              className="absolute inset-0 opacity-40"
             />
           )}
+          {/* Number indicator for active pallets */}
+          {hasActivePallets && sortedPallets.length > 0 && (
+            <div className="absolute -top-1 -right-1 min-w-[14px] h-[14px] flex items-center justify-center bg-foreground text-background rounded-full">
+              <span className="text-[9px] font-medium leading-none px-0.5">
+                {sortedPallets.length}
+              </span>
+            </div>
+          )}
         </div>
-        <ChevronDown className={`w-3 h-3 ml-1 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
         <span className="sr-only">
-          {hasActivePallets ? `Active Pallets (${maxPalletPercent}% filled)` : "Pallets"}
+          {hasActivePallets ? `${sortedPallets.length} Active Pallets` : "Pallets"}
         </span>
       </Button>
 
       {/* Dropdown */}
       {isDropdownOpen && sortedPallets.length > 0 && (
-        <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-          <div className="px-3 py-2 border-b border-gray-100">
-            <h3 className="text-sm font-medium text-gray-900">My Pallets</h3>
+        <div className="absolute right-0 top-full mt-3 w-80 bg-white rounded-xl shadow-2xl shadow-black/10 border border-gray-100 py-3 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="px-4 py-2 border-b border-gray-50">
+            <h3 className="text-xs font-medium text-gray-900 tracking-wide uppercase">My Pallets</h3>
           </div>
-          <div className="max-h-64 overflow-y-auto">
+          <div className="max-h-64 overflow-y-auto py-2">
             {sortedPallets.slice(0, 5).map((pallet) => {
                   // Get pallet data from API for accurate percentages
                   const palletApiData = palletData.get(pallet.id);
@@ -349,36 +354,36 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
               
               return (
                 <Link key={pallet.id} href={`/pallet/${pallet.id}`}>
-                  <div className="px-3 py-3 hover:bg-gray-50 cursor-pointer">
+                  <div className="px-4 py-4 hover:bg-gray-50/50 cursor-pointer transition-all hover:scale-[0.99] group">
                     {/* Row 1: Pallet name + status tag */}
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Package className="w-4 h-4 text-gray-400" />
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                        <Package className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
                         <span className="text-sm font-medium text-gray-900 truncate">
                           {pallet.name}
                         </span>
                       </div>
                       <Badge 
-                        className={`text-xs rounded-full ${
-                          pallet.status === 'confirmed' ? 'bg-green-100 text-green-700 border-green-200' :
-                          pallet.status === 'pending' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
-                          pallet.status === 'shipped' ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                          pallet.status === 'delivered' ? 'bg-gray-100 text-gray-700 border-gray-200' :
-                          'bg-gray-100 text-gray-600 border-gray-200'
+                        className={`text-[10px] rounded-full font-medium tracking-wide px-2 py-0.5 ${
+                          pallet.status === 'CONSOLIDATING' ? 'bg-gray-100 text-gray-600 border-gray-200' :
+                          pallet.status === 'OPEN' ? 'bg-gray-50 text-gray-500 border-gray-100' :
+                          pallet.status === 'SHIPPED' ? 'bg-gray-100 text-gray-600 border-gray-200' :
+                          pallet.status === 'DELIVERED' ? 'bg-gray-100 text-gray-600 border-gray-200' :
+                          'bg-gray-50 text-gray-500 border-gray-100'
                         }`}
                       >
-                        {pallet.status === 'confirmed' ? 'CONSOLIDATING' : 
-                         pallet.status === 'pending' ? 'OPEN' : 
-                         pallet.status === 'shipped' ? 'SHIPPED' :
-                         pallet.status === 'delivered' ? 'DELIVERED' : 'OPEN'}
+                        {pallet.status}
                       </Badge>
                     </div>
                     
                     {/* Row 2: Meta info with percentage and user's reservation */}
-                    <div className="space-y-1">
-                          <div className="text-xs text-gray-500">
-                            <span className="font-medium">{displayPercent}</span>
-                            <span> • Total: {totalReservedBottles} • My bottles: {userBottles}</span>
+                    <div className="space-y-2">
+                          <div className="text-[10px] text-gray-500 tracking-wide">
+                            <span className="font-semibold text-gray-900 tracking-wider">{displayPercent}</span>
+                            <span className="text-gray-400"> • </span>
+                            <span>Total: {totalReservedBottles}</span>
+                            <span className="text-gray-400"> • </span>
+                            <span>My bottles: {userBottles}</span>
                           </div>
                       
                       {/* Micro progress bar */}
@@ -390,8 +395,8 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
             })}
           </div>
           {sortedPallets.length > 5 && (
-            <div className="px-3 py-2 border-t border-gray-100">
-              <Link href="/profile" className="text-xs text-gray-500 hover:text-gray-700">
+            <div className="px-4 py-2 border-t border-gray-50">
+              <Link href="/profile" className="text-[10px] text-gray-500 hover:text-gray-900 transition-colors tracking-wide">
                 View all pallets →
               </Link>
             </div>
