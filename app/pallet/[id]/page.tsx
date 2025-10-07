@@ -66,15 +66,12 @@ export default function PalletPage() {
     try {
       setLoading(true);
       
-      // Fetch user's reservations to find the specific pallet
-      const response = await fetch("/api/user/reservations");
+      // Fetch all reservations for this pallet (including other users)
+      const response = await fetch(`/api/pallet/${palletId}/reservations`);
       if (!response.ok) {
-        throw new Error("Failed to fetch reservations");
+        throw new Error("Failed to fetch pallet reservations");
       }
-      const reservations = await response.json();
-
-      // Find reservations for this specific pallet
-      const palletReservations = reservations.filter((res: any) => res.pallet_id === palletId);
+      const palletReservations = await response.json();
 
       if (palletReservations.length === 0) {
         throw new Error("Pallet not found or no reservations for this pallet");
@@ -152,10 +149,10 @@ export default function PalletPage() {
         created_at: firstReservation.created_at,
         reservations: palletReservations.map((res: any) => ({
           id: res.id,
-          user_name: res.user_name || 'Unknown User',
-          user_email: res.user_email || '',
-          bottles_reserved: res.items?.reduce((total: number, item: any) => total + item.quantity, 0) || 0,
-          bottles_delivered: 0, // TODO: Get from backend
+          user_name: res.user_name,
+          user_email: res.user_email,
+          bottles_reserved: res.bottles_reserved,
+          bottles_delivered: res.bottles_delivered,
           created_at: res.created_at,
         })),
         wines: Object.values(uniqueWines),
