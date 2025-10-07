@@ -223,14 +223,16 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
   // Show loading state briefly
   if (loading) {
     return (
-      <div className="relative">
+      <div className="relative inline-flex">
         <Button
           variant="ghost"
           size="sm"
           className={`p-2 hover:bg-background/20 transition-colors ${className}`}
           disabled
         >
-          <Package className={sizeClasses[size]} />
+          <div className="relative">
+            <Package className={sizeClasses[size]} />
+          </div>
           <span className="sr-only">Pallets</span>
         </Button>
       </div>
@@ -293,34 +295,36 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
   });
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative inline-flex" ref={dropdownRef}>
       <Button
         variant="ghost"
         size="sm"
-        className={`p-2 hover:bg-background/20 transition-colors relative ${className}`}
+        className={`p-2 hover:bg-background/20 transition-colors ${className}`}
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
       >
         {/* Ultra-thin progress halo for active pallets */}
-        <Package className={`${sizeClasses[size]} text-foreground`} />
-        {maxPalletPercent !== null && (
-          <ProgressHalo 
-            valuePercent={maxPalletPercent} 
-            size="sm" 
-            className="absolute inset-2 opacity-40 pointer-events-none"
-          />
-        )}
+        <div className="relative">
+          <Package className={`${sizeClasses[size]} text-foreground`} />
+          {maxPalletPercent !== null && (
+            <ProgressHalo 
+              valuePercent={maxPalletPercent} 
+              size="sm" 
+              className="absolute inset-0 opacity-40 pointer-events-none"
+            />
+          )}
+          {/* Number indicator for active pallets - positioned relative to icon */}
+          {hasActivePallets && sortedPallets.length > 0 && (
+            <div className="absolute -top-0.5 -right-0.5 min-w-[10px] h-[10px] flex items-center justify-center bg-foreground text-background rounded-full pointer-events-none">
+              <span className="text-[7px] font-semibold leading-none px-[2px]">
+                {sortedPallets.length}
+              </span>
+            </div>
+          )}
+        </div>
         <span className="sr-only">
           {hasActivePallets ? `${sortedPallets.length} Active Pallets` : "Pallets"}
         </span>
       </Button>
-      {/* Number indicator for active pallets - outside Button */}
-      {hasActivePallets && sortedPallets.length > 0 && (
-        <div className="absolute top-1 right-1 min-w-[10px] h-[10px] flex items-center justify-center bg-foreground text-background rounded-full pointer-events-none">
-          <span className="text-[7px] font-semibold leading-none px-[2px]">
-            {sortedPallets.length}
-          </span>
-        </div>
-      )}
 
       {/* Dropdown */}
       {isDropdownOpen && sortedPallets.length > 0 && (

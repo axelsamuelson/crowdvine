@@ -71,14 +71,16 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
   // Show loading state briefly
   if (loading) {
     return (
-      <div className="relative">
+      <div className="relative inline-flex">
         <Button
           variant="ghost"
           size="sm"
           className={`p-2 hover:bg-background/20 transition-colors ${className}`}
           disabled
         >
-          <User className={sizeClasses[size]} />
+          <div className="relative">
+            <User className={sizeClasses[size]} />
+          </div>
           <span className="sr-only">Profile</span>
         </Button>
       </div>
@@ -91,14 +93,16 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
   }
 
   return (
-    <div className="relative">
+    <div className="relative inline-flex">
       <Button
         variant="ghost"
         size="sm"
         className={`p-2 hover:bg-background/20 transition-colors ${className}`}
         onClick={handleClick}
       >
-        <User className={sizeClasses[size]} />
+        <div className="relative">
+          <User className={sizeClasses[size]} />
+        </div>
         <span className="sr-only">Profile</span>
       </Button>
     </div>
