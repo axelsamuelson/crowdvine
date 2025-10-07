@@ -295,10 +295,10 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
       <Button
         variant="ghost"
         size="sm"
-        className={`p-2 hover:opacity-70 transition-opacity relative ${className}`}
+        className={`p-2 hover:bg-background/20 transition-colors ${className}`}
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
       >
-        <div className="relative">
+        <div className="relative flex items-center justify-center">
           <Package className={`${sizeClasses[size]} text-foreground`} />
           {/* Ultra-thin progress halo for active pallets */}
           {maxPalletPercent !== null && (
@@ -310,8 +310,8 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
           )}
           {/* Number indicator for active pallets */}
           {hasActivePallets && sortedPallets.length > 0 && (
-            <div className="absolute -top-1 -right-1 min-w-[14px] h-[14px] flex items-center justify-center bg-foreground text-background rounded-full">
-              <span className="text-[9px] font-medium leading-none px-0.5">
+            <div className="absolute -top-0.5 -right-0.5 min-w-[12px] h-[12px] flex items-center justify-center bg-foreground text-background rounded-full">
+              <span className="text-[8px] font-semibold leading-none px-[3px]">
                 {sortedPallets.length}
               </span>
             </div>
