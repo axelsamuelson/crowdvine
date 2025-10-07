@@ -112,11 +112,14 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
         if (uniquePalletIds.length > 0) {
           // Fetch pallet data from database
           try {
+            console.log(`🔄 Fetching pallet data for IDs:`, uniquePalletIds);
             const palletResponse = await fetch('/api/pallet-data', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ palletIds: uniquePalletIds })
             });
+            
+            console.log(`📡 Pallet API response status:`, palletResponse.status);
             
             if (palletResponse.ok) {
               const palletData = await palletResponse.json();
@@ -134,6 +137,8 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
                   ? Math.min(Math.round((pallet.current_bottles / pallet.bottle_capacity) * 100), 100)
                   : 0;
                 
+                console.log(`✅ Pallet ${pallet.id} (${pallet.name}): ${pallet.current_bottles}/${pallet.bottle_capacity} = ${percentage}%`);
+                
                 palletDataMap.set(pallet.id, {
                   id: pallet.id,
                   name: pallet.name,
@@ -147,9 +152,11 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
                   maxPercent = percentage;
                 }
               });
+            } else {
+              console.error(`❌ Pallet API error:`, await palletResponse.text());
             }
           } catch (error) {
-            console.error('Error fetching pallet data:', error);
+            console.error('❌ Error fetching pallet data:', error);
           }
         }
         
@@ -227,12 +234,21 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
     const palletId = reservation.pallet_id || 'unassigned';
     const palletName = reservation.pallet_name || 'Unassigned Pallet';
     
+    // Map reservation status to pallet status
+    const mapStatus = (resStatus: string) => {
+      if (resStatus === 'pending') return 'OPEN';
+      if (resStatus === 'confirmed') return 'CONSOLIDATING';
+      if (resStatus === 'shipped') return 'SHIPPED';
+      if (resStatus === 'delivered') return 'DELIVERED';
+      return 'OPEN'; // Default to OPEN
+    };
+    
     if (!palletMap.has(palletId)) {
       palletMap.set(palletId, {
         id: palletId,
         name: palletName,
         capacity: 120, // Assume 120 bottle capacity per pallet
-        status: reservation.status || 'OPEN',
+        status: mapStatus(reservation.status || 'pending'),
         totalReservedBottles: 0, // Total bottles reserved by all users
         myReservedBottles: 0,    // Bottles reserved by current user
         latestDate: reservation.created_at,
@@ -316,10 +332,12 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
                       status: pallet.status.toUpperCase() as any
                     });
                   
-                  console.log(`📊 Pallet ${pallet.id}: API percentage=${palletApiData?.percentage_filled}, fallback=${percentageFilled}, showPercent=${shouldShowPercent(pallet.status)}`);
+                  console.log(`📊 Pallet ${pallet.id}: status="${pallet.status}", API percentage=${palletApiData?.percentage_filled}, fallback=${percentageFilled}, shouldShowPercent=${shouldShowPercent(pallet.status)}`);
                   
                   const showPercent = shouldShowPercent(pallet.status);
                   const displayPercent = showPercent ? formatPercent(percentageFilled) : '—%';
+                  
+                  console.log(`📊 Final display for ${pallet.id}: showPercent=${showPercent}, displayPercent="${displayPercent}"`);
               
               return (
                 <Link key={pallet.id} href={`/pallet/${pallet.id}`}>
