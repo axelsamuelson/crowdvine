@@ -173,7 +173,7 @@ export function ProgressHalo({
   const strokeDashoffset = circumference - (percent / 100) * circumference;
   
   return (
-    <div className={`${container} relative ${className}`}>
+    <div className={`${container} ${className}`}>
       <svg
         className="absolute inset-0 w-full h-full -rotate-90"
         viewBox={`0 0 ${radius * 2 + strokeWidth * 2} ${radius * 2 + strokeWidth * 2}`}
