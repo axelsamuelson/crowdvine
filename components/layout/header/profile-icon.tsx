@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import { User } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 
@@ -72,17 +71,16 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
   if (loading) {
     return (
       <div className="relative inline-block">
-        <Button
-          variant="ghost"
-          size="sm"
-          className={`p-2 hover:bg-background/20 transition-colors gap-0 ${className}`}
+        <button
+          type="button"
+          className={`p-2 hover:bg-background/20 transition-colors rounded-md opacity-50 cursor-not-allowed ${className}`}
           disabled
         >
           <div className="relative">
             <User className={sizeClasses[size]} />
           </div>
           <span className="sr-only">Profile</span>
-        </Button>
+        </button>
       </div>
     );
   }
@@ -94,17 +92,16 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
 
   return (
     <div className="relative inline-block">
-      <Button
-        variant="ghost"
-        size="sm"
-        className={`p-2 hover:bg-background/20 transition-colors gap-0 ${className}`}
+      <button
+        type="button"
+        className={`p-2 hover:bg-background/20 transition-colors rounded-md ${className}`}
         onClick={handleClick}
       >
         <div className="relative">
           <User className={sizeClasses[size]} />
         </div>
         <span className="sr-only">Profile</span>
-      </Button>
+      </button>
     </div>
   );
 }

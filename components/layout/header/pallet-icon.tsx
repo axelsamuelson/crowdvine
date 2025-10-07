@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Package } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
@@ -224,17 +223,16 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
   if (loading) {
     return (
       <div className="relative inline-block">
-        <Button
-          variant="ghost"
-          size="sm"
-          className={`p-2 hover:bg-background/20 transition-colors gap-0 ${className}`}
+        <button
+          type="button"
+          className={`p-2 hover:bg-background/20 transition-colors rounded-md opacity-50 cursor-not-allowed ${className}`}
           disabled
         >
           <div className="relative">
             <Package className={sizeClasses[size]} />
           </div>
           <span className="sr-only">Pallets</span>
-        </Button>
+        </button>
       </div>
     );
   }
@@ -296,10 +294,9 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
 
   return (
     <div className="relative inline-block" ref={dropdownRef}>
-      <Button
-        variant="ghost"
-        size="sm"
-        className={`p-2 hover:bg-background/20 transition-colors gap-0 ${className}`}
+      <button
+        type="button"
+        className={`p-2 hover:bg-background/20 transition-colors rounded-md ${className}`}
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
       >
         {/* Ultra-thin progress halo for active pallets */}
@@ -324,7 +321,7 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
         <span className="sr-only">
           {hasActivePallets ? `${sortedPallets.length} Active Pallets` : "Pallets"}
         </span>
-      </Button>
+      </button>
 
       {/* Dropdown */}
       {isDropdownOpen && sortedPallets.length > 0 && (
