@@ -75,7 +75,7 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
         
         // Calculate max percent among active pallets
         const activePallets = reservationsData.filter((res: any) => 
-          res.status === 'pending' || res.status === 'confirmed' || res.status === 'OPEN' || res.status === 'CONSOLIDATING'
+          res.status === 'placed' || res.status === 'pending' || res.status === 'confirmed' || res.status === 'OPEN' || res.status === 'CONSOLIDATING'
         );
         
         console.log(`📦 Active pallets after filter:`, activePallets.length);
@@ -243,6 +243,7 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
     
     // Map reservation status to pallet status
     const mapStatus = (resStatus: string) => {
+      if (resStatus === 'placed') return 'OPEN';
       if (resStatus === 'pending') return 'OPEN';
       if (resStatus === 'confirmed') return 'CONSOLIDATING';
       if (resStatus === 'shipped') return 'SHIPPED';
