@@ -318,7 +318,7 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
           )}
           {/* Number indicator for active pallets */}
           {hasActivePallets && sortedPallets.length > 0 && (
-            <div className="absolute -top-1 -right-1 min-w-[10px] h-[10px] flex items-center justify-center bg-foreground text-background rounded-full">
+            <div className="absolute -top-0.5 -right-0.5 min-w-[10px] h-[10px] flex items-center justify-center bg-foreground text-background rounded-full">
               <span className="text-[7px] font-semibold leading-none px-[2px]">
                 {sortedPallets.length}
               </span>
