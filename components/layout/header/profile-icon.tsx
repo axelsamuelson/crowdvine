@@ -66,36 +66,40 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
   // Show loading state briefly
   if (loading) {
     return (
-      <Button
-        variant="ghost"
-        size="sm"
-        className={`p-2 hover:bg-background/20 transition-colors ${className}`}
-        disabled
-      >
-        <div className="relative inline-flex items-center justify-center">
-          <User className={sizeClasses[size]} />
-        </div>
-        <span className="sr-only">Profile</span>
-      </Button>
+      <div className="relative">
+        <Button
+          variant="ghost"
+          size="sm"
+          className={`p-2 hover:bg-background/20 transition-colors ${className}`}
+          disabled
+        >
+          <div className="relative inline-flex items-center justify-center">
+            <User className={sizeClasses[size]} />
+          </div>
+          <span className="sr-only">Profile</span>
+        </Button>
+      </div>
     );
   }
 
   return (
-    <Link href={isAuthenticated ? "/profile" : "/log-in"} prefetch>
-      <Button
-        variant="ghost"
-        size="sm"
-        className={`p-2 hover:bg-background/20 transition-colors ${className} ${
-          isAuthenticated ? "text-green-600" : "text-gray-600"
-        }`}
-      >
-        <div className="relative inline-flex items-center justify-center">
-          <User className={sizeClasses[size]} />
-        </div>
-        <span className="sr-only">
-          {isAuthenticated ? "Profile" : "Sign In"}
-        </span>
-      </Button>
-    </Link>
+    <div className="relative">
+      <Link href={isAuthenticated ? "/profile" : "/log-in"} prefetch>
+        <Button
+          variant="ghost"
+          size="sm"
+          className={`p-2 hover:bg-background/20 transition-colors ${className} ${
+            isAuthenticated ? "text-green-600" : "text-gray-600"
+          }`}
+        >
+          <div className="relative inline-flex items-center justify-center">
+            <User className={sizeClasses[size]} />
+          </div>
+          <span className="sr-only">
+            {isAuthenticated ? "Profile" : "Sign In"}
+          </span>
+        </Button>
+      </Link>
+    </div>
   );
 }
