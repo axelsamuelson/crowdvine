@@ -80,14 +80,35 @@ export default function PalletPage() {
         throw new Error("Pallet not found or no reservations for this pallet");
       }
 
+      // Fetch real pallet data from backend for accurate totals
+      let realPalletData: any = null;
+      try {
+        console.log(`🔄 Fetching real pallet data for ID: ${palletId}`);
+        const palletResponse = await fetch('/api/pallet-data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ palletIds: [palletId] })
+        });
+        
+        if (palletResponse.ok) {
+          const palletDataResponse = await palletResponse.json();
+          console.log(`📊 Fetched pallet data:`, palletDataResponse);
+          realPalletData = palletDataResponse.pallets?.[0];
+        } else {
+          console.error(`❌ Pallet API error:`, await palletResponse.text());
+        }
+      } catch (error) {
+        console.error('❌ Error fetching pallet data:', error);
+      }
+
       // Aggregate pallet data from reservations
       const firstReservation = palletReservations[0];
-      let totalReservedBottles = 0;
+      let userReservedBottles = 0;
       let totalDeliveredBottles = 0;
       const allItems: any[] = [];
 
       palletReservations.forEach((res: any) => {
-        totalReservedBottles += res.items?.reduce((total: number, item: any) => total + item.quantity, 0) || 0;
+        userReservedBottles += res.items?.reduce((total: number, item: any) => total + item.quantity, 0) || 0;
         // totalDeliveredBottles += res.delivered_bottles || 0; // TODO: Get from backend
         allItems.push(...res.items);
       });
@@ -110,12 +131,19 @@ export default function PalletPage() {
         return acc;
       }, {});
 
+      // Use real pallet data if available, otherwise fall back to user's data
+      const totalReservedBottles = realPalletData?.current_bottles || userReservedBottles;
+      const capacityBottles = realPalletData?.bottle_capacity || firstReservation.pallet_capacity;
+      const palletName = realPalletData?.name || firstReservation.pallet_name || `Pallet ${palletId}`;
+      
+      console.log(`✅ Pallet Page - ${palletName}: ${totalReservedBottles}/${capacityBottles} bottles`);
+
       // Create pallet data structure
       const palletData: PalletData = {
         id: palletId,
-        name: firstReservation.pallet_name || `Pallet ${palletId}`,
+        name: palletName,
         status: firstReservation.status || 'OPEN',
-        capacity_bottles: firstReservation.pallet_capacity,
+        capacity_bottles: capacityBottles,
         reserved_bottles: totalReservedBottles,
         delivered_bottles: totalDeliveredBottles,
         pickup_zone: firstReservation.pickup_zone || 'TBD',

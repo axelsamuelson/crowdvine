@@ -97,6 +97,7 @@ export default function ProfilePage() {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [reservations, setReservations] = useState<any[]>([]);
   const [reservationsLoading, setReservationsLoading] = useState(false);
+  const [palletData, setPalletData] = useState(new Map());
 
   // Hybrid updates (polling + webhooks)
   const {
@@ -241,15 +242,78 @@ export default function ProfilePage() {
         const data = await response.json();
         console.log("📊 Reservations data:", data);
         // /api/user/reservations returns array directly, not {reservations: [...]}
-        setReservations(Array.isArray(data) ? data : []);
+        const reservationsData = Array.isArray(data) ? data : [];
+        setReservations(reservationsData);
+        
+        // Fetch real pallet data from the database (like PalletIcon does)
+        const palletDataMap = new Map();
+        
+        // Get unique pallet IDs from reservations (skip 'unassigned')
+        const uniquePalletIds = [...new Set(reservationsData
+          .map((res: any) => res.pallet_id)
+          .filter((id: string) => id && id !== 'unassigned')
+        )];
+        
+        console.log(`🔍 Unique pallet IDs from reservations:`, uniquePalletIds);
+        
+        if (uniquePalletIds.length > 0) {
+          // Fetch pallet data from database
+          try {
+            console.log(`🔄 Fetching pallet data for IDs:`, uniquePalletIds);
+            const palletResponse = await fetch('/api/pallet-data', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ palletIds: uniquePalletIds })
+            });
+            
+            console.log(`📡 Pallet API response status:`, palletResponse.status);
+            
+            if (palletResponse.ok) {
+              const palletDataResponse = await palletResponse.json();
+              console.log(`📊 Fetched pallet data:`, palletDataResponse);
+              
+              // Process each pallet
+              palletDataResponse.pallets?.forEach((pallet: any) => {
+                const userBottles = reservationsData
+                  .filter((res: any) => res.pallet_id === pallet.id)
+                  .reduce((total: number, res: any) => {
+                    return total + (res.items?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0);
+                  }, 0);
+                
+                const percentage = pallet.bottle_capacity > 0 
+                  ? Math.min(Math.round((pallet.current_bottles / pallet.bottle_capacity) * 100), 100)
+                  : 0;
+                
+                console.log(`✅ Pallet ${pallet.id} (${pallet.name}): ${pallet.current_bottles}/${pallet.bottle_capacity} = ${percentage}%`);
+                
+                palletDataMap.set(pallet.id, {
+                  id: pallet.id,
+                  name: pallet.name,
+                  total_reserved_bottles: pallet.current_bottles,
+                  percentage_filled: percentage,
+                  user_bottles: userBottles,
+                  capacity: pallet.bottle_capacity
+                });
+              });
+            } else {
+              console.error(`❌ Pallet API error:`, await palletResponse.text());
+            }
+          } catch (error) {
+            console.error('❌ Error fetching pallet data:', error);
+          }
+        }
+        
+        setPalletData(palletDataMap);
       } else {
         const errorData = await response.json().catch(() => ({}));
         console.error("❌ Failed to load reservations:", response.status, errorData);
         setReservations([]);
+        setPalletData(new Map());
       }
     } catch (error) {
       console.error("💥 Error fetching reservations:", error);
       setReservations([]);
+      setPalletData(new Map());
     } finally {
       setReservationsLoading(false);
     }
@@ -1201,16 +1265,23 @@ export default function ProfilePage() {
                       });
                       
                       return sortedPallets.slice(0, 3).map((pallet) => {
-                        // Calculate pallet fill percentage
-                        const percentFilled = getPercentFilled({
-                          reserved_bottles: pallet.reservedBottles,
-                          capacity_bottles: pallet.capacity, // Use pallet capacity
-                          percent_filled: undefined, // TODO: Get from backend if available
-                          status: pallet.status.toUpperCase() as any
-                        });
+                        // Get pallet data from API for accurate percentages
+                        const palletApiData = palletData.get(pallet.id);
+                        console.log(`🎯 Profile Pallet ${pallet.id} (${pallet.name}) - API data:`, palletApiData);
+                        
+                        // Use API data if available, otherwise fall back to calculated data
+                        const percentFilled = palletApiData?.percentage_filled || 
+                          getPercentFilled({
+                            reserved_bottles: pallet.reservedBottles,
+                            capacity_bottles: pallet.capacity,
+                            percent_filled: undefined,
+                            status: pallet.status.toUpperCase() as any
+                          });
                         
                         const showPercent = shouldShowPercent(pallet.status);
                         const displayPercent = showPercent ? formatPercent(percentFilled) : '—%';
+                        
+                        console.log(`📊 Profile Pallet ${pallet.id}: status="${pallet.status}", API percentage=${palletApiData?.percentage_filled}, fallback=${percentFilled}, showPercent=${showPercent}, displayPercent="${displayPercent}"`);
                         
                         return (
                           <Link key={pallet.id} href={`/pallet/${pallet.id}`}>
