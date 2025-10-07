@@ -35,8 +35,13 @@ export async function GET(
       );
     }
 
-    // Get all reservations for this pallet (matching zones)
-    const { data: reservations, error: reservationsError } = await supabase
+    // Get all reservations for this pallet (matching zones or pallet_id)
+    // Try matching by pallet_id first (if column exists), otherwise fall back to zones
+    let reservations;
+    let reservationsError;
+    
+    // First try: Match by pallet_id if the column exists
+    const { data: reservationsByPalletId, error: palletIdError } = await supabase
       .from("order_reservations")
       .select(`
         id,
@@ -44,14 +49,43 @@ export async function GET(
         user_id,
         status,
         created_at,
+        pallet_id,
         profiles!inner(
           email,
           full_name
         )
       `)
-      .eq("pickup_zone_id", pallet.pickup_zone_id)
-      .eq("delivery_zone_id", pallet.delivery_zone_id)
+      .eq("pallet_id", palletId)
       .order("created_at", { ascending: false });
+    
+    if (!palletIdError && reservationsByPalletId && reservationsByPalletId.length > 0) {
+      console.log(`Found ${reservationsByPalletId.length} reservations by pallet_id`);
+      reservations = reservationsByPalletId;
+      reservationsError = null;
+    } else {
+      // Fallback: Match by zones
+      console.log(`Trying zone-based matching: pickup=${pallet.pickup_zone_id}, delivery=${pallet.delivery_zone_id}`);
+      const { data: reservationsByZones, error: zonesError } = await supabase
+        .from("order_reservations")
+        .select(`
+          id,
+          order_id,
+          user_id,
+          status,
+          created_at,
+          profiles!inner(
+            email,
+            full_name
+          )
+        `)
+        .eq("pickup_zone_id", pallet.pickup_zone_id)
+        .eq("delivery_zone_id", pallet.delivery_zone_id)
+        .order("created_at", { ascending: false });
+      
+      reservations = reservationsByZones;
+      reservationsError = zonesError;
+      console.log(`Found ${reservationsByZones?.length || 0} reservations by zones`);
+    }
 
     if (reservationsError) {
       console.error("Error fetching reservations:", reservationsError);
