@@ -209,11 +209,11 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
     };
   }, [isDropdownOpen]);
 
-  const sizeClasses = {
-    sm: "h-4 w-4",
-    md: "h-5 w-5",
-    lg: "h-6 w-6",
-  };
+      const sizeClasses = {
+        sm: "size-4",
+        md: "size-5",
+        lg: "size-6",
+      };
 
   // Don't show if not authenticated
   if (!isAuthenticated) {
