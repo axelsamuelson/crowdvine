@@ -102,12 +102,15 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
         let maxPercent = 0;
         
         // Get unique pallet IDs from reservations (skip 'unassigned')
+        const allPalletIds = activePallets.map((res: any) => res.pallet_id);
+        console.log(`🔍 All pallet IDs (before filter):`, allPalletIds);
+        
         const uniquePalletIds = [...new Set(activePallets
           .map((res: any) => res.pallet_id)
           .filter((id: string) => id && id !== 'unassigned')
         )];
         
-        console.log(`🔍 Unique pallet IDs from reservations:`, uniquePalletIds);
+        console.log(`🔍 Unique pallet IDs from reservations (after filter):`, uniquePalletIds);
         
         if (uniquePalletIds.length > 0) {
           // Fetch pallet data from database
