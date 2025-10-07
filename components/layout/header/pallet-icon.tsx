@@ -299,14 +299,18 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
       >
         <div className="relative">
-          <Package className={`${sizeClasses[size]} text-foreground`} />
           {/* Ultra-thin progress halo for active pallets */}
-          {maxPalletPercent !== null && (
-            <ProgressHalo 
-              valuePercent={maxPalletPercent} 
-              size="sm" 
-              className="absolute inset-0 opacity-40"
-            />
+          {maxPalletPercent !== null ? (
+            <div className="relative w-6 h-6">
+              <Package className={`${sizeClasses[size]} text-foreground absolute inset-0`} />
+              <ProgressHalo 
+                valuePercent={maxPalletPercent} 
+                size="sm" 
+                className="absolute inset-0 opacity-40"
+              />
+            </div>
+          ) : (
+            <Package className={`${sizeClasses[size]} text-foreground`} />
           )}
           {/* Number indicator for active pallets */}
           {hasActivePallets && sortedPallets.length > 0 && (
