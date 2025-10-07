@@ -545,7 +545,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <PageLayout className="pt-8 md:pt-12 px-sides">
+    <PageLayout className="px-sides">
       <div className="max-w-6xl mx-auto space-y-8 md:space-y-12">
         {/* Minimalist Header */}
         <div className="flex items-start justify-between pb-6 border-b border-gray-200/50">

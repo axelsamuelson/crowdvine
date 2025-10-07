@@ -99,7 +99,7 @@
 
   --sides: 1rem;
   --modal-sides: 0.75rem;
-  --top-spacing: 5rem;
+  --top-spacing: 6rem;
   --height-fold: 100vh;
   --height-fold: 100svh;
   --inset: min(2vw, 1.5rem);
@@ -107,7 +107,7 @@
   @screen md {
     --sides: 1.5rem;
     --modal-sides: 1rem;
-    --top-spacing: 9rem;
+    --top-spacing: 7rem;
   }
 
   @screen lg {

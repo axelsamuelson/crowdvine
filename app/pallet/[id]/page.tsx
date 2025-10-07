@@ -172,7 +172,7 @@ export default function PalletPage() {
 
   if (loading) {
     return (
-      <PageLayout className="pt-8 md:pt-12 px-sides">
+      <PageLayout className="px-sides">
         <div className="max-w-6xl mx-auto space-y-6 md:space-y-8">
           <div className="flex items-center gap-3 md:gap-4">
             <Link href="/profile">
@@ -190,7 +190,7 @@ export default function PalletPage() {
 
   if (!pallet) {
     return (
-      <PageLayout className="pt-8 md:pt-12 px-sides">
+      <PageLayout className="px-sides">
         <div className="max-w-6xl mx-auto space-y-6 md:space-y-8">
           <div className="flex items-center gap-3 md:gap-4">
             <Link href="/profile">
@@ -228,7 +228,7 @@ export default function PalletPage() {
   const displayPercent = showPercent ? formatPercent(percentFilled) : '—%';
 
   return (
-    <PageLayout className="pt-8 md:pt-12 px-sides">
+    <PageLayout className="px-sides">
       <div className="max-w-6xl mx-auto space-y-6 md:space-y-8">
         {/* Header with back button */}
         <div className="flex items-center gap-3 md:gap-4">
