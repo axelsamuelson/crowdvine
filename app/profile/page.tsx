@@ -7,15 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { PageLayout } from "@/components/layout/page-layout";
-import {
-  User,
-  Mail,
-  Phone,
-  MapPin,
-  CreditCard,
-  Plus,
-  Edit,
-  Save,
+import { 
+  User, 
+  Mail, 
+  Phone, 
+  MapPin, 
+  CreditCard, 
+  Plus, 
+  Edit, 
+  Save, 
   X,
   Calendar,
   Package,
@@ -351,7 +351,7 @@ export default function ProfilePage() {
         toast.error("Please add your profile information first");
         return;
       }
-
+      
       const profile = await profileResponse.json();
       if (!profile.email) {
         toast.error("Email is required to add payment method");
@@ -360,7 +360,7 @@ export default function ProfilePage() {
 
       // Redirect to Stripe setup (no parameters needed - user is authenticated)
       const response = await fetch(`/api/checkout/setup`);
-
+      
       if (!response.ok) {
         const errorData = await response.json();
         toast.error(errorData.error || "Failed to setup payment method");
@@ -399,7 +399,7 @@ export default function ProfilePage() {
           is_default: method.id === methodId,
         })),
       );
-
+      
       toast.success("Default payment method updated");
     } catch (error) {
       console.error("Error setting default payment method:", error);
@@ -493,7 +493,7 @@ export default function ProfilePage() {
       }
 
       toast.success("Logged out successfully");
-
+      
       // Clear local state
       setIsAuthenticated(false);
       setProfile(null);
@@ -552,14 +552,14 @@ export default function ProfilePage() {
           <div className="space-y-1">
             <h1 className="text-2xl md:text-3xl font-light text-gray-900">
               {profile?.full_name || "Welcome"}
-            </h1>
+              </h1>
             <p className="text-sm md:text-base text-gray-500">{profile?.email}</p>
             <div className="flex items-center gap-2 text-xs md:text-sm text-gray-400">
               <Calendar className="w-3 h-3 md:w-4 md:h-4" />
               <span>Member since {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'N/A'}</span>
             </div>
           </div>
-
+          
           <button
             onClick={handleLogout}
             className="text-gray-400 hover:text-gray-600 p-2 transition-colors"
@@ -583,9 +583,9 @@ export default function ProfilePage() {
                 >
                   <Edit className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
                   <span className="hidden sm:inline">Edit</span>
-                </Button>
+          </Button>
               )}
-            </div>
+        </div>
 
             <div className="bg-white rounded-xl border border-gray-200/50 p-4 md:p-6 shadow-sm">
               {editing ? (
@@ -602,7 +602,7 @@ export default function ProfilePage() {
                       className="mt-1"
                     />
                   </div>
-
+                  
                   <div>
                     <Label htmlFor="phone" className="text-sm text-gray-600">Phone Number</Label>
                     <Input
@@ -615,7 +615,7 @@ export default function ProfilePage() {
                       className="mt-1"
                     />
                   </div>
-
+                  
                   <div>
                     <Label htmlFor="address" className="text-sm text-gray-600">Address</Label>
                     <Input
@@ -628,7 +628,7 @@ export default function ProfilePage() {
                       className="mt-1"
                     />
                   </div>
-
+                  
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <Label htmlFor="city" className="text-sm text-gray-600">City</Label>
@@ -658,7 +658,7 @@ export default function ProfilePage() {
                       />
                     </div>
                   </div>
-
+                  
                   <div>
                     <Label htmlFor="country" className="text-sm text-gray-600">Country</Label>
                     <Input
@@ -671,14 +671,14 @@ export default function ProfilePage() {
                       className="mt-1"
                     />
                   </div>
-
+                  
                   <div className="flex gap-2 pt-4">
                     <Button onClick={updateProfile} className="flex-1 rounded-full bg-gray-900 hover:bg-gray-800 text-sm">
                       <Save className="w-3 h-3 md:w-4 md:h-4 mr-2" />
                       Save
                     </Button>
-                    <Button
-                      variant="outline"
+                    <Button 
+                      variant="outline" 
                       onClick={() => setEditing(false)}
                       className="flex-1 rounded-full border-gray-200 hover:bg-gray-50 text-sm"
                     >
@@ -689,16 +689,16 @@ export default function ProfilePage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div>
+                    <div>
                     <div className="flex items-center gap-2 text-gray-400 mb-1">
                       <Mail className="w-3 h-3" />
                       <span className="text-xs">Email</span>
                     </div>
                     <p className="text-sm text-gray-900">{profile?.email}</p>
                   </div>
-
+                  
                   {profile?.full_name && (
-                    <div>
+                      <div>
                       <div className="flex items-center gap-2 text-gray-400 mb-1">
                         <User className="w-3 h-3" />
                         <span className="text-xs">Full Name</span>
@@ -706,9 +706,9 @@ export default function ProfilePage() {
                       <p className="text-sm text-gray-900">{profile.full_name}</p>
                     </div>
                   )}
-
+                  
                   {profile?.phone && (
-                    <div>
+                      <div>
                       <div className="flex items-center gap-2 text-gray-400 mb-1">
                         <Phone className="w-3 h-3" />
                         <span className="text-xs">Phone</span>
@@ -716,9 +716,9 @@ export default function ProfilePage() {
                       <p className="text-sm text-gray-900">{profile.phone}</p>
                     </div>
                   )}
-
+                  
                   {(profile?.address || profile?.city) && (
-                    <div>
+                      <div>
                       <div className="flex items-center gap-2 text-gray-400 mb-1">
                         <MapPin className="w-3 h-3" />
                         <span className="text-xs">Address</span>
@@ -730,13 +730,13 @@ export default function ProfilePage() {
                           profile.postal_code,
                           profile.country,
                         ]
-                          .filter(Boolean)
+                            .filter(Boolean)
                           .join(", ")}
-                      </p>
+                        </p>
+                      </div>
+                  )}
                     </div>
                   )}
-                </div>
-              )}
             </div>
           </section>
 
@@ -753,9 +753,9 @@ export default function ProfilePage() {
                   />
                 </svg>
                 <span className="hidden sm:inline">Stripe</span>
-              </div>
-            </div>
-
+                    </div>
+                  </div>
+                  
             <div className="bg-white rounded-xl border border-gray-200/50 p-4 md:p-6 shadow-sm">
               {paymentMethods.length === 0 ? (
                 <div className="text-center py-8 md:py-12">
@@ -802,7 +802,7 @@ export default function ProfilePage() {
         {/* Invite Friends */}
         <div className="space-y-4">
           <div className="flex items-start justify-between">
-            <div>
+                        <div>
               <h2 className="text-lg md:text-xl font-light text-gray-900">Invite Friends</h2>
               <p className="text-sm text-gray-500 mt-0.5">Invite friends, unlock rewards.</p>
             </div>
@@ -896,12 +896,12 @@ export default function ProfilePage() {
                       </p>
                       <p className="text-xs text-gray-400">
                         Used = already applied • Available = ready to use
-                      </p>
-                    </div>
+                          </p>
+                        </div>
                   </>
                 );
               })()}
-            </div>
+                      </div>
 
             {/* Accepted Invitations - Collapsible */}
             {usedInvitations.length > 0 && (
@@ -946,7 +946,7 @@ export default function ProfilePage() {
                             
                             {/* Status and Rewards */}
                             <div className="space-y-1.5">
-                              <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2">
                                 <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
                                 <span className="text-xs text-gray-500">Account created</span>
                                 <Badge className="bg-white text-gray-600 text-xs ml-auto border border-gray-200 px-2 py-0">
@@ -986,11 +986,11 @@ export default function ProfilePage() {
                       <h3 className="text-sm md:text-base font-light text-gray-900">Invitation Accepted!</h3>
                       <p className="text-xs md:text-sm text-gray-500 truncate">{invitation.profiles?.email || 'Your friend'} joined PACT</p>
                     </div>
-                    <Button
+                          <Button
                       onClick={generateInvitation}
                       disabled={generatingInvite}
                       className="rounded-full px-3 md:px-4 bg-gray-900 hover:bg-gray-800 text-white text-xs md:text-sm flex-shrink-0"
-                      size="sm"
+                            size="sm"
                     >
                       {generatingInvite ? (
                         <>
@@ -1004,7 +1004,7 @@ export default function ProfilePage() {
                           <span className="sm:hidden">+</span>
                         </>
                       )}
-                    </Button>
+                          </Button>
                   </div>
 
                   {/* Rewards status */}
@@ -1105,7 +1105,7 @@ export default function ProfilePage() {
                           ) : (
                             <Copy className="w-3 h-3 md:w-4 md:h-4" />
                           )}
-                        </Button>
+                  </Button>
                       </div>
                     </div>
                   </div>
@@ -1125,8 +1125,8 @@ export default function ProfilePage() {
                     </button>
                   </div>
                 </div>
-              </div>
-            )}
+                </div>
+              )}
           </div>
         </div>
 
@@ -1134,11 +1134,11 @@ export default function ProfilePage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg md:text-xl font-light text-gray-900">My Reservations</h2>
-            <Link href="/profile/reservations">
+              <Link href="/profile/reservations">
               <Button variant="outline" size="sm" className="rounded-full border-gray-200 hover:bg-gray-50 text-xs md:text-sm px-3 md:px-4">
                 View All
-              </Button>
-            </Link>
+                </Button>
+              </Link>
           </div>
 
           <div className="bg-white rounded-xl border border-gray-200/50 p-4 md:p-6 shadow-sm">
@@ -1357,13 +1357,13 @@ export default function ProfilePage() {
                 </div>
                 <h3 className="text-base md:text-lg font-light text-gray-900 mb-2">No reservations yet</h3>
                 <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto px-4">Start exploring our wine collection and make your first reservation</p>
-                <Link href="/shop">
+              <Link href="/shop">
                   <Button className="rounded-full px-6 md:px-8 bg-gray-900 hover:bg-gray-800 text-white text-sm">
                     <Wine className="w-3 h-3 md:w-4 md:h-4 mr-2" />
                     Browse Wines
-                  </Button>
-                </Link>
-              </div>
+                </Button>
+              </Link>
+            </div>
             )}
           </div>
         </div>
