@@ -298,7 +298,7 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
         className={`p-2 hover:bg-background/20 transition-colors ${className}`}
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
       >
-        <div className="relative flex items-center justify-center">
+        <div className="relative">
           <Package className={`${sizeClasses[size]} text-foreground`} />
           {/* Ultra-thin progress halo for active pallets */}
           {maxPalletPercent !== null && (
