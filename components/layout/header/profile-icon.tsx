@@ -64,45 +64,45 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
     lg: "h-6 w-6",
   };
 
+  const handleClick = () => {
+    router.push(isAuthenticated ? "/profile" : "/log-in");
+  };
+
   // Show loading state briefly
   if (loading) {
     return (
       <div className="relative">
-      <Button
-        variant="ghost"
-        size="sm"
-        className={`p-2 hover:bg-background/20 transition-colors ${className}`}
-        disabled
-      >
-        <div className="relative flex items-center justify-center">
-          <User className={sizeClasses[size]} />
-        </div>
-        <span className="sr-only">Profile</span>
-      </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className={`p-2 hover:bg-background/20 transition-colors ${className}`}
+          disabled
+        >
+          <div className="relative flex items-center justify-center" onClick={handleClick}>
+            <User className={`${sizeClasses[size]} text-foreground`} />
+          </div>
+          <span className="sr-only">Profile</span>
+        </Button>
       </div>
     );
   }
 
-  const handleClick = () => {
-    router.push(isAuthenticated ? "/profile" : "/log-in");
-  };
+  // Don't show if not authenticated
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="relative">
       <Button
         variant="ghost"
         size="sm"
-        className={`p-2 hover:bg-background/20 transition-colors ${className} ${
-          isAuthenticated ? "text-green-600" : "text-gray-600"
-        }`}
-        onClick={handleClick}
+        className={`p-2 hover:bg-background/20 transition-colors ${className}`}
       >
-        <div className="relative flex items-center justify-center">
-          <User className={sizeClasses[size]} />
+        <div className="relative flex items-center justify-center" onClick={handleClick}>
+          <User className={`${sizeClasses[size]} text-foreground`} />
         </div>
-        <span className="sr-only">
-          {isAuthenticated ? "Profile" : "Sign In"}
-        </span>
+        <span className="sr-only">Profile</span>
       </Button>
     </div>
   );
