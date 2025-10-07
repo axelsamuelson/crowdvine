@@ -446,7 +446,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <PageLayout>
+      <PageLayout className="px-sides">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
@@ -459,7 +459,7 @@ export default function ProfilePage() {
 
   if (!isAuthenticated) {
     return (
-      <PageLayout>
+      <PageLayout className="px-sides">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto flex items-center justify-center mb-4">
@@ -481,7 +481,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <PageLayout className="pt-8 md:pt-12">
+    <PageLayout className="pt-8 md:pt-12 px-sides">
       <div className="max-w-6xl mx-auto space-y-8 md:space-y-12">
         {/* Minimalist Header */}
         <div className="flex items-start justify-between pb-6 border-b border-gray-200/50">
