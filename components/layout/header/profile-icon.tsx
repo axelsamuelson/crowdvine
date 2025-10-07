@@ -71,10 +71,12 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
       <Button
         variant="ghost"
         size="sm"
-        className={`p-2 hover:bg-background/20 transition-colors inline-flex items-center justify-center ${className}`}
+        className={`p-2 hover:bg-background/20 transition-colors ${className}`}
         disabled
       >
-        <User className={sizeClasses[size]} />
+        <div className="relative flex items-center justify-center">
+          <User className={sizeClasses[size]} />
+        </div>
         <span className="sr-only">Profile</span>
       </Button>
       </div>
@@ -90,12 +92,14 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
       <Button
         variant="ghost"
         size="sm"
-        className={`p-2 hover:bg-background/20 transition-colors inline-flex items-center justify-center ${className} ${
+        className={`p-2 hover:bg-background/20 transition-colors ${className} ${
           isAuthenticated ? "text-green-600" : "text-gray-600"
         }`}
         onClick={handleClick}
       >
-        <User className={sizeClasses[size]} />
+        <div className="relative flex items-center justify-center">
+          <User className={sizeClasses[size]} />
+        </div>
         <span className="sr-only">
           {isAuthenticated ? "Profile" : "Sign In"}
         </span>
