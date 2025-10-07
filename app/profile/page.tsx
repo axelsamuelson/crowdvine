@@ -481,59 +481,53 @@ export default function ProfilePage() {
   }
 
   return (
-    <PageLayout className="pt-12">
-      <div className="max-w-6xl mx-auto space-y-12">
-        {/* Premium Header with subtle background */}
-        <div className="relative bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-2xl p-8 border border-gray-200/50">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-6">
-              <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-gray-200/50">
-                <User className="w-10 h-10 text-gray-400" />
-              </div>
-              <div className="space-y-1">
-                <h1 className="text-3xl font-light text-gray-900">
-                  {profile?.full_name || "Welcome"}
-                </h1>
-                <p className="text-gray-500 text-lg">{profile?.email}</p>
-                <div className="flex items-center gap-2 text-sm text-gray-400">
-                  <Calendar className="w-4 h-4" />
-                  <span>Member since {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'N/A'}</span>
-                </div>
-              </div>
+    <PageLayout className="pt-8 md:pt-12">
+      <div className="max-w-6xl mx-auto space-y-8 md:space-y-12">
+        {/* Minimalist Header */}
+        <div className="flex items-start justify-between pb-6 border-b border-gray-200/50">
+          <div className="space-y-1">
+            <h1 className="text-2xl md:text-3xl font-light text-gray-900">
+              {profile?.full_name || "Welcome"}
+            </h1>
+            <p className="text-sm md:text-base text-gray-500">{profile?.email}</p>
+            <div className="flex items-center gap-2 text-xs md:text-sm text-gray-400">
+              <Calendar className="w-3 h-3 md:w-4 md:h-4" />
+              <span>Member since {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'N/A'}</span>
             </div>
-
-            <Button
-              onClick={handleLogout}
-              variant="ghost"
-              size="sm"
-              className="text-gray-400 hover:text-gray-600 hover:bg-white/50 p-2 rounded-xl"
-            >
-              <LogOut className="w-5 h-5" />
-            </Button>
           </div>
+
+          <button
+            onClick={handleLogout}
+            className="text-gray-400 hover:text-gray-600 p-2 transition-colors"
+          >
+            <LogOut className="w-4 h-4 md:w-5 md:h-5" />
+            <span className="sr-only">Logout</span>
+          </button>
         </div>
 
         {/* Profile Top Sections - Responsive Layout */}
-        <div className="profile-top grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 items-start">
-          {/* Personal Information - Premium Design */}
-          <section data-section="personal-info" className="space-y-6">
-            <div className="flex items-center justify-between pt-2">
-              <h2 className="text-xl font-light text-gray-900">Personal Information</h2>
-              <Button
-                onClick={() => setEditing(true)}
-                className="rounded-full px-6 bg-gray-900 hover:bg-gray-800 text-white"
-                size="sm"
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                Edit Profile
-              </Button>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+          {/* Personal Information */}
+          <section className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg md:text-xl font-light text-gray-900">Personal Information</h2>
+              {!editing && (
+                <Button
+                  onClick={() => setEditing(true)}
+                  className="rounded-full px-4 md:px-6 bg-gray-900 hover:bg-gray-800 text-white text-sm"
+                  size="sm"
+                >
+                  <Edit className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
+                  <span className="hidden sm:inline">Edit</span>
+                </Button>
+              )}
             </div>
 
-            <div className="bg-white rounded-2xl border border-gray-200/50 p-6 shadow-sm">
+            <div className="bg-white rounded-xl border border-gray-200/50 p-4 md:p-6 shadow-sm">
               {editing ? (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div>
-                    <Label htmlFor="full_name">Full Name</Label>
+                    <Label htmlFor="full_name" className="text-sm text-gray-600">Full Name</Label>
                     <Input
                       id="full_name"
                       value={editForm.full_name}
@@ -541,11 +535,12 @@ export default function ProfilePage() {
                         setEditForm({ ...editForm, full_name: e.target.value })
                       }
                       placeholder="Enter your full name"
+                      className="mt-1"
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="phone">Phone Number</Label>
+                    <Label htmlFor="phone" className="text-sm text-gray-600">Phone Number</Label>
                     <Input
                       id="phone"
                       value={editForm.phone}
@@ -553,11 +548,12 @@ export default function ProfilePage() {
                         setEditForm({ ...editForm, phone: e.target.value })
                       }
                       placeholder="Enter your phone number"
+                      className="mt-1"
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="address">Address</Label>
+                    <Label htmlFor="address" className="text-sm text-gray-600">Address</Label>
                     <Input
                       id="address"
                       value={editForm.address}
@@ -565,23 +561,25 @@ export default function ProfilePage() {
                         setEditForm({ ...editForm, address: e.target.value })
                       }
                       placeholder="Enter your address"
+                      className="mt-1"
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label htmlFor="city">City</Label>
+                      <Label htmlFor="city" className="text-sm text-gray-600">City</Label>
                       <Input
                         id="city"
                         value={editForm.city}
                         onChange={(e) =>
                           setEditForm({ ...editForm, city: e.target.value })
                         }
-                        placeholder="Enter your city"
+                        placeholder="City"
+                        className="mt-1"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="postal_code">Postal Code</Label>
+                      <Label htmlFor="postal_code" className="text-sm text-gray-600">Postal Code</Label>
                       <Input
                         id="postal_code"
                         value={editForm.postal_code}
@@ -591,13 +589,14 @@ export default function ProfilePage() {
                             postal_code: e.target.value,
                           })
                         }
-                        placeholder="Enter postal code"
+                        placeholder="Postal code"
+                        className="mt-1"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <Label htmlFor="country">Country</Label>
+                    <Label htmlFor="country" className="text-sm text-gray-600">Country</Label>
                     <Input
                       id="country"
                       value={editForm.country}
@@ -605,61 +604,62 @@ export default function ProfilePage() {
                         setEditForm({ ...editForm, country: e.target.value })
                       }
                       placeholder="Enter your country"
+                      className="mt-1"
                     />
                   </div>
 
-                  <div className="flex gap-3 pt-6">
-                    <Button onClick={updateProfile} className="flex-1 rounded-full bg-gray-900 hover:bg-gray-800">
-                      <Save className="w-4 h-4 mr-2" />
-                      Save Changes
+                  <div className="flex gap-2 pt-4">
+                    <Button onClick={updateProfile} className="flex-1 rounded-full bg-gray-900 hover:bg-gray-800 text-sm">
+                      <Save className="w-3 h-3 md:w-4 md:h-4 mr-2" />
+                      Save
                     </Button>
                     <Button
                       variant="outline"
                       onClick={() => setEditing(false)}
-                      className="flex-1 rounded-full border-gray-200 hover:bg-gray-50"
+                      className="flex-1 rounded-full border-gray-200 hover:bg-gray-50 text-sm"
                     >
-                      <X className="w-4 h-4 mr-2" />
+                      <X className="w-3 h-3 md:w-4 md:h-4 mr-2" />
                       Cancel
                     </Button>
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-3 text-gray-500 mb-2">
-                      <Mail className="w-4 h-4" />
-                      <span className="text-sm font-medium">Email</span>
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex items-center gap-2 text-gray-400 mb-1">
+                      <Mail className="w-3 h-3" />
+                      <span className="text-xs">Email</span>
                     </div>
-                    <p className="text-gray-900 font-light">{profile?.email}</p>
+                    <p className="text-sm text-gray-900">{profile?.email}</p>
                   </div>
 
                   {profile?.full_name && (
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-3 text-gray-500 mb-2">
-                        <User className="w-4 h-4" />
-                        <span className="text-sm font-medium">Full Name</span>
+                    <div>
+                      <div className="flex items-center gap-2 text-gray-400 mb-1">
+                        <User className="w-3 h-3" />
+                        <span className="text-xs">Full Name</span>
                       </div>
-                      <p className="text-gray-900 font-light">{profile.full_name}</p>
+                      <p className="text-sm text-gray-900">{profile.full_name}</p>
                     </div>
                   )}
 
                   {profile?.phone && (
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-3 text-gray-500 mb-2">
-                        <Phone className="w-4 h-4" />
-                        <span className="text-sm font-medium">Phone</span>
+                    <div>
+                      <div className="flex items-center gap-2 text-gray-400 mb-1">
+                        <Phone className="w-3 h-3" />
+                        <span className="text-xs">Phone</span>
                       </div>
-                      <p className="text-gray-900 font-light">{profile.phone}</p>
+                      <p className="text-sm text-gray-900">{profile.phone}</p>
                     </div>
                   )}
 
                   {(profile?.address || profile?.city) && (
-                    <div className="space-y-1 md:col-span-2">
-                      <div className="flex items-center gap-3 text-gray-500 mb-2">
-                        <MapPin className="w-4 h-4" />
-                        <span className="text-sm font-medium">Address</span>
+                    <div>
+                      <div className="flex items-center gap-2 text-gray-400 mb-1">
+                        <MapPin className="w-3 h-3" />
+                        <span className="text-xs">Address</span>
                       </div>
-                      <p className="text-gray-900 font-light">
+                      <p className="text-sm text-gray-900">
                         {[
                           profile.address,
                           profile.city,
@@ -676,59 +676,58 @@ export default function ProfilePage() {
             </div>
           </section>
 
-          {/* Payment Methods - Premium Design */}
-          <section data-section="payment-methods" className="space-y-6">
-            <div className="flex items-center justify-between pt-2">
-              <h2 className="text-xl font-light text-gray-900">Payment Methods</h2>
-              <div className="flex items-center gap-2 text-xs text-gray-400">
-                <svg viewBox="0 0 24 24" className="w-4 h-4">
+          {/* Payment Methods */}
+          <section className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg md:text-xl font-light text-gray-900">Payment Methods</h2>
+              <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                <svg viewBox="0 0 24 24" className="w-3 h-3">
                   <rect width="24" height="24" rx="4" fill="#635BFF" />
                   <path
                     d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.274 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.407-2.2 1.407-1.99 0-4.043-.921-5.827-1.845L4.717 24c1.73.921 4.351 1.685 7.552 1.685 2.508 0 4.682-.657 6.104-1.892 1.545-1.31 2.352-3.147 2.352-5.373 0-4.039-2.467-5.76-6.476-7.219z"
                     fill="white"
                   />
                 </svg>
-                <span>Powered by Stripe</span>
+                <span className="hidden sm:inline">Stripe</span>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-gray-200/50 p-6 shadow-sm">
+            <div className="bg-white rounded-xl border border-gray-200/50 p-4 md:p-6 shadow-sm">
               {paymentMethods.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                    <CreditCard className="w-8 h-8 text-gray-400" />
+                <div className="text-center py-8 md:py-12">
+                  <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <CreditCard className="w-6 h-6 md:w-8 md:h-8 text-gray-400" />
                   </div>
-                  <h3 className="text-lg font-light text-gray-900 mb-2">No payment methods</h3>
-                  <p className="text-gray-500 mb-8">Add a payment method to start making reservations</p>
+                  <h3 className="text-base md:text-lg font-light text-gray-900 mb-1">No payment methods</h3>
+                  <p className="text-sm text-gray-500 mb-6">Add a payment method to start making reservations</p>
                   <Button 
                     onClick={addPaymentMethod}
-                    className="rounded-full px-8 bg-gray-900 hover:bg-gray-800 text-white"
+                    className="rounded-full px-6 md:px-8 bg-gray-900 hover:bg-gray-800 text-white text-sm"
                   >
-                    <Plus className="w-4 h-4 mr-2" />
+                    <Plus className="w-3 h-3 md:w-4 md:h-4 mr-2" />
                     Add Payment Method
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {paymentMethods.map((method) => (
-                    <div key={method.id} className="relative">
-                      <div className="bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-2xl p-6 border border-gray-200/50 shadow-sm hover:shadow-md transition-all duration-200">
-                        <PaymentMethodCard
-                          method={method}
-                          onSetDefault={setDefaultPaymentMethod}
-                          onDelete={deletePaymentMethod}
-                        />
-                      </div>
+                    <div key={method.id} className="bg-gray-50/50 rounded-xl p-4 border border-gray-200/50 hover:bg-gray-100/50 transition-colors">
+                      <PaymentMethodCard
+                        method={method}
+                        onSetDefault={setDefaultPaymentMethod}
+                        onDelete={deletePaymentMethod}
+                      />
                     </div>
                   ))}
 
                   <Button
                     onClick={addPaymentMethod}
-                    className="w-full rounded-full border-2 border-dashed border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-600 py-6"
+                    className="w-full rounded-full border border-dashed border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-600 py-4 text-sm"
                     variant="ghost"
                   >
-                    <Plus className="w-5 h-5 mr-2" />
-                    Add Another Payment Method
+                    <Plus className="w-4 h-4 mr-2" />
+                    <span className="hidden sm:inline">Add Another Payment Method</span>
+                    <span className="sm:hidden">Add Payment Method</span>
                   </Button>
                 </div>
               )}
@@ -736,47 +735,47 @@ export default function ProfilePage() {
           </section>
         </div>
 
-        {/* Invite Friends - Premium Design */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between pt-2">
+        {/* Invite Friends */}
+        <div className="space-y-4">
+          <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-xl font-light text-gray-900">Invite Friends</h2>
-              <p className="text-gray-500 mt-1">Invite friends, unlock rewards.</p>
+              <h2 className="text-lg md:text-xl font-light text-gray-900">Invite Friends</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Invite friends, unlock rewards.</p>
             </div>
             {invitation && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 {invitationConnected ? (
-                  <div className="flex items-center gap-1 text-green-600 text-xs bg-green-50 px-2 py-1 rounded-full">
+                  <div className="flex items-center gap-1 text-gray-400 text-xs">
                     <Wifi className="w-3 h-3" />
-                    <span>Live</span>
+                    <span className="hidden sm:inline">Live</span>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-1 text-gray-400 text-xs bg-gray-50 px-2 py-1 rounded-full">
+                  <div className="flex items-center gap-1 text-gray-400 text-xs">
                     <WifiOff className="w-3 h-3" />
-                    <span>Offline</span>
+                    <span className="hidden sm:inline">Offline</span>
                   </div>
                 )}
               </div>
             )}
           </div>
 
-          <div className="bg-white rounded-2xl border border-gray-200/50 p-8 shadow-sm">
+          <div className="bg-white rounded-xl border border-gray-200/50 p-4 md:p-6 shadow-sm">
             {/* Generate Invite - Primary CTA */}
             {!invitation && (
-              <div className="text-center mb-8">
+              <div className="text-center mb-6">
                 <Button
                   onClick={generateInvitation}
                   disabled={generatingInvite}
-                  className="rounded-full px-8 py-3 bg-gray-900 hover:bg-gray-800 text-white text-lg"
+                  className="rounded-full px-6 md:px-8 bg-gray-900 hover:bg-gray-800 text-white text-sm md:text-base"
                 >
                   {generatingInvite ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-3"></div>
+                      <div className="animate-spin rounded-full h-3 w-3 md:h-4 md:w-4 border-b-2 border-white mr-2"></div>
                       Generating...
                     </>
                   ) : (
                     <>
-                      <UserPlus className="w-5 h-5 mr-3" />
+                      <UserPlus className="w-4 h-4 md:w-5 md:h-5 mr-2" />
                       Generate Invite
                     </>
                   )}
@@ -785,8 +784,8 @@ export default function ProfilePage() {
             )}
 
             {/* Rewards Levels */}
-            <div className="mb-8">
-              <h3 className="text-lg font-light text-gray-900 mb-4">Your Rewards</h3>
+            <div className="mb-6">
+              <h3 className="text-base md:text-lg font-light text-gray-900 mb-3">Your Rewards</h3>
               
               {/* Calculate rewards based on invitations */}
               {(() => {
@@ -814,7 +813,7 @@ export default function ProfilePage() {
                 return (
                   <>
                     {/* Two-level rewards display */}
-                    <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="grid grid-cols-2 gap-3 mb-3">
                       <RewardTierCard 
                         tierPercent={5}
                         used={used5Percent}
@@ -828,11 +827,11 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="text-center">
-                      <p className="text-sm text-gray-500 mb-2">
+                      <p className="text-xs md:text-sm text-gray-500 mb-1">
                         {usedInvitations.length} friend{usedInvitations.length > 1 ? 's' : ''} joined
                       </p>
                       <p className="text-xs text-gray-400">
-                        Used = discount already applied. Available = can be used now. 10% rewards unlock when friends make reservations.
+                        Used = already applied • Available = ready to use
                       </p>
                     </div>
                   </>
@@ -840,40 +839,40 @@ export default function ProfilePage() {
               })()}
             </div>
 
-            {/* Accepted Invitations - Premium Collapsible */}
+            {/* Accepted Invitations - Collapsible */}
             {usedInvitations.length > 0 && (
-              <div className="border-t border-gray-200/50 pt-6">
+              <div className="border-t border-gray-200/50 pt-4">
                 <details className="group">
                   <summary className="flex items-center justify-between cursor-pointer list-none">
-                    <h4 className="font-light text-gray-900 flex items-center gap-2">
-                      <Check className="w-4 h-4 text-gray-400" />
-                      Accepted Invitations
-                      <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">
+                    <h4 className="text-sm font-light text-gray-900 flex items-center gap-2">
+                      <Check className="w-3 h-3 md:w-4 md:h-4 text-gray-400" />
+                      <span>Accepted Invitations</span>
+                      <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">
                         {usedInvitations.length}
                       </span>
                     </h4>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-400 group-open:hidden">View details</span>
-                      <div className="w-4 h-4 flex items-center justify-center">
-                        <svg className="w-3 h-3 text-gray-400 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-gray-400 group-open:hidden hidden sm:inline">View</span>
+                      <div className="w-3 h-3 flex items-center justify-center">
+                        <svg className="w-2.5 h-2.5 text-gray-400 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
                       </div>
                     </div>
                   </summary>
-                  <div className="mt-4 space-y-3">
+                  <div className="mt-3 space-y-2">
                     {usedInvitations.map((usedInvite, index) => (
                       <div
                         key={index}
-                        className="bg-gray-50/50 rounded-xl p-4 border border-gray-200/50 hover:bg-gray-100/50 transition-colors"
+                        className="bg-gray-50/50 rounded-lg p-3 border border-gray-200/50"
                       >
-                        <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
-                            <Check className="w-4 h-4 text-gray-400" />
+                        <div className="flex items-start gap-2">
+                          <div className="w-6 h-6 bg-white rounded-lg flex items-center justify-center flex-shrink-0">
+                            <Check className="w-3 h-3 text-gray-400" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-3">
-                              <p className="font-light text-gray-900 truncate">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-sm text-gray-900 truncate">
                                 {usedInvite.profiles?.email || 'Unknown User'}
                               </p>
                               <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
@@ -882,19 +881,19 @@ export default function ProfilePage() {
                             </div>
                             
                             {/* Status and Rewards */}
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-3">
-                                <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                                <span className="text-sm text-gray-500 font-light">Account created</span>
-                                <Badge className="bg-white text-gray-600 text-xs ml-auto border border-gray-200">
-                                  6 bottles @ 5%
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
+                                <span className="text-xs text-gray-500">Account created</span>
+                                <Badge className="bg-white text-gray-600 text-xs ml-auto border border-gray-200 px-2 py-0">
+                                  6 @ 5%
                                 </Badge>
                               </div>
-                              <div className="flex items-center gap-3">
-                                <div className="w-2 h-2 bg-gray-200 rounded-full"></div>
-                                <span className="text-sm text-gray-400 font-light">Reservation pending</span>
-                                <Badge variant="outline" className="text-xs ml-auto border-gray-200 text-gray-400">
-                                  6 bottles @ 10%
+                              <div className="flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 bg-gray-200 rounded-full"></div>
+                                <span className="text-xs text-gray-400">Reservation pending</span>
+                                <Badge variant="outline" className="text-xs ml-auto border-gray-200 text-gray-400 px-2 py-0">
+                                  6 @ 10%
                                 </Badge>
                               </div>
                             </div>
@@ -913,106 +912,108 @@ export default function ProfilePage() {
               null
             ) : invitation.currentUses && invitation.currentUses > 0 ? (
               // Used invitation - success state
-              <div className="border-t border-gray-200/50 pt-6">
-                <div className="bg-green-50/50 rounded-xl p-6 border border-green-200/50">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                      <Check className="w-6 h-6 text-green-600" />
+              <div className="border-t border-gray-200/50 pt-4">
+                <div className="bg-gray-50/50 rounded-xl p-4 border border-gray-200/50">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-8 h-8 md:w-10 md:h-10 bg-white rounded-lg flex items-center justify-center">
+                      <Check className="w-4 h-4 md:w-5 md:h-5 text-gray-600" />
                     </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-light text-gray-900">Invitation Accepted!</h3>
-                      <p className="text-gray-500">{invitation.profiles?.email || 'Your friend'} joined PACT</p>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm md:text-base font-light text-gray-900">Invitation Accepted!</h3>
+                      <p className="text-xs md:text-sm text-gray-500 truncate">{invitation.profiles?.email || 'Your friend'} joined PACT</p>
                     </div>
                     <Button
                       onClick={generateInvitation}
                       disabled={generatingInvite}
-                      className="rounded-full px-6 bg-gray-900 hover:bg-gray-800 text-white"
+                      className="rounded-full px-3 md:px-4 bg-gray-900 hover:bg-gray-800 text-white text-xs md:text-sm flex-shrink-0"
                       size="sm"
                     >
                       {generatingInvite ? (
                         <>
-                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-2"></div>
-                          Generating...
+                          <div className="animate-spin rounded-full h-2.5 w-2.5 border-b-2 border-white mr-1.5"></div>
+                          <span className="hidden sm:inline">Generating...</span>
                         </>
                       ) : (
                         <>
-                          <UserPlus className="w-3 h-3 mr-2" />
-                          Invite Another
+                          <UserPlus className="w-3 h-3 mr-1.5" />
+                          <span className="hidden sm:inline">Invite Another</span>
+                          <span className="sm:hidden">+</span>
                         </>
                       )}
                     </Button>
                   </div>
 
                   {/* Rewards status */}
-                  <div className="bg-white rounded-lg p-4 border border-green-200/50">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        <Check className="w-4 h-4 text-green-600" />
-                        <span className="text-sm text-gray-600">6 bottles @ 5%</span>
-                        <Badge className="bg-green-100 text-green-800 text-xs">Earned</Badge>
+                  <div className="bg-white rounded-lg p-3 border border-gray-200/50">
+                    <div className="flex flex-col sm:flex-row sm:justify-between gap-2 sm:items-center">
+                      <div className="flex items-center gap-2">
+                        <Check className="w-3 h-3 text-gray-600" />
+                        <span className="text-xs text-gray-600">6 bottles @ 5%</span>
+                        <Badge className="bg-gray-100 text-gray-800 text-xs px-2 py-0">Earned</Badge>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <Gift className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm text-gray-500">6 bottles @ 10%</span>
-                        <Badge variant="outline" className="text-xs border-gray-200 text-gray-400">Pending</Badge>
+                      <div className="flex items-center gap-2">
+                        <Gift className="w-3 h-3 text-gray-400" />
+                        <span className="text-xs text-gray-500">6 bottles @ 10%</span>
+                        <Badge variant="outline" className="text-xs border-gray-200 text-gray-400 px-2 py-0">Pending</Badge>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
             ) : (
-              // Active invitation - premium sharing options
-              <div className="border-t border-gray-200/50 pt-6">
-                <div className="bg-blue-50/50 rounded-xl p-6 border border-blue-200/50">
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                      <UserPlus className="w-6 h-6 text-blue-600" />
+              // Active invitation - sharing options
+              <div className="border-t border-gray-200/50 pt-4">
+                <div className="bg-gray-50/50 rounded-xl p-4 border border-gray-200/50">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-8 h-8 md:w-10 md:h-10 bg-white rounded-lg flex items-center justify-center">
+                      <UserPlus className="w-4 h-4 md:w-5 md:h-5 text-gray-600" />
                     </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-light text-gray-900">Invitation Ready</h3>
-                      <p className="text-gray-500">Expires: {new Date(invitation.expiresAt).toLocaleDateString()}</p>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm md:text-base font-light text-gray-900">Invitation Ready</h3>
+                      <p className="text-xs md:text-sm text-gray-500">Expires: {new Date(invitation.expiresAt).toLocaleDateString()}</p>
                     </div>
                     <Button
                       onClick={generateInvitation}
                       disabled={generatingInvite}
-                      className="rounded-full px-6 bg-gray-900 hover:bg-gray-800 text-white"
+                      className="rounded-full px-3 md:px-4 bg-gray-900 hover:bg-gray-800 text-white text-xs md:text-sm flex-shrink-0"
                       size="sm"
                     >
                       {generatingInvite ? (
                         <>
-                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-2"></div>
-                          Generating...
+                          <div className="animate-spin rounded-full h-2.5 w-2.5 border-b-2 border-white mr-1.5"></div>
+                          <span className="hidden sm:inline">Generating...</span>
                         </>
                       ) : (
                         <>
-                          <UserPlus className="w-3 h-3 mr-2" />
-                          New Invite
+                          <UserPlus className="w-3 h-3 mr-1.5" />
+                          <span className="hidden sm:inline">New Invite</span>
+                          <span className="sm:hidden">+</span>
                         </>
                       )}
                     </Button>
                   </div>
 
                   {/* Sharing Options */}
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {/* Invitation Code */}
                     <div>
-                      <Label className="text-sm font-light text-gray-700 mb-2 block">Invitation Code</Label>
-                      <div className="flex gap-3">
+                      <Label className="text-xs text-gray-600 mb-1.5 block">Invitation Code</Label>
+                      <div className="flex gap-2">
                         <Input
                           value={invitation.code}
                           readOnly
-                          className="font-mono text-sm bg-white border-gray-200 rounded-xl"
+                          className="font-mono text-xs md:text-sm bg-white border-gray-200 rounded-lg"
                         />
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => copyToClipboard(invitation.code, "code")}
-                          className="bg-white hover:bg-gray-50 border-gray-200 rounded-xl px-4"
+                          className="bg-white hover:bg-gray-50 border-gray-200 rounded-lg px-3 flex-shrink-0"
                         >
                           {copiedCode ? (
-                            <Check className="w-4 h-4 text-gray-600" />
+                            <Check className="w-3 h-3 md:w-4 md:h-4 text-gray-600" />
                           ) : (
-                            <Copy className="w-4 h-4" />
+                            <Copy className="w-3 h-3 md:w-4 md:h-4" />
                           )}
                         </Button>
                       </div>
@@ -1020,12 +1021,12 @@ export default function ProfilePage() {
 
                     {/* Direct Signup Link */}
                     <div>
-                      <Label className="text-sm font-light text-gray-700 mb-2 block">Signup Link</Label>
-                      <div className="flex gap-3">
+                      <Label className="text-xs text-gray-600 mb-1.5 block">Signup Link</Label>
+                      <div className="flex gap-2">
                         <Input
                           value={invitation.signupUrl?.replace(/\s+/g, "") || ""}
                           readOnly
-                          className="text-sm font-mono bg-white border-gray-200 rounded-xl"
+                          className="text-xs md:text-sm font-mono bg-white border-gray-200 rounded-lg truncate"
                         />
                         <Button
                           size="sm"
@@ -1033,12 +1034,12 @@ export default function ProfilePage() {
                           onClick={() =>
                             copyToClipboard(invitation.signupUrl?.replace(/\s+/g, "") || "", "url")
                           }
-                          className="bg-white hover:bg-gray-50 border-gray-200 rounded-xl px-4"
+                          className="bg-white hover:bg-gray-50 border-gray-200 rounded-lg px-3 flex-shrink-0"
                         >
                           {copiedUrl ? (
-                            <Check className="w-4 h-4 text-gray-600" />
+                            <Check className="w-3 h-3 md:w-4 md:h-4 text-gray-600" />
                           ) : (
-                            <Copy className="w-4 h-4" />
+                            <Copy className="w-3 h-3 md:w-4 md:h-4" />
                           )}
                         </Button>
                       </div>
@@ -1046,20 +1047,18 @@ export default function ProfilePage() {
                   </div>
 
                   {/* Action Button */}
-                  <div className="flex justify-end mt-6">
-                    <Button
+                  <div className="flex justify-end mt-4">
+                    <button
                       onClick={() => {
                         setInvitation(null);
                         localStorage.removeItem("currentInvitation");
                         toast.success("Invitation cleared");
                       }}
-                      variant="ghost"
-                      size="sm"
-                      className="text-gray-400 hover:text-gray-600 rounded-xl"
+                      className="text-xs text-gray-400 hover:text-gray-600 p-2 transition-colors"
                     >
-                      <X className="w-4 h-4 mr-2" />
-                      Clear Invitation
-                    </Button>
+                      <X className="w-3 h-3 mr-1 inline" />
+                      Clear
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1067,25 +1066,25 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* My Reservations - Premium Design */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between pt-2">
-            <h2 className="text-xl font-light text-gray-900">My Reservations</h2>
+        {/* My Reservations */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg md:text-xl font-light text-gray-900">My Reservations</h2>
             <Link href="/profile/reservations">
-              <Button variant="outline" size="sm" className="rounded-full border-gray-200 hover:bg-gray-50">
+              <Button variant="outline" size="sm" className="rounded-full border-gray-200 hover:bg-gray-50 text-xs md:text-sm px-3 md:px-4">
                 View All
               </Button>
             </Link>
           </div>
 
-          <div className="bg-white rounded-2xl border border-gray-200/50 p-8 shadow-sm">
+          <div className="bg-white rounded-xl border border-gray-200/50 p-4 md:p-6 shadow-sm">
             {reservationsLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="text-gray-400">Loading reservations...</div>
+              <div className="flex items-center justify-center py-8 md:py-12">
+                <div className="text-sm text-gray-400">Loading reservations...</div>
               </div>
             ) : reservations && reservations.length > 0 ? (
-              <div className="space-y-8">
-                {/* Summary Stats - Premium */}
+              <div className="space-y-6">
+                {/* Summary Stats */}
                 {(() => {
                   // Calculate unique bottles based on wine characteristics
                   const uniqueBottles = new Set();
@@ -1110,17 +1109,17 @@ export default function ProfilePage() {
                   });
 
                   return (
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-2 gap-4">
                       <div className="text-center">
-                        <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                          <Wine className="w-6 h-6 text-gray-400" />
+                        <div className="w-12 h-12 md:w-14 md:h-14 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-2">
+                          <Wine className="w-5 h-5 md:w-6 md:h-6 text-gray-400" />
                         </div>
-                        <div className="text-2xl font-light text-gray-900">{uniqueBottles.size}</div>
-                        <div className="text-sm text-gray-500">Unique Bottles</div>
+                        <div className="text-xl md:text-2xl font-light text-gray-900">{uniqueBottles.size}</div>
+                        <div className="text-xs md:text-sm text-gray-500">Unique Bottles</div>
                       </div>
                       <div className="text-center">
-                        <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3 relative">
-                          <Package className="w-6 h-6 text-gray-400 relative z-10" />
+                        <div className="w-12 h-12 md:w-14 md:h-14 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-2 relative">
+                          <Package className="w-5 h-5 md:w-6 md:h-6 text-gray-400 relative z-10" />
                           {/* Progress halo showing max % among active pallets */}
                           {(() => {
                             // Calculate max percent among active pallets
@@ -1133,8 +1132,8 @@ export default function ProfilePage() {
                             const maxPercent = Math.max(...activePallets.map(res => {
                               const percent = getPercentFilled({
                                 reserved_bottles: res.items?.reduce((total, item) => total + item.quantity, 0) || 0,
-                                capacity_bottles: res.pallet_capacity, // Use pallet_capacity from API
-                                percent_filled: undefined, // TODO: Get from backend if available
+                                capacity_bottles: res.pallet_capacity,
+                                percent_filled: undefined,
                                 status: res.status.toUpperCase() as any
                               });
                               return percent || 0;
@@ -1143,23 +1142,23 @@ export default function ProfilePage() {
                             return maxPercent > 0 ? (
                               <ProgressHalo 
                                 valuePercent={maxPercent} 
-                                size="lg" 
+                                size="md" 
                                 className="absolute inset-0"
                               />
                             ) : null;
                           })()}
                         </div>
-                        <div className="text-2xl font-light text-gray-900">{totalBottles}</div>
-                        <div className="text-sm text-gray-500">Total Bottles</div>
+                        <div className="text-xl md:text-2xl font-light text-gray-900">{totalBottles}</div>
+                        <div className="text-xs md:text-sm text-gray-500">Total Bottles</div>
                       </div>
                     </div>
                   );
                 })()}
 
-                {/* Pallet Overview - De-duplicated */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-light text-gray-900">Pallet Overview</h3>
-                  <div className="space-y-3">
+                {/* Pallet Overview */}
+                <div className="space-y-3">
+                  <h3 className="text-base md:text-lg font-light text-gray-900">Pallet Overview</h3>
+                  <div className="space-y-2">
                     {(() => {
                       // Group reservations by pallet_id and aggregate data
                       const palletMap = new Map();
@@ -1215,26 +1214,26 @@ export default function ProfilePage() {
                         
                         return (
                           <Link key={pallet.id} href={`/pallet/${pallet.id}`}>
-                            <div className="bg-gray-50/50 rounded-xl p-4 border border-gray-200/50 hover:bg-gray-100/50 transition-colors cursor-pointer">
+                            <div className="bg-gray-50/50 rounded-lg p-3 border border-gray-200/50 hover:bg-gray-100/50 transition-colors cursor-pointer">
                             {/* Row 1: Pallet name + status tag */}
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                                  <Package className="w-4 h-4 text-gray-400" />
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <div className="w-6 h-6 bg-white rounded-lg flex items-center justify-center flex-shrink-0">
+                                  <Package className="w-3 h-3 text-gray-400" />
                                 </div>
-                                <div>
-                                  <p className="font-light text-gray-900">{pallet.name}</p>
-                                  <p className="text-xs text-gray-500">
+                                <div className="min-w-0">
+                                  <p className="text-sm text-gray-900 truncate">{pallet.name}</p>
+                                  <p className="text-xs text-gray-400">
                                     {new Date(pallet.latestDate).toLocaleDateString()}
                                   </p>
                                 </div>
                               </div>
                               <Badge 
-                                className={`text-xs rounded-full ${
-                                  pallet.status === 'confirmed' ? 'bg-green-100 text-green-700 border-green-200' :
-                                  pallet.status === 'pending' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
-                                  pallet.status === 'shipped' ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                                  pallet.status === 'delivered' ? 'bg-gray-100 text-gray-700 border-gray-200' :
+                                className={`text-xs rounded-full px-2 py-0 flex-shrink-0 ${
+                                  pallet.status === 'confirmed' ? 'bg-gray-100 text-gray-600 border-gray-200' :
+                                  pallet.status === 'pending' ? 'bg-gray-100 text-gray-600 border-gray-200' :
+                                  pallet.status === 'shipped' ? 'bg-gray-100 text-gray-600 border-gray-200' :
+                                  pallet.status === 'delivered' ? 'bg-gray-100 text-gray-600 border-gray-200' :
                                   'bg-gray-100 text-gray-600 border-gray-200'
                                 }`}
                               >
@@ -1246,8 +1245,8 @@ export default function ProfilePage() {
                             </div>
                             
                             {/* Row 2: Meta info with percentage */}
-                            <div className="space-y-2">
-                              <div className="text-sm text-gray-500">
+                            <div className="space-y-1.5">
+                              <div className="text-xs text-gray-500">
                                 <span className="font-medium">{displayPercent}</span>
                                 <span> • Reserved: {pallet.reservedBottles} • ETA: {pallet.status === 'confirmed' ? 'Q1 2025' : 'TBD'}</span>
                               </div>
@@ -1264,31 +1263,32 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Quick Actions */}
-                <div className="flex gap-4 pt-4">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3">
                   <Link href="/profile/reservations" className="flex-1">
-                    <Button className="w-full rounded-full bg-gray-900 hover:bg-gray-800 text-white">
-                      <Package className="w-4 h-4 mr-2" />
-                      View All Reservations
+                    <Button className="w-full rounded-full bg-gray-900 hover:bg-gray-800 text-white text-xs md:text-sm">
+                      <Package className="w-3 h-3 md:w-4 md:h-4 mr-2" />
+                      <span className="hidden sm:inline">View All Reservations</span>
+                      <span className="sm:hidden">View All</span>
                     </Button>
                   </Link>
                   <Link href="/shop" className="flex-1">
-                    <Button variant="outline" className="w-full rounded-full border-gray-200 hover:bg-gray-50">
-                      <Wine className="w-4 h-4 mr-2" />
+                    <Button variant="outline" className="w-full rounded-full border-gray-200 hover:bg-gray-50 text-xs md:text-sm">
+                      <Wine className="w-3 h-3 md:w-4 md:h-4 mr-2" />
                       Browse Wines
                     </Button>
                   </Link>
                 </div>
               </div>
             ) : (
-              <div className="text-center py-16">
-                <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                  <Package className="w-10 h-10 text-gray-400" />
+              <div className="text-center py-12 md:py-16">
+                <div className="w-14 h-14 md:w-16 md:h-16 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                  <Package className="w-7 h-7 md:w-8 md:h-8 text-gray-400" />
                 </div>
-                <h3 className="text-xl font-light text-gray-900 mb-3">No active pallets yet</h3>
-                <p className="text-gray-500 mb-8 max-w-md mx-auto">Start exploring our wine collection and make your first reservation</p>
+                <h3 className="text-base md:text-lg font-light text-gray-900 mb-2">No reservations yet</h3>
+                <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto px-4">Start exploring our wine collection and make your first reservation</p>
                 <Link href="/shop">
-                  <Button className="rounded-full px-8 bg-gray-900 hover:bg-gray-800 text-white">
-                    <Wine className="w-4 h-4 mr-2" />
+                  <Button className="rounded-full px-6 md:px-8 bg-gray-900 hover:bg-gray-800 text-white text-sm">
+                    <Wine className="w-3 h-3 md:w-4 md:h-4 mr-2" />
                     Browse Wines
                   </Button>
                 </Link>
