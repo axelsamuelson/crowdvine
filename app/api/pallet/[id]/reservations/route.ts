@@ -33,7 +33,7 @@ export async function GET(
     // Get all reservations for this pallet (using pallet_id directly)
     const { data: reservations, error: reservationsError } = await supabase
       .from("order_reservations")
-      .select("id, user_id, status, created_at, delivery_address, total_cost_cents")
+      .select("id, user_id, status, created_at")
       .eq("pallet_id", palletId)
       .order("created_at", { ascending: false });
 
@@ -126,11 +126,11 @@ export async function GET(
           user_name: profile?.full_name || "Unknown User",
           user_email: profile?.email || "",
           total_bottles: bottlesReserved,
-          total_cost_cents: reservation.total_cost_cents || 0,
-          bottles_delivered: 0, // TODO: Get from backend
+          bottles_reserved: bottlesReserved, // Add this for frontend compatibility
+          total_cost_cents: 0,
+          bottles_delivered: 0,
           status: reservation.status,
           created_at: reservation.created_at,
-          delivery_address: reservation.delivery_address,
           items: itemsData,
         };
       }),
