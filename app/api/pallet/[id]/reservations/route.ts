@@ -38,16 +38,7 @@ export async function GET(
     // Get all reservations for this pallet (using pallet_id directly)
     const { data: reservations, error: reservationsError } = await supabase
       .from("order_reservations")
-      .select(`
-        id,
-        user_id,
-        status,
-        created_at,
-        profiles!inner(
-          email,
-          full_name
-        )
-      `)
+      .select("id, user_id, status, created_at")
       .eq("pallet_id", palletId)
       .order("created_at", { ascending: false });
 
@@ -71,6 +62,13 @@ export async function GET(
     // Get items for each reservation
     const reservationsWithItems = await Promise.all(
       reservations.map(async (reservation) => {
+        // Get user profile separately
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("email, full_name")
+          .eq("id", reservation.user_id)
+          .single();
+
         // Get reservation items with wine details
         const { data: items } = await supabase
           .from("order_reservation_items")
@@ -107,8 +105,8 @@ export async function GET(
         return {
           id: reservation.id,
           user_id: reservation.user_id,
-          user_name: reservation.profiles?.full_name || "Unknown User",
-          user_email: reservation.profiles?.email || "",
+          user_name: profile?.full_name || "Unknown User",
+          user_email: profile?.email || "",
           bottles_reserved: bottlesReserved,
           bottles_delivered: 0, // TODO: Get from backend
           status: reservation.status,
