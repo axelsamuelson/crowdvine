@@ -64,30 +64,63 @@ export async function POST(request: Request) {
       zoneId = updatedZone.id;
       console.log(`✅ Updated pickup zone ${zoneId} for producer ${producerId}`);
     } else {
-      // Create new zone
-      console.log("Creating new zone:", zoneData);
-      const { data: newZone, error: createError } = await supabase
+      // Check if a zone with this name already exists
+      const { data: existingZone } = await supabase
         .from("pallet_zones")
-        .insert({
-          name: zoneData.name,
-          zone_type: 'pickup', // Always pickup for producer zones
-          center_lat: zoneData.lat,
-          center_lon: zoneData.lon,
-          radius_km: 100, // Default 100km radius for producer pickup zones
-        })
         .select("id")
+        .eq("name", zoneData.name)
+        .eq("zone_type", "pickup")
         .single();
 
-      if (createError) {
-        console.error("Error creating zone:", createError);
-        return NextResponse.json(
-          { error: `Failed to create zone: ${createError.message}` },
-          { status: 500 }
-        );
-      }
+      if (existingZone) {
+        // Use existing zone and update its coordinates
+        console.log("Found existing zone with same name, updating:", existingZone.id);
+        const { data: updatedZone, error: updateError } = await supabase
+          .from("pallet_zones")
+          .update({
+            center_lat: zoneData.lat,
+            center_lon: zoneData.lon,
+          })
+          .eq("id", existingZone.id)
+          .select("id")
+          .single();
 
-      zoneId = newZone.id;
-      console.log(`✅ Created new pickup zone ${zoneId} for producer`);
+        if (updateError) {
+          console.error("Error updating existing zone:", updateError);
+          return NextResponse.json(
+            { error: `Failed to update zone: ${updateError.message}` },
+            { status: 500 }
+          );
+        }
+
+        zoneId = updatedZone.id;
+        console.log(`✅ Updated existing pickup zone ${zoneId}`);
+      } else {
+        // Create new zone
+        console.log("Creating new zone:", zoneData);
+        const { data: newZone, error: createError } = await supabase
+          .from("pallet_zones")
+          .insert({
+            name: zoneData.name,
+            zone_type: 'pickup', // Always pickup for producer zones
+            center_lat: zoneData.lat,
+            center_lon: zoneData.lon,
+            radius_km: 100, // Default 100km radius for producer pickup zones
+          })
+          .select("id")
+          .single();
+
+        if (createError) {
+          console.error("Error creating zone:", createError);
+          return NextResponse.json(
+            { error: `Failed to create zone: ${createError.message}` },
+            { status: 500 }
+          );
+        }
+
+        zoneId = newZone.id;
+        console.log(`✅ Created new pickup zone ${zoneId} for producer`);
+      }
     }
 
     return NextResponse.json({ zoneId });
