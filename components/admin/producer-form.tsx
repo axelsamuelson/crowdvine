@@ -44,6 +44,7 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [pickupZones, setPickupZones] = useState<PalletZone[]>([]);
+  const [isPickupZone, setIsPickupZone] = useState(!!producer?.pickup_zone_id);
   const router = useRouter();
 
   useEffect(() => {
@@ -64,6 +65,39 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
     setError("");
 
     try {
+      // If "Make this producer a pickup zone" is checked, create/update zone
+      if (isPickupZone) {
+        // Create or update pickup zone for this producer
+        const zoneData = {
+          name: `${formData.name} (Pickup)`,
+          type: 'pickup' as const,
+          lat: formData.lat,
+          lon: formData.lon,
+          address_city: formData.address_city,
+          address_postcode: formData.address_postcode,
+          country_code: formData.country_code,
+        };
+
+        const zoneResponse = await fetch('/api/admin/zones/for-producer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            producerId: producer?.id,
+            zoneData,
+          }),
+        });
+
+        if (!zoneResponse.ok) {
+          throw new Error('Failed to create/update pickup zone');
+        }
+
+        const { zoneId } = await zoneResponse.json();
+        formData.pickup_zone_id = zoneId;
+      } else if (!isPickupZone && producer?.pickup_zone_id) {
+        // User unchecked the box - remove the pickup zone association
+        formData.pickup_zone_id = "";
+      }
+
       if (producer) {
         await updateProducer(producer.id, formData);
       } else {
@@ -222,21 +256,49 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="pickup_zone_id">Pickup Zone</Label>
-            <select
-              id="pickup_zone_id"
-              value={formData.pickup_zone_id || ""}
-              onChange={(e) => handleChange("pickup_zone_id", e.target.value)}
-              className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-1 text-base transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm aria-[invalid=true]:border-red-500 aria-[invalid=true]:focus-visible:!ring-red-500"
-            >
-              <option value="">No pickup zone selected</option>
-              {pickupZones.map((zone) => (
-                <option key={zone.id} value={zone.id}>
-                  {zone.name}
-                </option>
-              ))}
-            </select>
+          <div className="space-y-4">
+            <div className="flex items-center space-x-3 p-4 bg-blue-50 border border-blue-200 rounded-md">
+              <input
+                type="checkbox"
+                id="is_pickup_zone"
+                checked={isPickupZone}
+                onChange={(e) => setIsPickupZone(e.target.checked)}
+                className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <div className="flex-1">
+                <Label htmlFor="is_pickup_zone" className="font-semibold text-blue-900 cursor-pointer">
+                  Make this producer a pickup zone
+                </Label>
+                <p className="text-sm text-blue-700 mt-1">
+                  Automatically creates a pickup zone at the producer's location for pallet consolidation
+                </p>
+              </div>
+            </div>
+
+            {!isPickupZone && (
+              <div className="space-y-2">
+                <Label htmlFor="pickup_zone_id">Or select existing Pickup Zone</Label>
+                <select
+                  id="pickup_zone_id"
+                  value={formData.pickup_zone_id || ""}
+                  onChange={(e) => handleChange("pickup_zone_id", e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-1 text-base transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm aria-[invalid=true]:border-red-500 aria-[invalid=true]:focus-visible:!ring-red-500"
+                >
+                  <option value="">No pickup zone selected</option>
+                  {pickupZones.map((zone) => (
+                    <option key={zone.id} value={zone.id}>
+                      {zone.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            
+            {isPickupZone && (
+              <div className="text-sm text-gray-600 p-3 bg-gray-50 border border-gray-200 rounded-md">
+                ℹ️ A pickup zone named "<strong>{formData.name} (Pickup)</strong>" will be {producer?.pickup_zone_id ? 'updated' : 'created'} at this producer's location
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end space-x-4">
