@@ -57,13 +57,22 @@ export async function getProducer(id: string) {
 export async function createProducer(data: CreateProducerData) {
   const sb = await supabaseServer();
 
+  // Get current user to set as owner
+  const { data: { user } } = await sb.auth.getUser();
+
   const { data: producer, error } = await sb
     .from("producers")
-    .insert(data)
+    .insert({
+      ...data,
+      owner_id: user?.id || null,
+    })
     .select()
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("Create producer error:", error);
+    throw new Error(error.message);
+  }
 
   revalidatePath("/admin/producers");
   return producer;

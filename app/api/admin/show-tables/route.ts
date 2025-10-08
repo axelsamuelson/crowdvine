@@ -13,6 +13,8 @@ export async function GET() {
       pallets: await supabase.from("pallets").select("*").limit(1).single(),
       order_reservations: await supabase.from("order_reservations").select("*").limit(1).single(),
       bookings: await supabase.from("bookings").select("*").limit(1).single(),
+      producers: await supabase.from("producers").select("*").limit(1).single(),
+      pallet_zones: await supabase.from("pallet_zones").select("*").limit(1).single(),
     };
 
     const result: any = {};
