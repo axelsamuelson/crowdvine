@@ -145,9 +145,8 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
               </Suspense>
             ) : (
               <Button
-                className="col-start-2"
+                className="col-start-2 bg-black hover:bg-black/90 text-white border-black rounded-md"
                 size="sm"
-                variant="default"
                 asChild
               >
                 <Link href={`/product/${product.handle}`}>
