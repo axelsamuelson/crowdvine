@@ -9,16 +9,11 @@ export async function GET(
   try {
     const supabase = getSupabaseAdmin();
 
-    // Get the current authenticated user
-    const user = await getCurrentUser();
-
-    if (!user) {
-      console.log("No authenticated user found");
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-
+    // Note: This endpoint is public - no authentication required
+    // Anyone can view pallet details and participants
+    
     const palletId = params.id;
-    console.log(`Fetching all reservations for pallet: ${palletId}`);
+    console.log(`[Public] Fetching all reservations for pallet: ${palletId}`);
 
     // First, get the pallet to find its zones
     const { data: pallet, error: palletError } = await supabase
