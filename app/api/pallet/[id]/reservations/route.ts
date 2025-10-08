@@ -46,17 +46,21 @@ export async function GET(
     }
 
     console.log(
-      `Found ${reservations?.length || 0} reservations for pallet ${palletId}`,
+      `[Public] Found ${reservations?.length || 0} reservations for pallet ${palletId}`,
     );
 
     // If no reservations, return empty array
     if (!reservations || reservations.length === 0) {
+      console.log('[Public] No reservations found, returning empty array');
       return NextResponse.json([]);
     }
 
+    console.log(`[Public] Processing ${reservations.length} reservations to fetch items...`);
+
     // Get items for each reservation
     const reservationsWithItems = await Promise.all(
-      reservations.map(async (reservation) => {
+      reservations.map(async (reservation, idx) => {
+        console.log(`[Public] Processing reservation ${idx + 1}/${reservations.length}: ${reservation.id}`);
         // Get user profile separately
         const { data: profile } = await supabase
           .from("profiles")
@@ -87,6 +91,8 @@ export async function GET(
         if (itemsError) {
           console.error(`[Public] Error fetching items for reservation ${reservation.id}:`, itemsError);
         }
+        
+        console.log(`[Public] Reservation ${reservation.id}: Found ${items?.length || 0} items`);
 
         // Get producer names for all items
         const producerIds = items?.map(item => item.wines?.producer_id).filter(Boolean) || [];
@@ -119,6 +125,8 @@ export async function GET(
           0,
         );
 
+        console.log(`[Public] Reservation ${reservation.id}: ${bottlesReserved} bottles, ${itemsData.length} unique items`);
+
         return {
           id: reservation.id,
           order_id: reservation.id, // Use reservation.id as order_id
@@ -135,6 +143,9 @@ export async function GET(
         };
       }),
     );
+
+    console.log(`[Public] Returning ${reservationsWithItems.length} reservations with items`);
+    console.log(`[Public] Sample reservation:`, JSON.stringify(reservationsWithItems[0], null, 2));
 
     return NextResponse.json(reservationsWithItems);
   } catch (error) {
