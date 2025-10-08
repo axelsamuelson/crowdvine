@@ -288,48 +288,45 @@ export function AccessRequestClient() {
                   </motion.div>
                 )}
 
-                {!isUnlocked && !isCheckingAccess && (
+                {isOpen && !isUnlocked && !isCheckingAccess && (
                   <motion.div
                     layout="position"
                     transition={SPRING}
                     key="close-button"
-                    className={isOpen ? "my-4 sm:my-6" : "mt-4 sm:mt-6"}
+                    className="my-4 sm:my-6"
                   >
                     <Button
                       className={cn(
                         "relative px-4 sm:px-6 md:px-8 text-white border-white/50 hover:border-white/80 bg-white/20 hover:bg-white/30 text-sm sm:text-base",
                       )}
                       onClick={() => setIsOpen(false)}
-                      shine={!isOpen}
                     >
                       <motion.span
-                        animate={{ x: isOpen ? -16 : 0 }}
+                        animate={{ x: -16 }}
                         transition={{ duration: DURATION, ease: EASE_OUT }}
                         className="inline-block"
                       >
                         Close
                       </motion.span>
 
-                      {isOpen && (
-                        <motion.div
-                          className={cn(
-                            buttonVariants({
-                              variant: "iconButton",
-                              size: "icon",
-                            }),
-                            "absolute -top-px -right-px aspect-square",
-                          )}
-                          initial={{ opacity: 0, scale: 0.8, rotate: -40 }}
-                          animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                          transition={{
-                            duration: DURATION,
-                            ease: EASE_OUT,
-                            delay: DELAY,
-                          }}
-                        >
-                          <Cross1Icon className="size-5 text-primary-foreground" />
-                        </motion.div>
-                      )}
+                      <motion.div
+                        className={cn(
+                          buttonVariants({
+                            variant: "iconButton",
+                            size: "icon",
+                          }),
+                          "absolute -top-px -right-px aspect-square",
+                        )}
+                        initial={{ opacity: 0, scale: 0.8, rotate: -40 }}
+                        animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                        transition={{
+                          duration: DURATION,
+                          ease: EASE_OUT,
+                          delay: DELAY,
+                        }}
+                      >
+                        <Cross1Icon className="size-5 text-primary-foreground" />
+                      </motion.div>
                     </Button>
                   </motion.div>
                 )}
@@ -368,29 +365,26 @@ export function AccessRequestClient() {
                   >
                     <article className="relative overflow-y-auto italic p-4 sm:p-6 h-full [&_p]:my-3 sm:[&_p]:my-4 text-sm sm:text-base">
                       <p>
-                        "CrowdVine represents the future of wine discovery and
-                        community. We believe that great wine should be
-                        accessible, but finding it shouldn't be overwhelming."
+                        "PACT represents the future of wine — a direct connection between 
+                        producers and consumers. We believe exceptional wine should reach 
+                        those who appreciate it, without traditional barriers."
                       </p>
                       <p>
-                        Our platform brings together wine enthusiasts,
-                        producers, and collectors in a curated environment where
-                        quality meets community. Every bottle tells a story, and
-                        every member contributes to our shared passion for
-                        exceptional wines.
+                        Our platform brings producers and consumers together in a shared 
+                        pallet system. By consolidating shipments, we make boutique wines 
+                        from around the world accessible and affordable. Every bottle 
+                        travels from vineyard to your door with transparency and care.
                       </p>
                       <p>
-                        We curate exceptional wines from boutique producers
-                        around the world, offering our community exclusive
-                        access to limited releases, rare vintages, and emerging
-                        winemakers. Our pallet-sharing system makes premium
-                        wines accessible while building connections between
-                        like-minded enthusiasts.
+                        PACT — Producers And Consumers Together — is more than a marketplace. 
+                        It's a community built on trust, quality, and the shared joy of 
+                        discovering exceptional wines. Join passionate wine lovers and 
+                        dedicated producers in reshaping how great wine is bought and sold.
                       </p>
                       <p>
-                        Join us in celebrating the art of winemaking, the joy of
-                        discovery, and the community that makes every sip more
-                        meaningful."
+                        Request access to explore limited releases, support independent 
+                        winemakers, and connect with a community that values authenticity 
+                        and craftsmanship.
                       </p>
                     </article>
                   </motion.div>

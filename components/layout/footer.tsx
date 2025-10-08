@@ -17,7 +17,7 @@ export function Footer() {
             align="right"
           />
           <span className="mt-3 italic font-semibold md:hidden">
-            Refined. Minimal. Never boring.
+            Producers And Consumers Together
           </span>
         </div>
         <div className="flex justify-between max-md:contents text-muted-foreground">
