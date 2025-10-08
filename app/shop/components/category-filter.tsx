@@ -22,7 +22,7 @@ export function CategoryFilter({
   return (
     <div className={cn("px-3 py-4 rounded-lg bg-muted", className)}>
       <h3 className="mb-4 font-semibold">
-        Categories{" "}
+        Producers{" "}
         {categoryCount > 0 && (
           <span className="text-foreground/50">({categoryCount})</span>
         )}
