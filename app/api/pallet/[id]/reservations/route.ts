@@ -75,7 +75,6 @@ export async function GET(
             `
             item_id,
             quantity,
-            price_cents,
             wines(
               wine_name,
               vintage,
@@ -113,7 +112,6 @@ export async function GET(
             wine_name: item.wines?.wine_name || "Unknown Wine",
             producer_name: producerNamesMap.get(item.wines?.producer_id) || "Unknown Producer",
             quantity: item.quantity,
-            price_cents: item.price_cents || 0,
             vintage: item.wines?.vintage || "N/A",
             image_path: item.wines?.label_image_path || null,
             grape_varieties: item.wines?.grape_varieties || null,
