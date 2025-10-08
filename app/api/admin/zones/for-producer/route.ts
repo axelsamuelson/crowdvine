@@ -46,11 +46,8 @@ export async function POST(request: Request) {
         .from("pallet_zones")
         .update({
           name: zoneData.name,
-          lat: zoneData.lat,
-          lon: zoneData.lon,
-          address_city: zoneData.address_city,
-          address_postcode: zoneData.address_postcode,
-          country_code: zoneData.country_code,
+          center_lat: zoneData.lat,
+          center_lon: zoneData.lon,
         })
         .eq("id", existingZoneId)
         .select("id")
@@ -73,12 +70,10 @@ export async function POST(request: Request) {
         .from("pallet_zones")
         .insert({
           name: zoneData.name,
-          type: zoneData.type,
-          lat: zoneData.lat,
-          lon: zoneData.lon,
-          address_city: zoneData.address_city,
-          address_postcode: zoneData.address_postcode,
-          country_code: zoneData.country_code,
+          zone_type: 'pickup', // Always pickup for producer zones
+          center_lat: zoneData.lat,
+          center_lon: zoneData.lon,
+          radius_km: 100, // Default 100km radius for producer pickup zones
         })
         .select("id")
         .single();
