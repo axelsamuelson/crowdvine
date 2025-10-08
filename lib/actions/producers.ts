@@ -117,11 +117,19 @@ export async function updateProducer(
 }
 
 export async function deleteProducer(id: string) {
-  const sb = await supabaseServer();
+  // Use admin client for admin operations
+  const sb = getSupabaseAdmin();
+
+  console.log('🗑️ Deleting producer:', id);
 
   const { error } = await sb.from("producers").delete().eq("id", id);
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error('❌ Delete producer error:', error);
+    throw new Error(error.message);
+  }
+
+  console.log('✅ Producer deleted successfully');
 
   revalidatePath("/admin/producers");
 }
