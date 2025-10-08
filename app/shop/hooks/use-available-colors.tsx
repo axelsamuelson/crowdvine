@@ -6,16 +6,22 @@ import { Color } from "@/components/ui/color-picker";
 import { COLOR_MAP } from "@/lib/constants";
 import { useEffect, useMemo } from "react";
 
-// Main wine colors - only colors actually used for wine
-const baseWineColors: Color[] = [
+// All wine colors - simple list
+const allColors: (Color | [Color, Color])[] = [
   { name: "Red", value: COLOR_MAP["red"] },
   { name: "White", value: COLOR_MAP["white"] },
   { name: "Orange", value: COLOR_MAP["orange"] },
   { name: "Rose", value: COLOR_MAP["rose"] },
+  // Blend colors with dual display
+  [
+    { name: "Red", value: COLOR_MAP["red"] },
+    { name: "Orange", value: COLOR_MAP["orange"] }
+  ],
+  [
+    { name: "Orange", value: COLOR_MAP["orange"] },
+    { name: "White", value: COLOR_MAP["white"] }
+  ],
 ];
-
-// Dynamic allColors array that will be populated from products
-let allColors: (Color | [Color, Color])[] = [...baseWineColors];
 
 const getColorName = (color: Color | [Color, Color]) => {
   if (Array.isArray(color)) {
@@ -31,10 +37,9 @@ export function useAvailableColors(products: Product[]) {
     parseAsArrayOf(parseAsString).withDefault([]),
   );
 
-  // Extract available colors from products and create blend options dynamically
-  const availableColorsData = useMemo(() => {
+  // Extract available colors from products
+  const availableColorNames = useMemo(() => {
     const colorSet = new Set<string>();
-    const blendsToAdd: [Color, Color][] = [];
 
     products.forEach((product) => {
       const colorOption = product.options.find(
@@ -43,83 +48,47 @@ export function useAvailableColors(products: Product[]) {
 
       if (colorOption) {
         colorOption.values.forEach((value: any) => {
-          // Handle both formats: SFCC reshaped format {id, name} and raw Shopify format (string)
+          // Handle both formats
           let colorName: string;
           if (typeof value === "string") {
-            // Raw Shopify format
-            colorName = value.toLowerCase();
-          } else if (
-            value &&
-            typeof value === "object" &&
-            "name" in value &&
-            typeof value.name === "string"
-          ) {
-            // SFCC reshaped format
-            colorName = value.name.toLowerCase();
+            colorName = value;
+          } else if (value && typeof value === "object" && "name" in value) {
+            colorName = value.name;
           } else {
-            return; // Skip invalid values
+            return;
           }
 
-          // Check if it's a blend color (contains & or /)
-          if (colorName.includes(' & ') || colorName.includes('/')) {
-            // Parse blend: "red & orange" or "red/orange" (already lowercase)
-            const parts = colorName.split(/\s*[&/]\s*/);
-            if (parts.length === 2) {
-              const part1 = parts[0].trim();
-              const part2 = parts[1].trim();
-              
-              const color1 = baseWineColors.find(c => c.name.toLowerCase() === part1);
-              const color2 = baseWineColors.find(c => c.name.toLowerCase() === part2);
-              
-              console.log(`🎨 Parsing blend: "${colorName}" → parts: [${part1}, ${part2}] → found: [${color1?.name}, ${color2?.name}]`);
-              
-              if (color1 && color2) {
-                // Add blend to dynamic list
-                const blendKey = `${color1.name}/${color2.name}`;
-                colorSet.add(blendKey);
-                
-                // Check if blend already exists
-                const blendExists = blendsToAdd.some(
-                  b => b[0].name === color1.name && b[1].name === color2.name
-                );
-                if (!blendExists) {
-                  console.log(`✅ Adding blend swatch: ${blendKey}`);
-                  blendsToAdd.push([color1, color2]);
-                }
-              } else {
-                console.warn(`⚠️ Could not find colors for blend: "${colorName}" (parts: ${part1}, ${part2})`);
-              }
+          // Match against allColors (both single and dual colors)
+          const matchingColor = allColors.find((c) => {
+            if (Array.isArray(c)) {
+              // Dual color - match exact string "Red & Orange" or "Red/Orange"
+              const dualName1 = `${c[0].name} & ${c[1].name}`;
+              const dualName2 = `${c[0].name}/${c[1].name}`;
+              return colorName === dualName1 || colorName === dualName2;
+            } else {
+              // Single color - exact match
+              return c.name === colorName;
             }
-          } else {
-            // Single color - match against base colors
-            const matchingColor = baseWineColors.find(
-              (c) => c.name.toLowerCase() === colorName
-            );
-            
-            if (matchingColor) {
-              colorSet.add(matchingColor.name);
-            }
+          });
+          
+          if (matchingColor) {
+            const displayName = Array.isArray(matchingColor) 
+              ? `${matchingColor[0].name}/${matchingColor[1].name}`
+              : matchingColor.name;
+            colorSet.add(displayName);
           }
         });
       }
     });
 
-    // Combine base colors with dynamic blends
-    const allColorsArray: (Color | [Color, Color])[] = [...baseWineColors, ...blendsToAdd];
-    
-    // Filter to only show available colors
-    const filteredColors = allColorsArray.filter((c) => {
-      const name = Array.isArray(c) ? `${c[0].name}/${c[1].name}` : c.name;
-      return colorSet.has(name);
-    });
-
-    return { 
-      availableColorNames: colorSet, 
-      availableColors: filteredColors 
-    };
+    return colorSet;
   }, [products]);
 
-  const { availableColorNames, availableColors } = availableColorsData;
+  // Filter to only show available colors
+  const availableColors = allColors.filter((c) => {
+    const name = Array.isArray(c) ? `${c[0].name}/${c[1].name}` : c.name;
+    return availableColorNames.has(name);
+  });
 
   // Auto-remove unavailable color filters
   useEffect(() => {

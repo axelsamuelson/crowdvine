@@ -38,27 +38,14 @@ function filterProductsByColors(
         if (!isColorOption) return false;
 
         // Check if this variant's color matches any of the selected colors
-        const variantColor = option.value.toLowerCase();
+        const variantColor = option.value;
         
         return colors.some((selectedColor) => {
-          const selected = selectedColor.toLowerCase();
+          // For blend colors (Red/Orange), match against "Red & Orange" in product
+          const normalizedSelected = selectedColor.replace('/', ' & ');
+          const normalizedVariant = variantColor.replace('/', ' & ');
           
-          // Direct match
-          if (selected === variantColor) return true;
-          
-          // Handle blend matching: "Red/Orange" should match "red & orange" or "red/orange"
-          if (selected.includes('/')) {
-            // Selected is a blend like "Red/Orange"
-            const selectedParts = selected.split('/').map(p => p.trim());
-            // Check if variant color contains both parts (in any order)
-            const hasAllParts = selectedParts.every(part => 
-              variantColor.includes(part)
-            );
-            if (hasAllParts) return true;
-          }
-          
-          // Partial match (fallback)
-          return variantColor.includes(selected) || selected.includes(variantColor);
+          return normalizedSelected === normalizedVariant;
         });
       });
     });
@@ -76,27 +63,13 @@ function filterProductsByColors(
           // Handle both string values and object values with .name property
           const colorValue =
             typeof value === "string" ? value : value.name || value.id;
-          const optionColor = colorValue.toLowerCase();
           
           return colors.some((selectedColor) => {
-            const selected = selectedColor.toLowerCase();
+            // For blend colors (Red/Orange), match against "Red & Orange" in product
+            const normalizedSelected = selectedColor.replace('/', ' & ');
+            const normalizedValue = colorValue.replace('/', ' & ');
             
-            // Direct match
-            if (selected === optionColor) return true;
-            
-            // Handle blend matching: "Red/Orange" should match "red & orange" or "red/orange"
-            if (selected.includes('/')) {
-              // Selected is a blend like "Red/Orange"
-              const selectedParts = selected.split('/').map(p => p.trim());
-              // Check if product color contains both parts (in any order)
-              const hasAllParts = selectedParts.every(part => 
-                optionColor.includes(part)
-              );
-              if (hasAllParts) return true;
-            }
-            
-            // Partial match (fallback)
-            return optionColor.includes(selected) || selected.includes(optionColor);
+            return normalizedSelected === normalizedValue;
           });
         });
       }
