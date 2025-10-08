@@ -38,7 +38,7 @@ export async function GET(
     // Get all reservations for this pallet (using pallet_id directly)
     const { data: reservations, error: reservationsError } = await supabase
       .from("order_reservations")
-      .select("id, user_id, status, created_at")
+      .select("id, order_id, user_id, status, created_at, delivery_address, total_cost_cents")
       .eq("pallet_id", palletId)
       .order("created_at", { ascending: false });
 
@@ -69,19 +69,21 @@ export async function GET(
           .eq("id", reservation.user_id)
           .single();
 
-        // Get reservation items with wine details
+        // Get reservation items with wine and producer details
         const { data: items } = await supabase
           .from("order_reservation_items")
           .select(
             `
             item_id,
             quantity,
+            price_cents,
             wines(
               wine_name,
               vintage,
               label_image_path,
               grape_varieties,
-              color
+              color,
+              producers(name)
             )
           `,
           )
@@ -90,7 +92,9 @@ export async function GET(
         const itemsData =
           items?.map((item) => ({
             wine_name: item.wines?.wine_name || "Unknown Wine",
+            producer_name: item.wines?.producers?.name || "Unknown Producer",
             quantity: item.quantity,
+            price_cents: item.price_cents || 0,
             vintage: item.wines?.vintage || "N/A",
             image_path: item.wines?.label_image_path || null,
             grape_varieties: item.wines?.grape_varieties || null,
@@ -104,13 +108,16 @@ export async function GET(
 
         return {
           id: reservation.id,
+          order_id: reservation.order_id,
           user_id: reservation.user_id,
           user_name: profile?.full_name || "Unknown User",
           user_email: profile?.email || "",
-          bottles_reserved: bottlesReserved,
+          total_bottles: bottlesReserved,
+          total_cost_cents: reservation.total_cost_cents || 0,
           bottles_delivered: 0, // TODO: Get from backend
           status: reservation.status,
           created_at: reservation.created_at,
+          delivery_address: reservation.delivery_address,
           items: itemsData,
         };
       }),
