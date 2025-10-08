@@ -80,6 +80,11 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
           country_code: formData.country_code,
         };
 
+        console.log('📍 Sending zone creation request:', {
+          producerId: producer?.id,
+          zoneData,
+        });
+
         const zoneResponse = await fetch('/api/admin/zones/for-producer', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -90,10 +95,13 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
         });
 
         if (!zoneResponse.ok) {
-          throw new Error('Failed to create/update pickup zone');
+          const errorData = await zoneResponse.json();
+          console.error('❌ Zone creation failed:', errorData);
+          throw new Error(errorData.error || 'Failed to create/update pickup zone');
         }
 
         const { zoneId } = await zoneResponse.json();
+        console.log('✅ Zone created/updated:', zoneId);
         formData.pickup_zone_id = zoneId;
       } else if (!isPickupZone && producer?.pickup_zone_id) {
         // User unchecked the box - remove the pickup zone association
