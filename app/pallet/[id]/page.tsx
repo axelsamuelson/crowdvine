@@ -114,6 +114,10 @@ export default function PalletPage() {
       }
 
       console.log(`📋 Found ${palletReservations.length} reservations for pallet`);
+      if (palletReservations.length > 0) {
+        console.log(`🔍 First reservation structure:`, palletReservations[0]);
+        console.log(`🔍 First reservation items:`, palletReservations[0]?.items);
+      }
 
       // Aggregate data from reservations if any exist
       let totalDeliveredBottles = 0;
@@ -123,10 +127,16 @@ export default function PalletPage() {
         palletReservations.forEach((res: any) => {
           // totalDeliveredBottles += res.delivered_bottles || 0; // TODO: Get from backend
           if (res.items && Array.isArray(res.items)) {
+            console.log(`📦 Adding ${res.items.length} items from reservation ${res.id}`);
             allItems.push(...res.items);
+          } else {
+            console.warn(`⚠️ Reservation ${res.id} has no items or items is not an array:`, res.items);
           }
         });
       }
+
+      console.log(`🍷 Total items collected: ${allItems.length}`);
+      console.log(`🍷 Sample item:`, allItems[0]);
 
       // Get unique wines (aggregate by wine name + vintage)
       const uniqueWines = allItems.reduce((acc: any, item: any) => {
