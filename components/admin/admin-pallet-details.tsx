@@ -24,8 +24,17 @@ import {
   DollarSign,
   Box
 } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
 import { getPercentFilled, shouldShowPercent } from "@/lib/utils/pallet-progress";
+
+// Format currency in SEK
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('sv-SE', {
+    style: 'currency',
+    currency: 'SEK',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+};
 
 interface PalletZone {
   id: string;
