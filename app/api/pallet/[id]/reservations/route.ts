@@ -33,7 +33,7 @@ export async function GET(
     // Get all reservations for this pallet (using pallet_id directly)
     const { data: reservations, error: reservationsError } = await supabase
       .from("order_reservations")
-      .select("id, order_id, user_id, status, created_at, delivery_address, total_cost_cents")
+      .select("id, user_id, status, created_at, delivery_address, total_cost_cents")
       .eq("pallet_id", palletId)
       .order("created_at", { ascending: false });
 
@@ -121,7 +121,7 @@ export async function GET(
 
         return {
           id: reservation.id,
-          order_id: reservation.order_id,
+          order_id: reservation.id, // Use reservation.id as order_id
           user_id: reservation.user_id,
           user_name: profile?.full_name || "Unknown User",
           user_email: profile?.email || "",
