@@ -32,7 +32,7 @@ export function useAvailableColors(products: Product[]) {
   );
 
   // Extract available colors from products and create blend options dynamically
-  const { availableColorNames, dynamicBlendColors } = useMemo(() => {
+  const availableColorsData = useMemo(() => {
     const colorSet = new Set<string>();
     const blendsToAdd: [Color, Color][] = [];
 
@@ -104,19 +104,22 @@ export function useAvailableColors(products: Product[]) {
       }
     });
 
-    return { availableColorNames: colorSet, dynamicBlendColors: blendsToAdd };
+    // Combine base colors with dynamic blends
+    const allColorsArray: (Color | [Color, Color])[] = [...baseWineColors, ...blendsToAdd];
+    
+    // Filter to only show available colors
+    const filteredColors = allColorsArray.filter((c) => {
+      const name = Array.isArray(c) ? `${c[0].name}/${c[1].name}` : c.name;
+      return colorSet.has(name);
+    });
+
+    return { 
+      availableColorNames: colorSet, 
+      availableColors: filteredColors 
+    };
   }, [products]);
 
-  // Update allColors with dynamic blends
-  useEffect(() => {
-    allColors = [...baseWineColors, ...dynamicBlendColors];
-  }, [dynamicBlendColors]);
-
-  // Filter to only show available colors
-  const availableColors = allColors.filter((c) => {
-    const name = Array.isArray(c) ? `${c[0].name}/${c[1].name}` : c.name;
-    return availableColorNames.has(name);
-  });
+  const { availableColorNames, availableColors } = availableColorsData;
 
   // Auto-remove unavailable color filters
   useEffect(() => {
