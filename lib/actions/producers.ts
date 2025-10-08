@@ -84,6 +84,8 @@ export async function updateProducer(
 ) {
   const sb = await supabaseServer();
 
+  console.log('🔄 Updating producer:', id, data);
+
   const { data: producer, error } = await sb
     .from("producers")
     .update(data)
@@ -91,7 +93,12 @@ export async function updateProducer(
     .select()
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error('❌ Update producer error:', error);
+    throw new Error(error.message);
+  }
+
+  console.log('✅ Producer updated:', producer);
 
   revalidatePath("/admin/producers");
   revalidatePath(`/admin/producers/${id}`);
