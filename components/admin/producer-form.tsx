@@ -45,6 +45,8 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
   const [loading, setLoading] = useState(false);
   const [pickupZones, setPickupZones] = useState<PalletZone[]>([]);
   const [isPickupZone, setIsPickupZone] = useState(!!producer?.pickup_zone_id);
+  const [geocoding, setGeocoding] = useState(false);
+  const [geocodeSuccess, setGeocodeSuccess] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -116,6 +118,76 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
     value: string | number,
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    // Reset geocode success when address changes
+    if (['address_street', 'address_city', 'address_postcode', 'country_code'].includes(field)) {
+      setGeocodeSuccess(false);
+    }
+  };
+
+  const handleGeocode = async () => {
+    setGeocoding(true);
+    setError("");
+    setGeocodeSuccess(false);
+
+    try {
+      // Build address string
+      const addressParts = [
+        formData.address_street,
+        formData.address_city,
+        formData.address_postcode,
+        formData.country_code,
+      ].filter(Boolean);
+
+      if (addressParts.length === 0) {
+        throw new Error("Please fill in at least one address field");
+      }
+
+      const addressString = addressParts.join(", ");
+      console.log("🔍 Geocoding address:", addressString);
+
+      // Use Nominatim API (same as delivery zones)
+      const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressString)}&limit=1`;
+      
+      const response = await fetch(nominatimUrl, {
+        headers: {
+          'User-Agent': 'PACT-Wines-Admin/1.0',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Geocoding service unavailable");
+      }
+
+      const results = await response.json();
+
+      if (!results || results.length === 0) {
+        throw new Error("Address not found. Please check the address and try again.");
+      }
+
+      const location = results[0];
+      const lat = parseFloat(location.lat);
+      const lon = parseFloat(location.lon);
+
+      console.log("✅ Geocoded to:", { lat, lon });
+
+      // Update form data
+      setFormData((prev) => ({
+        ...prev,
+        lat,
+        lon,
+      }));
+
+      setGeocodeSuccess(true);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setGeocodeSuccess(false), 3000);
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to geocode address");
+      console.error("Geocoding error:", err);
+    } finally {
+      setGeocoding(false);
+    }
   };
 
   return (
@@ -158,45 +230,72 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="lat">Latitude *</Label>
-              <Input
-                id="lat"
-                type="number"
-                step="0.0001"
-                value={formData.lat}
-                onChange={(e) =>
-                  handleChange("lat", parseFloat(e.target.value) || 0)
-                }
-                required
-              />
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="lat">Latitude *</Label>
+                <Input
+                  id="lat"
+                  type="number"
+                  step="0.0001"
+                  value={formData.lat}
+                  onChange={(e) =>
+                    handleChange("lat", parseFloat(e.target.value) || 0)
+                  }
+                  required
+                  className={geocodeSuccess ? "border-green-500 bg-green-50" : ""}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="lon">Longitude *</Label>
+                <Input
+                  id="lon"
+                  type="number"
+                  step="0.0001"
+                  value={formData.lon}
+                  onChange={(e) =>
+                    handleChange("lon", parseFloat(e.target.value) || 0)
+                  }
+                  required
+                  className={geocodeSuccess ? "border-green-500 bg-green-50" : ""}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="country_code">Country Code *</Label>
+                <Input
+                  id="country_code"
+                  value={formData.country_code}
+                  onChange={(e) => handleChange("country_code", e.target.value)}
+                  placeholder="FR"
+                  required
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="lon">Longitude *</Label>
-              <Input
-                id="lon"
-                type="number"
-                step="0.0001"
-                value={formData.lon}
-                onChange={(e) =>
-                  handleChange("lon", parseFloat(e.target.value) || 0)
-                }
-                required
-              />
+            <div className="flex items-center gap-3">
+              <Button
+                type="button"
+                onClick={handleGeocode}
+                disabled={geocoding || !formData.address_city}
+                variant="outline"
+                className="w-auto"
+              >
+                {geocoding ? "Geocoding..." : "🌍 Get Coordinates from Address"}
+              </Button>
+              {geocodeSuccess && (
+                <span className="text-sm text-green-600 font-medium">
+                  ✅ Coordinates updated successfully!
+                </span>
+              )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="country_code">Country Code *</Label>
-              <Input
-                id="country_code"
-                value={formData.country_code}
-                onChange={(e) => handleChange("country_code", e.target.value)}
-                placeholder="FR"
-                required
-              />
-            </div>
+            {formData.address_city && (
+              <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded border border-gray-200">
+                📍 Will geocode: {[formData.address_street, formData.address_city, formData.address_postcode, formData.country_code].filter(Boolean).join(", ")}
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
