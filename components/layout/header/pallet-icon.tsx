@@ -324,13 +324,22 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
       </button>
 
       {/* Dropdown */}
-      {isDropdownOpen && sortedPallets.length > 0 && (
+      {isDropdownOpen && (
         <div className="absolute right-0 top-full mt-3 w-80 bg-white rounded-xl shadow-2xl shadow-black/10 border border-gray-100 py-3 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="px-4 py-2 border-b border-gray-50">
             <h3 className="text-xs font-medium text-gray-900 tracking-wide uppercase">My Pallets</h3>
           </div>
-          <div className="max-h-64 overflow-y-auto py-2">
-            {sortedPallets.slice(0, 5).map((pallet) => {
+          {sortedPallets.length === 0 ? (
+            <div className="px-4 py-8 text-center">
+              <Package className="w-8 h-8 text-gray-300 mx-auto mb-3" />
+              <p className="text-sm text-gray-500 mb-1">Your pallets will show here</p>
+              <p className="text-xs text-gray-400">
+                Make a reservation to join a pallet
+              </p>
+            </div>
+          ) : (
+            <div className="max-h-64 overflow-y-auto py-2">
+              {sortedPallets.slice(0, 5).map((pallet) => {
                   // Get pallet data from API for accurate percentages
                   const palletApiData = palletData.get(pallet.id);
                   console.log(`🎯 Pallet ${pallet.id} (${pallet.name}) - API data:`, palletApiData);
@@ -394,7 +403,8 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
                 </Link>
               );
             })}
-          </div>
+            </div>
+          )}
           {sortedPallets.length > 5 && (
             <div className="px-4 py-2 border-t border-gray-50">
               <Link href="/profile" className="text-[10px] text-gray-500 hover:text-gray-900 transition-colors tracking-wide">
