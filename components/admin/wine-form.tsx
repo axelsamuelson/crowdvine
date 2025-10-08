@@ -179,22 +179,34 @@ export default function WineForm({ wine, producers }: WineFormProps) {
       // Upload new images if any were added
       let imagePaths: string[] = [];
       if (images.length > 0) {
-        const formDataUpload = new FormData();
-        images.forEach((image) => {
-          formDataUpload.append("files", image);
-        });
+        try {
+          const formDataUpload = new FormData();
+          images.forEach((image) => {
+            formDataUpload.append("files", image);
+          });
 
-        const uploadResponse = await fetch("/api/upload", {
-          method: "POST",
-          body: formDataUpload,
-        });
+          console.log("📤 Uploading", images.length, "images...");
 
-        if (!uploadResponse.ok) {
-          throw new Error("Failed to upload images");
+          const uploadResponse = await fetch("/api/upload", {
+            method: "POST",
+            body: formDataUpload,
+          });
+
+          if (!uploadResponse.ok) {
+            const errorData = await uploadResponse.json();
+            console.error("❌ Upload failed:", errorData);
+            throw new Error(errorData.error || errorData.details || "Failed to upload images");
+          }
+
+          const uploadResult = await uploadResponse.json();
+          imagePaths = uploadResult.files || [];
+          console.log("✅ Images uploaded:", imagePaths);
+        } catch (uploadError) {
+          console.error("Image upload error:", uploadError);
+          // Make image upload non-blocking - wine can be created without images
+          setError(`Warning: Image upload failed - ${uploadError instanceof Error ? uploadError.message : 'Unknown error'}. Wine will be created without images.`);
+          // Continue with wine creation even if images fail
         }
-
-        const uploadResult = await uploadResponse.json();
-        imagePaths = uploadResult.files;
       }
 
       // Use first uploaded image as main image if available, otherwise keep existing
