@@ -6,88 +6,16 @@ import { Color } from "@/components/ui/color-picker";
 import { COLOR_MAP } from "@/lib/constants";
 import { useEffect, useMemo } from "react";
 
-const allColors: (Color | [Color, Color])[] = [
-  // Wine colors
+// Main wine colors - only colors actually used for wine
+const baseWineColors: Color[] = [
   { name: "Red", value: COLOR_MAP["red"] },
-  { name: "Rose", value: COLOR_MAP["rose"] },
   { name: "White", value: COLOR_MAP["white"] },
   { name: "Orange", value: COLOR_MAP["orange"] },
-  { name: "Purple", value: COLOR_MAP["purple"] },
-  { name: "Pink", value: COLOR_MAP["pink"] },
-  { name: "Blend", value: COLOR_MAP["blend"] },
-  
-  // Blend variations with dual colors
-  [
-    { name: "Red", value: COLOR_MAP["red"] },
-    { name: "Orange", value: COLOR_MAP["orange"] }
-  ],
-  [
-    { name: "Red", value: COLOR_MAP["red"] },
-    { name: "Purple", value: COLOR_MAP["purple"] }
-  ],
-  [
-    { name: "Orange", value: COLOR_MAP["orange"] },
-    { name: "White", value: COLOR_MAP["white"] }
-  ],
-
-  // Wine variations
-  { name: "Amber", value: COLOR_MAP["amber"] },
-  { name: "Golden", value: COLOR_MAP["golden"] },
-  { name: "Straw", value: COLOR_MAP["straw"] },
-  { name: "Champagne", value: COLOR_MAP["champagne"] },
-  { name: "Blush", value: COLOR_MAP["blush"] },
-  { name: "Light Red", value: COLOR_MAP["light-red"] },
-  { name: "Dark Red", value: COLOR_MAP["dark-red"] },
-  { name: "Light Purple", value: COLOR_MAP["light-purple"] },
-  { name: "Dark Purple", value: COLOR_MAP["dark-purple"] },
-
-  // Barrel and bottle colors
-  { name: "Brown", value: COLOR_MAP["brown"] },
-  { name: "Dark Brown", value: COLOR_MAP["dark-brown"] },
-  { name: "Light Brown", value: COLOR_MAP["light-brown"] },
-  { name: "Tan", value: COLOR_MAP["tan"] },
-  { name: "Beige", value: COLOR_MAP["beige"] },
-  { name: "Wood", value: COLOR_MAP["wood"] },
-
-  // Natural colors
-  { name: "Green", value: COLOR_MAP["green"] },
-  { name: "Olive", value: COLOR_MAP["olive"] },
-  { name: "Sage", value: COLOR_MAP["sage"] },
-  { name: "Emerald", value: COLOR_MAP["emerald"] },
-
-  // Metallic colors
-  { name: "Gold", value: COLOR_MAP["gold"] },
-  { name: "Silver", value: COLOR_MAP["silver"] },
-  { name: "Copper", value: COLOR_MAP["copper"] },
-
-  // Neutral colors
-  { name: "Black", value: COLOR_MAP["black"] },
-  { name: "Gray", value: COLOR_MAP["gray"] },
-  { name: "Dark Gray", value: COLOR_MAP["dark-gray"] },
-  { name: "Light Gray", value: COLOR_MAP["light-gray"] },
-  { name: "Cream", value: COLOR_MAP["cream"] },
-  { name: "Ivory", value: COLOR_MAP["ivory"] },
-
-  // Additional wine-related colors
-  { name: "Coral", value: COLOR_MAP["coral"] },
-  { name: "Salmon", value: COLOR_MAP["salmon"] },
-  { name: "Plum", value: COLOR_MAP["plum"] },
-  { name: "Crimson", value: COLOR_MAP["crimson"] },
-  { name: "Lavender", value: COLOR_MAP["lavender"] },
-  { name: "Peach", value: COLOR_MAP["peach"] },
-  { name: "Sand", value: COLOR_MAP["sand"] },
-  { name: "Khaki", value: COLOR_MAP["khaki"] },
-
-  // Traditional colors (keeping for compatibility)
-  { name: "Blue", value: COLOR_MAP["blue"] },
-  { name: "Yellow", value: COLOR_MAP["yellow"] },
-  { name: "Navy", value: COLOR_MAP["navy"] },
-  { name: "Turquoise", value: COLOR_MAP["turquoise"] },
-  { name: "Mint", value: COLOR_MAP["mint"] },
-  { name: "Pistachio", value: COLOR_MAP["pistachio"] },
-  { name: "Army Green", value: COLOR_MAP["army-green"] },
-  { name: "Navy Blue", value: COLOR_MAP["navy-blue"] },
+  { name: "Rose", value: COLOR_MAP["rose"] },
 ];
+
+// Dynamic allColors array that will be populated from products
+let allColors: (Color | [Color, Color])[] = [...baseWineColors];
 
 const getColorName = (color: Color | [Color, Color]) => {
   if (Array.isArray(color)) {
@@ -103,9 +31,10 @@ export function useAvailableColors(products: Product[]) {
     parseAsArrayOf(parseAsString).withDefault([]),
   );
 
-  // Extract available colors from products using memoization
-  const availableColorNames = useMemo(() => {
+  // Extract available colors from products and create blend options dynamically
+  const { availableColorNames, dynamicBlendColors } = useMemo(() => {
     const colorSet = new Set<string>();
+    const blendsToAdd: [Color, Color][] = [];
 
     products.forEach((product) => {
       const colorOption = product.options.find(
@@ -131,31 +60,49 @@ export function useAvailableColors(products: Product[]) {
             return; // Skip invalid values
           }
 
-          // Find matching color (single or dual)
-          const matchingColor = allColors.find((c) => {
-            if (Array.isArray(c)) {
-              // Dual color - match if product color matches the combined name
-              const dualName = `${c[0].name.toLowerCase()} & ${c[1].name.toLowerCase()}`;
-              const dualNameAlt = `${c[0].name.toLowerCase()}/${c[1].name.toLowerCase()}`;
-              return colorName === dualName || colorName === dualNameAlt || colorName.includes(c[0].name.toLowerCase()) && colorName.includes(c[1].name.toLowerCase());
-            } else {
-              // Single color
-              return c.name.toLowerCase() === colorName;
+          // Check if it's a blend color (contains & or /)
+          if (colorName.includes(' & ') || colorName.includes('/')) {
+            // Parse blend: "Red & Orange" or "Red/Orange"
+            const parts = colorName.split(/\s*[&/]\s*/);
+            if (parts.length === 2) {
+              const color1 = baseWineColors.find(c => c.name.toLowerCase() === parts[0].trim());
+              const color2 = baseWineColors.find(c => c.name.toLowerCase() === parts[1].trim());
+              
+              if (color1 && color2) {
+                // Add blend to dynamic list
+                const blendKey = `${color1.name}/${color2.name}`;
+                colorSet.add(blendKey);
+                
+                // Check if blend already exists
+                const blendExists = blendsToAdd.some(
+                  b => b[0].name === color1.name && b[1].name === color2.name
+                );
+                if (!blendExists) {
+                  blendsToAdd.push([color1, color2]);
+                }
+              }
             }
-          });
-          
-          if (matchingColor) {
-            const displayName = Array.isArray(matchingColor) 
-              ? `${matchingColor[0].name}/${matchingColor[1].name}`
-              : matchingColor.name;
-            colorSet.add(displayName);
+          } else {
+            // Single color - match against base colors
+            const matchingColor = baseWineColors.find(
+              (c) => c.name.toLowerCase() === colorName
+            );
+            
+            if (matchingColor) {
+              colorSet.add(matchingColor.name);
+            }
           }
         });
       }
     });
 
-    return colorSet;
+    return { availableColorNames: colorSet, dynamicBlendColors: blendsToAdd };
   }, [products]);
+
+  // Update allColors with dynamic blends
+  useEffect(() => {
+    allColors = [...baseWineColors, ...dynamicBlendColors];
+  }, [dynamicBlendColors]);
 
   // Filter to only show available colors
   const availableColors = allColors.filter((c) => {
