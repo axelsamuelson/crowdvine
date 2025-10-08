@@ -64,8 +64,8 @@ export async function GET(
           .eq("id", reservation.user_id)
           .single();
 
-        // Get reservation items with wine and producer details
-        const { data: items } = await supabase
+        // Get reservation items with wine details
+        const { data: items, error: itemsError } = await supabase
           .from("order_reservation_items")
           .select(
             `
@@ -78,16 +78,34 @@ export async function GET(
               label_image_path,
               grape_varieties,
               color,
-              producers(name)
+              producer_id
             )
           `,
           )
           .eq("reservation_id", reservation.id);
 
+        if (itemsError) {
+          console.error(`[Public] Error fetching items for reservation ${reservation.id}:`, itemsError);
+        }
+
+        // Get producer names for all items
+        const producerIds = items?.map(item => item.wines?.producer_id).filter(Boolean) || [];
+        const uniqueProducerIds = [...new Set(producerIds)];
+        
+        const producerNamesMap = new Map();
+        if (uniqueProducerIds.length > 0) {
+          const { data: producers } = await supabase
+            .from("producers")
+            .select("id, name")
+            .in("id", uniqueProducerIds);
+          
+          producers?.forEach(p => producerNamesMap.set(p.id, p.name));
+        }
+
         const itemsData =
           items?.map((item) => ({
             wine_name: item.wines?.wine_name || "Unknown Wine",
-            producer_name: item.wines?.producers?.name || "Unknown Producer",
+            producer_name: producerNamesMap.get(item.wines?.producer_id) || "Unknown Producer",
             quantity: item.quantity,
             price_cents: item.price_cents || 0,
             vintage: item.wines?.vintage || "N/A",
