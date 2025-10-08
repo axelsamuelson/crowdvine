@@ -36,6 +36,7 @@ export function FooterLogoSvg({ className }: { className?: string }) {
     // Hämta footer_logo från API med timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 sek timeout
+    let isCompleted = false;
 
     fetch(`/api/site-content/footer_logo?t=${Date.now()}`, {
       signal: controller.signal,
@@ -43,6 +44,7 @@ export function FooterLogoSvg({ className }: { className?: string }) {
     })
       .then((response) => {
         clearTimeout(timeoutId);
+        isCompleted = true;
         if (!response.ok) {
           throw new Error("Failed to fetch footer logo");
         }
@@ -68,7 +70,11 @@ export function FooterLogoSvg({ className }: { className?: string }) {
       })
       .catch((error) => {
         clearTimeout(timeoutId);
-        console.warn("Failed to load footer logo:", error);
+        isCompleted = true;
+        // Only log if it's not an abort error from cleanup
+        if (error.name !== 'AbortError') {
+          console.warn("Failed to load footer logo:", error);
+        }
         setFooterLogo(null);
         footerLogoCache = { value: null, timestamp: Date.now() };
       })
@@ -78,7 +84,10 @@ export function FooterLogoSvg({ className }: { className?: string }) {
 
     return () => {
       clearTimeout(timeoutId);
-      controller.abort();
+      // Only abort if request is still pending
+      if (!isCompleted) {
+        controller.abort();
+      }
     };
   }, [reloadTrigger]);
 
