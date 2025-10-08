@@ -6,6 +6,8 @@ export async function GET(request: Request) {
   const limit = searchParams.get("limit")
     ? parseInt(searchParams.get("limit")!)
     : 200;
+  const sortKey = searchParams.get("sortKey") || "RELEVANCE";
+  const reverse = searchParams.get("reverse") === "true";
 
   const sb = getSupabaseAdmin(); // Use admin client to bypass RLS
 
@@ -14,8 +16,8 @@ export async function GET(request: Request) {
   let error;
 
   try {
-    // Try to get wines with basic query first
-    const result = await sb
+    // Build query with sorting
+    let query = sb
       .from("wines")
       .select(
         `
@@ -30,10 +32,28 @@ export async function GET(request: Request) {
         producer_id,
         description,
         description_html,
+        created_at,
         producers!inner(name)
       `,
-      )
-      .limit(limit);
+      );
+
+    // Apply sorting based on sortKey
+    switch (sortKey) {
+      case "PRICE":
+        query = query.order("base_price_cents", { ascending: !reverse });
+        break;
+      case "CREATED_AT":
+      case "CREATED":
+        query = query.order("created_at", { ascending: !reverse });
+        break;
+      case "RELEVANCE":
+      default:
+        // Default sort by name or created_at
+        query = query.order("created_at", { ascending: false });
+        break;
+    }
+
+    const result = await query.limit(limit);
     data = result.data;
     error = result.error;
   } catch (e) {
