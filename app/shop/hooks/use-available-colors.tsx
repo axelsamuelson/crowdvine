@@ -41,6 +41,8 @@ export function useAvailableColors(products: Product[]) {
   const availableColorNames = useMemo(() => {
     const colorSet = new Set<string>();
 
+    console.log(`🎨 Processing ${products.length} products for color filtering`);
+
     products.forEach((product) => {
       const colorOption = product.options.find(
         (option) => option.name.toLowerCase() === "color",
@@ -58,16 +60,22 @@ export function useAvailableColors(products: Product[]) {
             return;
           }
 
+          console.log(`🔍 Product color value: "${colorName}"`);
+
           // Match against allColors (both single and dual colors)
           const matchingColor = allColors.find((c) => {
             if (Array.isArray(c)) {
               // Dual color - match exact string "Red & Orange" or "Red/Orange"
               const dualName1 = `${c[0].name} & ${c[1].name}`;
               const dualName2 = `${c[0].name}/${c[1].name}`;
-              return colorName === dualName1 || colorName === dualName2;
+              const matches = colorName === dualName1 || colorName === dualName2;
+              if (matches) console.log(`✅ Matched blend: ${colorName} → ${dualName1}`);
+              return matches;
             } else {
               // Single color - exact match
-              return c.name === colorName;
+              const matches = c.name === colorName;
+              if (matches) console.log(`✅ Matched single: ${colorName}`);
+              return matches;
             }
           });
           
@@ -76,11 +84,14 @@ export function useAvailableColors(products: Product[]) {
               ? `${matchingColor[0].name}/${matchingColor[1].name}`
               : matchingColor.name;
             colorSet.add(displayName);
+          } else {
+            console.warn(`⚠️ No match found for color: "${colorName}"`);
           }
         });
       }
     });
 
+    console.log(`✨ Available colors:`, Array.from(colorSet));
     return colorSet;
   }, [products]);
 
