@@ -153,6 +153,35 @@ export default function PalletPage() {
       
       console.log(`✅ Pallet Page - ${palletName}: ${totalReservedBottles}/${capacityBottles} bottles`);
 
+      // Aggregate participants (unique users with total bottles)
+      const participantsMap = new Map<string, any>();
+      
+      if (palletReservations.length > 0) {
+        palletReservations.forEach((res: any) => {
+          const userId = res.user_id;
+          
+          if (participantsMap.has(userId)) {
+            // Add to existing participant's bottle count
+            const existing = participantsMap.get(userId);
+            existing.bottles_reserved += res.bottles_reserved || 0;
+            existing.bottles_delivered += res.bottles_delivered || 0;
+          } else {
+            // Add new participant
+            participantsMap.set(userId, {
+              id: userId,
+              user_name: res.user_name,
+              user_email: res.user_email,
+              bottles_reserved: res.bottles_reserved || 0,
+              bottles_delivered: res.bottles_delivered || 0,
+              created_at: res.created_at,
+            });
+          }
+        });
+      }
+
+      const uniqueParticipants = Array.from(participantsMap.values());
+      console.log(`👥 Unique participants: ${uniqueParticipants.length}`);
+
       // Create pallet data structure
       const palletData: PalletData = {
         id: palletId,
@@ -165,14 +194,7 @@ export default function PalletPage() {
         delivery_zone: 'TBD', // TODO: Get from backend
         eta: 'TBD', // TODO: Get from backend
         created_at: new Date().toISOString(),
-        reservations: Array.isArray(palletReservations) ? palletReservations.map((res: any) => ({
-          id: res.id,
-          user_name: res.user_name,
-          user_email: res.user_email,
-          bottles_reserved: res.bottles_reserved,
-          bottles_delivered: res.bottles_delivered,
-          created_at: res.created_at,
-        })) : [],
+        reservations: uniqueParticipants,
         wines: Object.values(uniqueWines),
       };
       
