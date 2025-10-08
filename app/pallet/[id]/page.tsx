@@ -94,18 +94,32 @@ export default function PalletPage() {
       }
       
       // Then fetch all reservations for this pallet (including other users)
-      const response = await fetch(`/api/pallet/${palletId}/reservations`);
-      if (!response.ok) {
-        // If no reservations yet, that's okay - show empty pallet
-        console.log("No reservations found for this pallet yet");
+      let palletReservations: any[] = [];
+      try {
+        const response = await fetch(`/api/pallet/${palletId}/reservations`);
+        if (response.ok) {
+          const data = await response.json();
+          // Make sure it's an array
+          if (Array.isArray(data)) {
+            palletReservations = data;
+          } else if (data && !data.error) {
+            console.warn("Unexpected reservations response format:", data);
+          }
+        } else {
+          console.log("No reservations API response:", response.status);
+        }
+      } catch (error) {
+        console.error("Error fetching reservations:", error);
+        // Continue with empty reservations array
       }
-      const palletReservations = await response.json();
+
+      console.log(`📋 Found ${palletReservations.length} reservations for pallet`);
 
       // Aggregate data from reservations if any exist
       let totalDeliveredBottles = 0;
       const allItems: any[] = [];
       
-      if (Array.isArray(palletReservations) && palletReservations.length > 0) {
+      if (palletReservations.length > 0) {
         palletReservations.forEach((res: any) => {
           // totalDeliveredBottles += res.delivered_bottles || 0; // TODO: Get from backend
           if (res.items && Array.isArray(res.items)) {
