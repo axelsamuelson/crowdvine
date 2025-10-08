@@ -42,40 +42,20 @@ export async function validateImage(
 
   let dimensions: { width: number; height: number } | undefined;
 
-  try {
-    // Get image dimensions
-    const imageData = await getImageDimensions(file);
-    dimensions = imageData;
-
-    // Check dimensions
-    if (
-      dimensions.width < minDimensions.width ||
-      dimensions.height < minDimensions.height
-    ) {
-      errors.push(
-        `Image too small. Minimum dimensions: ${minDimensions.width}x${minDimensions.height}px`,
-      );
-    }
-
-    if (
-      dimensions.width > maxDimensions.width ||
-      dimensions.height > maxDimensions.height
-    ) {
-      warnings.push(
-        `Image very large. Consider resizing to max ${maxDimensions.width}x${maxDimensions.height}px for better performance`,
-      );
-    }
-
-    // Check aspect ratio
-    const aspectRatio = dimensions.width / dimensions.height;
-    if (aspectRatio < 0.5 || aspectRatio > 2) {
-      warnings.push(
-        "Unusual aspect ratio. Consider using images closer to 1:1 ratio",
-      );
-    }
-  } catch (error) {
-    errors.push("Could not read image dimensions. File may be corrupted.");
-  }
+  // Skip dimension validation for now - it requires browser APIs
+  // which are not available in server-side "use server" functions
+  // TODO: Use a proper server-side image library like 'sharp' if needed
+  
+  // try {
+  //   // Get image dimensions
+  //   const imageData = await getImageDimensions(file);
+  //   dimensions = imageData;
+  //   
+  //   // Check dimensions...
+  // } catch (error) {
+  //   // Don't fail validation just because we can't read dimensions
+  //   warnings.push("Could not verify image dimensions");
+  // }
 
   return {
     isValid: errors.length === 0,
