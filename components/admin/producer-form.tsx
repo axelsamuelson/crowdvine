@@ -108,13 +108,17 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
         formData.pickup_zone_id = "";
       }
 
+      console.log('📝 Submitting producer data:', formData);
+
       if (producer) {
         await updateProducer(producer.id, formData);
       } else {
-        await createProducer(formData);
+        const result = await createProducer(formData);
+        console.log('✅ Producer created:', result);
       }
       router.push("/admin/producers");
     } catch (err) {
+      console.error('❌ Producer creation error:', err);
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
