@@ -50,6 +50,11 @@ export async function GET(request: Request) {
     console.log("DEBUG: Authenticated user email:", email);
     console.log("DEBUG: Authenticated user name:", name);
 
+    // Get returnUrl from query params (default to /profile)
+    const { searchParams } = new URL(request.url);
+    const returnUrl = searchParams.get('returnUrl') || '/profile';
+    console.log("DEBUG: Return URL:", returnUrl);
+
     // CRITICAL SECURITY: Use user ID as unique identifier for Stripe customers
     let customer;
     try {
@@ -95,8 +100,9 @@ export async function GET(request: Request) {
     // Always use the production domain for redirects
     const baseUrl = "https://pactwines.com";
 
-    const successUrl = `${baseUrl}/profile?payment_method_added=true&session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = `${baseUrl}/profile?payment_method_canceled=true`;
+    // Use the returnUrl for redirect after payment method setup
+    const successUrl = `${baseUrl}${returnUrl}?payment_method_added=true&session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${baseUrl}${returnUrl}?payment_method_canceled=true`;
 
     console.log("DEBUG: Base URL:", baseUrl);
     console.log("DEBUG: Success URL:", successUrl);

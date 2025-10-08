@@ -77,8 +77,14 @@ export function PaymentMethodSelector({
         return;
       }
 
-      // Redirect to Stripe setup (no parameters needed - user is authenticated)
-      const response = await fetch(`/api/checkout/setup`);
+      // Determine current page for return URL
+      const currentPath = window.location.pathname;
+      const returnUrl = encodeURIComponent(currentPath);
+      
+      console.log('🔄 Adding payment method from:', currentPath);
+
+      // Redirect to Stripe setup with return URL
+      const response = await fetch(`/api/checkout/setup?returnUrl=${returnUrl}`);
 
       if (!response.ok) {
         const errorData = await response.json();
