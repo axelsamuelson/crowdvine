@@ -62,11 +62,16 @@ export function useAvailableColors(products: Product[]) {
 
           // Check if it's a blend color (contains & or /)
           if (colorName.includes(' & ') || colorName.includes('/')) {
-            // Parse blend: "Red & Orange" or "Red/Orange"
+            // Parse blend: "red & orange" or "red/orange" (already lowercase)
             const parts = colorName.split(/\s*[&/]\s*/);
             if (parts.length === 2) {
-              const color1 = baseWineColors.find(c => c.name.toLowerCase() === parts[0].trim());
-              const color2 = baseWineColors.find(c => c.name.toLowerCase() === parts[1].trim());
+              const part1 = parts[0].trim();
+              const part2 = parts[1].trim();
+              
+              const color1 = baseWineColors.find(c => c.name.toLowerCase() === part1);
+              const color2 = baseWineColors.find(c => c.name.toLowerCase() === part2);
+              
+              console.log(`🎨 Parsing blend: "${colorName}" → parts: [${part1}, ${part2}] → found: [${color1?.name}, ${color2?.name}]`);
               
               if (color1 && color2) {
                 // Add blend to dynamic list
@@ -78,8 +83,11 @@ export function useAvailableColors(products: Product[]) {
                   b => b[0].name === color1.name && b[1].name === color2.name
                 );
                 if (!blendExists) {
+                  console.log(`✅ Adding blend swatch: ${blendKey}`);
                   blendsToAdd.push([color1, color2]);
                 }
+              } else {
+                console.warn(`⚠️ Could not find colors for blend: "${colorName}" (parts: ${part1}, ${part2})`);
               }
             }
           } else {
