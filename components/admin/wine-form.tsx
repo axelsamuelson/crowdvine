@@ -48,7 +48,7 @@ export default function WineForm({ wine, producers }: WineFormProps) {
     wine_name: wine?.wine_name === "" ? "" : wine?.wine_name,
     vintage: wine?.vintage || "",
     grape_varieties: wine?.grape_varieties || "",
-    color: wine?.color || "red",
+    color: wine?.color || "Red",
     producer_id: wine?.producer_id || "",
     // Simplified pricing fields
     cost_currency: wine?.cost_currency || "EUR",
@@ -318,19 +318,17 @@ export default function WineForm({ wine, producers }: WineFormProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="red">Red</SelectItem>
-                  <SelectItem value="white">White</SelectItem>
-                  <SelectItem value="rose">Rosé</SelectItem>
-                  <SelectItem value="orange">Orange</SelectItem>
-                  <SelectItem value="purple">Purple</SelectItem>
-                  <SelectItem value="pink">Pink</SelectItem>
-                  <SelectItem value="blend">Blend</SelectItem>
-                  <SelectItem value="amber">Amber</SelectItem>
-                  <SelectItem value="golden">Golden</SelectItem>
-                  <SelectItem value="champagne">Champagne</SelectItem>
-                  <SelectItem value="blush">Blush</SelectItem>
+                  <SelectItem value="Red">Red</SelectItem>
+                  <SelectItem value="White">White</SelectItem>
+                  <SelectItem value="Rose">Rosé</SelectItem>
+                  <SelectItem value="Orange">Orange</SelectItem>
+                  <SelectItem value="Red & Orange">Red & Orange (Blend)</SelectItem>
+                  <SelectItem value="Orange & White">Orange & White (Blend)</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                Blend colors will show as split swatches in the shop filter
+              </p>
             </div>
           </div>
 
