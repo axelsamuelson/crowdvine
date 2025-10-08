@@ -1,6 +1,7 @@
 "use server";
 
 import { supabaseServer } from "@/lib/supabase-server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { revalidatePath } from "next/cache";
 
 export interface GrapeVariety {
@@ -39,14 +40,18 @@ export interface WineWithDetails {
 
 // Grape Varieties
 export async function getGrapeVarieties(): Promise<GrapeVariety[]> {
-  const sb = await supabaseServer();
+  // Use admin client for admin operations
+  const sb = getSupabaseAdmin();
 
   const { data, error } = await sb
     .from("grape_varieties")
     .select("*")
     .order("name");
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("Get grape varieties error:", error);
+    throw new Error(error.message);
+  }
   return data || [];
 }
 
@@ -54,7 +59,10 @@ export async function createGrapeVariety(data: {
   name: string;
   description?: string;
 }): Promise<GrapeVariety> {
-  const sb = await supabaseServer();
+  // Use admin client for admin operations
+  const sb = getSupabaseAdmin();
+
+  console.log("🍇 Creating grape variety:", data.name);
 
   const { data: variety, error } = await sb
     .from("grape_varieties")
@@ -62,9 +70,15 @@ export async function createGrapeVariety(data: {
     .select()
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("❌ Create grape variety error:", error);
+    throw new Error(error.message);
+  }
+
+  console.log("✅ Grape variety created:", variety.id);
 
   revalidatePath("/admin/grape-varieties");
+  revalidatePath("/admin/wines");
   return variety;
 }
 
@@ -73,7 +87,8 @@ export async function updateGrapeVariety(
   name: string,
   description?: string,
 ): Promise<GrapeVariety> {
-  const sb = await supabaseServer();
+  // Use admin client for admin operations
+  const sb = getSupabaseAdmin();
 
   const { data, error } = await sb
     .from("grape_varieties")
@@ -82,18 +97,25 @@ export async function updateGrapeVariety(
     .select()
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("Update grape variety error:", error);
+    throw new Error(error.message);
+  }
 
   revalidatePath("/admin/grape-varieties");
   return data;
 }
 
 export async function deleteGrapeVariety(id: string): Promise<void> {
-  const sb = await supabaseServer();
+  // Use admin client for admin operations
+  const sb = getSupabaseAdmin();
 
   const { error } = await sb.from("grape_varieties").delete().eq("id", id);
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("Delete grape variety error:", error);
+    throw new Error(error.message);
+  }
 
   revalidatePath("/admin/grape-varieties");
 }
@@ -168,14 +190,18 @@ export async function deleteWineColor(id: string): Promise<void> {
 
 // Wine Grape Varieties (Junction table)
 export async function getWineGrapeVarieties(wineId: string): Promise<string[]> {
-  const sb = await supabaseServer();
+  // Use admin client for admin operations
+  const sb = getSupabaseAdmin();
 
   const { data, error } = await sb
     .from("wine_grape_varieties")
     .select("grape_variety_id")
     .eq("wine_id", wineId);
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("Get wine grape varieties error:", error);
+    throw new Error(error.message);
+  }
   return data?.map((item) => item.grape_variety_id) || [];
 }
 
@@ -183,7 +209,10 @@ export async function updateWineGrapeVarieties(
   wineId: string,
   grapeVarietyIds: string[],
 ): Promise<void> {
-  const sb = await supabaseServer();
+  // Use admin client for admin operations
+  const sb = getSupabaseAdmin();
+
+  console.log("🍇 Updating wine grape varieties for wine:", wineId, "varieties:", grapeVarietyIds);
 
   // Delete existing associations
   const { error: deleteError } = await sb
@@ -191,7 +220,10 @@ export async function updateWineGrapeVarieties(
     .delete()
     .eq("wine_id", wineId);
 
-  if (deleteError) throw new Error(deleteError.message);
+  if (deleteError) {
+    console.error("Delete wine grape varieties error:", deleteError);
+    throw new Error(deleteError.message);
+  }
 
   // Insert new associations
   if (grapeVarietyIds.length > 0) {
@@ -204,11 +236,16 @@ export async function updateWineGrapeVarieties(
       .from("wine_grape_varieties")
       .insert(associations);
 
-    if (insertError) throw new Error(insertError.message);
+    if (insertError) {
+      console.error("Insert wine grape varieties error:", insertError);
+      throw new Error(insertError.message);
+    }
   }
 
+  console.log("✅ Wine grape varieties updated");
+
   revalidatePath("/admin/wines");
-  revalidatePath("/admin/wines/[id]");
+  revalidatePath(`/admin/wines/${wineId}`);
 }
 
 // Enhanced wine functions using the new structure
