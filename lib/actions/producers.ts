@@ -1,6 +1,7 @@
 "use server";
 
 import { supabaseServer } from "@/lib/supabase-server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { revalidatePath } from "next/cache";
 
 export interface Producer {
@@ -33,7 +34,8 @@ export interface CreateProducerData {
 }
 
 export async function getProducers() {
-  const sb = await supabaseServer();
+  // Use admin client for read operations in admin
+  const sb = getSupabaseAdmin();
 
   const { data, error } = await sb.from("producers").select("*").order("name");
 
@@ -42,7 +44,8 @@ export async function getProducers() {
 }
 
 export async function getProducer(id: string) {
-  const sb = await supabaseServer();
+  // Use admin client for read operations in admin
+  const sb = getSupabaseAdmin();
 
   const { data, error } = await sb
     .from("producers")
@@ -55,16 +58,21 @@ export async function getProducer(id: string) {
 }
 
 export async function createProducer(data: CreateProducerData) {
-  const sb = await supabaseServer();
+  // Use admin client for admin operations
+  const sb = getSupabaseAdmin();
 
-  // Get current user to set as owner
-  const { data: { user } } = await sb.auth.getUser();
+  // Get current user to set as owner (from regular client)
+  const userSb = await supabaseServer();
+  const { data: { user } } = await userSb.auth.getUser();
+
+  console.log("Creating producer with data:", data, "owner:", user?.id);
 
   const { data: producer, error } = await sb
     .from("producers")
     .insert({
       ...data,
       owner_id: user?.id || null,
+      status: 'active', // Set default status
     })
     .select()
     .single();
@@ -74,6 +82,8 @@ export async function createProducer(data: CreateProducerData) {
     throw new Error(error.message);
   }
 
+  console.log("Producer created successfully:", producer.id);
+
   revalidatePath("/admin/producers");
   return producer;
 }
@@ -82,7 +92,8 @@ export async function updateProducer(
   id: string,
   data: Partial<CreateProducerData>,
 ) {
-  const sb = await supabaseServer();
+  // Use admin client for admin operations
+  const sb = getSupabaseAdmin();
 
   console.log('🔄 Updating producer:', id, data);
 
