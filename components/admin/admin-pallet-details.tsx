@@ -103,10 +103,12 @@ export default function AdminPalletDetails({ pallet, palletId }: AdminPalletDeta
     try {
       setLoading(true);
       
-      // Fetch reservations for this pallet
-      const resResponse = await fetch(`/api/pallet/${palletId}/reservations`);
+      // Fetch reservations for this pallet (admin endpoint)
+      const resResponse = await fetch(`/api/admin/pallets/${palletId}/reservations`);
       if (!resResponse.ok) {
-        throw new Error("Failed to fetch reservations");
+        const errorData = await resResponse.json();
+        console.error('API error:', errorData);
+        throw new Error(errorData.error || "Failed to fetch reservations");
       }
       
       const resData = await resResponse.json();
