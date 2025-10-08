@@ -110,13 +110,43 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
 
       console.log('📝 Submitting producer data:', formData);
 
+      // Use API routes instead of Server Actions for better error handling in production
       if (producer) {
-        await updateProducer(producer.id, formData);
+        // Update existing producer
+        const response = await fetch(`/api/admin/producers/${producer.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('❌ Update failed:', errorData);
+          throw new Error(errorData.error || 'Failed to update producer');
+        }
+
+        const result = await response.json();
+        console.log('✅ Producer updated:', result.producer);
       } else {
-        const result = await createProducer(formData);
-        console.log('✅ Producer created:', result);
+        // Create new producer
+        const response = await fetch('/api/admin/producers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('❌ Create failed:', errorData);
+          throw new Error(errorData.error || 'Failed to create producer');
+        }
+
+        const result = await response.json();
+        console.log('✅ Producer created:', result.producer);
       }
+      
       router.push("/admin/producers");
+      router.refresh();
     } catch (err) {
       console.error('❌ Producer creation error:', err);
       setError(err instanceof Error ? err.message : "An error occurred");
