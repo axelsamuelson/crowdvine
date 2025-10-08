@@ -6,7 +6,7 @@ import { Color } from "@/components/ui/color-picker";
 import { COLOR_MAP } from "@/lib/constants";
 import { useEffect, useMemo } from "react";
 
-const allColors: Color[] = [
+const allColors: (Color | [Color, Color])[] = [
   // Wine colors
   { name: "Red", value: COLOR_MAP["red"] },
   { name: "Rose", value: COLOR_MAP["rose"] },
@@ -15,6 +15,20 @@ const allColors: Color[] = [
   { name: "Purple", value: COLOR_MAP["purple"] },
   { name: "Pink", value: COLOR_MAP["pink"] },
   { name: "Blend", value: COLOR_MAP["blend"] },
+  
+  // Blend variations with dual colors
+  [
+    { name: "Red", value: COLOR_MAP["red"] },
+    { name: "Orange", value: COLOR_MAP["orange"] }
+  ],
+  [
+    { name: "Red", value: COLOR_MAP["red"] },
+    { name: "Purple", value: COLOR_MAP["purple"] }
+  ],
+  [
+    { name: "Orange", value: COLOR_MAP["orange"] },
+    { name: "White", value: COLOR_MAP["white"] }
+  ],
 
   // Wine variations
   { name: "Amber", value: COLOR_MAP["amber"] },
@@ -117,11 +131,24 @@ export function useAvailableColors(products: Product[]) {
             return; // Skip invalid values
           }
 
-          const matchingColor = allColors.find(
-            (c) => c.name.toLowerCase() === colorName,
-          );
+          // Find matching color (single or dual)
+          const matchingColor = allColors.find((c) => {
+            if (Array.isArray(c)) {
+              // Dual color - match if product color matches the combined name
+              const dualName = `${c[0].name.toLowerCase()} & ${c[1].name.toLowerCase()}`;
+              const dualNameAlt = `${c[0].name.toLowerCase()}/${c[1].name.toLowerCase()}`;
+              return colorName === dualName || colorName === dualNameAlt || colorName.includes(c[0].name.toLowerCase()) && colorName.includes(c[1].name.toLowerCase());
+            } else {
+              // Single color
+              return c.name.toLowerCase() === colorName;
+            }
+          });
+          
           if (matchingColor) {
-            colorSet.add(matchingColor.name);
+            const displayName = Array.isArray(matchingColor) 
+              ? `${matchingColor[0].name}/${matchingColor[1].name}`
+              : matchingColor.name;
+            colorSet.add(displayName);
           }
         });
       }
@@ -131,9 +158,10 @@ export function useAvailableColors(products: Product[]) {
   }, [products]);
 
   // Filter to only show available colors
-  const availableColors = allColors.filter((c) =>
-    availableColorNames.has(c.name),
-  );
+  const availableColors = allColors.filter((c) => {
+    const name = Array.isArray(c) ? `${c[0].name}/${c[1].name}` : c.name;
+    return availableColorNames.has(name);
+  });
 
   // Auto-remove unavailable color filters
   useEffect(() => {
