@@ -18,6 +18,10 @@ const allColors: (Color | [Color, Color])[] = [
     { name: "Orange", value: COLOR_MAP["orange"] }
   ],
   [
+    { name: "Red", value: COLOR_MAP["red"] },
+    { name: "White", value: COLOR_MAP["white"] }
+  ],
+  [
     { name: "Orange", value: COLOR_MAP["orange"] },
     { name: "White", value: COLOR_MAP["white"] }
   ],

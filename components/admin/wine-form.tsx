@@ -323,6 +323,7 @@ export default function WineForm({ wine, producers }: WineFormProps) {
                   <SelectItem value="Rose">Rosé</SelectItem>
                   <SelectItem value="Orange">Orange</SelectItem>
                   <SelectItem value="Red & Orange">Red & Orange (Blend)</SelectItem>
+                  <SelectItem value="Red & White">Red & White (Blend)</SelectItem>
                   <SelectItem value="Orange & White">Orange & White (Blend)</SelectItem>
                 </SelectContent>
               </Select>
