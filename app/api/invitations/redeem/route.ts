@@ -65,41 +65,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user already exists
-    console.log("[INVITE-REDEEM] Checking if user exists");
-    const { data: existingUser } = await sb.auth.admin.listUsers();
-    const userExists = existingUser?.users?.some(u => u.email === email.toLowerCase().trim());
-    
-    if (userExists) {
-      console.log("[INVITE-REDEEM] User already exists");
-      return NextResponse.json(
-        { error: "An account with this email already exists. Please sign in instead." },
-        { status: 400 }
-      );
-    }
-
-    // Create user account
-    console.log("[INVITE-REDEEM] Creating user account");
-    const { data: authData, error: authError } = await sb.auth.admin.createUser({
+    // Try to create user using regular signUp (works better with triggers)
+    console.log("[INVITE-REDEEM] Creating user account via signUp");
+    const { data: signUpData, error: signUpError } = await sb.auth.signUp({
       email: email.toLowerCase().trim(),
       password: password,
-      email_confirm: true, // Skip email confirmation for invited users
-      user_metadata: {
-        full_name: full_name
+      options: {
+        data: {
+          full_name: full_name
+        }
       }
     });
 
-    if (authError) {
-      console.error("[INVITE-REDEEM] Auth error:", {
-        error: authError,
-        message: authError.message,
-        status: authError.status,
-        code: authError.code
+    if (signUpError) {
+      console.error("[INVITE-REDEEM] SignUp error:", {
+        error: signUpError,
+        message: signUpError.message,
+        status: signUpError.status,
+        code: signUpError.code
       });
       
-      const errorMsg = authError.message?.includes('already registered')
+      const errorMsg = signUpError.message?.includes('already registered') || signUpError.message?.includes('already been registered')
         ? "An account with this email already exists. Please sign in instead."
-        : authError.message || "Failed to create account";
+        : signUpError.message || "Failed to create account";
       
       return NextResponse.json(
         { error: errorMsg },
@@ -107,28 +95,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!authData.user) {
-      console.error("[INVITE-REDEEM] No user returned from auth");
+    if (!signUpData.user) {
+      console.error("[INVITE-REDEEM] No user returned from signUp");
       return NextResponse.json(
         { error: "Failed to create account" },
         { status: 500 }
       );
     }
 
+    const authData = signUpData;
     console.log("[INVITE-REDEEM] User created:", authData.user.id);
 
-    // Create profile
-    console.log("[INVITE-REDEEM] Creating profile");
-    const { error: profileError } = await sb.from("profiles").insert({
+    // Update profile with full_name (profile created by trigger)
+    console.log("[INVITE-REDEEM] Updating profile with full_name");
+    const { error: profileError } = await sb.from("profiles").upsert({
       id: authData.user.id,
       email: email.toLowerCase().trim(),
       full_name: full_name,
       role: 'user'
+    }, {
+      onConflict: 'id'
     });
 
     if (profileError) {
-      console.error("[INVITE-REDEEM] Profile error:", profileError);
-      // Don't fail - profile might already exist from trigger
+      console.error("[INVITE-REDEEM] Profile update error:", profileError);
+      // Don't fail - profile might already have correct data
     }
 
     // Create membership with initial_level from invitation
@@ -187,43 +178,17 @@ export async function POST(request: NextRequest) {
       // Don't fail the request
     }
 
-    // Create session for auto sign-in
-    console.log("[INVITE-REDEEM] Creating session for auto sign-in");
-    const { data: sessionData, error: sessionError } = await sb.auth.admin.generateLink({
-      type: 'magiclink',
-      email: email.toLowerCase().trim(),
-    });
-
-    if (sessionError || !sessionData) {
-      console.error("[INVITE-REDEEM] Session creation error:", sessionError);
-      // Return success but without auto sign-in
-      return NextResponse.json({
-        success: true,
-        autoSignedIn: false,
-        message: "Account created successfully",
-        user: {
-          id: authData.user.id,
-          email: authData.user.email,
-          initial_level: initialLevel
-        }
-      });
-    }
-
-    // Try to create session
-    try {
-      const { data: session } = await sb.auth.setSession({
-        access_token: sessionData.properties.access_token,
-        refresh_token: sessionData.properties.refresh_token
-      });
-
-      console.log("[INVITE-REDEEM] Session created successfully");
-
+    // signUp already returns a session if successful
+    console.log("[INVITE-REDEEM] Checking session from signUp");
+    
+    if (authData.session) {
+      console.log("[INVITE-REDEEM] Session available from signUp");
       return NextResponse.json({
         success: true,
         autoSignedIn: true,
         session: {
-          access_token: sessionData.properties.access_token,
-          refresh_token: sessionData.properties.refresh_token
+          access_token: authData.session.access_token,
+          refresh_token: authData.session.refresh_token
         },
         user: {
           id: authData.user.id,
@@ -231,13 +196,12 @@ export async function POST(request: NextRequest) {
           initial_level: initialLevel
         }
       });
-    } catch (setSessionError) {
-      console.error("[INVITE-REDEEM] Set session error:", setSessionError);
-      
+    } else {
+      console.log("[INVITE-REDEEM] No session from signUp, user needs to log in");
       return NextResponse.json({
         success: true,
         autoSignedIn: false,
-        message: "Account created successfully",
+        message: "Account created successfully. Please log in.",
         user: {
           id: authData.user.id,
           email: authData.user.email,
