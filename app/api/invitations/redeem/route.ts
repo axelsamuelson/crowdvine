@@ -65,26 +65,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // CRITICAL: Pre-mark invitation with a temporary user marker
-    // This allows the trigger to read initial_level when user is created
-    console.log("[INVITE-REDEEM] Pre-marking invitation for trigger");
-    const tempUserId = crypto.randomUUID(); // Temporary marker
-    const { error: preMarkError } = await sb
-      .from("invitation_codes")
-      .update({
-        used_by: tempUserId, // Temporary - will be replaced with real user ID
-      })
-      .eq("id", invitation.id);
-
-    if (preMarkError) {
-      console.error("[INVITE-REDEEM] Failed to pre-mark invitation:", preMarkError);
-      return NextResponse.json(
-        { error: "Failed to process invitation" },
-        { status: 500 }
-      );
-    }
-
-    // Create user account - trigger will read invitation and create membership
+    // Create user account first (trigger will create basic membership)
     console.log("[INVITE-REDEEM] Creating user account via signUp");
     const { data: signUpData, error: signUpError } = await sb.auth.signUp({
       email: email.toLowerCase().trim(),
@@ -141,23 +122,28 @@ export async function POST(request: NextRequest) {
       // Don't fail - profile might already have correct data
     }
 
-    // Membership was created by trigger - just log it
+    // Trigger created basic membership - now update to correct level if needed
     const initialLevel = invitation.initial_level || 'basic';
-    console.log("[INVITE-REDEEM] Membership created by trigger with level:", initialLevel);
+    console.log("[INVITE-REDEEM] Updating membership to level:", initialLevel);
     
     // Wait briefly for trigger to complete
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise(resolve => setTimeout(resolve, 500));
     
-    // Verify membership was created
-    const { data: membershipCheck, error: checkError } = await sb
+    // Update membership to correct level from invitation
+    const { data: membershipUpdate, error: updateError } = await sb
       .from("user_memberships")
-      .select("level, invite_quota_monthly")
+      .update({
+        level: initialLevel,
+        invite_quota_monthly: getQuotaForLevel(initialLevel),
+      })
       .eq("user_id", authData.user.id)
+      .select("level, invite_quota_monthly")
       .maybeSingle();
     
-    if (checkError || !membershipCheck) {
-      console.error("[INVITE-REDEEM] Membership not found after trigger:", checkError);
+    if (updateError || !membershipUpdate) {
+      console.error("[INVITE-REDEEM] Failed to update membership:", updateError);
       // Fallback: create membership manually
+      console.log("[INVITE-REDEEM] Creating membership manually as fallback");
       await sb.from("user_memberships").insert({
         user_id: authData.user.id,
         level: initialLevel,
@@ -167,7 +153,7 @@ export async function POST(request: NextRequest) {
         quota_reset_at: getNextMonthStart()
       });
     } else {
-      console.log("[INVITE-REDEEM] Membership verified:", membershipCheck);
+      console.log("[INVITE-REDEEM] Membership updated successfully:", membershipUpdate);
     }
 
     // Award +1 IP to inviter (user who created the invitation)
