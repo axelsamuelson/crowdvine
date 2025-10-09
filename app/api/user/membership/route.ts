@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { getCurrentUser } from "@/lib/auth-utils";
+import { getCurrentUser } from "@/lib/auth";
 import { getLevelInfo, getNextLevelInfo } from "@/lib/membership/points-engine";
 import { getAvailableInvites, checkAndResetQuotaIfNeeded } from "@/lib/membership/invite-quota";
 
