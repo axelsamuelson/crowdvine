@@ -7,7 +7,7 @@ export async function middleware(req: NextRequest) {
   // Offentliga paths (UI oförändrad, bara backend-gate)
   const PUBLIC = [
     "/log-in", "/signup", "/invite-signup", "/code-signup",
-    "/access-request", "/i", "/c", "/profile", "/pallet",
+    "/access-request", "/access-pending", "/i", "/c", "/profile", "/pallet",
   ];
   const isPublic = PUBLIC.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
@@ -71,29 +71,37 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(ask);
     }
 
-    // Sedan kontrollera om användaren har access
+    // Check membership level for access control
+    const { data: membership } = await supabase
+      .from("user_memberships")
+      .select("level")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
     const { data: profile } = await supabase
       .from("profiles")
-      .select("access_granted_at, role")
+      .select("role")
       .eq("id", user.id)
       .maybeSingle();
 
-    console.log("🔍 MIDDLEWARE: User profile check:", {
+    console.log("🔍 MIDDLEWARE: User membership check:", {
       userId: user.id,
       userEmail: user.email,
       pathname,
-      hasProfile: !!profile,
-      accessGrantedAt: profile?.access_granted_at,
-      role: profile?.role
+      membershipLevel: membership?.level,
+      profileRole: profile?.role
     });
 
-    if (!profile?.access_granted_at) {
-      console.log("🚫 MIDDLEWARE: Access denied, redirecting to access-request");
-      console.log("🚫 MIDDLEWARE: Profile details:", {
-        hasProfile: !!profile,
-        accessGrantedAt: profile?.access_granted_at,
-        role: profile?.role
-      });
+    // Redirect requesters to access-pending page (unless they're already there)
+    if (membership?.level === 'requester' && !pathname.startsWith('/access-pending')) {
+      console.log("🚫 MIDDLEWARE: Requester level, redirecting to access-pending");
+      const pending = new URL("/access-pending", req.url);
+      return NextResponse.redirect(pending);
+    }
+
+    // If no membership exists, redirect to access-request
+    if (!membership) {
+      console.log("🚫 MIDDLEWARE: No membership found, redirecting to access-request");
       const ask = new URL("/access-request", req.url);
       ask.searchParams.set("redirectedFrom", pathname);
       return NextResponse.redirect(ask);
@@ -101,9 +109,11 @@ export async function middleware(req: NextRequest) {
 
     console.log("✅ MIDDLEWARE: Access granted, allowing request to:", pathname);
 
-    // Slutligen kontrollera admin-behörighet
-    if (pathname.startsWith("/admin") && profile.role !== "admin") {
-      return NextResponse.redirect(new URL("/", req.url));
+    // Check admin-only routes
+    if (pathname.startsWith("/admin")) {
+      if (membership.level !== 'admin' && profile?.role !== 'admin') {
+        return NextResponse.redirect(new URL("/", req.url));
+      }
     }
   }
 
