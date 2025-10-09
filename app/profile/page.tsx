@@ -184,7 +184,16 @@ export default function ProfilePage() {
       if (res.ok) {
         const data = await res.json();
         if (data.invitations && data.invitations.length > 0) {
-          setInvitation(data.invitations[0]);
+          const inv = data.invitations[0];
+          
+          // Build signupUrl if not present (for old invitations)
+          if (inv.code && !inv.signupUrl) {
+            const baseUrl = window.location.origin;
+            inv.signupUrl = `${baseUrl}/i/${inv.code}`;
+            inv.codeSignupUrl = `${baseUrl}/c/${inv.code}`;
+          }
+          
+          setInvitation(inv);
         }
       }
     } catch (error) {
