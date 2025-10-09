@@ -43,8 +43,10 @@ interface Invitation {
   current_uses: number;
   max_uses: number;
   expires_at: string;
+  initial_level?: string;
   profiles?: {
     email: string;
+    full_name?: string;
   };
 }
 
@@ -103,11 +105,10 @@ export default function InviteSignupPage() {
 
   const fetchCurrentPallet = async () => {
     try {
-      const response = await fetch("/api/admin/pallets");
+      const response = await fetch("/api/pallet-data");
       
       if (!response.ok) {
-        console.log("Pallet API not available, using mock data");
-        setMockPalletData();
+        console.log("Pallet API not available");
         setLoading(false);
         return;
       }
@@ -115,18 +116,38 @@ export default function InviteSignupPage() {
       const pallets = await response.json();
       
       if (pallets && pallets.length > 0) {
-        // Get the most recent active pallet
-        const activePallet = pallets.find((p: Pallet) => !p.is_complete) || pallets[0];
-        setPallet(activePallet);
-      } else {
-        // Create mock pallet data for demonstration
-        setMockPalletData();
+        // Get the most filled OPEN pallet
+        const openPallets = pallets.filter((p: any) => 
+          p.status === 'placed' || p.status === 'pending' || p.status === 'confirmed'
+        );
+        
+        if (openPallets.length > 0) {
+          // Sort by fill percentage (descending)
+          const sortedPallets = openPallets.sort((a: any, b: any) => {
+            const aPercent = (a.total_bottles_on_pallet / a.capacity_bottles) * 100;
+            const bPercent = (b.total_bottles_on_pallet / b.capacity_bottles) * 100;
+            return bPercent - aPercent;
+          });
+          
+          const mostFilledPallet = sortedPallets[0];
+          
+          setPallet({
+            id: mostFilledPallet.id,
+            name: `${mostFilledPallet.from_zone_name} to ${mostFilledPallet.to_zone_name}`,
+            description: `A curated selection of wines from ${mostFilledPallet.from_zone_name}`,
+            bottle_capacity: mostFilledPallet.capacity_bottles,
+            total_booked_bottles: mostFilledPallet.total_bottles_on_pallet,
+            remaining_bottles: mostFilledPallet.capacity_bottles - mostFilledPallet.total_bottles_on_pallet,
+            completion_percentage: (mostFilledPallet.total_bottles_on_pallet / mostFilledPallet.capacity_bottles) * 100,
+            wine_summary: [],
+            delivery_zone: { name: mostFilledPallet.to_zone_name },
+            pickup_zone: { name: mostFilledPallet.from_zone_name }
+          });
+        }
       }
       setLoading(false);
     } catch (error) {
       console.error("Error fetching pallet:", error);
-      // Create mock pallet data for demonstration
-      setMockPalletData();
       setLoading(false);
     }
   };
@@ -313,6 +334,40 @@ export default function InviteSignupPage() {
             </p>
           </div>
 
+          {/* Membership Level Info */}
+          {invitation.initial_level && invitation.initial_level !== 'basic' && (
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 mb-8 border border-blue-200">
+              <div className="text-center">
+                <div className="inline-block px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-semibold mb-3">
+                  {invitation.initial_level.charAt(0).toUpperCase() + invitation.initial_level.slice(1)} Membership
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">
+                  You're joining as a {invitation.initial_level.charAt(0).toUpperCase() + invitation.initial_level.slice(1)} member!
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  {invitation.initial_level === 'guld' && 'Top-tier access with maximum invite quota and exclusive perks'}
+                  {invitation.initial_level === 'silver' && 'Trusted member status with early access to drops and priority shipping'}
+                  {invitation.initial_level === 'brons' && 'Active member with increased invite quota and queue priority'}
+                </p>
+                <div className="flex justify-center gap-4 text-xs text-gray-700">
+                  <div className="flex items-center gap-1">
+                    <span className="font-semibold">Invite Quota:</span>
+                    {invitation.initial_level === 'guld' && '50/month'}
+                    {invitation.initial_level === 'silver' && '12/month'}
+                    {invitation.initial_level === 'brons' && '5/month'}
+                  </div>
+                  {invitation.initial_level !== 'brons' && (
+                    <div className="flex items-center gap-1">
+                      <span className="font-semibold">•</span>
+                      {invitation.initial_level === 'guld' && 'Fee Waived'}
+                      {invitation.initial_level === 'silver' && 'Fee Cap'}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Signup Form */}
           <Card className="border border-gray-200">
             <CardHeader className="text-center pb-4">
@@ -410,31 +465,36 @@ export default function InviteSignupPage() {
             <div className="bg-white rounded-2xl shadow-lg p-6 mt-8">
               <div className="text-center mb-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Help {senderName === "A friend" ? "your friend" : senderName} bring this pallet home
+                  Join this pallet
                 </h3>
                 <h4 className="text-xl font-bold text-gray-900 mb-2">
                   {pallet.name}
                 </h4>
-                <div className="flex items-center justify-center gap-4 text-sm text-gray-600">
-                  <div className="flex items-center gap-1">
-                    <Users className="w-4 h-4" />
-                    <span>{pallet.total_booked_bottles} / {pallet.bottle_capacity} bottles reserved</span>
-                  </div>
+                <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
+                  <span className="font-semibold text-gray-900">{pallet.total_booked_bottles}</span>
+                  <span>/</span>
+                  <span>{pallet.bottle_capacity} bottles</span>
+                  <span className="text-gray-400">•</span>
+                  <span className="text-gray-500">{pallet.remaining_bottles} remaining</span>
                 </div>
               </div>
 
               {/* Animated Progress Bar */}
-              <div className="mb-6">
+              <div className="mb-4">
                 <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                   <div 
                     className="bg-gradient-to-r from-green-600 to-green-500 h-3 rounded-full transition-all duration-1000 ease-out"
                     style={{ width: `${Math.min(pallet.completion_percentage, 100)}%` }}
                   />
                 </div>
-                <div className="text-center mt-2 text-sm text-gray-600">
-                  {pallet.completion_percentage.toFixed(1)}% complete
+                <div className="text-center mt-2 text-sm font-medium text-gray-700">
+                  {pallet.completion_percentage.toFixed(0)}% filled
                 </div>
               </div>
+
+              <p className="text-xs text-center text-gray-500">
+                When this pallet is full, it ships to {pallet.delivery_zone?.name || 'Stockholm'}
+              </p>
             </div>
           )}
         </div>
