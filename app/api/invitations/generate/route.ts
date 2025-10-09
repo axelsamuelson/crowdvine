@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { randomUUID } from "crypto";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,14 +38,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Use admin client for membership queries (to bypass RLS)
+    const adminClient = getSupabaseAdmin();
+    
     // Check user has membership and is not a requester
-    const { data: membership, error: membershipError } = await supabase
+    const { data: membership, error: membershipError } = await adminClient
       .from("user_memberships")
       .select("level, invite_quota_monthly, invites_used_this_month")
       .eq("user_id", user.id)
       .single();
 
     if (membershipError || !membership) {
+      console.error("Membership error:", membershipError);
       return NextResponse.json(
         { error: "Membership not found" },
         { status: 403 },
@@ -72,8 +77,8 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + expiresInDays);
 
-    // Create invitation
-    const { data, error } = await supabase
+    // Create invitation using admin client
+    const { data, error } = await adminClient
       .from("invitation_codes")
       .insert({
         code,
@@ -93,8 +98,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Increment invites_used_this_month
-    await supabase
+    // Increment invites_used_this_month using admin client
+    await adminClient
       .from("user_memberships")
       .update({
         invites_used_this_month: membership.invites_used_this_month + 1,
