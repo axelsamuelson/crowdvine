@@ -127,7 +127,10 @@ export function useAvailableColors(products: Product[]) {
     );
   };
 
-  const selectedColors = availableColors.filter((c) => color.includes(c.name));
+  const selectedColors = availableColors.filter((c) => {
+    const colorName = getColorName(c);
+    return color.includes(colorName);
+  });
 
   return {
     availableColors,
