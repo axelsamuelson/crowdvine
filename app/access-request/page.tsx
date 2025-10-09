@@ -16,15 +16,15 @@ export default async function AccessRequestPage({
 
   // Smart redirect: if user is logged in and has access, redirect them
   if (user) {
-    const { data: prof } = await sb
-      .from("profiles")
-      .select("access_granted_at")
-      .eq("id", user.id)
-      .single();
+    const { data: membership } = await sb
+      .from("user_memberships")
+      .select("level")
+      .eq("user_id", user.id)
+      .maybeSingle();
 
-    if (prof?.access_granted_at) {
-      // Redirect to API route that will set the cookie and redirect
-      redirect(`/api/set-access-cookie?next=${encodeURIComponent(next)}`);
+    // If user has membership and is not a requester, they have access
+    if (membership && membership.level !== 'requester') {
+      redirect(next);
     }
   }
 

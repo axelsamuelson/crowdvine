@@ -1,53 +1,73 @@
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { generalLimiter, getClientIdentifier } from "@/lib/rate-limiter";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
-export async function POST(req: Request) {
-  // Rate limiting
-  const identifier = getClientIdentifier(req);
-  if (!generalLimiter.isAllowed(identifier)) {
+/**
+ * POST /api/auth/login
+ * 
+ * Authenticate user with email and password
+ */
+export async function POST(request: Request) {
+  try {
+    const { email, password } = await request.json();
+
+    if (!email || !password) {
+      return NextResponse.json(
+        { error: "Email and password are required" },
+        { status: 400 }
+      );
+    }
+
+    const cookieStore = await cookies();
+    
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get: (name: string) => cookieStore.get(name)?.value,
+          set: (name: string, value: string, options: any) => {
+            cookieStore.set(name, value, options);
+          },
+          remove: (name: string, options: any) => {
+            cookieStore.set(name, "", { ...options, maxAge: 0 });
+          },
+        },
+      }
+    );
+
+    // Sign in with Supabase Auth
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      return NextResponse.json(
+        { error: error.message || "Invalid email or password" },
+        { status: 401 }
+      );
+    }
+
+    if (!data.user) {
+      return NextResponse.json(
+        { error: "Login failed" },
+        { status: 401 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      user: {
+        id: data.user.id,
+        email: data.user.email,
+      },
+    });
+  } catch (error) {
+    console.error("Login error:", error);
     return NextResponse.json(
-      { ok: false, message: "Too many requests. Please try again later." },
-      { status: 429 },
+      { error: "Internal server error" },
+      { status: 500 }
     );
   }
-
-  // Origin-kontroll för säkerhet (temporarily disabled for debugging)
-  // const origin = req.headers.get("origin");
-  // if (process.env.NODE_ENV === "production") {
-  //   const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-  //   // Allow requests from the main domain and development subdomain
-  //   const allowedOrigins = [
-  //     appUrl,
-  //     "https://pactwines.com",
-  //     "https://www.pactwines.com",
-  //     "https://dev.pactwines.com"
-  //   ];
-  //   
-  //   if (!origin || !allowedOrigins.some(allowed => origin.startsWith(allowed))) {
-  //     console.log("Origin check failed:", { origin, appUrl, allowedOrigins });
-  //     return NextResponse.json(
-  //       { ok: false, message: "Bad origin" },
-  //       { status: 403 },
-  //     );
-  //   }
-  // }
-
-  const { email, password } = await req.json();
-  const supabase = createSupabaseServerClient();
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error)
-    return NextResponse.json(
-      { ok: false, message: error.message },
-      { status: 400 },
-    );
-
-  return NextResponse.json({
-    ok: true,
-    user: { id: data.user?.id, email: data.user?.email },
-  });
 }
