@@ -21,6 +21,7 @@ import { PaymentMethodCard } from "@/components/ui/payment-method-card";
 import { MiniProgress } from "@/components/ui/progress-components";
 import { getTimeUntilReset } from "@/lib/membership/invite-quota";
 import { MembershipLevel } from "@/lib/membership/points-engine";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 interface UserProfile {
   id: string;
@@ -80,7 +81,7 @@ export default function ProfilePage() {
   const [ipEvents, setIpEvents] = useState<any[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [reservations, setReservations] = useState<any[]>([]);
-  const [invitation, setInvitation] = useState<any>(null);
+  const [invitations, setInvitations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [generatingInvite, setGeneratingInvite] = useState(false);
@@ -104,9 +105,69 @@ export default function ProfilePage() {
       fetchIPEvents(),
       fetchPaymentMethods(),
       fetchReservations(),
-      fetchInvitation(),
+      fetchInvitations(),
     ]).finally(() => setLoading(false));
   }, []);
+
+  // Real-time subscription for invitations and IP updates
+  useEffect(() => {
+    if (!profile?.id) return;
+
+    const supabase = getSupabaseBrowserClient();
+
+    // Subscribe to invitation changes
+    const invitationChannel = supabase
+      .channel(`invitations:${profile.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'invitation_codes',
+          filter: `created_by=eq.${profile.id}`,
+        },
+        (payload) => {
+          console.log('Invitation change:', payload);
+          
+          // Refresh invitations when any change occurs
+          fetchInvitations();
+          
+          // If an invitation was used, show toast and refresh IP
+          if (payload.eventType === 'UPDATE' && payload.new?.used_at) {
+            toast.success("Your invite was just used! +1 IP awarded");
+            fetchMembershipData();
+            fetchIPEvents();
+          }
+        }
+      )
+      .subscribe();
+
+    // Subscribe to IP events (for real-time activity feed)
+    const ipEventsChannel = supabase
+      .channel(`ip-events:${profile.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'impact_point_events',
+          filter: `user_id=eq.${profile.id}`,
+        },
+        (payload) => {
+          console.log('New IP event:', payload);
+          
+          // Refresh both IP events and membership data
+          fetchIPEvents();
+          fetchMembershipData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(invitationChannel);
+      supabase.removeChannel(ipEventsChannel);
+    };
+  }, [profile?.id]);
 
   const fetchProfile = async () => {
     try {
@@ -178,26 +239,27 @@ export default function ProfilePage() {
     }
   };
 
-  const fetchInvitation = async () => {
+  const fetchInvitations = async () => {
     try {
       const res = await fetch("/api/user/invitations");
       if (res.ok) {
         const data = await res.json();
-        if (data.invitations && data.invitations.length > 0) {
-          const inv = data.invitations[0];
+        if (data.invitations) {
+          // Build signupUrl for each invitation if not present
+          const enrichedInvitations = data.invitations.map((inv: any) => {
+            if (inv.code && !inv.signupUrl) {
+              const baseUrl = window.location.origin;
+              inv.signupUrl = `${baseUrl}/i/${inv.code}`;
+              inv.codeSignupUrl = `${baseUrl}/c/${inv.code}`;
+            }
+            return inv;
+          });
           
-          // Build signupUrl if not present (for old invitations)
-          if (inv.code && !inv.signupUrl) {
-            const baseUrl = window.location.origin;
-            inv.signupUrl = `${baseUrl}/i/${inv.code}`;
-            inv.codeSignupUrl = `${baseUrl}/c/${inv.code}`;
-          }
-          
-          setInvitation(inv);
+          setInvitations(enrichedInvitations);
         }
       }
     } catch (error) {
-      console.error("Error fetching invitation:", error);
+      console.error("Error fetching invitations:", error);
     }
   };
 
@@ -220,8 +282,13 @@ export default function ProfilePage() {
 
       if (res.ok) {
         const data = await res.json();
-        setInvitation(data.invitation);
+        
+        // Add new invitation to the list
+        setInvitations(prev => [data.invitation, ...prev]);
         toast.success(`Invitation code generated!${isAdmin ? ` (Start level: ${selectedLevel})` : ''}`);
+        
+        // Refresh membership data to update quota
+        fetchMembershipData();
       } else {
         const error = await res.json();
         toast.error(error.error || "Failed to generate invitation");
@@ -265,6 +332,30 @@ export default function ProfilePage() {
       }
     } catch (error) {
       toast.error("Failed to sign out");
+    }
+  };
+
+  const deleteInvitation = async (invitationId: string) => {
+    if (!confirm("Are you sure you want to delete this invitation? It will no longer be usable.")) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/user/invitations/${invitationId}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setInvitations(prev => prev.filter(inv => inv.id !== invitationId));
+        toast.success("Invitation deleted");
+        
+        // Refresh membership data to update quota
+        fetchMembershipData();
+      } else {
+        toast.error("Failed to delete invitation");
+      }
+    } catch (error) {
+      toast.error("Failed to delete invitation");
     }
   };
 
@@ -557,9 +648,9 @@ export default function ProfilePage() {
             />
 
             {/* Admin: Level Selector */}
-            {membershipData.membership.level === 'admin' && !invitation && (
+            {membershipData.membership.level === 'admin' && (
               <div className="space-y-2">
-                <Label className="text-xs text-gray-600">Start Level for Invitee</Label>
+                <Label className="text-xs text-gray-600">Start Level for New Invite</Label>
                 <Select value={selectedLevel} onValueChange={(val) => setSelectedLevel(val as MembershipLevel)}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select level" />
@@ -571,94 +662,108 @@ export default function ProfilePage() {
                     <SelectItem value="guld">Guld (35+ IP)</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-gray-500">
-                  Choose which level the invitee will start at
-                </p>
               </div>
             )}
 
-            {/* Generate Invite */}
-            {!invitation ? (
-              <Button
-                onClick={generateInvitation}
-                disabled={generatingInvite || membershipData.invites.available === 0}
-                className="w-full rounded-full bg-gray-900 hover:bg-gray-800 text-white"
-              >
-                {generatingInvite ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                ) : (
-                  <UserPlus className="w-4 h-4 mr-2" />
-                )}
-                {membershipData.membership.level === 'admin' 
-                  ? `Generate ${selectedLevel.charAt(0).toUpperCase() + selectedLevel.slice(1)} Invite`
-                  : 'Generate Invite Link'}
-              </Button>
-            ) : (
-              <div className="space-y-3">
-                {/* Show initial level if admin */}
-                {invitation.initialLevel && membershipData.membership.level === 'admin' && (
-                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-xs text-blue-800">
-                      <strong>Start Level:</strong> {invitation.initialLevel.charAt(0).toUpperCase() + invitation.initialLevel.slice(1)}
-                    </p>
-                  </div>
-                )}
+            {/* Generate Invite Button */}
+            <Button
+              onClick={generateInvitation}
+              disabled={generatingInvite || membershipData.invites.available === 0}
+              className="w-full rounded-full bg-gray-900 hover:bg-gray-800 text-white"
+            >
+              {generatingInvite ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+              ) : (
+                <UserPlus className="w-4 h-4 mr-2" />
+              )}
+              {membershipData.membership.level === 'admin' 
+                ? `Generate ${selectedLevel.charAt(0).toUpperCase() + selectedLevel.slice(1)} Invite`
+                : 'Generate Invite Link'}
+            </Button>
 
-                {/* Invite Code */}
-                <div className="p-4 bg-gray-50 rounded-xl border border-gray-200/50">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-gray-500">Your Invite Code</span>
-                    <Button
-                      onClick={copyCode}
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 text-xs"
-                    >
-                      {copiedCode ? (
-                        <>
-                          <Check className="w-3 h-3 mr-1" />
-                          Copied
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3 h-3 mr-1" />
-                          Copy Code
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                  <code className="text-lg font-mono font-semibold text-gray-900 tracking-wider">
-                    {invitation.code}
-                  </code>
-                </div>
+            {/* Active Invitations List */}
+            {invitations.length > 0 && (
+              <div className="space-y-3 pt-4 border-t border-gray-200/50">
+                <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                  Active Invitations
+                  <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">
+                    {invitations.length}
+                  </span>
+                </h3>
 
-                {/* Share Link */}
-                {invitation.signupUrl && (
-                  <div className="p-4 bg-gray-50 rounded-xl border border-gray-200/50">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-gray-500">Share Link</span>
+                {invitations.map((inv) => (
+                  <div key={inv.id} className="p-4 bg-gray-50 rounded-xl border border-gray-200/50 space-y-3">
+                    {/* Show initial level if admin */}
+                    {inv.initialLevel && membershipData.membership.level === 'admin' && (
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-md font-medium">
+                          {inv.initialLevel.charAt(0).toUpperCase() + inv.initialLevel.slice(1)} Level
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          Created {new Date(inv.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Invite Code */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-gray-500 mb-1">Code</p>
+                        <code className="text-sm font-mono font-semibold text-gray-900 tracking-wider">
+                          {inv.code}
+                        </code>
+                      </div>
                       <Button
-                        onClick={copyUrl}
+                        onClick={() => {
+                          navigator.clipboard.writeText(inv.code);
+                          toast.success("Code copied!");
+                        }}
                         size="sm"
                         variant="ghost"
-                        className="h-7 text-xs"
+                        className="h-8"
                       >
-                        {copiedUrl ? (
-                          <>
-                            <Check className="w-3 h-3 mr-1" />
-                            Copied
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-3 h-3 mr-1" />
-                            Copy Link
-                          </>
-                        )}
+                        <Copy className="w-3 h-3" />
                       </Button>
                     </div>
-                    <p className="text-sm text-gray-700 break-all font-mono">{invitation.signupUrl}</p>
+
+                    {/* Share Link */}
+                    {inv.signupUrl && (
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-gray-500 mb-1">Link</p>
+                          <p className="text-xs text-gray-700 break-all font-mono">{inv.signupUrl}</p>
+                        </div>
+                        <Button
+                          onClick={() => {
+                            navigator.clipboard.writeText(inv.signupUrl);
+                            toast.success("Link copied!");
+                          }}
+                          size="sm"
+                          variant="ghost"
+                          className="h-8"
+                        >
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    <div className="flex items-center justify-between pt-2 border-t border-gray-200/50">
+                      <span className="text-xs text-gray-500">
+                        Expires {new Date(inv.expires_at).toLocaleDateString()}
+                      </span>
+                      <Button
+                        onClick={() => deleteInvitation(inv.id)}
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <X className="w-3 h-3 mr-1" />
+                        Delete
+                      </Button>
+                    </div>
                   </div>
-                )}
+                ))}
               </div>
             )}
           </div>

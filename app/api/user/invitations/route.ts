@@ -19,11 +19,13 @@ export async function GET() {
 
     const sb = getSupabaseAdmin();
 
-    // Get all invitations created by this user
+    // Get only ACTIVE and UNUSED invitations created by this user
     const { data: invitations, error } = await sb
       .from('invitation_codes')
       .select('*')
       .eq('created_by', user.id)
+      .eq('is_active', true)
+      .is('used_at', null)
       .order('created_at', { ascending: false });
 
     if (error) throw error;

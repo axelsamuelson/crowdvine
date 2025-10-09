@@ -282,6 +282,10 @@ export default function InviteSignupPage() {
   // Get sender name from invitation data with safe access
   const senderName = (() => {
     try {
+      // Try full_name first, then email username, then fallback
+      if (invitation?.profiles?.full_name) {
+        return invitation.profiles.full_name;
+      }
       if (invitation?.profiles?.email) {
         return invitation.profiles.email.split('@')[0];
       }
