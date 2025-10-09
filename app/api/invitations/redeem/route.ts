@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
     await new Promise(resolve => setTimeout(resolve, 500));
     
     // Update membership to correct level from invitation
-    const { data: membershipUpdate, error: updateError } = await sb
+    const { data: membershipUpdate, error: membershipUpdateError } = await sb
       .from("user_memberships")
       .update({
         level: initialLevel,
@@ -140,8 +140,8 @@ export async function POST(request: NextRequest) {
       .select("level, invite_quota_monthly")
       .maybeSingle();
     
-    if (updateError || !membershipUpdate) {
-      console.error("[INVITE-REDEEM] Failed to update membership:", updateError);
+    if (membershipUpdateError || !membershipUpdate) {
+      console.error("[INVITE-REDEEM] Failed to update membership:", membershipUpdateError);
       // Fallback: create membership manually
       console.log("[INVITE-REDEEM] Creating membership manually as fallback");
       await sb.from("user_memberships").insert({
@@ -175,17 +175,17 @@ export async function POST(request: NextRequest) {
 
     // Update invitation with real user ID and mark as used
     console.log("[INVITE-REDEEM] Marking invitation as used with real user ID");
-    const { error: updateError } = await sb
+    const { error: invitationUpdateError } = await sb
       .from("invitation_codes")
       .update({
         used_at: new Date().toISOString(),
-        used_by: authData.user.id, // Replace temp ID with real user ID
+        used_by: authData.user.id,
         is_active: false
       })
       .eq("id", invitation.id);
 
-    if (updateError) {
-      console.error("[INVITE-REDEEM] Failed to update invitation:", updateError);
+    if (invitationUpdateError) {
+      console.error("[INVITE-REDEEM] Failed to update invitation:", invitationUpdateError);
       // Don't fail the request
     }
 
