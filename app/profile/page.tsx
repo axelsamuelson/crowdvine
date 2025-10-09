@@ -10,6 +10,7 @@ import { InviteQuotaDisplay } from "@/components/membership/invite-quota-display
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   User, Mail, Phone, MapPin, CreditCard, Plus, Edit, Save, X,
   LogOut, UserPlus, Copy, Check, Wifi, WifiOff, Calendar, Package, Settings
@@ -84,6 +85,8 @@ export default function ProfilePage() {
   const [editing, setEditing] = useState(false);
   const [generatingInvite, setGeneratingInvite] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [selectedLevel, setSelectedLevel] = useState<MembershipLevel>('basic');
   const [editForm, setEditForm] = useState({
     full_name: "",
     phone: "",
@@ -192,16 +195,24 @@ export default function ProfilePage() {
   const generateInvitation = async () => {
     setGeneratingInvite(true);
     try {
-      const res = await fetch("/api/invitations/generate", {
+      // Check if user is admin to use admin endpoint with level selection
+      const isAdmin = membershipData?.membership.level === 'admin';
+      const endpoint = isAdmin ? "/api/admin/invitations/generate" : "/api/invitations/generate";
+      
+      const body = isAdmin 
+        ? { expiresInDays: 30, initialLevel: selectedLevel }
+        : { expiresInDays: 30 };
+
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ expiresInDays: 30 }),
+        body: JSON.stringify(body),
       });
 
       if (res.ok) {
         const data = await res.json();
         setInvitation(data.invitation);
-        toast.success("Invitation code generated!");
+        toast.success(`Invitation code generated!${isAdmin ? ` (Start level: ${selectedLevel})` : ''}`);
       } else {
         const error = await res.json();
         toast.error(error.error || "Failed to generate invitation");
@@ -219,6 +230,15 @@ export default function ProfilePage() {
       setCopiedCode(true);
       toast.success("Code copied!");
       setTimeout(() => setCopiedCode(false), 2000);
+    }
+  };
+
+  const copyUrl = () => {
+    if (invitation?.signupUrl) {
+      navigator.clipboard.writeText(invitation.signupUrl);
+      setCopiedUrl(true);
+      toast.success("Link copied!");
+      setTimeout(() => setCopiedUrl(false), 2000);
     }
   };
 
@@ -510,6 +530,27 @@ export default function ProfilePage() {
               resetsIn={resetsIn}
             />
 
+            {/* Admin: Level Selector */}
+            {membershipData.membership.level === 'admin' && !invitation && (
+              <div className="space-y-2">
+                <Label className="text-xs text-gray-600">Start Level for Invitee</Label>
+                <Select value={selectedLevel} onValueChange={(val) => setSelectedLevel(val as MembershipLevel)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="basic">Basic (0-4 IP)</SelectItem>
+                    <SelectItem value="brons">Brons (5-14 IP)</SelectItem>
+                    <SelectItem value="silver">Silver (15-34 IP)</SelectItem>
+                    <SelectItem value="guld">Guld (35+ IP)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500">
+                  Choose which level the invitee will start at
+                </p>
+              </div>
+            )}
+
             {/* Generate Invite */}
             {!invitation ? (
               <Button
@@ -522,10 +563,22 @@ export default function ProfilePage() {
                 ) : (
                   <UserPlus className="w-4 h-4 mr-2" />
                 )}
-                Generate Invite Link
+                {membershipData.membership.level === 'admin' 
+                  ? `Generate ${selectedLevel.charAt(0).toUpperCase() + selectedLevel.slice(1)} Invite`
+                  : 'Generate Invite Link'}
               </Button>
             ) : (
               <div className="space-y-3">
+                {/* Show initial level if admin */}
+                {invitation.initialLevel && membershipData.membership.level === 'admin' && (
+                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-xs text-blue-800">
+                      <strong>Start Level:</strong> {invitation.initialLevel.charAt(0).toUpperCase() + invitation.initialLevel.slice(1)}
+                    </p>
+                  </div>
+                )}
+
+                {/* Invite Code */}
                 <div className="p-4 bg-gray-50 rounded-xl border border-gray-200/50">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs text-gray-500">Your Invite Code</span>
@@ -543,7 +596,7 @@ export default function ProfilePage() {
                       ) : (
                         <>
                           <Copy className="w-3 h-3 mr-1" />
-                          Copy
+                          Copy Code
                         </>
                       )}
                     </Button>
@@ -553,10 +606,33 @@ export default function ProfilePage() {
                   </code>
                 </div>
 
-                <div className="p-4 bg-gray-50 rounded-xl border border-gray-200/50">
-                  <p className="text-xs text-gray-500 mb-2">Share Link</p>
-                  <p className="text-sm text-gray-700 break-all">{invitation.signupUrl}</p>
-                </div>
+                {/* Share Link */}
+                {invitation.signupUrl && (
+                  <div className="p-4 bg-gray-50 rounded-xl border border-gray-200/50">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-gray-500">Share Link</span>
+                      <Button
+                        onClick={copyUrl}
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-xs"
+                      >
+                        {copiedUrl ? (
+                          <>
+                            <Check className="w-3 h-3 mr-1" />
+                            Copied
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3 h-3 mr-1" />
+                            Copy Link
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    <p className="text-sm text-gray-700 break-all font-mono">{invitation.signupUrl}</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
