@@ -39,9 +39,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Use admin client for membership queries (to bypass RLS)
-    const adminClient = getSupabaseAdmin();
+    let adminClient;
+    try {
+      adminClient = getSupabaseAdmin();
+      console.log("[INVITE-GEN] Admin client created successfully");
+    } catch (adminError) {
+      console.error("[INVITE-GEN] Failed to create admin client:", adminError);
+      return NextResponse.json(
+        { error: "Server configuration error - admin client failed" },
+        { status: 500 },
+      );
+    }
     
     // Check user has membership and is not a requester
+    console.log("[INVITE-GEN] Fetching membership for user:", user.id);
     const { data: membership, error: membershipError } = await adminClient
       .from("user_memberships")
       .select("level, invite_quota_monthly, invites_used_this_month")
@@ -49,12 +60,28 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (membershipError || !membership) {
-      console.error("Membership error:", membershipError);
+      console.error("[INVITE-GEN] Membership error:", {
+        error: membershipError,
+        code: membershipError?.code,
+        message: membershipError?.message,
+        details: membershipError?.details,
+        hint: membershipError?.hint,
+        userId: user.id
+      });
       return NextResponse.json(
-        { error: "Membership not found" },
+        { 
+          error: "Membership not found",
+          details: membershipError?.message || "No membership record"
+        },
         { status: 403 },
       );
     }
+
+    console.log("[INVITE-GEN] Membership found:", {
+      level: membership.level,
+      quota: membership.invite_quota_monthly,
+      used: membership.invites_used_this_month
+    });
 
     if (membership.level === 'requester') {
       return NextResponse.json(
@@ -79,6 +106,13 @@ export async function POST(request: NextRequest) {
 
     // Create invitation using admin client
     // Non-admin users can ONLY create 'basic' level invitations
+    console.log("[INVITE-GEN] Creating invitation:", {
+      code,
+      created_by: user.id,
+      expires_at: expiresAt.toISOString(),
+      initial_level: 'basic'
+    });
+
     const { data, error } = await adminClient
       .from("invitation_codes")
       .insert({
@@ -93,21 +127,41 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error("Error creating invitation:", error);
+      console.error("[INVITE-GEN] Error creating invitation:", {
+        error,
+        code: error?.code,
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint
+      });
       return NextResponse.json(
-        { error: "Failed to create invitation" },
+        { 
+          error: "Failed to create invitation",
+          details: error?.message || "Database error",
+          code: error?.code
+        },
         { status: 500 },
       );
     }
 
+    console.log("[INVITE-GEN] Invitation created successfully:", data.id);
+
     // Increment invites_used_this_month using admin client
-    await adminClient
+    console.log("[INVITE-GEN] Incrementing quota usage");
+    const { error: quotaError } = await adminClient
       .from("user_memberships")
       .update({
         invites_used_this_month: membership.invites_used_this_month + 1,
         updated_at: new Date().toISOString(),
       })
       .eq("user_id", user.id);
+
+    if (quotaError) {
+      console.error("[INVITE-GEN] Failed to update quota:", quotaError);
+      // Don't fail the request, invitation was already created
+    } else {
+      console.log("[INVITE-GEN] Quota updated successfully");
+    }
 
     // Generate signup URLs with shorter, more robust structure
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";

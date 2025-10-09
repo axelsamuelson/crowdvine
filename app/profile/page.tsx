@@ -291,7 +291,17 @@ export default function ProfilePage() {
         fetchMembershipData();
       } else {
         const error = await res.json();
-        toast.error(error.error || "Failed to generate invitation");
+        console.error("[PROFILE] Invitation generation failed:", {
+          status: res.status,
+          error,
+          endpoint
+        });
+        
+        const errorMsg = error.details 
+          ? `${error.error}: ${error.details}` 
+          : error.error || "Failed to generate invitation";
+        
+        toast.error(errorMsg);
       }
     } catch (error) {
       toast.error("Failed to generate invitation");
@@ -352,9 +362,21 @@ export default function ProfilePage() {
         // Refresh membership data to update quota
         fetchMembershipData();
       } else {
-        toast.error("Failed to delete invitation");
+        const error = await res.json();
+        console.error("[PROFILE] Invitation deletion failed:", {
+          status: res.status,
+          error,
+          invitationId
+        });
+        
+        const errorMsg = error.details 
+          ? `${error.error}: ${error.details}` 
+          : error.error || "Failed to delete invitation";
+        
+        toast.error(errorMsg);
       }
     } catch (error) {
+      console.error("[PROFILE] Delete invitation exception:", error);
       toast.error("Failed to delete invitation");
     }
   };
