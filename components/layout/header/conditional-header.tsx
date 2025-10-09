@@ -14,8 +14,15 @@ export function ConditionalHeader({ collections }: ConditionalHeaderProps) {
   const isAccessRequestRoute = pathname === "/access-request";
   const isCheckoutSuccessRoute = pathname === "/checkout/success";
   const isLogInRoute = pathname === "/log-in";
+  const isInvitationRoute = pathname.startsWith("/i/") || pathname.startsWith("/c/");
 
-  if (isAdminRoute || isAccessRequestRoute || isCheckoutSuccessRoute || isLogInRoute) {
+  if (
+    isAdminRoute || 
+    isAccessRequestRoute || 
+    isCheckoutSuccessRoute || 
+    isLogInRoute ||
+    isInvitationRoute // Hide header on invitation signup pages
+  ) {
     return null;
   }
 

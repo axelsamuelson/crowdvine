@@ -56,6 +56,7 @@ export default function InviteSignupPage() {
   const [invitation, setInvitation] = useState<Invitation | null>(null);
   const [pallet, setPallet] = useState<Pallet | null>(null);
   const [loading, setLoading] = useState(true);
+  const [palletLoading, setPalletLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
@@ -105,6 +106,7 @@ export default function InviteSignupPage() {
 
   const fetchCurrentPallet = async () => {
     try {
+      setPalletLoading(true);
       console.log("[INVITE-PAGE] Fetching pallet data");
       const response = await fetch("/api/pallet-data");
       
@@ -112,6 +114,7 @@ export default function InviteSignupPage() {
         console.log("[INVITE-PAGE] Pallet API not available, status:", response.status);
         // Fall back to mock data
         setMockPalletData();
+        setPalletLoading(false);
         return;
       }
       
@@ -160,6 +163,8 @@ export default function InviteSignupPage() {
     } catch (error) {
       console.error("[INVITE-PAGE] Error fetching pallet:", error);
       setMockPalletData();
+    } finally {
+      setPalletLoading(false);
     }
   };
 
@@ -331,7 +336,14 @@ export default function InviteSignupPage() {
   return (
     <PageLayout>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-        <div className="max-w-2xl mx-auto px-4 py-12">
+        <div className="max-w-2xl mx-auto px-4 py-8 md:py-12">
+          {/* Logo */}
+          <div className="flex justify-center mb-8">
+            <div className="text-2xl font-bold tracking-tight text-gray-900">
+              PACT
+            </div>
+          </div>
+
           {/* Personal Intro Section */}
           <div className="text-center mb-8">
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
@@ -519,7 +531,19 @@ export default function InviteSignupPage() {
           </Card>
 
           {/* Progress Bar Section */}
-          {pallet && (
+          {palletLoading ? (
+            <div className="bg-white rounded-2xl shadow-lg p-6 mt-8 animate-pulse">
+              <div className="text-center mb-6">
+                <div className="h-5 bg-gray-200 rounded w-32 mx-auto mb-3"></div>
+                <div className="h-7 bg-gray-200 rounded w-48 mx-auto mb-3"></div>
+                <div className="h-4 bg-gray-200 rounded w-64 mx-auto"></div>
+              </div>
+              <div className="mb-4">
+                <div className="w-full bg-gray-200 rounded-full h-3"></div>
+                <div className="h-4 bg-gray-200 rounded w-24 mx-auto mt-2"></div>
+              </div>
+            </div>
+          ) : pallet ? (
             <div className="bg-white rounded-2xl shadow-lg p-6 mt-8">
               <div className="text-center mb-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -554,7 +578,7 @@ export default function InviteSignupPage() {
                 When this pallet is full, it ships to {pallet.delivery_zone?.name || 'Stockholm'}
               </p>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     </PageLayout>

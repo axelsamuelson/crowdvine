@@ -65,7 +65,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Try to create user using regular signUp (works better with triggers)
+    // CRITICAL: Pre-mark invitation with a temporary user marker
+    // This allows the trigger to read initial_level when user is created
+    console.log("[INVITE-REDEEM] Pre-marking invitation for trigger");
+    const tempUserId = crypto.randomUUID(); // Temporary marker
+    const { error: preMarkError } = await sb
+      .from("invitation_codes")
+      .update({
+        used_by: tempUserId, // Temporary - will be replaced with real user ID
+      })
+      .eq("id", invitation.id);
+
+    if (preMarkError) {
+      console.error("[INVITE-REDEEM] Failed to pre-mark invitation:", preMarkError);
+      return NextResponse.json(
+        { error: "Failed to process invitation" },
+        { status: 500 }
+      );
+    }
+
+    // Create user account - trigger will read invitation and create membership
     console.log("[INVITE-REDEEM] Creating user account via signUp");
     const { data: signUpData, error: signUpError } = await sb.auth.signUp({
       email: email.toLowerCase().trim(),
@@ -122,28 +141,34 @@ export async function POST(request: NextRequest) {
       // Don't fail - profile might already have correct data
     }
 
-    // Create membership with initial_level from invitation
+    // Membership was created by trigger - just log it
     const initialLevel = invitation.initial_level || 'basic';
-    console.log("[INVITE-REDEEM] Creating membership with level:", initialLevel);
+    console.log("[INVITE-REDEEM] Membership created by trigger with level:", initialLevel);
     
-    const { error: membershipError } = await sb.from("user_memberships").insert({
-      user_id: authData.user.id,
-      level: initialLevel,
-      total_impact_points: 0,
-      invite_quota_monthly: getQuotaForLevel(initialLevel),
-      invites_used_this_month: 0,
-      quota_reset_at: getNextMonthStart()
-    });
-
-    if (membershipError) {
-      console.error("[INVITE-REDEEM] Membership error:", membershipError);
-      return NextResponse.json(
-        { error: "Failed to create membership" },
-        { status: 500 }
-      );
+    // Wait briefly for trigger to complete
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // Verify membership was created
+    const { data: membershipCheck, error: checkError } = await sb
+      .from("user_memberships")
+      .select("level, invite_quota_monthly")
+      .eq("user_id", authData.user.id)
+      .maybeSingle();
+    
+    if (checkError || !membershipCheck) {
+      console.error("[INVITE-REDEEM] Membership not found after trigger:", checkError);
+      // Fallback: create membership manually
+      await sb.from("user_memberships").insert({
+        user_id: authData.user.id,
+        level: initialLevel,
+        total_impact_points: 0,
+        invite_quota_monthly: getQuotaForLevel(initialLevel),
+        invites_used_this_month: 0,
+        quota_reset_at: getNextMonthStart()
+      });
+    } else {
+      console.log("[INVITE-REDEEM] Membership verified:", membershipCheck);
     }
-
-    console.log("[INVITE-REDEEM] Membership created successfully");
 
     // Award +1 IP to inviter (user who created the invitation)
     if (invitation.created_by) {
@@ -162,13 +187,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Mark invitation as used
-    console.log("[INVITE-REDEEM] Marking invitation as used");
+    // Update invitation with real user ID and mark as used
+    console.log("[INVITE-REDEEM] Marking invitation as used with real user ID");
     const { error: updateError } = await sb
       .from("invitation_codes")
       .update({
         used_at: new Date().toISOString(),
-        used_by: authData.user.id,
+        used_by: authData.user.id, // Replace temp ID with real user ID
         is_active: false
       })
       .eq("id", invitation.id);
