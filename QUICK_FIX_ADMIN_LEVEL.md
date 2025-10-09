@@ -5,28 +5,29 @@ Du är inloggad som admin (profiles.role = 'admin') men din membership level är
 ## Fix: Kör detta i Supabase SQL Editor
 
 ```sql
--- 1. Hitta din user ID
-SELECT id, email, role FROM profiles WHERE email = 'admin@pactwines.com';
-
--- 2. Uppdatera din membership till admin level
+-- Set BOTH admin users to admin level
 UPDATE user_memberships 
 SET 
   level = 'admin',
   invite_quota_monthly = 999999,
   level_assigned_at = NOW(),
   updated_at = NOW()
-WHERE user_id = (SELECT id FROM profiles WHERE email = 'admin@pactwines.com');
+WHERE user_id IN (
+  SELECT id FROM auth.users 
+  WHERE email IN ('admin@pactwines.com', 'ave.samuelson@gmail.com')
+);
 
--- 3. Verifiera att det funkade
+-- Verifiera att det funkade
 SELECT 
-  p.email,
+  u.email,
   p.role as profile_role,
   m.level as membership_level,
   m.impact_points,
   m.invite_quota_monthly
 FROM user_memberships m
+JOIN auth.users u ON u.id = m.user_id
 JOIN profiles p ON p.id = m.user_id
-WHERE p.email = 'admin@pactwines.com';
+WHERE u.email IN ('admin@pactwines.com', 'ave.samuelson@gmail.com');
 ```
 
 ## Resultat

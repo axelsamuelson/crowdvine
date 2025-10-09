@@ -144,11 +144,30 @@ LEFT JOIN user_memberships m ON m.user_id = u.id;
 */
 
 -- ================================================
--- 4. ADMIN USER SETUP (Manual)
+-- 4. ADMIN USER SETUP
 -- ================================================
 
--- If you have admin users, update their level manually:
--- UPDATE user_memberships SET level = 'admin', invite_quota_monthly = 999999 WHERE user_id = 'ADMIN_USER_ID';
+-- Set admin users to admin level (based on profiles.role = 'admin')
+UPDATE user_memberships 
+SET 
+  level = 'admin',
+  invite_quota_monthly = 999999,
+  level_assigned_at = NOW(),
+  updated_at = NOW()
+WHERE user_id IN (
+  SELECT id FROM profiles WHERE role = 'admin'
+);
+
+-- Also set specific admin emails to admin level
+UPDATE user_memberships 
+SET 
+  level = 'admin',
+  invite_quota_monthly = 999999,
+  level_assigned_at = NOW(),
+  updated_at = NOW()
+WHERE user_id IN (
+  SELECT id FROM auth.users WHERE email IN ('admin@pactwines.com', 'ave.samuelson@gmail.com')
+);
 
 -- ================================================
 -- MIGRATION COMPLETE
