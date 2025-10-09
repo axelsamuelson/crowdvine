@@ -251,6 +251,23 @@ export default function ProfilePage() {
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      const res = await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+
+      if (res.ok) {
+        toast.success("Signed out successfully");
+        window.location.href = "/";
+      } else {
+        toast.error("Failed to sign out");
+      }
+    } catch (error) {
+      toast.error("Failed to sign out");
+    }
+  };
+
   const saveProfile = async () => {
     try {
       const res = await fetch("/api/user/profile", {
@@ -713,6 +730,7 @@ export default function ProfilePage() {
         {/* Account Actions */}
         <section className="pt-6 border-t border-gray-200">
           <Button
+            onClick={handleSignOut}
             variant="ghost"
             className="text-red-600 hover:text-red-700 hover:bg-red-50"
           >
