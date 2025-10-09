@@ -49,7 +49,7 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
       {/* Interactive Overlay */}
       <div className="absolute inset-0 p-2 w-full pointer-events-none">
         {/* Mobile & Desktop Default: Info overlay (always visible on mobile, hidden on desktop until hover) */}
-        <div className="flex gap-6 justify-between items-baseline px-3 py-1 w-full font-semibold transition-all duration-300 translate-y-0 group-hover:opacity-0 group-focus-visible:opacity-0 md:group-hover:-translate-y-full md:group-focus-visible:-translate-y-full">
+        <div className="flex gap-6 justify-between items-baseline px-3 py-1 w-full font-semibold transition-all duration-300 translate-y-0 md:group-hover:opacity-0 md:group-focus-visible:opacity-0 md:group-hover:-translate-y-full md:group-focus-visible:-translate-y-full">
           <div className="flex flex-col">
             <p className="text-xs md:text-sm uppercase 2xl:text-base text-balance">
               {product.title}
@@ -83,6 +83,29 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
             )}
           </div>
         </div>
+
+        {/* Mobile: Add to Cart button (shows on active/touch) */}
+        {renderInCardAddToCart && (
+          <div className="md:hidden absolute inset-0 flex items-center justify-center opacity-0 active:opacity-100 transition-opacity duration-200 pointer-events-none active:pointer-events-auto">
+            <Suspense
+              fallback={
+                <AddToCartButton
+                  product={product}
+                  iconOnly
+                  variant="default"
+                  size="lg"
+                />
+              }
+            >
+              <AddToCart
+                product={product}
+                iconOnly
+                variant="default"
+                size="lg"
+              />
+            </Suspense>
+          </div>
+        )}
 
         {/* Desktop Hover: White card with full details (only on desktop) */}
         <div className="hidden md:flex absolute inset-x-3 bottom-3 flex-col gap-8 px-2 py-3 rounded-md transition-all duration-300 pointer-events-none bg-popover opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 translate-y-1/3 group-hover:translate-y-0 group-focus-visible:translate-y-0 group-hover:pointer-events-auto group-focus-visible:pointer-events-auto">
