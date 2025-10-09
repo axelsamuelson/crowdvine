@@ -110,15 +110,17 @@ export default function ProfilePage() {
       const res = await fetch("/api/user/profile");
       if (res.ok) {
         const data = await res.json();
-        setProfile(data.profile);
-        setEditForm({
-          full_name: data.profile.full_name || "",
-          phone: data.profile.phone || "",
-          address: data.profile.address || "",
-          city: data.profile.city || "",
-          postal_code: data.profile.postal_code || "",
-          country: data.profile.country || "Sweden",
-        });
+        if (data.profile) {
+          setProfile(data.profile);
+          setEditForm({
+            full_name: data.profile.full_name || "",
+            phone: data.profile.phone || "",
+            address: data.profile.address || "",
+            city: data.profile.city || "",
+            postal_code: data.profile.postal_code || "",
+            country: data.profile.country || "Sweden",
+          });
+        }
       }
     } catch (error) {
       console.error("Error fetching profile:", error);

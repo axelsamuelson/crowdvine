@@ -26,15 +26,34 @@ export async function GET(request: Request) {
     // Get impact point events for user
     const { data: events, error, count } = await sb
       .from('impact_point_events')
-      .select('*, profiles!related_user_id(full_name, email)', { count: 'exact' })
+      .select('*', { count: 'exact' })
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (error) throw error;
 
+    // Enrich events with related user info if needed
+    const enrichedEvents = await Promise.all(
+      (events || []).map(async (event) => {
+        if (event.related_user_id) {
+          const { data: relatedProfile } = await sb
+            .from('profiles')
+            .select('full_name, email')
+            .eq('id', event.related_user_id)
+            .single();
+          
+          return {
+            ...event,
+            profiles: relatedProfile,
+          };
+        }
+        return event;
+      })
+    );
+
     return NextResponse.json({
-      events: events || [],
+      events: enrichedEvents,
       pagination: {
         total: count || 0,
         limit,
