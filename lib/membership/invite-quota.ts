@@ -172,10 +172,17 @@ export async function checkAndResetQuotaIfNeeded(userId: string): Promise<boolea
       .from('user_memberships')
       .select('last_quota_reset')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
-    if (error) throw error;
-    if (!membership) return false;
+    if (error) {
+      console.error('Error fetching membership for quota reset:', error);
+      return false;
+    }
+    
+    if (!membership) {
+      console.warn('No membership found for user:', userId);
+      return false;
+    }
 
     const lastReset = new Date(membership.last_quota_reset);
     const currentMonth = new Date(
@@ -195,7 +202,10 @@ export async function checkAndResetQuotaIfNeeded(userId: string): Promise<boolea
         })
         .eq('user_id', userId);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Error updating quota reset:', updateError);
+        return false;
+      }
       return true;
     }
 
