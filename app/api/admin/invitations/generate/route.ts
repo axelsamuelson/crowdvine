@@ -73,6 +73,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Increment invites_used_this_month (even for admins, for tracking)
+    const { data: membership } = await sb
+      .from("user_memberships")
+      .select("invites_used_this_month")
+      .eq("user_id", user.id)
+      .single();
+
+    if (membership) {
+      await sb
+        .from("user_memberships")
+        .update({
+          invites_used_this_month: membership.invites_used_this_month + 1,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", user.id);
+    }
+
     // Generate signup URLs
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     const signupUrl = `${baseUrl}/i/${code}`;

@@ -55,6 +55,23 @@ export async function DELETE(
 
     if (error) throw error;
 
+    // Decrement invites_used_this_month to give back the quota
+    const { data: membership } = await sb
+      .from("user_memberships")
+      .select("invites_used_this_month")
+      .eq("user_id", user.id)
+      .single();
+
+    if (membership && membership.invites_used_this_month > 0) {
+      await sb
+        .from("user_memberships")
+        .update({
+          invites_used_this_month: membership.invites_used_this_month - 1,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", user.id);
+    }
+
     return NextResponse.json({
       success: true,
       message: "Invitation deactivated",

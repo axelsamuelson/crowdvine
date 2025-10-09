@@ -37,17 +37,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get user profile to verify access
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("id, email, access_granted_at")
-      .eq("id", user.id)
-      .not("access_granted_at", "is", null)
+    // Check user has membership and is not a requester
+    const { data: membership, error: membershipError } = await supabase
+      .from("user_memberships")
+      .select("level, invite_quota_monthly, invites_used_this_month")
+      .eq("user_id", user.id)
       .single();
 
-    if (profileError || !profile) {
+    if (membershipError || !membership) {
       return NextResponse.json(
-        { error: "User not found or no access granted" },
+        { error: "Membership not found" },
+        { status: 403 },
+      );
+    }
+
+    if (membership.level === 'requester') {
+      return NextResponse.json(
+        { error: "Requesters cannot generate invitations" },
+        { status: 403 },
+      );
+    }
+
+    // Check if user has available invites
+    const availableInvites = membership.invite_quota_monthly - membership.invites_used_this_month;
+    if (availableInvites <= 0) {
+      return NextResponse.json(
+        { error: "No invites remaining this month" },
         { status: 403 },
       );
     }
@@ -62,7 +77,7 @@ export async function POST(request: NextRequest) {
       .from("invitation_codes")
       .insert({
         code,
-        created_by: profile.id,
+        created_by: user.id,
         expires_at: expiresAt.toISOString(),
         max_uses: 1,
         is_active: true,
@@ -77,6 +92,15 @@ export async function POST(request: NextRequest) {
         { status: 500 },
       );
     }
+
+    // Increment invites_used_this_month
+    await supabase
+      .from("user_memberships")
+      .update({
+        invites_used_this_month: membership.invites_used_this_month + 1,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", user.id);
 
     // Generate signup URLs with shorter, more robust structure
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";

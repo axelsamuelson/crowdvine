@@ -77,11 +77,22 @@ export async function consumeInviteQuota(userId: string): Promise<{
       };
     }
 
+    // Get current count first, then increment
+    const { data: current, error: fetchError } = await sb
+      .from('user_memberships')
+      .select('invites_used_this_month, invite_quota_monthly')
+      .eq('user_id', userId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
     // Increment used count
+    const newUsedCount = current.invites_used_this_month + 1;
+    
     const { data, error } = await sb
       .from('user_memberships')
       .update({
-        invites_used_this_month: sb.rpc('increment', { column: 'invites_used_this_month' }),
+        invites_used_this_month: newUsedCount,
         updated_at: new Date().toISOString(),
       })
       .eq('user_id', userId)
