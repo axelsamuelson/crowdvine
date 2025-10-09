@@ -78,6 +78,7 @@ export async function POST(request: NextRequest) {
     expiresAt.setDate(expiresAt.getDate() + expiresInDays);
 
     // Create invitation using admin client
+    // Non-admin users can ONLY create 'basic' level invitations
     const { data, error } = await adminClient
       .from("invitation_codes")
       .insert({
@@ -86,6 +87,7 @@ export async function POST(request: NextRequest) {
         expires_at: expiresAt.toISOString(),
         max_uses: 1,
         is_active: true,
+        initial_level: 'basic', // Non-admins always create Basic invites
       })
       .select()
       .single();
@@ -124,6 +126,7 @@ export async function POST(request: NextRequest) {
         codeSignupUrl,
         expiresAt: data.expires_at,
         maxUses: data.max_uses,
+        initialLevel: data.initial_level, // Always 'basic' for non-admins
       },
     });
   } catch (error) {

@@ -647,7 +647,7 @@ export default function ProfilePage() {
               resetsIn={resetsIn}
             />
 
-            {/* Admin: Level Selector */}
+            {/* Admin: Level Selector (Only admins can choose level) */}
             {membershipData.membership.level === 'admin' && (
               <div className="space-y-2">
                 <Label className="text-xs text-gray-600">Start Level for New Invite</Label>
@@ -662,6 +662,18 @@ export default function ProfilePage() {
                     <SelectItem value="guld">Guld (35+ IP)</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-gray-500">
+                  Choose which level the invitee will start at
+                </p>
+              </div>
+            )}
+
+            {/* Non-Admin: Info text */}
+            {membershipData.membership.level !== 'admin' && (
+              <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                <p className="text-xs text-blue-800">
+                  <strong>Your invitations start at Basic level.</strong> When your friends join and earn Impact Points, they'll progress naturally through the levels.
+                </p>
               </div>
             )}
 
@@ -678,7 +690,7 @@ export default function ProfilePage() {
               )}
               {membershipData.membership.level === 'admin' 
                 ? `Generate ${selectedLevel.charAt(0).toUpperCase() + selectedLevel.slice(1)} Invite`
-                : 'Generate Invite Link'}
+                : 'Generate Basic Invite'}
             </Button>
 
             {/* Active Invitations List */}
@@ -693,8 +705,8 @@ export default function ProfilePage() {
 
                 {invitations.map((inv) => (
                   <div key={inv.id} className="p-4 bg-gray-50 rounded-xl border border-gray-200/50 space-y-3">
-                    {/* Show initial level if admin */}
-                    {inv.initialLevel && membershipData.membership.level === 'admin' && (
+                    {/* Show initial level badge */}
+                    {inv.initialLevel && (
                       <div className="flex items-center gap-2">
                         <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-md font-medium">
                           {inv.initialLevel.charAt(0).toUpperCase() + inv.initialLevel.slice(1)} Level
