@@ -48,24 +48,25 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
 
       {/* Interactive Overlay */}
       <div className="absolute inset-0 p-2 w-full pointer-events-none">
-        <div className="flex gap-6 justify-between items-baseline px-3 py-1 w-full font-semibold transition-all duration-300 translate-y-0 max-md:hidden group-hover:opacity-0 group-focus-visible:opacity-0 group-hover:-translate-y-full group-focus-visible:-translate-y-full">
+        {/* Mobile & Desktop Default: Info overlay (always visible on mobile, hidden on desktop until hover) */}
+        <div className="flex gap-6 justify-between items-baseline px-3 py-1 w-full font-semibold transition-all duration-300 translate-y-0 group-hover:opacity-0 group-focus-visible:opacity-0 md:group-hover:-translate-y-full md:group-focus-visible:-translate-y-full">
           <div className="flex flex-col">
-            <p className="text-sm uppercase 2xl:text-base text-balance">
+            <p className="text-xs md:text-sm uppercase 2xl:text-base text-balance">
               {product.title}
             </p>
             {product.producerName && (
-              <p className="text-xs text-muted-foreground font-normal">
+              <p className="text-[10px] md:text-xs text-muted-foreground font-normal">
                 {product.producerName}
               </p>
             )}
           </div>
-          <div className="flex gap-2 items-center text-sm uppercase 2xl:text-base">
+          <div className="flex gap-2 items-center text-xs md:text-sm uppercase 2xl:text-base">
             {formatPrice(
               product.priceRange.minVariantPrice.amount,
               product.priceRange.minVariantPrice.currencyCode,
             )}
             {isWineBox && discountInfo && (
-              <span className="line-through opacity-30 text-xs">
+              <span className="line-through opacity-30 text-[10px] md:text-xs">
                 {formatPrice(
                   Math.round(discountInfo.totalWinePrice).toString(),
                   product.priceRange.minVariantPrice.currencyCode,
@@ -73,7 +74,7 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
               </span>
             )}
             {product.compareAtPrice && !isWineBox && (
-              <span className="line-through opacity-30">
+              <span className="line-through opacity-30 text-[10px] md:text-xs">
                 {formatPrice(
                   product.compareAtPrice.amount,
                   product.compareAtPrice.currencyCode,
@@ -83,7 +84,8 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
           </div>
         </div>
 
-        <div className="flex absolute inset-x-3 bottom-3 flex-col gap-8 px-2 py-3 rounded-md transition-all duration-300 pointer-events-none bg-popover md:opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 md:translate-y-1/3 group-hover:translate-y-0 group-focus-visible:translate-y-0 group-hover:pointer-events-auto group-focus-visible:pointer-events-auto max-md:pointer-events-auto">
+        {/* Desktop Hover: White card with full details (only on desktop) */}
+        <div className="hidden md:flex absolute inset-x-3 bottom-3 flex-col gap-8 px-2 py-3 rounded-md transition-all duration-300 pointer-events-none bg-popover opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 translate-y-1/3 group-hover:translate-y-0 group-focus-visible:translate-y-0 group-hover:pointer-events-auto group-focus-visible:pointer-events-auto">
           <div className="grid grid-cols-2 gap-x-4 gap-y-8 items-end">
             <div className="flex flex-col">
               <p className="text-lg font-semibold text-pretty">
