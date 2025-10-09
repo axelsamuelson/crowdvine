@@ -65,59 +65,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Manual creation approach - create profile and membership BEFORE auth user
-    // This prevents trigger conflicts
+    // OPTION B: Let triggers work, then update to correct level
     const initialLevel = invitation.initial_level || 'basic';
-    const newUserId = crypto.randomUUID();
     
-    console.log("[INVITE-REDEEM] Creating user manually (Step 1: Profile)");
-    const { error: profileCreateError } = await sb.from("profiles").insert({
-      id: newUserId,
-      email: email.toLowerCase().trim(),
-      full_name: full_name,
-      role: 'user'
-    });
-
-    if (profileCreateError) {
-      console.error("[INVITE-REDEEM] Profile creation error:", profileCreateError);
-      
-      // Check if user already exists
-      if (profileCreateError.code === '23505') {
-        return NextResponse.json(
-          { error: "An account with this email already exists. Please sign in instead." },
-          { status: 400 }
-        );
-      }
-      
-      return NextResponse.json(
-        { error: "Failed to create profile" },
-        { status: 500 }
-      );
-    }
-
-    console.log("[INVITE-REDEEM] Creating user manually (Step 2: Membership)");
-    const { error: membershipCreateError } = await sb.from("user_memberships").insert({
-      user_id: newUserId,
-      level: initialLevel,
-      total_impact_points: 0,
-      invite_quota_monthly: getQuotaForLevel(initialLevel),
-      invites_used_this_month: 0,
-      quota_reset_at: getNextMonthStart()
-    });
-
-    if (membershipCreateError) {
-      console.error("[INVITE-REDEEM] Membership creation error:", membershipCreateError);
-      // Clean up profile
-      await sb.from("profiles").delete().eq("id", newUserId);
-      return NextResponse.json(
-        { error: "Failed to create membership" },
-        { status: 500 }
-      );
-    }
-
-    console.log("[INVITE-REDEEM] Creating user manually (Step 3: Auth User)");
+    console.log("[INVITE-REDEEM] Step 1: Creating auth user with admin.createUser");
+    console.log("[INVITE-REDEEM] This will trigger automatic profile and membership creation");
+    
     const { data: createUserData, error: createUserError } = await sb.auth.admin.createUser({
-      id: newUserId,
       email: email.toLowerCase().trim(),
       password: password,
       email_confirm: true,
@@ -127,18 +81,94 @@ export async function POST(request: NextRequest) {
     });
 
     if (createUserError) {
-      console.error("[INVITE-REDEEM] Auth user creation error:", createUserError);
-      // Clean up profile and membership
-      await sb.from("user_memberships").delete().eq("user_id", newUserId);
-      await sb.from("profiles").delete().eq("id", newUserId);
+      console.error("[INVITE-REDEEM] admin.createUser failed:", {
+        error: createUserError,
+        code: createUserError.code,
+        message: createUserError.message,
+        status: createUserError.status
+      });
+      
+      // Check for duplicate user
+      if (createUserError.message?.includes('already') || createUserError.code === '23505') {
+        return NextResponse.json(
+          { error: "An account with this email already exists. Please sign in instead." },
+          { status: 400 }
+        );
+      }
+      
       return NextResponse.json(
-        { error: "Failed to create auth user" },
+        { 
+          error: "Failed to create account",
+          details: createUserError.message 
+        },
+        { status: 500 }
+      );
+    }
+
+    if (!createUserData?.user) {
+      console.error("[INVITE-REDEEM] No user returned from admin.createUser");
+      return NextResponse.json(
+        { error: "Failed to create account - no user returned" },
         { status: 500 }
       );
     }
 
     const authData = createUserData;
-    console.log("[INVITE-REDEEM] User, profile, and membership created successfully:", newUserId);
+    const userId = authData.user.id;
+    console.log("[INVITE-REDEEM] User created by admin.createUser:", userId);
+    
+    // Step 2: Wait for triggers to complete
+    console.log("[INVITE-REDEEM] Step 2: Waiting for triggers to complete");
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    // Step 3: Update profile with full_name (trigger might not have set it)
+    console.log("[INVITE-REDEEM] Step 3: Updating profile with full_name");
+    await sb.from("profiles").update({
+      full_name: full_name
+    }).eq("id", userId);
+    
+    // Step 4: Update membership to correct initial_level from invitation
+    console.log("[INVITE-REDEEM] Step 4: Updating membership to level:", initialLevel);
+    const { data: membershipUpdate, error: membershipUpdateError } = await sb
+      .from("user_memberships")
+      .update({
+        level: initialLevel,
+        invite_quota_monthly: getQuotaForLevel(initialLevel)
+      })
+      .eq("user_id", userId)
+      .select()
+      .maybeSingle();
+    
+    if (membershipUpdateError) {
+      console.error("[INVITE-REDEEM] Membership update failed:", membershipUpdateError);
+      console.log("[INVITE-REDEEM] Attempting to create membership manually");
+      
+      // Fallback: Create membership if it doesn't exist
+      const { error: membershipInsertError } = await sb.from("user_memberships").insert({
+        user_id: userId,
+        level: initialLevel,
+        total_impact_points: 0,
+        invite_quota_monthly: getQuotaForLevel(initialLevel),
+        invites_used_this_month: 0,
+        quota_reset_at: getNextMonthStart()
+      });
+      
+      if (membershipInsertError) {
+        console.error("[INVITE-REDEEM] Membership insert also failed:", membershipInsertError);
+        return NextResponse.json(
+          { 
+            error: "Failed to create membership",
+            details: membershipInsertError.message,
+            code: membershipInsertError.code
+          },
+          { status: 500 }
+        );
+      }
+      
+      console.log("[INVITE-REDEEM] Membership created manually");
+    } else {
+      console.log("[INVITE-REDEEM] Membership updated successfully:", membershipUpdate);
+    }
 
     // Award +1 IP to inviter (user who created the invitation)
     if (invitation.created_by) {
