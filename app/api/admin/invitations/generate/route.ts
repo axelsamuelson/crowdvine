@@ -33,7 +33,6 @@ export async function POST(request: NextRequest) {
       expiresInDays = 30, 
       initialLevel = 'basic',
       maxUses = 1,
-      email = null,
     } = body;
 
     // Validate initial level
@@ -60,7 +59,7 @@ export async function POST(request: NextRequest) {
         max_uses: maxUses,
         is_active: true,
         initial_level: initialLevel,
-        email,
+        // Note: 'email' column removed - not part of invitation_codes schema
       })
       .select()
       .single();
