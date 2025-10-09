@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
       .from("user_memberships")
       .update({
         invites_used_this_month: membership.invites_used_this_month + 1,
-        updated_at: new Date().toISOString(),
+        // updated_at will be handled by trigger if it exists
       })
       .eq("user_id", user.id);
 
