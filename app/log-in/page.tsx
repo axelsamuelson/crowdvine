@@ -123,10 +123,9 @@ export default function LogInPage() {
   return (
     <div className="p-inset h-[100dvh] w-full">
       <div className="relative h-full w-full">
-        <Background
-          src="https://cdn.pixabay.com/video/2022/10/19/135643-762117669_large.mp4"
-          placeholder="/alt-placeholder.png"
-        />
+          <Background
+            src="https://cdn.pixabay.com/video/2022/10/19/135643-762117669_large.mp4"
+          />
 
         <div className="flex overflow-hidden relative flex-col gap-4 justify-center items-center w-full h-full max-w-md mx-auto z-10">
           {/* Logo */}

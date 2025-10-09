@@ -95,7 +95,6 @@ export function AccessRequestClient() {
         <div className="relative h-full w-full">
           <Background
             src="https://cdn.pixabay.com/video/2022/10/19/135643-762117669_large.mp4"
-            placeholder="/alt-placeholder.png"
           />
           <div className="flex overflow-hidden relative flex-col gap-3 sm:gap-4 justify-center items-center w-full h-full max-w-4xl mx-auto z-10 px-2 sm:px-4">
             <motion.div
