@@ -105,21 +105,26 @@ export default function InviteSignupPage() {
 
   const fetchCurrentPallet = async () => {
     try {
+      console.log("[INVITE-PAGE] Fetching pallet data");
       const response = await fetch("/api/pallet-data");
       
       if (!response.ok) {
-        console.log("Pallet API not available");
-        setLoading(false);
+        console.log("[INVITE-PAGE] Pallet API not available, status:", response.status);
+        // Fall back to mock data
+        setMockPalletData();
         return;
       }
       
       const pallets = await response.json();
+      console.log("[INVITE-PAGE] Received pallets:", pallets?.length || 0);
       
       if (pallets && pallets.length > 0) {
         // Get the most filled OPEN pallet
         const openPallets = pallets.filter((p: any) => 
           p.status === 'placed' || p.status === 'pending' || p.status === 'confirmed'
         );
+        
+        console.log("[INVITE-PAGE] Open pallets found:", openPallets.length);
         
         if (openPallets.length > 0) {
           // Sort by fill percentage (descending)
@@ -130,6 +135,7 @@ export default function InviteSignupPage() {
           });
           
           const mostFilledPallet = sortedPallets[0];
+          console.log("[INVITE-PAGE] Most filled pallet:", mostFilledPallet.from_zone_name, "to", mostFilledPallet.to_zone_name);
           
           setPallet({
             id: mostFilledPallet.id,
@@ -143,12 +149,17 @@ export default function InviteSignupPage() {
             delivery_zone: { name: mostFilledPallet.to_zone_name },
             pickup_zone: { name: mostFilledPallet.from_zone_name }
           });
+        } else {
+          console.log("[INVITE-PAGE] No open pallets, using mock data");
+          setMockPalletData();
         }
+      } else {
+        console.log("[INVITE-PAGE] No pallets returned, using mock data");
+        setMockPalletData();
       }
-      setLoading(false);
     } catch (error) {
-      console.error("Error fetching pallet:", error);
-      setLoading(false);
+      console.error("[INVITE-PAGE] Error fetching pallet:", error);
+      setMockPalletData();
     }
   };
 
@@ -335,32 +346,79 @@ export default function InviteSignupPage() {
           </div>
 
           {/* Membership Level Info */}
-          {invitation.initial_level && invitation.initial_level !== 'basic' && (
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 mb-8 border border-blue-200">
-              <div className="text-center">
-                <div className="inline-block px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-semibold mb-3">
+          {invitation.initial_level && (
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-8 mb-8 border border-blue-200/50 shadow-sm">
+              <div className="flex flex-col items-center text-center">
+                {/* Circle Badge with Icon */}
+                <div className="relative mb-4">
+                  <div className={`w-24 h-24 rounded-full flex items-center justify-center shadow-lg ${
+                    invitation.initial_level === 'guld' ? 'bg-gradient-to-br from-yellow-400 via-yellow-500 to-yellow-600' :
+                    invitation.initial_level === 'silver' ? 'bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500' :
+                    invitation.initial_level === 'brons' ? 'bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600' :
+                    'bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600'
+                  }`}>
+                    <UserPlus className="w-12 h-12 text-white" />
+                  </div>
+                  {/* Ring decoration */}
+                  <div className={`absolute inset-0 rounded-full border-4 ${
+                    invitation.initial_level === 'guld' ? 'border-yellow-300' :
+                    invitation.initial_level === 'silver' ? 'border-gray-300' :
+                    invitation.initial_level === 'brons' ? 'border-orange-300' :
+                    'border-blue-300'
+                  } opacity-30 scale-110`}></div>
+                </div>
+
+                {/* Membership Level Text */}
+                <div className={`inline-block px-4 py-1.5 rounded-full text-sm font-bold mb-3 ${
+                  invitation.initial_level === 'guld' ? 'bg-yellow-600 text-white' :
+                  invitation.initial_level === 'silver' ? 'bg-gray-600 text-white' :
+                  invitation.initial_level === 'brons' ? 'bg-orange-600 text-white' :
+                  'bg-blue-600 text-white'
+                }`}>
                   {invitation.initial_level.charAt(0).toUpperCase() + invitation.initial_level.slice(1)} Membership
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">
+
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
                   You're joining as a {invitation.initial_level.charAt(0).toUpperCase() + invitation.initial_level.slice(1)} member!
                 </h3>
-                <p className="text-sm text-gray-600 mb-4">
+
+                <p className="text-sm text-gray-600 mb-5 max-w-md">
                   {invitation.initial_level === 'guld' && 'Top-tier access with maximum invite quota and exclusive perks'}
                   {invitation.initial_level === 'silver' && 'Trusted member status with early access to drops and priority shipping'}
                   {invitation.initial_level === 'brons' && 'Active member with increased invite quota and queue priority'}
+                  {invitation.initial_level === 'basic' && 'Start your PACT journey and earn Impact Points to unlock higher tiers'}
                 </p>
-                <div className="flex justify-center gap-4 text-xs text-gray-700">
-                  <div className="flex items-center gap-1">
-                    <span className="font-semibold">Invite Quota:</span>
-                    {invitation.initial_level === 'guld' && '50/month'}
-                    {invitation.initial_level === 'silver' && '12/month'}
-                    {invitation.initial_level === 'brons' && '5/month'}
+
+                {/* Perks Grid */}
+                <div className="flex flex-wrap justify-center gap-3 text-xs">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/60 rounded-full">
+                    <span className="font-semibold text-gray-700">Invite Quota:</span>
+                    <span className="font-bold text-gray-900">
+                      {invitation.initial_level === 'guld' && '50/month'}
+                      {invitation.initial_level === 'silver' && '12/month'}
+                      {invitation.initial_level === 'brons' && '5/month'}
+                      {invitation.initial_level === 'basic' && '2/month'}
+                    </span>
                   </div>
-                  {invitation.initial_level !== 'brons' && (
-                    <div className="flex items-center gap-1">
-                      <span className="font-semibold">•</span>
-                      {invitation.initial_level === 'guld' && 'Fee Waived'}
-                      {invitation.initial_level === 'silver' && 'Fee Cap'}
+                  
+                  {invitation.initial_level === 'guld' && (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/60 rounded-full">
+                      <span className="font-semibold text-gray-700">Fees:</span>
+                      <span className="font-bold text-green-600">Waived</span>
+                    </div>
+                  )}
+                  
+                  {invitation.initial_level === 'silver' && (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/60 rounded-full">
+                      <span className="font-semibold text-gray-700">Fee:</span>
+                      <span className="font-bold text-blue-600">Capped</span>
+                    </div>
+                  )}
+                  
+                  {(invitation.initial_level === 'silver' || invitation.initial_level === 'guld') && (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/60 rounded-full">
+                      <span className="font-semibold text-gray-700">Access:</span>
+                      <span className="font-bold text-purple-600">Early Drops</span>
                     </div>
                   )}
                 </div>

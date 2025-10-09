@@ -65,6 +65,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if user already exists
+    console.log("[INVITE-REDEEM] Checking if user exists");
+    const { data: existingUser } = await sb.auth.admin.listUsers();
+    const userExists = existingUser?.users?.some(u => u.email === email.toLowerCase().trim());
+    
+    if (userExists) {
+      console.log("[INVITE-REDEEM] User already exists");
+      return NextResponse.json(
+        { error: "An account with this email already exists. Please sign in instead." },
+        { status: 400 }
+      );
+    }
+
     // Create user account
     console.log("[INVITE-REDEEM] Creating user account");
     const { data: authData, error: authError } = await sb.auth.admin.createUser({
@@ -77,10 +90,20 @@ export async function POST(request: NextRequest) {
     });
 
     if (authError) {
-      console.error("[INVITE-REDEEM] Auth error:", authError);
+      console.error("[INVITE-REDEEM] Auth error:", {
+        error: authError,
+        message: authError.message,
+        status: authError.status,
+        code: authError.code
+      });
+      
+      const errorMsg = authError.message?.includes('already registered')
+        ? "An account with this email already exists. Please sign in instead."
+        : authError.message || "Failed to create account";
+      
       return NextResponse.json(
-        { error: authError.message || "Failed to create account" },
-        { status: 500 }
+        { error: errorMsg },
+        { status: 400 }
       );
     }
 
