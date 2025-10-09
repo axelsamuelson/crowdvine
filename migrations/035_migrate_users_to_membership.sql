@@ -24,7 +24,7 @@ SELECT
   -- Calculate level based on invitation activity
   get_level_from_points(
     COALESCE(
-      (SELECT COUNT(*) 
+      (SELECT COUNT(*)::INTEGER 
        FROM invitation_codes 
        WHERE created_by = u.id 
        AND used_at IS NOT NULL), 
@@ -35,7 +35,7 @@ SELECT
   -- Calculate initial IP: +1 per accepted invitation
   -- (We'll estimate +2 for reservations manually if needed)
   COALESCE(
-    (SELECT COUNT(*) 
+    (SELECT COUNT(*)::INTEGER 
      FROM invitation_codes 
      WHERE created_by = u.id 
      AND used_at IS NOT NULL), 
@@ -46,7 +46,7 @@ SELECT
   get_invite_quota_for_level(
     get_level_from_points(
       COALESCE(
-        (SELECT COUNT(*) 
+        (SELECT COUNT(*)::INTEGER 
          FROM invitation_codes 
          WHERE created_by = u.id 
          AND used_at IS NOT NULL), 
@@ -57,7 +57,7 @@ SELECT
   
   -- Calculate current month invite usage
   COALESCE(
-    (SELECT COUNT(*) 
+    (SELECT COUNT(*)::INTEGER 
      FROM invitation_codes 
      WHERE created_by = u.id 
      AND created_at >= DATE_TRUNC('month', NOW())),
