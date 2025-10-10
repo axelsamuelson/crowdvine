@@ -157,8 +157,7 @@ function CheckoutContent() {
         // Check if profile has complete address information
         const hasCompleteAddress =
           profileData.address && profileData.city && profileData.postal_code;
-        setUseProfileAddress(hasCompleteAddress);
-        setUseCustomAddress(!hasCompleteAddress);
+        // Address states removed - always use profile address
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
@@ -191,7 +190,7 @@ function CheckoutContent() {
     try {
       let deliveryAddress;
 
-      if (useProfileAddress && profile) {
+      if (profile && profile.address && profile.city && profile.postal_code) {
         deliveryAddress = {
           postcode: profile.postal_code || "",
           city: profile.city || "",
@@ -211,12 +210,6 @@ function CheckoutContent() {
                         : profile.country === "United Kingdom"
                           ? "GB"
                           : "",
-        };
-      } else if (false) { // Custom address disabled
-        deliveryAddress = {
-          postcode: customAddress.postcode,
-          city: customAddress.city,
-          countryCode: customAddress.countryCode,
         };
       } else {
         // Fallback: Use Stockholm as default address when no address is provided
@@ -311,8 +304,7 @@ function CheckoutContent() {
 
   const handleProfileSaved = (updatedProfile: UserProfile) => {
     setProfile(updatedProfile);
-    setUseProfileAddress(true);
-    setUseCustomAddress(false);
+    // Profile address is now the only source
     toast.success("Profile information saved!");
   };
 
@@ -379,12 +371,8 @@ function CheckoutContent() {
                       ? "GB"
                       : "",
       );
-    } else {
-      formData.append("street", customAddress.street);
-      formData.append("postcode", customAddress.postcode);
-      formData.append("city", customAddress.city);
-      formData.append("countryCode", customAddress.countryCode);
     }
+    // Note: If no profile, form validation will catch missing address
 
     // Zone information
     if (zoneInfo.selectedDeliveryZoneId) {
@@ -627,80 +615,6 @@ function CheckoutContent() {
                         </Button>
                       }
                     />
-                  </div>
-                </div>
-              )}
-
-              {false && (
-                <div className="space-y-4 pt-4 border-t">
-                  <div>
-                    <Label htmlFor="customStreet">Street Address</Label>
-                    <Input
-                      id="customStreet"
-                      value={customAddress.street}
-                      onChange={(e) =>
-                        setCustomAddress({
-                          ...customAddress,
-                          street: e.target.value,
-                        })
-                      }
-                      placeholder="Enter street address"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="customPostcode">Postal Code</Label>
-                      <Input
-                        id="customPostcode"
-                        value={customAddress.postcode}
-                        onChange={(e) =>
-                          setCustomAddress({
-                            ...customAddress,
-                            postcode: e.target.value,
-                          })
-                        }
-                        placeholder="Enter postal code"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="customCity">City</Label>
-                      <Input
-                        id="customCity"
-                        value={customAddress.city}
-                        onChange={(e) =>
-                          setCustomAddress({
-                            ...customAddress,
-                            city: e.target.value,
-                          })
-                        }
-                        placeholder="Enter city"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="customCountry">Country</Label>
-                    <Select
-                      value={customAddress.countryCode}
-                      onValueChange={(value) =>
-                        setCustomAddress({
-                          ...customAddress,
-                          countryCode: value,
-                        })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select country" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="SE">Sweden</SelectItem>
-                        <SelectItem value="NO">Norway</SelectItem>
-                        <SelectItem value="DK">Denmark</SelectItem>
-                        <SelectItem value="FI">Finland</SelectItem>
-                        <SelectItem value="DE">Germany</SelectItem>
-                        <SelectItem value="FR">France</SelectItem>
-                        <SelectItem value="GB">United Kingdom</SelectItem>
-                      </SelectContent>
-                    </Select>
                   </div>
                 </div>
               )}
