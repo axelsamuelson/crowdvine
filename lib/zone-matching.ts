@@ -284,8 +284,15 @@ export async function determineZones(
 
             // Get pallets that match the zones
             const pallets: PalletInfo[] = [];
+            
+            // Check if we have both zones needed for pallet matching
+            if (!pickupZoneId) {
+              console.warn("⚠️ No pickup zone found. Producer may not have pickup_zone_id set.");
+              console.warn("⚠️ Cannot create/find pallets without pickup zone.");
+            }
+            
             if (pickupZoneId && deliveryZoneId) {
-              const { data: matchingPallets, error: palletsError } = await sb
+              let { data: matchingPallets, error: palletsError } = await sb
                 .from("pallets")
                 .select(
                   `
@@ -299,6 +306,34 @@ export async function determineZones(
                 )
                 .eq("pickup_zone_id", pickupZoneId)
                 .eq("delivery_zone_id", deliveryZoneId);
+
+              console.log("🚚 Matching pallets found:", matchingPallets?.length || 0);
+
+              // If no pallet exists, create a new one automatically
+              if (!palletsError && (!matchingPallets || matchingPallets.length === 0)) {
+                console.log("🆕 No pallet exists for this route. Creating new pallet...");
+                
+                const newPalletName = `${pickupZoneName} to ${deliveryZoneName}`;
+                const { data: newPallet, error: createError } = await sb
+                  .from("pallets")
+                  .insert({
+                    name: newPalletName,
+                    pickup_zone_id: pickupZoneId,
+                    delivery_zone_id: deliveryZoneId,
+                    bottle_capacity: 720, // Standard pallet capacity
+                    cost_cents: 50000, // Default 500 SEK, can be updated later
+                    status: 'open',
+                  })
+                  .select()
+                  .single();
+
+                if (createError) {
+                  console.error("❌ Failed to create new pallet:", createError);
+                } else if (newPallet) {
+                  console.log("✅ Created new pallet:", newPallet.id, newPalletName);
+                  matchingPallets = [newPallet];
+                }
+              }
 
               if (!palletsError && matchingPallets) {
                 // Get current bottle count for each pallet
