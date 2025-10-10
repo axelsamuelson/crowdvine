@@ -84,6 +84,7 @@ function CheckoutContent() {
   const [useRewards, setUseRewards] = useState(false);
   const [zoneInfo, setZoneInfo] = useState<{
     pickupZone: string | null;
+    pickupZoneId?: string | null;
     deliveryZone: string | null;
     selectedDeliveryZoneId: string | null;
     availableDeliveryZones?: Array<{
@@ -101,6 +102,7 @@ function CheckoutContent() {
       remainingBottles: number;
       pickupZoneName: string;
       deliveryZoneName: string;
+      costCents: number;
     }>;
     usingFallbackAddress?: boolean;
   }>({ pickupZone: null, deliveryZone: null, selectedDeliveryZoneId: null });
@@ -254,6 +256,9 @@ function CheckoutContent() {
           hasCompleteAddress,
           deliveryAddress,
           isUsingFallback,
+          pickupZone: zoneData.pickupZoneName,
+          deliveryZone: zoneData.deliveryZoneName,
+          pallets: zoneData.pallets,
         });
 
         // Auto-select the best delivery zone (closest/smallest radius)
@@ -277,8 +282,17 @@ function CheckoutContent() {
           console.log(`🎯 Auto-selected pallet: ${autoSelectedPallet.name} (${autoSelectedPallet.currentBottles} bottles reserved)`);
         }
 
+        console.log("📦 Setting zone info:", {
+          pickupZone: zoneData.pickupZoneName,
+          pickupZoneId: zoneData.pickupZoneId,
+          deliveryZone: selectedDeliveryZoneName,
+          selectedDeliveryZoneId,
+          pallets: zoneData.pallets?.length || 0,
+        });
+
         setZoneInfo({
           pickupZone: zoneData.pickupZoneName,
+          pickupZoneId: zoneData.pickupZoneId,
           deliveryZone: selectedDeliveryZoneName,
           selectedDeliveryZoneId: selectedDeliveryZoneId,
           availableDeliveryZones: zoneData.availableDeliveryZones || [],
