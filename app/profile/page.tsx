@@ -425,10 +425,10 @@ export default function ProfilePage() {
 
   return (
     <PageLayout>
-      <div className="max-w-6xl mx-auto space-y-8 md:space-y-12">
+      <div className="max-w-6xl mx-auto space-y-6 md:space-y-8 lg:space-y-12 p-sides">
         
         {/* MEMBERSHIP STATUS HERO */}
-        <section className="bg-white rounded-2xl border border-gray-200 p-6 md:p-10 shadow-sm">
+        <section className="bg-white rounded-2xl border border-gray-200 p-4 md:p-10 shadow-sm">
           <div className="flex flex-col md:flex-row items-center gap-8">
             {/* Level Badge */}
             <LevelBadge 
@@ -480,17 +480,17 @@ export default function ProfilePage() {
         </section>
 
         {/* TWO COLUMN LAYOUT: Personal Info + Payment Methods */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
           {/* Personal Information */}
           <section className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg md:text-xl font-light text-gray-900">Personal Information</h2>
+              <h2 className="text-base md:text-lg lg:text-xl font-light text-gray-900">Personal Information</h2>
               {!editing ? (
                 <Button
                   onClick={() => setEditing(true)}
                   variant="ghost"
                   size="sm"
-                  className="text-gray-600 hover:text-gray-900"
+                  className="text-gray-600 hover:text-gray-900 min-h-[44px] md:h-auto"
                 >
                   <Edit className="w-4 h-4 mr-2" />
                   Edit
@@ -516,7 +516,7 @@ export default function ProfilePage() {
               )}
             </div>
 
-            <div className="bg-white rounded-xl border border-gray-200/50 p-6 shadow-sm">
+            <div className="bg-white rounded-xl border border-gray-200/50 p-4 md:p-6 shadow-sm">
               {editing ? (
                 <div className="space-y-4">
                   <div>
@@ -615,8 +615,8 @@ export default function ProfilePage() {
 
           {/* Payment Methods */}
           <section className="space-y-4">
-            <h2 className="text-lg md:text-xl font-light text-gray-900">Payment Methods</h2>
-            <div className="bg-white rounded-xl border border-gray-200/50 p-6 shadow-sm">
+            <h2 className="text-base md:text-lg lg:text-xl font-light text-gray-900">Payment Methods</h2>
+            <div className="bg-white rounded-xl border border-gray-200/50 p-4 md:p-6 shadow-sm">
               {paymentMethods.length === 0 ? (
                 <div className="text-center py-8">
                   <div className="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-4">
@@ -671,7 +671,7 @@ export default function ProfilePage() {
 
         {/* YOUR PERKS */}
         <section className="space-y-4">
-          <h2 className="text-lg md:text-xl font-light text-gray-900">Your Perks</h2>
+          <h2 className="text-base md:text-lg lg:text-xl font-light text-gray-900">Your Perks</h2>
           <PerksGrid perks={membershipData.perks} />
         </section>
 
@@ -679,12 +679,12 @@ export default function ProfilePage() {
         <section className="space-y-4">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-lg md:text-xl font-light text-gray-900">Invite Friends</h2>
+              <h2 className="text-base md:text-lg lg:text-xl font-light text-gray-900">Invite Friends</h2>
               <p className="text-sm text-gray-500 mt-0.5">Share PACT, earn Impact Points</p>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200/50 p-6 shadow-sm space-y-6">
+          <div className="bg-white rounded-xl border border-gray-200/50 p-4 md:p-6 shadow-sm space-y-6">
             {/* Invite Quota */}
             <InviteQuotaDisplay
               available={membershipData.invites.available}
@@ -789,7 +789,7 @@ export default function ProfilePage() {
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           <p className="text-xs text-gray-500 mb-1">Link</p>
-                          <code className="text-xs text-gray-700 block whitespace-nowrap overflow-x-auto">{inv.signupUrl}</code>
+                          <code className="text-xs text-gray-700 block" style={{ whiteSpace: 'nowrap', overflowX: 'auto' }}>{inv.signupUrl}</code>
                         </div>
                         <Button
                           onClick={() => {
@@ -830,7 +830,7 @@ export default function ProfilePage() {
         {/* IMPACT POINTS TIMELINE */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg md:text-xl font-light text-gray-900">Recent Activity</h2>
+            <h2 className="text-base md:text-lg lg:text-xl font-light text-gray-900">Recent Activity</h2>
             {ipEvents.length > 0 && (
               <Link 
                 href="/profile/activity" 
@@ -840,7 +840,7 @@ export default function ProfilePage() {
               </Link>
             )}
           </div>
-          <div className="bg-white rounded-xl border border-gray-200/50 p-6 shadow-sm">
+          <div className="bg-white rounded-xl border border-gray-200/50 p-4 md:p-6 shadow-sm">
             <IPTimeline events={ipEvents} />
           </div>
         </section>
@@ -848,7 +848,7 @@ export default function ProfilePage() {
         {/* MY RESERVATIONS (Compact) */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg md:text-xl font-light text-gray-900">My Reservations</h2>
+            <h2 className="text-base md:text-lg lg:text-xl font-light text-gray-900">My Reservations</h2>
             <Link 
               href="/profile/reservations" 
               className="text-sm text-gray-600 hover:text-gray-900 transition-colors"

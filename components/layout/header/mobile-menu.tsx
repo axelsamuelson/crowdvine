@@ -8,12 +8,13 @@ import Link from "next/link";
 import { ShopLinks } from "@/components/layout/shop-links";
 import { SidebarLinks } from "@/components/layout/sidebar/product-sidebar-links";
 import { useMobileMenu } from "@/components/layout/header/mobile-menu-context";
+import { User } from "lucide-react";
 
 const navItems = [
+  { href: "/profile", label: "Profile", icon: User },
   { href: "/", label: "Home" },
   { href: "/shop", label: "Shop" },
-  { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
+  // About and Contact hidden for now
 ];
 
 export function MobileMenu({ collections }: { collections: any[] }) {
@@ -102,24 +103,14 @@ export function MobileMenu({ collections }: { collections: any[] }) {
                         asChild
                       >
                         <Link href={item.href} prefetch>
+                          {item.icon && <item.icon className="w-4 h-4 mr-2" />}
                           {item.label}
                         </Link>
                       </Button>
                     ))}
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={closeMobileMenu}
-                      className="justify-start uppercase bg-background/50"
-                      asChild
-                    >
-                      <Link href="/profile" prefetch>
-                        Profile
-                      </Link>
-                    </Button>
                   </nav>
 
-                  <ShopLinks label="Categories" collections={collections} />
+                  <ShopLinks label="Popular Producers" collections={collections} />
 
                   <div className="mt-auto mb-6 text-sm leading-tight opacity-50">
                     <p className="italic">Producers And Consumers Together</p>
