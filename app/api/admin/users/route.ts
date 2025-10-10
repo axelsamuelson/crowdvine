@@ -11,11 +11,11 @@ export async function GET(request: NextRequest) {
 
     // Use admin client to get all users with profiles
     const adminSupabase = getSupabaseAdmin();
-
+    
     // Get all users from auth.users
     const { data: authUsers, error: listUsersError } =
       await adminSupabase.auth.admin.listUsers();
-
+    
     if (listUsersError) {
       console.error("Error fetching auth users:", listUsersError);
       return NextResponse.json(
@@ -24,11 +24,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get all profiles (both with and without access)
+    // Get all profiles with membership data
     const { data: profiles, error: profilesError } = await adminSupabase
       .from("profiles")
       .select(
-        "id, email, access_granted_at, role, created_at, updated_at, invite_code_used",
+        "id, email, role, created_at, full_name",
       );
 
     if (profilesError) {
@@ -39,23 +39,42 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Combine auth users with profiles data
-    const usersWithAccess = (authUsers.users || [])
+    // Get all memberships
+    const { data: memberships, error: membershipsError } = await adminSupabase
+      .from("user_memberships")
+      .select("user_id, level, impact_points, invite_quota_monthly, invites_used_this_month, created_at as membership_created_at");
+
+    if (membershipsError) {
+      console.error("Error fetching memberships:", membershipsError);
+      return NextResponse.json(
+        { error: "Failed to fetch memberships" },
+        { status: 500 },
+      );
+    }
+
+    // Combine auth users with profiles and membership data
+    const usersWithData = (authUsers.users || [])
       .filter((authUser) =>
         profiles?.some((profile) => profile.id === authUser.id),
       )
       .map((authUser) => {
         const profile = profiles?.find((p) => p.id === authUser.id);
+        const membership = memberships?.find((m) => m.user_id === authUser.id);
+        
         return {
           id: authUser.id,
           email: authUser.email,
+          full_name: profile?.full_name,
           created_at: authUser.created_at,
           last_sign_in_at: authUser.last_sign_in_at,
           email_confirmed_at: authUser.email_confirmed_at,
-          access_granted_at: profile?.access_granted_at,
           role: profile?.role || "user",
-          invite_code_used: profile?.invite_code_used,
-          updated_at: profile?.updated_at,
+          // Membership data
+          membership_level: membership?.level || 'requester',
+          impact_points: membership?.impact_points || 0,
+          invite_quota: membership?.invite_quota_monthly || 0,
+          invites_used: membership?.invites_used_this_month || 0,
+          membership_created_at: membership?.membership_created_at,
         };
       })
       .sort(
@@ -64,7 +83,7 @@ export async function GET(request: NextRequest) {
           new Date(a.created_at || "").getTime(),
       );
 
-    return NextResponse.json(usersWithAccess);
+    return NextResponse.json(usersWithData);
   } catch (error) {
     console.error("Users API error:", error);
     return NextResponse.json(
@@ -378,22 +397,40 @@ export async function PATCH(request: NextRequest) {
 
     const adminSupabase = getSupabaseAdmin();
 
-    // Update profile
-    const { error: profileError } = await adminSupabase
-      .from("profiles")
-      .update({
-        role: updates.role,
-        access_granted_at: updates.access_granted_at,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", userId);
+    // Update profile role if provided
+    if (updates.role) {
+      const { error: profileError } = await adminSupabase
+        .from("profiles")
+        .update({
+          role: updates.role,
+        })
+        .eq("id", userId);
 
-    if (profileError) {
-      console.error("Error updating profile:", profileError);
-      return NextResponse.json(
-        { error: "Failed to update user profile" },
-        { status: 500 },
-      );
+      if (profileError) {
+        console.error("Error updating profile:", profileError);
+        return NextResponse.json(
+          { error: "Failed to update user role" },
+          { status: 500 },
+        );
+      }
+    }
+
+    // Update membership level if provided
+    if (updates.membership_level) {
+      const { error: membershipError } = await adminSupabase
+        .from("user_memberships")
+        .update({
+          level: updates.membership_level,
+        })
+        .eq("user_id", userId);
+
+      if (membershipError) {
+        console.error("Error updating membership:", membershipError);
+        return NextResponse.json(
+          { error: "Failed to update membership level" },
+          { status: 500 },
+        );
+      }
     }
 
     return NextResponse.json({ message: "User updated successfully" });

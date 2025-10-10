@@ -57,19 +57,21 @@ import { toast } from "sonner";
 interface User {
   id: string;
   email: string;
+  full_name?: string;
   role: string;
-  producer_id?: string;
-  access_granted_at?: string;
-  invite_code_used?: string;
+  membership_level: string;
+  impact_points: number;
+  invite_quota: number;
+  invites_used: number;
   created_at: string;
-  updated_at: string;
+  membership_created_at?: string;
   last_sign_in_at?: string;
   email_confirmed_at?: string;
 }
 
 interface EditForm {
   role: string;
-  hasAccess: boolean;
+  membership_level: string;
 }
 
 export default function UsersAdmin() {
@@ -81,7 +83,7 @@ export default function UsersAdmin() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editForm, setEditForm] = useState<EditForm>({
     role: "",
-    hasAccess: false,
+    membership_level: "",
   });
 
   useEffect(() => {
@@ -106,23 +108,18 @@ export default function UsersAdmin() {
 
   const updateUser = async (userId: string, updates: EditForm) => {
     try {
-      // Handle access_granted_at based on hasAccess toggle
-      const updateData: Partial<User> = {
-        role: updates.role,
-      };
-
-      if (updates.hasAccess) {
-        updateData.access_granted_at = new Date().toISOString();
-      } else {
-        updateData.access_granted_at = null;
-      }
-
       const response = await fetch("/api/admin/users", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ userId, updates: updateData }),
+        body: JSON.stringify({ 
+          userId, 
+          updates: {
+            role: updates.role,
+            membership_level: updates.membership_level
+          }
+        }),
       });
 
       if (!response.ok) {
@@ -179,7 +176,7 @@ export default function UsersAdmin() {
     setSelectedUser(user);
     setEditForm({
       role: user.role,
-      hasAccess: !!user.access_granted_at,
+      membership_level: user.membership_level || 'basic',
     });
     setIsEditDialogOpen(true);
   };
@@ -210,19 +207,28 @@ export default function UsersAdmin() {
     }
   };
 
-  const getAccessBadge = (accessGrantedAt?: string) => {
-    if (accessGrantedAt) {
-      return (
-        <Badge variant="default" className="bg-green-600">
-          <CheckCircle className="w-3 h-3 mr-1" />
-          Access Granted
-        </Badge>
-      );
-    }
+  const getMembershipBadge = (level: string) => {
+    const colors = {
+      'admin': 'bg-purple-600 text-white',
+      'guld': 'bg-yellow-600 text-white',
+      'silver': 'bg-gray-600 text-white',
+      'brons': 'bg-orange-600 text-white',
+      'basic': 'bg-blue-600 text-white',
+      'requester': 'bg-gray-300 text-gray-700'
+    };
+    
+    const labels = {
+      'admin': 'Admin',
+      'guld': 'Guld',
+      'silver': 'Silver',
+      'brons': 'Brons',
+      'basic': 'Basic',
+      'requester': 'Requester'
+    };
+    
     return (
-      <Badge variant="secondary">
-        <Clock className="w-3 h-3 mr-1" />
-        No Access
+      <Badge className={colors[level as keyof typeof colors] || colors.basic}>
+        {labels[level as keyof typeof labels] || level}
       </Badge>
     );
   };
@@ -303,8 +309,9 @@ export default function UsersAdmin() {
               <TableRow>
                 <TableHead>User</TableHead>
                 <TableHead>Role</TableHead>
-                <TableHead>Access</TableHead>
-                <TableHead>Invite Code</TableHead>
+                <TableHead>Membership</TableHead>
+                <TableHead>Impact Points</TableHead>
+                <TableHead>Invites</TableHead>
                 <TableHead>Joined</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -322,18 +329,18 @@ export default function UsersAdmin() {
                   </TableCell>
                   <TableCell>{getRoleBadge(user.role)}</TableCell>
                   <TableCell>
-                    {getAccessBadge(user.access_granted_at)}
+                    {getMembershipBadge(user.membership_level)}
                   </TableCell>
                   <TableCell>
-                    {user.invite_code_used ? (
-                      <Badge variant="outline" className="font-mono text-xs">
-                        {user.invite_code_used.substring(0, 8)}...
-                      </Badge>
-                    ) : (
-                      <span className="text-gray-400 text-sm">
-                        No invite code
-                      </span>
-                    )}
+                    <span className="font-semibold text-gray-900">
+                      {user.impact_points}
+                    </span>
+                    <span className="text-gray-500 text-sm"> IP</span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm text-gray-700">
+                      {user.invites_used} / {user.invite_quota}
+                    </span>
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
@@ -429,28 +436,29 @@ export default function UsersAdmin() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
-              <div className="space-y-1">
-                <Label
-                  htmlFor="access"
-                  className="text-base font-medium flex items-center"
-                >
-                  <Key className="w-4 h-4 mr-2" />
-                  Platform Access
-                </Label>
-                <p className="text-sm text-gray-600">
-                  {editForm.hasAccess
-                    ? "User has access to the platform"
-                    : "User needs invitation code to access platform"}
-                </p>
-              </div>
-              <Switch
-                id="access"
-                checked={editForm.hasAccess}
-                onCheckedChange={(checked) =>
-                  setEditForm({ ...editForm, hasAccess: checked })
+            <div className="space-y-2">
+              <Label htmlFor="membership_level">Membership Level</Label>
+              <Select
+                value={editForm.membership_level}
+                onValueChange={(value) =>
+                  setEditForm({ ...editForm, membership_level: value })
                 }
-              />
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select membership level" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="requester">Requester (No Access)</SelectItem>
+                  <SelectItem value="basic">Basic (2 invites/month)</SelectItem>
+                  <SelectItem value="brons">Brons (5 invites/month)</SelectItem>
+                  <SelectItem value="silver">Silver (12 invites/month)</SelectItem>
+                  <SelectItem value="guld">Guld (50 invites/month)</SelectItem>
+                  <SelectItem value="admin">Admin (Unlimited)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500">
+                Requester = No platform access. Basic and above = Full access.
+              </p>
             </div>
             <div className="flex gap-3 pt-4">
               <Button
