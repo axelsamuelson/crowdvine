@@ -46,12 +46,16 @@ export function PaymentMethodSelector({
       const response = await fetch("/api/user/payment-methods");
       if (response.ok) {
         const data = await response.json();
-        setPaymentMethods(data.paymentMethods || data || []);
+        const methods = data.paymentMethods || data || [];
+        setPaymentMethods(methods);
+
+        console.log("💳 Payment methods loaded:", methods.length);
 
         // Auto-select default payment method if none selected
-        if (!selectedMethod && data.length > 0) {
+        if (!selectedMethod && methods.length > 0) {
           const defaultMethod =
-            data.find((method: PaymentMethod) => method.is_default) || data[0];
+            methods.find((method: PaymentMethod) => method.is_default) || methods[0];
+          console.log("✅ Auto-selected payment method:", defaultMethod.id);
           onPaymentMethodSelected(defaultMethod);
         }
       }

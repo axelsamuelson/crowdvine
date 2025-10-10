@@ -117,11 +117,10 @@ function CheckoutContent() {
     // Check if returning from Stripe payment method setup
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get("payment_method_added") === "true") {
-      toast.success("Betalningsmetod tillagd!");
-      // Refresh payment methods
-      setTimeout(() => {
-        window.location.href = "/checkout"; // Reload without query params
-      }, 1500);
+      toast.success("Betalningsmetod tillagd och vald!");
+      // Clean URL and let PaymentMethodSelector auto-select the new method
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, '', cleanUrl);
     }
   }, []);
 
