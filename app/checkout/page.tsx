@@ -504,10 +504,8 @@ function CheckoutContent() {
   const subtotal = bottleCost - discountAmount;
   const total = subtotal + (shippingCost ? shippingCost.totalShippingCostSek : 0);
 
-  // Filter available rewards
-  const availableRewards = userRewards.filter(reward => 
-    !reward.used
-  );
+  // Filter available rewards (membership system - no bottle rewards anymore)
+  const availableRewards: UserReward[] = [];
 
   return (
     <div className="max-w-4xl mx-auto p-6 pt-top-spacing space-y-8">
