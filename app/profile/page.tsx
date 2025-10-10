@@ -635,8 +635,32 @@ export default function ProfilePage() {
                     <PaymentMethodCard
                       key={method.id}
                       method={method}
-                      onSetDefault={() => {}}
-                      onDelete={() => {}}
+                      onSetDefault={async (id) => {
+                        try {
+                          const response = await fetch(`/api/user/payment-methods/${id}/set-default`, {
+                            method: 'PATCH',
+                          });
+                          if (!response.ok) throw new Error('Failed to set default');
+                          toast.success('Default payment method updated');
+                          fetchPaymentMethods();
+                        } catch (error) {
+                          console.error('Error setting default:', error);
+                          toast.error('Failed to update default payment method');
+                        }
+                      }}
+                      onDelete={async (id) => {
+                        try {
+                          const response = await fetch(`/api/user/payment-methods/${id}`, {
+                            method: 'DELETE',
+                          });
+                          if (!response.ok) throw new Error('Failed to delete');
+                          toast.success('Payment method removed');
+                          fetchPaymentMethods();
+                        } catch (error) {
+                          console.error('Error deleting payment method:', error);
+                          toast.error('Failed to remove payment method');
+                        }
+                      }}
                     />
                   ))}
                 </div>
