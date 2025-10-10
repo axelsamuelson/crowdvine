@@ -87,15 +87,18 @@ export function ProfileInfoModal({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" aria-describedby="profile-modal-description">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-gray-900">
             <User className="w-5 h-5" />
-            Add Profile Information
+            Profile Information
           </DialogTitle>
+          <p id="profile-modal-description" className="text-sm text-gray-600 mt-2">
+            Add your delivery information to complete checkout
+          </p>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 mt-4">
           <div>
             <Label htmlFor="full_name">Full Name</Label>
             <Input
@@ -180,16 +183,21 @@ export function ProfileInfoModal({
             </Select>
           </div>
 
-          <div className="flex gap-2 pt-4">
-            <Button onClick={handleSave} disabled={loading} className="flex-1">
-              {loading ? "Saving..." : "Save Profile"}
-            </Button>
+          <div className="flex gap-3 pt-4">
             <Button
               variant="outline"
               onClick={() => setOpen(false)}
+              disabled={loading}
               className="flex-1"
             >
               Cancel
+            </Button>
+            <Button 
+              onClick={handleSave} 
+              disabled={loading}
+              className="flex-1 bg-black hover:bg-black/90 text-white"
+            >
+              {loading ? "Saving..." : "Save Information"}
             </Button>
           </div>
         </div>

@@ -90,3 +90,12 @@ export async function PUT(request: Request) {
     );
   }
 }
+
+/**
+ * PATCH /api/user/profile
+ * 
+ * Update user profile (alias for PUT)
+ */
+export async function PATCH(request: Request) {
+  return PUT(request);
+}
