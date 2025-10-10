@@ -21,6 +21,7 @@ import { PaymentMethodSelector } from "@/components/checkout/payment-method-sele
 import { ZoneDetails } from "@/components/checkout/zone-details";
 import { PalletDetails } from "@/components/checkout/pallet-details";
 import { ReservationLoadingModal } from "@/components/checkout/reservation-loading-modal";
+import { MemberPrice } from "@/components/ui/member-price";
 import { toast } from "sonner";
 import { User, MapPin, CreditCard, Package, AlertCircle, Gift, Check } from "lucide-react";
 import { clearZoneCache } from "@/lib/zone-matching";
@@ -570,10 +571,11 @@ function CheckoutContent() {
                       <span className="text-gray-600">
                         {line.merchandise.title} × {line.quantity}
                       </span>
-                      <span className="text-gray-900 font-medium">
-                        {Math.round(totalForLine)}{" "}
-                        {line.merchandise.product.priceRange.minVariantPrice.currencyCode}
-                      </span>
+                      <MemberPrice
+                        amount={totalForLine}
+                        currencyCode={line.merchandise.product.priceRange.minVariantPrice.currencyCode}
+                        className="text-gray-900 font-medium text-sm"
+                      />
                     </div>
                   );
                 })}

@@ -25,6 +25,7 @@ import { formatPrice } from "@/lib/shopify/utils";
 import { Suspense } from "react";
 import { cn } from "@/lib/utils";
 import { PageLayout } from "@/components/layout/page-layout";
+import { MemberPrice } from "@/components/ui/member-price";
 import { VariantSelectorSlots } from "./components/variant-selector-slots";
 import { MobileGallerySlider } from "./components/mobile-gallery-slider";
 import { DesktopGallery } from "./components/desktop-gallery";
@@ -178,10 +179,12 @@ export default async function ProductPage(props: {
                 </h1>
                 <p className="text-sm font-medium">{product.description}</p>
                 <p className="flex gap-3 items-center text-lg font-semibold lg:text-xl 2xl:text-2xl max-md:mt-8">
-                  {formatPrice(
-                    product.priceRange.minVariantPrice.amount,
-                    product.priceRange.minVariantPrice.currencyCode,
-                  )}
+                  <MemberPrice
+                    amount={product.priceRange.minVariantPrice.amount}
+                    currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                    className="text-lg font-semibold lg:text-xl 2xl:text-2xl"
+                    showBadge={true}
+                  />
                   {product.compareAtPrice && (
                     <span className="line-through opacity-30">
                       {formatPrice(

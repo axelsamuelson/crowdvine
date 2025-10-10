@@ -8,6 +8,7 @@ import { ProductImage } from "./product-image";
 import { Button } from "@/components/ui/button";
 import { ArrowRightIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { MemberPrice } from "@/components/ui/member-price";
 
 export const ProductCard = memo(({ product }: { product: Product }) => {
   const hasNoOptions = product.options.length === 0;
@@ -61,23 +62,16 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
             )}
           </div>
           <div className="flex gap-2 items-center text-xs md:text-sm uppercase 2xl:text-base">
-            {formatPrice(
-              product.priceRange.minVariantPrice.amount,
-              product.priceRange.minVariantPrice.currencyCode,
-            )}
+            <MemberPrice
+              amount={product.priceRange.minVariantPrice.amount}
+              currencyCode={product.priceRange.minVariantPrice.currencyCode}
+              className="text-xs md:text-sm uppercase 2xl:text-base"
+            />
             {isWineBox && discountInfo && (
               <span className="line-through opacity-30 text-[10px] md:text-xs">
                 {formatPrice(
                   Math.round(discountInfo.totalWinePrice).toString(),
                   product.priceRange.minVariantPrice.currencyCode,
-                )}
-              </span>
-            )}
-            {product.compareAtPrice && !isWineBox && (
-              <span className="line-through opacity-30 text-[10px] md:text-xs">
-                {formatPrice(
-                  product.compareAtPrice.amount,
-                  product.compareAtPrice.currencyCode,
                 )}
               </span>
             )}
@@ -121,23 +115,17 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
               )}
             </div>
             <div className="flex gap-2 items-center place-self-end text-lg font-semibold">
-              {formatPrice(
-                product.priceRange.minVariantPrice.amount,
-                product.priceRange.minVariantPrice.currencyCode,
-              )}
+              <MemberPrice
+                amount={product.priceRange.minVariantPrice.amount}
+                currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                className="text-lg font-semibold"
+                showBadge={true}
+              />
               {isWineBox && discountInfo && (
                 <span className="text-base line-through opacity-30">
                   {formatPrice(
                     Math.round(discountInfo.totalWinePrice).toString(),
                     product.priceRange.minVariantPrice.currencyCode,
-                  )}
-                </span>
-              )}
-              {product.compareAtPrice && !isWineBox && (
-                <span className="text-base line-through opacity-30">
-                  {formatPrice(
-                    product.compareAtPrice.amount,
-                    product.compareAtPrice.currencyCode,
                   )}
                 </span>
               )}

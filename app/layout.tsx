@@ -13,6 +13,7 @@ import { ConditionalHeader } from "../components/layout/header/conditional-heade
 import dynamic from "next/dynamic";
 import { V0Provider } from "@/lib/context";
 import { MobileMenuProvider } from "../components/layout/header/mobile-menu-context";
+import { MembershipProvider } from "@/lib/context/membership-context";
 import { cn } from "../lib/utils";
 
 const V0Setup = dynamic(() => import("@/components/v0-setup"));
@@ -87,14 +88,16 @@ export default async function RootLayout({
         <V0Provider isV0={isV0}>
           <MobileMenuProvider>
             <CartProvider>
-              <NuqsAdapter>
-                <main data-vaul-drawer-wrapper="true">
-                  <ConditionalHeader collections={collections} />
-                  {children}
-                </main>
-                {isDevelopment && <DebugGrid />}
-                <Toaster closeButton position="bottom-right" />
-              </NuqsAdapter>
+              <MembershipProvider>
+                <NuqsAdapter>
+                  <main data-vaul-drawer-wrapper="true">
+                    <ConditionalHeader collections={collections} />
+                    {children}
+                  </main>
+                  {isDevelopment && <DebugGrid />}
+                  <Toaster closeButton position="bottom-right" />
+                </NuqsAdapter>
+              </MembershipProvider>
             </CartProvider>
           </MobileMenuProvider>
           {isV0 && <V0Setup />}
