@@ -3,12 +3,13 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { LogoSvg } from "@/components/layout/header/logo-svg";
+import { Background } from "@/components/background";
 
 function SignupPageContent() {
   const searchParams = useSearchParams();
@@ -28,7 +29,7 @@ function SignupPageContent() {
 
     if (inviteParam) {
       // Redirect to dedicated invite signup page
-      router.push(`/invite-signup?invite=${inviteParam}`);
+      router.push(`/i/${inviteParam}`);
       return;
     }
 
@@ -107,13 +108,13 @@ function SignupPageContent() {
     }
 
     if (!token) {
-      setError("No access token or invitation code provided");
+      setError("No access token provided");
       setLoading(false);
       return;
     }
 
     try {
-      // Handle access token signup (existing flow)
+      // Handle access token signup
       const createUserResponse = await fetch("/api/create-user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -133,14 +134,6 @@ function SignupPageContent() {
           errorMessage += `: ${errorData.details}`;
         }
 
-        if (errorData.debug) {
-          console.log("Debug info:", errorData.debug);
-          // Add debug info to error message for development
-          if (process.env.NODE_ENV === "development") {
-            errorMessage += ` (Debug: ${errorData.debug.errorType})`;
-          }
-        }
-
         setError(errorMessage);
         setLoading(false);
         return;
@@ -157,7 +150,7 @@ function SignupPageContent() {
             body: JSON.stringify({ token }),
           });
 
-          // Remove access request from Access Control (moves to Users)
+          // Remove access request from Access Control
           await fetch("/api/delete-access-request-on-signup", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -170,19 +163,20 @@ function SignupPageContent() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               customerEmail: email,
-              customerName: email.split("@")[0], // Use email prefix as name
+              customerName: email.split("@")[0],
             }),
           });
 
           setSuccess(true);
+          toast.success("Account created successfully!");
 
           console.log("✅ Auto-login successful, redirecting to home page");
-          // Redirect to home page after 2 seconds since user is now logged in
+          // Redirect to home page after 2 seconds
           setTimeout(() => {
             window.location.href = "/";
           }, 2000);
         } else {
-          setError("Account created successfully. Please log in manually.");
+          toast.success("Account created successfully. Please log in.");
           setTimeout(() => {
             router.push("/log-in");
           }, 2000);
@@ -207,82 +201,87 @@ function SignupPageContent() {
 
   if (tokenValid === null) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Validating access token...</p>
-        </div>
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-white" />
       </div>
     );
   }
 
   if (tokenValid === false) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <CardTitle className="text-red-600">Invalid Access Token</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Alert>
-              <AlertDescription>
-                {error ||
-                  "This access token is invalid or has expired. Please contact support if you believe this is an error."}
-              </AlertDescription>
-            </Alert>
-            <div className="mt-4 text-center">
-              <Button
-                variant="outline"
-                onClick={() => router.push("/access-request")}
-                className="w-full"
-              >
-                Request Access
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="w-full max-w-md text-center">
+          <X className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h1 className="text-xl font-light text-white mb-2">
+            Invalid Access Token
+          </h1>
+          <p className="text-sm text-gray-400 mb-6">
+            {error || "This access token is invalid or has expired. Please contact support if you believe this is an error."}
+          </p>
+          <Button
+            onClick={() => router.push("/access-request")}
+            className="bg-white hover:bg-white/90 text-black"
+          >
+            Request Access
+          </Button>
+        </div>
       </div>
     );
   }
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-            <CardTitle className="text-green-600">
-              Account Created Successfully!
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-center text-gray-600 mb-4">
-              Welcome to CrowdVine! Your account has been created and you're now signed in.
-              You can now explore our exclusive wine community.
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <Background
+          src="https://cdn.pixabay.com/video/2022/10/19/135643-762117669_large.mp4"
+        />
+        <div className="w-full max-w-md text-center relative z-10">
+          <div className="mb-6">
+            <LogoSvg className="h-10 mx-auto" />
+          </div>
+          <div className="bg-white/10 backdrop-blur-md rounded-lg p-8 border border-white/20">
+            <h1 className="text-2xl font-light text-white mb-4">
+              Welcome to PACT
+            </h1>
+            <p className="text-sm text-gray-300 mb-6">
+              Your account has been created successfully. Redirecting you to the platform...
             </p>
-            <div className="text-center">
-              <Button onClick={() => router.push("/")} className="w-full">
-                Continue to Platform
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle>Complete Your Registration</CardTitle>
-          <p className="text-gray-600">Create your CrowdVine account</p>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSignup} className="space-y-4">
+    <div className="min-h-screen bg-black flex items-center justify-center p-4">
+      <Background
+        src="https://cdn.pixabay.com/video/2022/10/19/135643-762117669_large.mp4"
+      />
+      <div className="w-full max-w-md relative z-10">
+        {/* Logo */}
+        <div className="mb-8 text-center">
+          <LogoSvg className="h-10 mx-auto" />
+        </div>
+
+        {/* Main Card */}
+        <div className="bg-white/10 backdrop-blur-md rounded-lg border border-white/20 p-8">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-light text-white mb-2">
+              Complete Your Registration
+            </h1>
+            <p className="text-sm text-gray-300">
+              Create your PACT account
+            </p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSignup} className="space-y-5">
+            {/* Email */}
             <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
+              <Label htmlFor="email" className="text-sm text-gray-300">
+                Email Address
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -290,17 +289,20 @@ function SignupPageContent() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={!!email}
-                className={email ? "bg-gray-100" : ""}
+                className="bg-white/5 border-white/20 text-white placeholder:text-gray-500"
               />
-              <p className="text-sm text-gray-500">
-                {email
-                  ? "Email is pre-filled from your access approval"
-                  : "Enter your email address"}
-              </p>
+              {email && (
+                <p className="text-xs text-gray-400">
+                  Email is pre-filled from your access approval
+                </p>
+              )}
             </div>
 
+            {/* Password */}
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-sm text-gray-300">
+                Password
+              </Label>
               <Input
                 id="password"
                 type="password"
@@ -309,11 +311,15 @@ function SignupPageContent() {
                 required
                 minLength={6}
                 placeholder="Create a password (min 6 characters)"
+                className="bg-white/5 border-white/20 text-white placeholder:text-gray-500"
               />
             </div>
 
+            {/* Confirm Password */}
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword" className="text-sm text-gray-300">
+                Confirm Password
+              </Label>
               <Input
                 id="confirmPassword"
                 type="password"
@@ -322,17 +328,23 @@ function SignupPageContent() {
                 required
                 minLength={6}
                 placeholder="Confirm your password"
+                className="bg-white/5 border-white/20 text-white placeholder:text-gray-500"
               />
             </div>
 
+            {/* Error Message */}
             {error && (
-              <Alert>
-                <XCircle className="w-4 h-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
+              <div className="bg-red-500/10 border border-red-500/20 rounded-md p-3">
+                <p className="text-sm text-red-300">{error}</p>
+              </div>
             )}
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              className="w-full bg-white hover:bg-white/90 text-black font-medium"
+              disabled={loading}
+            >
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -343,8 +355,15 @@ function SignupPageContent() {
               )}
             </Button>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-6 text-center">
+          <p className="text-xs text-gray-400 italic">
+            Producers And Consumers Together
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -353,11 +372,8 @@ export default function SignupPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600">Loading...</p>
-          </div>
+        <div className="min-h-screen bg-black flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-white" />
         </div>
       }
     >

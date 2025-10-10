@@ -8,50 +8,140 @@ export function getAccessApprovalEmailTemplate(signupUrl: string): string {
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Welcome to PACT Wines</title>
+        <title>Welcome to PACT</title>
         <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-          .button { display: inline-block; background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
-          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+          body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, Arial, sans-serif; 
+            line-height: 1.6; 
+            color: #000000; 
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+          }
+          .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background-color: #ffffff;
+          }
+          .logo-section {
+            text-align: center;
+            padding: 40px 20px 20px;
+            background-color: #ffffff;
+          }
+          .logo {
+            width: 120px;
+            height: auto;
+          }
+          .header { 
+            background-color: #ffffff; 
+            color: #000000; 
+            padding: 20px 30px 30px; 
+            text-align: center; 
+          }
+          .header h1 {
+            font-size: 28px;
+            font-weight: 300;
+            margin: 0 0 10px 0;
+            letter-spacing: -0.5px;
+          }
+          .header p {
+            font-size: 16px;
+            color: #6B7280;
+            margin: 0;
+            font-weight: 400;
+          }
+          .content { 
+            background-color: #ffffff; 
+            padding: 20px 30px 40px;
+            color: #000000;
+          }
+          .content p {
+            font-size: 15px;
+            line-height: 1.7;
+            margin: 0 0 20px 0;
+            color: #000000;
+          }
+          .button-container {
+            text-align: center;
+            margin: 30px 0;
+          }
+          .button { 
+            display: inline-block; 
+            background-color: #000000; 
+            color: #ffffff !important; 
+            padding: 14px 32px; 
+            text-decoration: none; 
+            border-radius: 6px; 
+            font-weight: 500;
+            font-size: 15px;
+            letter-spacing: 0.3px;
+          }
+          .button:hover {
+            background-color: #1a1a1a;
+          }
+          .note {
+            font-size: 13px;
+            color: #6B7280;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f9fafb;
+            border-left: 3px solid #E5E7EB;
+          }
+          .footer { 
+            text-align: center; 
+            padding: 30px 30px 40px;
+            color: #6B7280; 
+            font-size: 13px;
+            background-color: #ffffff;
+            border-top: 1px solid #E5E7EB;
+          }
+          .footer p {
+            margin: 5px 0;
+          }
+          .tagline {
+            font-style: italic;
+            font-weight: 400;
+            margin-top: 10px;
+          }
         </style>
       </head>
       <body>
         <div class="container">
-          <div class="header">
-            <h1>🍷 Welcome to PACT Wines!</h1>
-            <p>Your access request has been approved</p>
+          <div class="logo-section">
+            <svg class="logo" width="120" height="40" viewBox="0 0 120 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <text x="0" y="30" font-family="Inter, -apple-system, sans-serif" font-size="32" font-weight="300" fill="#000000">PACT</text>
+            </svg>
           </div>
+          
+          <div class="header">
+            <h1>Welcome to PACT</h1>
+            <p>Your Access Has Been Approved</p>
+          </div>
+          
           <div class="content">
-            <h2>Congratulations!</h2>
-            <p>We're excited to welcome you to PACT Wines, the exclusive wine community where quality meets community.</p>
+            <p>Hello,</p>
             
-            <p>Your access request has been approved, and you're now ready to join our curated platform featuring:</p>
-            <ul>
-              <li>🎯 Exclusive wines from boutique producers</li>
-              <li>📦 Pallet-sharing system for premium accessibility</li>
-              <li>👥 Community of wine enthusiasts and collectors</li>
-              <li>🍾 Limited releases and rare vintages</li>
-            </ul>
+            <p>We're pleased to inform you that your request to join PACT has been approved. You're now invited to be part of an exclusive community connecting quality wine producers directly with discerning consumers.</p>
             
-            <p>Click the button below to complete your registration and start exploring:</p>
+            <p>PACT is built on the principle of bringing together those who create exceptional wines and those who appreciate them. Our curated platform facilitates direct relationships, shared experiences, and access to wines you won't find elsewhere.</p>
             
-            <div style="text-align: center;">
+            <div class="button-container">
               <a href="${signupUrl}" class="button">Complete Registration</a>
             </div>
             
-            <p><strong>Important:</strong> This link is unique to you and will expire in 7 days for security reasons.</p>
+            <div class="note">
+              <strong>Important:</strong> This registration link is unique to you and will expire in 7 days for security reasons.
+            </div>
             
-            <p>If you have any questions, feel free to reach out to our support team.</p>
+            <p>If you have any questions, please don't hesitate to reach out.</p>
             
-            <p>Welcome to the community!</p>
-            <p><strong>The PACT Wines Team</strong></p>
+            <p>Welcome to the community.</p>
           </div>
+          
           <div class="footer">
-            <p>This email was sent because you requested access to PACT Wines.</p>
-            <p>If you didn't request this, please ignore this email.</p>
+            <p class="tagline">Producers And Consumers Together</p>
+            <p style="margin-top: 20px;">This email was sent because you requested access to PACT.</p>
+            <p>If you didn't make this request, please ignore this email.</p>
           </div>
         </div>
       </body>
@@ -61,31 +151,30 @@ export function getAccessApprovalEmailTemplate(signupUrl: string): string {
 
 export function getAccessApprovalEmailText(signupUrl: string): string {
   return `
-Welcome to PACT Wines!
+Welcome to PACT
 
-Your access request has been approved!
+Your Access Has Been Approved
 
-We're excited to welcome you to PACT Wines, the exclusive wine community where quality meets community.
+Hello,
 
-Your access request has been approved, and you're now ready to join our curated platform featuring:
-- Exclusive wines from boutique producers
-- Pallet-sharing system for premium accessibility  
-- Community of wine enthusiasts and collectors
-- Limited releases and rare vintages
+We're pleased to inform you that your request to join PACT has been approved. You're now invited to be part of an exclusive community connecting quality wine producers directly with discerning consumers.
+
+PACT is built on the principle of bringing together those who create exceptional wines and those who appreciate them. Our curated platform facilitates direct relationships, shared experiences, and access to wines you won't find elsewhere.
 
 Complete your registration by clicking this link:
 ${signupUrl}
 
-Important: This link is unique to you and will expire in 7 days for security reasons.
+Important: This registration link is unique to you and will expire in 7 days for security reasons.
 
-If you have any questions, feel free to reach out to our support team.
+If you have any questions, please don't hesitate to reach out.
 
-Welcome to the community!
-The PACT Wines Team
+Welcome to the community.
 
 ---
-This email was sent because you requested access to PACT Wines.
-If you didn't request this, please ignore this email.
+Producers And Consumers Together
+
+This email was sent because you requested access to PACT.
+If you didn't make this request, please ignore this email.
   `;
 }
 

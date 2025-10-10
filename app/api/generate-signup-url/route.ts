@@ -12,10 +12,10 @@ export async function POST(request: NextRequest) {
 
     const adminSupabase = getSupabaseAdmin();
 
-    // Check if user has approved access request
+    // Check if user has approved access request and get initial_level
     const { data: accessRequest, error: accessError } = await adminSupabase
       .from("access_requests")
-      .select("status")
+      .select("status, initial_level")
       .eq("email", email.toLowerCase().trim())
       .eq("status", "approved")
       .single();
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7); // 7 days from now
 
-    // Store the access token
+    // Store the access token with initial_level
     const { error: tokenError } = await adminSupabase
       .from("access_tokens")
       .insert({
@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
         email: email.toLowerCase().trim(),
         expires_at: expiresAt.toISOString(),
         used: false,
+        initial_level: accessRequest.initial_level || 'basic',
       });
 
     if (tokenError) {

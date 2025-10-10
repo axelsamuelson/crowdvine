@@ -3,6 +3,18 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { signupLimiter, getClientIdentifier } from "@/lib/rate-limiter";
 
+// Helper function to get invite quota based on membership level
+function getQuotaForLevel(level: string): number {
+  const quotaMap: Record<string, number> = {
+    'basic': 2,
+    'brons': 5,
+    'silver': 12,
+    'guld': 50,
+    'admin': 999,
+  };
+  return quotaMap[level] || 2;
+}
+
 export async function POST(request: NextRequest) {
   try {
     console.log("=== CREATE USER API START ===");
@@ -264,6 +276,58 @@ export async function POST(request: NextRequest) {
         }
 
         console.log("3d. Profile created/updated successfully");
+      }
+
+      // Step 3.5: Create membership for new user
+      console.log("3e. Creating membership for new user...");
+      
+      // Get initial_level from access token if it exists
+      let initialLevel = 'basic'; // Default to basic
+      
+      // Try to get initial_level from access_tokens table
+      const { data: accessToken } = await supabase
+        .from("access_tokens")
+        .select("initial_level")
+        .eq("email", normalizedEmail)
+        .eq("used", false)
+        .maybeSingle();
+      
+      if (accessToken && accessToken.initial_level) {
+        initialLevel = accessToken.initial_level;
+        console.log("3e1. Found initial_level from access token:", initialLevel);
+      } else {
+        console.log("3e1. No access token found, using default level: basic");
+      }
+      
+      // Check if membership already exists
+      const { data: existingMembership } = await supabase
+        .from("user_memberships")
+        .select("id")
+        .eq("user_id", authUserId)
+        .maybeSingle();
+      
+      if (!existingMembership) {
+        console.log("3e2. Creating new membership with level:", initialLevel);
+        const { error: membershipError } = await supabase
+          .from("user_memberships")
+          .insert({
+            user_id: authUserId,
+            level: initialLevel,
+            impact_points: 0,
+            invite_quota_monthly: getQuotaForLevel(initialLevel),
+            invites_used_this_month: 0,
+            last_quota_reset: new Date().toISOString(),
+          });
+
+        if (membershipError) {
+          console.error("Error creating membership:", membershipError);
+          // Don't fail the whole request if membership creation fails
+          // The user can still be created, and membership can be added later
+        } else {
+          console.log("3e3. Membership created successfully");
+        }
+      } else {
+        console.log("3e2. Membership already exists, skipping creation");
       }
     }
 
