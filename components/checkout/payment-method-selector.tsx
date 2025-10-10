@@ -71,8 +71,8 @@ export function PaymentMethodSelector({
         return;
       }
 
-      const data = await profileResponse.json();
-      const profile = data.profile || data;
+      const profileData = await profileResponse.json();
+      const profile = profileData.profile || profileData;
       
       console.log("👤 Profile for payment method:", profile);
       
@@ -96,9 +96,9 @@ export function PaymentMethodSelector({
         return;
       }
 
-      const data = await response.json();
-      if (data.url) {
-        window.location.href = data.url;
+      const setupData = await response.json();
+      if (setupData.url) {
+        window.location.href = setupData.url;
       } else {
         toast.error("Failed to setup payment method");
       }
