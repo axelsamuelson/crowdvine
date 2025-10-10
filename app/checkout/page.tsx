@@ -175,27 +175,10 @@ function CheckoutContent() {
 
   const fetchUserRewards = async () => {
     try {
-      const response = await fetch("/api/invitations/used");
-      if (response.ok) {
-        const data = await response.json();
-        const usedInvitations = data.usedInvitations || [];
-        
-        // Convert used invitations to user rewards
-        const rewards: UserReward[] = usedInvitations.map((invitation: any, index: number) => ({
-          id: `reward-${index}`,
-          bottles: 6, // 6 bottles per friend
-          discount_percentage: 5, // 5% for account created
-          type: 'account_created' as const,
-          friend_email: invitation.profiles?.email,
-          earned_at: invitation.used_at,
-          used: false
-        }));
-        
-        setUserRewards(rewards);
-      } else {
-        console.error("Failed to load user rewards");
-        setUserRewards([]);
-      }
+      // Rewards system has been replaced by membership system
+      // No more bottle-level rewards in checkout
+      // Keep empty array to prevent errors
+      setUserRewards([]);
     } catch (error) {
       console.error("Error fetching user rewards:", error);
       setUserRewards([]);
