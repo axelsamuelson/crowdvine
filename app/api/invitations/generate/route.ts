@@ -164,12 +164,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate signup URLs with shorter, more robust structure
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    // IMPORTANT: Always trim baseUrl to prevent accidental spaces in environment variable
+    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").trim();
 
     // Create shorter URLs that are less likely to be broken by Instagram
     // Use shorter path structure: /i/{code} instead of /invite-signup?invite={code}
     const signupUrl = `${baseUrl}/i/${code}`;
     const codeSignupUrl = `${baseUrl}/c/${code}`;
+    
+    console.log("[INVITE-GEN] Generated URLs:", {
+      baseUrl,
+      signupUrl,
+      hasSpace: signupUrl.includes(' '),
+    });
 
     return NextResponse.json({
       success: true,

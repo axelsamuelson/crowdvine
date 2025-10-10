@@ -90,9 +90,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate signup URLs
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    // IMPORTANT: Always trim baseUrl to prevent accidental spaces in environment variable
+    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").trim();
     const signupUrl = `${baseUrl}/i/${code}`;
     const codeSignupUrl = `${baseUrl}/c/${code}`;
+    
+    console.log("[ADMIN-INVITE-GEN] Generated URLs:", {
+      baseUrl,
+      signupUrl,
+      hasSpace: signupUrl.includes(' '),
+    });
 
     return NextResponse.json({
       success: true,
