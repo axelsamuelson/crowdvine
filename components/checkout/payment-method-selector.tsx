@@ -46,7 +46,7 @@ export function PaymentMethodSelector({
       const response = await fetch("/api/user/payment-methods");
       if (response.ok) {
         const data = await response.json();
-        setPaymentMethods(data);
+        setPaymentMethods(data.paymentMethods || data || []);
 
         // Auto-select default payment method if none selected
         if (!selectedMethod && data.length > 0) {
