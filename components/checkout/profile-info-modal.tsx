@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,6 +49,36 @@ export function ProfileInfoModal({
     postal_code: "",
     country: "Sweden",
   });
+
+  // Load existing profile when modal opens
+  useEffect(() => {
+    if (open) {
+      loadProfile();
+    }
+  }, [open]);
+
+  const loadProfile = async () => {
+    try {
+      const response = await fetch("/api/user/profile");
+      if (response.ok) {
+        const data = await response.json();
+        const profile = data.profile || data;
+        
+        if (profile) {
+          setFormData({
+            full_name: profile.full_name || "",
+            phone: profile.phone || "",
+            address: profile.address || "",
+            city: profile.city || "",
+            postal_code: profile.postal_code || "",
+            country: profile.country || "Sweden",
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error loading profile:", error);
+    }
+  };
 
   const handleSave = async () => {
     setLoading(true);

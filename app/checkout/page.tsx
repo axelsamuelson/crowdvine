@@ -153,12 +153,15 @@ function CheckoutContent() {
     try {
       const response = await fetch("/api/user/profile");
       if (response.ok) {
-        const profileData = await response.json();
+        const data = await response.json();
+        const profileData = data.profile || data;
+        console.log("👤 Profile loaded:", profileData);
         setProfile(profileData);
 
         // Check if profile has complete address information
         const hasCompleteAddress =
           profileData.address && profileData.city && profileData.postal_code;
+        console.log("📍 Has complete address:", hasCompleteAddress);
         // Address states removed - always use profile address
       }
     } catch (error) {
@@ -731,6 +734,16 @@ function CheckoutContent() {
           </div>
 
           {/* Pallet Information */}
+          {(() => {
+            console.log("🚚 Pallet visibility check:", {
+              hasPallets: zoneInfo.pallets && zoneInfo.pallets.length > 0,
+              palletsCount: zoneInfo.pallets?.length || 0,
+              pallets: zoneInfo.pallets,
+              zoneLoading,
+              shouldShow: (zoneInfo.pallets && zoneInfo.pallets.length > 0) || zoneLoading,
+            });
+            return null;
+          })()}
           {(zoneInfo.pallets && zoneInfo.pallets.length > 0) || zoneLoading ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
