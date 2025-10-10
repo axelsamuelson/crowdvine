@@ -239,37 +239,63 @@ export async function POST(request: NextRequest) {
       // Don't fail the request
     }
 
-    // signUp already returns a session if successful
-    console.log("[INVITE-REDEEM] Checking session from signUp");
+    // Create session for auto sign-in (admin.createUser doesn't return session)
+    console.log("[INVITE-REDEEM] Creating session for auto sign-in");
     
-    if (authData.session) {
-      console.log("[INVITE-REDEEM] Session available from signUp");
-      return NextResponse.json({
-        success: true,
-        autoSignedIn: true,
-        session: {
-          access_token: authData.session.access_token,
-          refresh_token: authData.session.refresh_token
-        },
-        user: {
-          id: authData.user.id,
-          email: authData.user.email,
-          initial_level: initialLevel
-        }
+    try {
+      // Use signInWithPassword to create a valid session
+      const { data: signInData, error: signInError } = await sb.auth.signInWithPassword({
+        email: email.toLowerCase().trim(),
+        password: password
       });
-    } else {
-      console.log("[INVITE-REDEEM] No session from signUp, user needs to log in");
-      return NextResponse.json({
-        success: true,
-        autoSignedIn: false,
-        message: "Account created successfully. Please log in.",
-        user: {
-          id: authData.user.id,
-          email: authData.user.email,
-          initial_level: initialLevel
-        }
-      });
+
+      if (signInError) {
+        console.error("[INVITE-REDEEM] Sign-in failed:", signInError);
+        // Return success but user needs to log in manually
+        return NextResponse.json({
+          success: true,
+          autoSignedIn: false,
+          message: "Account created successfully. Please log in.",
+          user: {
+            id: authData.user.id,
+            email: authData.user.email,
+            initial_level: initialLevel
+          }
+        });
+      }
+
+      if (signInData.session) {
+        console.log("[INVITE-REDEEM] Session created successfully for auto sign-in");
+        return NextResponse.json({
+          success: true,
+          autoSignedIn: true,
+          session: {
+            access_token: signInData.session.access_token,
+            refresh_token: signInData.session.refresh_token
+          },
+          user: {
+            id: authData.user.id,
+            email: authData.user.email,
+            initial_level: initialLevel
+          }
+        });
+      }
+    } catch (sessionError) {
+      console.error("[INVITE-REDEEM] Session creation error:", sessionError);
     }
+
+    // Fallback: No session, user needs to log in
+    console.log("[INVITE-REDEEM] No session available, user needs to log in manually");
+    return NextResponse.json({
+      success: true,
+      autoSignedIn: false,
+      message: "Account created successfully. Please log in.",
+      user: {
+        id: authData.user.id,
+        email: authData.user.email,
+        initial_level: initialLevel
+      }
+    });
 
   } catch (error: any) {
     console.error("[INVITE-REDEEM] Unexpected error:", error);
