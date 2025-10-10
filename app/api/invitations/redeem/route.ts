@@ -208,17 +208,53 @@ export async function POST(request: NextRequest) {
 
     // Award +1 IP to inviter (user who created the invitation)
     if (invitation.created_by) {
-      console.log("[INVITE-REDEEM] Awarding IP to inviter:", invitation.created_by);
+      console.log("[INVITE-REDEEM] Step 5: Awarding +1 IP to inviter:", invitation.created_by);
+      
       try {
-        await addImpactPoints(
-          invitation.created_by,
-          1,
-          'invite_signup',
-          `Friend signed up using invite code`,
-          authData.user.id
-        );
+        // Update inviter's impact points directly
+        const { data: currentPoints, error: fetchError } = await sb
+          .from("user_memberships")
+          .select("impact_points")
+          .eq("user_id", invitation.created_by)
+          .single();
+
+        if (fetchError) {
+          console.error("[INVITE-REDEEM] Failed to fetch inviter membership:", fetchError);
+        } else {
+          const newPoints = (currentPoints?.impact_points || 0) + 1;
+          
+          const { error: updateError } = await sb
+            .from("user_memberships")
+            .update({
+              impact_points: newPoints
+            })
+            .eq("user_id", invitation.created_by);
+
+          if (updateError) {
+            console.error("[INVITE-REDEEM] Failed to update inviter points:", updateError);
+          } else {
+            console.log("[INVITE-REDEEM] Inviter points updated:", currentPoints?.impact_points, "→", newPoints);
+          }
+
+          // Log the IP event
+          const { error: eventError } = await sb
+            .from("impact_point_events")
+            .insert({
+              user_id: invitation.created_by,
+              event_type: 'invite_signup',
+              points_earned: 1,
+              related_user_id: authData.user.id,
+              description: `Friend signed up using invite code`
+            });
+
+          if (eventError) {
+            console.error("[INVITE-REDEEM] Failed to log IP event:", eventError);
+          } else {
+            console.log("[INVITE-REDEEM] IP event logged successfully");
+          }
+        }
       } catch (ipError) {
-        console.error("[INVITE-REDEEM] Failed to award IP:", ipError);
+        console.error("[INVITE-REDEEM] Unexpected error awarding IP:", ipError);
         // Don't fail the request
       }
     }
