@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     // Get all memberships
     const { data: memberships, error: membershipsError } = await adminSupabase
       .from("user_memberships")
-      .select("user_id, level, impact_points, invite_quota_monthly, invites_used_this_month, created_at as membership_created_at");
+      .select("user_id, level, impact_points, invite_quota_monthly, invites_used_this_month, created_at");
 
     if (membershipsError) {
       console.error("Error fetching memberships:", membershipsError);
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
           impact_points: membership?.impact_points || 0,
           invite_quota: membership?.invite_quota_monthly || 0,
           invites_used: membership?.invites_used_this_month || 0,
-          membership_created_at: membership?.membership_created_at,
+          membership_created_at: membership?.created_at,
         };
       })
       .sort(
