@@ -102,6 +102,7 @@ export async function determineZones(
   const sb = getSupabaseAdmin(); // Use admin client to bypass RLS
 
   // Get unique producer IDs from cart items
+  console.log("🍷 Fetching wines for cart items:", cartItems.map((item) => item.merchandise.id));
   const { data: wines, error: winesError } = await sb
     .from("wines")
     .select("id, producer_id")
@@ -110,8 +111,9 @@ export async function determineZones(
       cartItems.map((item) => item.merchandise.id),
     );
 
+  console.log("🍷 Wines fetched:", wines);
   if (winesError || !wines) {
-    console.error("Failed to fetch wines for zone matching:", winesError);
+    console.error("❌ Failed to fetch wines for zone matching:", winesError);
     return {
       pickupZoneId: null,
       deliveryZoneId: null,
@@ -121,6 +123,7 @@ export async function determineZones(
   }
 
   const producerIds = [...new Set(wines.map((wine) => wine.producer_id))];
+  console.log("👨‍🌾 Producer IDs from wines:", producerIds);
 
   // Get producers with their pickup zones
   const { data: producers, error: producersError } = await sb
@@ -139,9 +142,10 @@ export async function determineZones(
     )
     .in("id", producerIds);
 
+  console.log("👨‍🌾 Producers fetched:", producers);
   if (producersError || !producers) {
     console.error(
-      "Failed to fetch producers for zone matching:",
+      "❌ Failed to fetch producers for zone matching:",
       producersError,
     );
     return {
@@ -156,6 +160,13 @@ export async function determineZones(
   const pickupZone = producers[0]?.pallet_zones;
   const pickupZoneId = pickupZone?.id || null;
   const pickupZoneName = pickupZone?.name || null;
+  
+  console.log("📦 Pickup zone determined:", {
+    pickupZoneId,
+    pickupZoneName,
+    firstProducer: producers[0],
+    palletzones: producers[0]?.pallet_zones,
+  });
 
   // For delivery zone, we need to check if the address actually falls within a zone
   let deliveryZoneId: string | null = null;
