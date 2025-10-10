@@ -71,8 +71,14 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Temporarily disable collections fetching to prevent blocking
-  const collections = [];
+  // Fetch collections for header/navigation
+  let collections = [];
+  try {
+    collections = await getCollections();
+  } catch (error) {
+    console.warn("Failed to fetch collections in root layout:", error);
+    collections = [];
+  }
 
   return (
     <html lang="en">
