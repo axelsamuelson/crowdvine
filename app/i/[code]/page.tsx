@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { LogoSvg } from "@/components/layout/header/logo-svg";
 
 interface Invitation {
   id: string;
@@ -198,12 +199,34 @@ export default function InviteSignupPage() {
     }
   })();
 
+  // Map Swedish level names to English
+  const getLevelName = (level: string) => {
+    const levelMap: Record<string, string> = {
+      'guld': 'Gold',
+      'silver': 'Silver',
+      'brons': 'Bronze',
+      'basic': 'Basic'
+    };
+    return levelMap[level] || level.charAt(0).toUpperCase() + level.slice(1);
+  };
+
+  // Get premium colors for each level
+  const getLevelColors = (level: string) => {
+    const colorMap: Record<string, { bg: string; text: string }> = {
+      'guld': { bg: 'bg-gradient-to-br from-amber-600 to-yellow-700', text: 'text-white' },
+      'silver': { bg: 'bg-gradient-to-br from-gray-400 to-gray-500', text: 'text-gray-900' },
+      'brons': { bg: 'bg-gradient-to-br from-orange-800 to-amber-900', text: 'text-white' },
+      'basic': { bg: 'bg-gradient-to-br from-slate-600 to-slate-700', text: 'text-white' }
+    };
+    return colorMap[level] || { bg: 'bg-gray-500', text: 'text-white' };
+  };
+
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
         {/* Logo */}
-        <div className="text-center">
-          <h1 className="text-2xl font-light tracking-tight text-gray-900">PACT</h1>
+        <div className="flex justify-center">
+          <LogoSvg className="h-8" />
         </div>
 
         {/* Hero */}
@@ -220,19 +243,16 @@ export default function InviteSignupPage() {
         {invitation.initial_level && (
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="text-center space-y-3">
-              {/* Level Badge - Minimal */}
-              <div className={`inline-block px-4 py-1.5 rounded-md text-sm font-medium ${
-                invitation.initial_level === 'guld' ? 'bg-gray-900 text-white' :
-                invitation.initial_level === 'silver' ? 'bg-gray-700 text-white' :
-                invitation.initial_level === 'brons' ? 'bg-gray-600 text-white' :
-                'bg-gray-500 text-white'
-              }`}>
-                {invitation.initial_level.charAt(0).toUpperCase() + invitation.initial_level.slice(1)} Membership
+              {/* Level Badge - Premium Colors */}
+              <div className={`inline-block px-6 py-2 rounded-md text-sm font-medium ${
+                getLevelColors(invitation.initial_level).bg
+              } ${getLevelColors(invitation.initial_level).text}`}>
+                {getLevelName(invitation.initial_level)} Membership
               </div>
 
               {/* Perks - Single line */}
               <p className="text-sm text-gray-600">
-                {invitation.initial_level === 'guld' && 'Maximum perks • 50 invites/month • Fee waived'}
+                {invitation.initial_level === 'guld' && 'Maximum perks • 50 invites/month • Gold level discount'}
                 {invitation.initial_level === 'silver' && 'Early access • 12 invites/month • Fee capped'}
                 {invitation.initial_level === 'brons' && 'Queue priority • 5 invites/month'}
                 {invitation.initial_level === 'basic' && 'Entry level • 2 invites/month'}
