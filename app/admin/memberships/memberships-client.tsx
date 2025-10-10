@@ -161,9 +161,12 @@ export function MembershipsClient({
                         <Edit className="w-4 h-4" />
                       </Button>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent aria-describedby="edit-membership-description">
                       <DialogHeader>
                         <DialogTitle>Edit {getLevelName(level)} Membership</DialogTitle>
+                        <p id="edit-membership-description" className="text-sm text-gray-600 mt-2">
+                          Configure discount percentage and invite quota for this membership level
+                        </p>
                       </DialogHeader>
                       
                       <div className="space-y-4">

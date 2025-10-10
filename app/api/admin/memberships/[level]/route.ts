@@ -20,7 +20,7 @@ export async function PATCH(
       );
     }
 
-    const { level } = params;
+    const { level } = await params;
     const body = await request.json();
     const { discount, inviteQuota } = body;
 
