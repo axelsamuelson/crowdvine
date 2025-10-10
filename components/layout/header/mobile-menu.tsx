@@ -79,7 +79,7 @@ export function MobileMenu({ collections }: { collections: any[] }) {
                 transition={{ duration: 0.3, ease: "easeInOut" }}
                 className="fixed top-0 bottom-0 left-0 flex w-full md:w-[400px] p-modal-sides z-50"
               >
-                <div className="flex flex-col p-3 w-full rounded bg-muted md:p-4">
+                <div className="flex flex-col p-3 w-full rounded bg-muted md:p-4 overflow-hidden">
                   <div className="flex justify-between items-baseline pl-2 mb-10">
                     <p className="text-2xl font-semibold">Menu</p>
                     <Button
@@ -92,30 +92,42 @@ export function MobileMenu({ collections }: { collections: any[] }) {
                     </Button>
                   </div>
 
-                  <nav className="grid grid-cols-2 gap-y-4 gap-x-6 mb-10">
-                    {navItems.map((item) => (
-                      <Button
-                        key={item.href}
-                        size="sm"
-                        variant="secondary"
-                        onClick={closeMobileMenu}
-                        className="justify-start uppercase bg-background/50"
-                        asChild
-                      >
-                        <Link href={item.href} prefetch>
-                          {item.icon && <item.icon className="w-4 h-4 mr-2" />}
-                          {item.label}
-                        </Link>
-                      </Button>
-                    ))}
-                  </nav>
+                  {/* Scrollable content area */}
+                  <div className="flex-1 overflow-y-auto -mx-3 px-3 md:-mx-4 md:px-4">
+                    <nav className="grid grid-cols-2 gap-y-4 gap-x-6 mb-10">
+                      {navItems.map((item) => (
+                        <Button
+                          key={item.href}
+                          size="sm"
+                          variant="secondary"
+                          onClick={closeMobileMenu}
+                          className="justify-start uppercase bg-background/50"
+                          asChild
+                        >
+                          <Link href={item.href} prefetch>
+                            {item.icon && <item.icon className="w-4 h-4 mr-2" />}
+                            {item.label}
+                          </Link>
+                        </Button>
+                      ))}
+                    </nav>
 
-                  <ShopLinks label="Popular Producers" collections={collections} />
-
-                  <div className="mt-auto mb-6 text-sm leading-tight opacity-50">
-                    <p className="italic">Producers And Consumers Together</p>
+                    <div className="mb-10">
+                      <ShopLinks 
+                        label="Popular Producers" 
+                        collections={collections}
+                        onLinkClick={closeMobileMenu}
+                      />
+                    </div>
                   </div>
-                  <SidebarLinks className="gap-2 w-full" />
+
+                  {/* Footer - always visible at bottom */}
+                  <div className="mt-auto pt-6 border-t border-gray-200/50">
+                    <div className="mb-4 text-sm leading-tight opacity-50">
+                      <p className="italic">Producers And Consumers Together</p>
+                    </div>
+                    <SidebarLinks className="gap-2 w-full" />
+                  </div>
                 </div>
               </motion.div>
             </>

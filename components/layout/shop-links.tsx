@@ -7,6 +7,7 @@ interface ShopLinksProps {
   align?: "left" | "right";
   label?: string;
   className?: string;
+  onLinkClick?: () => void;
 }
 
 export function ShopLinks({
@@ -14,6 +15,7 @@ export function ShopLinks({
   label = "Shop",
   align = "left",
   className,
+  onLinkClick,
 }: ShopLinksProps) {
   return (
     <div
@@ -26,7 +28,12 @@ export function ShopLinks({
           .filter((collection) => collection.handle !== "wine-boxes")
           .map((item, index) => (
             <li key={`${item.handle}-${index}`}>
-              <Link href={`/shop/${item.handle}`} prefetch>
+              <Link 
+                href={`/shop/${item.handle}`} 
+                prefetch
+                onClick={onLinkClick}
+                className="hover:underline"
+              >
                 {item.title}
               </Link>
             </li>
