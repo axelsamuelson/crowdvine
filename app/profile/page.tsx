@@ -787,9 +787,11 @@ export default function ProfilePage() {
                     {/* Share Link */}
                     {inv.signupUrl && (
                       <div className="flex items-center justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs text-gray-500 mb-1">Link</p>
-                          <code className="text-xs text-gray-700 block" style={{ whiteSpace: 'nowrap', overflowX: 'auto' }}>{inv.signupUrl}</code>
+                        <div className="flex-1 min-w-0 bg-gray-50 rounded px-2 py-1.5 border border-gray-200">
+                          <p className="text-xs text-gray-500 mb-0.5">Link</p>
+                          <div className="font-mono text-xs text-gray-900 overflow-x-auto scrollbar-hide">
+                            {inv.signupUrl}
+                          </div>
                         </div>
                         <Button
                           onClick={() => {
