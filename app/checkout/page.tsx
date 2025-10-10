@@ -113,6 +113,16 @@ function CheckoutContent() {
     fetchCart();
     fetchProfile();
     fetchUserRewards();
+    
+    // Check if returning from Stripe payment method setup
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("payment_method_added") === "true") {
+      toast.success("Betalningsmetod tillagd!");
+      // Refresh payment methods
+      setTimeout(() => {
+        window.location.href = "/checkout"; // Reload without query params
+      }, 1500);
+    }
   }, []);
 
   // Initial zone matching when cart and profile are loaded

@@ -71,8 +71,12 @@ export function PaymentMethodSelector({
         return;
       }
 
-      const profile = await profileResponse.json();
-      if (!profile.email) {
+      const data = await profileResponse.json();
+      const profile = data.profile || data;
+      
+      console.log("👤 Profile for payment method:", profile);
+      
+      if (!profile?.email) {
         toast.error("Email is required to add payment method");
         return;
       }
