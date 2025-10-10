@@ -41,6 +41,15 @@ export function PaymentMethodSelector({
     fetchPaymentMethods();
   }, []);
 
+  // Auto-select when paymentMethods changes
+  useEffect(() => {
+    if (!selectedMethod && paymentMethods.length > 0) {
+      const defaultMethod = paymentMethods.find(m => m.is_default) || paymentMethods[0];
+      console.log("✅ Auto-selected payment method:", defaultMethod.id);
+      onPaymentMethodSelected(defaultMethod);
+    }
+  }, [paymentMethods, selectedMethod, onPaymentMethodSelected]);
+
   const fetchPaymentMethods = async () => {
     try {
       const response = await fetch("/api/user/payment-methods");

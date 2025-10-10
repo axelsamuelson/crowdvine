@@ -20,6 +20,7 @@ import { ProfileInfoModal } from "@/components/checkout/profile-info-modal";
 import { PaymentMethodSelector } from "@/components/checkout/payment-method-selector";
 import { ZoneDetails } from "@/components/checkout/zone-details";
 import { PalletDetails } from "@/components/checkout/pallet-details";
+import { ReservationLoadingModal } from "@/components/checkout/reservation-loading-modal";
 import { toast } from "sonner";
 import { User, MapPin, CreditCard, Package, AlertCircle, Gift, Check } from "lucide-react";
 import { clearZoneCache } from "@/lib/zone-matching";
@@ -75,6 +76,7 @@ function CheckoutContent() {
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(true);
   const [zoneLoading, setZoneLoading] = useState(false);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
     useState<PaymentMethod | null>(null);
@@ -368,10 +370,13 @@ function CheckoutContent() {
       return;
     }
 
+    setIsPlacingOrder(true); // Show loading modal
+
     // Check if delivery zone is available
     const hasCompleteAddress = profile?.address && profile?.city && profile?.postal_code;
 
     if (hasCompleteAddress && !zoneInfo.selectedDeliveryZoneId) {
+      setIsPlacingOrder(false);
       toast.error(
         "No delivery zone matches your address. Please contact support or try a different address.",
       );
@@ -380,6 +385,7 @@ function CheckoutContent() {
 
     // Check if pallet is available (should be auto-selected)
     if (zoneInfo.pallets && zoneInfo.pallets.length > 0 && !selectedPallet) {
+      setIsPlacingOrder(false);
       toast.error("No suitable pallet found for your location. Please contact support.");
       return;
     }
@@ -449,17 +455,20 @@ function CheckoutContent() {
       });
 
       if (response.ok) {
+        // Keep modal open during redirect
         toast.success("Reservation placed successfully!");
-        // Redirect to confirmation page
         window.location.href = "/checkout/success";
       } else {
+        setIsPlacingOrder(false); // Hide modal on error
         const errorData = await response.json();
         toast.error(errorData.error || "Failed to place reservation");
       }
     } catch (error) {
+      setIsPlacingOrder(false); // Hide modal on error
       console.error("Error placing reservation:", error);
       toast.error("Failed to place reservation");
     }
+    // Don't set false on success - keep showing during redirect
   };
 
   if (loading) {
@@ -528,7 +537,10 @@ function CheckoutContent() {
   const availableRewards: UserReward[] = [];
 
   return (
-    <div className="max-w-4xl mx-auto p-6 pt-top-spacing space-y-8">
+    <>
+      <ReservationLoadingModal open={isPlacingOrder} />
+      
+      <div className="max-w-4xl mx-auto p-6 pt-top-spacing space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Checkout</h1>
         <p className="text-gray-600 mt-2">Complete your wine reservation</p>
@@ -1005,6 +1017,7 @@ function CheckoutContent() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 
