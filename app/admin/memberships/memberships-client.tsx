@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Edit, Save } from "lucide-react";
+import { Edit, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface Perk {
@@ -73,32 +73,62 @@ const getDefaultDiscount = (level: string): number => {
 };
 
 export function MembershipsClient({
-  perksByLevel,
+  perksByLevel: initialPerksByLevel,
   levelThresholds,
   inviteQuotas,
 }: MembershipsClientProps) {
   const [editingLevel, setEditingLevel] = useState<string | null>(null);
   const [discountValue, setDiscountValue] = useState<number>(0);
   const [quotaValue, setQuotaValue] = useState<number>(0);
+  const [saving, setSaving] = useState(false);
+  const [perksByLevel, setPerksByLevel] = useState(initialPerksByLevel);
 
   const levels = ['basic', 'brons', 'silver', 'guld', 'admin'];
 
+  const getCurrentDiscount = (level: string): number => {
+    const perks = perksByLevel[level as keyof typeof perksByLevel] || [];
+    const discountPerk = perks.find(p => p.perk_type === 'discount');
+    if (discountPerk?.perk_value) {
+      const match = discountPerk.perk_value.match(/(\d+)/);
+      return match ? parseInt(match[1]) : getDefaultDiscount(level);
+    }
+    return getDefaultDiscount(level);
+  };
+
   const handleEditClick = (level: string) => {
     setEditingLevel(level);
-    setDiscountValue(getDefaultDiscount(level));
+    setDiscountValue(getCurrentDiscount(level));
     setQuotaValue(inviteQuotas[level]);
   };
 
   const handleSave = async () => {
     if (!editingLevel) return;
 
+    setSaving(true);
     try {
-      // TODO: Implement API call to save configuration
+      const response = await fetch(`/api/admin/memberships/${editingLevel}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          discount: discountValue,
+          inviteQuota: quotaValue,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to save');
+      }
+
       toast.success("Configuration updated successfully");
-      setEditingLevel(null);
+      
+      // Refresh page to show updated data
+      window.location.reload();
     } catch (error) {
       console.error("Error saving configuration:", error);
       toast.error("Failed to save configuration");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -170,16 +200,27 @@ export function MembershipsClient({
                           <Button
                             variant="outline"
                             onClick={() => setEditingLevel(null)}
+                            disabled={saving}
                             className="flex-1"
                           >
                             Cancel
                           </Button>
                           <Button
                             onClick={handleSave}
+                            disabled={saving}
                             className="flex-1 bg-black hover:bg-black/90 text-white"
                           >
-                            <Save className="w-4 h-4 mr-2" />
-                            Save Changes
+                            {saving ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Saving...
+                              </>
+                            ) : (
+                              <>
+                                <Save className="w-4 h-4 mr-2" />
+                                Save Changes
+                              </>
+                            )}
                           </Button>
                         </div>
                       </div>
@@ -209,7 +250,7 @@ export function MembershipsClient({
                 <div>
                   <p className="text-xs text-gray-500 mb-1">Member Discount</p>
                   <p className="text-sm font-medium text-gray-900">
-                    {getDefaultDiscount(level)}%
+                    {getCurrentDiscount(level)}%
                   </p>
                 </div>
 
