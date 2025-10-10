@@ -44,7 +44,7 @@ END $$;
 INSERT INTO public.user_memberships (
   user_id,
   level,
-  total_impact_points,
+  impact_points,
   invite_quota_monthly,
   invites_used_this_month,
   quota_reset_at
