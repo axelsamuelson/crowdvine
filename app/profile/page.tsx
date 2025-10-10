@@ -789,7 +789,7 @@ export default function ProfilePage() {
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           <p className="text-xs text-gray-500 mb-1">Link</p>
-                          <p className="text-xs text-gray-700 font-mono break-words overflow-hidden">{inv.signupUrl}</p>
+                          <p className="text-xs text-gray-700 font-mono break-all">{inv.signupUrl}</p>
                         </div>
                         <Button
                           onClick={() => {
