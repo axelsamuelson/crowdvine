@@ -37,10 +37,22 @@ BEGIN
 END $$;
 
 -- ================================================
+-- 1B. CLEAN UP ORPHANED PROFILES
+-- ================================================
+
+-- Delete profiles that don't have a corresponding auth.users
+-- (These are leftover from failed user creations)
+DELETE FROM public.profiles p
+WHERE NOT EXISTS (
+  SELECT 1 FROM auth.users u WHERE u.id = p.id
+);
+
+-- ================================================
 -- 2. CREATE MISSING MEMBERSHIPS
 -- ================================================
 
 -- Find users who have profiles but no memberships
+-- Only create memberships for profiles that have a corresponding auth.users entry
 INSERT INTO public.user_memberships (
   user_id,
   level,
@@ -58,6 +70,7 @@ SELECT
   NOW()
 FROM public.profiles p
 LEFT JOIN public.user_memberships um ON um.user_id = p.id
+INNER JOIN auth.users u ON u.id = p.id  -- CRITICAL: Only if auth.users exists
 WHERE um.user_id IS NULL
 ON CONFLICT (user_id) DO NOTHING;
 
