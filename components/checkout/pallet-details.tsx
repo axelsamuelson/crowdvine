@@ -45,26 +45,22 @@ export function PalletDetails({ pallet }: PalletDetailsProps) {
   );
 
   const getCapacityColor = (percentage: number) => {
-    if (percentage >= 90) return "bg-red-500";
-    if (percentage >= 70) return "bg-yellow-500";
-    return "bg-green-500";
+    if (percentage >= 90) return "bg-gray-700";
+    if (percentage >= 70) return "bg-gray-500";
+    return "bg-gray-400";
   };
 
   return (
-    <Card
-      className={`border-l-4 ${isAvailable ? "border-l-green-500" : "border-l-red-500"}`}
-    >
+    <Card className="border border-gray-200">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <div
-              className={`p-2 rounded-lg ${isAvailable ? "bg-green-100" : "bg-red-100"}`}
-            >
-              <Package className="w-4 h-4" />
+          <CardTitle className="flex items-center gap-2 text-base">
+            <div className="p-2 rounded-lg bg-gray-100">
+              <Package className="w-4 h-4 text-gray-600" />
             </div>
             <div>
-              <div className="font-semibold">{pallet.name}</div>
-              <div className="text-sm text-gray-600 font-normal">
+              <div className="font-semibold text-gray-900">{pallet.name}</div>
+              <div className="text-xs text-gray-600 font-normal">
                 {pallet.pickupZoneName} → {pallet.deliveryZoneName}
               </div>
             </div>
@@ -90,7 +86,7 @@ export function PalletDetails({ pallet }: PalletDetailsProps) {
             {/* Capacity Information */}
             <div className="p-3 bg-gray-50 rounded-lg">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium">Capacity</span>
+                <span className="text-sm font-medium text-gray-900">Kapacitet</span>
                 <span className="text-sm text-gray-600">
                   {capacityPercentage}% full
                 </span>
@@ -102,7 +98,7 @@ export function PalletDetails({ pallet }: PalletDetailsProps) {
                 ></div>
               </div>
               <div className="flex justify-between text-xs text-gray-500 mt-1">
-                <span>{pallet.currentBottles} bottles</span>
+                <span>{pallet.currentBottles} flaskor</span>
                 <span>{pallet.maxBottles} max</span>
               </div>
             </div>
@@ -110,20 +106,20 @@ export function PalletDetails({ pallet }: PalletDetailsProps) {
             {/* Route Information */}
             <div className="grid grid-cols-1 gap-3">
               <div className="flex items-center gap-2">
-                <Truck className="w-4 h-4 text-blue-500" />
+                <Truck className="w-4 h-4 text-gray-400" />
                 <div>
-                  <div className="text-xs text-gray-500">Pickup Location</div>
-                  <div className="text-sm font-medium">
+                  <div className="text-xs text-gray-500">Upphämtning</div>
+                  <div className="text-sm text-gray-900 font-medium">
                     {pallet.pickupZoneName}
                   </div>
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-green-500" />
+                <MapPin className="w-4 h-4 text-gray-400" />
                 <div>
-                  <div className="text-xs text-gray-500">Delivery Area</div>
-                  <div className="text-sm font-medium">
+                  <div className="text-xs text-gray-500">Leverans</div>
+                  <div className="text-sm text-gray-900 font-medium">
                     {pallet.deliveryZoneName}
                   </div>
                 </div>
@@ -131,54 +127,54 @@ export function PalletDetails({ pallet }: PalletDetailsProps) {
             </div>
 
             {/* Shipping Cost Information */}
-            <div className="p-3 bg-blue-50 rounded-lg">
+            <div className="p-3 bg-gray-50 rounded-lg">
               <div className="flex items-center gap-2 mb-2">
-                <DollarSign className="w-4 h-4 text-blue-600" />
-                <span className="text-sm font-medium text-blue-900">
-                  Shipping Cost
+                <DollarSign className="w-4 h-4 text-gray-600" />
+                <span className="text-sm font-medium text-gray-900">
+                  Fraktkostnad
                 </span>
               </div>
               <div className="space-y-1">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Pallet cost:</span>
-                  <span className="font-medium">
+                  <span className="text-gray-600">Pallkostnad:</span>
+                  <span className="text-gray-900 font-medium">
                     {formatShippingCost(pallet.costCents)}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Per bottle:</span>
-                  <span className="font-medium text-blue-600">
+                  <span className="text-gray-600">Per flaska:</span>
+                  <span className="text-gray-900 font-medium">
                     {formatShippingCost(shippingCostPerBottle)}
                   </span>
                 </div>
                 <div className="text-xs text-gray-500 mt-1">
-                  Cost divided by {pallet.maxBottles} bottles capacity
+                  Kostnad delat på {pallet.maxBottles} flaskor kapacitet
                 </div>
               </div>
             </div>
 
             {/* Availability Status */}
-            <div className="pt-2 border-t">
+            <div className="pt-2 border-t border-gray-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-gray-500" />
-                  <span className="text-sm">Availability</span>
+                  <BarChart3 className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm text-gray-900">Tillgänglighet</span>
                 </div>
                 <Badge
-                  variant={isAvailable ? "default" : "destructive"}
-                  className={isAvailable ? "bg-green-100 text-green-800" : ""}
+                  variant="outline"
+                  className="text-gray-900"
                 >
                   {isAvailable
-                    ? `${pallet.remainingBottles} bottles available`
+                    ? `${pallet.remainingBottles} flaskor kvar`
                     : "Full"}
                 </Badge>
               </div>
             </div>
 
             {/* Pallet ID */}
-            <div className="pt-2 border-t">
-              <Badge variant="outline" className="text-xs">
-                Pallet ID: {pallet.id.substring(0, 8)}...
+            <div className="pt-2 border-t border-gray-200">
+              <Badge variant="outline" className="text-xs text-gray-600">
+                Pall-ID: {pallet.id.substring(0, 8)}...
               </Badge>
             </div>
           </div>

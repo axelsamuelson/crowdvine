@@ -65,10 +65,18 @@ export function ProfileInfoModal({
         throw new Error("Failed to save profile");
       }
 
-      const updatedProfile = await response.json();
+      const result = await response.json();
+      const updatedProfile = result.profile || result;
+      
+      // Check if address is complete
+      const hasAddress = formData.address && formData.city && formData.postal_code;
+      
+      if (!hasAddress) {
+        toast.warning("Adress saknas. Du kan spara nu, men behöver lägga till adress innan du kan checka ut.");
+      }
+      
       onProfileSaved(updatedProfile);
       setOpen(false);
-      toast.success("Profile information saved successfully!");
     } catch (error) {
       console.error("Error saving profile:", error);
       toast.error("Failed to save profile information");
@@ -197,7 +205,7 @@ export function ProfileInfoModal({
               disabled={loading}
               className="flex-1 bg-black hover:bg-black/90 text-white"
             >
-              {loading ? "Saving..." : "Save Information"}
+              {loading ? "Sparar..." : "Spara"}
             </Button>
           </div>
         </div>

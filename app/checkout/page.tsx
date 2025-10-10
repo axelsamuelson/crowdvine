@@ -212,13 +212,16 @@ function CheckoutContent() {
                           : "",
         };
       } else {
-        // Fallback: Use Stockholm as default address when no address is provided
-        deliveryAddress = {
-          postcode: "11129",
-          city: "Stockholm",
-          countryCode: "SE",
-        };
-        console.log("📍 No address provided, using Stockholm as fallback");
+        // No complete address - cannot determine zones
+        console.log("⚠️ No complete address - cannot determine zones");
+        setZoneInfo({
+          ...zoneInfo,
+          usingFallbackAddress: false,
+          pickupZone: null,
+          deliveryZone: null,
+        });
+        setZoneLoading(false);
+        return;
       }
 
       const isUsingFallback = !profile?.address;
@@ -302,10 +305,26 @@ function CheckoutContent() {
     }
   };
 
-  const handleProfileSaved = (updatedProfile: UserProfile) => {
+  const handleProfileSaved = async (updatedProfile: UserProfile) => {
     setProfile(updatedProfile);
-    // Profile address is now the only source
-    toast.success("Profile information saved!");
+    
+    // Check if address is complete
+    const hasAddress = updatedProfile.address && 
+                       updatedProfile.city && 
+                       updatedProfile.postal_code;
+    
+    if (hasAddress) {
+      toast.success("Sparar...");
+      setZoneLoading(true);
+      // Wait a moment for state to update
+      setTimeout(async () => {
+        await updateZoneInfo();
+        setZoneLoading(false);
+        toast.success("Klart! Leveranszon uppdaterad.");
+      }, 100);
+    } else {
+      toast.success("Profil sparad. Lägg till adress för att fortsätta.");
+    }
   };
 
 
@@ -492,11 +511,10 @@ function CheckoutContent() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Left Column - Order Summary */}
         <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="w-5 h-5" />
-                Order Summary
+          <Card className="border border-gray-200">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base font-semibold text-gray-900">
+                Ordersammanfattning
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -509,17 +527,12 @@ function CheckoutContent() {
                   return (
                     <div
                       key={line.id}
-                      className="flex justify-between items-center"
+                      className="flex justify-between text-sm"
                     >
-                      <div>
-                        <span className="font-medium">
-                          {line.merchandise.title}
-                        </span>
-                        <span className="text-gray-600 ml-2">
-                          x{line.quantity}
-                        </span>
-                      </div>
-                      <span className="font-medium">
+                      <span className="text-gray-600">
+                        {line.merchandise.title} × {line.quantity}
+                      </span>
+                      <span className="text-gray-900 font-medium">
                         {Math.round(totalForLine)}{" "}
                         {line.merchandise.product.priceRange.minVariantPrice.currencyCode}
                       </span>
@@ -527,95 +540,97 @@ function CheckoutContent() {
                   );
                 })}
               </div>
-              <div className="border-t pt-3 mt-3">
-                <div className="space-y-2">
-
-                  {/* Shipping Cost */}
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Shipping</span>
-                    <span className="text-sm">
-                      {shippingCost ? (
-                        <span className="font-medium">
-                          {formatShippingCost(
-                            shippingCost.totalShippingCostCents,
-                          )}
-                        </span>
-                      ) : (
-                        <span className="text-gray-400">No pallet chosen</span>
-                      )}
-                    </span>
-                  </div>
-
-                  {/* Discount */}
-                  {useRewards && selectedRewards.length > 0 && (
-                    <div className="flex justify-between items-center text-green-600">
-                      <span className="text-sm">Rewards ({selectedRewards.length} rewards applied)</span>
-                      <span className="text-sm font-medium">
-                        -{Math.round(discountAmount)}{" "}
-                        {cart.cost.totalAmount.currencyCode}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Subtotal */}
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Subtotal</span>
-                    <span className="text-sm font-medium">
-                      {Math.round(subtotal)}{" "}
-                      {cart.cost.totalAmount.currencyCode}
-                    </span>
-                  </div>
-
-                  {/* Total */}
-                  <div className="flex justify-between items-center font-semibold text-lg border-t pt-2">
-                    <span>Total</span>
-                    <span>
-                      {Math.round(total)}{" "}
-                      {cart.cost.totalAmount.currencyCode}
-                    </span>
-                  </div>
+              
+              <div className="border-t border-gray-200 my-3"></div>
+              
+              <div className="space-y-3">
+                {/* Shipping Cost */}
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Frakt</span>
+                  <span className="text-gray-900 font-medium">
+                    {shippingCost ? (
+                      formatShippingCost(shippingCost.totalShippingCostCents)
+                    ) : (
+                      <span className="text-gray-400">Ingen pall vald</span>
+                    )}
+                  </span>
                 </div>
+
+                {/* Discount */}
+                {useRewards && selectedRewards.length > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Rabatt ({selectedRewards.length} belöningar)</span>
+                    <span className="text-gray-900 font-medium">
+                      -{Math.round(discountAmount)}{" "}
+                      {cart.cost.totalAmount.currencyCode}
+                    </span>
+                  </div>
+                )}
+
+                {/* Subtotal */}
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Delsumma</span>
+                  <span className="text-gray-900 font-medium">
+                    {Math.round(subtotal)}{" "}
+                    {cart.cost.totalAmount.currencyCode}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="border-t border-gray-200 my-3"></div>
+
+              {/* Total */}
+              <div className="flex justify-between text-base font-semibold text-gray-900">
+                <span>Totalt</span>
+                <span>
+                  {Math.round(total)}{" "}
+                  {cart.cost.totalAmount.currencyCode}
+                </span>
               </div>
             </CardContent>
           </Card>
 
           {/* Delivery Address */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="w-5 h-5" />
-                Delivery Address
+          <Card className="border border-gray-200">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-gray-600" />
+                Leveransadress
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent>
               {!hasCompleteProfileAddress ? (
-                <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                  <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                  <h3 className="font-semibold text-gray-900 mb-2">Add Delivery Address</h3>
-                  <p className="text-sm text-gray-600 mb-4 max-w-sm mx-auto">
-                    Add your delivery address to your profile to continue with checkout
+                <div className="text-center py-8 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                  <MapPin className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+                  <h3 className="text-sm font-semibold text-gray-900 mb-1">
+                    Lägg till leveransadress
+                  </h3>
+                  <p className="text-xs text-gray-600 mb-4">
+                    Adress krävs för att fortsätta
                   </p>
                   <ProfileInfoModal onProfileSaved={handleProfileSaved} />
                 </div>
               ) : (
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <div>
-                      <p className="font-medium text-gray-900">{profile?.address}</p>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {profile?.postal_code} {profile?.city}
-                      </p>
-                      <p className="text-sm text-gray-600">{profile?.country || 'Sweden'}</p>
-                    </div>
-                    <ProfileInfoModal
-                      onProfileSaved={handleProfileSaved}
-                      trigger={
-                        <Button variant="outline" size="sm">
-                          Edit
-                        </Button>
-                      }
-                    />
+                <div className="flex items-start justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-gray-900">{profile?.address}</p>
+                    <p className="text-xs text-gray-600">
+                      {profile?.postal_code} {profile?.city}
+                    </p>
+                    <p className="text-xs text-gray-600">{profile?.country || 'Sweden'}</p>
                   </div>
+                  <ProfileInfoModal
+                    onProfileSaved={handleProfileSaved}
+                    trigger={
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="text-xs"
+                      >
+                        Ändra
+                      </Button>
+                    }
+                  />
                 </div>
               )}
             </CardContent>
@@ -625,36 +640,25 @@ function CheckoutContent() {
           <div className="space-y-4">
             {/* Zone Loading Indicator */}
             {zoneLoading && (
-                <Card className="border-l-4 border-l-blue-500">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-blue-700">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-                      Finding Delivery Zones
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-blue-600">
-                      Please wait while we determine the best delivery zones for your address...
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-              {/* Fallback Address Notice */}
-              {zoneInfo.usingFallbackAddress && (
-                <Card className="border-l-4 border-l-amber-500">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-amber-700">
-                      <AlertCircle className="w-5 h-5" />
-                      Using Default Address
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-amber-600 mb-3">
-                      No delivery address found. Showing zones for Stockholm, Sweden as default.
-                    </p>
-                    <p className="text-xs text-amber-500">
-                      Please add your delivery address below to see zones for your location.
-                    </p>
+              <Card className="border border-gray-200">
+                <CardContent className="py-6">
+                  <div className="flex items-center gap-3">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
+                    <span className="text-sm text-gray-600">Uppdaterar leveranszon...</span>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+              {/* No Address Message */}
+              {!hasCompleteProfileAddress && !zoneLoading && (
+                <Card className="border border-gray-200">
+                  <CardContent className="py-6">
+                    <div className="text-center">
+                      <MapPin className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-600">
+                        Lägg till leveransadress för att fortsätta.
+                      </p>
+                    </div>
                   </CardContent>
                 </Card>
               )}
@@ -686,17 +690,14 @@ function CheckoutContent() {
                 />
               ) : !zoneLoading && !zoneInfo.usingFallbackAddress && 
                 profile?.address && profile?.city && profile?.postal_code ? (
-                <Card className="border-l-4 border-l-red-500">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-red-700">
-                      <AlertCircle className="w-5 h-5" />
-                      No Delivery Zone Found
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-red-600 mb-3">
-                      No delivery zone matches this address. Please contact
-                      support or try a different address.
+                <Card className="border border-gray-200">
+                  <CardContent className="py-6 text-center">
+                    <AlertCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600 mb-1">
+                      Ingen leveranszon hittades för din adress.
+                    </p>
+                    <p className="text-xs text-gray-500 mb-4">
+                      Kontakta support för hjälp.
                     </p>
                     <Button
                       variant="outline"
@@ -706,19 +707,9 @@ function CheckoutContent() {
                         updateZoneInfo();
                       }}
                       disabled={zoneLoading}
-                      className="text-red-600 border-red-300 hover:bg-red-50"
+                      className="text-xs"
                     >
-                      {zoneLoading ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600 mr-2"></div>
-                          Retrying...
-                        </>
-                      ) : (
-                        <>
-                          <AlertCircle className="w-4 h-4 mr-2" />
-                          Retry Zone Detection
-                        </>
-                      )}
+                      {zoneLoading ? "Uppdaterar..." : "Försök igen"}
                     </Button>
                   </CardContent>
                 </Card>
