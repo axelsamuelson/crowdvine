@@ -16,6 +16,7 @@ import {
   FileText,
   Gift,
   Shield,
+  Award,
   LogOut,
 } from "lucide-react";
 
@@ -34,6 +35,11 @@ const navigation = [
      name: "Users",
      href: "/admin/users",
      icon: Users,
+   },
+   {
+     name: "Memberships",
+     href: "/admin/memberships",
+     icon: Award,
    },
    {
      name: "Producers",
