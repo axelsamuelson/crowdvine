@@ -249,8 +249,17 @@ export default function ProfilePage() {
           const enrichedInvitations = data.invitations.map((inv: any) => {
             if (inv.code && !inv.signupUrl) {
               const baseUrl = window.location.origin;
-              inv.signupUrl = `${baseUrl}/i/${inv.code}`;
-              inv.codeSignupUrl = `${baseUrl}/c/${inv.code}`;
+              // Remove any whitespace from code and ensure no spaces in URL
+              const cleanCode = inv.code.trim().replace(/\s+/g, '');
+              inv.signupUrl = `${baseUrl}/i/${cleanCode}`;
+              inv.codeSignupUrl = `${baseUrl}/c/${cleanCode}`;
+              
+              console.log("🔗 Built signup URL:", {
+                code: inv.code,
+                cleanCode,
+                signupUrl: inv.signupUrl,
+                hasSpace: inv.signupUrl.includes(' '),
+              });
             }
             return inv;
           });
@@ -789,9 +798,10 @@ export default function ProfilePage() {
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex-1 min-w-0 bg-gray-50 rounded px-2 py-1.5 border border-gray-200">
                           <p className="text-xs text-gray-500 mb-0.5">Link</p>
-                          <div className="font-mono text-xs text-gray-900 overflow-x-auto scrollbar-hide">
-                            {inv.signupUrl}
-                          </div>
+                          <div 
+                            className="font-mono text-xs text-gray-900 overflow-x-auto scrollbar-hide"
+                            dangerouslySetInnerHTML={{ __html: inv.signupUrl }}
+                          />
                         </div>
                         <Button
                           onClick={() => {
