@@ -161,10 +161,10 @@ export async function POST(request: NextRequest) {
     const { error: membershipError } = await sb.from("user_memberships").insert({
       user_id: userId,
       level: initialLevel,
-      impact_points: 0, // Note: column is 'impact_points' not 'total_impact_points'
+      impact_points: 0,
       invite_quota_monthly: getQuotaForLevel(initialLevel),
       invites_used_this_month: 0,
-      quota_reset_at: getNextMonthStart()
+      last_quota_reset: new Date().toISOString()
     });
 
     if (membershipError) {
@@ -293,8 +293,4 @@ function getQuotaForLevel(level: string): number {
   return quotas[level] || 2;
 }
 
-function getNextMonthStart(): string {
-  const now = new Date();
-  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  return nextMonth.toISOString();
-}
+// Helper function removed - last_quota_reset uses NOW() instead of next month start

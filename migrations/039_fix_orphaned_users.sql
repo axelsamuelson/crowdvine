@@ -47,7 +47,7 @@ INSERT INTO public.user_memberships (
   impact_points,
   invite_quota_monthly,
   invites_used_this_month,
-  quota_reset_at
+  last_quota_reset
 )
 SELECT 
   p.id,
@@ -55,7 +55,7 @@ SELECT
   0,
   2,
   0,
-  DATE_TRUNC('month', NOW() + INTERVAL '1 month')
+  NOW()
 FROM public.profiles p
 LEFT JOIN public.user_memberships um ON um.user_id = p.id
 WHERE um.user_id IS NULL
