@@ -82,14 +82,6 @@ function CheckoutContent() {
   const [userRewards, setUserRewards] = useState<UserReward[]>([]);
   const [selectedRewards, setSelectedRewards] = useState<UserReward[]>([]);
   const [useRewards, setUseRewards] = useState(false);
-  const [useProfileAddress, setUseProfileAddress] = useState(true);
-  const [useCustomAddress, setUseCustomAddress] = useState(false);
-  const [customAddress, setCustomAddress] = useState({
-    street: "",
-    postcode: "",
-    city: "",
-    countryCode: "",
-  });
   const [zoneInfo, setZoneInfo] = useState<{
     pickupZone: string | null;
     deliveryZone: string | null;
@@ -139,7 +131,7 @@ function CheckoutContent() {
 
       return () => clearTimeout(timeoutId);
     }
-  }, [profile, customAddress, useProfileAddress, useCustomAddress]);
+  }, [profile]);
 
   const fetchCart = async () => {
     try {
@@ -220,7 +212,7 @@ function CheckoutContent() {
                           ? "GB"
                           : "",
         };
-      } else if (useCustomAddress) {
+      } else if (false) { // Custom address disabled
         deliveryAddress = {
           postcode: customAddress.postcode,
           city: customAddress.city,
@@ -236,7 +228,7 @@ function CheckoutContent() {
         console.log("📍 No address provided, using Stockholm as fallback");
       }
 
-      const isUsingFallback = !useProfileAddress && !useCustomAddress;
+      const isUsingFallback = !profile?.address;
 
       console.log("🚀 Sending zone request:", {
         cartItems: cart.lines,
@@ -340,12 +332,7 @@ function CheckoutContent() {
     }
 
     // Check if delivery zone is available
-    const hasCompleteAddress = useProfileAddress
-      ? profile?.address && profile?.city && profile?.postal_code
-      : customAddress.street &&
-        customAddress.city &&
-        customAddress.postcode &&
-        customAddress.countryCode;
+    const hasCompleteAddress = profile?.address && profile?.city && profile?.postal_code;
 
     if (hasCompleteAddress && !zoneInfo.selectedDeliveryZoneId) {
       toast.error(
@@ -369,8 +356,8 @@ function CheckoutContent() {
     formData.append("email", profile?.email || "");
     formData.append("phone", profile?.phone || "");
 
-    // Delivery address
-    if (useProfileAddress && profile) {
+    // Delivery address (always from profile)
+    if (profile) {
       formData.append("street", profile.address || "");
       formData.append("postcode", profile.postal_code || "");
       formData.append("city", profile.city || "");
@@ -613,54 +600,38 @@ function CheckoutContent() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {hasCompleteProfileAddress ? (
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="useProfileAddress"
-                      checked={useProfileAddress}
-                      onCheckedChange={(checked) => {
-                        setUseProfileAddress(checked as boolean);
-                        setUseCustomAddress(!checked as boolean);
-                      }}
-                    />
-                    <Label
-                      htmlFor="useProfileAddress"
-                      className="text-sm font-medium"
-                    >
-                      Use profile address: {profile?.address},{" "}
-                      {profile?.postal_code} {profile?.city}
-                    </Label>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="useCustomAddress"
-                      checked={useCustomAddress}
-                      onCheckedChange={(checked) => {
-                        setUseCustomAddress(checked as boolean);
-                        setUseProfileAddress(!checked as boolean);
-                      }}
-                    />
-                    <Label
-                      htmlFor="useCustomAddress"
-                      className="text-sm font-medium"
-                    >
-                      Use different delivery address
-                    </Label>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-4">
-                  <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
-                  <p className="text-gray-600 mb-4">
-                    Delivery address missing from profile
+              {!hasCompleteProfileAddress ? (
+                <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                  <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                  <h3 className="font-semibold text-gray-900 mb-2">Add Delivery Address</h3>
+                  <p className="text-sm text-gray-600 mb-4 max-w-sm mx-auto">
+                    Add your delivery address to your profile to continue with checkout
                   </p>
                   <ProfileInfoModal onProfileSaved={handleProfileSaved} />
                 </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <div>
+                      <p className="font-medium text-gray-900">{profile?.address}</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {profile?.postal_code} {profile?.city}
+                      </p>
+                      <p className="text-sm text-gray-600">{profile?.country || 'Sweden'}</p>
+                    </div>
+                    <ProfileInfoModal
+                      onProfileSaved={handleProfileSaved}
+                      trigger={
+                        <Button variant="outline" size="sm">
+                          Edit
+                        </Button>
+                      }
+                    />
+                  </div>
+                </div>
               )}
 
-              {useCustomAddress && (
+              {false && (
                 <div className="space-y-4 pt-4 border-t">
                   <div>
                     <Label htmlFor="customStreet">Street Address</Label>
@@ -800,14 +771,7 @@ function CheckoutContent() {
                   )?.radiusKm}
                 />
               ) : !zoneLoading && !zoneInfo.usingFallbackAddress && 
-                ((useProfileAddress &&
-                  profile?.address &&
-                  profile?.city &&
-                  profile?.postal_code) ||
-                (useCustomAddress &&
-                  customAddress.street &&
-                  customAddress.city &&
-                  customAddress.postcode)) ? (
+                profile?.address && profile?.city && profile?.postal_code ? (
                 <Card className="border-l-4 border-l-red-500">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-red-700">
