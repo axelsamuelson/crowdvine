@@ -477,7 +477,7 @@ function CheckoutContent() {
     profile?.address && profile?.city && profile?.postal_code;
 
   // Calculate shipping cost
-  const shippingCost = selectedPallet
+  const shippingCost = selectedPallet && cart?.lines
     ? calculateCartShippingCost(
         cart.lines.map((line) => ({ quantity: line.quantity })),
         {
@@ -492,10 +492,10 @@ function CheckoutContent() {
     : null;
 
   // Calculate bottle cost and discount
-  const bottleCost = cart.lines.reduce((total, line) => {
+  const bottleCost = cart?.lines ? cart.lines.reduce((total, line) => {
     const pricePerBottle = parseFloat(line.merchandise.product.priceRange.minVariantPrice.amount);
     return total + (pricePerBottle * line.quantity);
-  }, 0);
+  }, 0) : 0;
 
   const discountAmount = useRewards ? selectedRewards.reduce((total, reward) => {
     return total + (bottleCost * reward.discount_percentage) / 100;
@@ -528,7 +528,7 @@ function CheckoutContent() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {cart.lines.map((line) => {
+                {cart?.lines?.map((line) => {
                   // Get price per bottle from product priceRange
                   const pricePerBottle = parseFloat(line.merchandise.product.priceRange.minVariantPrice.amount);
                   const totalForLine = pricePerBottle * line.quantity;
