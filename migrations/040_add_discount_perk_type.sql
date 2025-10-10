@@ -1,10 +1,18 @@
--- Migration: Add 'discount' to perk_type enum
+-- Migration 040: Add 'discount' to perk_type enum
 -- Purpose: Allow storing member discount percentages in membership_perks table
 
--- Add 'discount' to the perk_type enum
+-- IMPORTANT: This must be run in TWO steps due to PostgreSQL enum constraints
+-- Step 1: Add enum value (run this first, then commit/wait)
+
 ALTER TYPE perk_type ADD VALUE IF NOT EXISTS 'discount';
 
--- Insert default discount perks for each level
+-- STOP HERE - Commit this transaction
+-- Then run the second part below in a NEW transaction:
+
+-- Step 2: Insert default discount perks (run this AFTER step 1 is committed)
+-- Copy and run this separately:
+
+/*
 INSERT INTO membership_perks (level, perk_type, perk_value, description, sort_order, is_active)
 VALUES 
   ('basic', 'discount', '0%', 'No discount', 10, true),
@@ -13,7 +21,5 @@ VALUES
   ('guld', 'discount', '10%', '10% discount on all wine purchases', 10, true),
   ('admin', 'discount', '15%', '15% discount on all wine purchases', 10, true)
 ON CONFLICT (level, perk_type) DO NOTHING;
-
--- Comment
-COMMENT ON TYPE perk_type IS 'Types of perks available in membership system: invite_quota, queue_priority, fee_reduction, early_access, exclusive_drops, pallet_hosting, producer_contact, discount';
+*/
 
