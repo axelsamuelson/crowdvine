@@ -681,13 +681,25 @@ function CheckoutContent() {
               )}
 
               {/* Pickup Zone */}
-              {zoneInfo.pickupZone && (
+              {zoneInfo.pickupZone ? (
                 <ZoneDetails
                   zoneId={zoneInfo.pickupZoneId || ""}
                   zoneName={zoneInfo.pickupZone}
                   zoneType="pickup"
                 />
-              )}
+              ) : !zoneLoading && hasCompleteProfileAddress ? (
+                <Card className="border border-gray-200">
+                  <CardContent className="py-6 text-center">
+                    <AlertCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600 mb-1">
+                      Ingen upphämtningszon hittades.
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Producenten saknar upphämtningszon. Kontakta support.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : null}
 
               {/* Delivery Zone */}
               {zoneInfo.deliveryZone ? (
@@ -740,41 +752,54 @@ function CheckoutContent() {
               palletsCount: zoneInfo.pallets?.length || 0,
               pallets: zoneInfo.pallets,
               zoneLoading,
+              hasPickupZone: !!zoneInfo.pickupZone,
+              hasDeliveryZone: !!zoneInfo.deliveryZone,
               shouldShow: (zoneInfo.pallets && zoneInfo.pallets.length > 0) || zoneLoading,
             });
             return null;
           })()}
-          {(zoneInfo.pallets && zoneInfo.pallets.length > 0) || zoneLoading ? (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <Package className="w-5 h-5" />
-                  Selected Pallet
-                  {zoneLoading && (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                  )}
-                </h3>
-              </div>
-
-              <div className="space-y-3">
-                {zoneLoading ? (
-                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <div className="flex items-center gap-3">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                      <div>
-                        <p className="font-medium text-gray-700">Finding your pallet...</p>
-                        <p className="text-sm text-gray-500">Matching your wines with available pallets</p>
-                      </div>
-                    </div>
-                  </div>
-                ) : selectedPallet ? (
-                  <div className="relative">
-                    <PalletDetails pallet={selectedPallet} />
-                  </div>
-                ) : null}
-              </div>
-
-            </div>
+          
+          {/* Show pallet if we have pallets or loading */}
+          {zoneLoading ? (
+            <Card className="border border-gray-200">
+              <CardContent className="py-6">
+                <div className="flex items-center gap-3">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
+                  <span className="text-sm text-gray-600">Söker efter pall...</span>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (zoneInfo.pallets && zoneInfo.pallets.length > 0) ? (
+            <Card className="border border-gray-200">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                  <Package className="w-4 h-4 text-gray-600" />
+                  Vald Pall
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {selectedPallet ? (
+                  <PalletDetails pallet={selectedPallet} />
+                ) : (
+                  <p className="text-sm text-gray-600">Ingen pall vald</p>
+                )}
+              </CardContent>
+            </Card>
+          ) : !zoneLoading && hasCompleteProfileAddress && zoneInfo.pickupZone && zoneInfo.deliveryZone ? (
+            <Card className="border border-gray-200">
+              <CardContent className="py-6 text-center">
+                <Package className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-sm text-gray-600 mb-1">
+                  Ingen pall hittades för denna rutt.
+                </p>
+                <p className="text-xs text-gray-500 mb-2">
+                  Rutt: {zoneInfo.pickupZone} → {zoneInfo.deliveryZone}
+                </p>
+                <p className="text-xs text-gray-500">
+                  En ny pall borde ha skapats automatiskt. Kontakta support om problemet kvarstår.
+                </p>
+              </CardContent>
+            </Card>
           ) : null}
         </div>
 
