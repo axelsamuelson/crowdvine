@@ -5,6 +5,7 @@ import { AddToCart, AddToCartButton } from "../cart/add-to-cart";
 import { Suspense } from "react";
 import Link from "next/link";
 import { formatPrice } from "@/lib/shopify/utils";
+import { MemberPrice } from "@/components/ui/member-price";
 
 export function FeaturedProductLabel({
   product,
@@ -50,10 +51,12 @@ export function FeaturedProductLabel({
           </p>
         </div>
         <div className="flex col-span-1 gap-3 items-center text-2xl font-semibold md:self-end">
-          {formatPrice(
-            product.priceRange.minVariantPrice.amount,
-            product.priceRange.minVariantPrice.currencyCode,
-          )}
+          <MemberPrice
+            amount={product.priceRange.minVariantPrice.amount}
+            currencyCode={product.priceRange.minVariantPrice.currencyCode}
+            className="text-2xl font-semibold"
+            showBadge={true}
+          />
           {product.compareAtPrice && (
             <span className="line-through opacity-30">
               {formatPrice(
