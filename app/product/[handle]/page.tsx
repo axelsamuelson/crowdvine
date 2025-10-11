@@ -19,6 +19,7 @@ import {
 import Link from "next/link";
 import { SidebarLinks } from "@/components/layout/sidebar/product-sidebar-links";
 import { AddToCart, AddToCartButton } from "@/components/cart/add-to-cart";
+import { AddToCartWithQuantity } from "@/components/cart/add-to-cart-with-quantity";
 import { storeCatalog } from "@/lib/shopify/constants";
 import Prose from "@/components/prose";
 import { formatPrice } from "@/lib/shopify/utils";
@@ -206,19 +207,12 @@ export default async function ProductPage(props: {
 
                 <Suspense
                   fallback={
-                    <AddToCartButton
-                      className={cn("w-full", {
-                        "col-span-full": !hasVariants || hasEvenOptions,
-                      })}
-                      product={product}
-                      size="lg"
-                    />
+                    <div className="h-12 bg-muted animate-pulse rounded" />
                   }
                 >
-                  <AddToCart
+                  <AddToCartWithQuantity
                     product={product}
-                    size="lg"
-                    className={cn("w-full", {
+                    className={cn("", {
                       "col-span-full": !hasVariants || hasEvenOptions,
                     })}
                   />
