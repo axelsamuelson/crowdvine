@@ -10,7 +10,6 @@ import { useParams, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { Loader } from "../ui/loader";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
 
 interface AddToCartWithQuantityProps {
   product: Product;
@@ -37,7 +36,6 @@ export function AddToCartWithQuantity({
   const selectedVariant = useSelectedVariant(product);
   const pathname = useParams<{ handle?: string }>();
   const searchParams = useSearchParams();
-  const router = useRouter();
 
   const { variants } = product;
   const hasNoVariants = variants.length === 0;
@@ -71,33 +69,19 @@ export function AddToCartWithQuantity({
     }
   };
 
-  const handleAddToCart = async (e: React.FormEvent) => {
+  const handleAddToCart = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (resolvedVariant) {
       startTransition(async () => {
-        try {
-          // Call API directly with quantity parameter
-          const response = await fetch('/api/cart/simple-add', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              variantId: resolvedVariant.id,
-              quantity: quantity 
-            })
-          });
-          
-          if (response.ok) {
-            // Refresh the page to update cart context
-            router.refresh();
-            // Reset quantity to 1 after adding
-            setQuantity(1);
-          } else {
-            console.error('Failed to add items to cart');
-          }
-        } catch (error) {
-          console.error('Error adding to cart:', error);
+        // Add items using the existing addItem function from cart context
+        // We add them sequentially to maintain cart state properly
+        for (let i = 0; i < quantity; i++) {
+          await addItem(resolvedVariant, product);
         }
+        
+        // Reset quantity to 1 after successful add
+        setQuantity(1);
       });
     }
   };
