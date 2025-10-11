@@ -16,6 +16,7 @@ export async function Footer() {
             collections={collections}
             className="max-md:hidden"
             align="right"
+            invert={true}
           />
           <span className="mt-3 italic font-semibold md:hidden">
             Producers And Consumers Together

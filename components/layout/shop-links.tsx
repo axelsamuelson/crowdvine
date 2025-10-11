@@ -8,6 +8,7 @@ interface ShopLinksProps {
   label?: string;
   className?: string;
   onLinkClick?: () => void;
+  invert?: boolean; // For footer with dark background
 }
 
 export function ShopLinks({
@@ -16,6 +17,7 @@ export function ShopLinks({
   align = "left",
   className,
   onLinkClick,
+  invert = false,
 }: ShopLinksProps) {
   // Debug: Log collections data
   console.log("🔍 ShopLinks:", {
@@ -51,7 +53,10 @@ export function ShopLinks({
               href={`/shop/${item.handle}`} 
               prefetch
               onClick={onLinkClick}
-              className="hover:underline text-gray-900"
+              className={cn(
+                "hover:underline",
+                invert ? "text-white" : "text-gray-900"
+              )}
             >
               {item.title}
             </Link>
