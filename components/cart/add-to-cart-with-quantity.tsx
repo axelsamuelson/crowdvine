@@ -10,6 +10,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { Loader } from "../ui/loader";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 interface AddToCartWithQuantityProps {
   product: Product;
@@ -36,6 +37,7 @@ export function AddToCartWithQuantity({
   const selectedVariant = useSelectedVariant(product);
   const pathname = useParams<{ handle?: string }>();
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   const { variants } = product;
   const hasNoVariants = variants.length === 0;
@@ -69,14 +71,32 @@ export function AddToCartWithQuantity({
     }
   };
 
-  const handleAddToCart = (e: React.FormEvent) => {
+  const handleAddToCart = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (resolvedVariant) {
       startTransition(async () => {
-        // Add items one by one (cart system doesn't support quantity in single call)
-        for (let i = 0; i < quantity; i++) {
-          await addItem(resolvedVariant, product);
+        try {
+          // Call API directly with quantity parameter
+          const response = await fetch('/api/cart/simple-add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              variantId: resolvedVariant.id,
+              quantity: quantity 
+            })
+          });
+          
+          if (response.ok) {
+            // Refresh the page to update cart context
+            router.refresh();
+            // Reset quantity to 1 after adding
+            setQuantity(1);
+          } else {
+            console.error('Failed to add items to cart');
+          }
+        } catch (error) {
+          console.error('Error adding to cart:', error);
         }
       });
     }
@@ -88,23 +108,23 @@ export function AddToCartWithQuantity({
     <form onSubmit={handleAddToCart} className={cn("w-full", className)}>
       <div className="flex items-center gap-3">
         {/* Quantity Selector */}
-        <div className="flex items-center border-2 border-gray-300 rounded-md overflow-hidden bg-white">
+        <div className="flex items-center border-2 border-black rounded-md overflow-hidden bg-white">
           {/* Minus Button */}
           <button
             type="button"
             onClick={handleDecrease}
             disabled={quantity <= 1 || isDisabled}
             className={cn(
-              "px-3 py-2 hover:bg-gray-100 transition-colors border-r border-gray-300",
+              "px-3 py-2 hover:bg-gray-100 transition-colors border-r border-black",
               quantity <= 1 || isDisabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"
             )}
           >
-            <Minus className="w-4 h-4 text-gray-700" />
+            <Minus className="w-4 h-4 text-black" />
           </button>
 
           {/* Quantity Display */}
           <div className="px-4 py-2 min-w-[3rem] text-center">
-            <span className="text-base font-medium text-gray-900">
+            <span className="text-base font-semibold text-black">
               {quantity}
             </span>
           </div>
@@ -115,11 +135,11 @@ export function AddToCartWithQuantity({
             onClick={handleIncrease}
             disabled={quantity >= 99 || isDisabled}
             className={cn(
-              "px-3 py-2 hover:bg-gray-100 transition-colors border-l border-gray-300",
+              "px-3 py-2 hover:bg-gray-100 transition-colors border-l border-black",
               quantity >= 99 || isDisabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"
             )}
           >
-            <Plus className="w-4 h-4 text-gray-700" />
+            <Plus className="w-4 h-4 text-black" />
           </button>
         </div>
 

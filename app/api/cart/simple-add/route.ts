@@ -7,13 +7,17 @@ export async function POST(request: Request) {
     console.log("🔧 Simple add API called");
     
     const body = await request.json();
-    const { variantId } = body;
+    const { variantId, quantity: requestedQuantity = 1 } = body;
     
     console.log("🔧 Variant ID:", variantId);
+    console.log("🔧 Requested quantity:", requestedQuantity);
     
     if (!variantId) {
       return NextResponse.json({ error: "No variantId provided" }, { status: 400 });
     }
+    
+    // Validate quantity
+    const quantity = Math.max(1, Math.min(99, parseInt(String(requestedQuantity)) || 1));
 
     // Extract base ID from variant ID (remove -default suffix)
     const baseId = variantId.replace("-default", "");
@@ -75,27 +79,47 @@ export async function POST(request: Request) {
       console.log("🔧 Existing cart found:", dbCartId);
     }
     
-    // Use upsert to add/update item in a single operation (faster)
-    const { error: upsertError } = await supabase
+    // Check if item already exists in cart
+    const { data: existingItem } = await supabase
       .from("cart_items")
-      .upsert(
-        {
+      .select("id, quantity")
+      .eq("cart_id", dbCartId)
+      .eq("wine_id", baseId)
+      .single();
+    
+    if (existingItem) {
+      // Item exists - increment quantity
+      const newQuantity = existingItem.quantity + quantity;
+      console.log("🔧 Item exists, updating quantity from", existingItem.quantity, "to", newQuantity);
+      
+      const { error: updateError } = await supabase
+        .from("cart_items")
+        .update({ quantity: newQuantity })
+        .eq("id", existingItem.id);
+      
+      if (updateError) {
+        console.error("🔧 Error updating quantity:", updateError);
+        return NextResponse.json({ error: "Failed to update quantity" }, { status: 500 });
+      }
+    } else {
+      // Item doesn't exist - insert new
+      console.log("🔧 Item doesn't exist, inserting with quantity", quantity);
+      
+      const { error: insertError } = await supabase
+        .from("cart_items")
+        .insert({
           cart_id: dbCartId,
           wine_id: baseId,
-          quantity: 1
-        },
-        {
-          onConflict: "cart_id,wine_id",
-          ignoreDuplicates: false
-        }
-      );
-    
-    if (upsertError) {
-      console.error("🔧 Error upserting item:", upsertError);
-      return NextResponse.json({ error: "Failed to add item" }, { status: 500 });
+          quantity: quantity
+        });
+      
+      if (insertError) {
+        console.error("🔧 Error inserting item:", insertError);
+        return NextResponse.json({ error: "Failed to add item" }, { status: 500 });
+      }
     }
     
-    console.log("🔧 Item upserted successfully");
+    console.log("🔧 Item added/updated successfully");
     
     // Get updated cart with wine details in a single query
     const { data: cartItems, error: fetchError } = await supabase
