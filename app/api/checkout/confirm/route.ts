@@ -3,6 +3,16 @@ import { CartService } from "@/src/lib/cart-service";
 import { supabaseServer, getCurrentUser } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { determineZones } from "@/lib/zone-matching";
+import { 
+  awardPointsForOwnOrder, 
+  awardPointsForInviteSecondOrder,
+  checkPalletMilestone,
+  awardPointsForPalletMilestone,
+} from "@/lib/membership/points-engine";
+import { 
+  applyProgressionBuffs, 
+  checkAndAwardProgressionRewards 
+} from "@/lib/membership/progression-rewards";
 
 export async function POST(request: Request) {
   try {
@@ -317,6 +327,94 @@ export async function POST(request: Request) {
       // Email failure should not break the checkout process
     }
 
+    // ============================================================
+    // v2: PROGRESSION BUFFS & IP AWARDS
+    // ============================================================
+    
+    if (currentUser) {
+      try {
+        console.log("💎 [PROGRESSION] Processing progression buffs and IP awards for user:", currentUser.id);
+        
+        // 1. Apply and mark progression buffs as used (before clearing cart)
+        const buffResult = await applyProgressionBuffs(currentUser.id, reservation.id);
+        if (buffResult.success && buffResult.buffCount > 0) {
+          console.log(`✅ [PROGRESSION] Applied ${buffResult.buffCount} buff(s) (${buffResult.appliedPercentage}%) to order`);
+        }
+        
+        // 2. Calculate total bottle count from cart
+        const totalBottles = cart.lines.reduce((sum, line) => sum + line.quantity, 0);
+        console.log(`🍾 [PROGRESSION] Total bottles in order: ${totalBottles}`);
+        
+        // 3. Award IP for own order (handles both regular ≥6 and large ≥12)
+        const ownOrderResult = await awardPointsForOwnOrder(
+          currentUser.id,
+          totalBottles,
+          reservation.id
+        );
+        
+        if (ownOrderResult.success && ownOrderResult.newTotal > 0) {
+          console.log(`✅ [PROGRESSION] Awarded IP for own order. New total: ${ownOrderResult.newTotal} IP`);
+          
+          // 4. Check and award progression rewards at new IP milestone
+          const sbAdmin = getSupabaseAdmin();
+          const { data: membership } = await sbAdmin
+            .from('user_memberships')
+            .select('level, impact_points')
+            .eq('user_id', currentUser.id)
+            .single();
+          
+          if (membership) {
+            await checkAndAwardProgressionRewards(
+              currentUser.id,
+              membership.impact_points,
+              membership.level
+            );
+          }
+        }
+        
+        // 5. Check if user was invited and this is their second order
+        const { data: inviterInfo } = await sbAdmin
+          .from('user_memberships')
+          .select('invited_by')
+          .eq('user_id', currentUser.id)
+          .single();
+        
+        if (inviterInfo?.invited_by) {
+          const secondOrderResult = await awardPointsForInviteSecondOrder(
+            inviterInfo.invited_by,
+            currentUser.id,
+            reservation.id
+          );
+          
+          if (secondOrderResult.success && secondOrderResult.newTotal > 0) {
+            console.log(`✅ [PROGRESSION] Awarded inviter IP for friend's 2nd order`);
+          }
+        }
+        
+        // 6. Check pallet milestones (3, 6, 12 unique pallets)
+        if (palletId) {
+          const palletCount = await checkPalletMilestone(currentUser.id);
+          console.log(`📦 [PROGRESSION] User has participated in ${palletCount} unique pallets`);
+          
+          // Award milestone IP if reached 3, 6, or 12
+          if ([3, 6, 12].includes(palletCount)) {
+            const milestoneResult = await awardPointsForPalletMilestone(
+              currentUser.id,
+              palletCount
+            );
+            
+            if (milestoneResult.success && milestoneResult.newTotal > 0) {
+              console.log(`🎉 [PROGRESSION] Pallet milestone ${palletCount} reached! New total: ${milestoneResult.newTotal} IP`);
+            }
+          }
+        }
+        
+      } catch (progressionError) {
+        console.error("❌ [PROGRESSION] Error processing progression rewards:", progressionError);
+        // Don't fail the order if progression logic fails
+      }
+    }
+    
     // Clear cart
     console.log("Clearing cart");
     await CartService.clearCart();
