@@ -47,6 +47,11 @@ export async function getAccessApprovalEmailTemplate(signupUrl: string): Promise
         <div style="display: none; font-size: 1px; color: #fefefe; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">
           Your access to PACT has been approved. Complete your registration now.
         </div>
+        <!-- Meta tags for better deliverability -->
+        <meta name="format-detection" content="telephone=no">
+        <meta name="format-detection" content="date=no">
+        <meta name="format-detection" content="address=no">
+        <meta name="format-detection" content="email=no">
         <style>
           body { 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, Arial, sans-serif; 

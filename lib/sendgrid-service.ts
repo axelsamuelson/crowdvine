@@ -75,10 +75,12 @@ class SendGridService {
       // Add headers for better deliverability
       headers: {
         'X-Mailer': 'PACT Wines Platform',
-        'X-Priority': '3',
-        'X-MSMail-Priority': 'Normal',
-        'Importance': 'Normal',
+        'X-Priority': '1', // High priority
+        'X-MSMail-Priority': 'High',
+        'Importance': 'High',
         'List-Unsubscribe': '<mailto:unsubscribe@pactwines.com>',
+        'X-Mailgun-Tag': 'approval-email',
+        'X-Custom-Header': 'urgent-delivery',
       },
       // Add tracking settings
       trackingSettings: {

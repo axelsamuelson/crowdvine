@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     
     const emailSent = await sendGridService.sendEmail({
       to: email,
-      subject: "Welcome to PACT - Your Access Has Been Approved",
+      subject: "✅ Welcome to PACT - Your Access Has Been Approved",
       html: htmlTemplate,
       text: textTemplate,
     });
