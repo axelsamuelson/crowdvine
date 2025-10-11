@@ -9,7 +9,6 @@ import { Loader2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { LogoSvg } from "@/components/layout/header/logo-svg";
-import { Background } from "@/components/background";
 
 function SignupPageContent() {
   const searchParams = useSearchParams();
@@ -201,26 +200,26 @@ function SignupPageContent() {
 
   if (tokenValid === null) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-white" />
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
       </div>
     );
   }
 
   if (tokenValid === false) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
         <div className="w-full max-w-md text-center">
           <X className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h1 className="text-xl font-light text-white mb-2">
+          <h1 className="text-xl font-light text-gray-900 mb-2">
             Invalid Access Token
           </h1>
-          <p className="text-sm text-gray-400 mb-6">
+          <p className="text-sm text-gray-600 mb-6">
             {error || "This access token is invalid or has expired. Please contact support if you believe this is an error."}
           </p>
           <Button
             onClick={() => router.push("/access-request")}
-            className="bg-white hover:bg-white/90 text-black"
+            className="bg-black hover:bg-black/90 text-white"
           >
             Request Access
           </Button>
@@ -231,19 +230,16 @@ function SignupPageContent() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-4">
-        <Background
-          src="https://cdn.pixabay.com/video/2022/10/19/135643-762117669_large.mp4"
-        />
-        <div className="w-full max-w-md text-center relative z-10">
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
+        <div className="w-full max-w-md text-center">
           <div className="mb-6">
-            <LogoSvg className="h-10 mx-auto" />
+            <LogoSvg className="h-8 mx-auto" />
           </div>
-          <div className="bg-white/10 backdrop-blur-md rounded-lg p-8 border border-white/20">
-            <h1 className="text-2xl font-light text-white mb-4">
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <h1 className="text-2xl font-light text-gray-900 mb-4">
               Welcome to PACT
             </h1>
-            <p className="text-sm text-gray-300 mb-6">
+            <p className="text-sm text-gray-600 mb-6">
               Your account has been created successfully. Redirecting you to the platform...
             </p>
           </div>
@@ -253,33 +249,30 @@ function SignupPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-4">
-      <Background
-        src="https://cdn.pixabay.com/video/2022/10/19/135643-762117669_large.mp4"
-      />
-      <div className="w-full max-w-md relative z-10">
+    <div className="min-h-screen bg-white flex items-center justify-center p-4">
+      <div className="w-full max-w-md space-y-6">
         {/* Logo */}
-        <div className="mb-8 text-center">
-          <LogoSvg className="h-10 mx-auto" />
+        <div className="flex justify-center">
+          <LogoSvg className="h-8" />
         </div>
 
-        {/* Main Card */}
-        <div className="bg-white/10 backdrop-blur-md rounded-lg border border-white/20 p-8">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-light text-white mb-2">
-              Complete Your Registration
-            </h1>
-            <p className="text-sm text-gray-300">
-              Create your PACT account
-            </p>
-          </div>
+        {/* Hero */}
+        <div className="text-center">
+          <h2 className="text-2xl font-light text-gray-900 mb-2">
+            Complete Your Registration
+          </h2>
+          <p className="text-sm text-gray-600">
+            Create your PACT account to get started
+          </p>
+        </div>
 
-          {/* Form */}
-          <form onSubmit={handleSignup} className="space-y-5">
+        {/* Signup Form */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+
+          <form onSubmit={handleSignup} className="space-y-4">
             {/* Email */}
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm text-gray-300">
+            <div>
+              <Label htmlFor="email" className="text-sm font-medium text-gray-700">
                 Email Address
               </Label>
               <Input
@@ -289,18 +282,19 @@ function SignupPageContent() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={!!email}
-                className="bg-white/5 border-white/20 text-white placeholder:text-gray-500"
+                placeholder="Enter your email"
+                className="mt-1"
               />
               {email && (
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-gray-500 mt-1">
                   Email is pre-filled from your access approval
                 </p>
               )}
             </div>
 
             {/* Password */}
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm text-gray-300">
+            <div>
+              <Label htmlFor="password" className="text-sm font-medium text-gray-700">
                 Password
               </Label>
               <Input
@@ -310,14 +304,14 @@ function SignupPageContent() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
-                placeholder="Create a password (min 6 characters)"
-                className="bg-white/5 border-white/20 text-white placeholder:text-gray-500"
+                placeholder="Create a password"
+                className="mt-1"
               />
             </div>
 
             {/* Confirm Password */}
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-sm text-gray-300">
+            <div>
+              <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">
                 Confirm Password
               </Label>
               <Input
@@ -328,21 +322,21 @@ function SignupPageContent() {
                 required
                 minLength={6}
                 placeholder="Confirm your password"
-                className="bg-white/5 border-white/20 text-white placeholder:text-gray-500"
+                className="mt-1"
               />
             </div>
 
             {/* Error Message */}
             {error && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-md p-3">
-                <p className="text-sm text-red-300">{error}</p>
+              <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                <p className="text-sm text-red-600">{error}</p>
               </div>
             )}
 
             {/* Submit Button */}
             <Button
               type="submit"
-              className="w-full bg-white hover:bg-white/90 text-black font-medium"
+              className="w-full bg-black hover:bg-black/90 text-white"
               disabled={loading}
             >
               {loading ? (
@@ -355,14 +349,26 @@ function SignupPageContent() {
               )}
             </Button>
           </form>
+
+          {/* Sign in link */}
+          <div className="mt-4 text-center">
+            <p className="text-xs text-gray-500">
+              Already have an account?{" "}
+              <button 
+                onClick={() => router.push("/log-in")}
+                className="text-gray-900 underline hover:no-underline"
+                type="button"
+              >
+                Sign in
+              </button>
+            </p>
+          </div>
         </div>
 
         {/* Footer */}
-        <div className="mt-6 text-center">
-          <p className="text-xs text-gray-400 italic">
-            Producers And Consumers Together
-          </p>
-        </div>
+        <p className="text-center text-xs text-gray-500">
+          Complete your registration to join PACT
+        </p>
       </div>
     </div>
   );
@@ -372,8 +378,8 @@ export default function SignupPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-black flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-white" />
+        <div className="min-h-screen bg-white flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
         </div>
       }
     >
