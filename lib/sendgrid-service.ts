@@ -72,6 +72,36 @@ class SendGridService {
       subject: data.subject,
       html: data.html,
       text: data.text || this.stripHtml(data.html),
+      // Add headers for better deliverability
+      headers: {
+        'X-Mailer': 'PACT Wines Platform',
+        'X-Priority': '3',
+        'X-MSMail-Priority': 'Normal',
+        'Importance': 'Normal',
+        'List-Unsubscribe': '<mailto:unsubscribe@pactwines.com>',
+      },
+      // Add tracking settings
+      trackingSettings: {
+        clickTracking: {
+          enable: true,
+          enableText: false
+        },
+        openTracking: {
+          enable: true,
+          substitutionTag: '%open-track%'
+        }
+      },
+      // Add spam score reduction
+      mailSettings: {
+        spamCheck: {
+          enable: true,
+          threshold: 5,
+          postToUrl: 'https://pactwines.com/api/spam-webhook'
+        },
+        footer: {
+          enable: false
+        }
+      }
     };
 
     console.log("📧 Attempting to send email via SendGrid:", {

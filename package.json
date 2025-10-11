@@ -10,7 +10,8 @@
     "seed": "tsx scripts/seed.ts",
     "migrate": "tsx scripts/run-migration.ts",
     "cleanup": "node scripts/cleanup-expired-tokens.js",
-    "cleanup-access": "node scripts/cleanup-access-system.js"
+    "cleanup-access": "node scripts/cleanup-access-system.js",
+    "build-reputation": "node scripts/send-test-emails.js"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",

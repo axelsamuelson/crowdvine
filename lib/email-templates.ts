@@ -9,6 +9,10 @@ export function getAccessApprovalEmailTemplate(signupUrl: string): string {
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Welcome to PACT</title>
+        <!-- Pre-header text for better email client preview -->
+        <div style="display: none; font-size: 1px; color: #fefefe; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">
+          Your access to PACT has been approved. Complete your registration now.
+        </div>
         <style>
           body { 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, Arial, sans-serif; 
