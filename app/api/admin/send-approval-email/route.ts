@@ -78,19 +78,23 @@ export async function POST(request: NextRequest) {
 
     // Send approval email
     console.log("DEBUG: Sending approval email...");
+    // Generate email templates
+    const htmlTemplate = await getAccessApprovalEmailTemplate(signupUrl);
+    const textTemplate = await getAccessApprovalEmailText(signupUrl);
+    
     console.log("DEBUG: Email details:", {
       to: email,
       subject: "Welcome to PACT - Your Access Has Been Approved",
       signupUrl: signupUrl,
-      hasHtml: !!getAccessApprovalEmailTemplate(signupUrl),
-      hasText: !!getAccessApprovalEmailText(signupUrl),
+      hasHtml: !!htmlTemplate,
+      hasText: !!textTemplate,
     });
     
     const emailSent = await sendGridService.sendEmail({
       to: email,
       subject: "Welcome to PACT - Your Access Has Been Approved",
-      html: getAccessApprovalEmailTemplate(signupUrl),
-      text: getAccessApprovalEmailText(signupUrl),
+      html: htmlTemplate,
+      text: textTemplate,
     });
 
     console.log("DEBUG: SendGrid result:", emailSent);

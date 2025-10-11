@@ -1,7 +1,41 @@
 // Email templates for the access request system
 // Centralized location for all email templates to avoid duplication
 
-export function getAccessApprovalEmailTemplate(signupUrl: string): string {
+import { getSiteContentByKey } from "./actions/content";
+
+// Cache for logo to avoid repeated database calls
+let logoCache: { value: string | null; timestamp: number } | null = null;
+const LOGO_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+async function getLogoForEmail(): Promise<string | null> {
+  // Check cache first
+  if (logoCache && Date.now() - logoCache.timestamp < LOGO_CACHE_DURATION) {
+    return logoCache.value;
+  }
+
+  try {
+    const logoUrl = await getSiteContentByKey("header_logo");
+    
+    // Update cache
+    logoCache = {
+      value: logoUrl,
+      timestamp: Date.now(),
+    };
+
+    return logoUrl;
+  } catch (error) {
+    console.error("Error fetching logo for email:", error);
+    return null;
+  }
+}
+
+export async function getAccessApprovalEmailTemplate(signupUrl: string): Promise<string> {
+  const logoUrl = await getLogoForEmail();
+  
+  const logoHtml = logoUrl 
+    ? `<img src="${logoUrl}" alt="PACT" style="width: 120px; height: auto; max-width: 200px;" />`
+    : `<div style="font-size: 24px; font-weight: bold; color: #000000; letter-spacing: 2px;">PACT</div>`;
+  
   return `
     <!DOCTYPE html>
     <html>
@@ -35,6 +69,7 @@ export function getAccessApprovalEmailTemplate(signupUrl: string): string {
           .logo {
             width: 120px;
             height: auto;
+            max-width: 200px;
           }
           .header { 
             background-color: #ffffff; 
@@ -112,9 +147,7 @@ export function getAccessApprovalEmailTemplate(signupUrl: string): string {
       <body>
         <div class="container">
           <div class="logo-section">
-            <svg class="logo" width="120" height="40" viewBox="0 0 120 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <text x="0" y="30" font-family="Inter, -apple-system, sans-serif" font-size="32" font-weight="300" fill="#000000">PACT</text>
-            </svg>
+            ${logoHtml}
           </div>
           
           <div class="header">
@@ -153,7 +186,7 @@ export function getAccessApprovalEmailTemplate(signupUrl: string): string {
   `;
 }
 
-export function getAccessApprovalEmailText(signupUrl: string): string {
+export async function getAccessApprovalEmailText(signupUrl: string): Promise<string> {
   return `
 Welcome to PACT
 

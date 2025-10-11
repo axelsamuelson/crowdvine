@@ -228,12 +228,16 @@ export async function PATCH(request: NextRequest) {
                 signupUrl,
               );
 
+              // Generate email templates
+              const htmlTemplate = await getAccessApprovalEmailTemplate(signupUrl);
+              const textTemplate = await getAccessApprovalEmailText(signupUrl);
+
               const emailSent = await sendGridService.sendEmail({
                 to: accessRequest.email,
                 subject:
                   "🎉 Welcome to PACT Wines - Your Access Has Been Approved!",
-                html: getAccessApprovalEmailTemplate(signupUrl),
-                text: getAccessApprovalEmailText(signupUrl),
+                html: htmlTemplate,
+                text: textTemplate,
               });
 
               if (emailSent) {
