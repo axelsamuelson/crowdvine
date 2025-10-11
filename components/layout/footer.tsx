@@ -1,21 +1,40 @@
-import { ShopLinks } from "./shop-links";
 import { SidebarLinks } from "./sidebar/product-sidebar-links";
 import { FooterLogoSvg } from "./footer-logo-svg";
+import Link from "next/link";
 
 export function Footer() {
-  // Temporarily disable collections fetching to prevent blocking
-  const collections = [];
-
   return (
     <footer className="p-sides">
       <div className="w-full md:h-[532px] p-sides md:p-11 text-background bg-foreground rounded-[12px] flex flex-col justify-between max-md:gap-8">
         <div className="flex flex-col justify-between md:flex-row">
           <FooterLogoSvg />
-          <ShopLinks
-            collections={collections}
-            className="max-md:hidden"
-            align="right"
-          />
+          <nav className="max-md:hidden">
+            <div className="flex flex-col gap-3">
+              <h3 className="text-sm font-semibold text-background uppercase tracking-wide">
+                Navigation
+              </h3>
+              <div className="flex flex-col gap-2">
+                <Link 
+                  href="/" 
+                  className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
+                >
+                  Home
+                </Link>
+                <Link 
+                  href="/shop" 
+                  className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
+                >
+                  Shop
+                </Link>
+                <Link 
+                  href="/profile" 
+                  className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
+                >
+                  Profile
+                </Link>
+              </div>
+            </div>
+          </nav>
           <span className="mt-3 italic font-semibold md:hidden">
             Producers And Consumers Together
           </span>
