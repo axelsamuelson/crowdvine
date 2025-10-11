@@ -105,10 +105,12 @@ export function FeaturedProductLabel({
           </p>
         )}
         <div className="flex gap-2 items-center text-base font-semibold">
-          {formatPrice(
-            product.priceRange.minVariantPrice.amount,
-            product.priceRange.minVariantPrice.currencyCode,
-          )}
+          <MemberPrice
+            amount={product.priceRange.minVariantPrice.amount}
+            currencyCode={product.priceRange.minVariantPrice.currencyCode}
+            className="text-base font-semibold"
+            showBadge={true}
+          />
           {product.compareAtPrice && (
             <span className="text-sm line-through opacity-30">
               {formatPrice(
