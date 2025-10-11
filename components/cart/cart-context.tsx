@@ -277,18 +277,25 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       .catch(() => {
         // Silent fail - cart will remain undefined
       });
-    
-    // Listen for cart-refresh events (from batch add)
-    const handleCartRefresh = (event: CustomEvent) => {
-      if (event.detail) {
-        setCart(event.detail);
+  }, []);
+  
+  // Separate useEffect for cart-refresh event listener
+  useEffect(() => {
+    const handleCartRefresh = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      console.log("🛒 [CONTEXT] Cart refresh event received", customEvent.detail);
+      
+      if (customEvent.detail) {
+        console.log("🛒 [CONTEXT] Updating cart with new data");
+        setCart(customEvent.detail);
         try {
-          localStorage.setItem("cart-cache", JSON.stringify(event.detail));
+          localStorage.setItem("cart-cache", JSON.stringify(customEvent.detail));
           localStorage.setItem("cart-cache-time", Date.now().toString());
         } catch (error) {
           console.warn("Failed to cache cart:", error);
         }
       } else {
+        console.log("🛒 [CONTEXT] No cart data in event, fetching fresh");
         // No cart data, fetch fresh
         CartActions.getCart().then((freshCart) => {
           if (freshCart) {
@@ -298,10 +305,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }
     };
     
-    window.addEventListener('cart-refresh', handleCartRefresh as EventListener);
+    console.log("🛒 [CONTEXT] Setting up cart-refresh listener");
+    window.addEventListener('cart-refresh', handleCartRefresh);
     
     return () => {
-      window.removeEventListener('cart-refresh', handleCartRefresh as EventListener);
+      console.log("🛒 [CONTEXT] Removing cart-refresh listener");
+      window.removeEventListener('cart-refresh', handleCartRefresh);
     };
   }, []);
 

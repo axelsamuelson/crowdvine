@@ -75,6 +75,8 @@ export function AddToCartWithQuantity({
     if (resolvedVariant) {
       startTransition(async () => {
         try {
+          console.log("🛒 [PDP] Adding", quantity, "items to cart");
+          
           // Call new batch endpoint to add multiple items at once
           const response = await fetch('/api/cart/add-quantity', {
             method: 'POST',
@@ -87,25 +89,21 @@ export function AddToCartWithQuantity({
           
           if (response.ok) {
             const result = await response.json();
-            console.log("🛒 Added", quantity, "items successfully");
+            console.log("🛒 [PDP] Added successfully, cart has", result.cart.totalQuantity, "items");
             
-            // Trigger a cart refresh by calling getCart from cart actions
-            // This will update the cart context properly
-            const { CartActions } = await import('./actions');
-            const freshCart = await CartActions.getCart();
-            
-            // Force re-render by dispatching custom event that cart-context can listen to
+            // Dispatch event with the updated cart data
             if (typeof window !== 'undefined') {
-              window.dispatchEvent(new CustomEvent('cart-refresh', { detail: freshCart }));
+              window.dispatchEvent(new CustomEvent('cart-refresh', { detail: result.cart }));
+              console.log("🛒 [PDP] Dispatched cart-refresh event");
             }
             
             // Reset quantity to 1 after successful add
             setQuantity(1);
           } else {
-            console.error('Failed to add items to cart');
+            console.error('🛒 [PDP] Failed to add items to cart');
           }
         } catch (error) {
-          console.error('Error adding to cart:', error);
+          console.error('🛒 [PDP] Error adding to cart:', error);
         }
       });
     }
