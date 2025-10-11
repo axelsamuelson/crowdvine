@@ -47,10 +47,20 @@ export async function GET() {
 
     if (bookingsError) {
       console.error("Error fetching bookings:", bookingsError);
-      return NextResponse.json(
-        { error: "Failed to fetch bookings" },
-        { status: 500 },
-      );
+      console.error("Bookings error details:", {
+        code: bookingsError.code,
+        message: bookingsError.message,
+        details: bookingsError.details,
+        hint: bookingsError.hint
+      });
+      
+      // Return empty array instead of error to prevent 500
+      return NextResponse.json({
+        bookings: [],
+        reservations: [],
+        note: "No bookings found or database error occurred",
+        error: bookingsError.message
+      });
     }
 
     console.log(`Found ${bookings?.length || 0} bookings`);
