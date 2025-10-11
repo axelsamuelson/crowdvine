@@ -97,13 +97,18 @@ class SendGridService {
       mailSettings: {
         spamCheck: {
           enable: true,
-          threshold: 5,
+          threshold: 3, // Lower threshold for better delivery
           postToUrl: 'https://pactwines.com/api/spam-webhook'
         },
         footer: {
           enable: false
+        },
+        sandboxMode: {
+          enable: false // Make sure sandbox mode is off
         }
-      }
+      },
+      // Add categories for better routing
+      categories: ['approval-email', 'urgent', 'hotmail-optimized']
     };
 
     console.log("📧 Attempting to send email via SendGrid:", {
