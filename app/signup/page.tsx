@@ -21,6 +21,29 @@ function SignupPageContent() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [tokenValid, setTokenValid] = useState<boolean | null>(null);
+  const [membershipLevel, setMembershipLevel] = useState<string | null>(null);
+
+  // Map Swedish level names to English
+  const getLevelName = (level: string) => {
+    const levelMap: Record<string, string> = {
+      'guld': 'Gold',
+      'silver': 'Silver',
+      'brons': 'Bronze',
+      'basic': 'Basic'
+    };
+    return levelMap[level] || level.charAt(0).toUpperCase() + level.slice(1);
+  };
+
+  // Get premium colors for each level
+  const getLevelColors = (level: string) => {
+    const colorMap: Record<string, { bg: string; text: string }> = {
+      'guld': { bg: 'bg-gradient-to-br from-amber-600 to-yellow-700', text: 'text-white' },
+      'silver': { bg: 'bg-gradient-to-br from-gray-400 to-gray-500', text: 'text-gray-900' },
+      'brons': { bg: 'bg-gradient-to-br from-orange-800 to-amber-900', text: 'text-white' },
+      'basic': { bg: 'bg-gradient-to-br from-slate-600 to-slate-700', text: 'text-white' }
+    };
+    return colorMap[level] || { bg: 'bg-gray-500', text: 'text-white' };
+  };
 
   useEffect(() => {
     const tokenParam = searchParams.get("token");
@@ -70,7 +93,9 @@ function SignupPageContent() {
       if (result.success) {
         setTokenValid(true);
         setEmail(result.email);
+        setMembershipLevel(result.initialLevel || 'basic');
         console.log("Token is valid for email:", result.email);
+        console.log("Initial membership level:", result.initialLevel);
       } else {
         setTokenValid(false);
         let errorMessage = result.message || "Invalid or expired access token";
@@ -265,6 +290,28 @@ function SignupPageContent() {
             Create your PACT account to get started
           </p>
         </div>
+
+        {/* Membership Level */}
+        {membershipLevel && (
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="text-center space-y-3">
+              {/* Level Badge - Premium Colors */}
+              <div className={`inline-block px-6 py-2 rounded-md text-sm font-medium ${
+                getLevelColors(membershipLevel).bg
+              } ${getLevelColors(membershipLevel).text}`}>
+                {getLevelName(membershipLevel)} Membership
+              </div>
+
+              {/* Perks - Single line */}
+              <p className="text-sm text-gray-600">
+                {membershipLevel === 'guld' && 'Maximum perks • 50 invites/month • Gold level discount'}
+                {membershipLevel === 'silver' && 'Early access • 12 invites/month • Fee capped'}
+                {membershipLevel === 'brons' && 'Queue priority • 5 invites/month'}
+                {membershipLevel === 'basic' && 'Entry level • 2 invites/month'}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Signup Form */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
