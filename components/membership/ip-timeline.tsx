@@ -1,4 +1,4 @@
-import { UserPlus, ShoppingBag, Package, TrendingUp, Award } from "lucide-react";
+import { UserPlus, ShoppingBag, Package, TrendingUp, Award, ShoppingCart, Star, Share2, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface IPEvent {
@@ -19,6 +19,7 @@ interface IPTimelineProps {
 }
 
 const eventIcons: Record<string, any> = {
+  // Original events
   invite_signup: UserPlus,
   invite_reservation: ShoppingBag,
   own_order: ShoppingBag,
@@ -26,9 +27,18 @@ const eventIcons: Record<string, any> = {
   level_upgrade: TrendingUp,
   manual_adjustment: Award,
   migration: Award,
+  
+  // New events (v2)
+  invite_second_order: ShoppingCart,      // Friend's 2nd order
+  own_order_large: ShoppingCart,          // Large order (12+ bottles)
+  pallet_milestone_6: Package,            // 6 pallets milestone
+  pallet_milestone_12: Package,           // 12 pallets milestone
+  review_submitted: Star,                 // Review submitted
+  share_action: Share2,                   // Shared wine/pallet
 };
 
 const eventColors: Record<string, string> = {
+  // Original events
   invite_signup: "text-blue-600 bg-blue-50",
   invite_reservation: "text-green-600 bg-green-50",
   own_order: "text-purple-600 bg-purple-50",
@@ -36,6 +46,31 @@ const eventColors: Record<string, string> = {
   level_upgrade: "text-yellow-600 bg-yellow-50",
   manual_adjustment: "text-gray-600 bg-gray-50",
   migration: "text-gray-600 bg-gray-50",
+  
+  // New events (v2)
+  invite_second_order: "text-emerald-600 bg-emerald-50",
+  own_order_large: "text-indigo-600 bg-indigo-50",
+  pallet_milestone_6: "text-amber-600 bg-amber-50",
+  pallet_milestone_12: "text-rose-600 bg-rose-50",
+  review_submitted: "text-cyan-600 bg-cyan-50",
+  share_action: "text-pink-600 bg-pink-50",
+};
+
+// Event labels for better display
+const eventLabels: Record<string, string> = {
+  invite_signup: "Friend joined",
+  invite_reservation: "Friend's first order",
+  invite_second_order: "Friend's 2nd order",
+  own_order: "Order completed",
+  own_order_large: "Large order (12+ bottles)",
+  pallet_milestone: "3 Pallet milestone",
+  pallet_milestone_6: "6 Pallet milestone",
+  pallet_milestone_12: "12 Pallet milestone",
+  review_submitted: "Review submitted",
+  share_action: "Shared wine/pallet",
+  level_upgrade: "Level upgraded",
+  manual_adjustment: "Manual adjustment",
+  migration: "System migration",
 };
 
 function formatTimeAgo(dateString: string): string {
