@@ -35,7 +35,7 @@ export async function GET() {
           name,
           bottle_capacity
         ),
-        profiles!bookings_user_id_fkey(
+        profiles(
           email,
           first_name,
           last_name,
