@@ -22,6 +22,7 @@ import { ZoneDetails } from "@/components/checkout/zone-details";
 import { PalletDetails } from "@/components/checkout/pallet-details";
 import { ReservationLoadingModal } from "@/components/checkout/reservation-loading-modal";
 import { MemberPrice } from "@/components/ui/member-price";
+import { ProgressionBuffDisplay } from "@/components/membership/progression-buff-display";
 import { toast } from "sonner";
 import { User, MapPin, CreditCard, Package, AlertCircle, Gift, Check } from "lucide-react";
 import { clearZoneCache } from "@/lib/zone-matching";
@@ -85,6 +86,10 @@ function CheckoutContent() {
   const [userRewards, setUserRewards] = useState<UserReward[]>([]);
   const [selectedRewards, setSelectedRewards] = useState<UserReward[]>([]);
   const [useRewards, setUseRewards] = useState(false);
+  
+  // v2: Progression buffs state
+  const [progressionBuffs, setProgressionBuffs] = useState<any[]>([]);
+  const [totalBuffPercentage, setTotalBuffPercentage] = useState(0);
   const [zoneInfo, setZoneInfo] = useState<{
     pickupZone: string | null;
     pickupZoneId?: string | null;
@@ -116,6 +121,7 @@ function CheckoutContent() {
     fetchCart();
     fetchProfile();
     fetchUserRewards();
+    fetchProgressionBuffs(); // v2: fetch progression buffs
     
     // Check if returning from Stripe payment method setup
     const urlParams = new URLSearchParams(window.location.search);
@@ -190,6 +196,20 @@ function CheckoutContent() {
     } catch (error) {
       console.error("Error fetching user rewards:", error);
       setUserRewards([]);
+    }
+  };
+  
+  // v2: Fetch progression buffs
+  const fetchProgressionBuffs = async () => {
+    try {
+      const res = await fetch("/api/user/progression-buffs");
+      if (res.ok) {
+        const data = await res.json();
+        setProgressionBuffs(data.buffs || []);
+        setTotalBuffPercentage(data.totalPercentage || 0);
+      }
+    } catch (error) {
+      console.error("Error fetching progression buffs:", error);
     }
   };
 
@@ -527,9 +547,18 @@ function CheckoutContent() {
     return total + (pricePerBottle * line.quantity);
   }, 0) : 0;
 
-  const discountAmount = useRewards ? selectedRewards.reduce((total, reward) => {
+  // Old rewards discount (being deprecated)
+  const rewardsDiscountAmount = useRewards ? selectedRewards.reduce((total, reward) => {
     return total + (bottleCost * reward.discount_percentage) / 100;
   }, 0) : 0;
+  
+  // v2: Progression buff discount
+  const progressionBuffDiscountAmount = totalBuffPercentage > 0 
+    ? (bottleCost * totalBuffPercentage) / 100 
+    : 0;
+  
+  // Total discount from both sources
+  const discountAmount = rewardsDiscountAmount + progressionBuffDiscountAmount;
 
   const subtotal = bottleCost - discountAmount;
   const total = subtotal + (shippingCost ? shippingCost.totalShippingCostSek : 0);
@@ -550,6 +579,20 @@ function CheckoutContent() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Left Column - Order Summary */}
         <div className="space-y-6">
+          {/* Progression Buff Display (v2) */}
+          {progressionBuffs.length > 0 && (
+            <ProgressionBuffDisplay
+              totalBuffPercentage={totalBuffPercentage}
+              buffDetails={progressionBuffs.map(buff => ({
+                percentage: buff.buff_percentage,
+                description: buff.buff_description,
+                earnedAt: buff.earned_at,
+              }))}
+              expiresOnUse={true}
+              compact={false}
+            />
+          )}
+          
           <Card className="border border-gray-200">
             <CardHeader className="pb-4">
               <CardTitle className="text-base font-semibold text-gray-900">
@@ -596,12 +639,23 @@ function CheckoutContent() {
                   </span>
                 </div>
 
-                {/* Discount */}
+                {/* Discount (old rewards) */}
                 {useRewards && selectedRewards.length > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Rabatt ({selectedRewards.length} belöningar)</span>
                     <span className="text-gray-900 font-medium">
-                      -{Math.round(discountAmount)}{" "}
+                      -{Math.round(rewardsDiscountAmount)}{" "}
+                      {cart.cost.totalAmount.currencyCode}
+                    </span>
+                  </div>
+                )}
+                
+                {/* Progression buff discount (v2) */}
+                {progressionBuffDiscountAmount > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-amber-700 font-medium">Progress bonus ({totalBuffPercentage.toFixed(1)}%)</span>
+                    <span className="text-amber-700 font-semibold">
+                      -{Math.round(progressionBuffDiscountAmount)}{" "}
                       {cart.cost.totalAmount.currencyCode}
                     </span>
                   </div>
