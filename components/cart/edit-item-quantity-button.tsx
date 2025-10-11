@@ -4,11 +4,13 @@ import { Minus, Plus } from "lucide-react";
 import clsx from "clsx";
 import { CartItem } from "@/lib/shopify/types";
 import { useCart } from "./cart-context";
+import { useRef, useCallback } from "react";
 
-function SubmitButton({ type }: { type: "plus" | "minus" }) {
+function SubmitButton({ type, onClick }: { type: "plus" | "minus"; onClick: () => void }) {
   return (
     <button
-      type="submit"
+      type="button"
+      onClick={onClick}
       aria-label={
         type === "plus" ? "Increase item quantity" : "Reduce item quantity"
       }
@@ -36,16 +38,32 @@ export function EditItemQuantityButton({
   type: "plus" | "minus";
 }) {
   const { updateItem } = useCart();
-  const nextQuantity = type === "plus" ? item.quantity + 1 : item.quantity - 1;
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingQuantityRef = useRef(item.quantity);
 
-  return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        updateItem(item.id, item.merchandise.id, nextQuantity, type);
-      }}
-    >
-      <SubmitButton type={type} />
-    </form>
-  );
+  const handleClick = useCallback(() => {
+    // Calculate next quantity
+    const nextQuantity = type === "plus" 
+      ? pendingQuantityRef.current + 1 
+      : pendingQuantityRef.current - 1;
+    
+    // Don't allow quantity below 1
+    if (nextQuantity < 1) return;
+    
+    // Update pending quantity
+    pendingQuantityRef.current = nextQuantity;
+    
+    // Clear existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    
+    // Set new timer - only call API after 300ms of no clicks
+    debounceTimerRef.current = setTimeout(() => {
+      console.log("🛒 [DEBOUNCE] Updating item to quantity:", nextQuantity);
+      updateItem(item.id, item.merchandise.id, nextQuantity, type);
+    }, 300);
+  }, [item.id, item.merchandise.id, type, updateItem]);
+
+  return <SubmitButton type={type} onClick={handleClick} />;
 }

@@ -277,6 +277,32 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       .catch(() => {
         // Silent fail - cart will remain undefined
       });
+    
+    // Listen for cart-refresh events (from batch add)
+    const handleCartRefresh = (event: CustomEvent) => {
+      if (event.detail) {
+        setCart(event.detail);
+        try {
+          localStorage.setItem("cart-cache", JSON.stringify(event.detail));
+          localStorage.setItem("cart-cache-time", Date.now().toString());
+        } catch (error) {
+          console.warn("Failed to cache cart:", error);
+        }
+      } else {
+        // No cart data, fetch fresh
+        CartActions.getCart().then((freshCart) => {
+          if (freshCart) {
+            setCart(freshCart);
+          }
+        });
+      }
+    };
+    
+    window.addEventListener('cart-refresh', handleCartRefresh as EventListener);
+    
+    return () => {
+      window.removeEventListener('cart-refresh', handleCartRefresh as EventListener);
+    };
   }, []);
 
   const update = useCallback(

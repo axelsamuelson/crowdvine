@@ -74,14 +74,39 @@ export function AddToCartWithQuantity({
 
     if (resolvedVariant) {
       startTransition(async () => {
-        // Add items using the existing addItem function from cart context
-        // We add them sequentially to maintain cart state properly
-        for (let i = 0; i < quantity; i++) {
-          await addItem(resolvedVariant, product);
+        try {
+          // Call new batch endpoint to add multiple items at once
+          const response = await fetch('/api/cart/add-quantity', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              variantId: resolvedVariant.id,
+              quantity: quantity 
+            })
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            console.log("🛒 Added", quantity, "items successfully");
+            
+            // Trigger a cart refresh by calling getCart from cart actions
+            // This will update the cart context properly
+            const { CartActions } = await import('./actions');
+            const freshCart = await CartActions.getCart();
+            
+            // Force re-render by dispatching custom event that cart-context can listen to
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('cart-refresh', { detail: freshCart }));
+            }
+            
+            // Reset quantity to 1 after successful add
+            setQuantity(1);
+          } else {
+            console.error('Failed to add items to cart');
+          }
+        } catch (error) {
+          console.error('Error adding to cart:', error);
         }
-        
-        // Reset quantity to 1 after successful add
-        setQuantity(1);
       });
     }
   };
@@ -91,24 +116,24 @@ export function AddToCartWithQuantity({
   return (
     <form onSubmit={handleAddToCart} className={cn("w-full", className)}>
       <div className="flex items-center gap-3">
-        {/* Quantity Selector */}
-        <div className="flex items-center border-2 border-black rounded-md overflow-hidden bg-white">
+        {/* Quantity Selector - Black theme to match Add To Cart */}
+        <div className="flex items-center border-2 border-black rounded-md overflow-hidden bg-black">
           {/* Minus Button */}
           <button
             type="button"
             onClick={handleDecrease}
             disabled={quantity <= 1 || isDisabled}
             className={cn(
-              "px-3 py-2 hover:bg-gray-100 transition-colors border-r border-black",
+              "px-3 py-2 hover:bg-gray-900 transition-colors border-r border-gray-700",
               quantity <= 1 || isDisabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"
             )}
           >
-            <Minus className="w-4 h-4 text-black" />
+            <Minus className="w-4 h-4 text-white" />
           </button>
 
           {/* Quantity Display */}
           <div className="px-4 py-2 min-w-[3rem] text-center">
-            <span className="text-base font-semibold text-black">
+            <span className="text-base font-semibold text-white">
               {quantity}
             </span>
           </div>
@@ -119,11 +144,11 @@ export function AddToCartWithQuantity({
             onClick={handleIncrease}
             disabled={quantity >= 99 || isDisabled}
             className={cn(
-              "px-3 py-2 hover:bg-gray-100 transition-colors border-l border-black",
+              "px-3 py-2 hover:bg-gray-900 transition-colors border-l border-gray-700",
               quantity >= 99 || isDisabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"
             )}
           >
-            <Plus className="w-4 h-4 text-black" />
+            <Plus className="w-4 h-4 text-white" />
           </button>
         </div>
 
