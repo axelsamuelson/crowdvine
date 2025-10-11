@@ -3,6 +3,33 @@ import {
   getWelcomeEmailTemplate,
   getWelcomeEmailText,
 } from "./email-templates";
+import { getSiteContentByKey } from "./actions/content";
+
+// Cache for logo to avoid repeated database calls
+let logoCache: { value: string | null; timestamp: number } | null = null;
+const LOGO_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+async function getLogoForEmail(): Promise<string | null> {
+  // Check cache first
+  if (logoCache && Date.now() - logoCache.timestamp < LOGO_CACHE_DURATION) {
+    return logoCache.value;
+  }
+
+  try {
+    const logoUrl = await getSiteContentByKey("header_logo");
+    
+    // Update cache
+    logoCache = {
+      value: logoUrl,
+      timestamp: Date.now(),
+    };
+
+    return logoUrl;
+  } catch (error) {
+    console.error("Error fetching logo for email:", error);
+    return null;
+  }
+}
 
 // Initialize SendGrid
 if (process.env.SENDGRID_API_KEY) {
@@ -138,30 +165,35 @@ class SendGridService {
   }
 
   async sendOrderConfirmation(data: OrderConfirmationData): Promise<boolean> {
-    const html = this.getOrderConfirmationTemplate(data);
+    const html = await this.getOrderConfirmationTemplate(data);
     const text = this.getOrderConfirmationText(data);
 
     return this.sendEmail({
       to: data.customerEmail,
-      subject: `🍷 Order Confirmation - ${data.orderId}`,
+      subject: `Order Confirmation - ${data.orderId}`,
       html,
       text,
     });
   }
 
   async sendWelcomeEmail(data: WelcomeEmailData): Promise<boolean> {
-    const html = getWelcomeEmailTemplate(data);
-    const text = getWelcomeEmailText(data);
+    const html = await getWelcomeEmailTemplate(data);
+    const text = await getWelcomeEmailText(data);
 
     return this.sendEmail({
       to: data.customerEmail,
-      subject: "🍷 Welcome to CrowdVine!",
+      subject: "Welcome to PACT",
       html,
       text,
     });
   }
 
-  private getOrderConfirmationTemplate(data: OrderConfirmationData): string {
+  private async getOrderConfirmationTemplate(data: OrderConfirmationData): Promise<string> {
+    const logoUrl = await getLogoForEmail();
+    
+    const logoHtml = logoUrl 
+      ? `<img src="${logoUrl}" alt="PACT" style="width: 120px; height: auto; max-width: 200px;" />`
+      : `<div style="font-size: 24px; font-weight: bold; color: #000000; letter-spacing: 2px;">PACT</div>`;
     const itemsHtml = data.items
       .map(
         (item) => `
@@ -191,22 +223,86 @@ class SendGridService {
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Order Confirmation</title>
           <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
-            .container { max-width: 600px; margin: 0 auto; background: #fff; }
-            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
-            .content { padding: 30px; }
+            body { 
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, Arial, sans-serif; 
+              line-height: 1.6; 
+              color: #000000; 
+              margin: 0;
+              padding: 0;
+              background-color: #f5f5f5;
+            }
+            .container { 
+              max-width: 600px; 
+              margin: 0 auto; 
+              background-color: #ffffff;
+            }
+            .logo-section {
+              text-align: center;
+              padding: 40px 20px 20px;
+              background-color: #ffffff;
+            }
+            .logo {
+              width: 120px;
+              height: auto;
+              max-width: 200px;
+            }
+            .header { 
+              background-color: #ffffff; 
+              color: #000000; 
+              padding: 20px 30px 30px; 
+              text-align: center; 
+            }
+            .header h1 {
+              font-size: 28px;
+              font-weight: 300;
+              margin: 0 0 10px 0;
+              letter-spacing: -0.5px;
+            }
+            .header p {
+              font-size: 16px;
+              color: #6B7280;
+              margin: 0;
+            }
+            .content { 
+              padding: 30px; 
+              background-color: #ffffff;
+            }
             .order-info { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
             .items-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
             .total-section { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
             .shipping-info { background: #e8f4fd; padding: 20px; border-radius: 8px; margin: 20px 0; }
-            .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 14px; color: #666; }
-            .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 0; }
+            .footer { 
+              background-color: #f9fafb; 
+              padding: 30px; 
+              text-align: center; 
+              font-size: 14px; 
+              color: #6B7280; 
+              border-top: 1px solid #e5e7eb;
+            }
+            .button { 
+              display: inline-block; 
+              background-color: #000000; 
+              color: #ffffff; 
+              padding: 14px 28px; 
+              text-decoration: none; 
+              border-radius: 4px; 
+              margin: 20px 0; 
+              font-weight: 500;
+              font-size: 16px;
+            }
+            .button:hover {
+              background-color: #1f2937;
+            }
           </style>
         </head>
         <body>
           <div class="container">
+            <div class="logo-section">
+              ${logoHtml}
+            </div>
+            
             <div class="header">
-              <h1>🍷 Order Confirmation</h1>
+              <h1>Order Confirmation</h1>
               <p>Thank you for your order!</p>
             </div>
             
@@ -268,13 +364,13 @@ class SendGridService {
 
               <p>We'll send you another email when your order ships. If you have any questions, please don't hesitate to contact us.</p>
               
-              <p>Thank you for choosing CrowdVine!</p>
-              <p><strong>The CrowdVine Team</strong></p>
+              <p>Thank you for choosing PACT!</p>
+              <p><strong>The PACT Team</strong></p>
             </div>
             
             <div class="footer">
               <p>This email was sent regarding your order ${data.orderId}.</p>
-              <p>CrowdVine - Premium Wine Community</p>
+              <p>Producers And Consumers Together</p>
             </div>
           </div>
         </body>
@@ -317,13 +413,13 @@ ${data.shippingAddress.country}
 
 We'll send you another email when your order ships. If you have any questions, please don't hesitate to contact us.
 
-Thank you for choosing CrowdVine!
+Thank you for choosing PACT!
 
-The CrowdVine Team
+The PACT Team
 
 ---
 This email was sent regarding your order ${data.orderId}.
-CrowdVine - Premium Wine Community
+Producers And Consumers Together
     `;
   }
 

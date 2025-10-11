@@ -712,9 +712,9 @@ export default function ProfilePage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="basic">Basic (0-4 IP)</SelectItem>
-                    <SelectItem value="brons">Brons (5-14 IP)</SelectItem>
+                    <SelectItem value="brons">Bronze (5-14 IP)</SelectItem>
                     <SelectItem value="silver">Silver (15-34 IP)</SelectItem>
-                    <SelectItem value="guld">Guld (35+ IP)</SelectItem>
+                    <SelectItem value="guld">Gold (35+ IP)</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-gray-500">

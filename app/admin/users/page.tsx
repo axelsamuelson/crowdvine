@@ -219,9 +219,9 @@ export default function UsersAdmin() {
     
     const labels = {
       'admin': 'Admin',
-      'guld': 'Guld',
+      'guld': 'Gold',
       'silver': 'Silver',
-      'brons': 'Brons',
+      'brons': 'Bronze',
       'basic': 'Basic',
       'requester': 'Requester'
     };
@@ -450,9 +450,9 @@ export default function UsersAdmin() {
                 <SelectContent>
                   <SelectItem value="requester">Requester (No Access)</SelectItem>
                   <SelectItem value="basic">Basic (2 invites/month)</SelectItem>
-                  <SelectItem value="brons">Brons (5 invites/month)</SelectItem>
+                  <SelectItem value="brons">Bronze (5 invites/month)</SelectItem>
                   <SelectItem value="silver">Silver (12 invites/month)</SelectItem>
-                  <SelectItem value="guld">Guld (50 invites/month)</SelectItem>
+                  <SelectItem value="guld">Gold (50 invites/month)</SelectItem>
                   <SelectItem value="admin">Admin (Unlimited)</SelectItem>
                 </SelectContent>
               </Select>

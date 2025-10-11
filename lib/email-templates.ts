@@ -220,38 +220,123 @@ If you didn't make this request, please ignore this email.
   `;
 }
 
-export function getWelcomeEmailTemplate(data: {
+export async function getWelcomeEmailTemplate(data: {
   customerEmail: string;
   customerName: string;
-}): string {
+}): Promise<string> {
+  const logoUrl = await getLogoForEmail();
+  
+  const logoHtml = logoUrl 
+    ? `<img src="${logoUrl}" alt="PACT" style="width: 120px; height: auto; max-width: 200px;" />`
+    : `<div style="font-size: 24px; font-weight: bold; color: #000000; letter-spacing: 2px;">PACT</div>`;
+  
   return `
     <!DOCTYPE html>
     <html>
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Welcome to CrowdVine</title>
+        <title>Welcome to PACT</title>
+        <!-- Pre-header text for better email client preview -->
+        <div style="display: none; font-size: 1px; color: #fefefe; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">
+          Welcome to PACT - Your account has been created successfully.
+        </div>
+        <!-- Meta tags for better deliverability -->
+        <meta name="format-detection" content="telephone=no">
+        <meta name="format-detection" content="date=no">
+        <meta name="format-detection" content="address=no">
+        <meta name="format-detection" content="email=no">
         <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
-          .container { max-width: 600px; margin: 0 auto; background: #fff; }
-          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px; text-align: center; }
-          .content { padding: 30px; }
+          body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, Arial, sans-serif; 
+            line-height: 1.6; 
+            color: #000000; 
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+          }
+          .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background-color: #ffffff;
+          }
+          .logo-section {
+            text-align: center;
+            padding: 40px 20px 20px;
+            background-color: #ffffff;
+          }
+          .logo {
+            width: 120px;
+            height: auto;
+            max-width: 200px;
+          }
+          .header { 
+            background-color: #ffffff; 
+            color: #000000; 
+            padding: 20px 30px 30px; 
+            text-align: center; 
+          }
+          .header h1 {
+            font-size: 28px;
+            font-weight: 300;
+            margin: 0 0 10px 0;
+            letter-spacing: -0.5px;
+          }
+          .header p {
+            font-size: 16px;
+            color: #6B7280;
+            margin: 0;
+          }
+          .content { 
+            padding: 30px; 
+            background-color: #ffffff;
+          }
+          .content p {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #374151;
+            margin: 0 0 20px 0;
+          }
           .feature { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 15px 0; }
-          .button { display: inline-block; background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: bold; }
-          .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 14px; color: #666; }
+          .button { 
+            display: inline-block; 
+            background-color: #000000; 
+            color: #ffffff; 
+            padding: 14px 28px; 
+            text-decoration: none; 
+            border-radius: 4px; 
+            margin: 20px 0; 
+            font-weight: 500;
+            font-size: 16px;
+          }
+          .button:hover {
+            background-color: #1f2937;
+          }
+          .footer { 
+            background-color: #f9fafb; 
+            padding: 30px; 
+            text-align: center; 
+            font-size: 14px; 
+            color: #6B7280; 
+            border-top: 1px solid #e5e7eb;
+          }
         </style>
       </head>
       <body>
         <div class="container">
+          <div class="logo-section">
+            ${logoHtml}
+          </div>
+          
           <div class="header">
-            <h1>🍷 Welcome to CrowdVine!</h1>
+            <h1>Welcome to PACT</h1>
             <p>Your journey into premium wines begins now</p>
           </div>
           
           <div class="content">
             <h2>Hello ${data.customerName}!</h2>
             
-            <p>Welcome to CrowdVine, the exclusive wine community where quality meets community. We're thrilled to have you join our curated platform!</p>
+            <p>Welcome to PACT, the exclusive wine community where quality meets community. We're thrilled to have you join our curated platform!</p>
 
             <div class="feature">
               <h3>🎯 What You Can Explore</h3>
@@ -277,11 +362,11 @@ export function getWelcomeEmailTemplate(data: {
             <p>If you have any questions or need assistance, our support team is here to help. We're committed to making your wine journey exceptional.</p>
             
             <p>Welcome to the community!</p>
-            <p><strong>The CrowdVine Team</strong></p>
+            <p><strong>The PACT Team</strong></p>
           </div>
           
           <div class="footer">
-            <p>Welcome to CrowdVine - Premium Wine Community</p>
+            <p>Producers And Consumers Together</p>
             <p>If you have any questions, please contact our support team.</p>
           </div>
         </div>
@@ -290,16 +375,16 @@ export function getWelcomeEmailTemplate(data: {
   `;
 }
 
-export function getWelcomeEmailText(data: {
+export async function getWelcomeEmailText(data: {
   customerEmail: string;
   customerName: string;
-}): string {
+}): Promise<string> {
   return `
-Welcome to CrowdVine!
+Welcome to PACT!
 
 Hello ${data.customerName}!
 
-Welcome to CrowdVine, the exclusive wine community where quality meets community. We're thrilled to have you join our curated platform!
+Welcome to PACT, the exclusive wine community where quality meets community. We're thrilled to have you join our curated platform!
 
 What You Can Explore:
 - Exclusive Wines: Curated selections from boutique producers worldwide
@@ -316,10 +401,10 @@ If you have any questions or need assistance, our support team is here to help. 
 
 Welcome to the community!
 
-The CrowdVine Team
+The PACT Team
 
 ---
-Welcome to CrowdVine - Premium Wine Community
+Producers And Consumers Together
 If you have any questions, please contact our support team.
   `;
 }
