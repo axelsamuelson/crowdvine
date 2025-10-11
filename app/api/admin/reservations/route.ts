@@ -17,7 +17,9 @@ export async function GET() {
   try {
     const sb = getSupabaseAdmin();
 
-    // Hämta alla reservations med relaterad data inklusive customer info
+    console.log("🔍 [Reservations API] Starting to fetch reservations...");
+
+    // Try fetching with profiles join first
     const { data: reservations, error: reservationsError } = await sb
       .from("order_reservations")
       .select(
@@ -30,39 +32,64 @@ export async function GET() {
         delivery_zone_id,
         pickup_zone_id,
         payment_status,
-        fulfillment_status,
-        profiles(
-          email,
-          first_name,
-          last_name,
-          full_name
-        )
+        fulfillment_status
       `,
       )
       .order("created_at", { ascending: false });
 
     if (reservationsError) {
-      console.error("Error fetching reservations:", reservationsError);
-      console.error("Reservations error details:", {
+      console.error("❌ [Reservations API] Error fetching reservations:", reservationsError);
+      console.error("Error details:", {
         code: reservationsError.code,
         message: reservationsError.message,
         details: reservationsError.details,
         hint: reservationsError.hint
       });
       
-      // Return empty array instead of error to prevent 500
       return NextResponse.json({
         reservations: [],
-        note: "No reservations found or database error occurred",
         error: reservationsError.message
       });
+    }
+
+    console.log(`✅ [Reservations API] Found ${reservations?.length || 0} reservations`);
+
+    // Manually fetch profiles for all user_ids
+    if (reservations && reservations.length > 0) {
+      const userIds = [...new Set(reservations.map(r => r.user_id).filter(Boolean))];
+      console.log(`🔍 [Reservations API] Fetching profiles for ${userIds.length} unique users`);
+
+      const { data: profiles, error: profilesError } = await sb
+        .from("profiles")
+        .select("id, email, first_name, last_name, full_name")
+        .in("id", userIds);
+
+      if (profilesError) {
+        console.error("❌ [Reservations API] Error fetching profiles:", profilesError);
+      } else {
+        console.log(`✅ [Reservations API] Found ${profiles?.length || 0} profiles`);
+        
+        // Create a map for quick lookup
+        const profilesMap = new Map(profiles?.map(p => [p.id, p]) || []);
+        
+        // Attach profiles to reservations
+        const reservationsWithProfiles = reservations.map(reservation => ({
+          ...reservation,
+          profiles: profilesMap.get(reservation.user_id) || null
+        }));
+
+        console.log(`✅ [Reservations API] Returning ${reservationsWithProfiles.length} reservations with profiles`);
+        return NextResponse.json({
+          reservations: reservationsWithProfiles,
+        });
+      }
     }
 
     return NextResponse.json({
       reservations: reservations || [],
     });
   } catch (error) {
-    console.error("Error in reservations API:", error);
+    console.error("❌ [Reservations API] Unexpected error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
