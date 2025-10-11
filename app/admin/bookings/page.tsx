@@ -74,7 +74,7 @@ export default function BookingsPage() {
               user_id: booking.user_id,
               payment_status: "pending",
               fulfillment_status: "pending",
-              profiles: {
+              profiles: booking.profiles || {
                 email: `user-${booking.user_id.substring(0, 8)}`,
                 full_name: "Unknown Customer",
               },

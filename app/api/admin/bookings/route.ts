@@ -5,7 +5,7 @@ export async function GET() {
   try {
     const sb = getSupabaseAdmin();
 
-    // Hämta alla bokningar med relaterad data
+    // Hämta alla bokningar med relaterad data inklusive user profiles
     const { data: bookings, error: bookingsError } = await sb
       .from("bookings")
       .select(
@@ -34,6 +34,12 @@ export async function GET() {
           id,
           name,
           bottle_capacity
+        ),
+        profiles!bookings_user_id_fkey(
+          email,
+          first_name,
+          last_name,
+          full_name
         )
       `,
       )
