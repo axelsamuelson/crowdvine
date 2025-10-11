@@ -32,16 +32,41 @@ export async function POST(request: NextRequest) {
     };
 
     // Only set initial_level if provided (for approved requests)
+    // Try to update with initial_level, fall back without it if column doesn't exist
     if (initialLevel) {
       updateData.initial_level = initialLevel;
     }
 
-    const { data, error } = await supabase
-      .from("access_requests")
-      .update(updateData)
-      .eq("id", id)
-      .select()
-      .single();
+    let data, error;
+    try {
+      const result = await supabase
+        .from("access_requests")
+        .update(updateData)
+        .eq("id", id)
+        .select()
+        .single();
+      data = result.data;
+      error = result.error;
+    } catch (err: any) {
+      // If initial_level column doesn't exist, try without it
+      if (err?.message?.includes('initial_level') || (initialLevel && err)) {
+        console.log("DEBUG: initial_level column not found, updating without it...");
+        const fallbackData: any = {
+          status,
+          updated_at: new Date().toISOString(),
+        };
+        const result = await supabase
+          .from("access_requests")
+          .update(fallbackData)
+          .eq("id", id)
+          .select()
+          .single();
+        data = result.data;
+        error = result.error;
+      } else {
+        throw err;
+      }
+    }
 
     if (error) {
       console.error("Error updating access request:", error);
