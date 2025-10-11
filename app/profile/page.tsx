@@ -7,6 +7,8 @@ import { PerksGrid, LockedPerks } from "@/components/membership/perks-grid";
 import { IPTimeline } from "@/components/membership/ip-timeline";
 import { LevelProgress } from "@/components/membership/level-progress";
 import { InviteQuotaDisplay } from "@/components/membership/invite-quota-display";
+import { ProgressionBuffDisplay } from "@/components/membership/progression-buff-display";
+import { GoldCelebration, useGoldCelebration } from "@/components/membership/gold-celebration";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -96,6 +98,13 @@ export default function ProfilePage() {
     postal_code: "",
     country: "Sweden",
   });
+  
+  // v2: Progression buffs state
+  const [progressionBuffs, setProgressionBuffs] = useState<any[]>([]);
+  const [totalBuffPercentage, setTotalBuffPercentage] = useState(0);
+  
+  // v2: Gold celebration hook
+  const { showCelebration, checkAndShowCelebration, closeCelebration } = useGoldCelebration();
 
   // Fetch all data
   useEffect(() => {
@@ -106,6 +115,7 @@ export default function ProfilePage() {
       fetchPaymentMethods(),
       fetchReservations(),
       fetchInvitations(),
+      fetchProgressionBuffs(), // v2: fetch progression buffs
     ]).finally(() => setLoading(false));
   }, []);
 
@@ -156,9 +166,10 @@ export default function ProfilePage() {
         (payload) => {
           console.log('New IP event:', payload);
           
-          // Refresh both IP events and membership data
+          // Refresh IP events, membership data, and progression buffs
           fetchIPEvents();
           fetchMembershipData();
+          fetchProgressionBuffs(); // v2: check for new buffs
         }
       )
       .subscribe();
@@ -269,6 +280,29 @@ export default function ProfilePage() {
       }
     } catch (error) {
       console.error("Error fetching invitations:", error);
+    }
+  };
+  
+  // v2: Fetch progression buffs
+  const fetchProgressionBuffs = async () => {
+    try {
+      const res = await fetch("/api/user/progression-buffs");
+      if (res.ok) {
+        const data = await res.json();
+        setProgressionBuffs(data.buffs || []);
+        setTotalBuffPercentage(data.totalPercentage || 0);
+        
+        // Check for Gold celebration (if just upgraded)
+        if (membershipData) {
+          const justUpgraded = localStorage.getItem('just_upgraded_to_gold') === 'true';
+          if (justUpgraded) {
+            checkAndShowCelebration(membershipData.membership.level, true);
+            localStorage.removeItem('just_upgraded_to_gold');
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching progression buffs:", error);
     }
   };
 
@@ -470,6 +504,7 @@ export default function ProfilePage() {
                   currentLevelMin={membershipData.levelInfo.minPoints}
                   nextLevelMin={membershipData.nextLevel.minPoints}
                   nextLevelName={membershipData.nextLevel.name}
+                  activeBuffPercentage={totalBuffPercentage} // v2: show active buffs
                 />
               )}
 
@@ -487,6 +522,21 @@ export default function ProfilePage() {
             </div>
           </div>
         </section>
+
+        {/* PROGRESSION BUFFS (v2) */}
+        {progressionBuffs.length > 0 && (
+          <section>
+            <ProgressionBuffDisplay
+              totalBuffPercentage={totalBuffPercentage}
+              buffDetails={progressionBuffs.map(buff => ({
+                percentage: buff.buff_percentage,
+                description: buff.buff_description,
+                earnedAt: buff.earned_at,
+              }))}
+              expiresOnUse={true}
+            />
+          </section>
+        )}
 
         {/* TWO COLUMN LAYOUT: Personal Info + Payment Methods */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
@@ -914,6 +964,13 @@ export default function ProfilePage() {
           </Button>
         </section>
       </div>
+      
+      {/* Gold Celebration Modal (v2) */}
+      <GoldCelebration
+        show={showCelebration}
+        onClose={closeCelebration}
+        userName={profile?.full_name}
+      />
     </PageLayout>
   );
 }
