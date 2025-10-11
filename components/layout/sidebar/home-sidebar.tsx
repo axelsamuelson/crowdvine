@@ -30,7 +30,7 @@ export async function HomeSidebar({ collections }: HomeSidebarProps) {
           </div>
         )}
       </div>
-      <ShopLinks collections={collections} />
+      <ShopLinks collections={collections} label="Popular Producers" />
     </aside>
   );
 }
