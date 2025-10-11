@@ -17,6 +17,7 @@ export async function Footer() {
             className="max-md:hidden"
             align="right"
             invert={true}
+            label="Popular Producers"
           />
           <span className="mt-3 italic font-semibold md:hidden">
             Producers And Consumers Together
