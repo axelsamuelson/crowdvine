@@ -48,6 +48,14 @@ export default function BookingsPage() {
       // Fetch bookings
       const bookingsResponse = await fetch("/api/admin/bookings");
       const bookingsData = await bookingsResponse.json();
+      
+      console.log("📦 [Bookings Page] Received data:", {
+        bookingsCount: bookingsData.bookings?.length || 0,
+        reservationsCount: bookingsData.reservations?.length || 0,
+        sampleBooking: bookingsData.bookings?.[0],
+        sampleReservation: bookingsData.reservations?.[0]
+      });
+      
       setBookings(bookingsData.bookings || []);
       setReservations(bookingsData.reservations || []);
 
@@ -380,12 +388,15 @@ export default function BookingsPage() {
                       <td className="p-2">
                         <div className="text-xs">
                           <div className="font-medium text-gray-900">
-                            {booking.reservation?.profiles?.full_name || 
+                            {booking.profiles?.full_name || 
+                             booking.reservation?.profiles?.full_name || 
+                             booking.profiles?.email ||
                              booking.reservation?.profiles?.email || 
-                             "Unknown"}
+                             `User ${booking.user_id?.substring(0, 8)}` ||
+                             "Unknown Customer"}
                           </div>
                           <div className="text-xs text-gray-500 truncate max-w-[120px]">
-                            {booking.reservation?.profiles?.email}
+                            {booking.profiles?.email || booking.reservation?.profiles?.email}
                           </div>
                         </div>
                       </td>

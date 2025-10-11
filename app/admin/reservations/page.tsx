@@ -53,9 +53,10 @@ export default function ReservationsPage() {
 
       const reservationsData = await reservationsResponse.json();
       console.log(
-        "Fetched reservations:",
+        "📋 [Reservations Page] Fetched reservations:",
         reservationsData.reservations?.length || 0,
       );
+      console.log("📋 [Reservations Page] Sample reservation:", reservationsData.reservations?.[0]);
 
       setReservations(reservationsData.reservations || []);
     } catch (error) {
@@ -355,10 +356,13 @@ export default function ReservationsPage() {
                       <td className="p-2">
                         <div className="text-xs">
                           <div className="font-medium text-gray-900">
-                            User: {reservation.user_id?.substring(0, 8) || "Unknown"}
+                            {reservation.profiles?.full_name || 
+                             reservation.profiles?.email || 
+                             `User ${reservation.user_id?.substring(0, 8)}` ||
+                             "Unknown Customer"}
                           </div>
                           <div className="text-xs text-gray-500 truncate max-w-[120px]">
-                            ID: {reservation.user_id}
+                            {reservation.profiles?.email || `ID: ${reservation.user_id}`}
                           </div>
                         </div>
                       </td>
