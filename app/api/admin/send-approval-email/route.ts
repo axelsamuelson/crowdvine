@@ -48,25 +48,52 @@ export async function POST(request: NextRequest) {
       },
     );
 
+    console.log("DEBUG: Signup URL response status:", signupResponse.status);
+
     if (!signupResponse.ok) {
-      console.error("DEBUG: Failed to generate signup URL");
+      const errorData = await signupResponse.json().catch(() => ({}));
+      console.error("DEBUG: Failed to generate signup URL:", errorData);
       return NextResponse.json(
-        { error: "Failed to generate signup URL" },
+        { 
+          error: "Failed to generate signup URL",
+          details: errorData 
+        },
         { status: 500 },
       );
     }
 
-    const { signupUrl } = await signupResponse.json();
+    const signupData = await signupResponse.json();
+    console.log("DEBUG: Signup URL data:", signupData);
+    
+    if (!signupData.signupUrl) {
+      console.error("DEBUG: No signupUrl in response:", signupData);
+      return NextResponse.json(
+        { error: "No signup URL generated" },
+        { status: 500 },
+      );
+    }
+    
+    const { signupUrl } = signupData;
     console.log("DEBUG: Signup URL generated:", signupUrl);
 
     // Send approval email
     console.log("DEBUG: Sending approval email...");
+    console.log("DEBUG: Email details:", {
+      to: email,
+      subject: "Welcome to PACT - Your Access Has Been Approved",
+      signupUrl: signupUrl,
+      hasHtml: !!getAccessApprovalEmailTemplate(signupUrl),
+      hasText: !!getAccessApprovalEmailText(signupUrl),
+    });
+    
     const emailSent = await sendGridService.sendEmail({
       to: email,
       subject: "Welcome to PACT - Your Access Has Been Approved",
       html: getAccessApprovalEmailTemplate(signupUrl),
       text: getAccessApprovalEmailText(signupUrl),
     });
+
+    console.log("DEBUG: SendGrid result:", emailSent);
 
     if (emailSent) {
       console.log("DEBUG: Approval email sent successfully to:", email);
@@ -77,9 +104,9 @@ export async function POST(request: NextRequest) {
         signupUrl: signupUrl,
       });
     } else {
-      console.log("DEBUG: Failed to send approval email to:", email);
+      console.error("DEBUG: SendGrid returned false - email NOT sent to:", email);
       return NextResponse.json(
-        { error: "Failed to send approval email" },
+        { error: "Failed to send approval email - SendGrid returned false" },
         { status: 500 },
       );
     }

@@ -57,9 +57,8 @@ class SendGridService {
 
   async sendEmail(data: EmailData): Promise<boolean> {
     if (!process.env.SENDGRID_API_KEY) {
-      console.error(
-        "SendGrid API key not configured. Please set SENDGRID_API_KEY in your environment variables.",
-      );
+      console.error("❌ SENDGRID ERROR: API key not configured!");
+      console.error("Please set SENDGRID_API_KEY in Vercel environment variables.");
       console.error("For development, you can set it in .env.local file.");
       return false;
     }
@@ -75,14 +74,27 @@ class SendGridService {
       text: data.text || this.stripHtml(data.html),
     };
 
+    console.log("📧 Attempting to send email via SendGrid:", {
+      to: data.to,
+      from: msg.from,
+      subject: data.subject,
+      hasApiKey: !!process.env.SENDGRID_API_KEY,
+      apiKeyLength: process.env.SENDGRID_API_KEY?.length,
+    });
+
     try {
-      await sgMail.send(msg);
-      console.log(`Email sent successfully to ${data.to}`);
+      const result = await sgMail.send(msg);
+      console.log(`✅ Email sent successfully to ${data.to}`);
+      console.log("SendGrid response:", result);
       return true;
-    } catch (error) {
-      console.error("SendGrid error:", error);
+    } catch (error: any) {
+      console.error("❌ SendGrid error:", error);
       if (error.response) {
-        console.error("SendGrid response body:", error.response.body);
+        console.error("SendGrid response status:", error.response?.status);
+        console.error("SendGrid response body:", JSON.stringify(error.response?.body, null, 2));
+      }
+      if (error.message) {
+        console.error("SendGrid error message:", error.message);
       }
       return false;
     }
