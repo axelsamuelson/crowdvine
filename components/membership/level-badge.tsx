@@ -24,7 +24,7 @@ const levelConfig = {
     shimmer: false,
   },
   brons: {
-    name: "Brons",
+    name: "Bronze",
     gradient: "from-[#CD7F32] to-[#B87333]",
     border: "border-[#CD7F32]",
     text: "text-[#8B4513]",
@@ -38,7 +38,7 @@ const levelConfig = {
     shimmer: true,
   },
   guld: {
-    name: "Guld",
+    name: "Gold",
     gradient: "from-[#FFD700] to-[#FFA500]",
     border: "border-[#FFD700]",
     text: "text-[#B8860B]",

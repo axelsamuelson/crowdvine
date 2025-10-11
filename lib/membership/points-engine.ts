@@ -210,6 +210,22 @@ export async function getUserMembership(userId: string) {
 }
 
 /**
+ * Get display name for membership level (English)
+ */
+function getLevelDisplayName(level: MembershipLevel): string {
+  const levelNames: Record<MembershipLevel, string> = {
+    'requester': 'Requester',
+    'basic': 'Basic',
+    'brons': 'Bronze',
+    'silver': 'Silver',
+    'guld': 'Gold',
+    'admin': 'Admin',
+  };
+  
+  return levelNames[level] || level.charAt(0).toUpperCase() + level.slice(1);
+}
+
+/**
  * Get level name and threshold info
  */
 export function getLevelInfo(level: MembershipLevel) {
@@ -218,7 +234,7 @@ export function getLevelInfo(level: MembershipLevel) {
 
   return {
     level,
-    name: level.charAt(0).toUpperCase() + level.slice(1),
+    name: getLevelDisplayName(level),
     minPoints: thresholds?.min || 0,
     maxPoints: thresholds?.max || Infinity,
     inviteQuota: quota,
@@ -246,7 +262,7 @@ export function getNextLevelInfo(currentPoints: number, currentLevel: Membership
 
   return {
     level: nextLevel,
-    name: nextLevel.charAt(0).toUpperCase() + nextLevel.slice(1),
+    name: getLevelDisplayName(nextLevel),
     pointsNeeded: Math.max(0, pointsNeeded),
     minPoints: nextLevelInfo.min,
   };
