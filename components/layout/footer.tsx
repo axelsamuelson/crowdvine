@@ -1,10 +1,11 @@
 import { ShopLinks } from "./shop-links";
 import { SidebarLinks } from "./sidebar/product-sidebar-links";
 import { FooterLogoSvg } from "./footer-logo-svg";
+import { getCollections } from "@/lib/shopify";
 
-export function Footer() {
-  // Temporarily disable collections fetching to prevent blocking
-  const collections = [];
+export async function Footer() {
+  // Fetch collections for Popular Producers
+  const collections = await getCollections();
 
   return (
     <footer className="p-sides">
