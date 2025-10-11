@@ -52,7 +52,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate signup URL with token
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://pactwines.com";
+    // IMPORTANT: Trim baseUrl to remove any whitespace/newlines from environment variable
+    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://pactwines.com").trim();
     const signupUrl = `${baseUrl}/signup?token=${accessToken}`;
 
     return NextResponse.json({
