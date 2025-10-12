@@ -7,7 +7,11 @@ export async function GET(req: NextRequest) {
     console.log("🎓 [API] GET /api/user/onboarding-seen called");
     const supabase = await createClient();
     
+    console.log("🎓 [API] Supabase client created");
+    
     const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    console.log("🎓 [API] Auth result - User:", user?.id, "Error:", authError);
     
     if (authError || !user) {
       console.log("🎓 [API] No user found or auth error:", authError);
@@ -64,10 +68,18 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ 
       onboardingSeen: profile?.onboarding_seen || false 
     });
-  } catch (error) {
-    console.error("🎓 [API] Error in GET /api/user/onboarding-seen:", error);
+  } catch (error: any) {
+    console.error("🎓 [API] CAUGHT ERROR in GET /api/user/onboarding-seen:", error);
+    console.error("🎓 [API] Error name:", error?.name);
+    console.error("🎓 [API] Error message:", error?.message);
+    console.error("🎓 [API] Error stack:", error?.stack);
+    
     return NextResponse.json(
-      { error: "Internal server error" },
+      { 
+        error: "Internal server error",
+        message: error?.message || "Unknown error",
+        name: error?.name || "Unknown"
+      },
       { status: 500 }
     );
   }
