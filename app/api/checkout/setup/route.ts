@@ -132,8 +132,17 @@ export async function GET(request: Request) {
       mode: "setup",
       success_url: successUrl,
       cancel_url: cancelUrl,
+      locale: "auto", // Auto-detect user language (Swedish for Swedish users)
       metadata: {
         type: "payment_method_setup",
+        user_id: user.id,
+        user_email: user.email,
+      },
+      // For Swedish banks, set payment method options
+      payment_method_options: {
+        card: {
+          setup_future_usage: "off_session", // Allow future charges without customer present
+        },
       },
     });
 
