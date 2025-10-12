@@ -36,13 +36,13 @@ export function ZoneDetails({
 
   const zoneTypeInfo = {
     pickup: {
-      title: "Upphämtningszon",
-      description: "Var viner hämtas från producenter",
+      title: "Pickup Zone",
+      description: "Where wines are collected from producers",
       icon: <Navigation className="w-4 h-4 text-gray-600" />,
     },
     delivery: {
-      title: "Leveranszon",
-      description: "Var viner levereras till kunder",
+      title: "Delivery Zone",
+      description: "Where wines are delivered to customers",
       icon: <MapPin className="w-4 h-4 text-gray-600" />,
     },
   };
@@ -91,7 +91,7 @@ export function ZoneDetails({
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-gray-400" />
                   <div>
-                    <div className="text-xs text-gray-500">Koordinater</div>
+                    <div className="text-xs text-gray-500">Coordinates</div>
                     <div className="text-sm text-gray-900 font-medium">
                       {centerLat.toFixed(4)}, {centerLon.toFixed(4)}
                     </div>
@@ -103,9 +103,9 @@ export function ZoneDetails({
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-gray-400" />
                   <div>
-                    <div className="text-xs text-gray-500">Räckvidd</div>
+                    <div className="text-xs text-gray-500">Range</div>
                     <div className="text-sm text-gray-900 font-medium">
-                      {radiusKm}km radie
+                      {radiusKm}km radius
                     </div>
                   </div>
                 </div>
@@ -115,7 +115,7 @@ export function ZoneDetails({
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-gray-400" />
                   <div>
-                    <div className="text-xs text-gray-500">Land</div>
+                    <div className="text-xs text-gray-500">Country</div>
                     <div className="text-sm text-gray-900 font-medium">{countryCode}</div>
                   </div>
                 </div>
@@ -124,7 +124,7 @@ export function ZoneDetails({
 
             <div className="pt-2 border-t border-gray-200">
               <Badge variant="outline" className="text-xs text-gray-600">
-                Zon-ID: {zoneId.substring(0, 8)}...
+                Zone ID: {zoneId.substring(0, 8)}...
               </Badge>
             </div>
           </div>

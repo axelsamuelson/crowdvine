@@ -639,7 +639,7 @@ function CheckoutContent() {
           <Card className="border border-gray-200">
             <CardHeader className="pb-4">
               <CardTitle className="text-base font-semibold text-gray-900">
-                Ordersammanfattning
+                Order Summary
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -706,7 +706,7 @@ function CheckoutContent() {
                   
                   {/* Subtotal */}
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Delsumma</span>
+                  <span className="text-gray-600">Subtotal</span>
                   <span className="text-gray-900 font-medium">
                     {Math.round(subtotal)}{" "}
                     {cart.cost.totalAmount.currencyCode}
@@ -718,7 +718,7 @@ function CheckoutContent() {
                   
                   {/* Total */}
               <div className="flex justify-between text-base font-semibold text-gray-900">
-                <span>Totalt</span>
+                <span>Total</span>
                     <span>
                   {Math.round(total)}{" "}
                   {cart.cost.totalAmount.currencyCode}
@@ -894,7 +894,7 @@ function CheckoutContent() {
               <CardHeader className="pb-4">
                 <CardTitle className="text-base font-semibold text-gray-900 flex items-center gap-2">
                   <Package className="w-4 h-4 text-gray-600" />
-                  Vald Pall
+                  Selected Pallet
                 </CardTitle>
               </CardHeader>
               <CardContent>
