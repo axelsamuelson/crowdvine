@@ -1,20 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { getCurrentUser } from "@/lib/auth";
 
 // GET: Check if user has seen onboarding
 export async function GET(req: NextRequest) {
   try {
     console.log("🎓 [API] GET /api/user/onboarding-seen called");
-    const supabase = await createClient();
     
-    console.log("🎓 [API] Supabase client created");
+    const user = await getCurrentUser();
     
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    console.log("🎓 [API] Auth result - User:", user?.id, "Error:", authError);
-    
-    if (authError || !user) {
-      console.log("🎓 [API] No user found or auth error:", authError);
+    if (!user) {
+      console.log("🎓 [API] No user found");
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -22,6 +18,8 @@ export async function GET(req: NextRequest) {
     }
 
     console.log("🎓 [API] User authenticated:", user.id);
+
+    const supabase = getSupabaseAdmin();
 
     const { data: profile, error } = await supabase
       .from("profiles")
@@ -89,12 +87,11 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     console.log("🎓 [API] POST /api/user/onboarding-seen called");
-    const supabase = await createClient();
     
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
     
-    if (authError || !user) {
-      console.log("🎓 [API] POST: No user found or auth error:", authError);
+    if (!user) {
+      console.log("🎓 [API] POST: No user found");
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -102,6 +99,8 @@ export async function POST(req: NextRequest) {
     }
 
     console.log("🎓 [API] POST: User authenticated:", user.id);
+
+    const supabase = getSupabaseAdmin();
 
     const { error } = await supabase
       .from("profiles")
