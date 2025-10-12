@@ -11,12 +11,11 @@ export async function triggerPaymentNotifications(palletId: string): Promise<voi
   
   try {
     // Get all reservations for this pallet that need payment
-    // Note: quantity is in order_reservation_items, not order_reservations
+    // Note: Get only basic fields, calculate amounts from items
     const { data: reservations, error: reservationsError } = await supabase
       .from('order_reservations')
       .select(`
         id,
-        total_amount_cents,
         payment_deadline,
         status,
         profiles!inner(email, full_name),
@@ -71,13 +70,24 @@ async function sendPaymentNotification(reservation: any): Promise<void> {
   const supabase = getSupabaseAdmin();
   
   try {
-    // Get bottle count from order_reservation_items
+    // Get bottle count and prices from order_reservation_items with wine prices
     const { data: items } = await supabase
       .from('order_reservation_items')
-      .select('quantity')
+      .select(`
+        quantity,
+        item_id,
+        wines(base_price_cents)
+      `)
       .eq('reservation_id', reservation.id);
     
     const bottleCount = items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+    
+    // Calculate total amount from items
+    const totalAmountCents = items?.reduce((sum, item) => {
+      const price = item.wines?.base_price_cents || 0;
+      const quantity = item.quantity || 0;
+      return sum + (price * quantity);
+    }, 0) || 0;
     
     // Create payment link
     const paymentLink = await createPaymentLinkForReservation(reservation.id);
@@ -96,7 +106,7 @@ async function sendPaymentNotification(reservation: any): Promise<void> {
       name: reservation.profiles.full_name || 'Friend',
       palletName: reservation.pallets?.name || 'Your Pallet',
       bottleCount: bottleCount,
-      totalAmount: (reservation.total_amount_cents / 100).toFixed(2),
+      totalAmount: (totalAmountCents / 100).toFixed(2),
       paymentLink: paymentLink,
       deadline: deadlineStr,
       reservationId: reservation.id
