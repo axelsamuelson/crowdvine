@@ -1098,33 +1098,50 @@ function CheckoutContent() {
 
             {/* Submit Button or Validation Warning */}
             {!isValidCart ? (
-              <div className="space-y-3">
-                {validations.filter(v => !v.isValid).map((v, i) => {
-                  const href = v.groupId 
-                    ? `/shop/group/${v.groupId}`
-                    : `/shop/${v.producerHandle}`;
-                  
-                  return (
-                    <Link key={i} href={href}>
-                      <div className="w-full p-4 bg-muted/30 hover:bg-muted/50 border border-muted-foreground/10 rounded-md transition-all cursor-pointer group">
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground mb-1">
-                              {v.groupName || v.producerName}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {v.quantity} bottle{v.quantity > 1 ? 's' : ''} • Add {v.needed} more for {v.quantity + v.needed} total
-                            </p>
+              <div className="space-y-4">
+                {/* Header - Clear blocked state */}
+                <div className="flex items-center gap-2 pb-2 border-b border-red-200">
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-red-600">
+                      Order Blocked
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Add bottles to meet 6-bottle requirement
+                    </p>
+                  </div>
+                </div>
+
+                {/* Action cards per producer */}
+                <div className="space-y-2">
+                  {validations.filter(v => !v.isValid).map((v, i) => {
+                    const href = v.groupId 
+                      ? `/shop/group/${v.groupId}`
+                      : `/shop/${v.producerHandle}`;
+                    
+                    return (
+                      <Link key={i} href={href}>
+                        <div className="w-full p-4 bg-background border border-border hover:border-foreground/20 rounded-md transition-all group">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-foreground mb-1.5">
+                                {v.groupName || v.producerName}
+                              </p>
+                              <p className="text-xs text-muted-foreground mb-2">
+                                Current: {v.quantity} bottle{v.quantity > 1 ? 's' : ''} • 
+                                <span className="text-red-600 font-medium"> Need {v.needed} more</span> for {v.quantity + v.needed} total
+                              </p>
+                              <div className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground group-hover:underline">
+                                Browse wines from this {v.groupId ? 'group' : 'producer'}
+                                <ArrowRight className="h-3 w-3" />
+                              </div>
+                            </div>
                           </div>
-                          <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors flex-shrink-0" />
                         </div>
-                      </div>
-                    </Link>
-                  );
-                })}
-                <p className="text-xs text-center text-muted-foreground italic pt-2">
-                  Orders must be in multiples of 6 bottles per producer
-                </p>
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
             ) : (
               <Button
