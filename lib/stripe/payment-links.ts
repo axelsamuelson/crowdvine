@@ -32,16 +32,37 @@ export async function createPaymentLinkForReservation(reservationId: string): Pr
       throw new Error(`Reservation ${reservationId} not found`);
     }
     
+    // Get bottle count and total amount from order_reservation_items
+    const { data: items } = await supabase
+      .from('order_reservation_items')
+      .select(`
+        quantity,
+        wines(base_price_cents)
+      `)
+      .eq('reservation_id', reservationId);
+    
+    const bottleCount = items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+    const totalAmountCents = items?.reduce((sum, item) => {
+      const price = item.wines?.base_price_cents || 0;
+      const quantity = item.quantity || 0;
+      return sum + (price * quantity);
+    }, 0) || 0;
+    
     console.log(`📋 [Payment Link] Reservation details:`, {
       id: reservation.id,
-      quantity: reservation.quantity,
-      totalAmount: reservation.total_amount_cents,
+      quantity: bottleCount,
+      totalAmount: totalAmountCents,
       email: reservation.profiles.email,
       palletName: reservation.pallets?.name
     });
     
+    // Validate we have items and amount
+    if (bottleCount === 0 || totalAmountCents === 0) {
+      throw new Error(`Reservation ${reservationId} has no items or invalid amount`);
+    }
+    
     // Validate reservation is in correct state
-    if (reservation.status !== 'pending_payment') {
+    if (reservation.status !== 'pending_payment' && reservation.status !== 'placed') {
       throw new Error(`Reservation ${reservationId} is not in pending_payment status (current: ${reservation.status})`);
     }
     
@@ -60,9 +81,9 @@ export async function createPaymentLinkForReservation(reservationId: string): Pr
           currency: 'sek',
           product_data: {
             name: `Wine Pallet Order - ${reservation.pallets?.name || 'Pallet'}`,
-            description: `${reservation.quantity} bottles from ${reservation.pallets?.name || 'your pallet'}`
+            description: `${bottleCount} bottles from ${reservation.pallets?.name || 'your pallet'}`
           },
-          unit_amount: reservation.total_amount_cents
+          unit_amount: totalAmountCents
         },
         quantity: 1
       }],
@@ -73,8 +94,8 @@ export async function createPaymentLinkForReservation(reservationId: string): Pr
         reservation_id: reservationId,
         pallet_id: reservation.pallet_id,
         customer_email: reservation.profiles.email,
-        bottle_count: reservation.quantity.toString(),
-        total_amount: reservation.total_amount_cents.toString()
+        bottle_count: bottleCount.toString(),
+        total_amount: totalAmountCents.toString()
       },
       // Add customer information for better UX
       shipping_address_collection: {
