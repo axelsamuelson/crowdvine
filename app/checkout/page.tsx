@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Suspense, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import type { Cart } from "@/lib/shopify/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,7 +22,6 @@ import { PaymentMethodSelector } from "@/components/checkout/payment-method-sele
 import { ZoneDetails } from "@/components/checkout/zone-details";
 import { PalletDetails } from "@/components/checkout/pallet-details";
 import { ReservationLoadingModal } from "@/components/checkout/reservation-loading-modal";
-import { CompleteOrderSuggestions } from "@/components/checkout/complete-order-suggestions";
 import { MemberPrice } from "@/components/ui/member-price";
 import { ProgressionBuffDisplay } from "@/components/membership/progression-buff-display";
 import { toast } from "sonner";
@@ -236,16 +236,6 @@ function CheckoutContent() {
     validateCart();
   }, [cart]);
 
-  useEffect(() => {
-    // Listen for cart-refresh events (from suggestions quick-add)
-    const handleCartRefresh = () => {
-      console.log("🔄 [Checkout] Cart refresh event received");
-      fetchCart();
-    };
-
-    window.addEventListener("cart-refresh", handleCartRefresh);
-    return () => window.removeEventListener("cart-refresh", handleCartRefresh);
-  }, [fetchCart]);
 
   useEffect(() => {
     // Update zone info when address changes (with debouncing)
@@ -1106,31 +1096,42 @@ function CheckoutContent() {
               </CardContent>
             </Card>
 
-            {/* Complete Order Suggestions - Only show if validation exists */}
-            {validations.length > 0 && (
-              <CompleteOrderSuggestions 
-                validations={validations} 
-                onCartUpdate={fetchCart}
-              />
-            )}
-
             {/* Submit Button or Validation Warning */}
             {!isValidCart ? (
-              <div className="w-full p-4 bg-amber-50 border border-amber-200 rounded-md">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-amber-900 mb-1">
-                      Cannot place order
-                    </p>
-                    <p className="text-xs text-amber-800">
-                      {validations.filter(v => !v.isValid).map((v, i) => (
-                        <span key={i}>
-                          {v.producerName}: Add {v.needed} more bottle{v.needed > 1 ? 's' : ''} for {v.quantity + v.needed} total
-                          {i < validations.filter(v2 => !v2.isValid).length - 1 && <br />}
-                        </span>
-                      ))}
-                    </p>
+              <div className="w-full space-y-3">
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-md">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-amber-900 mb-2">
+                        Cannot place order
+                      </p>
+                      <div className="space-y-2">
+                        {validations.filter(v => !v.isValid).map((v, i) => {
+                          const href = v.groupId 
+                            ? `/shop/group/${v.groupId}`
+                            : `/shop/${v.producerHandle}`;
+                          
+                          return (
+                            <div key={i} className="flex items-center justify-between">
+                              <span className="text-xs text-amber-800">
+                                {v.groupName || v.producerName}: Add {v.needed} more bottle{v.needed > 1 ? 's' : ''} for {v.quantity + v.needed} total
+                              </span>
+                              <Link href={href}>
+                                <Button 
+                                  type="button"
+                                  size="sm" 
+                                  variant="outline"
+                                  className="text-xs h-7 border-amber-300 hover:bg-amber-100"
+                                >
+                                  Browse Wines
+                                </Button>
+                              </Link>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
