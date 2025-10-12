@@ -15,7 +15,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Cart } from "../../lib/shopify/types";
 import { CartValidationDisplay } from "./cart-validation-display";
-import { validateSixBottleRule, ProducerValidation } from "@/lib/checkout-validation";
+import type { ProducerValidation } from "@/lib/checkout-validation";
 
 const CartContainer = ({
   children,
@@ -44,9 +44,13 @@ const CartItems = ({ closeCart }: { closeCart: () => void }) => {
       try {
         console.log("🔍 [Cart Modal] Validating cart with", cart.lines.length, "items");
         console.log("🔍 [Cart Modal] Sample cart item:", cart.lines[0]);
-        const result = await validateSixBottleRule(cart.lines as any);
+        
+        // Call API endpoint instead of running validation client-side
+        const response = await fetch("/api/cart/validate");
+        const result = await response.json();
+        
         console.log("✅ [Cart Modal] Validation result:", result);
-        setValidations(result.producerValidations);
+        setValidations(result.producerValidations || []);
       } catch (error) {
         console.error("❌ [Cart Modal] Validation error:", error);
         setValidations([]);

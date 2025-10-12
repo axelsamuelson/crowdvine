@@ -391,11 +391,11 @@ function CheckoutContent() {
       return;
     }
 
-    // Validate 6-bottle rule
-    if (cart) {
-      console.log("🔍 [Checkout] Validating 6-bottle rule...");
-      const { validateSixBottleRule } = await import("@/lib/checkout-validation");
-      const validation = await validateSixBottleRule(cart.lines as any);
+    // Validate 6-bottle rule via API
+    console.log("🔍 [Checkout] Validating 6-bottle rule...");
+    try {
+      const validateResponse = await fetch("/api/cart/validate");
+      const validation = await validateResponse.json();
       
       if (!validation.isValid) {
         console.error("❌ [Checkout] 6-bottle validation failed:", validation.errors);
@@ -409,6 +409,9 @@ function CheckoutContent() {
         return;
       }
       console.log("✅ [Checkout] 6-bottle validation passed");
+    } catch (error) {
+      console.error("❌ [Checkout] Validation error:", error);
+      // Continue with checkout if validation fails (fail open)
     }
 
     setIsPlacingOrder(true); // Show loading modal
