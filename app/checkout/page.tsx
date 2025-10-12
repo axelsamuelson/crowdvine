@@ -122,6 +122,65 @@ function CheckoutContent() {
 
   const searchParams = useSearchParams();
 
+  // Define all fetch functions BEFORE useEffects to avoid hoisting issues
+  const fetchCart = useCallback(async () => {
+    try {
+      console.log("🔄 [Checkout] Fetching cart...");
+      const response = await fetch("/api/crowdvine/cart");
+      if (response.ok) {
+        const cartData = await response.json();
+        console.log("✅ [Checkout] Cart updated:", {
+          totalQuantity: cartData.totalQuantity,
+          items: cartData.lines?.length || 0
+        });
+        setCart(cartData);
+      }
+    } catch (error) {
+      console.error("Failed to fetch cart:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchProfile = useCallback(async () => {
+    try {
+      const response = await fetch("/api/user/profile");
+      if (response.ok) {
+        const data = await response.json();
+        const profileData = data.profile || data;
+        setProfile(profileData);
+      }
+    } catch (error) {
+      console.error("Failed to fetch profile:", error);
+    }
+  }, []);
+
+  const fetchUserRewards = useCallback(async () => {
+    try {
+      const response = await fetch("/api/user/rewards");
+      if (response.ok) {
+        const data = await response.json();
+        setUserRewards(data.rewards || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch rewards:", error);
+    }
+  }, []);
+
+  const fetchProgressionBuffs = useCallback(async () => {
+    try {
+      const response = await fetch("/api/user/progression-buffs");
+      if (response.ok) {
+        const data = await response.json();
+        setProgressionBuffs(data.buffs || []);
+        const totalPercentage = data.buffs?.reduce((sum: number, buff: any) => sum + parseFloat(buff.buff_percentage), 0) || 0;
+        setTotalBuffPercentage(totalPercentage);
+      }
+    } catch (error) {
+      console.error("Failed to fetch progression buffs:", error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchCart();
     fetchProfile();
@@ -136,7 +195,7 @@ function CheckoutContent() {
       const cleanUrl = window.location.pathname;
       window.history.replaceState({}, '', cleanUrl);
     }
-  }, []);
+  }, [fetchCart, fetchProfile, fetchUserRewards, fetchProgressionBuffs]);
 
   // Initial zone matching when cart and profile are loaded
   useEffect(() => {
@@ -199,71 +258,6 @@ function CheckoutContent() {
       return () => clearTimeout(timeoutId);
     }
   }, [profile]);
-
-  const fetchCart = useCallback(async () => {
-    try {
-      console.log("🔄 [Checkout] Fetching cart...");
-      const response = await fetch("/api/crowdvine/cart");
-      if (response.ok) {
-        const cartData = await response.json();
-        console.log("✅ [Checkout] Cart updated:", {
-          totalQuantity: cartData.totalQuantity,
-          items: cartData.lines?.length || 0
-        });
-        setCart(cartData);
-      }
-    } catch (error) {
-      console.error("Failed to fetch cart:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const fetchProfile = async () => {
-    try {
-      const response = await fetch("/api/user/profile");
-      if (response.ok) {
-        const data = await response.json();
-        const profileData = data.profile || data;
-        console.log("👤 Profile loaded:", profileData);
-        setProfile(profileData);
-
-        // Check if profile has complete address information
-        const hasCompleteAddress =
-          profileData.address && profileData.city && profileData.postal_code;
-        console.log("📍 Has complete address:", hasCompleteAddress);
-        // Address states removed - always use profile address
-      }
-    } catch (error) {
-      console.error("Error fetching profile:", error);
-    }
-  };
-
-  const fetchUserRewards = async () => {
-    try {
-      // Rewards system has been replaced by membership system
-      // No more bottle-level rewards in checkout
-      // Keep empty array to prevent errors
-      setUserRewards([]);
-    } catch (error) {
-      console.error("Error fetching user rewards:", error);
-      setUserRewards([]);
-    }
-  };
-  
-  // v2: Fetch progression buffs
-  const fetchProgressionBuffs = async () => {
-    try {
-      const res = await fetch("/api/user/progression-buffs");
-      if (res.ok) {
-        const data = await res.json();
-        setProgressionBuffs(data.buffs || []);
-        setTotalBuffPercentage(data.totalPercentage || 0);
-      }
-    } catch (error) {
-      console.error("Error fetching progression buffs:", error);
-    }
-  };
 
   const updateZoneInfo = async () => {
     if (!cart || cart.totalQuantity === 0) return;
