@@ -13,6 +13,7 @@ import {
   Calendar,
   MapPin,
   Truck,
+  CreditCard,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -27,6 +28,9 @@ interface Reservation {
   pallet_name?: string;
   delivery_address?: string;
   total_cost_cents: number;
+  payment_status?: string;
+  payment_link?: string;
+  payment_deadline?: string;
   items: Array<{
     wine_name: string;
     quantity: number;
@@ -57,6 +61,9 @@ interface AddressPalletData {
   totalCostCents: number;
   orderCount: number;
   latestOrderDate: string;
+  paymentStatus?: string;
+  paymentLink?: string;
+  paymentDeadline?: string;
 }
 
 export default function ReservationsPage() {
@@ -122,6 +129,9 @@ export default function ReservationsPage() {
           totalCostCents: 0,
           orderCount: 0,
           latestOrderDate: reservation.created_at,
+          paymentStatus: reservation.payment_status || reservation.status,
+          paymentLink: reservation.payment_link,
+          paymentDeadline: reservation.payment_deadline,
         });
       }
 
@@ -339,6 +349,70 @@ export default function ReservationsPage() {
                 </CardHeader>
 
                 <CardContent className="p-6">
+                  {/* Payment Status */}
+                  {group.paymentStatus && (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <CreditCard className="w-5 h-5" />
+                        Payment Status
+                      </h3>
+                      <div className={`p-4 rounded-lg border ${
+                        group.paymentStatus === 'paid' 
+                          ? 'bg-green-50 border-green-200' 
+                          : group.paymentStatus === 'pending' || group.paymentStatus === 'pending_payment'
+                          ? 'bg-amber-50 border-amber-200'
+                          : 'bg-gray-50 border-gray-200'
+                      }`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Badge variant={
+                              group.paymentStatus === 'paid' 
+                                ? 'default' 
+                                : group.paymentStatus === 'pending' || group.paymentStatus === 'pending_payment'
+                                ? 'secondary'
+                                : 'outline'
+                            } className={
+                              group.paymentStatus === 'paid' 
+                                ? 'bg-green-600 text-white' 
+                                : group.paymentStatus === 'pending' || group.paymentStatus === 'pending_payment'
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }>
+                              {group.paymentStatus === 'paid' 
+                                ? 'Paid' 
+                                : group.paymentStatus === 'pending' || group.paymentStatus === 'pending_payment'
+                                ? 'Payment Required'
+                                : group.paymentStatus}
+                            </Badge>
+                            {group.paymentDeadline && (group.paymentStatus === 'pending' || group.paymentStatus === 'pending_payment') && (
+                              <span className="text-sm text-gray-600">
+                                Deadline: {new Date(group.paymentDeadline).toLocaleDateString('sv-SE')}
+                              </span>
+                            )}
+                          </div>
+                          {group.paymentLink && (group.paymentStatus === 'pending' || group.paymentStatus === 'pending_payment') && (
+                            <Button 
+                              size="sm" 
+                              onClick={() => window.open(group.paymentLink, '_blank')}
+                              className="bg-black hover:bg-gray-800 text-white"
+                            >
+                              Pay Now
+                            </Button>
+                          )}
+                        </div>
+                        {group.paymentStatus === 'pending' || group.paymentStatus === 'pending_payment' ? (
+                          <p className="text-sm text-amber-800 mt-2">
+                            Complete your payment to secure your reservation. If payment is not completed by the deadline, your reservation will be released.
+                          </p>
+                        ) : group.paymentStatus === 'paid' ? (
+                          <p className="text-sm text-green-800 mt-2">
+                            Payment completed. Your order is being processed and will be shipped soon.
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Delivery Address */}
                   <div className="mb-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">

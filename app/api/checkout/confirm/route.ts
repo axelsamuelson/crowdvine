@@ -39,7 +39,7 @@ export async function POST(request: Request) {
         },
         selectedDeliveryZoneId: formData.get("selectedDeliveryZoneId"),
         selectedPalletId: formData.get("selectedPalletId"),
-        paymentMethodId: formData.get("paymentMethodId"),
+        // paymentMethodId removed - using new payment flow
       };
     }
 
@@ -175,7 +175,7 @@ export async function POST(request: Request) {
         pickup_zone_id: zones.pickupZoneId,
         delivery_zone_id: finalDeliveryZoneId,
         pallet_id: palletId,
-        status: "placed",
+        status: "pending_payment",
       })
       .select()
       .single();
@@ -436,6 +436,20 @@ export async function POST(request: Request) {
     // Clear cart
     console.log("Clearing cart");
     await CartService.clearCart();
+
+    // Check if pallet is now complete
+    console.log("Checking if pallet completion after new reservation");
+    try {
+      const { checkPalletCompletion } = await import("@/lib/pallet-completion");
+      const isComplete = await checkPalletCompletion(palletId);
+
+      if (isComplete) {
+        console.log(`🎉 Pallet ${palletId} is now complete! Payment notifications triggered.`);
+      }
+    } catch (error) {
+      console.error("Error checking pallet completion:", error);
+      // Don't fail the reservation if pallet completion check fails
+    }
 
     console.log("=== CHECKOUT CONFIRM END ===");
 

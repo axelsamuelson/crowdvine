@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { PaymentMethodCard } from "@/components/ui/payment-method-card";
+// PaymentMethodCard removed - using new payment flow
 import { MiniProgress } from "@/components/ui/progress-components";
 import { getTimeUntilReset } from "@/lib/membership/invite-quota";
 import { MembershipLevel } from "@/lib/membership/points-engine";
@@ -81,7 +81,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [membershipData, setMembershipData] = useState<MembershipData | null>(null);
   const [ipEvents, setIpEvents] = useState<any[]>([]);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  // Payment methods removed - using new payment flow
   const [reservations, setReservations] = useState<any[]>([]);
   const [invitations, setInvitations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -112,20 +112,13 @@ export default function ProfilePage() {
       fetchProfile(),
       fetchMembershipData(),
       fetchIPEvents(),
-      fetchPaymentMethods(),
+      // fetchPaymentMethods removed - using new payment flow
       fetchReservations(),
       fetchInvitations(),
       fetchProgressionBuffs(), // v2: fetch progression buffs
     ]).finally(() => setLoading(false));
 
-    // Check if returning from Stripe payment method setup
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get("payment_method_added") === "true") {
-      toast.success("Payment method added successfully!");
-      // Clean URL
-      const cleanUrl = window.location.pathname;
-      window.history.replaceState({}, '', cleanUrl);
-    }
+    // Payment method setup check removed - using new payment flow
   }, []);
 
   // Real-time subscription for invitations and IP updates
@@ -235,17 +228,7 @@ export default function ProfilePage() {
     }
   };
 
-  const fetchPaymentMethods = async () => {
-    try {
-      const res = await fetch("/api/user/payment-methods");
-      if (res.ok) {
-        const data = await res.json();
-        setPaymentMethods(data.paymentMethods || []);
-      }
-    } catch (error) {
-      console.error("Error fetching payment methods:", error);
-    }
-  };
+  // fetchPaymentMethods removed - using new payment flow
 
   const fetchReservations = async () => {
     try {
@@ -380,37 +363,7 @@ export default function ProfilePage() {
     }
   };
 
-  const handleAddPaymentMethod = async () => {
-    try {
-      if (!profile?.email) {
-        toast.error("Email is required to add payment method");
-        return;
-      }
-
-      console.log("🔄 Adding payment method from profile page");
-
-      // Redirect to Stripe setup with return URL to profile
-      const returnUrl = encodeURIComponent("/profile?payment_method_added=true");
-      const response = await fetch(`/api/checkout/setup?returnUrl=${returnUrl}`);
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        toast.error(errorData.error || "Failed to setup payment method");
-        return;
-      }
-
-      const setupData = await response.json();
-      if (setupData.url) {
-        console.log("✅ Redirecting to Stripe setup");
-        window.location.href = setupData.url;
-      } else {
-        toast.error("Failed to setup payment method");
-      }
-    } catch (error) {
-      console.error("Error adding payment method:", error);
-      toast.error("Failed to add payment method");
-    }
-  };
+  // handleAddPaymentMethod removed - using new payment flow
 
   const handleSignOut = async () => {
     try {
@@ -715,59 +668,24 @@ export default function ProfilePage() {
 
           {/* Payment Methods */}
           <section className="space-y-4">
-            <h2 className="text-base md:text-lg lg:text-xl font-light text-gray-900">Payment Methods</h2>
+            <h2 className="text-base md:text-lg lg:text-xl font-light text-gray-900">Payment Information</h2>
             <div className="bg-white rounded-xl border border-gray-200/50 p-4 md:p-6 shadow-sm">
-              {paymentMethods.length === 0 ? (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-                    <CreditCard className="w-8 h-8 text-gray-400" />
-                  </div>
-                  <h3 className="text-lg font-light text-gray-900 mb-1">No payment methods</h3>
-                  <p className="text-sm text-gray-500 mb-6">Add a payment method to start making reservations</p>
-                  <Button 
-                    onClick={handleAddPaymentMethod}
-                    className="rounded-full px-8 bg-gray-900 hover:bg-gray-800 text-white"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Payment Method
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                  <CreditCard className="w-8 h-8 text-green-600" />
+                </div>
+                <h3 className="text-lg font-light text-gray-900 mb-1">No Payment Required Yet</h3>
+                <p className="text-sm text-gray-500 mb-6">
+                  You'll only pay when your pallet reaches 100% and is ready to ship. 
+                  Check your reservations page for payment status.
+                </p>
+                <Link href="/profile/reservations">
+                  <Button className="rounded-full px-8 bg-gray-900 hover:bg-gray-800 text-white">
+                    <Package className="w-4 h-4 mr-2" />
+                    View Reservations
                   </Button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {paymentMethods.map((method) => (
-                    <PaymentMethodCard
-                      key={method.id}
-                      method={method}
-                      onSetDefault={async (id) => {
-                        try {
-                          const response = await fetch(`/api/user/payment-methods/${id}/set-default`, {
-                            method: 'PATCH',
-                          });
-                          if (!response.ok) throw new Error('Failed to set default');
-                          toast.success('Default payment method updated');
-                          fetchPaymentMethods();
-                        } catch (error) {
-                          console.error('Error setting default:', error);
-                          toast.error('Failed to update default payment method');
-                        }
-                      }}
-                      onDelete={async (id) => {
-                        try {
-                          const response = await fetch(`/api/user/payment-methods/${id}`, {
-                            method: 'DELETE',
-                          });
-                          if (!response.ok) throw new Error('Failed to delete');
-                          toast.success('Payment method removed');
-                          fetchPaymentMethods();
-                        } catch (error) {
-                          console.error('Error deleting payment method:', error);
-                          toast.error('Failed to remove payment method');
-                        }
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
+                </Link>
+              </div>
             </div>
           </section>
         </div>

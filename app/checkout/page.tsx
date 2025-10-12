@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ProfileInfoModal } from "@/components/checkout/profile-info-modal";
-import { PaymentMethodSelector } from "@/components/checkout/payment-method-selector";
+// PaymentMethodSelector removed - using new payment flow
 import { ZoneDetails } from "@/components/checkout/zone-details";
 import { PalletDetails } from "@/components/checkout/pallet-details";
 import { ReservationLoadingModal } from "@/components/checkout/reservation-loading-modal";
@@ -45,15 +45,7 @@ interface UserProfile {
   created_at: string;
 }
 
-interface PaymentMethod {
-  id: string;
-  type: "card" | "bank";
-  last4?: string;
-  brand?: string;
-  is_default: boolean;
-  expiry_month?: number;
-  expiry_year?: number;
-}
+// PaymentMethod interface removed - using new payment flow
 
 interface PalletInfo {
   id: string;
@@ -81,8 +73,7 @@ function CheckoutContent() {
   const [zoneLoading, setZoneLoading] = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] =
-    useState<PaymentMethod | null>(null);
+  // Payment method selection removed - payment happens when pallet fills
   const [selectedPallet, setSelectedPallet] = useState<PalletInfo | null>(null);
   const [userRewards, setUserRewards] = useState<UserReward[]>([]);
   const [selectedRewards, setSelectedRewards] = useState<UserReward[]>([]);
@@ -422,10 +413,7 @@ function CheckoutContent() {
       return;
     }
 
-    if (!selectedPaymentMethod) {
-      toast.error("Please select a payment method");
-      return;
-    }
+    // Payment method validation removed - no payment required until pallet fills
 
     // Check 6-bottle validation (already validated in useEffect, this is just a safeguard)
     if (!isValidCart) {
@@ -502,8 +490,7 @@ function CheckoutContent() {
       formData.append("selectedPalletId", selectedPallet.id);
     }
     
-    // Payment method
-    formData.append("paymentMethodId", selectedPaymentMethod.id);
+    // Payment method removed - using new payment flow
 
     // User rewards
     if (useRewards) {
@@ -1080,19 +1067,35 @@ function CheckoutContent() {
             </Card>
             )}
 
-            {/* Payment Method */}
+            {/* Payment Information */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <CreditCard className="w-5 h-5" />
-                  Payment Method
+                  Payment Information
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <PaymentMethodSelector
-                  onPaymentMethodSelected={setSelectedPaymentMethod}
-                  selectedMethod={selectedPaymentMethod}
-                />
+                <div className="text-center py-6">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Check className="w-8 h-8 text-green-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    No Payment Required Yet
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    You'll only pay when your pallet reaches 100% and is ready to ship.
+                  </p>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-sm text-blue-800">
+                      <strong>How it works:</strong><br />
+                      • Reserve your bottles for free<br />
+                      • When the pallet fills up, you'll receive an email<br />
+                      • Complete payment via secure link<br />
+                      • Your wine ships to the pickup location
+                    </p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
