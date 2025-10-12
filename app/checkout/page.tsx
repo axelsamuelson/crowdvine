@@ -171,6 +171,17 @@ function CheckoutContent() {
   }, [cart]);
 
   useEffect(() => {
+    // Listen for cart-refresh events (from suggestions quick-add)
+    const handleCartRefresh = () => {
+      console.log("🔄 [Checkout] Cart refresh event received");
+      fetchCart();
+    };
+
+    window.addEventListener("cart-refresh", handleCartRefresh);
+    return () => window.removeEventListener("cart-refresh", handleCartRefresh);
+  }, []);
+
+  useEffect(() => {
     // Update zone info when address changes (with debouncing)
     if (cart && cart.totalQuantity > 0) {
       const timeoutId = setTimeout(() => {

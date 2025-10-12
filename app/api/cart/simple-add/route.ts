@@ -75,27 +75,44 @@ export async function POST(request: Request) {
       console.log("🔧 Existing cart found:", dbCartId);
     }
     
-    // Use upsert to add/update item in a single operation (faster)
-    const { error: upsertError } = await supabase
+    // Check if item already exists
+    const { data: existingItem } = await supabase
       .from("cart_items")
-      .upsert(
-        {
+      .select("id, quantity")
+      .eq("cart_id", dbCartId)
+      .eq("wine_id", baseId)
+      .maybeSingle();
+
+    if (existingItem) {
+      // Increment existing quantity
+      console.log("🔧 Item exists, incrementing from", existingItem.quantity, "to", existingItem.quantity + 1);
+      const { error: updateError } = await supabase
+        .from("cart_items")
+        .update({ quantity: existingItem.quantity + 1 })
+        .eq("id", existingItem.id);
+      
+      if (updateError) {
+        console.error("🔧 Error updating item:", updateError);
+        return NextResponse.json({ error: "Failed to update item" }, { status: 500 });
+      }
+    } else {
+      // Insert new item
+      console.log("🔧 New item, inserting with quantity 1");
+      const { error: insertError } = await supabase
+        .from("cart_items")
+        .insert({
           cart_id: dbCartId,
           wine_id: baseId,
           quantity: 1
-        },
-        {
-          onConflict: "cart_id,wine_id",
-          ignoreDuplicates: false
-        }
-      );
-    
-    if (upsertError) {
-      console.error("🔧 Error upserting item:", upsertError);
-      return NextResponse.json({ error: "Failed to add item" }, { status: 500 });
+        });
+      
+      if (insertError) {
+        console.error("🔧 Error inserting item:", insertError);
+        return NextResponse.json({ error: "Failed to add item" }, { status: 500 });
+      }
     }
     
-    console.log("🔧 Item upserted successfully");
+    console.log("🔧 Item added/updated successfully");
     
     // Get updated cart with wine details in a single query
     const { data: cartItems, error: fetchError } = await supabase
