@@ -36,45 +36,51 @@ const steps = [
     subtitle: "Crowdsourcing wine, step by step",
     icon: Package,
     content: (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-muted/50 rounded-xl p-6 space-y-3">
-            <div className="w-10 h-10 rounded-full bg-foreground text-background flex items-center justify-center text-sm font-medium">
-              1
-            </div>
-            <h4 className="font-medium text-foreground">Discover & Reserve</h4>
+      <div className="space-y-4 max-w-md mx-auto">
+        <div className="flex items-start gap-3">
+          <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-medium flex-shrink-0 mt-0.5">
+            1
+          </div>
+          <div>
+            <h4 className="font-medium text-foreground text-sm mb-1">Discover & Reserve</h4>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Browse curated natural wines. Reserve bottles — your order joins a shared pallet.
+              Browse curated natural wines and reserve bottles.
             </p>
           </div>
+        </div>
 
-          <div className="bg-muted/50 rounded-xl p-6 space-y-3">
-            <div className="w-10 h-10 rounded-full bg-foreground text-background flex items-center justify-center text-sm font-medium">
-              2
-            </div>
-            <h4 className="font-medium text-foreground">Collective Shipping</h4>
+        <div className="flex items-start gap-3">
+          <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-medium flex-shrink-0 mt-0.5">
+            2
+          </div>
+          <div>
+            <h4 className="font-medium text-foreground text-sm mb-1">Collective Shipping</h4>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              When the pallet fills (600-700 bottles), wines ship directly from winemakers.
+              When the pallet fills, wines ship directly from winemakers.
             </p>
           </div>
+        </div>
 
-          <div className="bg-muted/50 rounded-xl p-6 space-y-3">
-            <div className="w-10 h-10 rounded-full bg-foreground text-background flex items-center justify-center text-sm font-medium">
-              3
-            </div>
-            <h4 className="font-medium text-foreground">Track Progress</h4>
+        <div className="flex items-start gap-3">
+          <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-medium flex-shrink-0 mt-0.5">
+            3
+          </div>
+          <div>
+            <h4 className="font-medium text-foreground text-sm mb-1">Track Progress</h4>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              See exactly where your wine is — from reservation to delivery.
+              See exactly where your wine is at every step.
             </p>
           </div>
+        </div>
 
-          <div className="bg-muted/50 rounded-xl p-6 space-y-3">
-            <div className="w-10 h-10 rounded-full bg-foreground text-background flex items-center justify-center text-sm font-medium">
-              4
-            </div>
-            <h4 className="font-medium text-foreground">Receive & Enjoy</h4>
+        <div className="flex items-start gap-3">
+          <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-medium flex-shrink-0 mt-0.5">
+            4
+          </div>
+          <div>
+            <h4 className="font-medium text-foreground text-sm mb-1">Receive & Enjoy</h4>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Pure wine, untouched from winemaker to your door. Fair price, transparent process.
+              Pure wine from winemaker to your door.
             </p>
           </div>
         </div>
@@ -87,52 +93,50 @@ const steps = [
     subtitle: "Watch your reservation come to life",
     icon: Truck,
     content: (
-      <div className="space-y-6">
-        <div className="bg-gradient-to-b from-muted/30 to-muted/60 rounded-2xl p-8 space-y-6">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Pallet Progress</span>
-              <span className="font-medium text-foreground">487 / 700 bottles</span>
-            </div>
-            <div className="h-3 bg-background rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: "70%" }}
-                transition={{ duration: 1.5, ease: "easeOut" }}
-                className="h-full bg-foreground rounded-full"
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              213 bottles to go — estimated shipping in 2-3 weeks
-            </p>
+      <div className="space-y-6 max-w-md mx-auto">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Pallet Progress</span>
+            <span className="font-medium text-foreground">487 / 700 bottles</span>
           </div>
+          <div className="h-3 bg-muted rounded-full overflow-hidden">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: "70%" }}
+              transition={{ duration: 1.5, ease: "easeOut" }}
+              className="h-full bg-foreground rounded-full"
+            />
+          </div>
+          <p className="text-xs text-center text-muted-foreground">
+            213 bottles to go — estimated shipping in 2-3 weeks
+          </p>
+        </div>
 
-          <div className="pt-4 border-t border-border/50 space-y-3">
-            <div className="flex items-start gap-3">
-              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-foreground">Reservation Confirmed</p>
-                <p className="text-xs text-muted-foreground">Your bottles are reserved</p>
-              </div>
+        <div className="space-y-3 pt-2">
+          <div className="flex items-start gap-3">
+            <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-foreground">Reservation Confirmed</p>
+              <p className="text-xs text-muted-foreground">Your bottles are reserved</p>
             </div>
-            <div className="flex items-start gap-3 opacity-50">
-              <Package className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Pallet Complete</p>
-                <p className="text-xs text-muted-foreground">Waiting for full capacity</p>
-              </div>
+          </div>
+          <div className="flex items-start gap-3 opacity-40">
+            <Package className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Pallet Complete</p>
+              <p className="text-xs text-muted-foreground">Waiting for capacity</p>
             </div>
-            <div className="flex items-start gap-3 opacity-30">
-              <Truck className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">In Transit</p>
-                <p className="text-xs text-muted-foreground">Shipping to your region</p>
-              </div>
+          </div>
+          <div className="flex items-start gap-3 opacity-40">
+            <Truck className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">In Transit</p>
+              <p className="text-xs text-muted-foreground">Shipping to you</p>
             </div>
           </div>
         </div>
 
-        <p className="text-sm text-center text-muted-foreground">
+        <p className="text-sm text-center text-muted-foreground pt-2">
           You&apos;ll receive email updates at each stage
         </p>
       </div>
@@ -144,53 +148,34 @@ const steps = [
     subtitle: "Earn points, unlock perks",
     icon: Users,
     content: (
-      <div className="space-y-6">
-        <div className="bg-gradient-to-br from-muted/50 to-muted rounded-2xl p-8 space-y-6">
-          <div className="text-center space-y-2">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 text-gray-900 text-lg font-medium">
-              Basic
-            </div>
-            <p className="text-sm text-muted-foreground">Your starting level</p>
+      <div className="space-y-6 max-w-md mx-auto">
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 text-gray-900 text-base font-medium">
+            Basic
           </div>
+          <p className="text-sm text-muted-foreground">Your starting level</p>
+        </div>
 
-          <div className="space-y-3">
-            <p className="text-sm font-medium text-foreground text-center">Earn Impact Points by:</p>
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-foreground/60"></div>
-                <span>Inviting friends who join</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-foreground/60"></div>
-                <span>Making reservations</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-foreground/60"></div>
-                <span>Participating in pallets</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-4 border-t border-border/50">
-            <div className="flex items-center justify-between gap-4">
-              <div className="text-center flex-1">
-                <div className="text-xs text-muted-foreground mb-1">Current</div>
-                <div className="text-sm font-medium">Basic</div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-muted-foreground" />
-              <div className="text-center flex-1">
-                <div className="text-xs text-muted-foreground mb-1">Next Level</div>
-                <div className="text-sm font-medium text-orange-600">Bronze</div>
-              </div>
-            </div>
-            <p className="text-xs text-center text-muted-foreground mt-3">
-              5 Impact Points to unlock Bronze
-            </p>
+        <div className="space-y-3">
+          <p className="text-sm font-medium text-foreground text-center">Earn Impact Points by:</p>
+          <div className="space-y-2 text-sm text-muted-foreground text-center">
+            <p>Inviting friends • Making reservations • Participating in pallets</p>
           </div>
         </div>
 
-        <p className="text-sm text-center text-muted-foreground">
-          Check your profile to track progress and perks
+        <div className="pt-2">
+          <div className="flex items-center justify-center gap-3">
+            <span className="text-sm font-medium">Basic</span>
+            <ArrowRight className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-orange-600">Bronze</span>
+          </div>
+          <p className="text-xs text-center text-muted-foreground mt-2">
+            5 Impact Points to unlock Bronze
+          </p>
+        </div>
+
+        <p className="text-sm text-center text-muted-foreground pt-2">
+          Track your progress in your profile
         </p>
       </div>
     ),
@@ -332,7 +317,7 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: direction > 0 ? -100 : 100 }}
                     transition={{ duration: 0.3 }}
-                    className="mb-10"
+                    className="mb-10 min-h-[280px] flex items-center justify-center"
                   >
                     {step.content}
                   </motion.div>
