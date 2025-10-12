@@ -4,16 +4,20 @@ import { createClient } from "@/lib/supabase/server";
 // GET: Check if user has seen onboarding
 export async function GET(req: NextRequest) {
   try {
+    console.log("🎓 [API] GET /api/user/onboarding-seen called");
     const supabase = await createClient();
     
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
+      console.log("🎓 [API] No user found or auth error:", authError);
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
       );
     }
+
+    console.log("🎓 [API] User authenticated:", user.id);
 
     const { data: profile, error } = await supabase
       .from("profiles")
@@ -22,18 +26,20 @@ export async function GET(req: NextRequest) {
       .single();
 
     if (error) {
-      console.error("Error fetching onboarding status:", error);
+      console.error("🎓 [API] Error fetching onboarding status:", error);
       return NextResponse.json(
         { error: "Failed to fetch onboarding status" },
         { status: 500 }
       );
     }
 
+    console.log("🎓 [API] Profile onboarding_seen:", profile?.onboarding_seen);
+
     return NextResponse.json({ 
       onboardingSeen: profile?.onboarding_seen || false 
     });
   } catch (error) {
-    console.error("Error in GET /api/user/onboarding-seen:", error);
+    console.error("🎓 [API] Error in GET /api/user/onboarding-seen:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

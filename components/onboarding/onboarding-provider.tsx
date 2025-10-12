@@ -46,19 +46,29 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     // Check if user has seen the welcome modal from database
     const checkOnboardingStatus = async () => {
       try {
+        console.log("🎓 [Onboarding] Checking onboarding status...");
         const response = await fetch("/api/user/onboarding-seen");
+        console.log("🎓 [Onboarding] Response status:", response.status);
+        
         if (response.ok) {
           const data = await response.json();
+          console.log("🎓 [Onboarding] Data:", data);
           
           if (!data.onboardingSeen) {
+            console.log("🎓 [Onboarding] User has NOT seen onboarding, showing modal in 800ms");
             // Small delay to ensure page is loaded
             setTimeout(() => {
+              console.log("🎓 [Onboarding] Opening modal now");
               setIsWelcomeOpen(true);
             }, 800);
+          } else {
+            console.log("🎓 [Onboarding] User has already seen onboarding, skipping modal");
           }
+        } else {
+          console.error("🎓 [Onboarding] Response not OK:", response.status);
         }
       } catch (error) {
-        console.error("Error checking onboarding status:", error);
+        console.error("🎓 [Onboarding] Error checking onboarding status:", error);
       } finally {
         setHasChecked(true);
       }
