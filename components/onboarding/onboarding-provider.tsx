@@ -43,29 +43,45 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       return;
     }
 
-    // Check if user has seen the welcome modal
-    const hasSeenWelcome = localStorage.getItem("pact-welcome-seen");
-    
-    if (!hasSeenWelcome) {
-      // Small delay to ensure page is loaded
-      const timer = setTimeout(() => {
-        setIsWelcomeOpen(true);
+    // Check if user has seen the welcome modal from database
+    const checkOnboardingStatus = async () => {
+      try {
+        const response = await fetch("/api/user/onboarding-seen");
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (!data.onboardingSeen) {
+            // Small delay to ensure page is loaded
+            setTimeout(() => {
+              setIsWelcomeOpen(true);
+            }, 800);
+          }
+        }
+      } catch (error) {
+        console.error("Error checking onboarding status:", error);
+      } finally {
         setHasChecked(true);
-      }, 800);
-      
-      return () => clearTimeout(timer);
-    }
-    
-    setHasChecked(true);
+      }
+    };
+
+    checkOnboardingStatus();
   }, [pathname, hasChecked]);
 
   const showWelcome = () => {
     setIsWelcomeOpen(true);
   };
 
-  const hideWelcome = () => {
+  const hideWelcome = async () => {
     setIsWelcomeOpen(false);
-    localStorage.setItem("pact-welcome-seen", "true");
+    
+    // Mark as seen in database
+    try {
+      await fetch("/api/user/onboarding-seen", {
+        method: "POST",
+      });
+    } catch (error) {
+      console.error("Error marking onboarding as seen:", error);
+    }
   };
 
   return (
