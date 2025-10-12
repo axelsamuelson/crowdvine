@@ -2,6 +2,36 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 /**
+ * Get all producers
+ */
+export async function GET() {
+  try {
+    const supabase = getSupabaseAdmin();
+
+    const { data: producers, error } = await supabase
+      .from("producers")
+      .select("id, name, region, country_code")
+      .order("name");
+
+    if (error) {
+      console.error("Get producers error:", error);
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ producers: producers || [] });
+  } catch (error: any) {
+    console.error("Get producers API error:", error);
+    return NextResponse.json(
+      { error: error.message || "Unknown error" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
  * Create a new producer
  */
 export async function POST(request: Request) {

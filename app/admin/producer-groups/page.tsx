@@ -69,12 +69,22 @@ export default function ProducerGroupsPage() {
       // Fetch producer groups
       const groupsResponse = await fetch("/api/admin/producer-groups");
       const groupsData = await groupsResponse.json();
+      console.log("📦 Fetched groups:", groupsData.groups?.length || 0);
       setGroups(groupsData.groups || []);
 
       // Fetch all producers
-      const producersResponse = await fetch("/api/crowdvine/collections");
+      const producersResponse = await fetch("/api/admin/producers");
       const producersData = await producersResponse.json();
-      setProducers(producersData || []);
+      console.log("🏭 Fetched producers:", producersData.producers?.length || 0);
+      
+      // Transform to expected format
+      const transformedProducers = producersData.producers?.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        region: p.region || '',
+      })) || [];
+      
+      setProducers(transformedProducers);
     } catch (error) {
       console.error("Failed to fetch data:", error);
       toast.error("Failed to load producer groups");

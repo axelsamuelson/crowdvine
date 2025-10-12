@@ -21,9 +21,14 @@ export default async function ProducersPage() {
           <h1 className="text-3xl font-bold text-gray-900">Producers</h1>
           <p className="text-gray-600">Manage wine producers</p>
         </div>
-        <Link href="/admin/producers/new">
-          <Button>Add Producer</Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/admin/producer-groups">
+            <Button variant="outline">Producer Groups</Button>
+          </Link>
+          <Link href="/admin/producers/new">
+            <Button>Add Producer</Button>
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
