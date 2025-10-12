@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import type { Cart } from "@/lib/shopify/types";
 import { Button } from "@/components/ui/button";
@@ -186,7 +186,7 @@ function CheckoutContent() {
 
     window.addEventListener("cart-refresh", handleCartRefresh);
     return () => window.removeEventListener("cart-refresh", handleCartRefresh);
-  }, []);
+  }, [fetchCart]);
 
   useEffect(() => {
     // Update zone info when address changes (with debouncing)
@@ -200,7 +200,7 @@ function CheckoutContent() {
     }
   }, [profile]);
 
-  const fetchCart = async () => {
+  const fetchCart = useCallback(async () => {
     try {
       console.log("🔄 [Checkout] Fetching cart...");
       const response = await fetch("/api/crowdvine/cart");
@@ -217,7 +217,7 @@ function CheckoutContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const fetchProfile = async () => {
     try {
