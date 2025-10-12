@@ -672,12 +672,12 @@ function CheckoutContent() {
               <div className="space-y-3">
                   {/* Shipping Cost */}
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Frakt</span>
+                  <span className="text-gray-600">Shipping</span>
                   <span className="text-gray-900 font-medium">
                       {shippingCost ? (
                       formatShippingCost(shippingCost.totalShippingCostCents)
                       ) : (
-                      <span className="text-gray-400">Ingen pall vald</span>
+                      <span className="text-gray-400">No pallet selected</span>
                       )}
                     </span>
                   </div>
@@ -743,7 +743,7 @@ function CheckoutContent() {
                     Add delivery address
                   </h3>
                   <p className="text-xs text-gray-600 mb-4">
-                    Adress krävs för att fortsätta
+                    Address required to continue
                   </p>
                   <ProfileInfoModal onProfileSaved={handleProfileSaved} />
                 </div>
@@ -793,7 +793,7 @@ function CheckoutContent() {
                     <div className="text-center">
                       <MapPin className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                       <p className="text-sm text-gray-600">
-                        Add delivery address för att fortsätta.
+                        Add delivery address to continue.
                       </p>
                     </div>
                   </CardContent>
@@ -901,7 +901,7 @@ function CheckoutContent() {
                 {selectedPallet ? (
                   <PalletDetails pallet={selectedPallet} />
                 ) : (
-                  <p className="text-sm text-gray-600">Ingen pall vald</p>
+                  <p className="text-sm text-gray-600">No pallet selected</p>
                 )}
               </CardContent>
             </Card>
@@ -910,10 +910,10 @@ function CheckoutContent() {
               <CardContent className="py-6 text-center">
                 <Package className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                 <p className="text-sm text-gray-600 mb-1">
-                  Ingen pall hittades för denna rutt.
+                  No pallet found for this route.
                 </p>
                 <p className="text-xs text-gray-500 mb-2">
-                  Rutt: {zoneInfo.pickupZone} → {zoneInfo.deliveryZone}
+                  Route: {zoneInfo.pickupZone} → {zoneInfo.deliveryZone}
                 </p>
                 <p className="text-xs text-gray-500">
                   A new pallet should have been created automatically. Contact support if the issue persists.
