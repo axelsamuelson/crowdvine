@@ -34,11 +34,12 @@ export async function checkPalletCompletion(palletId: string): Promise<boolean> 
     }
     
     // Count reserved bottles for this pallet
+    // Include all active reservations (placed, pending_payment, confirmed)
     const { data: reservations, error: reservationsError } = await supabase
       .from('order_reservations')
-      .select('quantity')
+      .select('quantity, status')
       .eq('pallet_id', palletId)
-      .in('status', ['pending_payment', 'confirmed']); // Include both pending and confirmed
+      .in('status', ['placed', 'pending_payment', 'confirmed']); // Include all active statuses
     
     if (reservationsError) {
       console.error(`❌ [Pallet Completion] Error fetching reservations for pallet ${palletId}:`, reservationsError);
@@ -92,14 +93,15 @@ async function completePallet(palletId: string): Promise<void> {
     
     console.log(`✅ [Pallet Completion] Pallet ${palletId} marked as complete with deadline ${paymentDeadline.toISOString()}`);
     
-    // Update all pending reservations to have payment deadline
+    // Update all pending reservations to have payment deadline and set status to pending_payment
     const { error: reservationUpdateError } = await supabase
       .from('order_reservations')
       .update({
+        status: 'pending_payment',
         payment_deadline: paymentDeadline.toISOString()
       })
       .eq('pallet_id', palletId)
-      .eq('status', 'pending_payment');
+      .in('status', ['placed', 'pending_payment']);
       
     if (reservationUpdateError) {
       console.error(`❌ [Pallet Completion] Error updating reservations for pallet ${palletId}:`, reservationUpdateError);

@@ -11,6 +11,7 @@ export async function triggerPaymentNotifications(palletId: string): Promise<voi
   
   try {
     // Get all reservations for this pallet that need payment
+    // Include both 'placed' (old reservations) and 'pending_payment' (new reservations)
     const { data: reservations, error: reservationsError } = await supabase
       .from('order_reservations')
       .select(`
@@ -18,11 +19,12 @@ export async function triggerPaymentNotifications(palletId: string): Promise<voi
         quantity,
         total_amount_cents,
         payment_deadline,
+        status,
         profiles!inner(email, full_name),
         pallets(name)
       `)
       .eq('pallet_id', palletId)
-      .eq('status', 'pending_payment');
+      .in('status', ['placed', 'pending_payment']);
       
     if (reservationsError) {
       console.error(`❌ [Email Notifications] Error fetching reservations for pallet ${palletId}:`, reservationsError);
