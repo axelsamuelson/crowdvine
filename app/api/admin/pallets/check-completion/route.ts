@@ -72,12 +72,12 @@ async function checkAllPallets() {
             alreadyComplete: false,
             status: isComplete ? '✅ COMPLETED - Payment emails sent!' : `⏳ Not full yet (${totalBottles}/${pallet.bottle_capacity})`
           });
-        }
-        
-        if (isComplete) {
-          console.log(`   ✅ Pallet is now COMPLETE! Payment notifications triggered.`);
-        } else {
-          console.log(`   ⏳ Pallet not full yet (${totalBottles}/${pallet.bottle_capacity})`);
+          
+          if (isComplete) {
+            console.log(`   ✅ Pallet is now COMPLETE! Payment notifications triggered.`);
+          } else {
+            console.log(`   ⏳ Pallet not full yet (${totalBottles}/${pallet.bottle_capacity})`);
+          }
         }
       } catch (error) {
         console.error(`Error checking pallet ${pallet.id}:`, error);
