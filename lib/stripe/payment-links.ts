@@ -72,6 +72,13 @@ export async function createPaymentLinkForReservation(reservationId: string): Pr
       return reservation.payment_link;
     }
     
+    // Get base URL for Stripe redirects
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL 
+      ? `https://${process.env.VERCEL_URL}` 
+      : 'https://pactwines.com';
+    
+    console.log(`🌐 [Payment Link] Using base URL: ${baseUrl}`);
+    
     // Create Stripe Checkout Session (payment mode, not setup!)
     const session = await stripe.checkout.sessions.create({
       mode: 'payment', // Pay now, not save card for future use
@@ -87,8 +94,8 @@ export async function createPaymentLinkForReservation(reservationId: string): Pr
         },
         quantity: 1
       }],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment/cancelled?reservation_id=${reservationId}`,
+      success_url: `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/payment/cancelled?reservation_id=${reservationId}`,
       expires_at: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60), // 7 days from now
       metadata: {
         reservation_id: reservationId,
