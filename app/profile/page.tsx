@@ -666,26 +666,57 @@ export default function ProfilePage() {
             </div>
           </section>
 
-          {/* Payment Methods */}
+          {/* Payment Information */}
           <section className="space-y-4">
             <h2 className="text-base md:text-lg lg:text-xl font-light text-gray-900">Payment Information</h2>
             <div className="bg-white rounded-xl border border-gray-200/50 p-4 md:p-6 shadow-sm">
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-                  <CreditCard className="w-8 h-8 text-green-600" />
-                </div>
-                <h3 className="text-lg font-light text-gray-900 mb-1">No Payment Required Yet</h3>
-                <p className="text-sm text-gray-500 mb-6">
-                  You'll only pay when your pallet reaches 100% and is ready to ship. 
-                  Check your reservations page for payment status.
-                </p>
-                <Link href="/profile/reservations">
-                  <Button className="rounded-full px-8 bg-gray-900 hover:bg-gray-800 text-white">
-                    <Package className="w-4 h-4 mr-2" />
-                    View Reservations
-                  </Button>
-                </Link>
-              </div>
+              {(() => {
+                const pendingPaymentReservations = reservations.filter(r => 
+                  r.payment_status === 'pending' || r.status === 'pending_payment'
+                );
+                
+                if (pendingPaymentReservations.length > 0) {
+                  return (
+                    <div className="text-center py-8">
+                      <div className="w-16 h-16 bg-amber-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                        <CreditCard className="w-8 h-8 text-amber-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">⚠️ Payment Required</h3>
+                      <p className="text-sm text-gray-600 mb-2">
+                        You have {pendingPaymentReservations.length} reservation{pendingPaymentReservations.length !== 1 ? 's' : ''} ready for payment
+                      </p>
+                      <p className="text-sm text-gray-500 mb-6">
+                        Your pallet has reached 100% capacity. Complete payment to secure your order.
+                      </p>
+                      <Link href="/profile/reservations">
+                        <Button className="rounded-full px-8 bg-amber-600 hover:bg-amber-700 text-white">
+                          <CreditCard className="w-4 h-4 mr-2" />
+                          Pay Now ({pendingPaymentReservations.length})
+                        </Button>
+                      </Link>
+                    </div>
+                  );
+                }
+                
+                return (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                      <CreditCard className="w-8 h-8 text-green-600" />
+                    </div>
+                    <h3 className="text-lg font-light text-gray-900 mb-1">No Payment Required Yet</h3>
+                    <p className="text-sm text-gray-500 mb-6">
+                      You'll only pay when your pallet reaches 100% and is ready to ship. 
+                      Check your reservations page for payment status.
+                    </p>
+                    <Link href="/profile/reservations">
+                      <Button className="rounded-full px-8 bg-gray-900 hover:bg-gray-800 text-white">
+                        <Package className="w-4 h-4 mr-2" />
+                        View Reservations
+                      </Button>
+                    </Link>
+                  </div>
+                );
+              })()}
             </div>
           </section>
         </div>
