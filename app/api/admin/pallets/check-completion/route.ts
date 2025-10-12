@@ -27,18 +27,27 @@ async function checkAllPallets() {
         console.log(`\n🔍 Checking pallet: ${pallet.name} (${pallet.id})`);
         console.log(`   Capacity: ${pallet.bottle_capacity} bottles`);
         
-        // Count reserved bottles for this pallet
+        // Count reserved bottles for this pallet from order_reservation_items
         const { data: reservations } = await supabase
           .from('order_reservations')
-          .select('quantity, status')
-          .eq('pallet_id', pallet.id);
+          .select('id, status')
+          .eq('pallet_id', pallet.id)
+          .in('status', ['placed', 'pending_payment', 'confirmed']);
         
-        const totalBottles = reservations?.reduce((sum, r) => {
-          return sum + (r.quantity || 0);
-        }, 0) || 0;
+        // Count bottles from order_reservation_items
+        let totalBottles = 0;
+        for (const reservation of reservations || []) {
+          const { data: items } = await supabase
+            .from('order_reservation_items')
+            .select('quantity')
+            .eq('reservation_id', reservation.id);
+          
+          const reservationBottles = items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+          totalBottles += reservationBottles;
+          console.log(`   Reservation ${reservation.id}: ${reservationBottles} bottles (${reservation.status})`);
+        }
         
-        console.log(`   Reserved: ${totalBottles} bottles`);
-        console.log(`   Reservations:`, reservations?.map(r => `${r.quantity} bottles (${r.status})`));
+        console.log(`   Total Reserved: ${totalBottles} bottles`);
         
         const isComplete = await checkPalletCompletion(pallet.id);
         

@@ -34,10 +34,10 @@ export async function checkPalletCompletion(palletId: string): Promise<boolean> 
     }
     
     // Count reserved bottles for this pallet
-    // Include all active reservations (placed, pending_payment, confirmed)
+    // Note: quantity is stored in order_reservation_items, not order_reservations
     const { data: reservations, error: reservationsError } = await supabase
       .from('order_reservations')
-      .select('quantity, status')
+      .select('id, status')
       .eq('pallet_id', palletId)
       .in('status', ['placed', 'pending_payment', 'confirmed']); // Include all active statuses
     
@@ -46,7 +46,16 @@ export async function checkPalletCompletion(palletId: string): Promise<boolean> 
       return false;
     }
     
-    const totalBottles = reservations?.reduce((sum, r) => sum + r.quantity, 0) || 0;
+    // Count bottles from order_reservation_items for each reservation
+    let totalBottles = 0;
+    for (const reservation of reservations || []) {
+      const { data: items } = await supabase
+        .from('order_reservation_items')
+        .select('quantity')
+        .eq('reservation_id', reservation.id);
+      
+      totalBottles += items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+    }
     const capacity = pallet.bottle_capacity;
     const percentage = capacity > 0 ? (totalBottles / capacity) * 100 : 0;
     
