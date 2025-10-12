@@ -76,6 +76,24 @@ export async function POST(request: Request) {
 
     console.log("Processing cart:", cart);
 
+    // SERVER-SIDE VALIDATION: 6-bottle rule
+    console.log("🔍 [Checkout API] Validating 6-bottle rule...");
+    const { validateSixBottleRule } = await import("@/lib/checkout-validation");
+    const validation = await validateSixBottleRule(cart.lines as any);
+    
+    if (!validation.isValid) {
+      console.error("❌ [Checkout API] 6-bottle validation failed:", validation.errors);
+      return NextResponse.json(
+        { 
+          error: "Order must contain bottles in multiples of 6 per producer",
+          validationErrors: validation.errors,
+          producerValidations: validation.producerValidations
+        },
+        { status: 400 }
+      );
+    }
+    console.log("✅ [Checkout API] 6-bottle validation passed");
+
     const sb = await supabaseServer();
     const sbAdmin = getSupabaseAdmin();
 

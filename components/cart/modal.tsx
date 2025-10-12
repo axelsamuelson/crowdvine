@@ -14,6 +14,8 @@ import { useBodyScrollLock } from "@/lib/hooks/use-body-scroll-lock";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Cart } from "../../lib/shopify/types";
+import { CartValidationDisplay } from "./cart-validation-display";
+import { validateSixBottleRule, ProducerValidation } from "@/lib/checkout-validation";
 
 const CartContainer = ({
   children,
@@ -27,6 +29,31 @@ const CartContainer = ({
 
 const CartItems = ({ closeCart }: { closeCart: () => void }) => {
   const { cart } = useCart();
+  const [validations, setValidations] = useState<ProducerValidation[]>([]);
+  const [isValidating, setIsValidating] = useState(false);
+
+  // Validate cart whenever it changes
+  useEffect(() => {
+    if (!cart || cart.lines.length === 0) {
+      setValidations([]);
+      return;
+    }
+
+    const validateCart = async () => {
+      setIsValidating(true);
+      try {
+        const result = await validateSixBottleRule(cart.lines as any);
+        setValidations(result.producerValidations);
+      } catch (error) {
+        console.error("Validation error:", error);
+        setValidations([]);
+      } finally {
+        setIsValidating(false);
+      }
+    };
+
+    validateCart();
+  }, [cart]);
 
   if (!cart) return <></>;
 
@@ -52,6 +79,13 @@ const CartItems = ({ closeCart }: { closeCart: () => void }) => {
           </AnimatePresence>
         </CartContainer>
       </div>
+      
+      {/* Validation Display */}
+      <CartValidationDisplay 
+        validations={validations} 
+        isLoading={isValidating}
+      />
+      
       <CartContainer>
         <div className="py-4 text-sm text-foreground/50 shrink-0">
           <div className="flex justify-between items-center pb-1 mb-3 border-b border-muted-foreground/20">

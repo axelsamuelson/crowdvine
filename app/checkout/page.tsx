@@ -391,6 +391,26 @@ function CheckoutContent() {
       return;
     }
 
+    // Validate 6-bottle rule
+    if (cart) {
+      console.log("🔍 [Checkout] Validating 6-bottle rule...");
+      const { validateSixBottleRule } = await import("@/lib/checkout-validation");
+      const validation = await validateSixBottleRule(cart.lines as any);
+      
+      if (!validation.isValid) {
+        console.error("❌ [Checkout] 6-bottle validation failed:", validation.errors);
+        toast.error(
+          "Order must contain bottles in multiples of 6 per producer",
+          {
+            description: validation.errors.join("\n"),
+            duration: 5000,
+          }
+        );
+        return;
+      }
+      console.log("✅ [Checkout] 6-bottle validation passed");
+    }
+
     setIsPlacingOrder(true); // Show loading modal
 
     // Check if delivery zone is available
