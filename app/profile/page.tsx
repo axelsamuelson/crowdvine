@@ -671,9 +671,19 @@ export default function ProfilePage() {
             <h2 className="text-base md:text-lg lg:text-xl font-light text-gray-900">Payment Information</h2>
             <div className="bg-white rounded-xl border border-gray-200/50 p-4 md:p-6 shadow-sm">
               {(() => {
+                // Debug logging
+                console.log('All reservations:', reservations);
+                console.log('Reservations with status:', reservations.map(r => ({ 
+                  id: r.id, 
+                  status: r.status, 
+                  payment_status: r.payment_status 
+                })));
+                
                 const pendingPaymentReservations = reservations.filter(r => 
                   r.payment_status === 'pending' || r.status === 'pending_payment'
                 );
+                
+                console.log('Pending payment reservations:', pendingPaymentReservations.length);
                 
                 if (pendingPaymentReservations.length > 0) {
                   return (
