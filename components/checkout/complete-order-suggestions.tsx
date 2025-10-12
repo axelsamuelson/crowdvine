@@ -29,10 +29,12 @@ interface Product {
 
 interface CompleteOrderSuggestionsProps {
   validations: ProducerValidation[];
+  onCartUpdate?: () => void;
 }
 
 export function CompleteOrderSuggestions({
   validations,
+  onCartUpdate,
 }: CompleteOrderSuggestionsProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [suggestedProducts, setSuggestedProducts] = useState<Product[]>([]);
@@ -100,7 +102,14 @@ export function CompleteOrderSuggestions({
 
       if (response.ok) {
         console.log("✅ [Suggestions] Added successfully");
-        // Dispatch cart refresh event
+        
+        // Call parent callback to refresh cart
+        if (onCartUpdate) {
+          console.log("📢 [Suggestions] Calling onCartUpdate callback");
+          onCartUpdate();
+        }
+        
+        // Dispatch cart refresh event for cart modal
         window.dispatchEvent(new CustomEvent("cart-refresh"));
         
         // Small success feedback
@@ -121,6 +130,7 @@ export function CompleteOrderSuggestions({
     <Card className="border-gray-200">
       <CardHeader className="pb-3">
         <button
+          type="button"
           onClick={() => setIsExpanded(!isExpanded)}
           className="flex items-center justify-between w-full text-left"
         >
@@ -204,6 +214,7 @@ export function CompleteOrderSuggestions({
                         showBadge={false}
                       />
                       <Button
+                        type="button"
                         size="sm"
                         variant="ghost"
                         className="h-6 w-6 p-0 hover:bg-green-100"

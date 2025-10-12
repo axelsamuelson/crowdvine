@@ -1114,7 +1114,10 @@ function CheckoutContent() {
 
             {/* Complete Order Suggestions - Only show if validation exists */}
             {validations.length > 0 && (
-              <CompleteOrderSuggestions validations={validations} />
+              <CompleteOrderSuggestions 
+                validations={validations} 
+                onCartUpdate={fetchCart}
+              />
             )}
 
             {/* Submit Button or Validation Warning */}
