@@ -69,12 +69,13 @@ export function CartValidationDisplay({
           {/* Validation for each producer */}
           <div className="space-y-2">
             {validations.map((validation, index) => (
-              <div
+              <Link
                 key={index}
-                className={`p-2 rounded-md border ${
+                href={`/shop/${validation.producerId}`}
+                className={`block p-2 rounded-md border transition-all ${
                   validation.isValid
-                    ? "bg-green-50/50 border-green-200"
-                    : "bg-amber-50/50 border-amber-200"
+                    ? "bg-green-50/50 border-green-200 hover:bg-green-100/50"
+                    : "bg-amber-50/50 border-amber-200 hover:bg-amber-100/50"
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -93,17 +94,18 @@ export function CartValidationDisplay({
                       </span>
                     </div>
 
-                    {!validation.isValid && (
-                      <Link
-                        href={`/shop?producer=${validation.producerId}`}
-                        className="text-xs text-amber-700 hover:text-amber-900 hover:underline"
-                      >
+                    {!validation.isValid ? (
+                      <span className="text-xs text-amber-700">
                         + Add {validation.needed} more
-                      </Link>
+                      </span>
+                    ) : (
+                      <span className="text-xs text-green-700">
+                        ✓ Ready
+                      </span>
                     )}
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>

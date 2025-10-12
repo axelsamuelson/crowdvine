@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { MemberPrice } from "@/components/ui/member-price";
-import { useCart } from "@/components/cart/cart-context";
 
 interface Product {
   id: string;
@@ -38,7 +37,6 @@ export function CompleteOrderSuggestions({
   const [isExpanded, setIsExpanded] = useState(true);
   const [suggestedProducts, setSuggestedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
-  const { addItem } = useCart();
 
   const hasInvalid = validations.some((v) => !v.isValid);
   const invalidValidations = validations.filter((v) => !v.isValid);
@@ -77,12 +75,38 @@ export function CompleteOrderSuggestions({
     return null;
   }
 
-  const handleAddToCart = async (product: Product) => {
+  const handleAddToCart = async (product: Product, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     try {
-      await addItem(product.id, product);
-      // Cart will auto-refresh via context
+      console.log("🛒 [Suggestions] Adding to cart:", product.title);
+      
+      // Use the simple-add API directly
+      const response = await fetch("/api/cart/simple-add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          variantId: product.id,
+        }),
+      });
+
+      if (response.ok) {
+        console.log("✅ [Suggestions] Added successfully");
+        // Dispatch cart refresh event
+        window.dispatchEvent(new CustomEvent("cart-refresh"));
+        
+        // Small success feedback
+        const button = e.currentTarget as HTMLButtonElement;
+        button.style.backgroundColor = "#10b981";
+        setTimeout(() => {
+          button.style.backgroundColor = "";
+        }, 500);
+      } else {
+        console.error("❌ [Suggestions] Failed to add");
+      }
     } catch (error) {
-      console.error("Error adding to cart:", error);
+      console.error("❌ [Suggestions] Error adding to cart:", error);
     }
   };
 
@@ -175,8 +199,8 @@ export function CompleteOrderSuggestions({
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-6 w-6 p-0"
-                        onClick={() => handleAddToCart(product)}
+                        className="h-6 w-6 p-0 hover:bg-green-100"
+                        onClick={(e) => handleAddToCart(product, e)}
                       >
                         <Plus className="h-3 w-3" />
                       </Button>
