@@ -130,6 +130,9 @@ export async function GET() {
               delivery_address: deliveryAddress,
               total_cost_cents: totalCostCents,
               items: itemsWithCosts,
+              payment_status: reservation.payment_status,
+              payment_link: reservation.payment_link,
+              payment_deadline: reservation.payment_deadline,
             };
       }),
     );
