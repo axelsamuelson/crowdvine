@@ -172,6 +172,13 @@ export async function validateSixBottleRule(
         groupName: entry.groupName,
       };
 
+      console.log("📊 [Validation] Created validation:", {
+        producerName: validation.producerName,
+        groupName: validation.groupName,
+        groupId: validation.groupId,
+        hasGroup: !!validation.groupId,
+      });
+
       producerValidations.push(validation);
 
       if (!isValid) {

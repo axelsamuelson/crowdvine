@@ -74,6 +74,12 @@ export function CartValidationDisplay({
                 ? `/shop/group/${validation.groupId}`
                 : `/shop/${validation.producerHandle}`;
               
+              console.log("🔗 [Validation Display] Link for", validation.producerName || validation.groupName, ":", {
+                hasGroupId: !!validation.groupId,
+                groupId: validation.groupId,
+                href,
+              });
+              
               return (
               <Link
                 key={index}
