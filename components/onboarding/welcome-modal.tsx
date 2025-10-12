@@ -10,7 +10,64 @@ interface WelcomeModalProps {
   onClose: () => void;
 }
 
-const steps = [
+type MembershipLevel = "basic" | "brons" | "silver" | "guld" | "admin";
+
+interface MembershipConfig {
+  displayName: string;
+  color: string;
+  bgColor: string;
+  nextLevel: string | null;
+  pointsToNext: number | null;
+  description: string;
+}
+
+const membershipLevels: Record<MembershipLevel, MembershipConfig> = {
+  basic: {
+    displayName: "Basic",
+    color: "text-gray-900",
+    bgColor: "bg-gray-100",
+    nextLevel: "Bronze",
+    pointsToNext: 5,
+    description: "Entry level access to all wines and basic community features",
+  },
+  brons: {
+    displayName: "Bronze",
+    color: "text-orange-900",
+    bgColor: "bg-orange-100",
+    nextLevel: "Silver",
+    pointsToNext: 10,
+    description: "Enhanced invite quota and queue priority for popular drops",
+  },
+  silver: {
+    displayName: "Silver",
+    color: "text-gray-900",
+    bgColor: "bg-gray-300",
+    nextLevel: "Gold",
+    pointsToNext: 20,
+    description: "Early access to new releases and reduced service fees",
+  },
+  guld: {
+    displayName: "Gold",
+    color: "text-yellow-900",
+    bgColor: "bg-yellow-100",
+    nextLevel: null,
+    pointsToNext: null,
+    description: "Maximum invite quota, priority access, and exclusive perks",
+  },
+  admin: {
+    displayName: "Admin",
+    color: "text-purple-900",
+    bgColor: "bg-purple-100",
+    nextLevel: null,
+    pointsToNext: null,
+    description: "Platform administrator with full access and control",
+  },
+};
+
+const getSteps = (membershipLevel: MembershipLevel) => {
+  const levelConfig = membershipLevels[membershipLevel];
+  
+  return [
   {
     id: 1,
     title: "Welcome to PACT",
@@ -150,29 +207,39 @@ const steps = [
     content: (
       <div className="space-y-6 max-w-md mx-auto">
         <div className="text-center space-y-3">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 text-gray-900 text-base font-medium">
-            Basic
+          <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full ${levelConfig.bgColor} ${levelConfig.color} text-base font-medium`}>
+            {levelConfig.displayName}
           </div>
-          <p className="text-sm text-muted-foreground">Your starting level</p>
+          <p className="text-sm text-muted-foreground">{levelConfig.description}</p>
         </div>
 
-        <div className="space-y-3">
-          <p className="text-sm font-medium text-foreground text-center">Earn Impact Points by:</p>
-          <div className="space-y-2 text-sm text-muted-foreground text-center">
-            <p>Inviting friends • Making reservations • Participating in pallets</p>
-          </div>
-        </div>
+        {levelConfig.nextLevel ? (
+          <>
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-foreground text-center">Earn Impact Points by:</p>
+              <div className="space-y-2 text-sm text-muted-foreground text-center">
+                <p>Inviting friends • Making reservations • Participating in pallets</p>
+              </div>
+            </div>
 
-        <div className="pt-2">
-          <div className="flex items-center justify-center gap-3">
-            <span className="text-sm font-medium">Basic</span>
-            <ArrowRight className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-medium text-orange-600">Bronze</span>
+            <div className="pt-2">
+              <div className="flex items-center justify-center gap-3">
+                <span className="text-sm font-medium">{levelConfig.displayName}</span>
+                <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm font-medium text-orange-600">{levelConfig.nextLevel}</span>
+              </div>
+              <p className="text-xs text-center text-muted-foreground mt-2">
+                {levelConfig.pointsToNext} Impact Points to unlock {levelConfig.nextLevel}
+              </p>
+            </div>
+          </>
+        ) : (
+          <div className="text-center py-4">
+            <p className="text-sm text-muted-foreground">
+              You&apos;ve reached the highest membership level!
+            </p>
           </div>
-          <p className="text-xs text-center text-muted-foreground mt-2">
-            5 Impact Points to unlock Bronze
-          </p>
-        </div>
+        )}
 
         <p className="text-sm text-center text-muted-foreground pt-2">
           Track your progress in your profile
@@ -206,11 +273,37 @@ const steps = [
     ),
   },
 ];
+};
 
 export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState(0);
+  const [membershipLevel, setMembershipLevel] = useState<MembershipLevel>("basic");
+  const [loading, setLoading] = useState(true);
 
+  // Fetch user's membership level
+  useEffect(() => {
+    const fetchMembership = async () => {
+      try {
+        const response = await fetch("/api/user/membership");
+        if (response.ok) {
+          const data = await response.json();
+          const level = data.membership?.level?.toLowerCase() || "basic";
+          setMembershipLevel(level as MembershipLevel);
+        }
+      } catch (error) {
+        console.error("Error fetching membership:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (isOpen) {
+      fetchMembership();
+    }
+  }, [isOpen]);
+
+  const steps = getSteps(membershipLevel);
   const step = steps[currentStep];
   const Icon = step.icon;
 
@@ -245,6 +338,11 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
       document.body.style.overflow = "unset";
     };
   }, [isOpen]);
+
+  // Don't render until membership is loaded
+  if (loading && isOpen) {
+    return null;
+  }
 
   return (
     <AnimatePresence>
