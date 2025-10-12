@@ -14,7 +14,7 @@ const navItems = [
   { href: "/profile", label: "Profile", icon: User },
   { href: "/", label: "Home" },
   { href: "/shop", label: "Shop" },
-  // About and Contact hidden for now
+  { href: "/about", label: "About" },
 ];
 
 export function MobileMenu({ collections }: { collections: any[] }) {

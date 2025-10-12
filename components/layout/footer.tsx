@@ -27,6 +27,12 @@ export function Footer() {
                   Shop
                 </Link>
                 <Link 
+                  href="/about" 
+                  className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
+                >
+                  About
+                </Link>
+                <Link 
                   href="/profile" 
                   className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
                 >
