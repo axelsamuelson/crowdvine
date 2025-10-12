@@ -66,6 +66,13 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
           }
         } else {
           console.error("🎓 [Onboarding] Response not OK:", response.status);
+          // Try to get error details
+          try {
+            const errorData = await response.json();
+            console.error("🎓 [Onboarding] Error details:", errorData);
+          } catch (e) {
+            console.error("🎓 [Onboarding] Could not parse error response");
+          }
         }
       } catch (error) {
         console.error("🎓 [Onboarding] Error checking onboarding status:", error);

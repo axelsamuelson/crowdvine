@@ -23,14 +23,23 @@ export async function GET(req: NextRequest) {
       .from("profiles")
       .select("onboarding_seen")
       .eq("id", user.id)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error("🎓 [API] Error fetching onboarding status:", error);
+      console.error("🎓 [API] Error details:", JSON.stringify(error, null, 2));
       return NextResponse.json(
-        { error: "Failed to fetch onboarding status" },
+        { error: "Failed to fetch onboarding status", details: error.message },
         { status: 500 }
       );
+    }
+
+    if (!profile) {
+      console.log("🎓 [API] No profile found for user, creating one...");
+      // Profile doesn't exist yet, return false (should see onboarding)
+      return NextResponse.json({ 
+        onboardingSeen: false 
+      });
     }
 
     console.log("🎓 [API] Profile onboarding_seen:", profile?.onboarding_seen);
@@ -50,16 +59,20 @@ export async function GET(req: NextRequest) {
 // POST: Mark onboarding as seen
 export async function POST(req: NextRequest) {
   try {
+    console.log("🎓 [API] POST /api/user/onboarding-seen called");
     const supabase = await createClient();
     
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
+      console.log("🎓 [API] POST: No user found or auth error:", authError);
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
       );
     }
+
+    console.log("🎓 [API] POST: User authenticated:", user.id);
 
     const { error } = await supabase
       .from("profiles")
@@ -67,16 +80,19 @@ export async function POST(req: NextRequest) {
       .eq("id", user.id);
 
     if (error) {
-      console.error("Error updating onboarding status:", error);
+      console.error("🎓 [API] POST: Error updating onboarding status:", error);
+      console.error("🎓 [API] POST: Error details:", JSON.stringify(error, null, 2));
       return NextResponse.json(
-        { error: "Failed to update onboarding status" },
+        { error: "Failed to update onboarding status", details: error.message },
         { status: 500 }
       );
     }
 
+    console.log("🎓 [API] POST: Successfully marked onboarding as seen for user:", user.id);
+
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error in POST /api/user/onboarding-seen:", error);
+    console.error("🎓 [API] POST: Error in POST /api/user/onboarding-seen:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
