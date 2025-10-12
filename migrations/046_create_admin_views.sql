@@ -20,8 +20,6 @@ SELECT
   
   -- Customer info from profiles
   p.email as customer_email,
-  p.first_name as customer_first_name,
-  p.last_name as customer_last_name,
   p.full_name as customer_full_name,
   
   -- Wine info
@@ -67,8 +65,6 @@ SELECT
   
   -- Customer info from profiles
   p.email as customer_email,
-  p.first_name as customer_first_name,
-  p.last_name as customer_last_name,
   p.full_name as customer_full_name,
   
   -- Pallet info

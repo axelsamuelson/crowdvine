@@ -47,8 +47,6 @@ export async function GET() {
         ),
         profiles(
           email,
-          first_name,
-          last_name,
           full_name
         )
       `,
@@ -80,8 +78,6 @@ export async function GET() {
         fulfillment_status,
         profiles(
           email,
-          first_name,
-          last_name,
           full_name
         )
       `,
@@ -137,8 +133,6 @@ export async function GET() {
       ...b,
       profiles: {
         email: b.customer_email,
-        first_name: b.customer_first_name,
-        last_name: b.customer_last_name,
         full_name: b.customer_full_name,
       },
       wines: {
@@ -170,8 +164,6 @@ export async function GET() {
       ...r,
       profiles: {
         email: r.customer_email,
-        first_name: r.customer_first_name,
-        last_name: r.customer_last_name,
         full_name: r.customer_full_name,
       }
     })) || [];

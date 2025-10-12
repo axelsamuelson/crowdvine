@@ -40,8 +40,6 @@ export async function GET() {
         fulfillment_status,
         profiles(
           email,
-          first_name,
-          last_name,
           full_name
         )
       `,
@@ -96,8 +94,6 @@ export async function GET() {
       ...o,
       profiles: {
         email: o.customer_email,
-        first_name: o.customer_first_name,
-        last_name: o.customer_last_name,
         full_name: o.customer_full_name,
       }
     })) || [];

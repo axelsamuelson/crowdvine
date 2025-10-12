@@ -67,7 +67,7 @@ export async function GET() {
 
       const { data: profiles, error: profilesError } = await sb
         .from("profiles")
-        .select("id, email, first_name, last_name, full_name")
+        .select("id, email, full_name")
         .in("id", userIds);
 
       if (profilesError) {
@@ -117,7 +117,7 @@ export async function GET() {
       
       const { data: resProfiles, error: resProfilesError } = await sb
         .from("profiles")
-        .select("id, email, first_name, last_name, full_name")
+        .select("id, email, full_name")
         .in("id", resUserIds);
 
       if (!resProfilesError && resProfiles) {
