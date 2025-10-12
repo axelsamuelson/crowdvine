@@ -270,6 +270,7 @@ export async function GET(
     handle: i.handle,
     productType: "wine",
     categoryId: i.producer_id,
+    producerId: i.producer_id,
     producerName: i.producers?.name || "Unknown Producer",
     options: [
       // Add grape varieties as an option

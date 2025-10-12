@@ -120,7 +120,8 @@ export async function GET(
         handle,
         base_price_cents,
         label_image_path,
-        producer_id
+        producer_id,
+        producers(name)
       `,
       )
       .eq("producer_id", resolvedParams.id)
@@ -168,6 +169,8 @@ export async function GET(
         handle: i.handle,
         productType: "wine",
         categoryId: i.producer_id,
+        producerId: i.producer_id,
+        producerName: i.producers?.name || "Unknown Producer",
         options: [
           {
             id: "grape-varieties",

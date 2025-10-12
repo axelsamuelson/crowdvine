@@ -42,10 +42,13 @@ const CartItems = ({ closeCart }: { closeCart: () => void }) => {
     const validateCart = async () => {
       setIsValidating(true);
       try {
+        console.log("🔍 [Cart Modal] Validating cart with", cart.lines.length, "items");
+        console.log("🔍 [Cart Modal] Sample cart item:", cart.lines[0]);
         const result = await validateSixBottleRule(cart.lines as any);
+        console.log("✅ [Cart Modal] Validation result:", result);
         setValidations(result.producerValidations);
       } catch (error) {
-        console.error("Validation error:", error);
+        console.error("❌ [Cart Modal] Validation error:", error);
         setValidations([]);
       } finally {
         setIsValidating(false);

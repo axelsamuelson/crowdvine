@@ -137,6 +137,7 @@ export type Product = {
   title: string;
   handle: string;
   categoryId?: string;
+  producerId?: string;
   description: string;
   descriptionHtml: string;
   featuredImage: Image;
