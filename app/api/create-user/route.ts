@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { signupLimiter, getClientIdentifier } from "@/lib/rate-limiter";
+import { clearCartId } from "@/src/lib/cookies";
 
 // Helper function to get invite quota based on membership level
 function getQuotaForLevel(level: string): number {
@@ -208,6 +209,10 @@ export async function POST(request: NextRequest) {
 
       authUserId = authData.user.id;
       console.log("3b. New user created:", authUserId);
+
+      // Clear cart cookie to ensure new user gets empty cart
+      console.log("3b1. Clearing cart cookie for new user");
+      await clearCartId();
 
       // Step 3: Check if profile already exists and create/update it
       console.log("3c. Checking if profile already exists...");

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { addImpactPoints } from "@/lib/membership/points-engine";
+import { clearCartId } from "@/src/lib/cookies";
 
 /**
  * POST /api/invitations/redeem
@@ -155,6 +156,10 @@ export async function POST(request: NextRequest) {
     } else {
       console.log("[INVITE-REDEEM] STEP-2 SUCCESS - Profile created");
     }
+    
+    // Clear cart cookie to ensure new user gets empty cart
+    console.log("[INVITE-REDEEM] Clearing cart cookie for new user");
+    await clearCartId();
     
     // Step 3: Manually create membership
     console.log("[INVITE-REDEEM] MANUAL CREATION FLOW - Step 3: Create membership with level:", initialLevel);
