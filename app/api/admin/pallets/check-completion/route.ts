@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { checkPalletCompletion } from "@/lib/pallet-completion";
 
-export async function POST(request: Request) {
+async function checkAllPallets() {
   try {
     const supabase = getSupabaseAdmin();
     
@@ -82,5 +82,14 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+
+// Support both GET and POST requests
+export async function GET() {
+  return checkAllPallets();
+}
+
+export async function POST() {
+  return checkAllPallets();
 }
 
