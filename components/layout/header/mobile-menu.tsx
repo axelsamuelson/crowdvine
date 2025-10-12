@@ -11,10 +11,10 @@ import { useMobileMenu } from "@/components/layout/header/mobile-menu-context";
 import { User } from "lucide-react";
 
 const navItems = [
-  { href: "/profile", label: "Profile", icon: User },
-  { href: "/", label: "Home" },
   { href: "/shop", label: "Shop" },
+  { href: "/profile", label: "Profile", icon: User },
   { href: "/about", label: "About" },
+  { href: "/", label: "Home" },
 ];
 
 export function MobileMenu({ collections }: { collections: any[] }) {
