@@ -64,10 +64,17 @@ export async function checkPalletCompletion(palletId: string): Promise<boolean> 
     // Check if pallet is full or over capacity
     if (totalBottles >= capacity) {
       console.log(`🎉 [Pallet Completion] Pallet ${palletId} is complete! Triggering completion...`);
-      await completePallet(palletId);
-      return true;
+      try {
+        await completePallet(palletId);
+        console.log(`✅ [Pallet Completion] Successfully completed pallet ${palletId}`);
+        return true;
+      } catch (error) {
+        console.error(`❌ [Pallet Completion] Failed to complete pallet ${palletId}:`, error);
+        throw error; // Re-throw to see error in API response
+      }
     }
     
+    console.log(`ℹ️ [Pallet Completion] Pallet ${palletId} not full yet`);
     return false;
   } catch (error) {
     console.error(`❌ [Pallet Completion] Unexpected error checking pallet ${palletId}:`, error);
