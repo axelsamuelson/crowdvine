@@ -21,9 +21,13 @@ export function useOnboarding() {
 
 export function OnboardingProvider({ children }: { children: React.ReactNode }) {
   const [isWelcomeOpen, setIsWelcomeOpen] = useState(false);
+  const [hasChecked, setHasChecked] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
+    // Only check once when component mounts
+    if (hasChecked) return;
+    
     // Don't show on auth pages or invite pages
     const isAuthPage = pathname?.startsWith("/log-in") || 
                        pathname?.startsWith("/signup") || 
@@ -35,6 +39,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
                        pathname?.startsWith("/code-signup");
     
     if (isAuthPage) {
+      setHasChecked(true);
       return;
     }
 
@@ -42,14 +47,17 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     const hasSeenWelcome = localStorage.getItem("pact-welcome-seen");
     
     if (!hasSeenWelcome) {
-      // Small delay to ensure page is loaded and user is authenticated
+      // Small delay to ensure page is loaded
       const timer = setTimeout(() => {
         setIsWelcomeOpen(true);
-      }, 1000);
+        setHasChecked(true);
+      }, 800);
       
       return () => clearTimeout(timer);
     }
-  }, [pathname]);
+    
+    setHasChecked(true);
+  }, [pathname, hasChecked]);
 
   const showWelcome = () => {
     setIsWelcomeOpen(true);
