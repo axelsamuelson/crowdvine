@@ -16,6 +16,7 @@ export type CartItem = {
 export type ProducerValidation = {
   producerId: string;
   producerName: string;
+  producerHandle: string; // URL-friendly slug for /shop/[handle]
   quantity: number;
   isValid: boolean;
   needed: number; // bottles needed to reach next multiple of 6
@@ -156,10 +157,14 @@ export async function validateSixBottleRule(
       const isValid = entry.quantity % 6 === 0;
       const needed = isValid ? 0 : 6 - (entry.quantity % 6);
       const producerName = Array.from(entry.producerNames).join(" + ");
+      
+      // Generate handle from producer name (same as collections API)
+      const producerHandle = producerName.toLowerCase().replace(/\s+/g, "-");
 
       const validation: ProducerValidation = {
         producerId: Array.from(entry.producerIds)[0],
         producerName,
+        producerHandle,
         quantity: entry.quantity,
         isValid,
         needed,

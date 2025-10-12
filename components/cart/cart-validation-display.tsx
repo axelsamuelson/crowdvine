@@ -71,7 +71,7 @@ export function CartValidationDisplay({
             {validations.map((validation, index) => (
               <Link
                 key={index}
-                href={`/shop/${validation.producerId}`}
+                href={`/shop/${validation.producerHandle}`}
                 className={`block p-2 rounded-md border transition-all ${
                   validation.isValid
                     ? "bg-green-50/50 border-green-200 hover:bg-green-100/50"
