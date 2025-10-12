@@ -6,11 +6,10 @@ async function checkAllPallets() {
   try {
     const supabase = getSupabaseAdmin();
     
-    // Get all pallets that are not yet complete
+    // Get all pallets (including already complete ones for manual re-check)
     const { data: pallets, error: palletsError } = await supabase
       .from('pallets')
-      .select('id, name, bottle_capacity, status, is_complete')
-      .or('is_complete.is.null,is_complete.eq.false');
+      .select('id, name, bottle_capacity, status, is_complete');
     
     if (palletsError) {
       console.error("Error fetching pallets:", palletsError);
@@ -49,16 +48,31 @@ async function checkAllPallets() {
         
         console.log(`   Total Reserved: ${totalBottles} bottles`);
         
-        const isComplete = await checkPalletCompletion(pallet.id);
-        
-        results.push({
-          palletId: pallet.id,
-          palletName: pallet.name,
-          capacity: pallet.bottle_capacity,
-          reserved: totalBottles,
-          wasCompleted: isComplete,
-          status: isComplete ? '✅ COMPLETED - Payment emails sent!' : `⏳ Not full yet (${totalBottles}/${pallet.bottle_capacity})`
-        });
+        // Check if already complete
+        if (pallet.is_complete) {
+          console.log(`   ℹ️ Pallet already marked as complete`);
+          results.push({
+            palletId: pallet.id,
+            palletName: pallet.name,
+            capacity: pallet.bottle_capacity,
+            reserved: totalBottles,
+            wasCompleted: false,
+            alreadyComplete: true,
+            status: `✅ Already Complete (${totalBottles}/${pallet.bottle_capacity})`
+          });
+        } else {
+          const isComplete = await checkPalletCompletion(pallet.id);
+          
+          results.push({
+            palletId: pallet.id,
+            palletName: pallet.name,
+            capacity: pallet.bottle_capacity,
+            reserved: totalBottles,
+            wasCompleted: isComplete,
+            alreadyComplete: false,
+            status: isComplete ? '✅ COMPLETED - Payment emails sent!' : `⏳ Not full yet (${totalBottles}/${pallet.bottle_capacity})`
+          });
+        }
         
         if (isComplete) {
           console.log(`   ✅ Pallet is now COMPLETE! Payment notifications triggered.`);
