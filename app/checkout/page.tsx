@@ -190,7 +190,7 @@ function CheckoutContent() {
     // Check if returning from Stripe payment method setup
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get("payment_method_added") === "true") {
-      toast.success("Betalningsmetod tillagd och vald!");
+      toast.success("Payment method added and selected!");
       // Clean URL and let PaymentMethodSelector auto-select the new method
       const cleanUrl = window.location.pathname;
       window.history.replaceState({}, '', cleanUrl);
@@ -262,7 +262,7 @@ function CheckoutContent() {
 
     try {
       let deliveryAddress;
-
+      
       if (profile && profile.address && profile.city && profile.postal_code) {
         deliveryAddress = {
           postcode: profile.postal_code || "",
@@ -360,7 +360,7 @@ function CheckoutContent() {
           selectedDeliveryZoneId,
           pallets: zoneData.pallets?.length || 0,
         });
-
+        
         setZoneInfo({
           pickupZone: zoneData.pickupZoneName,
           pickupZoneId: zoneData.pickupZoneId,
@@ -399,23 +399,23 @@ function CheckoutContent() {
                        updatedProfile.postal_code;
     
     if (hasAddress) {
-      toast.success("Sparar...");
+      toast.success("Saving...");
       setZoneLoading(true);
       // Wait a moment for state to update
       setTimeout(async () => {
         await updateZoneInfo();
         setZoneLoading(false);
-        toast.success("Klart! Leveranszon uppdaterad.");
+        toast.success("Done! Delivery zone updated.");
       }, 100);
     } else {
-      toast.success("Profil sparad. Lägg till adress för att fortsätta.");
+      toast.success("Profile saved. Add delivery address to continue.");
     }
   };
 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    
     // Validate required fields
     if (!profile?.email) {
       toast.error("Please add your profile information first");
@@ -438,7 +438,7 @@ function CheckoutContent() {
 
     // Check if delivery zone is available
     const hasCompleteAddress = profile?.address && profile?.city && profile?.postal_code;
-
+      
     if (hasCompleteAddress && !zoneInfo.selectedDeliveryZoneId) {
       setIsPlacingOrder(false);
       toast.error(
@@ -456,13 +456,13 @@ function CheckoutContent() {
 
     // Prepare form data
     const formData = new FormData();
-
+    
     // Customer details
     formData.append("fullName", profile?.full_name || "");
     // Use profile email if available, otherwise we'll need to get it from auth
     formData.append("email", profile?.email || "");
     formData.append("phone", profile?.phone || "");
-
+    
     // Delivery address (always from profile)
     if (profile) {
       formData.append("street", profile.address || "");
@@ -488,7 +488,7 @@ function CheckoutContent() {
       );
     }
     // Note: If no profile, form validation will catch missing address
-
+    
     // Zone information
     if (zoneInfo.selectedDeliveryZoneId) {
       formData.append(
@@ -496,12 +496,12 @@ function CheckoutContent() {
         zoneInfo.selectedDeliveryZoneId,
       );
     }
-
+    
     // Pallet information
     if (selectedPallet) {
       formData.append("selectedPalletId", selectedPallet.id);
     }
-
+    
     // Payment method
     formData.append("paymentMethodId", selectedPaymentMethod.id);
 
@@ -568,18 +568,18 @@ function CheckoutContent() {
   const hasProfileInfo = profile?.full_name && profile?.email;
   const hasCompleteProfileAddress =
     profile?.address && profile?.city && profile?.postal_code;
-
+  
   // Calculate shipping cost
   const shippingCost = selectedPallet && cart?.lines
     ? calculateCartShippingCost(
         cart.lines.map((line) => ({ quantity: line.quantity })),
-        {
-          id: selectedPallet.id,
-          name: selectedPallet.name,
-          costCents: selectedPallet.costCents,
-          bottleCapacity: selectedPallet.maxBottles,
-          currentBottles: selectedPallet.currentBottles,
-          remainingBottles: selectedPallet.remainingBottles,
+    {
+      id: selectedPallet.id,
+      name: selectedPallet.name,
+      costCents: selectedPallet.costCents,
+      bottleCapacity: selectedPallet.maxBottles,
+      currentBottles: selectedPallet.currentBottles,
+      remainingBottles: selectedPallet.remainingBottles,
         },
       )
     : null;
@@ -613,7 +613,7 @@ function CheckoutContent() {
     <>
       <ReservationLoadingModal open={isPlacingOrder} />
       
-      <div className="max-w-4xl mx-auto p-6 pt-top-spacing space-y-8">
+    <div className="max-w-4xl mx-auto p-6 pt-top-spacing space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Checkout</h1>
         <p className="text-gray-600 mt-2">Complete your wine reservation</p>
@@ -656,13 +656,13 @@ function CheckoutContent() {
                     >
                       <span className="text-gray-600">
                         {line.merchandise.title} × {line.quantity}
-                      </span>
+                    </span>
                       <MemberPrice
                         amount={totalForLine}
                         currencyCode={line.merchandise.product.priceRange.minVariantPrice.currencyCode}
                         className="text-gray-900 font-medium text-sm"
                       />
-                    </div>
+                  </div>
                   );
                 })}
               </div>
@@ -670,17 +670,17 @@ function CheckoutContent() {
               <div className="border-t border-gray-200 my-3"></div>
               
               <div className="space-y-3">
-                {/* Shipping Cost */}
+                  {/* Shipping Cost */}
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Frakt</span>
                   <span className="text-gray-900 font-medium">
-                    {shippingCost ? (
+                      {shippingCost ? (
                       formatShippingCost(shippingCost.totalShippingCostCents)
-                    ) : (
+                      ) : (
                       <span className="text-gray-400">Ingen pall vald</span>
-                    )}
-                  </span>
-                </div>
+                      )}
+                    </span>
+                  </div>
 
                 {/* Discount (old rewards) */}
                 {useRewards && selectedRewards.length > 0 && (
@@ -703,27 +703,27 @@ function CheckoutContent() {
                     </span>
                   </div>
                 )}
-
-                {/* Subtotal */}
+                  
+                  {/* Subtotal */}
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Delsumma</span>
                   <span className="text-gray-900 font-medium">
                     {Math.round(subtotal)}{" "}
                     {cart.cost.totalAmount.currencyCode}
-                  </span>
+                    </span>
                 </div>
-              </div>
+                  </div>
               
               <div className="border-t border-gray-200 my-3"></div>
-
-              {/* Total */}
+                  
+                  {/* Total */}
               <div className="flex justify-between text-base font-semibold text-gray-900">
                 <span>Totalt</span>
-                <span>
+                    <span>
                   {Math.round(total)}{" "}
                   {cart.cost.totalAmount.currencyCode}
-                </span>
-              </div>
+                    </span>
+                  </div>
             </CardContent>
           </Card>
 
@@ -732,7 +732,7 @@ function CheckoutContent() {
             <CardHeader className="pb-4">
               <CardTitle className="text-base font-semibold text-gray-900 flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-gray-600" />
-                Leveransadress
+                Delivery Address
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -740,7 +740,7 @@ function CheckoutContent() {
                 <div className="text-center py-8 bg-gray-50 rounded-lg border border-dashed border-gray-300">
                   <MapPin className="w-10 h-10 text-gray-400 mx-auto mb-3" />
                   <h3 className="text-sm font-semibold text-gray-900 mb-1">
-                    Lägg till leveransadress
+                    Add delivery address
                   </h3>
                   <p className="text-xs text-gray-600 mb-4">
                     Adress krävs för att fortsätta
@@ -755,7 +755,7 @@ function CheckoutContent() {
                       {profile?.postal_code} {profile?.city}
                     </p>
                     <p className="text-xs text-gray-600">{profile?.country || 'Sweden'}</p>
-                  </div>
+              </div>
                   <ProfileInfoModal
                     onProfileSaved={handleProfileSaved}
                     trigger={
@@ -774,14 +774,14 @@ function CheckoutContent() {
           </Card>
 
           {/* Zone Information */}
-          <div className="space-y-4">
+            <div className="space-y-4">
             {/* Zone Loading Indicator */}
             {zoneLoading && (
               <Card className="border border-gray-200">
                 <CardContent className="py-6">
                   <div className="flex items-center gap-3">
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
-                    <span className="text-sm text-gray-600">Uppdaterar leveranszon...</span>
+                    <span className="text-sm text-gray-600">Updating delivery zone...</span>
                   </div>
                 </CardContent>
               </Card>
@@ -793,7 +793,7 @@ function CheckoutContent() {
                     <div className="text-center">
                       <MapPin className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                       <p className="text-sm text-gray-600">
-                        Lägg till leveransadress för att fortsätta.
+                        Add delivery address för att fortsätta.
                       </p>
                     </div>
                   </CardContent>
@@ -812,15 +812,15 @@ function CheckoutContent() {
                   <CardContent className="py-6 text-center">
                     <AlertCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                     <p className="text-sm text-gray-600 mb-1">
-                      Ingen upphämtningszon hittades.
+                      No pickup zone found.
                     </p>
                     <p className="text-xs text-gray-500">
-                      Producenten saknar upphämtningszon. Kontakta support.
+                      Producer missing pickup zone. Contact support.
                     </p>
                   </CardContent>
                 </Card>
               ) : null}
-
+              
               {/* Delivery Zone */}
               {zoneInfo.deliveryZone ? (
                 <ZoneDetails
@@ -843,10 +843,10 @@ function CheckoutContent() {
                   <CardContent className="py-6 text-center">
                     <AlertCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                     <p className="text-sm text-gray-600 mb-1">
-                      Ingen leveranszon hittades för din adress.
+                      No delivery zone found for your address.
                     </p>
                     <p className="text-xs text-gray-500 mb-4">
-                      Kontakta support för hjälp.
+                      Contact support for help.
                     </p>
                     <Button
                       variant="outline"
@@ -858,12 +858,12 @@ function CheckoutContent() {
                       disabled={zoneLoading}
                       className="text-xs"
                     >
-                      {zoneLoading ? "Uppdaterar..." : "Försök igen"}
+                      {zoneLoading ? "Updating..." : "Try Again"}
                     </Button>
                   </CardContent>
                 </Card>
               ) : null}
-          </div>
+            </div>
 
           {/* Pallet Information */}
           {(() => {
@@ -886,7 +886,7 @@ function CheckoutContent() {
                 <div className="flex items-center gap-3">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
                   <span className="text-sm text-gray-600">Söker efter pall...</span>
-                </div>
+                      </div>
               </CardContent>
             </Card>
           ) : (zoneInfo.pallets && zoneInfo.pallets.length > 0) ? (
@@ -916,7 +916,7 @@ function CheckoutContent() {
                   Rutt: {zoneInfo.pickupZone} → {zoneInfo.deliveryZone}
                 </p>
                 <p className="text-xs text-gray-500">
-                  En ny pall borde ha skapats automatiskt. Kontakta support om problemet kvarstår.
+                  A new pallet should have been created automatically. Contact support if the issue persists.
                 </p>
               </CardContent>
             </Card>
@@ -959,7 +959,7 @@ function CheckoutContent() {
                         <span className="text-gray-600">{profile.phone}</span>
                       </div>
                     )}
-                    <ProfileInfoModal
+                    <ProfileInfoModal 
                       onProfileSaved={handleProfileSaved}
                       trigger={
                         <Button variant="outline" size="sm" className="mt-2">
@@ -975,14 +975,14 @@ function CheckoutContent() {
 
             {/* Rewards Toggle */}
             {availableRewards.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
                     <Gift className="w-5 h-5" />
                     Use Rewards
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center space-x-2">
                       <Checkbox
@@ -1026,7 +1026,7 @@ function CheckoutContent() {
                             {selectedRewards.length} selected
                           </span>
                         )}
-                      </div>
+                  </div>
                       <div className="grid grid-cols-2 gap-2">
                         {availableRewards.map((reward) => (
                           <div
@@ -1054,7 +1054,7 @@ function CheckoutContent() {
                                 {selectedRewards.some(r => r.id === reward.id) && (
                                   <Check className="w-1.5 h-1.5 text-white" />
                                 )}
-                              </div>
+                    </div>
                               <div className="min-w-0 flex-1">
                                 <p className="text-xs font-medium text-gray-900 truncate">
                                   {reward.bottles}b @ {reward.discount_percentage}%
@@ -1062,11 +1062,11 @@ function CheckoutContent() {
                                 <p className="text-xs text-gray-500 truncate">
                                   {reward.friend_email}
                                 </p>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
                       </div>
+                      </div>
+                    </div>
+                        ))}
+                    </div>
                       {selectedRewards.length > 0 && (
                         <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                           <p className="text-sm text-gray-600">
@@ -1074,10 +1074,10 @@ function CheckoutContent() {
                           </p>
                         </div>
                       )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
             )}
 
             {/* Payment Method */}
@@ -1144,10 +1144,10 @@ function CheckoutContent() {
                 </div>
               </div>
             ) : (
-              <Button
-                type="submit"
+            <Button
+              type="submit"
                 className="w-full bg-black hover:bg-black/90 text-white border-black rounded-md"
-                size="lg"
+              size="lg"
                 disabled={zoneLoading}
               >
                 {zoneLoading ? (
@@ -1158,7 +1158,7 @@ function CheckoutContent() {
                 ) : (
                   "Place Reservation"
                 )}
-              </Button>
+            </Button>
             )}
           </form>
         </div>
@@ -1172,13 +1172,13 @@ export default function CheckoutPage() {
   return (
     <Suspense
       fallback={
-        <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
-          <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-gray-200 rounded mb-4"></div>
-            <div className="h-4 bg-gray-200 rounded mb-2"></div>
-            <div className="h-4 bg-gray-200 rounded"></div>
-          </div>
+      <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 bg-gray-200 rounded mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded"></div>
         </div>
+      </div>
       }
     >
       <CheckoutContent />

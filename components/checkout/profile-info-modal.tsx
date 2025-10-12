@@ -102,7 +102,7 @@ export function ProfileInfoModal({
       const hasAddress = formData.address && formData.city && formData.postal_code;
       
       if (!hasAddress) {
-        toast.warning("Adress saknas. Du kan spara nu, men behöver lägga till adress innan du kan checka ut.");
+        toast.warning("Address missing. You can save now, but need to add address before checkout.");
       }
       
       onProfileSaved(updatedProfile);
@@ -235,7 +235,7 @@ export function ProfileInfoModal({
               disabled={loading}
               className="flex-1 bg-black hover:bg-black/90 text-white"
             >
-              {loading ? "Sparar..." : "Spara"}
+              {loading ? "Saving..." : "Save"}
             </Button>
           </div>
         </div>
