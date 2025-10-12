@@ -147,9 +147,14 @@ export default function CartModal() {
     }
 
     // Only open cart if items were actually added/changed
+    // Don't open if cart became empty (items removed or cart cleared)
     if (serializedCart.current !== newSerializedCart) {
       serializedCart.current = newSerializedCart;
-      setIsOpen(true);
+      
+      // Only open if cart has items (don't open on empty cart)
+      if (cart.lines.length > 0) {
+        setIsOpen(true);
+      }
     }
   }, [cart]);
 
