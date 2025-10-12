@@ -8,6 +8,7 @@ export async function GET(
   try {
     const supabase = getSupabaseAdmin();
 
+    // Fetch invitations with user details of who used them
     const { data: invitations, error } = await supabase
       .from("invitation_codes")
       .select("*")
@@ -22,7 +23,26 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(invitations || []);
+    // For each used invitation, fetch the user who used it
+    const enrichedInvitations = await Promise.all(
+      (invitations || []).map(async (invite) => {
+        if (invite.used_by_user_id) {
+          const { data: usedByProfile } = await supabase
+            .from("profiles")
+            .select("id, email, full_name")
+            .eq("id", invite.used_by_user_id)
+            .single();
+
+          return {
+            ...invite,
+            used_by_profile: usedByProfile,
+          };
+        }
+        return invite;
+      })
+    );
+
+    return NextResponse.json(enrichedInvitations || []);
   } catch (error) {
     console.error("Error in GET /api/admin/users/[id]/invitations:", error);
     return NextResponse.json(
@@ -31,4 +51,5 @@ export async function GET(
     );
   }
 }
+
 

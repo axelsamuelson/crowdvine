@@ -37,7 +37,14 @@ interface Invitation {
   created_at: string;
   used_at: string | null;
   used_by_email: string | null;
+  used_by_user_id: string | null;
   initial_level: string;
+  is_active: boolean;
+  used_by_profile?: {
+    id: string;
+    email: string;
+    full_name: string | null;
+  };
 }
 
 interface IPEvent {
@@ -381,39 +388,92 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
               Invitations ({invitations.length})
             </h2>
 
+            <div className="mb-4 text-xs text-muted-foreground space-y-1">
+              <div className="flex justify-between">
+                <span>Total Created:</span>
+                <span className="font-medium">{invitations.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Used:</span>
+                <span className="font-medium text-green-600">
+                  {invitations.filter(i => i.used_at).length}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Active:</span>
+                <span className="font-medium">
+                  {invitations.filter(i => !i.used_at && i.is_active).length}
+                </span>
+              </div>
+            </div>
+
             {invitations.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4">No invitations created</p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-3 max-h-[500px] overflow-y-auto">
                 {invitations.map((invite) => (
                   <div
                     key={invite.id}
-                    className={`border rounded-lg p-3 ${
+                    className={`border rounded-lg p-4 ${
                       invite.used_at 
-                        ? "border-green-200 bg-green-50/50" 
-                        : "border-border"
+                        ? "border-green-200 bg-green-50/30" 
+                        : invite.is_active
+                        ? "border-border bg-background"
+                        : "border-red-200 bg-red-50/30"
                     }`}
                   >
-                    <div className="flex items-start justify-between mb-1">
-                      <code className="text-xs font-mono text-foreground">
-                        {invite.code}
-                      </code>
-                      <span className={`px-2 py-0.5 rounded text-xs ${
-                        invite.used_at 
-                          ? "bg-green-100 text-green-900" 
-                          : "bg-gray-100 text-gray-900"
-                      }`}>
-                        {invite.used_at ? "Used" : "Active"}
-                      </span>
+                    <div className="space-y-3">
+                      {/* Code & Status */}
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <code className="text-xs font-mono text-foreground bg-muted px-2 py-1 rounded">
+                            {invite.code}
+                          </code>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Level: <span className="font-medium">{invite.initial_level || 'basic'}</span>
+                          </p>
+                        </div>
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          invite.used_at 
+                            ? "bg-green-100 text-green-900" 
+                            : invite.is_active
+                            ? "bg-blue-100 text-blue-900"
+                            : "bg-red-100 text-red-900"
+                        }`}>
+                          {invite.used_at ? "Used" : invite.is_active ? "Active" : "Inactive"}
+                        </span>
+                      </div>
+
+                      {/* Used By Info */}
+                      {invite.used_at && invite.used_by_profile && (
+                        <div className="pt-2 border-t border-green-200">
+                          <p className="text-xs font-medium text-foreground mb-1">
+                            Used by:
+                          </p>
+                          <div className="space-y-0.5">
+                            {invite.used_by_profile.full_name && (
+                              <p className="text-xs text-foreground">
+                                👤 {invite.used_by_profile.full_name}
+                              </p>
+                            )}
+                            <p className="text-xs text-muted-foreground">
+                              📧 {invite.used_by_profile.email}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              🕐 {new Date(invite.used_at).toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Created Date */}
+                      <div className="pt-2 border-t border-border/50">
+                        <p className="text-xs text-muted-foreground">
+                          Created {new Date(invite.created_at).toLocaleDateString()} at{" "}
+                          {new Date(invite.created_at).toLocaleTimeString()}
+                        </p>
+                      </div>
                     </div>
-                    {invite.used_at && invite.used_by_email && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Used by {invite.used_by_email}
-                      </p>
-                    )}
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Created {new Date(invite.created_at).toLocaleDateString()}
-                    </p>
                   </div>
                 ))}
               </div>
