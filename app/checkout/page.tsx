@@ -25,7 +25,7 @@ import { ReservationLoadingModal } from "@/components/checkout/reservation-loadi
 import { MemberPrice } from "@/components/ui/member-price";
 import { ProgressionBuffDisplay } from "@/components/membership/progression-buff-display";
 import { toast } from "sonner";
-import { User, MapPin, CreditCard, Package, AlertCircle, Gift, Check } from "lucide-react";
+import { User, MapPin, CreditCard, Package, AlertCircle, Gift, Check, ArrowRight } from "lucide-react";
 import { clearZoneCache } from "@/lib/zone-matching";
 import {
   calculateCartShippingCost,
