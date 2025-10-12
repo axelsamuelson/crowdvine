@@ -48,7 +48,33 @@ export async function validateSixBottleRule(
   const sb = getSupabaseAdmin();
 
   try {
-    // 1. Get all producer groups and their members
+    // 1. Get producer_id for each cart item by looking up the wine in database
+    // This is more reliable than depending on cached product data
+    const wineIds = cartItems.map(item => item.merchandise.id);
+    console.log("🔍 [Validation] Looking up producer_ids for", wineIds.length, "wines");
+    
+    const { data: wines, error: winesError } = await sb
+      .from("wines")
+      .select("id, producer_id, wine_name, producers(id, name)")
+      .in("id", wineIds);
+
+    if (winesError) {
+      console.error("❌ [Validation] Error fetching wines:", winesError);
+      throw winesError;
+    }
+
+    console.log("✅ [Validation] Found", wines?.length || 0, "wines with producer info");
+
+    // Create map: wineId -> { producerId, producerName }
+    const wineToProducer = new Map<string, { id: string; name: string }>();
+    wines?.forEach((wine: any) => {
+      wineToProducer.set(wine.id, {
+        id: wine.producer_id,
+        name: wine.producers?.name || "Unknown Producer",
+      });
+    });
+
+    // 2. Get all producer groups and their members
     const { data: groupMembers, error: groupError } = await sb
       .from("producer_group_members")
       .select(`
@@ -74,7 +100,7 @@ export async function validateSixBottleRule(
 
     console.log("🔍 [Validation] Producer groups loaded:", producerToGroup.size);
 
-    // 2. Group cart items by producer or group
+    // 3. Group cart items by producer or group
     // Key format: "group_{groupId}" or "producer_{producerId}"
     const quantityByProducerOrGroup = new Map<
       string,
@@ -88,13 +114,15 @@ export async function validateSixBottleRule(
     >();
 
     for (const item of cartItems) {
-      const producerId = item.merchandise.product.producerId;
-      if (!producerId) {
-        console.warn("Cart item missing producerId:", item);
+      // Get producer info from our lookup map
+      const wineInfo = wineToProducer.get(item.merchandise.id);
+      if (!wineInfo) {
+        console.warn("❌ [Validation] Wine not found in database:", item.merchandise.id);
         continue;
       }
 
-      const producerName = item.merchandise.product.producerName || "Unknown";
+      const producerId = wineInfo.id;
+      const producerName = wineInfo.name;
       const group = producerToGroup.get(producerId);
       const key = group ? `group_${group.id}` : `producer_${producerId}`;
 
