@@ -21,6 +21,7 @@ import { PaymentMethodSelector } from "@/components/checkout/payment-method-sele
 import { ZoneDetails } from "@/components/checkout/zone-details";
 import { PalletDetails } from "@/components/checkout/pallet-details";
 import { ReservationLoadingModal } from "@/components/checkout/reservation-loading-modal";
+import { CompleteOrderSuggestions } from "@/components/checkout/complete-order-suggestions";
 import { MemberPrice } from "@/components/ui/member-price";
 import { ProgressionBuffDisplay } from "@/components/membership/progression-buff-display";
 import { toast } from "sonner";
@@ -90,6 +91,10 @@ function CheckoutContent() {
   // v2: Progression buffs state
   const [progressionBuffs, setProgressionBuffs] = useState<any[]>([]);
   const [totalBuffPercentage, setTotalBuffPercentage] = useState(0);
+  
+  // 6-bottle validation state
+  const [validations, setValidations] = useState<any[]>([]);
+  const [isValidCart, setIsValidCart] = useState(true);
   const [zoneInfo, setZoneInfo] = useState<{
     pickupZone: string | null;
     pickupZoneId?: string | null;
@@ -140,6 +145,30 @@ function CheckoutContent() {
       updateZoneInfo();
     }
   }, [cart, loading]);
+
+  // Validate cart on load and when cart changes
+  useEffect(() => {
+    if (!cart || cart.totalQuantity === 0) {
+      setValidations([]);
+      setIsValidCart(true);
+      return;
+    }
+
+    const validateCart = async () => {
+      try {
+        const response = await fetch("/api/cart/validate");
+        const result = await response.json();
+        setValidations(result.producerValidations || []);
+        setIsValidCart(result.isValid);
+      } catch (error) {
+        console.error("Validation error:", error);
+        setValidations([]);
+        setIsValidCart(true); // Fail open
+      }
+    };
+
+    validateCart();
+  }, [cart]);
 
   useEffect(() => {
     // Update zone info when address changes (with debouncing)
@@ -391,27 +420,11 @@ function CheckoutContent() {
       return;
     }
 
-    // Validate 6-bottle rule via API
-    console.log("🔍 [Checkout] Validating 6-bottle rule...");
-    try {
-      const validateResponse = await fetch("/api/cart/validate");
-      const validation = await validateResponse.json();
-      
-      if (!validation.isValid) {
-        console.error("❌ [Checkout] 6-bottle validation failed:", validation.errors);
-        toast.error(
-          "Order must contain bottles in multiples of 6 per producer",
-          {
-            description: validation.errors.join("\n"),
-            duration: 5000,
-          }
-        );
-        return;
-      }
-      console.log("✅ [Checkout] 6-bottle validation passed");
-    } catch (error) {
-      console.error("❌ [Checkout] Validation error:", error);
-      // Continue with checkout if validation fails (fail open)
+    // Check 6-bottle validation (already validated in useEffect, this is just a safeguard)
+    if (!isValidCart) {
+      console.error("❌ [Checkout] Cart validation failed - button should be disabled");
+      toast.error("Please complete your order to meet the 6-bottle requirement");
+      return;
     }
 
     setIsPlacingOrder(true); // Show loading modal
@@ -1076,22 +1089,48 @@ function CheckoutContent() {
               </CardContent>
             </Card>
 
-            {/* Submit Button */}
-            <Button
-              type="submit"
-              className="w-full bg-black hover:bg-black/90 text-white border-black rounded-md"
-              size="lg"
-              disabled={zoneLoading}
-            >
-              {zoneLoading ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                  Finding Zones...
-                </>
-              ) : (
-                "Place Reservation"
-              )}
-            </Button>
+            {/* Complete Order Suggestions - Only show if validation exists */}
+            {validations.length > 0 && (
+              <CompleteOrderSuggestions validations={validations} />
+            )}
+
+            {/* Submit Button or Validation Warning */}
+            {!isValidCart ? (
+              <div className="w-full p-4 bg-amber-50 border border-amber-200 rounded-md">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-amber-900 mb-1">
+                      Cannot place order
+                    </p>
+                    <p className="text-xs text-amber-800">
+                      {validations.filter(v => !v.isValid).map((v, i) => (
+                        <span key={i}>
+                          {v.producerName}: Add {v.needed} more bottle{v.needed > 1 ? 's' : ''} for {v.quantity + v.needed} total
+                          {i < validations.filter(v2 => !v2.isValid).length - 1 && <br />}
+                        </span>
+                      ))}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <Button
+                type="submit"
+                className="w-full bg-black hover:bg-black/90 text-white border-black rounded-md"
+                size="lg"
+                disabled={zoneLoading}
+              >
+                {zoneLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    Finding Zones...
+                  </>
+                ) : (
+                  "Place Reservation"
+                )}
+              </Button>
+            )}
           </form>
         </div>
       </div>
