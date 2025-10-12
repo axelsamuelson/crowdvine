@@ -55,12 +55,12 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
           console.log("🎓 [Onboarding] Data:", data);
           
           if (!data.onboardingSeen) {
-            console.log("🎓 [Onboarding] User has NOT seen onboarding, showing modal in 800ms");
+            console.log("🎓 [Onboarding] User has NOT seen onboarding, showing modal in 300ms");
             // Small delay to ensure page is loaded
             setTimeout(() => {
               console.log("🎓 [Onboarding] Opening modal now");
               setIsWelcomeOpen(true);
-            }, 800);
+            }, 300);
           } else {
             console.log("🎓 [Onboarding] User has already seen onboarding, skipping modal");
           }
