@@ -1098,42 +1098,33 @@ function CheckoutContent() {
 
             {/* Submit Button or Validation Warning */}
             {!isValidCart ? (
-              <div className="w-full space-y-3">
-                <div className="p-4 bg-amber-50 border border-amber-200 rounded-md">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-amber-900 mb-2">
-                        Cannot place order
-                      </p>
-                      <div className="space-y-2">
-                        {validations.filter(v => !v.isValid).map((v, i) => {
-                          const href = v.groupId 
-                            ? `/shop/group/${v.groupId}`
-                            : `/shop/${v.producerHandle}`;
-                          
-                          return (
-                            <div key={i} className="flex items-center justify-between">
-                              <span className="text-xs text-amber-800">
-                                {v.groupName || v.producerName}: Add {v.needed} more bottle{v.needed > 1 ? 's' : ''} for {v.quantity + v.needed} total
-                              </span>
-                              <Link href={href}>
-                                <Button 
-                                  type="button"
-                                  size="sm" 
-                                  variant="outline"
-                                  className="text-xs h-7 border-amber-300 hover:bg-amber-100"
-                                >
-                                  Browse Wines
-                                </Button>
-                              </Link>
-                            </div>
-                          );
-                        })}
+              <div className="space-y-3">
+                {validations.filter(v => !v.isValid).map((v, i) => {
+                  const href = v.groupId 
+                    ? `/shop/group/${v.groupId}`
+                    : `/shop/${v.producerHandle}`;
+                  
+                  return (
+                    <Link key={i} href={href}>
+                      <div className="w-full p-4 bg-muted/30 hover:bg-muted/50 border border-muted-foreground/10 rounded-md transition-all cursor-pointer group">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground mb-1">
+                              {v.groupName || v.producerName}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {v.quantity} bottle{v.quantity > 1 ? 's' : ''} • Add {v.needed} more for {v.quantity + v.needed} total
+                            </p>
+                          </div>
+                          <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors flex-shrink-0" />
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                </div>
+                    </Link>
+                  );
+                })}
+                <p className="text-xs text-center text-muted-foreground italic pt-2">
+                  Orders must be in multiples of 6 bottles per producer
+                </p>
               </div>
             ) : (
               <Button
