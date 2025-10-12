@@ -285,14 +285,24 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
   useEffect(() => {
     const fetchMembership = async () => {
       try {
+        console.log("🎓 [Modal] Fetching membership level...");
         const response = await fetch("/api/user/membership");
+        console.log("🎓 [Modal] Membership response status:", response.status);
+        
         if (response.ok) {
           const data = await response.json();
+          console.log("🎓 [Modal] Membership data:", data);
           const level = data.membership?.level?.toLowerCase() || "basic";
+          console.log("🎓 [Modal] Using membership level:", level);
           setMembershipLevel(level as MembershipLevel);
+        } else {
+          console.error("🎓 [Modal] Failed to fetch membership, defaulting to basic");
+          setMembershipLevel("basic");
         }
       } catch (error) {
-        console.error("Error fetching membership:", error);
+        console.error("🎓 [Modal] Error fetching membership:", error);
+        // Default to basic if there's an error
+        setMembershipLevel("basic");
       } finally {
         setLoading(false);
       }

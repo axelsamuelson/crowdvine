@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (!profile) {
-      console.log("🎓 [API] No profile found for user, creating one...");
+      console.log("🎓 [API] No profile found for user");
       // Profile doesn't exist yet, return false (should see onboarding)
       return NextResponse.json({ 
         onboardingSeen: false 
@@ -43,6 +43,23 @@ export async function GET(req: NextRequest) {
     }
 
     console.log("🎓 [API] Profile onboarding_seen:", profile?.onboarding_seen);
+
+    // Also check if user has membership, if not they need to see onboarding
+    const { data: membership } = await supabase
+      .from("user_memberships")
+      .select("level")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    console.log("🎓 [API] User membership:", membership);
+
+    if (!membership) {
+      console.log("🎓 [API] No membership found, user should see onboarding");
+      // No membership yet, they should see onboarding
+      return NextResponse.json({ 
+        onboardingSeen: false 
+      });
+    }
 
     return NextResponse.json({ 
       onboardingSeen: profile?.onboarding_seen || false 
