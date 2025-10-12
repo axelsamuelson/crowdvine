@@ -91,7 +91,33 @@ async function completePallet(palletId: string): Promise<void> {
   try {
     const paymentDeadline = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
     
-    // Mark pallet as complete
+    console.log(`📧 [Pallet Completion] Step 1: Updating reservations for pallet ${palletId}`);
+    
+    // FIRST: Update all pending reservations to have payment deadline and set status to pending_payment
+    const { error: reservationUpdateError } = await supabase
+      .from('order_reservations')
+      .update({
+        status: 'pending_payment',
+        payment_deadline: paymentDeadline.toISOString()
+      })
+      .eq('pallet_id', palletId)
+      .in('status', ['placed', 'pending_payment']);
+      
+    if (reservationUpdateError) {
+      console.error(`❌ [Pallet Completion] Error updating reservations for pallet ${palletId}:`, reservationUpdateError);
+      throw reservationUpdateError;
+    } else {
+      console.log(`✅ [Pallet Completion] Updated payment deadline for all pending reservations in pallet ${palletId}`);
+    }
+    
+    console.log(`📧 [Pallet Completion] Step 2: Triggering payment notifications for pallet ${palletId}`);
+    
+    // SECOND: Trigger payment notifications (this creates Stripe links and sends emails)
+    await triggerPaymentNotifications(palletId);
+    
+    console.log(`✅ [Pallet Completion] Step 3: All payment notifications sent successfully`);
+    
+    // THIRD: Only mark pallet as complete AFTER everything else succeeds
     const { error: updateError } = await supabase
       .from('pallets')
       .update({
@@ -109,28 +135,9 @@ async function completePallet(palletId: string): Promise<void> {
     
     console.log(`✅ [Pallet Completion] Pallet ${palletId} marked as complete with deadline ${paymentDeadline.toISOString()}`);
     
-    // Update all pending reservations to have payment deadline and set status to pending_payment
-    const { error: reservationUpdateError } = await supabase
-      .from('order_reservations')
-      .update({
-        status: 'pending_payment',
-        payment_deadline: paymentDeadline.toISOString()
-      })
-      .eq('pallet_id', palletId)
-      .in('status', ['placed', 'pending_payment']);
-      
-    if (reservationUpdateError) {
-      console.error(`❌ [Pallet Completion] Error updating reservations for pallet ${palletId}:`, reservationUpdateError);
-    } else {
-      console.log(`✅ [Pallet Completion] Updated payment deadline for all pending reservations in pallet ${palletId}`);
-    }
-    
-    // Trigger payment notifications
-    console.log(`📧 [Pallet Completion] Triggering payment notifications for pallet ${palletId}`);
-    await triggerPaymentNotifications(palletId);
-    
   } catch (error) {
     console.error(`❌ [Pallet Completion] Error completing pallet ${palletId}:`, error);
+    // Don't mark as complete if there was an error
     throw error;
   }
 }
