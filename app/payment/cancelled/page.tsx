@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Clock, Mail, CreditCard } from "lucide-react";
 
-export default function PaymentCancelledPage() {
+function PaymentCancelledContent() {
   const searchParams = useSearchParams();
   const reservationId = searchParams.get("reservation_id");
   const [reservationDetails, setReservationDetails] = useState<any>(null);
@@ -161,5 +161,21 @@ export default function PaymentCancelledPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function PaymentCancelledPage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-2xl mx-auto p-6 pt-top-spacing">
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 bg-gray-200 rounded mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    }>
+      <PaymentCancelledContent />
+    </Suspense>
   );
 }
