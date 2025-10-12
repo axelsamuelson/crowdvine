@@ -95,14 +95,19 @@ export default function AboutPage() {
                     1
                   </div>
                 </div>
-                <div className="space-y-2 flex-1">
+                <div className="space-y-3 flex-1">
                   <h3 className="text-lg font-medium text-foreground">
-                    Join the Community
+                    Discover & Reserve
                   </h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Request access or use an invitation code from an existing member. 
-                    Start as a Basic member with access to our curated wine selection.
-                  </p>
+                  <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+                    <p>
+                      Explore a curated selection of natural wines from independent producers — transparent pricing, full details, and no middlemen.
+                    </p>
+                    <p>
+                      When you find something you love, reserve the number of bottles you want.
+                      Your reservation is added to a shared pallet with others who order the same producer or region.
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -113,14 +118,19 @@ export default function AboutPage() {
                     2
                   </div>
                 </div>
-                <div className="space-y-2 flex-1">
+                <div className="space-y-3 flex-1">
                   <h3 className="text-lg font-medium text-foreground">
-                    Reserve Your Wines
+                    Collective Shipping
                   </h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Browse wines from our partner producers. Orders are packed in 6-bottle 
-                    cases and delivered directly from the producer to your door.
-                  </p>
+                  <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+                    <p>
+                      Once a pallet reaches full capacity — around 600–700 bottles — the wines are collected directly from the winemakers.
+                      No warehouses, no repacking, no unnecessary detours.
+                    </p>
+                    <p>
+                      Producers deliver their wines to a local hub, just like they would to a nearby restaurant or shop.
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -131,14 +141,19 @@ export default function AboutPage() {
                     3
                   </div>
                 </div>
-                <div className="space-y-2 flex-1">
+                <div className="space-y-3 flex-1">
                   <h3 className="text-lg font-medium text-foreground">
-                    Earn Impact Points
+                    Transparent Logistics
                   </h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Engage with the community by inviting friends, making reservations, 
-                    and participating. Earn Impact Points to unlock higher membership levels.
-                  </p>
+                  <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+                    <p>
+                      Every step is visible — from reservation to pallet completion and transport.
+                      You can track pallet progress and see exactly where your wine is and when it will arrive.
+                    </p>
+                    <p>
+                      Because we ship collectively and skip storage, logistics stay efficient and prices stay fair.
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -149,15 +164,55 @@ export default function AboutPage() {
                     4
                   </div>
                 </div>
-                <div className="space-y-2 flex-1">
+                <div className="space-y-3 flex-1">
                   <h3 className="text-lg font-medium text-foreground">
-                    Unlock Rewards
+                    Receive & Enjoy
                   </h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Progress through membership levels (Basic → Bronze → Silver → Gold) 
-                    to access exclusive perks, early drops, and enhanced benefits.
-                  </p>
+                  <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+                    <p>
+                      When the pallet lands, your wines are unpacked and delivered straight to you (or your local pickup point, depending on country).
+                    </p>
+                    <p>
+                      You receive the same bottles you reserved — direct from the winemaker, untouched and traceable.
+                      Pure wine, transparent process, fair price.
+                    </p>
+                  </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* The Difference Section */}
+        <section className="p-sides pb-20 md:pb-32">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-2xl md:text-3xl font-light text-foreground mb-8">
+              The Difference
+            </h2>
+            
+            <div className="space-y-6">
+              <div className="space-y-4 text-sm md:text-base text-muted-foreground leading-relaxed">
+                <p>
+                  <span className="font-medium text-foreground">No warehouses.</span> Wines stay with the winemaker until shipped.
+                </p>
+                <p>
+                  <span className="font-medium text-foreground">No middlemen.</span> Every bottle comes straight from the source.
+                </p>
+                <p>
+                  <span className="font-medium text-foreground">No waste.</span> Collective shipping means lower emissions and smarter logistics.
+                </p>
+                <p>
+                  <span className="font-medium text-foreground">Fair pricing.</span> More value to producers, better prices for consumers.
+                </p>
+              </div>
+              
+              <div className="pt-4 space-y-2">
+                <p className="text-base md:text-lg font-light text-foreground">
+                  Crowdsource your wine.
+                </p>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Buy direct, drink better, and know exactly where your money goes.
+                </p>
               </div>
             </div>
           </div>
