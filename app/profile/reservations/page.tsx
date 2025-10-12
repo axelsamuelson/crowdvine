@@ -79,7 +79,10 @@ export default function ReservationsPage() {
 
   const fetchReservations = async () => {
     try {
+      console.log('[Reservations] Fetching reservations...');
       const response = await fetch("/api/user/reservations");
+      console.log('[Reservations] Response status:', response.status);
+      
       if (!response.ok) {
         if (response.status === 500) {
           setReservations([]);
@@ -90,12 +93,16 @@ export default function ReservationsPage() {
         throw new Error("Failed to fetch reservations");
       }
       const data = await response.json();
+      console.log('[Reservations] Data received:', data);
 
       if (Array.isArray(data)) {
+        console.log('[Reservations] Processing', data.length, 'reservations');
         setReservations(data);
         const addressPalletGroups = processAddressPalletData(data);
+        console.log('[Reservations] Created', addressPalletGroups.length, 'address/pallet groups');
         setAddressPalletData(addressPalletGroups);
       } else {
+        console.warn('[Reservations] Data is not an array:', data);
         setReservations([]);
         setAddressPalletData([]);
       }
@@ -390,14 +397,24 @@ export default function ReservationsPage() {
                               </span>
                             )}
                           </div>
-                          {group.paymentLink && (group.paymentStatus === 'pending' || group.paymentStatus === 'pending_payment') && (
-                            <Button 
-                              size="sm" 
-                              onClick={() => window.open(group.paymentLink, '_blank')}
-                              className="bg-black hover:bg-gray-800 text-white"
-                            >
-                              Pay Now
-                            </Button>
+                          {(group.paymentStatus === 'pending' || group.paymentStatus === 'pending_payment') && (
+                            group.paymentLink ? (
+                              <Button 
+                                size="sm" 
+                                onClick={() => window.open(group.paymentLink, '_blank')}
+                                className="bg-black hover:bg-gray-800 text-white"
+                              >
+                                Pay Now
+                              </Button>
+                            ) : (
+                              <Button 
+                                size="sm" 
+                                disabled
+                                className="bg-gray-300 text-gray-600 cursor-not-allowed"
+                              >
+                                Generating Link...
+                              </Button>
+                            )
                           )}
                         </div>
                         {group.paymentStatus === 'pending' || group.paymentStatus === 'pending_payment' ? (
