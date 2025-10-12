@@ -1,5 +1,4 @@
 import { Footer } from "@/components/layout/footer";
-import { Wine, Users, Globe, Award } from "lucide-react";
 
 export default function AboutPage() {
   return (
@@ -11,10 +10,10 @@ export default function AboutPage() {
             <div className="space-y-8">
               <div className="space-y-4">
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-light tracking-tight text-foreground">
-                  About PACT
+                  About
                 </h1>
                 <p className="text-lg md:text-xl text-muted-foreground font-light leading-relaxed">
-                  Producers And Consumers Together
+                  A smarter way to buy wine — together.
                 </p>
               </div>
               
@@ -22,83 +21,61 @@ export default function AboutPage() {
               
               <div className="space-y-6 text-base md:text-lg text-muted-foreground leading-relaxed font-light">
                 <p>
-                  PACT is a wine community that connects passionate consumers directly 
-                  with exceptional producers, creating a more transparent and rewarding 
-                  wine experience.
+                  We believe the way wine is bought and sold is long overdue for change.
+                  Too many hands between producer and drinker. Too much money lost in storage, shipping and markups.
+                  We built this platform to change that.
                 </p>
                 <p>
-                  By removing traditional intermediaries, we enable wine lovers to access 
-                  premium bottles at fair prices while ensuring producers receive the 
-                  value they deserve for their craft.
+                  Our model is simple — and transparent.
+                  Private consumers reserve wines directly from independent natural winemakers.
+                  When enough bottles are reserved to fill a pallet, the wines are shipped together — efficiently, sustainably, and at a fair price.
+                </p>
+                <p>
+                  No warehouses. No distributors. No unnecessary transport.
+                  Just real connection between the people who make wine and the people who love it.
+                </p>
+                <p>
+                  We call it crowdsourcing wine — a smarter, cleaner, and more human way to enjoy what&apos;s in your glass.
                 </p>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Values Section */}
+        {/* Philosophy Section */}
         <section className="p-sides pb-20 md:pb-32">
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl md:text-3xl font-light text-foreground mb-12">
-              Our Values
+            <h2 className="text-2xl md:text-3xl font-light text-foreground mb-8">
+              Our philosophy
             </h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Value 1 */}
-              <div className="space-y-4">
-                <div className="w-12 h-12 rounded-full bg-muted/30 flex items-center justify-center">
-                  <Wine className="w-6 h-6 text-foreground" />
-                </div>
-                <h3 className="text-lg font-medium text-foreground">
-                  Quality First
-                </h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  We partner exclusively with producers who prioritize quality, 
-                  sustainability, and authenticity in their winemaking process.
-                </p>
-              </div>
+            <div className="space-y-6 text-base md:text-lg text-muted-foreground leading-relaxed font-light">
+              <p>
+                We work exclusively with natural winemakers who farm organically and produce without additives.
+                Every bottle reflects a person, a place, and a philosophy — not a production line.
+                Transparency is at the heart of everything we do: from pricing to logistics to the winemakers we feature.
+              </p>
+            </div>
+          </div>
+        </section>
 
-              {/* Value 2 */}
-              <div className="space-y-4">
-                <div className="w-12 h-12 rounded-full bg-muted/30 flex items-center justify-center">
-                  <Users className="w-6 h-6 text-foreground" />
-                </div>
-                <h3 className="text-lg font-medium text-foreground">
-                  Community Driven
-                </h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Our membership system rewards engagement and creates a 
-                  community of wine enthusiasts who share knowledge and passion.
-                </p>
-              </div>
-
-              {/* Value 3 */}
-              <div className="space-y-4">
-                <div className="w-12 h-12 rounded-full bg-muted/30 flex items-center justify-center">
-                  <Globe className="w-6 h-6 text-foreground" />
-                </div>
-                <h3 className="text-lg font-medium text-foreground">
-                  Direct Access
-                </h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  No middlemen, no markups. Direct relationships between 
-                  producers and consumers ensure fair pricing and transparency.
-                </p>
-              </div>
-
-              {/* Value 4 */}
-              <div className="space-y-4">
-                <div className="w-12 h-12 rounded-full bg-muted/30 flex items-center justify-center">
-                  <Award className="w-6 h-6 text-foreground" />
-                </div>
-                <h3 className="text-lg font-medium text-foreground">
-                  Curated Selection
-                </h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Every wine in our collection is carefully selected and vetted 
-                  to ensure exceptional quality and value for our members.
-                </p>
-              </div>
+        {/* Why It Matters Section */}
+        <section className="p-sides pb-20 md:pb-32">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-2xl md:text-3xl font-light text-foreground mb-8">
+              Why it matters
+            </h2>
+            
+            <div className="space-y-6 text-base md:text-lg text-muted-foreground leading-relaxed font-light">
+              <p>
+                By pooling orders, we lower costs for everyone — producers earn more, and consumers pay less.
+                By removing warehouses and unnecessary shipping, we reduce waste and carbon footprint.
+                By connecting people directly, we make wine more personal, more sustainable, and more honest.
+              </p>
+              <p>
+                This isn&apos;t just a new platform.
+                It&apos;s a new relationship with wine.
+              </p>
             </div>
           </div>
         </section>
