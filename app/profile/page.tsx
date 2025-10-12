@@ -117,6 +117,15 @@ export default function ProfilePage() {
       fetchInvitations(),
       fetchProgressionBuffs(), // v2: fetch progression buffs
     ]).finally(() => setLoading(false));
+
+    // Check if returning from Stripe payment method setup
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("payment_method_added") === "true") {
+      toast.success("Payment method added successfully!");
+      // Clean URL
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, '', cleanUrl);
+    }
   }, []);
 
   // Real-time subscription for invitations and IP updates
@@ -368,6 +377,38 @@ export default function ProfilePage() {
       setCopiedUrl(true);
       toast.success("Link copied!");
       setTimeout(() => setCopiedUrl(false), 2000);
+    }
+  };
+
+  const handleAddPaymentMethod = async () => {
+    try {
+      if (!profile?.email) {
+        toast.error("Email is required to add payment method");
+        return;
+      }
+
+      console.log("🔄 Adding payment method from profile page");
+
+      // Redirect to Stripe setup with return URL to profile
+      const returnUrl = encodeURIComponent("/profile?payment_method_added=true");
+      const response = await fetch(`/api/checkout/setup?returnUrl=${returnUrl}`);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        toast.error(errorData.error || "Failed to setup payment method");
+        return;
+      }
+
+      const setupData = await response.json();
+      if (setupData.url) {
+        console.log("✅ Redirecting to Stripe setup");
+        window.location.href = setupData.url;
+      } else {
+        toast.error("Failed to setup payment method");
+      }
+    } catch (error) {
+      console.error("Error adding payment method:", error);
+      toast.error("Failed to add payment method");
     }
   };
 
@@ -683,7 +724,10 @@ export default function ProfilePage() {
                   </div>
                   <h3 className="text-lg font-light text-gray-900 mb-1">No payment methods</h3>
                   <p className="text-sm text-gray-500 mb-6">Add a payment method to start making reservations</p>
-                  <Button className="rounded-full px-8 bg-gray-900 hover:bg-gray-800 text-white">
+                  <Button 
+                    onClick={handleAddPaymentMethod}
+                    className="rounded-full px-8 bg-gray-900 hover:bg-gray-800 text-white"
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Add Payment Method
                   </Button>
