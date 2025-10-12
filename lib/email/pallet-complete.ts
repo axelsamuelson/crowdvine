@@ -11,12 +11,11 @@ export async function triggerPaymentNotifications(palletId: string): Promise<voi
   
   try {
     // Get all reservations for this pallet that need payment
-    // Include both 'placed' (old reservations) and 'pending_payment' (new reservations)
+    // Note: quantity is in order_reservation_items, not order_reservations
     const { data: reservations, error: reservationsError } = await supabase
       .from('order_reservations')
       .select(`
         id,
-        quantity,
         total_amount_cents,
         payment_deadline,
         status,
@@ -69,7 +68,17 @@ export async function triggerPaymentNotifications(palletId: string): Promise<voi
  * Send payment notification email for a single reservation
  */
 async function sendPaymentNotification(reservation: any): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  
   try {
+    // Get bottle count from order_reservation_items
+    const { data: items } = await supabase
+      .from('order_reservation_items')
+      .select('quantity')
+      .eq('reservation_id', reservation.id);
+    
+    const bottleCount = items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+    
     // Create payment link
     const paymentLink = await createPaymentLinkForReservation(reservation.id);
     
@@ -86,7 +95,7 @@ async function sendPaymentNotification(reservation: any): Promise<void> {
       to: reservation.profiles.email,
       name: reservation.profiles.full_name || 'Friend',
       palletName: reservation.pallets?.name || 'Your Pallet',
-      bottleCount: reservation.quantity,
+      bottleCount: bottleCount,
       totalAmount: (reservation.total_amount_cents / 100).toFixed(2),
       paymentLink: paymentLink,
       deadline: deadlineStr,

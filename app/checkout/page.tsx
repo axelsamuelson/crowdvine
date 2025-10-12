@@ -705,7 +705,7 @@ function CheckoutContent() {
                   
                   {/* Total */}
               <div className="flex justify-between text-base font-semibold text-gray-900">
-                <span>Total</span>
+                    <span>Total</span>
                     <span>
                   {Math.round(total)}{" "}
                   {cart.cost.totalAmount.currencyCode}
