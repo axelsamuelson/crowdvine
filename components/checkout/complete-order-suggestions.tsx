@@ -47,19 +47,26 @@ export function CompleteOrderSuggestions({
     const fetchSuggestions = async () => {
       setLoading(true);
       try {
-        // Get all producer IDs from validations (including valid ones for upsell)
-        const producerIds = validations.map((v) => v.producerId);
+        const allProducts: Product[] = [];
 
-        // Fetch products from these producers
-        const productsPromises = producerIds.map((producerId) =>
-          fetch(`/api/crowdvine/collections/${producerId}/products?limit=12`).then((r) =>
-            r.json()
-          )
-        );
+        // For each validation (producer or group)
+        for (const validation of validations) {
+          if (validation.groupId) {
+            // It's a producer group - fetch from group endpoint
+            console.log("🔍 Fetching wines from group:", validation.groupName);
+            const response = await fetch(`/api/shop/group/${validation.groupId}/products?limit=20`);
+            const products = await response.json();
+            allProducts.push(...products);
+          } else {
+            // Single producer - fetch from producer endpoint
+            console.log("🔍 Fetching wines from producer:", validation.producerName);
+            const response = await fetch(`/api/crowdvine/collections/${validation.producerId}/products?limit=12`);
+            const products = await response.json();
+            allProducts.push(...products);
+          }
+        }
 
-        const productsArrays = await Promise.all(productsPromises);
-        const allProducts = productsArrays.flat();
-
+        console.log("✅ Total suggested products:", allProducts.length);
         setSuggestedProducts(allProducts);
       } catch (error) {
         console.error("Error fetching suggestions:", error);

@@ -68,10 +68,16 @@ export function CartValidationDisplay({
 
           {/* Validation for each producer */}
           <div className="space-y-2">
-            {validations.map((validation, index) => (
+            {validations.map((validation, index) => {
+              // If it's a group, link to group page; otherwise link to producer page
+              const href = validation.groupId 
+                ? `/shop/group/${validation.groupId}`
+                : `/shop/${validation.producerHandle}`;
+              
+              return (
               <Link
                 key={index}
-                href={`/shop/${validation.producerHandle}`}
+                href={href}
                 className={`block p-2 rounded-md border transition-all ${
                   validation.isValid
                     ? "bg-green-50/50 border-green-200 hover:bg-green-100/50"
@@ -106,7 +112,8 @@ export function CartValidationDisplay({
                   </div>
                 </div>
               </Link>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
