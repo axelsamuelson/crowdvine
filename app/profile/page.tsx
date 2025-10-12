@@ -235,7 +235,8 @@ export default function ProfilePage() {
       const res = await fetch("/api/user/reservations");
       if (res.ok) {
         const data = await res.json();
-        setReservations(data.reservations || []);
+        // API returns array directly, not wrapped in object
+        setReservations(Array.isArray(data) ? data : []);
       }
     } catch (error) {
       console.error("Error fetching reservations:", error);
