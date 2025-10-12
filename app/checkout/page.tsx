@@ -149,6 +149,7 @@ function CheckoutContent() {
   // Validate cart on load and when cart changes
   useEffect(() => {
     if (!cart || cart.totalQuantity === 0) {
+      console.log("🔍 [Checkout] Cart empty, skipping validation");
       setValidations([]);
       setIsValidCart(true);
       return;
@@ -156,10 +157,16 @@ function CheckoutContent() {
 
     const validateCart = async () => {
       try {
+        console.log("🔍 [Checkout] Validating cart with", cart.totalQuantity, "bottles");
         const response = await fetch("/api/cart/validate");
         const result = await response.json();
+        console.log("✅ [Checkout] Validation complete:", {
+          isValid: result.isValid,
+          validations: result.producerValidations?.length || 0
+        });
         setValidations(result.producerValidations || []);
         setIsValidCart(result.isValid);
+        console.log("🎯 [Checkout] Updated isValidCart to:", result.isValid);
       } catch (error) {
         console.error("Validation error:", error);
         setValidations([]);
@@ -195,9 +202,14 @@ function CheckoutContent() {
 
   const fetchCart = async () => {
     try {
+      console.log("🔄 [Checkout] Fetching cart...");
       const response = await fetch("/api/crowdvine/cart");
       if (response.ok) {
         const cartData = await response.json();
+        console.log("✅ [Checkout] Cart updated:", {
+          totalQuantity: cartData.totalQuantity,
+          items: cartData.lines?.length || 0
+        });
         setCart(cartData);
       }
     } catch (error) {
