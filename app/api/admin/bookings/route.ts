@@ -93,9 +93,11 @@ export async function GET() {
         status,
         created_at,
         user_id,
-        order_id,
-        payment_status,
-        fulfillment_status
+        cart_id,
+        address_id,
+        pallet_id,
+        delivery_zone_id,
+        pickup_zone_id
       `,
       )
       .order("created_at", { ascending: false });

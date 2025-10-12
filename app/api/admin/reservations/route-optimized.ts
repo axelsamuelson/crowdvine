@@ -33,11 +33,11 @@ export async function GET() {
         status,
         created_at,
         user_id,
-        order_id,
         delivery_zone_id,
         pickup_zone_id,
-        payment_status,
-        fulfillment_status,
+        cart_id,
+        address_id,
+        pallet_id,
         profiles(
           email,
           full_name

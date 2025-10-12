@@ -49,19 +49,13 @@ CREATE VIEW orders_with_customers AS
 SELECT 
   r.id,
   r.user_id,
-  r.order_id,
   r.status,
   r.created_at,
-  r.updated_at,
   r.cart_id,
   r.address_id,
   r.pallet_id,
   r.pickup_zone_id,
   r.delivery_zone_id,
-  r.payment_status,
-  r.fulfillment_status,
-  r.total_amount_cents,
-  r.shipping_cost_cents,
   
   -- Customer info from profiles
   p.email as customer_email,
