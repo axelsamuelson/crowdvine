@@ -96,7 +96,8 @@ export async function createPaymentLinkForReservation(reservationId: string): Pr
       }],
       success_url: `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/payment/cancelled?reservation_id=${reservationId}`,
-      expires_at: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60), // 7 days from now
+      // Note: Stripe Checkout Sessions max 24h, we handle 7-day deadline in our DB
+      // expires_at: removed - use default 24h expiration, regenerate link if needed
       metadata: {
         reservation_id: reservationId,
         pallet_id: reservation.pallet_id,
