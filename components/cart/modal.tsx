@@ -81,7 +81,7 @@ const CartItems = ({ closeCart, validations, isValidating }: { closeCart: () => 
             </p>
           </div>
         </div>
-        <CheckoutButton closeCart={closeCart} validations={validations} />
+        <CheckoutButton closeCart={closeCart} validations={validations} isValidating={isValidating} />
       </CartContainer>
     </div>
   );
@@ -105,18 +105,18 @@ export default function CartModal() {
 
   useBodyScrollLock(isOpen);
 
-  // Validate cart whenever it changes
+  // Validate cart whenever it changes (with debounce)
   useEffect(() => {
     if (!cart || cart.lines.length === 0) {
       setValidations([]);
       return;
     }
 
-    const validateCart = async () => {
+    // Debounce validation to avoid too many API calls
+    const timeoutId = setTimeout(async () => {
       setIsValidating(true);
       try {
         console.log("🔍 [Cart Modal] Validating cart with", cart.lines.length, "items");
-        console.log("🔍 [Cart Modal] Sample cart item:", cart.lines[0]);
         
         // Call API endpoint instead of running validation client-side
         const response = await fetch("/api/cart/validate");
@@ -130,9 +130,9 @@ export default function CartModal() {
       } finally {
         setIsValidating(false);
       }
-    };
+    }, 300); // 300ms debounce
 
-    validateCart();
+    return () => clearTimeout(timeoutId);
   }, [cart]);
 
   useEffect(() => {
@@ -284,7 +284,7 @@ export default function CartModal() {
   );
 }
 
-function CheckoutButton({ closeCart, validations = [] }: { closeCart: () => void; validations?: ProducerValidation[] }) {
+function CheckoutButton({ closeCart, validations = [], isValidating = false }: { closeCart: () => void; validations?: ProducerValidation[]; isValidating?: boolean }) {
   const { pending } = useFormStatus();
   const { cart, isPending } = useCart();
   const router = useRouter();
@@ -303,7 +303,7 @@ function CheckoutButton({ closeCart, validations = [] }: { closeCart: () => void
     ? `/shop/${firstInvalidValidation.producerHandle}`
     : '/shop';
 
-  const isLoading = pending;
+  const isLoading = pending || isValidating;
   const isDisabled = !checkoutUrl || isPending;
 
   return (
@@ -341,9 +341,11 @@ function CheckoutButton({ closeCart, validations = [] }: { closeCart: () => void
           ) : (
             <div className="flex justify-between items-center w-full">
               <span>
-                {hasValidationErrors 
-                  ? `${invalidValidations.length} producer${invalidValidations.length > 1 ? 's' : ''} need${invalidValidations.length === 1 ? 's' : ''} more bottles`
-                  : "Proceed to Checkout"
+                {isValidating 
+                  ? "Validating..."
+                  : hasValidationErrors 
+                    ? `${invalidValidations.length} producer${invalidValidations.length > 1 ? 's' : ''} need${invalidValidations.length === 1 ? 's' : ''} more bottles`
+                    : "Proceed to Checkout"
                 }
               </span>
               <ArrowRight className="size-6" />
