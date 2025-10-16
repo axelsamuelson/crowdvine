@@ -31,10 +31,10 @@ export function PriceWithBreakdown({ product }: PriceWithBreakdownProps) {
 
   // Calculate breakdown when component mounts or discount changes
   useEffect(() => {
-    const calculateBreakdown = async () => {
+    const calculateBreakdown = () => {
       setBreakdownLoading(true);
       try {
-        const result = await calculatePriceBreakdown(
+        const result = calculatePriceBreakdown(
           {
             cost_amount: product.priceBreakdown!.costAmount,
             exchange_rate: product.priceBreakdown!.exchangeRate,

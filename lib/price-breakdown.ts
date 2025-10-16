@@ -17,49 +17,17 @@ export interface PriceBreakdownResult {
 }
 
 /**
- * Fetch current exchange rate from API
- * @param from - Source currency (e.g., 'EUR')
- * @param to - Target currency (e.g., 'SEK')
- * @returns Exchange rate
- */
-async function fetchExchangeRate(from: string, to: string): Promise<number> {
-  try {
-    const response = await fetch(
-      `/api/exchange-rates?from=${from}&to=${to}`,
-      { cache: 'no-store' } // Always get fresh rate
-    );
-    
-    if (!response.ok) {
-      throw new Error(`Exchange rate API error: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data.rate;
-  } catch (error) {
-    console.error('Failed to fetch exchange rate:', error);
-    // Fallback to stored exchange rate or default
-    return 11.25; // Default EUR to SEK rate
-  }
-}
-
-/**
- * Calculate detailed price breakdown for a wine
+ * Calculate detailed price breakdown for a wine by working backwards from final price
  * @param wine - Wine pricing data from database
  * @param memberDiscountPercent - Member discount percentage (0-100)
  * @returns Detailed price breakdown in SEK
  */
-export async function calculatePriceBreakdown(
+export function calculatePriceBreakdown(
   wine: WinePricingData,
   memberDiscountPercent: number = 0
-): Promise<PriceBreakdownResult> {
-  // Fetch current exchange rate from API (assuming cost is in EUR)
-  const currentExchangeRate = await fetchExchangeRate('EUR', 'SEK');
-  
-  // Convert cost from EUR to SEK using current exchange rate
-  const costInSek = wine.cost_amount * currentExchangeRate;
-  
-  // Convert alcohol tax from öre to SEK
-  const alcoholTax = wine.alcohol_tax_cents / 100;
+): PriceBreakdownResult {
+  // Start with the final calculated price (in SEK)
+  const totalPrice = wine.base_price_cents / 100;
   
   // Store original margin percentage for display
   const originalMarginPercentage = wine.margin_percentage;
@@ -67,24 +35,34 @@ export async function calculatePriceBreakdown(
   // Apply member discount to margin percentage
   const marginPercent = wine.margin_percentage * (1 - memberDiscountPercent / 100);
   
+  // Convert alcohol tax from öre to SEK
+  const alcoholTax = wine.alcohol_tax_cents / 100;
+  
+  // Work backwards from total price
+  // Total = (Cost + Margin + Alcohol Tax) * 1.25 (VAT)
+  // So: Cost + Margin + Alcohol Tax = Total / 1.25
+  const priceBeforeVat = totalPrice / 1.25;
+  
+  // VAT = Total - Price before VAT
+  const vat = totalPrice - priceBeforeVat;
+  
+  // Now we need to solve: Cost + Margin + Alcohol Tax = Price before VAT
+  // Where Margin = Cost * (marginPercent / 100)
+  // So: Cost + (Cost * marginPercent/100) + Alcohol Tax = Price before VAT
+  // Rearranging: Cost * (1 + marginPercent/100) = Price before VAT - Alcohol Tax
+  // So: Cost = (Price before VAT - Alcohol Tax) / (1 + marginPercent/100)
+  
+  const costInSek = (priceBeforeVat - alcoholTax) / (1 + marginPercent / 100);
+  
   // Calculate margin amount
   const margin = costInSek * (marginPercent / 100);
-  
-  // Price before VAT
-  const priceBeforeVat = costInSek + margin + alcoholTax;
-  
-  // VAT (25% in Sweden)
-  const vat = priceBeforeVat * 0.25;
-  
-  // Total price
-  const total = priceBeforeVat + vat;
   
   return {
     cost: costInSek,
     alcoholTax,
     margin,
     vat,
-    total,
+    total: totalPrice,
     marginPercentage: marginPercent,
     originalMarginPercentage,
   };
@@ -121,22 +99,17 @@ export function calculatePercentages(breakdown: PriceBreakdownResult) {
 }
 
 /**
- * Synchronous version for cases where we already have the exchange rate
+ * Synchronous version working backwards from final price
  * @param wine - Wine pricing data from database
  * @param memberDiscountPercent - Member discount percentage (0-100)
- * @param exchangeRate - Current exchange rate (EUR to SEK)
  * @returns Detailed price breakdown in SEK
  */
 export function calculatePriceBreakdownSync(
   wine: WinePricingData,
-  memberDiscountPercent: number = 0,
-  exchangeRate: number = 11.25
+  memberDiscountPercent: number = 0
 ): PriceBreakdownResult {
-  // Convert cost from EUR to SEK using provided exchange rate
-  const costInSek = wine.cost_amount * exchangeRate;
-  
-  // Convert alcohol tax from öre to SEK
-  const alcoholTax = wine.alcohol_tax_cents / 100;
+  // Start with the final calculated price (in SEK)
+  const totalPrice = wine.base_price_cents / 100;
   
   // Store original margin percentage for display
   const originalMarginPercentage = wine.margin_percentage;
@@ -144,24 +117,34 @@ export function calculatePriceBreakdownSync(
   // Apply member discount to margin percentage
   const marginPercent = wine.margin_percentage * (1 - memberDiscountPercent / 100);
   
+  // Convert alcohol tax from öre to SEK
+  const alcoholTax = wine.alcohol_tax_cents / 100;
+  
+  // Work backwards from total price
+  // Total = (Cost + Margin + Alcohol Tax) * 1.25 (VAT)
+  // So: Cost + Margin + Alcohol Tax = Total / 1.25
+  const priceBeforeVat = totalPrice / 1.25;
+  
+  // VAT = Total - Price before VAT
+  const vat = totalPrice - priceBeforeVat;
+  
+  // Now we need to solve: Cost + Margin + Alcohol Tax = Price before VAT
+  // Where Margin = Cost * (marginPercent / 100)
+  // So: Cost + (Cost * marginPercent/100) + Alcohol Tax = Price before VAT
+  // Rearranging: Cost * (1 + marginPercent/100) = Price before VAT - Alcohol Tax
+  // So: Cost = (Price before VAT - Alcohol Tax) / (1 + marginPercent/100)
+  
+  const costInSek = (priceBeforeVat - alcoholTax) / (1 + marginPercent / 100);
+  
   // Calculate margin amount
   const margin = costInSek * (marginPercent / 100);
-  
-  // Price before VAT
-  const priceBeforeVat = costInSek + margin + alcoholTax;
-  
-  // VAT (25% in Sweden)
-  const vat = priceBeforeVat * 0.25;
-  
-  // Total price
-  const total = priceBeforeVat + vat;
   
   return {
     cost: costInSek,
     alcoholTax,
     margin,
     vat,
-    total,
+    total: totalPrice,
     marginPercentage: marginPercent,
     originalMarginPercentage,
   };
