@@ -680,10 +680,17 @@ export default function ProfilePage() {
                   payment_status: r.payment_status 
                 })));
                 
-                const pendingPaymentReservations = reservations.filter(r => 
-                  (r.payment_status === 'pending' || r.status === 'pending_payment') && 
-                  r.pallet_is_complete === true
-                );
+                const pendingPaymentReservations = reservations.filter(r => {
+                  // Count bottles in this reservation
+                  const reservationBottles = r.items?.reduce((total: number, item: any) => total + (item.quantity || 0), 0) || 0;
+                  
+                  // Only show payment required if pallet is actually full (not incorrectly marked)
+                  return (r.payment_status === 'pending' || r.status === 'pending_payment') && 
+                         r.pallet_is_complete === true &&
+                         r.pallet_capacity && 
+                         r.pallet_capacity > 0 &&
+                         reservationBottles >= 50; // Safety threshold
+                });
                 
                 console.log('Pending payment reservations:', pendingPaymentReservations.length);
                 
