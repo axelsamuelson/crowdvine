@@ -40,106 +40,114 @@ export function PriceComparisonVisual() {
         className="space-y-3"
       >
         <h3 className="text-sm font-light text-gray-900 text-center">
-          Who gets your money?
+          Cost breakdown (SEK)
         </h3>
         
         {/* PACT */}
         <div className="space-y-1">
-          <div className="text-xs text-gray-700 text-center">PACT</div>
-          <div className="w-full h-4 bg-gray-100 rounded-full overflow-hidden flex">
+          <div className="text-xs text-gray-700 text-center">PACT - 219 kr</div>
+          <div className="h-4 bg-gray-100 rounded-full overflow-hidden flex mx-auto" style={{ width: '60%' }}>
             <motion.div
               initial={{ width: 0 }}
-              animate={{ width: "85%" }}
+              animate={{ width: "73%" }}
               transition={{ duration: 0.8, delay: 0.8 }}
               className="bg-green-500 flex items-center justify-center text-xs font-medium text-white"
             >
-              Producer 85%
+              Producer 160 kr
             </motion.div>
             <motion.div
               initial={{ width: 0 }}
-              animate={{ width: "15%" }}
+              animate={{ width: "18%" }}
               transition={{ duration: 0.8, delay: 0.9 }}
               className="bg-green-300 flex items-center justify-center text-xs font-medium text-white"
             >
-              Platform 15%
+              Margin 39 kr
+            </motion.div>
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: "9%" }}
+              transition={{ duration: 0.8, delay: 1.0 }}
+              className="bg-slate-400 flex items-center justify-center text-xs font-medium text-white"
+            >
+              Tax 20 kr
             </motion.div>
           </div>
         </div>
 
         {/* Systembolaget */}
         <div className="space-y-1">
-          <div className="text-xs text-gray-700 text-center">Systembolaget</div>
-          <div className="w-full h-4 bg-gray-100 rounded-full overflow-hidden flex">
+          <div className="text-xs text-gray-700 text-center">Systembolaget - 269 kr</div>
+          <div className="h-4 bg-gray-100 rounded-full overflow-hidden flex mx-auto" style={{ width: '75%' }}>
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: "40%" }}
-              transition={{ duration: 0.8, delay: 1.0 }}
+              transition={{ duration: 0.8, delay: 1.1 }}
               className="bg-red-500 flex items-center justify-center text-xs font-medium text-white"
             >
-              Taxes 40%
+              Taxes 108 kr
             </motion.div>
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: "25%" }}
-              transition={{ duration: 0.8, delay: 1.1 }}
+              transition={{ duration: 0.8, delay: 1.2 }}
               className="bg-red-300 flex items-center justify-center text-xs font-medium text-white"
             >
-              Retail 25%
+              Retail 67 kr
             </motion.div>
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: "20%" }}
-              transition={{ duration: 0.8, delay: 1.2 }}
+              transition={{ duration: 0.8, delay: 1.3 }}
               className="bg-red-200 flex items-center justify-center text-xs font-medium text-white"
             >
-              Importer 20%
+              Importer 54 kr
             </motion.div>
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: "15%" }}
-              transition={{ duration: 0.8, delay: 1.3 }}
+              transition={{ duration: 0.8, delay: 1.4 }}
               className="bg-green-500 flex items-center justify-center text-xs font-medium text-white"
             >
-              Producer 15%
+              Producer 40 kr
             </motion.div>
           </div>
         </div>
 
         {/* E-commerce */}
         <div className="space-y-1">
-          <div className="text-xs text-gray-700 text-center">E-commerce</div>
-          <div className="w-full h-4 bg-gray-100 rounded-full overflow-hidden flex">
+          <div className="text-xs text-gray-700 text-center">E-commerce - 369 kr</div>
+          <div className="h-4 bg-gray-100 rounded-full overflow-hidden flex mx-auto" style={{ width: '100%' }}>
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: "35%" }}
-              transition={{ duration: 0.8, delay: 1.4 }}
+              transition={{ duration: 0.8, delay: 1.5 }}
               className="bg-blue-500 flex items-center justify-center text-xs font-medium text-white"
             >
-              Marketing 35%
+              Marketing 129 kr
             </motion.div>
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: "30%" }}
-              transition={{ duration: 0.8, delay: 1.5 }}
+              transition={{ duration: 0.8, delay: 1.6 }}
               className="bg-blue-300 flex items-center justify-center text-xs font-medium text-white"
             >
-              Logistics 30%
+              Logistics 111 kr
             </motion.div>
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: "25%" }}
-              transition={{ duration: 0.8, delay: 1.6 }}
+              transition={{ duration: 0.8, delay: 1.7 }}
               className="bg-blue-200 flex items-center justify-center text-xs font-medium text-white"
             >
-              Platform 25%
+              Platform 92 kr
             </motion.div>
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: "10%" }}
-              transition={{ duration: 0.8, delay: 1.7 }}
+              transition={{ duration: 0.8, delay: 1.8 }}
               className="bg-green-500 flex items-center justify-center text-xs font-medium text-white"
             >
-              Producer 10%
+              Producer 37 kr
             </motion.div>
           </div>
         </div>
