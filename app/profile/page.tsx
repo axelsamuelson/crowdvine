@@ -681,7 +681,8 @@ export default function ProfilePage() {
                 })));
                 
                 const pendingPaymentReservations = reservations.filter(r => 
-                  r.payment_status === 'pending' || r.status === 'pending_payment'
+                  (r.payment_status === 'pending' || r.status === 'pending_payment') && 
+                  r.pallet_is_complete === true
                 );
                 
                 console.log('Pending payment reservations:', pendingPaymentReservations.length);

@@ -48,11 +48,13 @@ export async function GET() {
             let palletName = "Unassigned Pallet";
             let palletId = null;
             let palletCapacity = null;
+            let palletIsComplete = false;
+            let palletStatus = null;
 
             if (reservation.pickup_zone_id && reservation.delivery_zone_id) {
               const { data: pallet } = await supabase
                 .from("pallets")
-                .select("id, name, bottle_capacity")
+                .select("id, name, bottle_capacity, is_complete, status")
                 .eq("pickup_zone_id", reservation.pickup_zone_id)
                 .eq("delivery_zone_id", reservation.delivery_zone_id)
                 .single();
@@ -61,6 +63,8 @@ export async function GET() {
                 palletName = pallet.name;
                 palletId = pallet.id;
                 palletCapacity = pallet.bottle_capacity;
+                palletIsComplete = pallet.is_complete || false;
+                palletStatus = pallet.status;
               }
             }
 
@@ -127,6 +131,8 @@ export async function GET() {
               pallet_id: palletId,
               pallet_name: palletName,
               pallet_capacity: palletCapacity,
+              pallet_is_complete: palletIsComplete,
+              pallet_status: palletStatus,
               delivery_address: deliveryAddress,
               total_cost_cents: totalCostCents,
               items: itemsWithCosts,

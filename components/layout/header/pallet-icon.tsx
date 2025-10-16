@@ -75,11 +75,15 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
         console.log(`📦 First reservation status:`, reservationsData[0]?.status);
         setReservations(reservationsData);
         
-        // Check for pending payments
-        const pendingPayments = reservationsData.filter((res: any) =>
-          res.payment_status === 'pending' || res.status === 'pending_payment'
-        );
-        console.log(`💳 Pending payments found:`, pendingPayments.length);
+        // Check for pending payments - only when pallet is complete (100% full)
+        const pendingPayments = reservationsData.filter((res: any) => {
+          // Only show payment notification if:
+          // 1. Reservation has pending payment status AND
+          // 2. The pallet is marked as complete (100% full)
+          return (res.payment_status === 'pending' || res.status === 'pending_payment') && 
+                 res.pallet_is_complete === true;
+        });
+        console.log(`💳 Pending payments found (pallet complete):`, pendingPayments.length);
         setHasPendingPayments(pendingPayments.length > 0);
         
         // Calculate max percent among active pallets
@@ -268,7 +272,7 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
       palletMap.set(palletId, {
         id: palletId,
         name: palletName,
-        capacity: 120, // Assume 120 bottle capacity per pallet
+        capacity: reservation.pallet_capacity || 120, // Use actual capacity from API
         status: mapStatus(reservation.status || 'pending'),
         totalReservedBottles: 0, // Total bottles reserved by all users
         myReservedBottles: 0,    // Bottles reserved by current user
@@ -392,8 +396,11 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        {/* Payment Required Badge */}
-                        {pallet.reservations.some((r: any) => r.payment_status === 'pending' || r.status === 'pending_payment') && (
+                        {/* Payment Required Badge - only when pallet is complete */}
+                        {pallet.reservations.some((r: any) => 
+                          (r.payment_status === 'pending' || r.status === 'pending_payment') && 
+                          r.pallet_is_complete === true
+                        ) && (
                           <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-[9px] font-medium tracking-wide px-1.5 py-0.5">
                             Payment Required
                           </Badge>
