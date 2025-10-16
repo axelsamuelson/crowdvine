@@ -11,8 +11,9 @@ interface BarColumnProps {
 }
 
 function BarColumn({ label, totalPrice, essentialCosts, overheadCosts, highlight = false }: BarColumnProps) {
-  // Fixed height for all bars to ensure consistent module sizes
-  const barHeight = 200;
+  // Calculate proportional heights based on total price comparison
+  const maxPrice = 280; // Traditional price as reference
+  const barHeight = (totalPrice / maxPrice) * 200; // Scale based on price difference
   const essentialHeight = (essentialCosts / totalPrice) * barHeight;
   const overheadHeight = (overheadCosts / totalPrice) * barHeight;
   
@@ -23,7 +24,7 @@ function BarColumn({ label, totalPrice, essentialCosts, overheadCosts, highlight
         className={`relative w-16 md:w-20 transition-all duration-300 ${
           highlight ? 'ring-2 ring-green-500/30 shadow-lg' : ''
         }`}
-        style={{ height: barHeight }}
+        style={{ height: 200 }} // Fixed container height
       >
         <div className="absolute bottom-0 w-full flex flex-col">
           {/* Essential costs - same for all */}
@@ -83,7 +84,7 @@ export function PriceComparisonVisual() {
   };
 
   return (
-    <div className="space-y-6 max-w-md mx-auto min-h-[280px] flex flex-col justify-center">
+    <div className="space-y-6 max-w-md mx-auto h-[280px] flex flex-col justify-center">
       {/* Explanatory text */}
       <motion.p 
         initial={{ opacity: 0, y: 10 }}
