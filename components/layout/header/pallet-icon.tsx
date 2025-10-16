@@ -19,6 +19,7 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
   const [maxPalletPercent, setMaxPalletPercent] = useState<number | null>(null);
   const [hasActivePallets, setHasActivePallets] = useState(false);
   const [hasPendingPayments, setHasPendingPayments] = useState(false);
+  const [hasNinetyPercentWarning, setHasNinetyPercentWarning] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [reservations, setReservations] = useState<any[]>([]);
   const [palletData, setPalletData] = useState<Map<string, any>>(new Map());
@@ -54,6 +55,7 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
         setMaxPalletPercent(null);
         setHasActivePallets(false);
         setHasPendingPayments(false);
+        setHasNinetyPercentWarning(false);
       }
     } catch (error) {
       console.error("Error checking auth status:", error);
@@ -61,6 +63,7 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
       setMaxPalletPercent(null);
       setHasActivePallets(false);
       setHasPendingPayments(false);
+      setHasNinetyPercentWarning(false);
     } finally {
       setLoading(false);
     }
@@ -97,6 +100,22 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
       });
         console.log(`💳 Pending payments found (pallet complete):`, pendingPayments.length);
         setHasPendingPayments(pendingPayments.length > 0);
+        
+        // Check for 90% warning - pallets that are getting close to full but not yet complete
+        const ninetyPercentPallets = reservationsData.filter((res: any) => {
+          const reservationBottles = res.items?.reduce((total: number, item: any) => total + (item.quantity || 0), 0) || 0;
+          const percentFull = res.pallet_capacity ? (reservationBottles / res.pallet_capacity) * 100 : 0;
+          
+          // Show warning if pallet is 90%+ full but not complete and no pending payments
+          return percentFull >= 90 && 
+                 !res.pallet_is_complete && 
+                 res.pallet_capacity && 
+                 res.pallet_capacity > 0 &&
+                 res.status !== 'pending_payment';
+        });
+        
+        console.log(`⚠️ 90% warning pallets found:`, ninetyPercentPallets.length);
+        setHasNinetyPercentWarning(ninetyPercentPallets.length > 0);
         
         // Calculate max percent among active pallets
         const activePallets = reservationsData.filter((res: any) => 
@@ -201,6 +220,7 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
       setMaxPalletPercent(null);
       setHasActivePallets(false);
       setHasPendingPayments(false);
+      setHasNinetyPercentWarning(false);
       setReservations([]);
       setPalletData(new Map());
     }
@@ -327,33 +347,43 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
       >
         {/* Ultra-thin progress halo for active pallets */}
-        <div className="relative">
-          <Package className={`${sizeClasses[size]} ${hasPendingPayments ? 'text-amber-500' : 'text-foreground'}`} />
-          
-          {/* Existing progress halo - hide when payment required */}
-          {maxPalletPercent !== null && !hasPendingPayments && (
-            <ProgressHalo 
-              valuePercent={maxPalletPercent} 
-              size="sm" 
-              className="absolute inset-0 opacity-40 pointer-events-none"
-            />
-          )}
-          
-          {/* Payment notification badge - priority over pallet count */}
-          {hasPendingPayments ? (
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center animate-pulse pointer-events-none">
-              <span className="text-white text-[10px] font-bold leading-none">!</span>
-            </div>
-          ) : hasActivePallets && sortedPallets.length > 0 && (
-            <div className="absolute -top-0.5 -right-0.5 min-w-[10px] h-[10px] flex items-center justify-center bg-foreground text-background rounded-full pointer-events-none">
-              <span className="text-[7px] font-semibold leading-none px-[2px]">
-                {sortedPallets.length}
-              </span>
-            </div>
-          )}
-        </div>
+      <div className="relative">
+        <Package className={`${sizeClasses[size]} ${
+          hasPendingPayments ? 'text-amber-500' : 
+          hasNinetyPercentWarning ? 'text-blue-500' : 
+          'text-foreground'
+        }`} />
+        
+        {/* Existing progress halo - hide when payment required or 90% warning */}
+        {maxPalletPercent !== null && !hasPendingPayments && !hasNinetyPercentWarning && (
+          <ProgressHalo 
+            valuePercent={maxPalletPercent} 
+            size="sm" 
+            className="absolute inset-0 opacity-40 pointer-events-none"
+          />
+        )}
+        
+        {/* Badge priority: Payment > 90% Warning > Normal Count */}
+        {hasPendingPayments ? (
+          <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center animate-pulse pointer-events-none">
+            <span className="text-white text-[10px] font-bold leading-none">!</span>
+          </div>
+        ) : hasNinetyPercentWarning ? (
+          <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center animate-pulse pointer-events-none">
+            <span className="text-white text-[10px] font-bold leading-none">!</span>
+          </div>
+        ) : hasActivePallets && sortedPallets.length > 0 && (
+          <div className="absolute -top-0.5 -right-0.5 min-w-[10px] h-[10px] flex items-center justify-center bg-foreground text-background rounded-full pointer-events-none">
+            <span className="text-[7px] font-semibold leading-none px-[2px]">
+              {sortedPallets.length}
+            </span>
+          </div>
+        )}
+      </div>
         <span className="absolute sr-only">
-          {hasPendingPayments ? "Payment Required" : hasActivePallets ? `${sortedPallets.length} Active Pallets` : "Pallets"}
+          {hasPendingPayments ? "Payment Required" : 
+           hasNinetyPercentWarning ? "Pallet Nearly Full" : 
+           hasActivePallets ? `${sortedPallets.length} Active Pallets` : "Pallets"}
         </span>
       </button>
 
@@ -419,6 +449,24 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
                         }) && (
                           <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-[9px] font-medium tracking-wide px-1.5 py-0.5">
                             Payment Required
+                          </Badge>
+                        )}
+                        
+                        {/* 90% Warning Badge - when pallet is nearly full */}
+                        {!pallet.reservations.some((r: any) => {
+                          const reservationBottles = r.items?.reduce((total: number, item: any) => total + (item.quantity || 0), 0) || 0;
+                          return (r.payment_status === 'pending' || r.status === 'pending_payment') && 
+                                 r.pallet_is_complete === true;
+                        }) && pallet.reservations.some((r: any) => {
+                          const reservationBottles = r.items?.reduce((total: number, item: any) => total + (item.quantity || 0), 0) || 0;
+                          const percentFull = r.pallet_capacity ? (reservationBottles / r.pallet_capacity) * 100 : 0;
+                          return percentFull >= 90 && 
+                                 !r.pallet_is_complete && 
+                                 r.pallet_capacity && 
+                                 r.pallet_capacity > 0;
+                        }) && (
+                          <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-[9px] font-medium tracking-wide px-1.5 py-0.5">
+                            Nearly Full
                           </Badge>
                         )}
                         {/* Pallet Status Badge */}

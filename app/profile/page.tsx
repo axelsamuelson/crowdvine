@@ -477,10 +477,10 @@ export default function ProfilePage() {
 
             {/* Membership Info */}
             <div className="flex-1 text-center md:text-left space-y-4 w-full">
-              <div>
+            <div>
                 <h1 className="text-3xl md:text-4xl font-light text-gray-900 mb-1">
                   {membershipData.levelInfo.name}
-                </h1>
+              </h1>
                 <p className="text-sm text-gray-500">Member since {new Date(membershipData.membership.levelAssignedAt).toLocaleDateString()}</p>
               </div>
 
@@ -558,17 +558,17 @@ export default function ProfilePage() {
                   >
                     <X className="w-4 h-4" />
                   </Button>
-                  <Button
+          <Button 
                     onClick={saveProfile}
                     size="sm"
                     className="bg-gray-900 hover:bg-gray-800 text-white"
                   >
                     <Save className="w-4 h-4 mr-2" />
                     Save
-                  </Button>
+          </Button>
                 </div>
               )}
-            </div>
+        </div>
 
             <div className="bg-white rounded-xl border border-gray-200/50 p-4 md:p-6 shadow-sm">
               {editing ? (
@@ -628,9 +628,9 @@ export default function ProfilePage() {
                     <span className="text-xs">Email</span>
                   </div>
                   <p className="text-sm text-gray-900 -mt-2">{profile.email}</p>
-
+                  
                   {profile.full_name && (
-                    <div>
+                      <div>
                       <div className="flex items-center gap-2 text-gray-400 mb-1">
                         <User className="w-3 h-3" />
                         <span className="text-xs">Full Name</span>
@@ -638,9 +638,9 @@ export default function ProfilePage() {
                       <p className="text-sm text-gray-900">{profile.full_name}</p>
                     </div>
                   )}
-
+                  
                   {profile.phone && (
-                    <div>
+                      <div>
                       <div className="flex items-center gap-2 text-gray-400 mb-1">
                         <Phone className="w-3 h-3" />
                         <span className="text-xs">Phone</span>
@@ -648,9 +648,9 @@ export default function ProfilePage() {
                       <p className="text-sm text-gray-900">{profile.phone}</p>
                     </div>
                   )}
-
+                  
                   {(profile.address || profile.city) && (
-                    <div>
+                      <div>
                       <div className="flex items-center gap-2 text-gray-400 mb-1">
                         <MapPin className="w-3 h-3" />
                         <span className="text-xs">Address</span>
@@ -694,6 +694,20 @@ export default function ProfilePage() {
                 
                 console.log('Pending payment reservations:', pendingPaymentReservations.length);
                 
+                // Check for 90% warning reservations
+                const nearlyFullReservations = reservations.filter(r => {
+                  const reservationBottles = r.items?.reduce((total: number, item: any) => total + (item.quantity || 0), 0) || 0;
+                  const percentFull = r.pallet_capacity ? (reservationBottles / r.pallet_capacity) * 100 : 0;
+                  
+                  return percentFull >= 90 && 
+                         !r.pallet_is_complete && 
+                         r.pallet_capacity && 
+                         r.pallet_capacity > 0 &&
+                         r.status !== 'pending_payment';
+                });
+                
+                console.log('Nearly full reservations (90%+):', nearlyFullReservations.length);
+                
                 if (pendingPaymentReservations.length > 0) {
                   return (
                     <div className="text-center py-8">
@@ -711,6 +725,29 @@ export default function ProfilePage() {
                         <Button className="rounded-full px-8 bg-amber-600 hover:bg-amber-700 text-white">
                           <CreditCard className="w-4 h-4 mr-2" />
                           Pay Now ({pendingPaymentReservations.length})
+                        </Button>
+                      </Link>
+                    </div>
+                  );
+                }
+                
+                if (nearlyFullReservations.length > 0) {
+                  return (
+                    <div className="text-center py-8">
+                      <div className="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                        <Package className="w-8 h-8 text-blue-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">⚠️ Pallet Nearly Full</h3>
+                      <p className="text-sm text-gray-600 mb-2">
+                        You have {nearlyFullReservations.length} pallet{nearlyFullReservations.length !== 1 ? 's' : ''} that are 90%+ full
+                      </p>
+                      <p className="text-sm text-gray-500 mb-6">
+                        Your pallet is getting close to capacity. Payment will be required once it reaches 100%.
+                      </p>
+                      <Link href="/profile/reservations">
+                        <Button className="rounded-full px-8 bg-blue-600 hover:bg-blue-700 text-white">
+                          <Package className="w-4 h-4 mr-2" />
+                          View Reservations ({nearlyFullReservations.length})
                         </Button>
                       </Link>
                     </div>
@@ -782,8 +819,8 @@ export default function ProfilePage() {
                 <p className="text-xs text-gray-500">
                   Choose which level the invitee will start at
                 </p>
-              </div>
-            )}
+                </div>
+              )}
 
             {/* Non-Admin: Info text */}
             {membershipData.membership.level !== 'admin' && (
@@ -791,7 +828,7 @@ export default function ProfilePage() {
                 <p className="text-xs text-blue-800">
                   <strong>Your invitations start at Basic level.</strong> When your friends join and earn Impact Points, they'll progress naturally through the levels.
                 </p>
-              </div>
+                </div>
             )}
 
             {/* Generate Invite Button */}
@@ -842,17 +879,17 @@ export default function ProfilePage() {
                           {inv.code}
                         </code>
                       </div>
-                      <Button
+                          <Button
                         onClick={() => {
                           navigator.clipboard.writeText(inv.code);
                           toast.success("Code copied!");
                         }}
-                        size="sm"
+                            size="sm"
                         variant="ghost"
                         className="h-8"
-                      >
+                          >
                         <Copy className="w-3 h-3" />
-                      </Button>
+                          </Button>
                     </div>
 
                     {/* Share Link */}
@@ -892,13 +929,13 @@ export default function ProfilePage() {
                       >
                         <X className="w-3 h-3 mr-1" />
                         Delete
-                      </Button>
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  ))}
+                </div>
+              )}
+        </div>
         </section>
 
         {/* IMPACT POINTS TIMELINE */}
@@ -928,7 +965,7 @@ export default function ProfilePage() {
               className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
             >
               View all
-            </Link>
+              </Link>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
