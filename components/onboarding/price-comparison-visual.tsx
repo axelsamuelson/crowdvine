@@ -1,40 +1,21 @@
 "use client";
 
 import { motion } from "motion/react";
-import { useState } from "react";
 
 interface BarColumnProps {
   label: string;
   totalPrice: number;
-  components: Array<{
-    label: string;
-    amount: number;
-    color: string;
-  }>;
+  essentialCosts: number;
+  overheadCosts: number;
   highlight?: boolean;
 }
 
-function BarColumn({ label, totalPrice, components, highlight = false }: BarColumnProps) {
-  const [hoveredSegment, setHoveredSegment] = useState<number | null>(null);
+function BarColumn({ label, totalPrice, essentialCosts, overheadCosts, highlight = false }: BarColumnProps) {
+  // Fixed height for all bars to ensure consistent module sizes
+  const barHeight = 200;
+  const essentialHeight = (essentialCosts / totalPrice) * barHeight;
+  const overheadHeight = (overheadCosts / totalPrice) * barHeight;
   
-  // Calculate height as percentage of tallest bar (Systembolaget = 323)
-  const maxHeight = 280; // h-80 equivalent
-  const barHeight = (totalPrice / 323) * maxHeight;
-  
-  // Calculate cumulative heights for stacking
-  let cumulativeHeight = 0;
-  const segments = components.map((component, index) => {
-    const segmentHeight = (component.amount / totalPrice) * barHeight;
-    const currentCumulative = cumulativeHeight;
-    cumulativeHeight += segmentHeight;
-    
-    return {
-      ...component,
-      height: segmentHeight,
-      offset: currentCumulative,
-    };
-  });
-
   return (
     <div className="flex flex-col items-center space-y-3">
       {/* Bar */}
@@ -42,32 +23,26 @@ function BarColumn({ label, totalPrice, components, highlight = false }: BarColu
         className={`relative w-16 md:w-20 transition-all duration-300 ${
           highlight ? 'ring-2 ring-green-500/30 shadow-lg' : ''
         }`}
-        style={{ height: maxHeight }}
+        style={{ height: barHeight }}
       >
-        <div className="absolute bottom-0 w-full h-full flex flex-col justify-end">
-          {segments.map((segment, index) => (
-            <motion.div
-              key={index}
-              initial={{ height: 0 }}
-              animate={{ height: segment.height }}
-              transition={{ 
-                duration: 0.6, 
-                delay: index * 0.1,
-                ease: "easeOut"
-              }}
-              className={`${segment.color} relative cursor-pointer transition-all duration-200 ${
-                hoveredSegment === index ? 'opacity-80 scale-105' : 'opacity-100'
-              }`}
-              style={{ 
-                width: '100%',
-                height: segment.height,
-                marginBottom: index < segments.length - 1 ? '1px' : '0'
-              }}
-              onMouseEnter={() => setHoveredSegment(index)}
-              onMouseLeave={() => setHoveredSegment(null)}
-              title={`${segment.label}: ${segment.amount} kr`}
-            />
-          ))}
+        <div className="absolute bottom-0 w-full flex flex-col">
+          {/* Essential costs - same for all */}
+          <motion.div
+            initial={{ height: 0 }}
+            animate={{ height: essentialHeight }}
+            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+            className="bg-gray-300 w-full"
+            style={{ height: essentialHeight }}
+          />
+          
+          {/* Overhead costs - varies significantly */}
+          <motion.div
+            initial={{ height: 0 }}
+            animate={{ height: overheadHeight }}
+            transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
+            className={`w-full ${highlight ? 'bg-green-300' : 'bg-amber-400'}`}
+            style={{ height: overheadHeight }}
+          />
         </div>
       </div>
 
@@ -84,54 +59,31 @@ function BarColumn({ label, totalPrice, components, highlight = false }: BarColu
           {totalPrice} kr
         </p>
       </div>
-
-      {/* Hover tooltip */}
-      {hoveredSegment !== null && (
-        <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-foreground text-background px-2 py-1 rounded text-xs whitespace-nowrap pointer-events-none">
-          {segments[hoveredSegment].label}: {segments[hoveredSegment].amount} kr
-        </div>
-      )}
     </div>
   );
 }
 
 export function PriceComparisonVisual() {
+  // Simplified data - focus on the key difference
   const data = {
     pact: {
       label: "PACT",
       totalPrice: 172,
-      components: [
-        { label: "Producent", amount: 99, color: "bg-gray-300" },
-        { label: "Transport & Logistik", amount: 13, color: "bg-blue-300" },
-        { label: "Overhead & Marginal", amount: 16, color: "bg-amber-300" },
-        { label: "Alkoholskatt", amount: 22, color: "bg-slate-300" },
-      ],
+      essentialCosts: 143, // Producentpris + alkoholskatt + minimal overhead
+      overheadCosts: 29,   // Minimal overhead - no lager, no middlemen
       highlight: true
     },
-    ehandel: {
-      label: "E-handel",
-      totalPrice: 233,
-      components: [
-        { label: "Producent", amount: 99, color: "bg-gray-300" },
-        { label: "Transport & Logistik", amount: 33, color: "bg-blue-400" },
-        { label: "Overhead & Marginal", amount: 64, color: "bg-amber-400" },
-        { label: "Alkoholskatt", amount: 22, color: "bg-slate-300" },
-      ]
-    },
-    systembolaget: {
-      label: "Systembolaget",
-      totalPrice: 323,
-      components: [
-        { label: "Producent", amount: 99, color: "bg-gray-300" },
-        { label: "Transport & Logistik", amount: 22, color: "bg-blue-500" },
-        { label: "Overhead & Marginal", amount: 105, color: "bg-amber-500" },
-        { label: "Alkoholskatt", amount: 22, color: "bg-slate-300" },
-      ]
+    traditional: {
+      label: "Traditionell handel",
+      totalPrice: 280,     // Average of Systembolaget + E-handel
+      essentialCosts: 143, // Same essential costs
+      overheadCosts: 137,  // Lagerhållning, mellanhänder, butiksdrifter
+      highlight: false
     }
   };
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
+    <div className="space-y-6 max-w-md mx-auto min-h-[280px] flex flex-col justify-center">
       {/* Explanatory text */}
       <motion.p 
         initial={{ opacity: 0, y: 10 }}
@@ -139,15 +91,15 @@ export function PriceComparisonVisual() {
         transition={{ duration: 0.4, delay: 0.2 }}
         className="text-sm text-muted-foreground text-center leading-relaxed"
       >
-        We eliminate unnecessary costs by removing middlemen, lagerhållning, and traditional retail overhead.
+        Genom att eliminera lagerhållning och mellanhänder får du bättre priser
       </motion.p>
 
-      {/* Three column comparison */}
+      {/* Two column comparison */}
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.4, delay: 0.4 }}
-        className="flex items-end justify-center gap-4 md:gap-6 h-80 relative"
+        className="flex items-end justify-center gap-8 h-52"
       >
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -160,17 +112,9 @@ export function PriceComparisonVisual() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.7 }}
-        >
-          <BarColumn {...data.ehandel} />
-        </motion.div>
-        
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.8 }}
         >
-          <BarColumn {...data.systembolaget} />
+          <BarColumn {...data.traditional} />
         </motion.div>
       </motion.div>
 
@@ -182,35 +126,27 @@ export function PriceComparisonVisual() {
         className="text-center space-y-2"
       >
         <p className="text-sm font-medium text-foreground">
-          35-50% lägre pris utan att producenten förlorar intäkt
+          {data.traditional.totalPrice - data.pact.totalPrice} kr billigare per flaska
         </p>
         <p className="text-xs text-muted-foreground">
-          Baserat på ett 9 EUR producentpris per flaska
+          Utan lagerhållning och mellanhänder
         </p>
       </motion.div>
 
-      {/* Legend */}
+      {/* Simple legend */}
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.4, delay: 1.2 }}
-        className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-muted-foreground"
+        className="flex justify-center gap-6 text-xs text-muted-foreground"
       >
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 bg-gray-300 rounded"></div>
-          <span>Producentpris</span>
+          <span>Grundkostnader</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-blue-300 rounded"></div>
-          <span>Transport & Logistik</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-amber-300 rounded"></div>
-          <span>Overhead & Marginal</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-slate-300 rounded"></div>
-          <span>Alkoholskatt</span>
+          <div className="w-3 h-3 bg-amber-400 rounded"></div>
+          <span>Lager & mellanhänder</span>
         </div>
       </motion.div>
     </div>

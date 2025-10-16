@@ -76,7 +76,7 @@ const getSteps = (membershipLevel: MembershipLevel) => {
     subtitle: "A smarter way to buy wine — together",
     icon: Wine,
     content: (
-      <div className="space-y-6 text-center">
+      <div className="space-y-6 text-center min-h-[280px] flex flex-col justify-center">
         <div className="flex justify-center mb-6">
           <LogoSvg className="h-16 w-auto" />
         </div>
@@ -99,7 +99,7 @@ const getSteps = (membershipLevel: MembershipLevel) => {
     subtitle: "Crowdsourcing wine, step by step",
     icon: Package,
     content: (
-      <div className="space-y-4 max-w-md mx-auto">
+      <div className="space-y-4 max-w-md mx-auto min-h-[280px] flex flex-col justify-center">
         <div className="flex items-start gap-3">
           <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-medium flex-shrink-0 mt-0.5">
             1
@@ -156,7 +156,7 @@ const getSteps = (membershipLevel: MembershipLevel) => {
     subtitle: "Watch your reservation come to life",
     icon: Truck,
     content: (
-      <div className="space-y-6 max-w-md mx-auto">
+      <div className="space-y-6 max-w-md mx-auto min-h-[280px] flex flex-col justify-center">
         <div className="space-y-3">
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Pallet Progress</span>
@@ -211,7 +211,7 @@ const getSteps = (membershipLevel: MembershipLevel) => {
     subtitle: "Earn points, unlock perks",
     icon: Users,
     content: (
-      <div className="space-y-6 max-w-md mx-auto">
+      <div className="space-y-6 max-w-md mx-auto min-h-[280px] flex flex-col justify-center">
         <div className="text-center space-y-3">
           <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full ${levelConfig.bgColor} ${levelConfig.color} text-base font-medium`}>
             {levelConfig.displayName}
@@ -259,7 +259,7 @@ const getSteps = (membershipLevel: MembershipLevel) => {
     subtitle: "Explore wines and make your first reservation",
     icon: Wine,
     content: (
-      <div className="space-y-8 text-center">
+      <div className="space-y-8 text-center min-h-[280px] flex flex-col justify-center">
         <div className="space-y-4">
           <p className="text-base text-muted-foreground leading-relaxed max-w-md mx-auto">
             Browse our curated selection of natural wines, reserve your bottles, and watch your pallet fill up.
@@ -464,7 +464,7 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: direction > 0 ? -100 : 100 }}
                     transition={{ duration: 0.3 }}
-                    className="mb-10 min-h-[280px] flex items-center justify-center touch-pan-y"
+                    className="mb-10 touch-pan-y"
                     onTouchStart={onTouchStart}
                     onTouchMove={onTouchMove}
                     onTouchEnd={onTouchEnd}
