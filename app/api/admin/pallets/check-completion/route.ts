@@ -55,7 +55,7 @@ async function checkAllPallets(shouldFix = false) {
           // Check if it's incorrectly marked as complete (not actually full)
           const isIncorrectlyComplete = totalBottles < pallet.bottle_capacity;
           
-          if (isIncorrectlyComplete && shouldFix) {
+          if (isIncorrectlyComplete) {
             console.log(`   🔧 Fixing incorrectly marked complete pallet (${totalBottles}/${pallet.bottle_capacity})`);
             
             // Fix the pallet
@@ -96,10 +96,9 @@ async function checkAllPallets(shouldFix = false) {
             reserved: totalBottles,
             wasCompleted: false,
             alreadyComplete: true,
-            wasFixed: isIncorrectlyComplete && shouldFix,
+            wasFixed: isIncorrectlyComplete,
             status: isIncorrectlyComplete ? 
-              (shouldFix ? `🔧 Fixed - Was Incorrectly Complete (${totalBottles}/${pallet.bottle_capacity})` : 
-                           `⚠️ Incorrectly Complete (${totalBottles}/${pallet.bottle_capacity})`) :
+              `🔧 Fixed - Was Incorrectly Complete (${totalBottles}/${pallet.bottle_capacity})` :
               `✅ Already Complete (${totalBottles}/${pallet.bottle_capacity})`
           });
         } else {
