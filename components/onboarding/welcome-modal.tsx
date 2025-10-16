@@ -71,7 +71,7 @@ const getSteps = (membershipLevel: MembershipLevel) => {
   return [
   {
     id: 1,
-    title: "Welcome to PACT",
+    title: "Welcome to",
     subtitle: "A smarter way to buy wine — together",
     icon: Wine,
     content: (
@@ -418,15 +418,17 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
               <div className="p-8 md:p-12">
                 {/* Header with Icon */}
                 <div className="flex flex-col items-center text-center mb-8">
-                  <motion.div
-                    key={currentStep}
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ duration: 0.3 }}
-                    className="w-16 h-16 rounded-full bg-foreground/5 flex items-center justify-center mb-6"
-                  >
-                    <Icon className="w-8 h-8 text-foreground" />
-                  </motion.div>
+                  {currentStep !== 0 && (
+                    <motion.div
+                      key={currentStep}
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                      className="w-16 h-16 rounded-full bg-foreground/5 flex items-center justify-center mb-6"
+                    >
+                      <Icon className="w-8 h-8 text-foreground" />
+                    </motion.div>
+                  )}
                   
                   <motion.div
                     key={`title-${currentStep}`}
