@@ -26,7 +26,7 @@ import { formatPrice } from "@/lib/shopify/utils";
 import { Suspense } from "react";
 import { cn } from "@/lib/utils";
 import { PageLayout } from "@/components/layout/page-layout";
-import { MemberPrice } from "@/components/ui/member-price";
+import { PriceWithBreakdown } from "@/components/product/price-with-breakdown";
 import { VariantSelectorSlots } from "./components/variant-selector-slots";
 import { MobileGallerySlider } from "./components/mobile-gallery-slider";
 import { DesktopGallery } from "./components/desktop-gallery";
@@ -179,13 +179,8 @@ export default async function ProductPage(props: {
                   {product.title}
                 </h1>
                 <p className="text-sm font-medium">{product.description}</p>
-                <p className="flex gap-3 items-center text-lg font-semibold lg:text-xl 2xl:text-2xl max-md:mt-8">
-                  <MemberPrice
-                    amount={product.priceRange.minVariantPrice.amount}
-                    currencyCode={product.priceRange.minVariantPrice.currencyCode}
-                    className="text-lg font-semibold lg:text-xl 2xl:text-2xl"
-                    showBadge={true}
-                  />
+                <div className="flex gap-3 items-center text-lg font-semibold lg:text-xl 2xl:text-2xl max-md:mt-8">
+                  <PriceWithBreakdown product={product} />
                   {product.compareAtPrice && (
                     <span className="line-through opacity-30">
                       {formatPrice(
@@ -194,7 +189,7 @@ export default async function ProductPage(props: {
                       )}
                     </span>
                   )}
-                </p>
+                </div>
               </div>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <Suspense

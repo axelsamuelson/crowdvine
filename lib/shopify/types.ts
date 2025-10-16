@@ -154,6 +154,12 @@ export type Product = {
   images: Image[];
   availableForSale: boolean;
   producerName?: string;
+  priceBreakdown?: {
+    costAmount: number;
+    exchangeRate: number;
+    alcoholTaxCents: number;
+    marginPercentage: number;
+  };
 };
 
 export type ProductSortKey =

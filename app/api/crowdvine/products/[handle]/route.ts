@@ -165,6 +165,10 @@ export async function GET(
         color,
         handle,
         base_price_cents,
+        cost_amount,
+        exchange_rate,
+        alcohol_tax_cents,
+        margin_percentage,
         label_image_path,
         producer_id,
         description,
@@ -346,6 +350,12 @@ export async function GET(
     currencyCode: "SEK",
     updatedAt: new Date().toISOString(),
     createdAt: new Date().toISOString(),
+    priceBreakdown: {
+      costAmount: i.cost_amount || 0,
+      exchangeRate: i.exchange_rate || 1,
+      alcoholTaxCents: i.alcohol_tax_cents || 0,
+      marginPercentage: i.margin_percentage || 0,
+    },
   };
 
   return NextResponse.json(product);
