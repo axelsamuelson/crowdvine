@@ -87,11 +87,11 @@ const CartItems = ({ closeCart }: { closeCart: () => void }) => {
         </CartContainer>
       </div>
       
-      {/* Validation Display */}
-      <CartValidationDisplay 
+      {/* Validation Display - hidden since we show validation in the button */}
+      {/* <CartValidationDisplay 
         validations={validations} 
         isLoading={isValidating}
-      />
+      /> */}
       
       <CartContainer>
         <div className="py-4 text-sm text-foreground/50 shrink-0">
@@ -113,7 +113,7 @@ const CartItems = ({ closeCart }: { closeCart: () => void }) => {
             </p>
           </div>
         </div>
-        <CheckoutButton closeCart={closeCart} />
+        <CheckoutButton closeCart={closeCart} validations={validations} />
       </CartContainer>
     </div>
   );
@@ -277,12 +277,24 @@ export default function CartModal() {
   );
 }
 
-function CheckoutButton({ closeCart }: { closeCart: () => void }) {
+function CheckoutButton({ closeCart, validations = [] }: { closeCart: () => void; validations?: ProducerValidation[] }) {
   const { pending } = useFormStatus();
   const { cart, isPending } = useCart();
   const router = useRouter();
 
   const checkoutUrl = cart?.checkoutUrl;
+  
+  // Check if there are validation errors
+  const hasValidationErrors = validations.some((v) => !v.isValid);
+  const invalidValidations = validations.filter((v) => !v.isValid);
+  
+  // Get the first invalid producer/group to redirect to
+  const firstInvalidValidation = invalidValidations[0];
+  const redirectUrl = firstInvalidValidation?.groupId 
+    ? `/shop/group/${firstInvalidValidation.groupId}`
+    : firstInvalidValidation?.producerHandle 
+    ? `/shop/${firstInvalidValidation.producerHandle}`
+    : '/shop';
 
   const isLoading = pending;
   const isDisabled = !checkoutUrl || isPending;
@@ -290,11 +302,20 @@ function CheckoutButton({ closeCart }: { closeCart: () => void }) {
   return (
     <Button
       type="submit"
-      disabled={isDisabled}
-      className="font-semibold cursor-pointer whitespace-nowrap text-base transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-primary border border-transparent text-primary-foreground shadow-xs hover:bg-primary/90 h-12 rounded-md px-3 has-[>svg]:pr-3 [&_svg:not([class*='size-'])]:size-6 flex relative gap-3 justify-between items-center w-full"
+      disabled={isDisabled && !hasValidationErrors}
+      className={`font-semibold cursor-pointer whitespace-nowrap text-base transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border border-transparent shadow-xs h-12 rounded-md px-3 has-[>svg]:pr-3 [&_svg:not([class*='size-'])]:size-6 flex relative gap-3 justify-between items-center w-full ${
+        hasValidationErrors 
+          ? "bg-amber-600 hover:bg-amber-700 text-white" 
+          : "bg-primary text-primary-foreground hover:bg-primary/90"
+      }`}
       onClick={() => {
-        if (checkoutUrl) {
-          closeCart(); // Close cart before navigating to checkout
+        if (hasValidationErrors) {
+          // Redirect to producer/group page to add more bottles
+          closeCart();
+          router.push(redirectUrl);
+        } else if (checkoutUrl) {
+          // Normal checkout flow
+          closeCart();
           router.push(checkoutUrl);
         }
       }}
@@ -312,7 +333,12 @@ function CheckoutButton({ closeCart }: { closeCart: () => void }) {
             <Loader size="default" />
           ) : (
             <div className="flex justify-between items-center w-full">
-              <span>Proceed to Checkout</span>
+              <span>
+                {hasValidationErrors 
+                  ? `${invalidValidations.length} producer${invalidValidations.length > 1 ? 's' : ''} need${invalidValidations.length === 1 ? 's' : ''} more bottles`
+                  : "Proceed to Checkout"
+                }
+              </span>
               <ArrowRight className="size-6" />
             </div>
           )}
