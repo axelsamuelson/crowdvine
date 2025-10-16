@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { checkPalletCompletion } from "@/lib/pallet-completion";
 
-async function checkAllPallets() {
+async function checkAllPallets(shouldFix = false) {
   try {
     const supabase = getSupabaseAdmin();
     
@@ -51,6 +51,44 @@ async function checkAllPallets() {
         // Check if already complete
         if (pallet.is_complete) {
           console.log(`   ℹ️ Pallet already marked as complete`);
+          
+          // Check if it's incorrectly marked as complete (not actually full)
+          const isIncorrectlyComplete = totalBottles < pallet.bottle_capacity;
+          
+          if (isIncorrectlyComplete && shouldFix) {
+            console.log(`   🔧 Fixing incorrectly marked complete pallet (${totalBottles}/${pallet.bottle_capacity})`);
+            
+            // Fix the pallet
+            const { error: updateError } = await supabase
+              .from('pallets')
+              .update({
+                is_complete: false,
+                status: 'OPEN',
+                completed_at: null,
+                payment_deadline: null
+              })
+              .eq('id', pallet.id);
+              
+            if (updateError) {
+              console.error(`   ❌ Error fixing pallet:`, updateError);
+            } else {
+              console.log(`   ✅ Pallet fixed - marked as OPEN`);
+              
+              // Fix reservations
+              await supabase
+                .from('order_reservations')
+                .update({
+                  status: 'placed',
+                  payment_status: null,
+                  payment_deadline: null
+                })
+                .eq('pallet_id', pallet.id)
+                .in('status', ['pending_payment']);
+                
+              console.log(`   ✅ Reservations fixed - marked as placed`);
+            }
+          }
+          
           results.push({
             palletId: pallet.id,
             palletName: pallet.name,
@@ -58,7 +96,11 @@ async function checkAllPallets() {
             reserved: totalBottles,
             wasCompleted: false,
             alreadyComplete: true,
-            status: `✅ Already Complete (${totalBottles}/${pallet.bottle_capacity})`
+            wasFixed: isIncorrectlyComplete && shouldFix,
+            status: isIncorrectlyComplete ? 
+              (shouldFix ? `🔧 Fixed - Was Incorrectly Complete (${totalBottles}/${pallet.bottle_capacity})` : 
+                           `⚠️ Incorrectly Complete (${totalBottles}/${pallet.bottle_capacity})`) :
+              `✅ Already Complete (${totalBottles}/${pallet.bottle_capacity})`
           });
         } else {
           const isComplete = await checkPalletCompletion(pallet.id);
@@ -108,11 +150,19 @@ async function checkAllPallets() {
 }
 
 // Support both GET and POST requests
-export async function GET() {
-  return checkAllPallets();
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const shouldFix = searchParams.get('fix') === 'true';
+  return checkAllPallets(shouldFix);
 }
 
-export async function POST() {
-  return checkAllPallets();
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const shouldFix = body.fix === true;
+    return checkAllPallets(shouldFix);
+  } catch {
+    return checkAllPallets(false);
+  }
 }
 
