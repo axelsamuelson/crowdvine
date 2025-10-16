@@ -1,5 +1,6 @@
 import { SidebarLinks } from "./sidebar/product-sidebar-links";
 import { FooterLogoSvg } from "./footer-logo-svg";
+import { OnboardingButton } from "./onboarding-button";
 import Link from "next/link";
 
 export function Footer() {
@@ -51,9 +52,12 @@ export function Footer() {
             size="base"
             invert
           />
-          <p className="text-base">
-            {new Date().getFullYear()}© — All rights reserved
-          </p>
+          <div className="flex items-center gap-4 max-md:flex-col max-md:gap-3">
+            <OnboardingButton />
+            <p className="text-base">
+              {new Date().getFullYear()}© — All rights reserved
+            </p>
+          </div>
         </div>
       </div>
     </footer>
