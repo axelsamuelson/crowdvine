@@ -4,21 +4,7 @@ import { motion } from "motion/react";
 
 export function PriceComparisonVisual() {
   return (
-    <div className="space-y-6 max-w-3xl mx-auto h-[280px] flex flex-col justify-center">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="text-center space-y-2"
-      >
-        <h2 className="text-xl font-light text-gray-900">
-          Why is wine cheaper with PACT?
-        </h2>
-        <p className="text-sm text-gray-600">
-          No middlemen. No warehouses. No hidden costs.
-        </p>
-      </motion.div>
+    <div className="space-y-4 max-w-3xl mx-auto h-[280px] flex flex-col justify-center">
 
       {/* Comparison Cards */}
       <motion.div
