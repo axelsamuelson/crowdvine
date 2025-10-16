@@ -5,20 +5,6 @@ import { motion } from "motion/react";
 export function PriceComparisonVisual() {
   return (
     <div className="space-y-4 max-w-3xl mx-auto h-[280px] flex flex-col justify-center">
-      {/* Wine Example Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="text-center space-y-2"
-      >
-        <h3 className="text-lg font-light text-gray-900">
-          Les Tremières - Same bottle, different prices
-        </h3>
-        <p className="text-sm text-gray-600">
-          Direct from producer → Shared pallet → You
-        </p>
-      </motion.div>
 
       {/* Money Flow Visualization */}
       <motion.div
@@ -34,7 +20,7 @@ export function PriceComparisonVisual() {
         {/* PACT */}
         <div className="space-y-1">
           <div className="text-xs text-gray-700 text-center">PACT - 168 kr</div>
-          <div className="h-4 bg-gray-100 rounded-full overflow-hidden flex mx-auto" style={{ width: '45%' }}>
+          <div className="h-4 bg-gray-100 rounded-full overflow-hidden flex mx-auto" style={{ width: '60%' }}>
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: "60%" }}
@@ -65,7 +51,7 @@ export function PriceComparisonVisual() {
         {/* Systembolaget */}
         <div className="space-y-1">
           <div className="text-xs text-gray-700 text-center">Systembolaget - 210 kr</div>
-          <div className="h-4 bg-gray-100 rounded-full overflow-hidden flex mx-auto" style={{ width: '56%' }}>
+          <div className="h-4 bg-gray-100 rounded-full overflow-hidden flex mx-auto" style={{ width: '75%' }}>
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: "48%" }}
@@ -96,7 +82,7 @@ export function PriceComparisonVisual() {
         {/* E-commerce */}
         <div className="space-y-1">
           <div className="text-xs text-gray-700 text-center">E-commerce - 285 kr</div>
-          <div className="h-4 bg-gray-100 rounded-full overflow-hidden flex mx-auto" style={{ width: '76%' }}>
+          <div className="h-4 bg-gray-100 rounded-full overflow-hidden flex mx-auto" style={{ width: '100%' }}>
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: "35%" }}
