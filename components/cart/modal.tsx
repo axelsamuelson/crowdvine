@@ -304,18 +304,28 @@ function CheckoutButton({ closeCart, validations = [], isValidating = false }: {
     : '/shop';
 
   const isLoading = pending || isValidating;
-  const isDisabled = !checkoutUrl || isPending;
+  
+  // Button should be disabled if:
+  // 1. Validation is in progress, OR
+  // 2. Normal checkout is disabled AND no validation errors (so user can't click checkout when it's disabled)
+  // 3. But if there are validation errors, button should be clickable to redirect to producer page
+  const shouldDisableButton = isValidating || ((!checkoutUrl || isPending) && !hasValidationErrors);
 
   return (
     <Button
       type="submit"
-      disabled={isDisabled && !hasValidationErrors}
+      disabled={shouldDisableButton}
       className={`font-semibold cursor-pointer whitespace-nowrap text-base transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border border-transparent shadow-xs h-12 rounded-md px-3 has-[>svg]:pr-3 [&_svg:not([class*='size-'])]:size-6 flex relative gap-3 justify-between items-center w-full ${
         hasValidationErrors 
           ? "bg-amber-600 hover:bg-amber-700 text-white" 
           : "bg-primary text-primary-foreground hover:bg-primary/90"
       }`}
       onClick={() => {
+        // Don't allow clicks during validation
+        if (isValidating) {
+          return;
+        }
+        
         if (hasValidationErrors) {
           // Redirect to producer/group page to add more bottles
           closeCart();
