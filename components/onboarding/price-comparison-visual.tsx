@@ -68,35 +68,27 @@ export function PriceComparisonVisual() {
           <div className="h-4 bg-gray-100 rounded-full overflow-hidden flex mx-auto" style={{ width: '56%' }}>
             <motion.div
               initial={{ width: 0 }}
-              animate={{ width: "40%" }}
+              animate={{ width: "48%" }}
               transition={{ duration: 0.8, delay: 0.8 }}
-              className="bg-red-500 flex items-center justify-center text-xs font-medium text-white"
+              className="bg-green-500 flex items-center justify-center text-xs font-medium text-white"
             >
-              Taxes 84 kr
+              Producer 100 kr
             </motion.div>
             <motion.div
               initial={{ width: 0 }}
-              animate={{ width: "25%" }}
+              animate={{ width: "28%" }}
               transition={{ duration: 0.8, delay: 0.9 }}
               className="bg-red-300 flex items-center justify-center text-xs font-medium text-white"
             >
-              Retail 53 kr
+              Margin 59 kr
             </motion.div>
             <motion.div
               initial={{ width: 0 }}
-              animate={{ width: "18%" }}
+              animate={{ width: "24%" }}
               transition={{ duration: 0.8, delay: 1.0 }}
-              className="bg-red-200 flex items-center justify-center text-xs font-medium text-white"
+              className="bg-slate-400 flex items-center justify-center text-xs font-medium text-white"
             >
-              Importer 38 kr
-            </motion.div>
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: "17%" }}
-              transition={{ duration: 0.8, delay: 1.1 }}
-              className="bg-green-500 flex items-center justify-center text-xs font-medium text-white"
-            >
-              Producer 35 kr
+              Tax/VAT 51 kr
             </motion.div>
           </div>
         </div>
@@ -108,34 +100,26 @@ export function PriceComparisonVisual() {
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: "35%" }}
-              transition={{ duration: 0.8, delay: 1.2 }}
-              className="bg-blue-500 flex items-center justify-center text-xs font-medium text-white"
-            >
-              Marketing 100 kr
-            </motion.div>
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: "25%" }}
-              transition={{ duration: 0.8, delay: 1.3 }}
-              className="bg-blue-300 flex items-center justify-center text-xs font-medium text-white"
-            >
-              Logistics 71 kr
-            </motion.div>
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: "25%" }}
-              transition={{ duration: 0.8, delay: 1.4 }}
-              className="bg-blue-200 flex items-center justify-center text-xs font-medium text-white"
-            >
-              Platform 71 kr
-            </motion.div>
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: "15%" }}
-              transition={{ duration: 0.8, delay: 1.5 }}
+              transition={{ duration: 0.8, delay: 1.1 }}
               className="bg-green-500 flex items-center justify-center text-xs font-medium text-white"
             >
-              Producer 43 kr
+              Producer 100 kr
+            </motion.div>
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: "51%" }}
+              transition={{ duration: 0.8, delay: 1.2 }}
+              className="bg-blue-300 flex items-center justify-center text-xs font-medium text-white"
+            >
+              Margin 146 kr
+            </motion.div>
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: "14%" }}
+              transition={{ duration: 0.8, delay: 1.3 }}
+              className="bg-slate-400 flex items-center justify-center text-xs font-medium text-white"
+            >
+              Tax/VAT 39 kr
             </motion.div>
           </div>
         </div>
