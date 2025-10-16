@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, ArrowRight, ArrowLeft, Wine, Users, Package, Truck, MapPin, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LogoSvg } from "@/components/layout/header/logo-svg";
 
 interface WelcomeModalProps {
   isOpen: boolean;
@@ -75,15 +76,12 @@ const getSteps = (membershipLevel: MembershipLevel) => {
     icon: Wine,
     content: (
       <div className="space-y-6 text-center">
-        <p className="text-base text-muted-foreground leading-relaxed max-w-md mx-auto">
-          PACT connects wine lovers directly with independent natural winemakers.
-          No middlemen, no markups — just transparent pricing and collective shipping.
-        </p>
-        <div className="flex justify-center gap-2 pt-4">
-          <div className="w-2 h-2 rounded-full bg-foreground/20"></div>
-          <div className="w-2 h-2 rounded-full bg-foreground/20"></div>
-          <div className="w-2 h-2 rounded-full bg-foreground/20"></div>
+        <div className="flex justify-center mb-6">
+          <LogoSvg className="h-16 w-auto" />
         </div>
+        <p className="text-base text-muted-foreground leading-relaxed max-w-md mx-auto">
+          We buy wine together, directly from winemakers, without middlemen or markups. A new system built on transparency, better prices, and a shared pact between producers and consumers.
+        </p>
       </div>
     ),
   },
@@ -280,6 +278,12 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
   const [direction, setDirection] = useState(0);
   const [membershipLevel, setMembershipLevel] = useState<MembershipLevel>("basic");
   const [loading, setLoading] = useState(true);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Minimum distance for swipe detection
+  const minSwipeDistance = 50;
 
   // Fetch user's membership level
   useEffect(() => {
@@ -335,6 +339,30 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
 
   const handleSkip = () => {
     onClose();
+  };
+
+  // Touch handlers for swipe functionality
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe && currentStep < steps.length - 1) {
+      handleNext();
+    } else if (isRightSwipe && currentStep > 0) {
+      handlePrev();
+    }
   };
 
   // Prevent body scroll when modal is open
@@ -419,13 +447,17 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
                 {/* Step Content */}
                 <AnimatePresence mode="wait" custom={direction}>
                   <motion.div
+                    ref={contentRef}
                     key={currentStep}
                     custom={direction}
                     initial={{ opacity: 0, x: direction > 0 ? 100 : -100 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: direction > 0 ? -100 : 100 }}
                     transition={{ duration: 0.3 }}
-                    className="mb-10 min-h-[280px] flex items-center justify-center"
+                    className="mb-10 min-h-[280px] flex items-center justify-center touch-pan-y"
+                    onTouchStart={onTouchStart}
+                    onTouchMove={onTouchMove}
+                    onTouchEnd={onTouchEnd}
                   >
                     {step.content}
                   </motion.div>
