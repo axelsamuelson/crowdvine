@@ -26,8 +26,8 @@ export function calculatePriceBreakdown(
   wine: WinePricingData,
   memberDiscountPercent: number = 0
 ): PriceBreakdownResult {
-  // Start with the final calculated price (in SEK)
-  const totalPrice = wine.base_price_cents / 100;
+  // Start with the final calculated price (in SEK) - using same rounding as API
+  const totalPrice = Math.ceil(wine.base_price_cents / 100);
   
   // Store original margin percentage for display
   const originalMarginPercentage = wine.margin_percentage;
@@ -108,8 +108,8 @@ export function calculatePriceBreakdownSync(
   wine: WinePricingData,
   memberDiscountPercent: number = 0
 ): PriceBreakdownResult {
-  // Start with the final calculated price (in SEK)
-  const totalPrice = wine.base_price_cents / 100;
+  // Start with the final calculated price (in SEK) - using same rounding as API
+  const totalPrice = Math.ceil(wine.base_price_cents / 100);
   
   // Store original margin percentage for display
   const originalMarginPercentage = wine.margin_percentage;
