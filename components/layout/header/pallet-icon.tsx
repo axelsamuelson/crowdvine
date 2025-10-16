@@ -18,6 +18,7 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
   const [loading, setLoading] = useState(true);
   const [maxPalletPercent, setMaxPalletPercent] = useState<number | null>(null);
   const [hasActivePallets, setHasActivePallets] = useState(false);
+  const [hasPendingPayments, setHasPendingPayments] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [reservations, setReservations] = useState<any[]>([]);
   const [palletData, setPalletData] = useState<Map<string, any>>(new Map());
@@ -52,12 +53,14 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
       } else {
         setMaxPalletPercent(null);
         setHasActivePallets(false);
+        setHasPendingPayments(false);
       }
     } catch (error) {
       console.error("Error checking auth status:", error);
       setIsAuthenticated(false);
       setMaxPalletPercent(null);
       setHasActivePallets(false);
+      setHasPendingPayments(false);
     } finally {
       setLoading(false);
     }
@@ -71,6 +74,13 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
         console.log(`📦 Total reservations fetched:`, reservationsData.length);
         console.log(`📦 First reservation status:`, reservationsData[0]?.status);
         setReservations(reservationsData);
+        
+        // Check for pending payments
+        const pendingPayments = reservationsData.filter((res: any) =>
+          res.payment_status === 'pending' || res.status === 'pending_payment'
+        );
+        console.log(`💳 Pending payments found:`, pendingPayments.length);
+        setHasPendingPayments(pendingPayments.length > 0);
         
         // Calculate max percent among active pallets
         const activePallets = reservationsData.filter((res: any) => 
@@ -174,6 +184,7 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
       console.error("Error fetching reservations:", error);
       setMaxPalletPercent(null);
       setHasActivePallets(false);
+      setHasPendingPayments(false);
       setReservations([]);
       setPalletData(new Map());
     }
@@ -301,16 +312,23 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
       >
         {/* Ultra-thin progress halo for active pallets */}
         <div className="relative">
-          <Package className={`${sizeClasses[size]} text-foreground`} />
-          {maxPalletPercent !== null && (
+          <Package className={`${sizeClasses[size]} ${hasPendingPayments ? 'text-amber-500' : 'text-foreground'}`} />
+          
+          {/* Existing progress halo - hide when payment required */}
+          {maxPalletPercent !== null && !hasPendingPayments && (
             <ProgressHalo 
               valuePercent={maxPalletPercent} 
               size="sm" 
               className="absolute inset-0 opacity-40 pointer-events-none"
             />
           )}
-          {/* Number indicator for active pallets - positioned relative to icon */}
-          {hasActivePallets && sortedPallets.length > 0 && (
+          
+          {/* Payment notification badge - priority over pallet count */}
+          {hasPendingPayments ? (
+            <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center animate-pulse pointer-events-none">
+              <span className="text-white text-[10px] font-bold leading-none">!</span>
+            </div>
+          ) : hasActivePallets && sortedPallets.length > 0 && (
             <div className="absolute -top-0.5 -right-0.5 min-w-[10px] h-[10px] flex items-center justify-center bg-foreground text-background rounded-full pointer-events-none">
               <span className="text-[7px] font-semibold leading-none px-[2px]">
                 {sortedPallets.length}
@@ -319,7 +337,7 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
           )}
         </div>
         <span className="absolute sr-only">
-          {hasActivePallets ? `${sortedPallets.length} Active Pallets` : "Pallets"}
+          {hasPendingPayments ? "Payment Required" : hasActivePallets ? `${sortedPallets.length} Active Pallets` : "Pallets"}
         </span>
       </button>
 
@@ -373,17 +391,26 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
                           {pallet.name}
                         </span>
                       </div>
-                      <Badge 
-                        className={`text-[10px] rounded-full font-medium tracking-wide px-2 py-0.5 ${
-                          pallet.status === 'CONSOLIDATING' ? 'bg-gray-100 text-gray-600 border-gray-200' :
-                          pallet.status === 'OPEN' ? 'bg-gray-50 text-gray-500 border-gray-100' :
-                          pallet.status === 'SHIPPED' ? 'bg-gray-100 text-gray-600 border-gray-200' :
-                          pallet.status === 'DELIVERED' ? 'bg-gray-100 text-gray-600 border-gray-200' :
-                          'bg-gray-50 text-gray-500 border-gray-100'
-                        }`}
-                      >
-                        {pallet.status}
-                      </Badge>
+                      <div className="flex items-center gap-1.5">
+                        {/* Payment Required Badge */}
+                        {pallet.reservations.some((r: any) => r.payment_status === 'pending' || r.status === 'pending_payment') && (
+                          <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-[9px] font-medium tracking-wide px-1.5 py-0.5">
+                            Payment Required
+                          </Badge>
+                        )}
+                        {/* Pallet Status Badge */}
+                        <Badge 
+                          className={`text-[10px] rounded-full font-medium tracking-wide px-2 py-0.5 ${
+                            pallet.status === 'CONSOLIDATING' ? 'bg-gray-100 text-gray-600 border-gray-200' :
+                            pallet.status === 'OPEN' ? 'bg-gray-50 text-gray-500 border-gray-100' :
+                            pallet.status === 'SHIPPED' ? 'bg-gray-100 text-gray-600 border-gray-200' :
+                            pallet.status === 'DELIVERED' ? 'bg-gray-100 text-gray-600 border-gray-200' :
+                            'bg-gray-50 text-gray-500 border-gray-100'
+                          }`}
+                        >
+                          {pallet.status}
+                        </Badge>
+                      </div>
                     </div>
                     
                     {/* Row 2: Meta info with percentage and user's reservation */}
