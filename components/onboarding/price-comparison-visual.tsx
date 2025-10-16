@@ -43,7 +43,7 @@ export function PriceComparisonVisual() {
               transition={{ duration: 0.8, delay: 0.7 }}
               className="bg-slate-400 flex items-center justify-center text-xs font-medium text-white"
             >
-              Tax/VAT 55 kr
+              Tax/VAT 42 kr
             </motion.div>
           </div>
         </div>
@@ -74,7 +74,7 @@ export function PriceComparisonVisual() {
               transition={{ duration: 0.8, delay: 1.0 }}
               className="bg-slate-400 flex items-center justify-center text-xs font-medium text-white"
             >
-              Tax/VAT 51 kr
+              Tax/VAT 53 kr
             </motion.div>
           </div>
         </div>
@@ -105,7 +105,7 @@ export function PriceComparisonVisual() {
               transition={{ duration: 0.8, delay: 1.3 }}
               className="bg-slate-400 flex items-center justify-center text-xs font-medium text-white"
             >
-              Tax/VAT 39 kr
+              Tax/VAT 71 kr
             </motion.div>
           </div>
         </div>
