@@ -88,8 +88,8 @@ const getSteps = (membershipLevel: MembershipLevel) => {
   },
   {
     id: 2,
-    title: "Transparent Pricing",
-    subtitle: "Full transparency in every bottle",
+    title: "Why PACT is Cheaper",
+    subtitle: "No middlemen. No warehouses. No hidden costs.",
     icon: TrendingDown,
     content: <PriceComparisonVisual />,
   },
