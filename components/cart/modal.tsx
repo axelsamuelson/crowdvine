@@ -27,40 +27,8 @@ const CartContainer = ({
   return <div className={cn("px-3 md:px-4", className)}>{children}</div>;
 };
 
-const CartItems = ({ closeCart }: { closeCart: () => void }) => {
+const CartItems = ({ closeCart, validations, isValidating }: { closeCart: () => void; validations: ProducerValidation[]; isValidating: boolean }) => {
   const { cart } = useCart();
-  const [validations, setValidations] = useState<ProducerValidation[]>([]);
-  const [isValidating, setIsValidating] = useState(false);
-
-  // Validate cart whenever it changes
-  useEffect(() => {
-    if (!cart || cart.lines.length === 0) {
-      setValidations([]);
-      return;
-    }
-
-    const validateCart = async () => {
-      setIsValidating(true);
-      try {
-        console.log("🔍 [Cart Modal] Validating cart with", cart.lines.length, "items");
-        console.log("🔍 [Cart Modal] Sample cart item:", cart.lines[0]);
-        
-        // Call API endpoint instead of running validation client-side
-        const response = await fetch("/api/cart/validate");
-        const result = await response.json();
-        
-        console.log("✅ [Cart Modal] Validation result:", result);
-        setValidations(result.producerValidations || []);
-      } catch (error) {
-        console.error("❌ [Cart Modal] Validation error:", error);
-        setValidations([]);
-      } finally {
-        setIsValidating(false);
-      }
-    };
-
-    validateCart();
-  }, [cart]);
 
   if (!cart) return <></>;
 
@@ -131,9 +99,41 @@ const serializeCart = (cart: Cart) => {
 export default function CartModal() {
   const { cart, isPending } = useCart();
   const [isOpen, setIsOpen] = useState(false);
+  const [validations, setValidations] = useState<ProducerValidation[]>([]);
+  const [isValidating, setIsValidating] = useState(false);
   const serializedCart = useRef(cart ? serializeCart(cart) : undefined);
 
   useBodyScrollLock(isOpen);
+
+  // Validate cart whenever it changes
+  useEffect(() => {
+    if (!cart || cart.lines.length === 0) {
+      setValidations([]);
+      return;
+    }
+
+    const validateCart = async () => {
+      setIsValidating(true);
+      try {
+        console.log("🔍 [Cart Modal] Validating cart with", cart.lines.length, "items");
+        console.log("🔍 [Cart Modal] Sample cart item:", cart.lines[0]);
+        
+        // Call API endpoint instead of running validation client-side
+        const response = await fetch("/api/cart/validate");
+        const result = await response.json();
+        
+        console.log("✅ [Cart Modal] Validation result:", result);
+        setValidations(result.producerValidations || []);
+      } catch (error) {
+        console.error("❌ [Cart Modal] Validation error:", error);
+        setValidations([]);
+      } finally {
+        setIsValidating(false);
+      }
+    };
+
+    validateCart();
+  }, [cart]);
 
   useEffect(() => {
     if (!cart) return;
@@ -177,6 +177,9 @@ export default function CartModal() {
   const openCart = () => setIsOpen(true);
   const closeCart = () => setIsOpen(false);
 
+  // Check if there are validation errors
+  const hasValidationErrors = validations.some((v) => !v.isValid);
+
   const renderCartContent = () => {
     if (!cart || cart.lines.length === 0) {
       return (
@@ -204,7 +207,7 @@ export default function CartModal() {
       );
     }
 
-    return <CartItems closeCart={closeCart} />;
+    return <CartItems closeCart={closeCart} validations={validations} isValidating={isValidating} />;
   };
 
   // Don't render cart button if no cart data
@@ -217,7 +220,11 @@ export default function CartModal() {
       <Button
         aria-label="Open cart"
         onClick={openCart}
-        className="font-semibold cursor-pointer inline-flex items-center justify-center whitespace-nowrap text-base transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-black border border-transparent text-white shadow-xs hover:bg-black/90 h-7 rounded-sm gap-1.5 py-1 px-2 [&_svg:not([class*='size-'])]:size-4 has-[>svg]:pr-1.5 uppercase"
+        className={`font-semibold cursor-pointer inline-flex items-center justify-center whitespace-nowrap text-base transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border border-transparent text-white shadow-xs h-7 rounded-sm gap-1.5 py-1 px-2 [&_svg:not([class*='size-'])]:size-4 has-[>svg]:pr-1.5 uppercase ${
+          hasValidationErrors 
+            ? "bg-amber-600 hover:bg-amber-700" 
+            : "bg-black hover:bg-black/90"
+        }`}
         size={"sm"}
         disabled={isPending}
       >
