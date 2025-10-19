@@ -199,10 +199,10 @@ export function ProductListContent({
                   {selectedProducers.slice(0, 2).map((producerHandle) => {
                     const collection = collections.find(c => c.handle === producerHandle);
                     const validation = validations.find(v => v.producerHandle === producerHandle);
-                    const current = validation?.current || 0;
-                    const required = validation?.required || 6;
-                    const progress = Math.min((current / required) * 100, 100);
-                    const remaining = Math.max(required - current, 0);
+                    const current = validation?.quantity || 0;
+                    const required = (validation?.quantity || 0) + (validation?.needed || 0);
+                    const progress = required > 0 ? Math.min((current / required) * 100, 100) : 0;
+                    const remaining = validation?.needed || 0;
                     
                     // Debug log for progress bar rendering
                     console.log(`Progress bar for ${producerHandle}:`, {
@@ -210,7 +210,9 @@ export function ProductListContent({
                       current,
                       required,
                       progress,
-                      remaining
+                      remaining,
+                      quantity: validation?.quantity,
+                      needed: validation?.needed
                     });
 
                     return (
