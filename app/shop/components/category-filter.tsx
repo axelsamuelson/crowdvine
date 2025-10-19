@@ -48,9 +48,7 @@ export function CategoryFilter({
                         ? "opacity-50"
                         : "",
                   )}
-                  href={selectedProducers.length > 0 
-                    ? `/shop?producers=${selectedProducers.join(',')}` 
-                    : `/shop/${collection.handle}`}
+                  href={`/shop/${collection.handle}`}
                   aria-pressed={isSelected}
                   aria-label={`Filter by category: ${collection.title}`}
                   prefetch
