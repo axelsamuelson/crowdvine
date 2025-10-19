@@ -36,12 +36,19 @@ export async function POST(request: Request) {
       }
     );
 
-    // Get the origin from the request to handle both localhost and production
-    const origin = request.headers.get('origin') || request.headers.get('referer')?.split('/').slice(0, 3).join('/') || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    // Get the origin from the request headers
+    const origin = request.headers.get('origin') || 
+                   request.headers.get('referer')?.split('/').slice(0, 3).join('/') ||
+                   request.headers.get('host') ? `https://${request.headers.get('host')}` : null;
+    
+    // Fallback to production URL if we can't determine origin
+    const redirectUrl = origin ? `${origin}/auth/callback?next=/reset-password` : 'https://pactwines.com/auth/callback?next=/reset-password';
+    
+    console.log('Password reset redirect URL:', redirectUrl);
     
     // Send password reset email
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${origin}/auth/callback?next=/reset-password`,
+      redirectTo: redirectUrl,
     });
 
     if (error) {
