@@ -112,28 +112,28 @@ export function ProductListContent({
   return (
     <>
       {selectedProducers.length > 0 && (
-        <div className="mb-8 p-6 bg-foreground/2 border border-foreground/10 rounded-xl">
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-foreground/5 rounded-full flex items-center justify-center">
-                <div className="w-3 h-3 bg-foreground/40 rounded-full"></div>
+        <div className="mb-6 md:mb-8 p-4 md:p-6 bg-foreground/[0.015] border border-foreground/[0.08] rounded-lg md:rounded-xl">
+          <div className="space-y-3 md:space-y-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="w-6 h-6 md:w-8 md:h-8 bg-foreground/[0.03] rounded-full flex items-center justify-center">
+                <div className="w-2 h-2 md:w-3 md:h-3 bg-foreground/30 rounded-full"></div>
               </div>
-              <h3 className="text-lg font-light text-foreground tracking-wide">
+              <h3 className="text-base md:text-lg font-light text-foreground tracking-wide">
                 Complete Your Order
               </h3>
             </div>
             
-            <p className="text-sm text-muted-foreground leading-relaxed max-w-2xl">
+            <p className="text-xs md:text-sm text-muted-foreground leading-relaxed max-w-2xl">
               Add more bottles from these producers to complete your order. Each producer requires a minimum of 6 bottles.
             </p>
             
-            <div className="flex flex-wrap gap-2 pt-2">
+            <div className="flex flex-wrap gap-1.5 md:gap-2 pt-1 md:pt-2">
               {selectedProducers.map((producerHandle) => {
                 const collection = collections.find(c => c.handle === producerHandle);
                 return (
                   <span
                     key={producerHandle}
-                    className="px-3 py-1.5 bg-foreground/5 text-foreground/70 text-xs font-medium rounded-full border border-foreground/10"
+                    className="px-2.5 md:px-3 py-1 md:py-1.5 bg-foreground/[0.03] text-foreground/60 text-xs font-medium rounded-full border border-foreground/[0.08]"
                   >
                     {collection?.title || producerHandle}
                   </span>
