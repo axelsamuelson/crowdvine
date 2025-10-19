@@ -353,19 +353,67 @@ export async function POST(request: NextRequest) {
     // User and profile created/updated successfully
     console.log("5. User creation completed successfully");
 
-    // Automatically sign in the user after successful account creation
-    console.log("6. Creating auth session for new user...");
-    try {
-      // Create a server client for signing in
-      const serverSupabase = createSupabaseServerClient();
-      
-      const { data: signInData, error: signInError } = await serverSupabase.auth.signInWithPassword({
-        email: normalizedEmail,
-        password,
-      });
+    // Only attempt auto sign-in for newly created users, not existing ones
+    if (!existingUserData) {
+      console.log("6. Creating auth session for new user...");
+      try {
+        // Create a server client for signing in
+        const serverSupabase = createSupabaseServerClient();
+        
+        const { data: signInData, error: signInError } = await serverSupabase.auth.signInWithPassword({
+          email: normalizedEmail,
+          password,
+        });
 
-      if (signInError) {
-        console.error("Auto sign-in failed:", signInError);
+        if (signInError) {
+          console.error("Auto sign-in failed:", signInError);
+          return NextResponse.json({
+            success: true,
+            user: {
+              id: authUserId,
+              email: normalizedEmail,
+            },
+            autoSignedIn: false,
+            message: "Account created successfully. Please sign in.",
+          });
+        }
+
+        // CRITICAL SECURITY: Verify that the signed-in user matches the created user
+        if (signInData.user?.id !== authUserId) {
+          console.error("SECURITY ALERT: Signed-in user ID does not match created user ID!");
+          console.error("Created user ID:", authUserId);
+          console.error("Signed-in user ID:", signInData.user?.id);
+          
+          // Sign out immediately for security
+          await serverSupabase.auth.signOut({ scope: "global" });
+          
+          return NextResponse.json({
+            success: false,
+            error: "Security validation failed. Please try signing in manually.",
+          }, { status: 500 });
+        }
+
+        console.log("6a. User automatically signed in successfully");
+        
+        // Update response to indicate auto sign-in
+        const updatedResponse = NextResponse.json({
+          success: true,
+          user: {
+            id: signInData.user?.id,
+            email: signInData.user?.email,
+          },
+          autoSignedIn: true,
+          message: "Account created and signed in successfully.",
+        });
+
+        // Copy cookies from the server client to the response
+        const cookies = await serverSupabase.auth.getSession();
+        // The cookies are automatically set by the server client
+        
+        return updatedResponse;
+      } catch (sessionError) {
+        console.error("Error creating auth session:", sessionError);
+        // Return success but indicate manual sign-in required
         return NextResponse.json({
           success: true,
           user: {
@@ -376,43 +424,9 @@ export async function POST(request: NextRequest) {
           message: "Account created successfully. Please sign in.",
         });
       }
-
-      // CRITICAL SECURITY: Verify that the signed-in user matches the created user
-      if (signInData.user?.id !== authUserId) {
-        console.error("SECURITY ALERT: Signed-in user ID does not match created user ID!");
-        console.error("Created user ID:", authUserId);
-        console.error("Signed-in user ID:", signInData.user?.id);
-        
-        // Sign out immediately for security
-        await serverSupabase.auth.signOut({ scope: "global" });
-        
-        return NextResponse.json({
-          success: false,
-          error: "Security validation failed. Please try signing in manually.",
-        }, { status: 500 });
-      }
-
-      console.log("6a. User automatically signed in successfully");
-      
-      // Update response to indicate auto sign-in
-      const updatedResponse = NextResponse.json({
-        success: true,
-        user: {
-          id: signInData.user?.id,
-          email: signInData.user?.email,
-        },
-        autoSignedIn: true,
-        message: "Account created and signed in successfully.",
-      });
-
-      // Copy cookies from the server client to the response
-      const cookies = await serverSupabase.auth.getSession();
-      // The cookies are automatically set by the server client
-      
-      return updatedResponse;
-    } catch (sessionError) {
-      console.error("Error creating auth session:", sessionError);
-      // Return success but indicate manual sign-in required
+    } else {
+      // For existing users, just return success without auto sign-in
+      console.log("6. Existing user - skipping auto sign-in");
       return NextResponse.json({
         success: true,
         user: {
@@ -420,7 +434,7 @@ export async function POST(request: NextRequest) {
           email: normalizedEmail,
         },
         autoSignedIn: false,
-        message: "Account created successfully. Please sign in.",
+        message: "Account access granted. Please sign in with your existing password.",
       });
     }
 
