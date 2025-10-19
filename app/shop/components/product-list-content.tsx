@@ -117,18 +117,13 @@ export function ProductListContent({
           <div className="absolute inset-0 bg-gradient-to-br from-foreground/[0.008] via-foreground/[0.004] to-transparent rounded-2xl"></div>
           
           {/* Main content container */}
-          <div className="relative p-5 md:p-8 border border-foreground/[0.06] rounded-2xl backdrop-blur-sm">
-            <div className="space-y-4 md:space-y-6">
+          <div className="relative p-4 md:p-6 border border-foreground/[0.06] rounded-2xl backdrop-blur-sm">
+            <div className="space-y-3 md:space-y-4">
               {/* Header section */}
-              <div className="flex items-start justify-between">
-                <div className="space-y-1">
-                  <h3 className="text-lg md:text-xl font-light text-foreground tracking-wide">
-                    Complete Your Order
-                  </h3>
-                  <p className="text-xs md:text-sm text-muted-foreground/80 font-light leading-relaxed max-w-md">
-                    Add more bottles from these producers to complete your order
-                  </p>
-                </div>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg md:text-xl font-light text-foreground tracking-wide">
+                  Complete Your Order
+                </h3>
                 
                 {/* Subtle indicator */}
                 <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-foreground/[0.04] rounded-full border border-foreground/[0.08]">
@@ -160,7 +155,7 @@ export function ProductListContent({
               </div>
               
               {/* Rule explanation */}
-              <div className="pt-2 md:pt-3 border-t border-foreground/[0.04]">
+              <div className="pt-3 md:pt-4 border-t border-foreground/[0.04]">
                 <p className="text-xs text-muted-foreground/60 font-light">
                   Each producer requires a minimum of 6 bottles for efficient shipping
                 </p>
