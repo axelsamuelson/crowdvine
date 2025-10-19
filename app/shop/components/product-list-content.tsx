@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Product, Collection } from "@/lib/shopify/types";
 import { ProductCard } from "./product-card";
 import ResultsControls from "./results-controls";
@@ -8,6 +8,8 @@ import { useProducts } from "../providers/products-provider";
 import { useQueryState, parseAsArrayOf, parseAsString } from "nuqs";
 import { ProductGrid } from "./product-grid";
 import { Card } from "../../../components/ui/card";
+import { useCart } from "@/components/cart/cart-context";
+import { ProducerValidation } from "@/lib/checkout-validation";
 
 interface ProductListContentProps {
   products: Product[];
@@ -88,12 +90,47 @@ export function ProductListContent({
   selectedProducers = [],
 }: ProductListContentProps) {
   const { setProducts, setOriginalProducts } = useProducts();
+  const { cart } = useCart();
+  const [validations, setValidations] = useState<ProducerValidation[]>([]);
 
   // Get current color filters from URL
   const [colorFilters] = useQueryState(
     "fcolor",
     parseAsArrayOf(parseAsString).withDefault([]),
   );
+
+  // Fetch validation data for selected producers
+  useEffect(() => {
+    const fetchValidations = async () => {
+      if (!cart || selectedProducers.length === 0) {
+        setValidations([]);
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/cart/validate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ cart }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          const relevantValidations = result.producerValidations?.filter((v: ProducerValidation) => 
+            selectedProducers.includes(v.producerHandle || '')
+          ) || [];
+          setValidations(relevantValidations);
+        }
+      } catch (error) {
+        console.error('Failed to fetch validations:', error);
+        setValidations([]);
+      }
+    };
+
+    fetchValidations();
+  }, [cart, selectedProducers]);
 
   // Apply client-side filtering whenever products or color filters change
   const filteredProducts = useMemo(() => {
@@ -124,31 +161,53 @@ export function ProductListContent({
                 <h3 className="text-lg md:text-xl font-light text-foreground tracking-wide">
                   Complete Your Order
                 </h3>
-                
-                {/* Subtle indicator */}
-                <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-foreground/[0.04] rounded-full border border-foreground/[0.08]">
-                  <div className="w-1.5 h-1.5 bg-foreground/40 rounded-full animate-pulse"></div>
-                  <span className="text-xs font-medium text-foreground/60 tracking-wide">
-                    {selectedProducers.length} producer{selectedProducers.length > 1 ? 's' : ''}
-                  </span>
-                </div>
               </div>
               
-              {/* Producer badges */}
-              <div className="flex flex-wrap gap-2 md:gap-3">
+              {/* Producer progress visualization */}
+              <div className="space-y-3">
                 {selectedProducers.map((producerHandle) => {
                   const collection = collections.find(c => c.handle === producerHandle);
+                  const validation = validations.find(v => v.producerHandle === producerHandle);
+                  const current = validation?.current || 0;
+                  const required = validation?.required || 6;
+                  const progress = Math.min((current / required) * 100, 100);
+                  const remaining = Math.max(required - current, 0);
+
                   return (
                     <div
                       key={producerHandle}
                       className="group relative"
                     >
-                      <div className="px-3 md:px-4 py-2 md:py-2.5 bg-foreground/[0.02] hover:bg-foreground/[0.04] text-foreground/70 hover:text-foreground/90 text-xs md:text-sm font-medium rounded-xl border border-foreground/[0.06] hover:border-foreground/[0.12] transition-all duration-200 cursor-pointer">
-                        {collection?.title || producerHandle}
+                      <div className="p-3 md:p-4 bg-foreground/[0.02] hover:bg-foreground/[0.04] rounded-xl border border-foreground/[0.06] hover:border-foreground/[0.12] transition-all duration-200">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-sm md:text-base font-medium text-foreground/80">
+                            {collection?.title || producerHandle}
+                          </h4>
+                          <div className="text-xs text-muted-foreground/60 font-light">
+                            {current}/{required} bottles
+                          </div>
+                        </div>
+                        
+                        {/* Progress bar */}
+                        <div className="relative h-1.5 bg-foreground/[0.04] rounded-full overflow-hidden">
+                          <div 
+                            className="absolute inset-y-0 left-0 bg-gradient-to-r from-foreground/20 to-foreground/30 rounded-full transition-all duration-500 ease-out"
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                        
+                        {/* Status text */}
+                        <div className="mt-2 text-xs text-muted-foreground/60 font-light">
+                          {remaining > 0 ? (
+                            <span>Add {remaining} more bottle{remaining > 1 ? 's' : ''} to complete</span>
+                          ) : (
+                            <span className="text-green-600/70">✓ Complete</span>
+                          )}
+                        </div>
                       </div>
                       
                       {/* Subtle hover effect */}
-                      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-transparent via-foreground/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-transparent via-foreground/[0.01] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
                     </div>
                   );
                 })}
