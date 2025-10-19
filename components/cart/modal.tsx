@@ -272,7 +272,7 @@ export default function CartModal() {
                       closeCart();
                       router.push('/shop');
                     }}
-                    className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+                    className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors hover:bg-muted-foreground/10"
                   >
                     <ArrowLeft className="w-4 h-4" />
                     <span className="hidden sm:inline">Shop</span>
@@ -287,7 +287,7 @@ export default function CartModal() {
                     variant="ghost"
                     aria-label="Close cart"
                     onClick={closeCart}
-                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    className="text-muted-foreground hover:text-foreground transition-colors hover:bg-muted-foreground/5"
                   >
                     Close
                   </Button>
