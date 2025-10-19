@@ -36,9 +36,13 @@ export async function POST(request: Request) {
       }
     );
 
-    // Force production URL for password reset emails
-    // This ensures emails always contain the correct production domain
-    const redirectUrl = 'https://pactwines.com/auth/callback?next=/reset-password';
+    // Get the origin from the request headers
+    const origin = request.headers.get('origin') || 
+                   request.headers.get('referer')?.split('/').slice(0, 3).join('/') ||
+                   request.headers.get('host') ? `https://${request.headers.get('host')}` : null;
+    
+    // Use dynamic origin, fallback to production URL
+    const redirectUrl = origin ? `${origin}/auth/callback?next=/reset-password` : 'https://pactwines.com/auth/callback?next=/reset-password';
     
     console.log('Password reset redirect URL:', redirectUrl);
     

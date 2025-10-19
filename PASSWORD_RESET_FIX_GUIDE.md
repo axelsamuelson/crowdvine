@@ -43,9 +43,10 @@ const redirectUrl = 'https://pactwines.com/auth/callback?next=/reset-password';
 - ✅ Reset password page created  
 - ✅ Error handling page created
 - ✅ Dynamic URL detection improved
-- ⚠️ Supabase Site URL configuration needs updating
+- ✅ Supabase Site URL configuration updated to https://pactwines.com
+- ✅ Hardcoded production URL in forgot-password API
 
 ## Next Steps
-1. Update Supabase Site URL configuration
+1. ✅ ~~Update Supabase Site URL configuration~~ **COMPLETED**
 2. Test password reset flow end-to-end
 3. Verify emails contain correct production URLs
