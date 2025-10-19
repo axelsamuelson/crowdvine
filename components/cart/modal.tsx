@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, PlusCircleIcon } from "lucide-react";
+import { ArrowRight, PlusCircleIcon, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
@@ -262,13 +262,32 @@ export default function CartModal() {
               className="fixed top-0 bottom-0 right-0 flex w-full md:w-[500px] p-modal-sides z-50"
             >
               <div className="flex flex-col py-3 w-full rounded bg-muted md:py-4">
-                <CartContainer className="flex justify-between items-baseline mb-10">
+                <CartContainer className="flex justify-between items-center mb-10">
+                  {/* Back to Shop Button */}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    aria-label="Back to shop"
+                    onClick={() => {
+                      closeCart();
+                      router.push('/shop');
+                    }}
+                    className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span className="hidden sm:inline">Shop</span>
+                  </Button>
+
+                  {/* Centered Cart Title */}
                   <p className="text-2xl font-semibold">Cart</p>
+
+                  {/* Close Button */}
                   <Button
                     size="sm"
                     variant="ghost"
                     aria-label="Close cart"
                     onClick={closeCart}
+                    className="text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Close
                   </Button>
