@@ -264,19 +264,17 @@ export default function CartModal() {
               <div className="flex flex-col py-3 w-full rounded bg-muted md:py-4">
                 <CartContainer className="flex justify-between items-center mb-10">
                   {/* Back to Shop Button */}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    aria-label="Back to shop"
-                    onClick={() => {
-                      closeCart();
-                      router.push('/shop');
-                    }}
-                    className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors hover:bg-muted-foreground/10"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                    <span className="hidden sm:inline">Shop</span>
-                  </Button>
+                  <Link href="/shop" onClick={closeCart}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      aria-label="Back to shop"
+                      className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors hover:bg-muted-foreground/10"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      <span className="hidden sm:inline">Shop</span>
+                    </Button>
+                  </Link>
 
                   {/* Centered Cart Title */}
                   <p className="text-2xl font-semibold">Cart</p>
