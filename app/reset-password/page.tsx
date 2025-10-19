@@ -55,7 +55,7 @@ export default function ResetPasswordPage() {
       
       // Redirect to login after 2 seconds
       setTimeout(() => {
-        router.push("/login");
+        router.push("/log-in");
       }, 2000);
 
     } catch (err) {
@@ -177,7 +177,7 @@ export default function ResetPasswordPage() {
               <p className="text-sm text-gray-600">
                 Remember your password?{" "}
                 <button
-                  onClick={() => router.push("/login")}
+                  onClick={() => router.push("/log-in")}
                   className="text-blue-600 hover:text-blue-500 font-medium"
                 >
                   Sign in
