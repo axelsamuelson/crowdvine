@@ -71,14 +71,30 @@ export function CartValidationHeader({ validations, isValidating }: CartValidati
         <div className="space-y-2">
           {/* Header with fold/unfold button */}
           <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <p className="text-xs text-foreground font-medium">
-                Add more bottles from {invalidValidations.length === 1 ? 'this producer' : 'these producers'} to checkout
-              </p>
-              <p className="text-xs text-muted-foreground/70">
-                Mix freely within each producer
-              </p>
-            </div>
+            {!isExpanded && (
+              <div className="flex-1">
+                <p className="text-xs text-foreground font-medium">
+                  Add more bottles from {invalidValidations.length === 1 ? 'this producer' : 'these producers'} to checkout
+                </p>
+                <p className="text-xs text-muted-foreground/70">
+                  Mix freely within each producer
+                </p>
+              </div>
+            )}
+            {isExpanded && (
+              <div className="flex items-center gap-2 text-xs">
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                  <span className="text-muted-foreground">{invalidValidations.length} producer{invalidValidations.length !== 1 ? 's' : ''} need more bottles</span>
+                </div>
+                {validValidations.length > 0 && (
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                    <span className="text-muted-foreground">{validValidations.length} ready</span>
+                  </div>
+                )}
+              </div>
+            )}
             <button
               onClick={() => setIsExpanded(!isExpanded)}
               className="ml-2 p-1 hover:bg-muted-foreground/10 rounded transition-colors"
