@@ -125,6 +125,14 @@ export function ProductListContent({
             selectedProducers.includes(v.producerHandle || '')
           ) || [];
           console.log('Relevant validations:', relevantValidations); // Debug log
+          relevantValidations.forEach((v, index) => {
+            console.log(`Validation ${index}:`, {
+              producerHandle: v.producerHandle,
+              current: v.current,
+              required: v.required,
+              groupId: v.groupId
+            });
+          });
           setValidations(relevantValidations);
         }
       } catch (error) {
@@ -180,6 +188,15 @@ export function ProductListContent({
                     const required = validation?.required || 6;
                     const progress = Math.min((current / required) * 100, 100);
                     const remaining = Math.max(required - current, 0);
+                    
+                    // Debug log for progress bar rendering
+                    console.log(`Progress bar for ${producerHandle}:`, {
+                      validation,
+                      current,
+                      required,
+                      progress,
+                      remaining
+                    });
 
                     return (
                       <div key={producerHandle} className="space-y-1">
