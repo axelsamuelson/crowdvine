@@ -74,7 +74,7 @@ export function CartValidationHeader({ validations, isValidating }: CartValidati
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs">
                 <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                  <div className="w-2 h-2 rounded-full bg-gradient-to-r from-amber-500 to-amber-600"></div>
                   <span className="text-muted-foreground">{invalidValidations.length} producer{invalidValidations.length !== 1 ? 's' : ''} need more bottles</span>
                 </div>
               </div>
@@ -130,10 +130,12 @@ export function CartValidationHeader({ validations, isValidating }: CartValidati
                         {current}/{total}
                       </span>
                     </div>
-                    <div className="relative h-1 bg-muted-foreground/10 rounded-full overflow-hidden">
+                    <div className="relative h-1 bg-foreground/[0.06] rounded-full overflow-hidden">
                       <div
                         className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out ${
-                          isComplete ? 'bg-green-500' : 'bg-amber-500'
+                          isComplete 
+                            ? 'bg-gradient-to-r from-green-500 to-green-600' 
+                            : 'bg-gradient-to-r from-amber-500 to-amber-600'
                         }`}
                         style={{ width: `${progress}%` }}
                       />
