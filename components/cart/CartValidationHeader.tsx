@@ -67,7 +67,10 @@ export function CartValidationHeader({ validations, isValidating }: CartValidati
         <div className="space-y-2">
           {/* Main message */}
           <p className="text-xs text-foreground font-medium">
-            Add more bottles for these producers to checkout
+            Add more bottles from {invalidValidations.length === 1 ? 'this producer' : 'these producers'} to checkout
+          </p>
+          <p className="text-xs text-muted-foreground/70">
+            Mix freely within each producer
           </p>
           
           {/* Producer list with progress bars */}
@@ -84,7 +87,7 @@ export function CartValidationHeader({ validations, isValidating }: CartValidati
                     <span className="text-xs text-muted-foreground font-medium">
                       {validation.producerName}
                     </span>
-                    <span className="text-xs text-muted-foreground/70">
+                    <span className="text-xs text-amber-600 font-medium">
                       {current}/{total}
                     </span>
                   </div>
