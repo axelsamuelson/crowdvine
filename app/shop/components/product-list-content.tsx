@@ -112,33 +112,59 @@ export function ProductListContent({
   return (
     <>
       {selectedProducers.length > 0 && (
-        <div className="mb-6 md:mb-8 p-4 md:p-6 bg-foreground/[0.015] border border-foreground/[0.08] rounded-lg md:rounded-xl">
-          <div className="space-y-3 md:space-y-4">
-            <div className="flex items-center gap-2 md:gap-3">
-              <div className="w-6 h-6 md:w-8 md:h-8 bg-foreground/[0.03] rounded-full flex items-center justify-center">
-                <div className="w-2 h-2 md:w-3 md:h-3 bg-foreground/30 rounded-full"></div>
-              </div>
-              <h3 className="text-base md:text-lg font-light text-foreground tracking-wide">
-                Complete Your Order
-              </h3>
-            </div>
-            
-            <p className="text-xs md:text-sm text-muted-foreground leading-relaxed max-w-2xl">
-              Add more bottles from these producers to complete your order. Each producer requires a minimum of 6 bottles.
-            </p>
-            
-            <div className="flex flex-wrap gap-1.5 md:gap-2 pt-1 md:pt-2">
-              {selectedProducers.map((producerHandle) => {
-                const collection = collections.find(c => c.handle === producerHandle);
-                return (
-                  <span
-                    key={producerHandle}
-                    className="px-2.5 md:px-3 py-1 md:py-1.5 bg-foreground/[0.03] text-foreground/60 text-xs font-medium rounded-full border border-foreground/[0.08]"
-                  >
-                    {collection?.title || producerHandle}
+        <div className="mb-6 md:mb-8 relative">
+          {/* Subtle background with premium gradient */}
+          <div className="absolute inset-0 bg-gradient-to-br from-foreground/[0.008] via-foreground/[0.004] to-transparent rounded-2xl"></div>
+          
+          {/* Main content container */}
+          <div className="relative p-5 md:p-8 border border-foreground/[0.06] rounded-2xl backdrop-blur-sm">
+            <div className="space-y-4 md:space-y-6">
+              {/* Header section */}
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                  <h3 className="text-lg md:text-xl font-light text-foreground tracking-wide">
+                    Complete Your Order
+                  </h3>
+                  <p className="text-xs md:text-sm text-muted-foreground/80 font-light leading-relaxed max-w-md">
+                    Add more bottles from these producers to complete your order
+                  </p>
+                </div>
+                
+                {/* Subtle indicator */}
+                <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-foreground/[0.04] rounded-full border border-foreground/[0.08]">
+                  <div className="w-1.5 h-1.5 bg-foreground/40 rounded-full animate-pulse"></div>
+                  <span className="text-xs font-medium text-foreground/60 tracking-wide">
+                    {selectedProducers.length} producer{selectedProducers.length > 1 ? 's' : ''}
                   </span>
-                );
-              })}
+                </div>
+              </div>
+              
+              {/* Producer badges */}
+              <div className="flex flex-wrap gap-2 md:gap-3">
+                {selectedProducers.map((producerHandle) => {
+                  const collection = collections.find(c => c.handle === producerHandle);
+                  return (
+                    <div
+                      key={producerHandle}
+                      className="group relative"
+                    >
+                      <div className="px-3 md:px-4 py-2 md:py-2.5 bg-foreground/[0.02] hover:bg-foreground/[0.04] text-foreground/70 hover:text-foreground/90 text-xs md:text-sm font-medium rounded-xl border border-foreground/[0.06] hover:border-foreground/[0.12] transition-all duration-200 cursor-pointer">
+                        {collection?.title || producerHandle}
+                      </div>
+                      
+                      {/* Subtle hover effect */}
+                      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-transparent via-foreground/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {/* Rule explanation */}
+              <div className="pt-2 md:pt-3 border-t border-foreground/[0.04]">
+                <p className="text-xs text-muted-foreground/60 font-light">
+                  Each producer requires a minimum of 6 bottles for efficient shipping
+                </p>
+              </div>
             </div>
           </div>
         </div>
