@@ -68,10 +68,6 @@ const CartItems = ({ closeCart, validations, isValidating }: { closeCart: () => 
       <CartContainer>
         <div className="py-4 text-sm text-foreground/50 shrink-0">
           <div className="flex justify-between items-center pb-1 mb-3 border-b border-muted-foreground/20">
-            <p>Taxes</p>
-            <p className="text-right">Calculated at checkout</p>
-          </div>
-          <div className="flex justify-between items-center pt-1 pb-1 mb-3 border-b border-muted-foreground/20">
             <p>Shipping</p>
             <p className="text-right">Calculated at checkout</p>
           </div>
