@@ -149,79 +149,69 @@ export function ProductListContent({
   return (
     <>
       {selectedProducers.length > 0 && (
-        <div className="mb-6 md:mb-8 relative">
-          {/* Subtle background with premium gradient */}
-          <div className="absolute inset-0 bg-gradient-to-br from-foreground/[0.008] via-foreground/[0.004] to-transparent rounded-2xl"></div>
-          
-          {/* Main content container */}
-          <div className="relative p-4 md:p-6 border border-foreground/[0.06] rounded-2xl backdrop-blur-sm">
-            <div className="space-y-3 md:space-y-4">
-              {/* Header section */}
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg md:text-xl font-light text-foreground tracking-wide">
-                  Complete Your Order
-                </h3>
-              </div>
-              
-              {/* Producer progress visualization */}
-              <div className="space-y-3">
-                {selectedProducers.map((producerHandle) => {
-                  const collection = collections.find(c => c.handle === producerHandle);
-                  const validation = validations.find(v => v.producerHandle === producerHandle);
-                  const current = validation?.current || 0;
-                  const required = validation?.required || 6;
-                  const progress = Math.min((current / required) * 100, 100);
-                  const remaining = Math.max(required - current, 0);
+        <>
+          {/* Sticky compact progress indicator */}
+          <div className="fixed top-20 right-4 z-40 max-w-xs">
+            <div className="p-3 bg-background/95 backdrop-blur-md border border-foreground/[0.08] rounded-xl shadow-lg">
+              <div className="space-y-2">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-medium text-foreground/80 tracking-wide">
+                    Complete Order
+                  </h4>
+                  <div className="text-xs text-muted-foreground/60">
+                    {selectedProducers.length} producer{selectedProducers.length > 1 ? 's' : ''}
+                  </div>
+                </div>
+                
+                {/* Compact progress bars */}
+                <div className="space-y-1.5">
+                  {selectedProducers.slice(0, 2).map((producerHandle) => {
+                    const collection = collections.find(c => c.handle === producerHandle);
+                    const validation = validations.find(v => v.producerHandle === producerHandle);
+                    const current = validation?.current || 0;
+                    const required = validation?.required || 6;
+                    const progress = Math.min((current / required) * 100, 100);
+                    const remaining = Math.max(required - current, 0);
 
-                  return (
-                    <div
-                      key={producerHandle}
-                      className="group relative"
-                    >
-                      <div className="p-3 md:p-4 bg-foreground/[0.02] hover:bg-foreground/[0.04] rounded-xl border border-foreground/[0.06] hover:border-foreground/[0.12] transition-all duration-200">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-sm md:text-base font-medium text-foreground/80">
+                    return (
+                      <div key={producerHandle} className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-foreground/70 truncate max-w-[120px]">
                             {collection?.title || producerHandle}
-                          </h4>
-                          <div className="text-xs text-muted-foreground/60 font-light">
-                            {current}/{required} bottles
-                          </div>
+                          </span>
+                          <span className="text-xs text-muted-foreground/60">
+                            {current}/{required}
+                          </span>
                         </div>
-                        
-                        {/* Progress bar */}
-                        <div className="relative h-1.5 bg-foreground/[0.04] rounded-full overflow-hidden">
+                        <div className="relative h-1 bg-foreground/[0.06] rounded-full overflow-hidden">
                           <div 
-                            className="absolute inset-y-0 left-0 bg-gradient-to-r from-foreground/20 to-foreground/30 rounded-full transition-all duration-500 ease-out"
+                            className="absolute inset-y-0 left-0 bg-gradient-to-r from-foreground/30 to-foreground/40 rounded-full transition-all duration-500 ease-out"
                             style={{ width: `${progress}%` }}
                           />
                         </div>
-                        
-                        {/* Status text */}
-                        <div className="mt-2 text-xs text-muted-foreground/60 font-light">
-                          {remaining > 0 ? (
-                            <span>Add {remaining} more bottle{remaining > 1 ? 's' : ''} to complete</span>
-                          ) : (
-                            <span className="text-green-600/70">✓ Complete</span>
-                          )}
-                        </div>
                       </div>
-                      
-                      {/* Subtle hover effect */}
-                      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-transparent via-foreground/[0.01] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                    );
+                  })}
+                  
+                  {/* Show "and X more" if there are more than 2 producers */}
+                  {selectedProducers.length > 2 && (
+                    <div className="text-xs text-muted-foreground/50 text-center pt-1">
+                      +{selectedProducers.length - 2} more
                     </div>
-                  );
-                })}
-              </div>
-              
-              {/* Rule explanation */}
-              <div className="pt-3 md:pt-4 border-t border-foreground/[0.04]">
-                <p className="text-xs text-muted-foreground/60 font-light">
-                  Each producer requires a minimum of 6 bottles for efficient shipping
-                </p>
+                  )}
+                </div>
+                
+                {/* Status summary */}
+                <div className="pt-1 border-t border-foreground/[0.04]">
+                  <p className="text-xs text-muted-foreground/60 text-center">
+                    Add bottles to complete
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </>
       )}
 
       <ResultsControls
