@@ -10,6 +10,7 @@ import { ProductGrid } from "./product-grid";
 import { Card } from "../../../components/ui/card";
 import { useCart } from "@/components/cart/cart-context";
 import { ProducerValidation } from "@/lib/checkout-validation";
+import { X } from "lucide-react";
 
 interface ProductListContentProps {
   products: Product[];
@@ -92,6 +93,7 @@ export function ProductListContent({
   const { setProducts, setOriginalProducts } = useProducts();
   const { cart } = useCart();
   const [validations, setValidations] = useState<ProducerValidation[]>([]);
+  const [isHidden, setIsHidden] = useState(false);
 
   // Get current color filters from URL
   const [colorFilters] = useQueryState(
@@ -118,9 +120,11 @@ export function ProductListContent({
 
         if (response.ok) {
           const result = await response.json();
+          console.log('Validation result:', result); // Debug log
           const relevantValidations = result.producerValidations?.filter((v: ProducerValidation) => 
             selectedProducers.includes(v.producerHandle || '')
           ) || [];
+          console.log('Relevant validations:', relevantValidations); // Debug log
           setValidations(relevantValidations);
         }
       } catch (error) {
@@ -148,7 +152,7 @@ export function ProductListContent({
 
   return (
     <>
-      {selectedProducers.length > 0 && (
+      {selectedProducers.length > 0 && !isHidden && (
         <>
           {/* Sticky compact progress indicator */}
           <div className="fixed top-20 right-4 z-40 max-w-xs">
@@ -159,9 +163,12 @@ export function ProductListContent({
                   <h4 className="text-xs font-medium text-foreground/80 tracking-wide">
                     Complete Order
                   </h4>
-                  <div className="text-xs text-muted-foreground/60">
-                    {selectedProducers.length} producer{selectedProducers.length > 1 ? 's' : ''}
-                  </div>
+                  <button
+                    onClick={() => setIsHidden(true)}
+                    className="text-muted-foreground/50 hover:text-muted-foreground/70 transition-colors"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
                 </div>
                 
                 {/* Compact progress bars */}
@@ -212,6 +219,21 @@ export function ProductListContent({
             </div>
           </div>
         </>
+      )}
+
+      {/* Show button when hidden */}
+      {selectedProducers.length > 0 && isHidden && (
+        <div className="fixed top-20 right-4 z-40">
+          <button
+            onClick={() => setIsHidden(false)}
+            className="p-2 bg-background/95 backdrop-blur-md border border-foreground/[0.08] rounded-lg shadow-lg text-muted-foreground/60 hover:text-foreground/80 transition-colors"
+            title="Show order progress"
+          >
+            <div className="w-4 h-4 border border-current rounded-full flex items-center justify-center">
+              <span className="text-xs">!</span>
+            </div>
+          </button>
+        </div>
       )}
 
       <ResultsControls
