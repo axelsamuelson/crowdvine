@@ -38,7 +38,7 @@ export function ProducerValidationDisplay() {
         }
 
         const result = await response.json();
-        setValidations(result.validations || []);
+        setValidations(result.producerValidations || []);
       } catch (err) {
         console.error('Cart validation error:', err);
         setError('Failed to load validation data');
