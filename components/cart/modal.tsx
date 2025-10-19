@@ -295,13 +295,21 @@ function CheckoutButton({ closeCart, validations = [], isValidating = false }: {
   const hasValidationErrors = validations.some((v) => !v.isValid);
   const invalidValidations = validations.filter((v) => !v.isValid);
   
-  // Get the first invalid producer/group to redirect to
-  const firstInvalidValidation = invalidValidations[0];
-  const redirectUrl = firstInvalidValidation?.groupId 
-    ? `/shop/group/${firstInvalidValidation.groupId}`
-    : firstInvalidValidation?.producerHandle 
-    ? `/shop/${firstInvalidValidation.producerHandle}`
-    : '/shop';
+  // Determine redirect URL based on number of invalid producers
+  let redirectUrl = '/shop';
+  
+  if (invalidValidations.length === 1) {
+    // Single producer - redirect to that specific producer/group
+    const firstInvalidValidation = invalidValidations[0];
+    redirectUrl = firstInvalidValidation?.groupId 
+      ? `/shop/group/${firstInvalidValidation.groupId}`
+      : firstInvalidValidation?.producerHandle 
+      ? `/shop/${firstInvalidValidation.producerHandle}`
+      : '/shop';
+  } else if (invalidValidations.length > 1) {
+    // Multiple producers - redirect to overview page
+    redirectUrl = '/shop/producers-needing-bottles';
+  }
 
   const isLoading = pending || isValidating;
   
