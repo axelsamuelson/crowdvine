@@ -112,31 +112,33 @@ export function ProductListContent({
   return (
     <>
       {selectedProducers.length > 0 && (
-        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-          <div className="flex items-start gap-3">
-            <div className="w-5 h-5 bg-amber-100 rounded-full flex items-center justify-center mt-0.5">
-              <span className="text-amber-600 text-xs font-bold">!</span>
-            </div>
-            <div>
-              <h3 className="font-semibold text-amber-900 mb-1">
+        <div className="mb-8 p-6 bg-foreground/2 border border-foreground/10 rounded-xl">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-foreground/5 rounded-full flex items-center justify-center">
+                <div className="w-3 h-3 bg-foreground/40 rounded-full"></div>
+              </div>
+              <h3 className="text-lg font-light text-foreground tracking-wide">
                 Complete Your Order
               </h3>
-              <p className="text-sm text-amber-800 mb-2">
-                Add more bottles from these producers to complete your order. Each producer requires a minimum of 6 bottles.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {selectedProducers.map((producerHandle) => {
-                  const collection = collections.find(c => c.handle === producerHandle);
-                  return (
-                    <span
-                      key={producerHandle}
-                      className="px-2 py-1 bg-amber-100 text-amber-800 text-xs font-medium rounded"
-                    >
-                      {collection?.title || producerHandle}
-                    </span>
-                  );
-                })}
-              </div>
+            </div>
+            
+            <p className="text-sm text-muted-foreground leading-relaxed max-w-2xl">
+              Add more bottles from these producers to complete your order. Each producer requires a minimum of 6 bottles.
+            </p>
+            
+            <div className="flex flex-wrap gap-2 pt-2">
+              {selectedProducers.map((producerHandle) => {
+                const collection = collections.find(c => c.handle === producerHandle);
+                return (
+                  <span
+                    key={producerHandle}
+                    className="px-3 py-1.5 bg-foreground/5 text-foreground/70 text-xs font-medium rounded-full border border-foreground/10"
+                  >
+                    {collection?.title || producerHandle}
+                  </span>
+                );
+              })}
             </div>
           </div>
         </div>

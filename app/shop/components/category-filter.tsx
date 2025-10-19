@@ -56,11 +56,6 @@ export function CategoryFilter({
                   prefetch
                 >
                   {collection.title}
-                  {selectedProducers.includes(collection.handle) && (
-                    <span className="ml-2 text-xs bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">
-                      Selected
-                    </span>
-                  )}
                 </Link>
               </li>
             );
