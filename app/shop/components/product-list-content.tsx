@@ -101,10 +101,10 @@ export function ProductListContent({
     parseAsArrayOf(parseAsString).withDefault([]),
   );
 
-  // Fetch validation data for selected producers
+  // Fetch validation data for cart producers
   useEffect(() => {
     const fetchValidations = async () => {
-      if (!cart || selectedProducers.length === 0) {
+      if (!cart || cart.lines.length === 0) {
         setValidations([]);
         return;
       }
@@ -124,9 +124,14 @@ export function ProductListContent({
           console.log('All producerValidations:', result.producerValidations); // Debug log
           console.log('Selected producers:', selectedProducers); // Debug log
           
-          const relevantValidations = result.producerValidations?.filter((v: ProducerValidation) => 
-            selectedProducers.includes(v.producerHandle || '')
-          ) || [];
+          // If we have selectedProducers (from URL), filter to only those
+          // Otherwise, show all producers with validation errors
+          const relevantValidations = selectedProducers.length > 0
+            ? result.producerValidations?.filter((v: ProducerValidation) => 
+                selectedProducers.includes(v.producerHandle || '')
+              ) || []
+            : result.producerValidations?.filter((v: ProducerValidation) => !v.isValid) || [];
+          
           console.log('Relevant validations:', relevantValidations); // Debug log
           
           // Debug: Check if filtering is working
@@ -136,7 +141,8 @@ export function ProductListContent({
               current: v.current,
               required: v.required,
               groupId: v.groupId,
-              isSelected: selectedProducers.includes(v.producerHandle || '')
+              isSelected: selectedProducers.includes(v.producerHandle || ''),
+              isValid: v.isValid
             });
           });
           
@@ -175,7 +181,7 @@ export function ProductListContent({
 
   return (
     <>
-      {selectedProducers.length > 0 && !isHidden && (
+      {validations.length > 0 && !isHidden && (
         <>
           {/* Sticky compact progress indicator */}
           <div className="fixed top-20 right-4 z-40 max-w-xs">
@@ -196,16 +202,15 @@ export function ProductListContent({
                 
                 {/* Compact progress bars */}
                 <div className="space-y-1.5">
-                  {selectedProducers.slice(0, 2).map((producerHandle) => {
-                    const collection = collections.find(c => c.handle === producerHandle);
-                    const validation = validations.find(v => v.producerHandle === producerHandle);
+                  {validations.slice(0, 2).map((validation) => {
+                    const collection = collections.find(c => c.handle === validation.producerHandle);
                     const current = validation?.quantity || 0;
                     const required = (validation?.quantity || 0) + (validation?.needed || 0);
                     const progress = required > 0 ? Math.min((current / required) * 100, 100) : 0;
                     const remaining = validation?.needed || 0;
                     
                     // Debug log for progress bar rendering
-                    console.log(`Progress bar for ${producerHandle}:`, {
+                    console.log(`Progress bar for ${validation.producerHandle}:`, {
                       validation,
                       current,
                       required,
@@ -216,10 +221,10 @@ export function ProductListContent({
                     });
 
                     return (
-                      <div key={producerHandle} className="space-y-1">
+                      <div key={validation.producerHandle} className="space-y-1">
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-foreground/70 truncate max-w-[120px]">
-                            {collection?.title || producerHandle}
+                            {collection?.title || validation.producerHandle}
                           </span>
                           <span className="text-xs text-muted-foreground/60">
                             {current}/{required}
@@ -236,9 +241,9 @@ export function ProductListContent({
                   })}
                   
                   {/* Show "and X more" if there are more than 2 producers */}
-                  {selectedProducers.length > 2 && (
+                  {validations.length > 2 && (
                     <div className="text-xs text-muted-foreground/50 text-center pt-1">
-                      +{selectedProducers.length - 2} more
+                      +{validations.length - 2} more
                     </div>
                   )}
                 </div>
@@ -256,7 +261,7 @@ export function ProductListContent({
       )}
 
       {/* Show button when hidden */}
-      {selectedProducers.length > 0 && isHidden && (
+      {validations.length > 0 && isHidden && (
         <div className="fixed top-20 right-4 z-40">
           <button
             onClick={() => setIsHidden(false)}
