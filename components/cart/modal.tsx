@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { Cart } from "../../lib/shopify/types";
 import { CartValidationDisplay } from "./cart-validation-display";
 import type { ProducerValidation } from "@/lib/checkout-validation";
+import { CartValidationHeader } from "./CartValidationHeader";
 
 const CartContainer = ({
   children,
@@ -34,6 +35,9 @@ const CartItems = ({ closeCart, validations, isValidating }: { closeCart: () => 
 
   return (
     <div className="flex flex-col justify-between h-full overflow-hidden">
+      {/* Cart Validation Header */}
+      <CartValidationHeader validations={validations} isValidating={isValidating} />
+      
       <CartContainer className="flex justify-between px-2 text-sm text-muted-foreground">
         <span>Products</span>
         <span>{cart.lines.length} items</span>
@@ -383,7 +387,7 @@ function CheckoutButton({ closeCart, validations = [], isValidating = false }: {
                 {isValidating 
                   ? "Validating..."
                   : hasValidationErrors 
-                    ? `${invalidValidations.length} producer${invalidValidations.length > 1 ? 's' : ''} need${invalidValidations.length === 1 ? 's' : ''} more bottles`
+                    ? "Add more bottles to proceed to checkout"
                     : "Proceed to Checkout"
                 }
               </span>
