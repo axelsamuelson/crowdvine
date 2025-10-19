@@ -8,6 +8,7 @@ export async function middleware(req: NextRequest) {
   const PUBLIC = [
     "/log-in", "/signup", "/invite-signup", "/code-signup",
     "/access-request", "/access-pending", "/i", "/c", "/profile", "/pallet",
+    "/reset-password", "/auth/callback", "/auth/auth-code-error", "/forgot-password",
   ];
   const isPublic = PUBLIC.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
