@@ -121,12 +121,27 @@ export function ProductListContent({
         if (response.ok) {
           const result = await response.json();
           console.log('Validation result:', result); // Debug log
+          console.log('All producerValidations:', result.producerValidations); // Debug log
+          console.log('Selected producers:', selectedProducers); // Debug log
+          
           const relevantValidations = result.producerValidations?.filter((v: ProducerValidation) => 
             selectedProducers.includes(v.producerHandle || '')
           ) || [];
           console.log('Relevant validations:', relevantValidations); // Debug log
+          
+          // Debug: Check if filtering is working
+          result.producerValidations?.forEach((v: ProducerValidation, index: number) => {
+            console.log(`All validation ${index}:`, {
+              producerHandle: v.producerHandle,
+              current: v.current,
+              required: v.required,
+              groupId: v.groupId,
+              isSelected: selectedProducers.includes(v.producerHandle || '')
+            });
+          });
+          
           relevantValidations.forEach((v, index) => {
-            console.log(`Validation ${index}:`, {
+            console.log(`Relevant validation ${index}:`, {
               producerHandle: v.producerHandle,
               current: v.current,
               required: v.required,
