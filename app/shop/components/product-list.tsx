@@ -28,6 +28,10 @@ export default async function ProductList({
     typeof (await searchParams)?.sort === "string"
       ? (await searchParams).sort
       : undefined;
+  const producers =
+    typeof (await searchParams)?.producers === "string"
+      ? (await searchParams).producers.split(',').filter(Boolean)
+      : [];
   const isRootCollection =
     collection === "joyco-root" ||
     collection === "all-wines" ||
@@ -41,7 +45,26 @@ export default async function ProductList({
   let products: Product[] = [];
 
   try {
-    if (isRootCollection) {
+    if (producers.length > 0) {
+      // Multi-producer filtering - get products from multiple collections
+      const allProducts: Product[] = [];
+      
+      for (const producerHandle of producers) {
+        try {
+          const producerProducts = await getCollectionProducts({
+            collection: producerHandle,
+            query,
+            sortKey: sortKey as ProductCollectionSortKey,
+            reverse,
+          });
+          allProducts.push(...producerProducts);
+        } catch (error) {
+          console.warn(`Error fetching products for producer ${producerHandle}:`, error);
+        }
+      }
+      
+      products = allProducts;
+    } else if (isRootCollection) {
       products = await getProducts({
         sortKey: sortKey as ProductSortKey,
         query,
@@ -62,5 +85,5 @@ export default async function ProductList({
 
   const collections = await getCollections();
 
-  return <ProductListContent products={products} collections={collections} />;
+  return <ProductListContent products={products} collections={collections} selectedProducers={producers} />;
 }

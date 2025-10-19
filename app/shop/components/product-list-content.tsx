@@ -12,6 +12,7 @@ import { Card } from "../../../components/ui/card";
 interface ProductListContentProps {
   products: Product[];
   collections: Collection[];
+  selectedProducers?: string[];
 }
 
 // Client-side color filtering function
@@ -84,6 +85,7 @@ function filterProductsByColors(
 export function ProductListContent({
   products,
   collections,
+  selectedProducers = [],
 }: ProductListContentProps) {
   const { setProducts, setOriginalProducts } = useProducts();
 
@@ -109,6 +111,37 @@ export function ProductListContent({
 
   return (
     <>
+      {selectedProducers.length > 0 && (
+        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <div className="flex items-start gap-3">
+            <div className="w-5 h-5 bg-amber-100 rounded-full flex items-center justify-center mt-0.5">
+              <span className="text-amber-600 text-xs font-bold">!</span>
+            </div>
+            <div>
+              <h3 className="font-semibold text-amber-900 mb-1">
+                Complete Your Order
+              </h3>
+              <p className="text-sm text-amber-800 mb-2">
+                Add more bottles from these producers to complete your order. Each producer requires a minimum of 6 bottles.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {selectedProducers.map((producerHandle) => {
+                  const collection = collections.find(c => c.handle === producerHandle);
+                  return (
+                    <span
+                      key={producerHandle}
+                      className="px-2 py-1 bg-amber-100 text-amber-800 text-xs font-medium rounded"
+                    >
+                      {collection?.title || producerHandle}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ResultsControls
         className="max-md:hidden"
         collections={collections}

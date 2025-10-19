@@ -307,8 +307,12 @@ function CheckoutButton({ closeCart, validations = [], isValidating = false }: {
       ? `/shop/${firstInvalidValidation.producerHandle}`
       : '/shop';
   } else if (invalidValidations.length > 1) {
-    // Multiple producers - redirect to overview page
-    redirectUrl = '/shop/producers-needing-bottles';
+    // Multiple producers - redirect to shop with multiple producer filters
+    const producerHandles = invalidValidations
+      .filter(v => v.producerHandle)
+      .map(v => v.producerHandle)
+      .join(',');
+    redirectUrl = `/shop?producers=${producerHandles}`;
   }
 
   const isLoading = pending || isValidating;
