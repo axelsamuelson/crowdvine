@@ -12,8 +12,8 @@ async function checkProfilesTable() {
 
     // Get all profiles to see the structure
     const { data: profiles, error } = await supabase
-      .from('profiles')
-      .select('*')
+      .from("profiles")
+      .select("*")
       .limit(1);
 
     if (error) {
@@ -26,20 +26,19 @@ async function checkProfilesTable() {
       console.log("Columns:", Object.keys(profiles[0]));
     } else {
       console.log("No profiles found, checking table schema...");
-      
+
       // Try to get table info
       const { data: tableInfo, error: tableError } = await supabase
-        .from('profiles')
-        .select('*')
+        .from("profiles")
+        .select("*")
         .limit(0);
-        
+
       if (tableError) {
         console.error("❌ Table error:", tableError);
       } else {
         console.log("✅ Table exists but is empty");
       }
     }
-
   } catch (error) {
     console.error("❌ Script failed:", error);
   }

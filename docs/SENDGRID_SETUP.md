@@ -58,11 +58,13 @@ SENDGRID_REPLY_TO=support@pactwines.com
 The application includes two main email templates:
 
 ### 1. Order Confirmation Email
+
 - Sent when a customer completes a purchase
 - Includes order details, items, pricing, and shipping info
 - Professional design with CrowdVine branding
 
 ### 2. Welcome Email
+
 - Sent when a new user creates an account
 - Introduces CrowdVine features and benefits
 - Includes call-to-action to start shopping
@@ -70,11 +72,13 @@ The application includes two main email templates:
 ## API Endpoints
 
 ### Send Order Confirmation
+
 ```
 POST /api/email/order-confirmation
 ```
 
 **Request Body:**
+
 ```json
 {
   "customerEmail": "customer@example.com",
@@ -85,14 +89,14 @@ POST /api/email/order-confirmation
     {
       "name": "Château Margaux 2015",
       "quantity": 2,
-      "price": 1500.00,
+      "price": 1500.0,
       "image": "https://example.com/wine.jpg"
     }
   ],
-  "subtotal": 3000.00,
-  "tax": 750.00,
-  "shipping": 100.00,
-  "total": 3850.00,
+  "subtotal": 3000.0,
+  "tax": 750.0,
+  "shipping": 100.0,
+  "total": 3850.0,
   "shippingAddress": {
     "name": "John Doe",
     "street": "123 Main St",
@@ -104,11 +108,13 @@ POST /api/email/order-confirmation
 ```
 
 ### Send Welcome Email
+
 ```
 POST /api/email/welcome
 ```
 
 **Request Body:**
+
 ```json
 {
   "customerEmail": "customer@example.com",
@@ -142,6 +148,7 @@ POST /api/email/welcome
 ### Application Logs
 
 Check Vercel logs for email sending errors:
+
 ```bash
 vercel logs --follow
 ```

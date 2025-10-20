@@ -102,7 +102,7 @@ export class CartService {
 
       const lines: CartItem[] = cartItems.map((item) => {
         // Build selectedOptions from wine color
-        const selectedOptions = item.wines.color 
+        const selectedOptions = item.wines.color
           ? [{ name: "Color", value: item.wines.color }]
           : [];
 
@@ -137,7 +137,9 @@ export class CartService {
                   title: "750 ml",
                   availableForSale: true,
                   price: {
-                    amount: Math.round(item.wines.base_price_cents / 100).toString(),
+                    amount: Math.round(
+                      item.wines.base_price_cents / 100,
+                    ).toString(),
                     currencyCode: "SEK",
                   },
                   selectedOptions,
@@ -145,11 +147,15 @@ export class CartService {
               ],
               priceRange: {
                 minVariantPrice: {
-                  amount: Math.round(item.wines.base_price_cents / 100).toString(),
+                  amount: Math.round(
+                    item.wines.base_price_cents / 100,
+                  ).toString(),
                   currencyCode: "SEK",
                 },
                 maxVariantPrice: {
-                  amount: Math.round(item.wines.base_price_cents / 100).toString(),
+                  amount: Math.round(
+                    item.wines.base_price_cents / 100,
+                  ).toString(),
                   currencyCode: "SEK",
                 },
               },
@@ -189,8 +195,14 @@ export class CartService {
         id: await this.ensureCart(), // Use the actual database cart ID
         checkoutUrl: "/checkout",
         cost: {
-          subtotalAmount: { amount: Math.round(subtotal).toString(), currencyCode: "SEK" },
-          totalAmount: { amount: Math.round(subtotal).toString(), currencyCode: "SEK" },
+          subtotalAmount: {
+            amount: Math.round(subtotal).toString(),
+            currencyCode: "SEK",
+          },
+          totalAmount: {
+            amount: Math.round(subtotal).toString(),
+            currencyCode: "SEK",
+          },
           totalTaxAmount: { amount: "0", currencyCode: "SEK" },
         },
         totalQuantity: lines.reduce((sum, line) => sum + line.quantity, 0),
@@ -214,32 +226,35 @@ export class CartService {
     wineId: string,
     quantity: number = 1,
   ): Promise<Cart | null> {
-    console.log("🔧 CartService.addItem called with wineId:", wineId, "quantity:", quantity);
-    
+    console.log(
+      "🔧 CartService.addItem called with wineId:",
+      wineId,
+      "quantity:",
+      quantity,
+    );
+
     try {
       console.log("🔧 Calling ensureCart...");
       const cartId = await this.ensureCart();
       console.log("🔧 Cart ID:", cartId);
-      
+
       console.log("🔧 Getting supabase server client...");
       const sb = await supabaseServer();
       console.log("🔧 Supabase client obtained");
 
       // Use upsert to either insert or update in a single operation
       console.log("🔧 Attempting upsert...");
-      const { error: upsertError } = await sb
-        .from("cart_items")
-        .upsert(
-          {
-            cart_id: cartId,
-            wine_id: wineId,
-            quantity: sb.raw(`COALESCE(quantity, 0) + ${quantity}`),
-          },
-          {
-            onConflict: "cart_id,wine_id",
-            ignoreDuplicates: false,
-          }
-        );
+      const { error: upsertError } = await sb.from("cart_items").upsert(
+        {
+          cart_id: cartId,
+          wine_id: wineId,
+          quantity: sb.raw(`COALESCE(quantity, 0) + ${quantity}`),
+        },
+        {
+          onConflict: "cart_id,wine_id",
+          ignoreDuplicates: false,
+        },
+      );
 
       if (upsertError) {
         console.log("🔧 Upsert failed, trying fallback method:", upsertError);
@@ -264,13 +279,11 @@ export class CartService {
           }
         } else {
           console.log("🔧 No existing item, inserting new");
-          const { error: insertError } = await sb
-            .from("cart_items")
-            .insert({
-              cart_id: cartId,
-              wine_id: wineId,
-              quantity,
-            });
+          const { error: insertError } = await sb.from("cart_items").insert({
+            cart_id: cartId,
+            wine_id: wineId,
+            quantity,
+          });
 
           if (insertError) {
             console.error("🔧 Insert error:", insertError);
@@ -284,11 +297,18 @@ export class CartService {
       // Return updated cart
       console.log("🔧 Getting updated cart...");
       const cart = await this.getCart();
-      console.log("🔧 CartService.addItem returning cart with", cart?.lines.length || 0, "items");
+      console.log(
+        "🔧 CartService.addItem returning cart with",
+        cart?.lines.length || 0,
+        "items",
+      );
       return cart;
     } catch (error) {
       console.error("🔧 CartService.addItem error:", error);
-      console.error("🔧 Error stack:", error instanceof Error ? error.stack : "No stack trace");
+      console.error(
+        "🔧 Error stack:",
+        error instanceof Error ? error.stack : "No stack trace",
+      );
       return null;
     }
   }

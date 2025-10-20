@@ -1,4 +1,13 @@
-import { Check, Lock, Zap, Users, Calendar, Trophy, Shield, Star } from "lucide-react";
+import {
+  Check,
+  Lock,
+  Zap,
+  Users,
+  Calendar,
+  Trophy,
+  Shield,
+  Star,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Perk {
@@ -31,7 +40,7 @@ export function PerksGrid({ perks, className }: PerksGridProps) {
     <div className={cn("grid grid-cols-1 md:grid-cols-2 gap-3", className)}>
       {perks.map((perk, index) => {
         const Icon = perkIcons[perk.perk_type] || Check;
-        
+
         return (
           <div
             key={index}
@@ -44,10 +53,8 @@ export function PerksGrid({ perks, className }: PerksGridProps) {
               <p className="text-sm font-medium text-gray-900 mb-0.5">
                 {perk.description}
               </p>
-              {perk.perk_value && perk.perk_value !== 'true' && (
-                <p className="text-xs text-gray-500">
-                  {perk.perk_value}
-                </p>
+              {perk.perk_value && perk.perk_value !== "true" && (
+                <p className="text-xs text-gray-500">{perk.perk_value}</p>
               )}
             </div>
           </div>
@@ -63,7 +70,11 @@ interface LockedPerksProps {
   className?: string;
 }
 
-export function LockedPerks({ nextLevelPerks, nextLevelName, className }: LockedPerksProps) {
+export function LockedPerks({
+  nextLevelPerks,
+  nextLevelName,
+  className,
+}: LockedPerksProps) {
   if (!nextLevelPerks || nextLevelPerks.length === 0) {
     return null;
   }
@@ -77,7 +88,7 @@ export function LockedPerks({ nextLevelPerks, nextLevelName, className }: Locked
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {nextLevelPerks.slice(0, 4).map((perk, index) => {
           const Icon = perkIcons[perk.perk_type] || Check;
-          
+
           return (
             <div
               key={index}
@@ -90,10 +101,8 @@ export function LockedPerks({ nextLevelPerks, nextLevelName, className }: Locked
                 <p className="text-sm text-gray-600 mb-0.5">
                   {perk.description}
                 </p>
-                {perk.perk_value && perk.perk_value !== 'true' && (
-                  <p className="text-xs text-gray-400">
-                    {perk.perk_value}
-                  </p>
+                {perk.perk_value && perk.perk_value !== "true" && (
+                  <p className="text-xs text-gray-400">{perk.perk_value}</p>
                 )}
               </div>
             </div>
@@ -103,4 +112,3 @@ export function LockedPerks({ nextLevelPerks, nextLevelName, className }: Locked
     </div>
   );
 }
-

@@ -8,14 +8,39 @@ import { IPTimeline } from "@/components/membership/ip-timeline";
 import { LevelProgress } from "@/components/membership/level-progress";
 import { InviteQuotaDisplay } from "@/components/membership/invite-quota-display";
 import { ProgressionBuffDisplay } from "@/components/membership/progression-buff-display";
-import { GoldCelebration, useGoldCelebration } from "@/components/membership/gold-celebration";
+import {
+  GoldCelebration,
+  useGoldCelebration,
+} from "@/components/membership/gold-celebration";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  User, Mail, Phone, MapPin, CreditCard, Plus, Edit, Save, X,
-  LogOut, UserPlus, Copy, Check, Wifi, WifiOff, Calendar, Package, Settings
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  CreditCard,
+  Plus,
+  Edit,
+  Save,
+  X,
+  LogOut,
+  UserPlus,
+  Copy,
+  Check,
+  Wifi,
+  WifiOff,
+  Calendar,
+  Package,
+  Settings,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -79,7 +104,9 @@ interface PaymentMethod {
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [membershipData, setMembershipData] = useState<MembershipData | null>(null);
+  const [membershipData, setMembershipData] = useState<MembershipData | null>(
+    null,
+  );
   const [ipEvents, setIpEvents] = useState<any[]>([]);
   // Payment methods removed - using new payment flow
   const [reservations, setReservations] = useState<any[]>([]);
@@ -89,7 +116,7 @@ export default function ProfilePage() {
   const [generatingInvite, setGeneratingInvite] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
-  const [selectedLevel, setSelectedLevel] = useState<MembershipLevel>('basic');
+  const [selectedLevel, setSelectedLevel] = useState<MembershipLevel>("basic");
   const [editForm, setEditForm] = useState({
     full_name: "",
     phone: "",
@@ -98,13 +125,14 @@ export default function ProfilePage() {
     postal_code: "",
     country: "Sweden",
   });
-  
+
   // v2: Progression buffs state
   const [progressionBuffs, setProgressionBuffs] = useState<any[]>([]);
   const [totalBuffPercentage, setTotalBuffPercentage] = useState(0);
-  
+
   // v2: Gold celebration hook
-  const { showCelebration, checkAndShowCelebration, closeCelebration } = useGoldCelebration();
+  const { showCelebration, checkAndShowCelebration, closeCelebration } =
+    useGoldCelebration();
 
   // Fetch all data
   useEffect(() => {
@@ -131,26 +159,26 @@ export default function ProfilePage() {
     const invitationChannel = supabase
       .channel(`invitations:${profile.id}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'invitation_codes',
+          event: "*",
+          schema: "public",
+          table: "invitation_codes",
           filter: `created_by=eq.${profile.id}`,
         },
         (payload) => {
-          console.log('Invitation change:', payload);
-          
+          console.log("Invitation change:", payload);
+
           // Refresh invitations when any change occurs
           fetchInvitations();
-          
+
           // If an invitation was used, show toast and refresh IP
-          if (payload.eventType === 'UPDATE' && payload.new?.used_at) {
+          if (payload.eventType === "UPDATE" && payload.new?.used_at) {
             toast.success("Your invite was just used! +1 IP awarded");
             fetchMembershipData();
             fetchIPEvents();
           }
-        }
+        },
       )
       .subscribe();
 
@@ -158,21 +186,21 @@ export default function ProfilePage() {
     const ipEventsChannel = supabase
       .channel(`ip-events:${profile.id}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'impact_point_events',
+          event: "INSERT",
+          schema: "public",
+          table: "impact_point_events",
           filter: `user_id=eq.${profile.id}`,
         },
         (payload) => {
-          console.log('New IP event:', payload);
-          
+          console.log("New IP event:", payload);
+
           // Refresh IP events, membership data, and progression buffs
           fetchIPEvents();
           fetchMembershipData();
           fetchProgressionBuffs(); // v2: check for new buffs
-        }
+        },
       )
       .subscribe();
 
@@ -254,20 +282,20 @@ export default function ProfilePage() {
             if (inv.code && !inv.signupUrl) {
               const baseUrl = window.location.origin;
               // Remove any whitespace from code and ensure no spaces in URL
-              const cleanCode = inv.code.trim().replace(/\s+/g, '');
+              const cleanCode = inv.code.trim().replace(/\s+/g, "");
               inv.signupUrl = `${baseUrl}/i/${cleanCode}`;
               inv.codeSignupUrl = `${baseUrl}/c/${cleanCode}`;
-              
+
               console.log("🔗 Built signup URL:", {
                 code: inv.code,
                 cleanCode,
                 signupUrl: inv.signupUrl,
-                hasSpace: inv.signupUrl.includes(' '),
+                hasSpace: inv.signupUrl.includes(" "),
               });
             }
             return inv;
           });
-          
+
           setInvitations(enrichedInvitations);
         }
       }
@@ -275,7 +303,7 @@ export default function ProfilePage() {
       console.error("Error fetching invitations:", error);
     }
   };
-  
+
   // v2: Fetch progression buffs
   const fetchProgressionBuffs = async () => {
     try {
@@ -284,13 +312,14 @@ export default function ProfilePage() {
         const data = await res.json();
         setProgressionBuffs(data.buffs || []);
         setTotalBuffPercentage(data.totalPercentage || 0);
-        
+
         // Check for Gold celebration (if just upgraded)
         if (membershipData) {
-          const justUpgraded = localStorage.getItem('just_upgraded_to_gold') === 'true';
+          const justUpgraded =
+            localStorage.getItem("just_upgraded_to_gold") === "true";
           if (justUpgraded) {
             checkAndShowCelebration(membershipData.membership.level, true);
-            localStorage.removeItem('just_upgraded_to_gold');
+            localStorage.removeItem("just_upgraded_to_gold");
           }
         }
       }
@@ -303,10 +332,12 @@ export default function ProfilePage() {
     setGeneratingInvite(true);
     try {
       // Check if user is admin to use admin endpoint with level selection
-      const isAdmin = membershipData?.membership.level === 'admin';
-      const endpoint = isAdmin ? "/api/admin/invitations/generate" : "/api/invitations/generate";
-      
-      const body = isAdmin 
+      const isAdmin = membershipData?.membership.level === "admin";
+      const endpoint = isAdmin
+        ? "/api/admin/invitations/generate"
+        : "/api/invitations/generate";
+
+      const body = isAdmin
         ? { expiresInDays: 30, initialLevel: selectedLevel }
         : { expiresInDays: 30 };
 
@@ -318,11 +349,13 @@ export default function ProfilePage() {
 
       if (res.ok) {
         const data = await res.json();
-        
+
         // Add new invitation to the list
-        setInvitations(prev => [data.invitation, ...prev]);
-        toast.success(`Invitation code generated!${isAdmin ? ` (Start level: ${selectedLevel})` : ''}`);
-        
+        setInvitations((prev) => [data.invitation, ...prev]);
+        toast.success(
+          `Invitation code generated!${isAdmin ? ` (Start level: ${selectedLevel})` : ""}`,
+        );
+
         // Refresh membership data to update quota
         fetchMembershipData();
       } else {
@@ -330,13 +363,13 @@ export default function ProfilePage() {
         console.error("[PROFILE] Invitation generation failed:", {
           status: res.status,
           error,
-          endpoint
+          endpoint,
         });
-        
-        const errorMsg = error.details 
-          ? `${error.error}: ${error.details}` 
+
+        const errorMsg = error.details
+          ? `${error.error}: ${error.details}`
           : error.error || "Failed to generate invitation";
-        
+
         toast.error(errorMsg);
       }
     } catch (error) {
@@ -384,7 +417,11 @@ export default function ProfilePage() {
   };
 
   const deleteInvitation = async (invitationId: string) => {
-    if (!confirm("Are you sure you want to delete this invitation? It will no longer be usable.")) {
+    if (
+      !confirm(
+        "Are you sure you want to delete this invitation? It will no longer be usable.",
+      )
+    ) {
       return;
     }
 
@@ -394,9 +431,9 @@ export default function ProfilePage() {
       });
 
       if (res.ok) {
-        setInvitations(prev => prev.filter(inv => inv.id !== invitationId));
+        setInvitations((prev) => prev.filter((inv) => inv.id !== invitationId));
         toast.success("Invitation deleted");
-        
+
         // Refresh membership data to update quota
         fetchMembershipData();
       } else {
@@ -404,13 +441,13 @@ export default function ProfilePage() {
         console.error("[PROFILE] Invitation deletion failed:", {
           status: res.status,
           error,
-          invitationId
+          invitationId,
         });
-        
-        const errorMsg = error.details 
-          ? `${error.error}: ${error.details}` 
+
+        const errorMsg = error.details
+          ? `${error.error}: ${error.details}`
           : error.error || "Failed to delete invitation";
-        
+
         toast.error(errorMsg);
       }
     } catch (error) {
@@ -464,24 +501,28 @@ export default function ProfilePage() {
   return (
     <PageLayout>
       <div className="max-w-6xl mx-auto space-y-6 md:space-y-8 lg:space-y-12 p-sides">
-        
         {/* MEMBERSHIP STATUS HERO */}
         <section className="bg-white rounded-2xl border border-gray-200 p-4 md:p-10 shadow-sm">
           <div className="flex flex-col md:flex-row items-center gap-8">
             {/* Level Badge */}
-            <LevelBadge 
-              level={membershipData.membership.level} 
+            <LevelBadge
+              level={membershipData.membership.level}
               size="xl"
               showLabel={false}
             />
 
             {/* Membership Info */}
             <div className="flex-1 text-center md:text-left space-y-4 w-full">
-            <div>
+              <div>
                 <h1 className="text-3xl md:text-4xl font-light text-gray-900 mb-1">
                   {membershipData.levelInfo.name}
-              </h1>
-                <p className="text-sm text-gray-500">Member since {new Date(membershipData.membership.levelAssignedAt).toLocaleDateString()}</p>
+                </h1>
+                <p className="text-sm text-gray-500">
+                  Member since{" "}
+                  {new Date(
+                    membershipData.membership.levelAssignedAt,
+                  ).toLocaleDateString()}
+                </p>
               </div>
 
               {/* Impact Points */}
@@ -489,7 +530,9 @@ export default function ProfilePage() {
                 <span className="text-5xl font-bold text-gray-900">
                   {membershipData.membership.impactPoints}
                 </span>
-                <span className="text-lg text-gray-500 font-light">Impact Points</span>
+                <span className="text-lg text-gray-500 font-light">
+                  Impact Points
+                </span>
               </div>
 
               {/* Progress to Next Level */}
@@ -504,16 +547,17 @@ export default function ProfilePage() {
               )}
 
               {/* Max Level Reached */}
-              {!membershipData.nextLevel && membershipData.membership.level !== 'admin' && (
-                <div className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl border border-yellow-200">
-                  <p className="text-sm font-medium text-yellow-900">
-                    🏆 Maximum level reached!
-                  </p>
-                  <p className="text-xs text-yellow-700 mt-1">
-                    You've achieved the highest membership tier
-                  </p>
-                </div>
-              )}
+              {!membershipData.nextLevel &&
+                membershipData.membership.level !== "admin" && (
+                  <div className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl border border-yellow-200">
+                    <p className="text-sm font-medium text-yellow-900">
+                      🏆 Maximum level reached!
+                    </p>
+                    <p className="text-xs text-yellow-700 mt-1">
+                      You've achieved the highest membership tier
+                    </p>
+                  </div>
+                )}
             </div>
           </div>
         </section>
@@ -523,7 +567,7 @@ export default function ProfilePage() {
           <section>
             <ProgressionBuffDisplay
               totalBuffPercentage={totalBuffPercentage}
-              buffDetails={progressionBuffs.map(buff => ({
+              buffDetails={progressionBuffs.map((buff) => ({
                 percentage: buff.buff_percentage,
                 description: buff.buff_description,
                 earnedAt: buff.earned_at,
@@ -538,7 +582,9 @@ export default function ProfilePage() {
           {/* Personal Information */}
           <section className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-base md:text-lg lg:text-xl font-light text-gray-900">Personal Information</h2>
+              <h2 className="text-base md:text-lg lg:text-xl font-light text-gray-900">
+                Personal Information
+              </h2>
               {!editing ? (
                 <Button
                   onClick={() => setEditing(true)}
@@ -558,64 +604,93 @@ export default function ProfilePage() {
                   >
                     <X className="w-4 h-4" />
                   </Button>
-          <Button 
+                  <Button
                     onClick={saveProfile}
                     size="sm"
                     className="bg-gray-900 hover:bg-gray-800 text-white"
                   >
                     <Save className="w-4 h-4 mr-2" />
                     Save
-          </Button>
+                  </Button>
                 </div>
               )}
-        </div>
+            </div>
 
             <div className="bg-white rounded-xl border border-gray-200/50 p-4 md:p-6 shadow-sm">
               {editing ? (
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="full_name" className="text-xs text-gray-600">Full Name</Label>
+                    <Label
+                      htmlFor="full_name"
+                      className="text-xs text-gray-600"
+                    >
+                      Full Name
+                    </Label>
                     <Input
                       id="full_name"
                       value={editForm.full_name}
-                      onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, full_name: e.target.value })
+                      }
                       className="mt-1"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="phone" className="text-xs text-gray-600">Phone</Label>
+                    <Label htmlFor="phone" className="text-xs text-gray-600">
+                      Phone
+                    </Label>
                     <Input
                       id="phone"
                       value={editForm.phone}
-                      onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, phone: e.target.value })
+                      }
                       className="mt-1"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="address" className="text-xs text-gray-600">Address</Label>
+                    <Label htmlFor="address" className="text-xs text-gray-600">
+                      Address
+                    </Label>
                     <Input
                       id="address"
                       value={editForm.address}
-                      onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, address: e.target.value })
+                      }
                       className="mt-1"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label htmlFor="city" className="text-xs text-gray-600">City</Label>
+                      <Label htmlFor="city" className="text-xs text-gray-600">
+                        City
+                      </Label>
                       <Input
                         id="city"
                         value={editForm.city}
-                        onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                        onChange={(e) =>
+                          setEditForm({ ...editForm, city: e.target.value })
+                        }
                         className="mt-1"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="postal_code" className="text-xs text-gray-600">Postal Code</Label>
+                      <Label
+                        htmlFor="postal_code"
+                        className="text-xs text-gray-600"
+                      >
+                        Postal Code
+                      </Label>
                       <Input
                         id="postal_code"
                         value={editForm.postal_code}
-                        onChange={(e) => setEditForm({ ...editForm, postal_code: e.target.value })}
+                        onChange={(e) =>
+                          setEditForm({
+                            ...editForm,
+                            postal_code: e.target.value,
+                          })
+                        }
                         className="mt-1"
                       />
                     </div>
@@ -628,19 +703,21 @@ export default function ProfilePage() {
                     <span className="text-xs">Email</span>
                   </div>
                   <p className="text-sm text-gray-900 -mt-2">{profile.email}</p>
-                  
+
                   {profile.full_name && (
-                      <div>
+                    <div>
                       <div className="flex items-center gap-2 text-gray-400 mb-1">
                         <User className="w-3 h-3" />
                         <span className="text-xs">Full Name</span>
                       </div>
-                      <p className="text-sm text-gray-900">{profile.full_name}</p>
+                      <p className="text-sm text-gray-900">
+                        {profile.full_name}
+                      </p>
                     </div>
                   )}
-                  
+
                   {profile.phone && (
-                      <div>
+                    <div>
                       <div className="flex items-center gap-2 text-gray-400 mb-1">
                         <Phone className="w-3 h-3" />
                         <span className="text-xs">Phone</span>
@@ -648,15 +725,20 @@ export default function ProfilePage() {
                       <p className="text-sm text-gray-900">{profile.phone}</p>
                     </div>
                   )}
-                  
+
                   {(profile.address || profile.city) && (
-                      <div>
+                    <div>
                       <div className="flex items-center gap-2 text-gray-400 mb-1">
                         <MapPin className="w-3 h-3" />
                         <span className="text-xs">Address</span>
                       </div>
                       <p className="text-sm text-gray-900">
-                        {[profile.address, profile.city, profile.postal_code, profile.country]
+                        {[
+                          profile.address,
+                          profile.city,
+                          profile.postal_code,
+                          profile.country,
+                        ]
                           .filter(Boolean)
                           .join(", ")}
                       </p>
@@ -669,57 +751,90 @@ export default function ProfilePage() {
 
           {/* Payment Information */}
           <section className="space-y-4">
-            <h2 className="text-base md:text-lg lg:text-xl font-light text-gray-900">Payment Information</h2>
+            <h2 className="text-base md:text-lg lg:text-xl font-light text-gray-900">
+              Payment Information
+            </h2>
             <div className="bg-white rounded-xl border border-gray-200/50 p-4 md:p-6 shadow-sm">
               {(() => {
                 // Debug logging
-                console.log('All reservations:', reservations);
-                console.log('Reservations with status:', reservations.map(r => ({ 
-                  id: r.id, 
-                  status: r.status, 
-                  payment_status: r.payment_status 
-                })));
-                
-                const pendingPaymentReservations = reservations.filter(r => {
+                console.log("All reservations:", reservations);
+                console.log(
+                  "Reservations with status:",
+                  reservations.map((r) => ({
+                    id: r.id,
+                    status: r.status,
+                    payment_status: r.payment_status,
+                  })),
+                );
+
+                const pendingPaymentReservations = reservations.filter((r) => {
                   // Count bottles in this reservation
-                  const reservationBottles = r.items?.reduce((total: number, item: any) => total + (item.quantity || 0), 0) || 0;
-                  
+                  const reservationBottles =
+                    r.items?.reduce(
+                      (total: number, item: any) =>
+                        total + (item.quantity || 0),
+                      0,
+                    ) || 0;
+
                   // Only show payment required if pallet is actually full (not incorrectly marked)
-                  return (r.payment_status === 'pending' || r.status === 'pending_payment') && 
-                         r.pallet_is_complete === true &&
-                         r.pallet_capacity && 
-                         r.pallet_capacity > 0 &&
-                         reservationBottles >= 50; // Safety threshold
+                  return (
+                    (r.payment_status === "pending" ||
+                      r.status === "pending_payment") &&
+                    r.pallet_is_complete === true &&
+                    r.pallet_capacity &&
+                    r.pallet_capacity > 0 &&
+                    reservationBottles >= 50
+                  ); // Safety threshold
                 });
-                
-                console.log('Pending payment reservations:', pendingPaymentReservations.length);
-                
+
+                console.log(
+                  "Pending payment reservations:",
+                  pendingPaymentReservations.length,
+                );
+
                 // Check for 90% warning reservations
-                const nearlyFullReservations = reservations.filter(r => {
-                  const reservationBottles = r.items?.reduce((total: number, item: any) => total + (item.quantity || 0), 0) || 0;
-                  const percentFull = r.pallet_capacity ? (reservationBottles / r.pallet_capacity) * 100 : 0;
-                  
-                  return percentFull >= 90 && 
-                         !r.pallet_is_complete && 
-                         r.pallet_capacity && 
-                         r.pallet_capacity > 0 &&
-                         r.status !== 'pending_payment';
+                const nearlyFullReservations = reservations.filter((r) => {
+                  const reservationBottles =
+                    r.items?.reduce(
+                      (total: number, item: any) =>
+                        total + (item.quantity || 0),
+                      0,
+                    ) || 0;
+                  const percentFull = r.pallet_capacity
+                    ? (reservationBottles / r.pallet_capacity) * 100
+                    : 0;
+
+                  return (
+                    percentFull >= 90 &&
+                    !r.pallet_is_complete &&
+                    r.pallet_capacity &&
+                    r.pallet_capacity > 0 &&
+                    r.status !== "pending_payment"
+                  );
                 });
-                
-                console.log('Nearly full reservations (90%+):', nearlyFullReservations.length);
-                
+
+                console.log(
+                  "Nearly full reservations (90%+):",
+                  nearlyFullReservations.length,
+                );
+
                 if (pendingPaymentReservations.length > 0) {
                   return (
                     <div className="text-center py-8">
                       <div className="w-16 h-16 bg-amber-100 rounded-xl flex items-center justify-center mx-auto mb-4">
                         <CreditCard className="w-8 h-8 text-amber-600" />
                       </div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-1">⚠️ Payment Required</h3>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                        ⚠️ Payment Required
+                      </h3>
                       <p className="text-sm text-gray-600 mb-2">
-                        You have {pendingPaymentReservations.length} reservation{pendingPaymentReservations.length !== 1 ? 's' : ''} ready for payment
+                        You have {pendingPaymentReservations.length} reservation
+                        {pendingPaymentReservations.length !== 1 ? "s" : ""}{" "}
+                        ready for payment
                       </p>
                       <p className="text-sm text-gray-500 mb-6">
-                        Your pallet has reached 100% capacity. Complete payment to secure your order.
+                        Your pallet has reached 100% capacity. Complete payment
+                        to secure your order.
                       </p>
                       <Link href="/profile/reservations">
                         <Button className="rounded-full px-8 bg-amber-600 hover:bg-amber-700 text-white">
@@ -730,19 +845,24 @@ export default function ProfilePage() {
                     </div>
                   );
                 }
-                
+
                 if (nearlyFullReservations.length > 0) {
                   return (
                     <div className="text-center py-8">
                       <div className="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-4">
                         <Package className="w-8 h-8 text-blue-600" />
                       </div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-1">⚠️ Pallet Nearly Full</h3>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                        ⚠️ Pallet Nearly Full
+                      </h3>
                       <p className="text-sm text-gray-600 mb-2">
-                        You have {nearlyFullReservations.length} pallet{nearlyFullReservations.length !== 1 ? 's' : ''} that are 90%+ full
+                        You have {nearlyFullReservations.length} pallet
+                        {nearlyFullReservations.length !== 1 ? "s" : ""} that
+                        are 90%+ full
                       </p>
                       <p className="text-sm text-gray-500 mb-6">
-                        Your pallet is getting close to capacity. Payment will be required once it reaches 100%.
+                        Your pallet is getting close to capacity. Payment will
+                        be required once it reaches 100%.
                       </p>
                       <Link href="/profile/reservations">
                         <Button className="rounded-full px-8 bg-blue-600 hover:bg-blue-700 text-white">
@@ -753,16 +873,18 @@ export default function ProfilePage() {
                     </div>
                   );
                 }
-                
+
                 return (
                   <div className="text-center py-8">
                     <div className="w-16 h-16 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-4">
                       <CreditCard className="w-8 h-8 text-green-600" />
                     </div>
-                    <h3 className="text-lg font-light text-gray-900 mb-1">No Payment Required Yet</h3>
+                    <h3 className="text-lg font-light text-gray-900 mb-1">
+                      No Payment Required Yet
+                    </h3>
                     <p className="text-sm text-gray-500 mb-6">
-                      You'll only pay when your pallet reaches 100% and is ready to ship. 
-                      Check your reservations page for payment status.
+                      You'll only pay when your pallet reaches 100% and is ready
+                      to ship. Check your reservations page for payment status.
                     </p>
                     <Link href="/profile/reservations">
                       <Button className="rounded-full px-8 bg-gray-900 hover:bg-gray-800 text-white">
@@ -779,7 +901,9 @@ export default function ProfilePage() {
 
         {/* YOUR PERKS */}
         <section className="space-y-4">
-          <h2 className="text-base md:text-lg lg:text-xl font-light text-gray-900">Your Perks</h2>
+          <h2 className="text-base md:text-lg lg:text-xl font-light text-gray-900">
+            Your Perks
+          </h2>
           <PerksGrid perks={membershipData.perks} />
         </section>
 
@@ -787,8 +911,12 @@ export default function ProfilePage() {
         <section className="space-y-4">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-base md:text-lg lg:text-xl font-light text-gray-900">Invite Friends</h2>
-              <p className="text-sm text-gray-500 mt-0.5">Share PACT, earn Impact Points</p>
+              <h2 className="text-base md:text-lg lg:text-xl font-light text-gray-900">
+                Invite Friends
+              </h2>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Share PACT, earn Impact Points
+              </p>
             </div>
           </div>
 
@@ -802,10 +930,17 @@ export default function ProfilePage() {
             />
 
             {/* Admin: Level Selector (Only admins can choose level) */}
-            {membershipData.membership.level === 'admin' && (
+            {membershipData.membership.level === "admin" && (
               <div className="space-y-2">
-                <Label className="text-xs text-gray-600">Start Level for New Invite</Label>
-                <Select value={selectedLevel} onValueChange={(val) => setSelectedLevel(val as MembershipLevel)}>
+                <Label className="text-xs text-gray-600">
+                  Start Level for New Invite
+                </Label>
+                <Select
+                  value={selectedLevel}
+                  onValueChange={(val) =>
+                    setSelectedLevel(val as MembershipLevel)
+                  }
+                >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select level" />
                   </SelectTrigger>
@@ -819,22 +954,26 @@ export default function ProfilePage() {
                 <p className="text-xs text-gray-500">
                   Choose which level the invitee will start at
                 </p>
-                </div>
-              )}
+              </div>
+            )}
 
             {/* Non-Admin: Info text */}
-            {membershipData.membership.level !== 'admin' && (
+            {membershipData.membership.level !== "admin" && (
               <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
                 <p className="text-xs text-blue-800">
-                  <strong>Your invitations start at Basic level.</strong> When your friends join and earn Impact Points, they'll progress naturally through the levels.
+                  <strong>Your invitations start at Basic level.</strong> When
+                  your friends join and earn Impact Points, they'll progress
+                  naturally through the levels.
                 </p>
-                </div>
+              </div>
             )}
 
             {/* Generate Invite Button */}
             <Button
               onClick={generateInvitation}
-              disabled={generatingInvite || membershipData.invites.available === 0}
+              disabled={
+                generatingInvite || membershipData.invites.available === 0
+              }
               className="w-full rounded-full bg-gray-900 hover:bg-gray-800 text-white"
             >
               {generatingInvite ? (
@@ -842,9 +981,9 @@ export default function ProfilePage() {
               ) : (
                 <UserPlus className="w-4 h-4 mr-2" />
               )}
-              {membershipData.membership.level === 'admin' 
+              {membershipData.membership.level === "admin"
                 ? `Generate ${selectedLevel.charAt(0).toUpperCase() + selectedLevel.slice(1)} Invite`
-                : 'Generate Basic Invite'}
+                : "Generate Basic Invite"}
             </Button>
 
             {/* Active Invitations List */}
@@ -858,15 +997,21 @@ export default function ProfilePage() {
                 </h3>
 
                 {invitations.map((inv) => (
-                  <div key={inv.id} className="p-4 bg-gray-50 rounded-xl border border-gray-200/50 space-y-3">
+                  <div
+                    key={inv.id}
+                    className="p-4 bg-gray-50 rounded-xl border border-gray-200/50 space-y-3"
+                  >
                     {/* Show initial level badge */}
                     {inv.initialLevel && (
                       <div className="flex items-center gap-2">
                         <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-md font-medium">
-                          {inv.initialLevel.charAt(0).toUpperCase() + inv.initialLevel.slice(1)} Level
+                          {inv.initialLevel.charAt(0).toUpperCase() +
+                            inv.initialLevel.slice(1)}{" "}
+                          Level
                         </span>
                         <span className="text-xs text-gray-500">
-                          Created {new Date(inv.created_at).toLocaleDateString()}
+                          Created{" "}
+                          {new Date(inv.created_at).toLocaleDateString()}
                         </span>
                       </div>
                     )}
@@ -879,17 +1024,17 @@ export default function ProfilePage() {
                           {inv.code}
                         </code>
                       </div>
-                          <Button
+                      <Button
                         onClick={() => {
                           navigator.clipboard.writeText(inv.code);
                           toast.success("Code copied!");
                         }}
-                            size="sm"
+                        size="sm"
                         variant="ghost"
                         className="h-8"
-                          >
+                      >
                         <Copy className="w-3 h-3" />
-                          </Button>
+                      </Button>
                     </div>
 
                     {/* Share Link */}
@@ -897,7 +1042,7 @@ export default function ProfilePage() {
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex-1 min-w-0 bg-gray-50 rounded px-2 py-1.5 border border-gray-200">
                           <p className="text-xs text-gray-500 mb-0.5">Link</p>
-                          <div 
+                          <div
                             className="font-mono text-xs text-gray-900 overflow-x-auto scrollbar-hide"
                             dangerouslySetInnerHTML={{ __html: inv.signupUrl }}
                           />
@@ -929,22 +1074,24 @@ export default function ProfilePage() {
                       >
                         <X className="w-3 h-3 mr-1" />
                         Delete
-                        </Button>
-                      </div>
+                      </Button>
                     </div>
-                  ))}
-                </div>
-              )}
-        </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </section>
 
         {/* IMPACT POINTS TIMELINE */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-base md:text-lg lg:text-xl font-light text-gray-900">Recent Activity</h2>
+            <h2 className="text-base md:text-lg lg:text-xl font-light text-gray-900">
+              Recent Activity
+            </h2>
             {ipEvents.length > 0 && (
-              <Link 
-                href="/profile/activity" 
+              <Link
+                href="/profile/activity"
                 className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
               >
                 View all
@@ -959,13 +1106,15 @@ export default function ProfilePage() {
         {/* MY RESERVATIONS (Compact) */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-base md:text-lg lg:text-xl font-light text-gray-900">My Reservations</h2>
-            <Link 
-              href="/profile/reservations" 
+            <h2 className="text-base md:text-lg lg:text-xl font-light text-gray-900">
+              My Reservations
+            </h2>
+            <Link
+              href="/profile/reservations"
               className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
             >
               View all
-              </Link>
+            </Link>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -995,7 +1144,10 @@ export default function ProfilePage() {
                 <span className="text-xs">Unique Pallets</span>
               </div>
               <p className="text-2xl font-semibold text-gray-900">
-                {new Set(reservations.map(r => r.pallet_id).filter(Boolean)).size}
+                {
+                  new Set(reservations.map((r) => r.pallet_id).filter(Boolean))
+                    .size
+                }
               </p>
             </div>
           </div>
@@ -1013,7 +1165,7 @@ export default function ProfilePage() {
           </Button>
         </section>
       </div>
-      
+
       {/* Gold Celebration Modal (v2) */}
       <GoldCelebration
         show={showCelebration}
@@ -1023,4 +1175,3 @@ export default function ProfilePage() {
     </PageLayout>
   );
 }
-

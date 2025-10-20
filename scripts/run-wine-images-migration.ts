@@ -15,11 +15,11 @@ async function runWineImagesMigration() {
   try {
     // For now, let's just test if we can connect and create a simple table
     console.log("Testing connection...");
-    
+
     // Test connection by trying to read from wines table
     const { data: wines, error: testError } = await supabase
-      .from('wines')
-      .select('id, wine_name')
+      .from("wines")
+      .select("id, wine_name")
       .limit(1);
 
     if (testError) {
@@ -32,7 +32,9 @@ async function runWineImagesMigration() {
 
     // Note: The actual table creation would need to be done through Supabase dashboard
     // or through a direct database connection. For now, we'll assume the table exists.
-    console.log("📝 Please create the wine_images table manually through Supabase dashboard:");
+    console.log(
+      "📝 Please create the wine_images table manually through Supabase dashboard:",
+    );
     console.log(`
 CREATE TABLE wine_images (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -61,7 +63,6 @@ WHERE label_image_path IS NOT NULL AND label_image_path != '';
 
 CREATE UNIQUE INDEX idx_wine_images_unique_primary ON wine_images(wine_id) WHERE is_primary = TRUE;
     `);
-
   } catch (error) {
     console.error("❌ Migration failed:", error);
   }

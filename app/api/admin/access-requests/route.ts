@@ -229,7 +229,8 @@ export async function PATCH(request: NextRequest) {
               );
 
               // Generate email templates
-              const htmlTemplate = await getAccessApprovalEmailTemplate(signupUrl);
+              const htmlTemplate =
+                await getAccessApprovalEmailTemplate(signupUrl);
               const textTemplate = await getAccessApprovalEmailText(signupUrl);
 
               const emailSent = await sendGridService.sendEmail({

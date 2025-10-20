@@ -3,7 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 /**
  * POST /api/invitations/validate
- * 
+ *
  * Validate an invitation code and return invitation details with creator info
  */
 export async function POST(request: Request) {
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     if (!code) {
       return NextResponse.json(
         { success: false, error: "Invitation code required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -21,8 +21,9 @@ export async function POST(request: Request) {
 
     // Fetch invitation with creator profile info
     const { data: invitation, error } = await sb
-      .from('invitation_codes')
-      .select(`
+      .from("invitation_codes")
+      .select(
+        `
         id,
         code,
         created_by,
@@ -34,22 +35,23 @@ export async function POST(request: Request) {
         initial_level,
         created_at,
         profiles!created_by(email, full_name)
-      `)
-      .eq('code', code)
+      `,
+      )
+      .eq("code", code)
       .maybeSingle();
 
     if (error) {
       console.error("Error fetching invitation:", error);
       return NextResponse.json(
         { success: false, error: "Failed to validate invitation" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     if (!invitation) {
       return NextResponse.json(
         { success: false, error: "Invalid invitation code" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -57,7 +59,7 @@ export async function POST(request: Request) {
     if (!invitation.is_active) {
       return NextResponse.json(
         { success: false, error: "This invitation has been deactivated" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -66,7 +68,7 @@ export async function POST(request: Request) {
     if (expiresAt < new Date()) {
       return NextResponse.json(
         { success: false, error: "This invitation has expired" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -74,7 +76,7 @@ export async function POST(request: Request) {
     if (invitation.used_at) {
       return NextResponse.json(
         { success: false, error: "This invitation has already been used" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -94,7 +96,7 @@ export async function POST(request: Request) {
     console.error("Validate invitation error:", error);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

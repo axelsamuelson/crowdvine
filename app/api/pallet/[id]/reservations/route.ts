@@ -4,14 +4,14 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const supabase = getSupabaseAdmin();
 
     // Note: This endpoint is public - no authentication required
     // Anyone can view pallet details and participants
-    
+
     const palletId = params.id;
     console.log(`[Public] Fetching all reservations for pallet: ${palletId}`);
 
@@ -24,10 +24,7 @@ export async function GET(
 
     if (palletError || !pallet) {
       console.error("Error fetching pallet:", palletError);
-      return NextResponse.json(
-        { error: "Pallet not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Pallet not found" }, { status: 404 });
     }
 
     // Get all reservations for this pallet (using pallet_id directly)
@@ -51,16 +48,20 @@ export async function GET(
 
     // If no reservations, return empty array
     if (!reservations || reservations.length === 0) {
-      console.log('[Public] No reservations found, returning empty array');
+      console.log("[Public] No reservations found, returning empty array");
       return NextResponse.json([]);
     }
 
-    console.log(`[Public] Processing ${reservations.length} reservations to fetch items...`);
+    console.log(
+      `[Public] Processing ${reservations.length} reservations to fetch items...`,
+    );
 
     // Get items for each reservation
     const reservationsWithItems = await Promise.all(
       reservations.map(async (reservation, idx) => {
-        console.log(`[Public] Processing reservation ${idx + 1}/${reservations.length}: ${reservation.id}`);
+        console.log(
+          `[Public] Processing reservation ${idx + 1}/${reservations.length}: ${reservation.id}`,
+        );
         // Get user profile separately
         const { data: profile } = await supabase
           .from("profiles")
@@ -88,29 +89,37 @@ export async function GET(
           .eq("reservation_id", reservation.id);
 
         if (itemsError) {
-          console.error(`[Public] Error fetching items for reservation ${reservation.id}:`, itemsError);
+          console.error(
+            `[Public] Error fetching items for reservation ${reservation.id}:`,
+            itemsError,
+          );
         }
-        
-        console.log(`[Public] Reservation ${reservation.id}: Found ${items?.length || 0} items`);
+
+        console.log(
+          `[Public] Reservation ${reservation.id}: Found ${items?.length || 0} items`,
+        );
 
         // Get producer names for all items
-        const producerIds = items?.map(item => item.wines?.producer_id).filter(Boolean) || [];
+        const producerIds =
+          items?.map((item) => item.wines?.producer_id).filter(Boolean) || [];
         const uniqueProducerIds = [...new Set(producerIds)];
-        
+
         const producerNamesMap = new Map();
         if (uniqueProducerIds.length > 0) {
           const { data: producers } = await supabase
             .from("producers")
             .select("id, name")
             .in("id", uniqueProducerIds);
-          
-          producers?.forEach(p => producerNamesMap.set(p.id, p.name));
+
+          producers?.forEach((p) => producerNamesMap.set(p.id, p.name));
         }
 
         const itemsData =
           items?.map((item) => ({
             wine_name: item.wines?.wine_name || "Unknown Wine",
-            producer_name: producerNamesMap.get(item.wines?.producer_id) || "Unknown Producer",
+            producer_name:
+              producerNamesMap.get(item.wines?.producer_id) ||
+              "Unknown Producer",
             quantity: item.quantity,
             vintage: item.wines?.vintage || "N/A",
             image_path: item.wines?.label_image_path || null,
@@ -123,7 +132,9 @@ export async function GET(
           0,
         );
 
-        console.log(`[Public] Reservation ${reservation.id}: ${bottlesReserved} bottles, ${itemsData.length} unique items`);
+        console.log(
+          `[Public] Reservation ${reservation.id}: ${bottlesReserved} bottles, ${itemsData.length} unique items`,
+        );
 
         return {
           id: reservation.id,
@@ -142,8 +153,13 @@ export async function GET(
       }),
     );
 
-    console.log(`[Public] Returning ${reservationsWithItems.length} reservations with items`);
-    console.log(`[Public] Sample reservation:`, JSON.stringify(reservationsWithItems[0], null, 2));
+    console.log(
+      `[Public] Returning ${reservationsWithItems.length} reservations with items`,
+    );
+    console.log(
+      `[Public] Sample reservation:`,
+      JSON.stringify(reservationsWithItems[0], null, 2),
+    );
 
     return NextResponse.json(reservationsWithItems);
   } catch (error) {
@@ -154,4 +170,3 @@ export async function GET(
     );
   }
 }
-

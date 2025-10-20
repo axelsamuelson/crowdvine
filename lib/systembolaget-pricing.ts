@@ -23,13 +23,13 @@ export function calculateSystembolagetPrice(
   const costAmountInSek = costAmount * exchangeRate;
   const alcoholTaxInSek = alcoholTaxCents / 100;
   const costInSek = costAmountInSek + alcoholTaxInSek; // C = Total cost ex VAT
-  
+
   // Systembolaget's gross margin appears to be around 14.7% ex VAT
   const sbMarginDecimal = 0.147;
-  
+
   // Price ex VAT using gross margin formula: P = C ÷ (1 - M)
   const priceExVat = costInSek / (1 - sbMarginDecimal);
-  
+
   // Final price incl VAT: F = P × 1.25
   const finalPrice = priceExVat * 1.25;
 
@@ -53,19 +53,19 @@ export function calculateSystembolagetPriceBreakdown(
   const costAmountInSek = costAmount * exchangeRate;
   const alcoholTaxInSek = alcoholTaxCents / 100;
   const costInSek = costAmountInSek + alcoholTaxInSek; // C = Total cost ex VAT
-  
+
   // Systembolaget's gross margin appears to be around 14.7% ex VAT
   const sbMarginDecimal = 0.147;
-  
+
   // Price ex VAT using gross margin formula: P = C ÷ (1 - M)
   const priceExVat = costInSek / (1 - sbMarginDecimal);
-  
+
   // Calculate VAT (25%)
   const vat = priceExVat * 0.25;
-  
+
   // Final price incl VAT: F = P × 1.25
   const finalPrice = priceExVat + vat;
-  
+
   // Calculate margin amount
   const marginAmount = priceExVat - costInSek;
 
@@ -81,6 +81,7 @@ export function calculateSystembolagetPriceBreakdown(
     priceExVat: Math.round(priceExVat * 100) / 100,
     vat: Math.round(vat * 100) / 100,
     finalPrice: Math.round(finalPrice * 100) / 100,
-    effectiveMarginPercent: Math.round(((finalPrice - costInSek) / finalPrice) * 100 * 100) / 100,
+    effectiveMarginPercent:
+      Math.round(((finalPrice - costInSek) / finalPrice) * 100 * 100) / 100,
   };
 }

@@ -1,7 +1,13 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
@@ -22,7 +28,9 @@ export default function AuthCodeErrorPage() {
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <AlertCircle className="w-8 h-8 text-red-600" />
             </div>
-            <CardTitle className="text-xl font-semibold">Authentication Error</CardTitle>
+            <CardTitle className="text-xl font-semibold">
+              Authentication Error
+            </CardTitle>
             <CardDescription>
               There was a problem with your authentication link
             </CardDescription>

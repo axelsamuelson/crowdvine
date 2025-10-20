@@ -18,7 +18,7 @@ export async function POST() {
       console.error("Error fetching pallets:", palletsError);
       return NextResponse.json(
         { error: "Failed to fetch pallets" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -50,7 +50,10 @@ export async function POST() {
         .or(`pallet_id.is.null,pallet_id.neq.${pallet.id}`);
 
       if (reservationsError) {
-        console.error(`Error fetching reservations for pallet ${pallet.name}:`, reservationsError);
+        console.error(
+          `Error fetching reservations for pallet ${pallet.name}:`,
+          reservationsError,
+        );
         continue;
       }
 
@@ -59,18 +62,23 @@ export async function POST() {
         continue;
       }
 
-      console.log(`🔄 Pallet ${pallet.name}: Found ${reservations.length} reservations to update`);
+      console.log(
+        `🔄 Pallet ${pallet.name}: Found ${reservations.length} reservations to update`,
+      );
 
       // Update each reservation
-      const reservationIds = reservations.map(r => r.id);
-      
+      const reservationIds = reservations.map((r) => r.id);
+
       const { error: updateError, count } = await supabase
         .from("order_reservations")
         .update({ pallet_id: pallet.id })
         .in("id", reservationIds);
 
       if (updateError) {
-        console.error(`Error updating reservations for pallet ${pallet.name}:`, updateError);
+        console.error(
+          `Error updating reservations for pallet ${pallet.name}:`,
+          updateError,
+        );
         updateResults.push({
           pallet: pallet.name,
           status: "error",
@@ -83,7 +91,7 @@ export async function POST() {
           pallet: pallet.name,
           status: "success",
           updated: count || 0,
-          reservationIds: reservations.map(r => r.id),
+          reservationIds: reservations.map((r) => r.id),
         });
       }
     }
@@ -93,13 +101,11 @@ export async function POST() {
       totalUpdated,
       results: updateResults,
     });
-
   } catch (error) {
     console.error("Fix pallet assignments error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

@@ -16,7 +16,8 @@ export default async function ProducerGroupPage({ params }: PageProps) {
   // Get producer group info
   const { data: group, error: groupError } = await sb
     .from("producer_groups")
-    .select(`
+    .select(
+      `
       id,
       name,
       description,
@@ -28,7 +29,8 @@ export default async function ProducerGroupPage({ params }: PageProps) {
           region
         )
       )
-    `)
+    `,
+    )
     .eq("id", groupId)
     .single();
 
@@ -38,9 +40,8 @@ export default async function ProducerGroupPage({ params }: PageProps) {
   }
 
   // Get all producer IDs from the group
-  const producerIds = group.producer_group_members?.map(
-    (m: any) => m.producer_id
-  ) || [];
+  const producerIds =
+    group.producer_group_members?.map((m: any) => m.producer_id) || [];
 
   if (producerIds.length === 0) {
     return (
@@ -54,7 +55,8 @@ export default async function ProducerGroupPage({ params }: PageProps) {
   // Fetch all wines from all producers in the group
   const { data: wines, error: winesError } = await sb
     .from("wines")
-    .select(`
+    .select(
+      `
       id,
       wine_name,
       vintage,
@@ -67,7 +69,8 @@ export default async function ProducerGroupPage({ params }: PageProps) {
       description,
       description_html,
       producers(name, region)
-    `)
+    `,
+    )
     .in("producer_id", producerIds)
     .order("created_at", { ascending: false });
 
@@ -142,10 +145,11 @@ export default async function ProducerGroupPage({ params }: PageProps) {
     };
   });
 
-  const producerNames = group.producer_group_members
-    ?.map((m: any) => m.producers?.name)
-    .filter(Boolean)
-    .join(", ") || "";
+  const producerNames =
+    group.producer_group_members
+      ?.map((m: any) => m.producers?.name)
+      .filter(Boolean)
+      .join(", ") || "";
 
   return (
     <div className="p-sides py-8">
@@ -155,9 +159,7 @@ export default async function ProducerGroupPage({ params }: PageProps) {
         {group.description && (
           <p className="text-gray-600 mb-3">{group.description}</p>
         )}
-        <p className="text-sm text-gray-500">
-          Producers: {producerNames}
-        </p>
+        <p className="text-sm text-gray-500">Producers: {producerNames}</p>
       </div>
 
       {/* Products Grid */}
@@ -167,4 +169,3 @@ export default async function ProducerGroupPage({ params }: PageProps) {
     </div>
   );
 }
-

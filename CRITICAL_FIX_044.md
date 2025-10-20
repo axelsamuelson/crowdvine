@@ -5,6 +5,7 @@
 **Problem:** Users were being **downgraded** when earning Impact Points.
 
 **Example:**
+
 - User at Bronze level (5 IP)
 - Makes order with 8 bottles → Earns +1 IP (total: 6 IP)
 - System incorrectly downgrades user to Basic
@@ -13,6 +14,7 @@
 ## Root Cause
 
 The `check_and_upgrade_level()` function uses:
+
 ```sql
 IF new_level != current_membership.level THEN
   -- Updates level (BOTH upgrades AND downgrades!)
@@ -49,6 +51,7 @@ END IF;
 ```
 
 **Expected output:**
+
 ```
 ✅ Migration 044 completed successfully
 ⚠️  IMPORTANT: This fixes critical bug where users were downgraded
@@ -60,7 +63,7 @@ If any users were incorrectly downgraded, fix them:
 
 ```sql
 -- Find users who may have been incorrectly downgraded
-SELECT 
+SELECT
   u.email,
   m.level,
   m.impact_points,
@@ -72,7 +75,7 @@ WHERE get_level_from_points(m.impact_points)::TEXT != m.level::TEXT;
 -- Fix each user manually
 -- Example: User has 6 IP but is at Basic (should be Bronze)
 UPDATE user_memberships
-SET 
+SET
   level = 'brons',
   invite_quota_monthly = 5,
   level_assigned_at = NOW()
@@ -111,6 +114,7 @@ The issue likely occurred because:
 ## Prevention
 
 After this fix:
+
 - ✅ Users can ONLY progress upward
 - ✅ Even if manually set to high level, earning IP won't downgrade
 - ✅ Admins can still manually adjust levels if needed
@@ -119,8 +123,9 @@ After this fix:
 ## Long-term Solution
 
 Consider adding to `user_memberships`:
+
 ```sql
-ALTER TABLE user_memberships 
+ALTER TABLE user_memberships
 ADD COLUMN manually_set_level BOOLEAN DEFAULT FALSE;
 
 -- If manually_set_level = TRUE, don't auto-adjust at all
@@ -145,4 +150,3 @@ ADD COLUMN manually_set_level BOOLEAN DEFAULT FALSE;
 ---
 
 **Deploy this fix ASAP!** 🚨
-

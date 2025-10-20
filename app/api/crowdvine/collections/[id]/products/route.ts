@@ -58,10 +58,10 @@ export async function GET(
                 id: `${calc.wineBoxId}-variant`,
                 title: `${calc.bottleCount} Bottles`,
                 availableForSale: true,
-                  price: {
-                    amount: Math.round(calc.finalPrice).toString(),
-                    currencyCode: "SEK",
-                  },
+                price: {
+                  amount: Math.round(calc.finalPrice).toString(),
+                  currencyCode: "SEK",
+                },
                 selectedOptions: [
                   { name: "Size", value: `${calc.bottleCount} Bottles` },
                   {

@@ -34,17 +34,17 @@ async function checkProducerZoneUsage() {
     for (const producer of producers) {
       console.log(`🏭 Producer: "${producer.name}"`);
       console.log(`   ID: ${producer.id}`);
-      
+
       if (producer.pickup_zone_id) {
         console.log(`   🚛 Pickup Zone ID: ${producer.pickup_zone_id}`);
-        
+
         // Get zone details
         const { data: zone, error: zoneError } = await supabase
           .from("pallet_zones")
           .select("name, zone_type")
           .eq("id", producer.pickup_zone_id)
           .single();
-          
+
         if (zoneError) {
           console.log(`      ❌ Error fetching zone: ${zoneError.message}`);
         } else if (zone) {
@@ -53,15 +53,15 @@ async function checkProducerZoneUsage() {
       } else {
         console.log(`   🚛 Pickup Zone ID: None`);
       }
-      
+
       console.log("");
     }
 
     // Check which zones are used by producers
     console.log("🚫 Zones that CANNOT be deleted (used by producers):");
     const usedZoneIds = new Set<string>();
-    
-    producers.forEach(producer => {
+
+    producers.forEach((producer) => {
       if (producer.pickup_zone_id) usedZoneIds.add(producer.pickup_zone_id);
     });
 
@@ -74,13 +74,14 @@ async function checkProducerZoneUsage() {
           .select("name, zone_type")
           .eq("id", zoneId)
           .single();
-          
+
         if (zone) {
-          console.log(`   🚫 "${zone.name}" (${zone.zone_type}) - ID: ${zoneId}`);
+          console.log(
+            `   🚫 "${zone.name}" (${zone.zone_type}) - ID: ${zoneId}`,
+          );
         }
       }
     }
-
   } catch (error) {
     console.error("❌ Error:", error);
   }

@@ -23,7 +23,7 @@ export default async function AccessRequestPage({
       .maybeSingle();
 
     // If user has membership and is not a requester, they have access
-    if (membership && membership.level !== 'requester') {
+    if (membership && membership.level !== "requester") {
       redirect(next);
     }
   }

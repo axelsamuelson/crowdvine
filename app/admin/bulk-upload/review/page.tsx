@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -20,18 +20,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { 
-  Upload, 
-  CheckCircle, 
-  AlertCircle, 
-  Loader2, 
+import {
+  Upload,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
   ArrowLeft,
   Edit,
   Eye,
-  AlertTriangle
+  AlertTriangle,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useRouter } from "next/navigation";
@@ -39,37 +45,43 @@ import { useRouter } from "next/navigation";
 export default function ReviewPage() {
   const router = useRouter();
   const [products, setProducts] = useState<any[]>([]);
-  const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
+  const [selectedProducts, setSelectedProducts] = useState<Set<number>>(
+    new Set(),
+  );
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{
     stage: string;
     percentage: number;
     details?: string;
-  }>({ stage: '', percentage: 0 });
+  }>({ stage: "", percentage: 0 });
   const [editingRow, setEditingRow] = useState<null | number>(null);
 
   useEffect(() => {
     // Get products from sessionStorage or redirect back to upload
-    const storedProducts = sessionStorage.getItem('bulkUploadProducts');
+    const storedProducts = sessionStorage.getItem("bulkUploadProducts");
     if (!storedProducts) {
       toast.error("No products to review. Please upload CSV first.");
-      router.push('/admin/bulk-upload');
+      router.push("/admin/bulk-upload");
       return;
     }
-    
+
     const parsedProducts = JSON.parse(storedProducts);
     setProducts(parsedProducts);
-    
+
     // Auto-select products that can be uploaded
-    setSelectedProducts(new Set(parsedProducts
-      .map((p: any, index: number) => {
-        const hasCriticalIssues = p.rowIssues?.some((issue: string) => 
-          issue.includes('Critical:') || issue.includes('Error:')
-        );
-        return (p.canUpload !== false && !hasCriticalIssues) ? index : null;
-      })
-      .filter((index: number | null) => index !== null)
-    ));
+    setSelectedProducts(
+      new Set(
+        parsedProducts
+          .map((p: any, index: number) => {
+            const hasCriticalIssues = p.rowIssues?.some(
+              (issue: string) =>
+                issue.includes("Critical:") || issue.includes("Error:"),
+            );
+            return p.canUpload !== false && !hasCriticalIssues ? index : null;
+          })
+          .filter((index: number | null) => index !== null),
+      ),
+    );
   }, [router]);
 
   const toggleProductSelection = (index: number) => {
@@ -98,7 +110,9 @@ export default function ReviewPage() {
   };
 
   const handleConfirmUpload = async () => {
-    const productsToUpload = products.filter((_, index) => selectedProducts.has(index));
+    const productsToUpload = products.filter((_, index) =>
+      selectedProducts.has(index),
+    );
 
     if (productsToUpload.length === 0) {
       toast.error("Please select at least one product to upload");
@@ -106,17 +120,25 @@ export default function ReviewPage() {
     }
 
     setUploading(true);
-    
+
     // Reset progress
-    setUploadProgress({ stage: 'Preparing upload...', percentage: 0 });
+    setUploadProgress({ stage: "Preparing upload...", percentage: 0 });
 
     try {
       // Stage 1: Preparing data
-      setUploadProgress({ stage: 'Preparing products for upload...', percentage: 10, details: `Processing ${productsToUpload.length} products` });
-      
+      setUploadProgress({
+        stage: "Preparing products for upload...",
+        percentage: 10,
+        details: `Processing ${productsToUpload.length} products`,
+      });
+
       // Stage 2: Validating producers
-      setUploadProgress({ stage: 'Validating producer data...', percentage: 25, details: 'Checking producer information' });
-      
+      setUploadProgress({
+        stage: "Validating producer data...",
+        percentage: 25,
+        details: "Checking producer information",
+      });
+
       const response = await fetch("/api/admin/bulk-upload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -124,26 +146,42 @@ export default function ReviewPage() {
       });
 
       // Stage 3: Processing upload
-      setUploadProgress({ stage: 'Uploading to database...', percentage: 80, details: 'Creating wines and producers' });
+      setUploadProgress({
+        stage: "Uploading to database...",
+        percentage: 80,
+        details: "Creating wines and producers",
+      });
 
       const data = await response.json();
-      
+
       // Stage 4: Completing
-      setUploadProgress({ stage: 'Upload complete!', percentage: 100, details: `Successfully uploaded ${productsToUpload.length} products` });
-      
+      setUploadProgress({
+        stage: "Upload complete!",
+        percentage: 100,
+        details: `Successfully uploaded ${productsToUpload.length} products`,
+      });
+
       if (response.ok) {
         toast.success(data.message);
         // Brief pause before redirect
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        sessionStorage.removeItem('bulkUploadProducts');
-        router.push('/admin/bulk-upload');
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        sessionStorage.removeItem("bulkUploadProducts");
+        router.push("/admin/bulk-upload");
       } else {
-        setUploadProgress({ stage: 'Upload failed!', percentage: 0, details: data.error || 'Unknown error occurred' });
+        setUploadProgress({
+          stage: "Upload failed!",
+          percentage: 0,
+          details: data.error || "Unknown error occurred",
+        });
         toast.error(data.error || "Upload failed");
       }
     } catch (error) {
       console.error("Upload error:", error);
-      setUploadProgress({ stage: 'Upload failed!', percentage: 0, details: 'Network error occurred' });
+      setUploadProgress({
+        stage: "Upload failed!",
+        percentage: 0,
+        details: "Network error occurred",
+      });
       toast.error("Upload failed");
     } finally {
       setUploading(false);
@@ -151,25 +189,41 @@ export default function ReviewPage() {
   };
 
   const getStatusBadge = (product: any) => {
-    const hasCriticalIssues = product.rowIssues?.some((issue: string) => issue.includes('Critical:'));
-    const hasErrors = product.rowIssues?.some((issue: string) => issue.includes('Error:'));
+    const hasCriticalIssues = product.rowIssues?.some((issue: string) =>
+      issue.includes("Critical:"),
+    );
+    const hasErrors = product.rowIssues?.some((issue: string) =>
+      issue.includes("Error:"),
+    );
 
     if (hasCriticalIssues) {
       return <Badge variant="destructive">🚨 Critical</Badge>;
     } else if (hasErrors) {
-      return <Badge variant="secondary" className="bg-red-100 text-red-800">⚠️ Error</Badge>;
+      return (
+        <Badge variant="secondary" className="bg-red-100 text-red-800">
+          ⚠️ Error
+        </Badge>
+      );
     } else if (product.rowIssues?.length > 0) {
-      return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">⚠️ Warning</Badge>;
+      return (
+        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+          ⚠️ Warning
+        </Badge>
+      );
     } else {
-      return <Badge variant="secondary" className="bg-green-100 text-green-800">✅ Valid</Badge>;
+      return (
+        <Badge variant="secondary" className="bg-green-100 text-green-800">
+          ✅ Valid
+        </Badge>
+      );
     }
   };
 
   const getColorOptions = (product: any) => {
-    const validColors = ['red', 'white', 'rose'];
+    const validColors = ["red", "white", "rose"];
     const currentColor = product.color?.toLowerCase();
-    
-    return validColors.map(color => (
+
+    return validColors.map((color) => (
       <SelectItem key={color} value={color}>
         {color.charAt(0).toUpperCase() + color.slice(1)}
       </SelectItem>
@@ -177,8 +231,11 @@ export default function ReviewPage() {
   };
 
   const canUpload = (product: any) => {
-    const hasCriticalIssues = product.rowIssues?.some((issue: string) => 
-      issue.includes('Critical:') || issue.includes('Error: Cost') || issue.includes('Error: Producer')
+    const hasCriticalIssues = product.rowIssues?.some(
+      (issue: string) =>
+        issue.includes("Critical:") ||
+        issue.includes("Error: Cost") ||
+        issue.includes("Error: Producer"),
     );
     return !hasCriticalIssues;
   };
@@ -201,7 +258,7 @@ export default function ReviewPage() {
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-4">
           <Button
-            onClick={() => router.push('/admin/bulk-upload')}
+            onClick={() => router.push("/admin/bulk-upload")}
             variant="outline"
             size="sm"
           >
@@ -209,8 +266,12 @@ export default function ReviewPage() {
             Back to Upload
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Review Products</h1>
-            <p className="text-gray-600">Review and edit products before uploading</p>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Review Products
+            </h1>
+            <p className="text-gray-600">
+              Review and edit products before uploading
+            </p>
           </div>
         </div>
 
@@ -222,13 +283,17 @@ export default function ReviewPage() {
                 <Button onClick={selectAllProducts} variant="outline" size="sm">
                   Select All ({products.length})
                 </Button>
-                <Button onClick={deselectAllProducts} variant="outline" size="sm">
+                <Button
+                  onClick={deselectAllProducts}
+                  variant="outline"
+                  size="sm"
+                >
                   Deselect All
                 </Button>
                 <div className="ml-auto text-sm text-gray-600">
-                      {selectedProducts.size} of {products.length} selected
+                  {selectedProducts.size} of {products.length} selected
                 </div>
-                <Button 
+                <Button
                   onClick={handleConfirmUpload}
                   disabled={selectedProducts.size === 0 || uploading}
                   className="bg-gray-900 hover:bg-gray-800"
@@ -255,17 +320,25 @@ export default function ReviewPage() {
                       <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
                       {uploadProgress.stage}
                     </span>
-                    <span className="text-blue-600 font-mono">{uploadProgress.percentage}%</span>
+                    <span className="text-blue-600 font-mono">
+                      {uploadProgress.percentage}%
+                    </span>
                   </div>
-                  <Progress value={uploadProgress.percentage} className="h-3 w-full bg-blue-100" />
+                  <Progress
+                    value={uploadProgress.percentage}
+                    className="h-3 w-full bg-blue-100"
+                  />
                   {uploadProgress.details && (
-                    <p className="text-xs text-blue-700 italic">{uploadProgress.details}</p>
-                  )}
-                  {uploadProgress.percentage < 100 && uploadProgress.percentage > 0 && (
-                    <p className="text-xs text-blue-600">
-                      🚀 Creating wines and producers in database...
+                    <p className="text-xs text-blue-700 italic">
+                      {uploadProgress.details}
                     </p>
                   )}
+                  {uploadProgress.percentage < 100 &&
+                    uploadProgress.percentage > 0 && (
+                      <p className="text-xs text-blue-600">
+                        🚀 Creating wines and producers in database...
+                      </p>
+                    )}
                 </div>
               )}
             </div>
@@ -280,7 +353,8 @@ export default function ReviewPage() {
               Products Review
             </CardTitle>
             <CardDescription>
-              Review each product and edit as needed. Products with critical issues cannot be uploaded.
+              Review each product and edit as needed. Products with critical
+              issues cannot be uploaded.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -302,7 +376,10 @@ export default function ReviewPage() {
                 </TableHeader>
                 <TableBody>
                   {products.map((product, index) => (
-                    <TableRow key={index} className={!canUpload(product) ? "bg-red-50" : ""}>
+                    <TableRow
+                      key={index}
+                      className={!canUpload(product) ? "bg-red-50" : ""}
+                    >
                       {/* Selection */}
                       <TableCell>
                         <input
@@ -310,21 +387,21 @@ export default function ReviewPage() {
                           checked={selectedProducts.has(index)}
                           onChange={() => toggleProductSelection(index)}
                           disabled={!canUpload(product)}
-                          className={`w-4 h-4 ${!canUpload(product) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          className={`w-4 h-4 ${!canUpload(product) ? "opacity-50 cursor-not-allowed" : ""}`}
                         />
                       </TableCell>
 
                       {/* Status */}
-                      <TableCell>
-                        {getStatusBadge(product)}
-                      </TableCell>
+                      <TableCell>{getStatusBadge(product)}</TableCell>
 
                       {/* Wine Name */}
                       <TableCell className="font-medium">
                         {editingRow === index ? (
                           <Input
                             value={product.wine_name}
-                            onChange={(e) => updateProduct(index, 'wine_name', e.target.value)}
+                            onChange={(e) =>
+                              updateProduct(index, "wine_name", e.target.value)
+                            }
                           />
                         ) : (
                           product.wine_name
@@ -336,7 +413,9 @@ export default function ReviewPage() {
                         {editingRow === index ? (
                           <Input
                             value={product.vintage}
-                            onChange={(e) => updateProduct(index, 'vintage', e.target.value)}
+                            onChange={(e) =>
+                              updateProduct(index, "vintage", e.target.value)
+                            }
                           />
                         ) : (
                           product.vintage
@@ -349,21 +428,34 @@ export default function ReviewPage() {
                           <div className="space-y-2">
                             <Input
                               value={product.grape_varieties}
-                              onChange={(e) => updateProduct(index, 'grape_varieties', e.target.value)}
+                              onChange={(e) =>
+                                updateProduct(
+                                  index,
+                                  "grape_varieties",
+                                  e.target.value,
+                                )
+                              }
                               placeholder="Syrah; Grenache; Mourvèdre"
                             />
                             {product.grapeSuggestions && (
                               <div className="text-xs text-blue-600">
-                                Suggestions: {product.grapeSuggestions.join(', ')}
+                                Suggestions:{" "}
+                                {product.grapeSuggestions.join(", ")}
                               </div>
                             )}
                           </div>
                         ) : (
                           <div>
-                            <div className="text-sm">{product.grape_varieties}</div>
-                            {product.originalGrapeText && product.originalGrapeText !== product.grape_varieties && (
-                              <div className="text-xs text-gray-500">Original: {product.originalGrapeText}</div>
-                            )}
+                            <div className="text-sm">
+                              {product.grape_varieties}
+                            </div>
+                            {product.originalGrapeText &&
+                              product.originalGrapeText !==
+                                product.grape_varieties && (
+                                <div className="text-xs text-gray-500">
+                                  Original: {product.originalGrapeText}
+                                </div>
+                              )}
                           </div>
                         )}
                       </TableCell>
@@ -371,9 +463,11 @@ export default function ReviewPage() {
                       {/* Color */}
                       <TableCell>
                         {editingRow === index ? (
-                          <Select 
+                          <Select
                             value={product.color}
-                            onValueChange={(value) => updateProduct(index, 'color', value)}
+                            onValueChange={(value) =>
+                              updateProduct(index, "color", value)
+                            }
                           >
                             <SelectTrigger>
                               <SelectValue />
@@ -384,7 +478,8 @@ export default function ReviewPage() {
                           </Select>
                         ) : (
                           <Badge variant="outline">
-                            {product.color?.charAt(0).toUpperCase() + product.color?.slice(1)}
+                            {product.color?.charAt(0).toUpperCase() +
+                              product.color?.slice(1)}
                           </Badge>
                         )}
                       </TableCell>
@@ -395,13 +490,23 @@ export default function ReviewPage() {
                           <div className="space-y-2">
                             <Input
                               value={product.producer_name}
-                              onChange={(e) => updateProduct(index, 'producer_name', e.target.value)}
+                              onChange={(e) =>
+                                updateProduct(
+                                  index,
+                                  "producer_name",
+                                  e.target.value,
+                                )
+                              }
                             />
-                            {product.similarProducers && product.similarProducers.length > 0 && (
-                              <div className="text-xs text-yellow-600">
-                                Similar: {product.similarProducers.map((p: any) => p.name).join(', ')}
-                              </div>
-                            )}
+                            {product.similarProducers &&
+                              product.similarProducers.length > 0 && (
+                                <div className="text-xs text-yellow-600">
+                                  Similar:{" "}
+                                  {product.similarProducers
+                                    .map((p: any) => p.name)
+                                    .join(", ")}
+                                </div>
+                              )}
                           </div>
                         ) : (
                           product.producer_name
@@ -413,7 +518,9 @@ export default function ReviewPage() {
                         <div className="text-sm">
                           {product.cost_amount} {product.cost_currency}
                           <br />
-                          <span className="text-xs text-gray-500">{product.margin_percentage}% margin</span>
+                          <span className="text-xs text-gray-500">
+                            {product.margin_percentage}% margin
+                          </span>
                         </div>
                       </TableCell>
 
@@ -421,18 +528,21 @@ export default function ReviewPage() {
                       <TableCell>
                         {product.rowIssues && product.rowIssues.length > 0 ? (
                           <div className="space-y-1 max-w-xs">
-                            {product.rowIssues.slice(0, 2).map((issue: string, issueIndex: number) => (
-                              <div
-                                key={issueIndex}
-                                className={`text-xs p-1 rounded ${
-                                  issue.includes('Critical:') || issue.includes('Error:')
-                                    ? 'bg-red-100 text-red-700 border border-red-200'
-                                    : 'bg-yellow-100 text-yellow-700 border border-yellow-200'
-                                }`}
-                              >
-                                {issue}
-                              </div>
-                            ))}
+                            {product.rowIssues
+                              .slice(0, 2)
+                              .map((issue: string, issueIndex: number) => (
+                                <div
+                                  key={issueIndex}
+                                  className={`text-xs p-1 rounded ${
+                                    issue.includes("Critical:") ||
+                                    issue.includes("Error:")
+                                      ? "bg-red-100 text-red-700 border border-red-200"
+                                      : "bg-yellow-100 text-yellow-700 border border-yellow-200"
+                                  }`}
+                                >
+                                  {issue}
+                                </div>
+                              ))}
                             {product.rowIssues.length > 2 && (
                               <div className="text-xs text-gray-500">
                                 +{product.rowIssues.length - 2} more...
@@ -440,19 +550,23 @@ export default function ReviewPage() {
                             )}
                           </div>
                         ) : (
-                          <span className="text-xs text-green-600">✓ No issues</span>
+                          <span className="text-xs text-green-600">
+                            ✓ No issues
+                          </span>
                         )}
                       </TableCell>
 
                       {/* Actions */}
                       <TableCell>
                         <Button
-                          onClick={() => setEditingRow(editingRow === index ? null : index)}
+                          onClick={() =>
+                            setEditingRow(editingRow === index ? null : index)
+                          }
                           variant="outline"
                           size="sm"
                         >
                           <Edit className="w-3 h-3 mr-1" />
-                          {editingRow === index ? 'Save' : 'Edit'}
+                          {editingRow === index ? "Save" : "Edit"}
                         </Button>
                       </TableCell>
                     </TableRow>

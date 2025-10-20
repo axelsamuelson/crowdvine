@@ -1,17 +1,8 @@
 import Link from "next/link";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
-import {
-  Plus,
-  Truck,
-  Package,
-  Globe,
-  Navigation,
-} from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Plus, Truck, Package, Globe, Navigation } from "lucide-react";
 import { ZonesClient } from "./zones-client";
 
 export default async function ZonesPage() {

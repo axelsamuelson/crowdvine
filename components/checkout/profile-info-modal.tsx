@@ -63,7 +63,7 @@ export function ProfileInfoModal({
       if (response.ok) {
         const data = await response.json();
         const profile = data.profile || data;
-        
+
         if (profile) {
           setFormData({
             full_name: profile.full_name || "",
@@ -97,14 +97,17 @@ export function ProfileInfoModal({
 
       const result = await response.json();
       const updatedProfile = result.profile || result;
-      
+
       // Check if address is complete
-      const hasAddress = formData.address && formData.city && formData.postal_code;
-      
+      const hasAddress =
+        formData.address && formData.city && formData.postal_code;
+
       if (!hasAddress) {
-        toast.warning("Address missing. You can save now, but need to add address before checkout.");
+        toast.warning(
+          "Address missing. You can save now, but need to add address before checkout.",
+        );
       }
-      
+
       onProfileSaved(updatedProfile);
       setOpen(false);
     } catch (error) {
@@ -125,13 +128,19 @@ export function ProfileInfoModal({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-md" aria-describedby="profile-modal-description">
+      <DialogContent
+        className="max-w-md"
+        aria-describedby="profile-modal-description"
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-gray-900">
             <User className="w-5 h-5" />
             Profile Information
           </DialogTitle>
-          <p id="profile-modal-description" className="text-sm text-gray-600 mt-2">
+          <p
+            id="profile-modal-description"
+            className="text-sm text-gray-600 mt-2"
+          >
             Add your delivery information to complete checkout
           </p>
         </DialogHeader>
@@ -230,8 +239,8 @@ export function ProfileInfoModal({
             >
               Cancel
             </Button>
-            <Button 
-              onClick={handleSave} 
+            <Button
+              onClick={handleSave}
               disabled={loading}
               className="flex-1 bg-black hover:bg-black/90 text-white"
             >

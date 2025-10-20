@@ -15,14 +15,16 @@ function getSupabaseAdmin() {
 
 /**
  * OPTIMIZED VERSION - Use after running migrations 045 & 046
- * 
+ *
  * This version uses automatic profiles join via FK constraint
  */
 export async function GET() {
   try {
     const sb = getSupabaseAdmin();
 
-    console.log("🔍 [Reservations API - Optimized] Starting to fetch reservations...");
+    console.log(
+      "🔍 [Reservations API - Optimized] Starting to fetch reservations...",
+    );
 
     // Use automatic FK join - much simpler!
     const { data: reservations, error: reservationsError } = await sb
@@ -47,14 +49,19 @@ export async function GET() {
       .order("created_at", { ascending: false });
 
     if (reservationsError) {
-      console.error("❌ [Reservations API] Error fetching reservations:", reservationsError);
+      console.error(
+        "❌ [Reservations API] Error fetching reservations:",
+        reservationsError,
+      );
       return NextResponse.json({
         reservations: [],
-        error: reservationsError.message
+        error: reservationsError.message,
       });
     }
 
-    console.log(`✅ [Reservations API] Found ${reservations?.length || 0} reservations with profiles`);
+    console.log(
+      `✅ [Reservations API] Found ${reservations?.length || 0} reservations with profiles`,
+    );
 
     return NextResponse.json({
       reservations: reservations || [],
@@ -195,4 +202,3 @@ export async function DELETE(request: Request) {
     );
   }
 }
-

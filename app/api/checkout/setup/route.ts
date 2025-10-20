@@ -28,12 +28,18 @@ export async function GET(request: Request) {
 
     // CRITICAL SECURITY: Require authentication for checkout setup
     const supabase = createSupabaseServerClient();
-    
+
     // Get current user with proper session validation
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
     if (userError || !user) {
       console.error("SECURITY ERROR: Unauthenticated checkout setup attempt");
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 },
+      );
     }
 
     // CRITICAL SECURITY: Log the actual user making the request
@@ -41,7 +47,7 @@ export async function GET(request: Request) {
       userId: user.id,
       userEmail: user.email,
       timestamp: new Date().toISOString(),
-      endpoint: "/api/checkout/setup"
+      endpoint: "/api/checkout/setup",
     });
 
     const email = user.email;
@@ -52,21 +58,24 @@ export async function GET(request: Request) {
 
     // Get returnUrl from query params (default to /profile)
     const { searchParams } = new URL(request.url);
-    const returnUrl = searchParams.get('returnUrl') || '/profile';
+    const returnUrl = searchParams.get("returnUrl") || "/profile";
     console.log("DEBUG: Return URL:", returnUrl);
 
     // CRITICAL SECURITY: Use user ID as unique identifier for Stripe customers
     let customer;
     try {
-      console.log("🔍 SECURITY: Looking for Stripe customer with user ID:", user.id);
+      console.log(
+        "🔍 SECURITY: Looking for Stripe customer with user ID:",
+        user.id,
+      );
 
       // First, try to find customer by metadata (user ID)
-      const customers = await stripe!.customers.list({ 
-        limit: 100 // Get more customers to search through
+      const customers = await stripe!.customers.list({
+        limit: 100, // Get more customers to search through
       });
-      
+
       // Find customer by user ID in metadata
-      customer = customers.data.find(c => c.metadata?.user_id === user.id);
+      customer = customers.data.find((c) => c.metadata?.user_id === user.id);
 
       if (!customer) {
         console.log(
@@ -79,12 +88,22 @@ export async function GET(request: Request) {
           name: name || undefined,
           metadata: {
             user_id: user.id, // CRITICAL: Use user ID as unique identifier
-            email: user.email
-          }
+            email: user.email,
+          },
         });
-        console.log("✅ SECURITY: Created new Stripe customer:", customer.id, "for user:", user.id);
+        console.log(
+          "✅ SECURITY: Created new Stripe customer:",
+          customer.id,
+          "for user:",
+          user.id,
+        );
       } else {
-        console.log("✅ SECURITY: Found existing Stripe customer:", customer.id, "for user:", user.id);
+        console.log(
+          "✅ SECURITY: Found existing Stripe customer:",
+          customer.id,
+          "for user:",
+          user.id,
+        );
       }
     } catch (error: any) {
       console.error("❌ SECURITY ERROR: Error handling customer:", error);

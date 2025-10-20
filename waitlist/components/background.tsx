@@ -33,12 +33,12 @@ const VideoWithPlaceholder = ({
 
   useEffect(() => {
     const video = videoRef.current;
-    
+
     if (video) {
       const handleLoadedData = () => {
         setVideoLoaded(true);
       };
-      
+
       const handleCanPlay = () => {
         setVideoLoaded(true);
       };
@@ -46,11 +46,11 @@ const VideoWithPlaceholder = ({
       video.addEventListener("loadeddata", handleLoadedData);
       video.addEventListener("canplay", handleCanPlay);
       video.load();
-      
+
       if (video.readyState >= 2) {
         setVideoLoaded(true);
       }
-      
+
       return () => {
         video.removeEventListener("loadeddata", handleLoadedData);
         video.removeEventListener("canplay", handleCanPlay);

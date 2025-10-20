@@ -105,7 +105,9 @@ export function MobileMenu({ collections }: { collections: any[] }) {
                           asChild
                         >
                           <Link href={item.href} prefetch>
-                            {item.icon && <item.icon className="w-4 h-4 mr-2" />}
+                            {item.icon && (
+                              <item.icon className="w-4 h-4 mr-2" />
+                            )}
                             {item.label}
                           </Link>
                         </Button>
@@ -113,8 +115,8 @@ export function MobileMenu({ collections }: { collections: any[] }) {
                     </nav>
 
                     <div className="mb-10">
-                      <ShopLinks 
-                        label="Popular Producers" 
+                      <ShopLinks
+                        label="Popular Producers"
                         collections={collections}
                         onLinkClick={closeMobileMenu}
                       />

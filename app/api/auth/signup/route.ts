@@ -26,7 +26,7 @@ export async function POST(req: Request) {
   //     "https://www.pactwines.com",
   //     "https://dev.pactwines.com"
   //   ];
-  //   
+  //
   //   if (!origin || !allowedOrigins.some(allowed => origin.startsWith(allowed))) {
   //     console.log("Origin check failed:", { origin, appUrl, allowedOrigins });
   //     return NextResponse.json(
@@ -81,10 +81,11 @@ export async function POST(req: Request) {
   }
 
   // Automatically sign in the user after successful signup
-  const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+  const { data: signInData, error: signInError } =
+    await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
   if (signInError) {
     // If auto sign-in fails, still return success but user will need to sign in manually
@@ -99,17 +100,22 @@ export async function POST(req: Request) {
 
   // CRITICAL SECURITY: Verify that the signed-in user matches the created user
   if (signInData.user?.id !== data.user?.id) {
-    console.error("SECURITY ALERT: Signed-in user ID does not match created user ID!");
+    console.error(
+      "SECURITY ALERT: Signed-in user ID does not match created user ID!",
+    );
     console.error("Created user ID:", data.user?.id);
     console.error("Signed-in user ID:", signInData.user?.id);
-    
+
     // Sign out immediately for security
     await supabase.auth.signOut({ scope: "global" });
-    
-    return NextResponse.json({
-      ok: false,
-      error: "Security validation failed. Please try signing in manually.",
-    }, { status: 500 });
+
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Security validation failed. Please try signing in manually.",
+      },
+      { status: 500 },
+    );
   }
 
   return NextResponse.json({

@@ -1,10 +1,13 @@
 # Email Deliverability Fix - Få Alla Mail Till Inbox
 
 ## Problem
+
 Approval emails skickas från SendGrid (status 202) men kommer aldrig fram till mottagaren - varken inbox eller spam.
 
 ## Root Cause
+
 SendGrid skickar mail, men de blockeras av Hotmail/Outlook/Gmail eftersom:
+
 1. Avsändardomänen (pactwines.com) är inte verifierad i SendGrid
 2. Ingen SPF/DKIM/DMARC konfiguration
 3. Mottagande mailserver ser det som spam eller blockar helt
@@ -32,6 +35,7 @@ This is the BEST solution for production. All emails will come from @pactwines.c
 SendGrid will give you DNS records to add. Example:
 
 **CNAME Records (for DKIM):**
+
 ```
 s1._domainkey.pactwines.com → s1.domainkey.u12345678.wl123.sendgrid.net
 s2._domainkey.pactwines.com → s2.domainkey.u12345678.wl123.sendgrid.net
@@ -39,6 +43,7 @@ em123.pactwines.com → u12345678.wl123.sendgrid.net
 ```
 
 **TXT Record (for SPF - may not be needed if using CNAME):**
+
 ```
 pactwines.com → v=spf1 include:sendgrid.net ~all
 ```
@@ -60,6 +65,7 @@ Go to wherever you registered/host pactwines.com (e.g., Namecheap, GoDaddy, Clou
 4. You'll see green checkmark ✅
 
 #### Benefits:
+
 - ✅ Best deliverability (95%+ inbox rate)
 - ✅ Professional sender reputation
 - ✅ Passes DKIM, SPF, DMARC checks
@@ -81,6 +87,7 @@ This is a quick workaround if you can't verify domain immediately.
 #### Step 2: Create Verified Sender
 
 Fill in the form:
+
 - **From Name:** PACT Wines
 - **From Email:** (use email you have access to)
   - Option A: Use your personal email (e.g., `ave.samuelson@gmail.com`)
@@ -106,6 +113,7 @@ Fill in the form:
 3. Redeploy
 
 #### Limitations:
+
 - ⚠️ Emails come from @gmail.com (not @pactwines.com)
 - ⚠️ Less professional
 - ⚠️ Lower deliverability than domain verification
@@ -123,7 +131,7 @@ Update `lib/sendgrid-service.ts` to use a verified test email:
 ```typescript
 constructor() {
   // For development: use a verified email
-  this.fromEmail = process.env.NODE_ENV === 'production' 
+  this.fromEmail = process.env.NODE_ENV === 'production'
     ? process.env.SENDGRID_FROM_EMAIL || "noreply@pactwines.com"
     : "test@example.com"; // SendGrid's test email
   this.fromName = "PACT Wines";
@@ -139,6 +147,7 @@ constructor() {
 Go to: https://vercel.com/axelsamuelson/crowdvine/settings/environment-variables
 
 **Required Variables:**
+
 ```
 SENDGRID_API_KEY=SG.xxxxxxxxxxxxxxxxxxxxxxxxxx
 SENDGRID_FROM_EMAIL=welcome@pactwines.com  (must be verified!)
@@ -184,6 +193,7 @@ SENDGRID_FROM_NAME=PACT Wines
 ### Step 2: Check Logs
 
 In Vercel logs, you should see:
+
 ```
 ✅ Email sent successfully to axelrib@hotmail.com
 statusCode: 202
@@ -213,6 +223,7 @@ statusCode: 202
 ## Why Emails Are Being Blocked
 
 ### Current Flow:
+
 ```
 SendGrid sends email → Hotmail/Outlook receives
                      ↓
@@ -222,6 +233,7 @@ Hotmail checks: "Is sender verified?"
 ```
 
 ### After Domain Verification:
+
 ```
 SendGrid sends email → Hotmail/Outlook receives
                      ↓
@@ -247,6 +259,7 @@ This tells email providers how to handle emails that fail authentication.
 ### 2. Warm Up Sending Domain
 
 If sending to new domain, start slowly:
+
 - Day 1: Send 10 emails
 - Day 2: Send 20 emails
 - Day 3: Send 50 emails
@@ -257,6 +270,7 @@ This builds sender reputation.
 ### 3. Monitor SendGrid Activity
 
 Check SendGrid Activity dashboard:
+
 - Bounces (hard/soft)
 - Spam reports
 - Blocks
@@ -270,7 +284,7 @@ Update email template to use proper reply-to:
 const msg = {
   to: data.to,
   from: { email: this.fromEmail, name: this.fromName },
-  replyTo: 'support@pactwines.com', // Where users can reply
+  replyTo: "support@pactwines.com", // Where users can reply
   subject: data.subject,
   html: data.html,
   text: data.text,
@@ -294,8 +308,8 @@ const msg = {
 ## Contact
 
 If emails still don't arrive after domain verification:
+
 1. Check SendGrid Activity feed for bounce reasons
 2. Check if recipient's email is valid
 3. Check if recipient has blocked sender
 4. Contact SendGrid support for deliverability help
-

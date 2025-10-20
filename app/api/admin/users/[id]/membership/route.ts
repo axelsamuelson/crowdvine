@@ -3,7 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const supabase = getSupabaseAdmin();
@@ -18,7 +18,7 @@ export async function GET(
       console.error("Error fetching user membership:", error);
       return NextResponse.json(
         { error: "Failed to fetch membership" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -27,8 +27,7 @@ export async function GET(
     console.error("Error in GET /api/admin/users/[id]/membership:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

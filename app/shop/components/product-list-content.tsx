@@ -43,12 +43,12 @@ function filterProductsByColors(
 
         // Check if this variant's color matches any of the selected colors
         const variantColor = option.value;
-        
+
         return colors.some((selectedColor) => {
           // For blend colors (Red/Orange), match against "Red & Orange" in product
-          const normalizedSelected = selectedColor.replace('/', ' & ');
-          const normalizedVariant = variantColor.replace('/', ' & ');
-          
+          const normalizedSelected = selectedColor.replace("/", " & ");
+          const normalizedVariant = variantColor.replace("/", " & ");
+
           return normalizedSelected === normalizedVariant;
         });
       });
@@ -67,12 +67,12 @@ function filterProductsByColors(
           // Handle both string values and object values with .name property
           const colorValue =
             typeof value === "string" ? value : value.name || value.id;
-          
+
           return colors.some((selectedColor) => {
             // For blend colors (Red/Orange), match against "Red & Orange" in product
-            const normalizedSelected = selectedColor.replace('/', ' & ');
-            const normalizedValue = colorValue.replace('/', ' & ');
-            
+            const normalizedSelected = selectedColor.replace("/", " & ");
+            const normalizedValue = colorValue.replace("/", " & ");
+
             return normalizedSelected === normalizedValue;
           });
         });
@@ -110,54 +110,59 @@ export function ProductListContent({
       }
 
       try {
-        const response = await fetch('/api/cart/validate', {
-          method: 'POST',
+        const response = await fetch("/api/cart/validate", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({ cart }),
         });
 
         if (response.ok) {
           const result = await response.json();
-          console.log('Validation result:', result); // Debug log
-          console.log('All producerValidations:', result.producerValidations); // Debug log
-          console.log('Selected producers:', selectedProducers); // Debug log
-          
+          console.log("Validation result:", result); // Debug log
+          console.log("All producerValidations:", result.producerValidations); // Debug log
+          console.log("Selected producers:", selectedProducers); // Debug log
+
           // If we have selectedProducers (from URL), filter to only those
           // Otherwise, show all producers with validation errors
-          const relevantValidations = selectedProducers.length > 0
-            ? result.producerValidations?.filter((v: ProducerValidation) => 
-                selectedProducers.includes(v.producerHandle || '')
-              ) || []
-            : result.producerValidations?.filter((v: ProducerValidation) => !v.isValid) || [];
-          
-          console.log('Relevant validations:', relevantValidations); // Debug log
-          
+          const relevantValidations =
+            selectedProducers.length > 0
+              ? result.producerValidations?.filter((v: ProducerValidation) =>
+                  selectedProducers.includes(v.producerHandle || ""),
+                ) || []
+              : result.producerValidations?.filter(
+                  (v: ProducerValidation) => !v.isValid,
+                ) || [];
+
+          console.log("Relevant validations:", relevantValidations); // Debug log
+
           // Debug: Check if filtering is working
-          result.producerValidations?.forEach((v: ProducerValidation, index: number) => {
-            console.log(`All validation ${index}:`, {
-              producerHandle: v.producerHandle,
-              current: v.current,
-              required: v.required,
-              groupId: v.groupId,
-              isSelected: selectedProducers.includes(v.producerHandle || ''),
-              isValid: v.isValid
-            });
-          });
-          
+          result.producerValidations?.forEach(
+            (v: ProducerValidation, index: number) => {
+              console.log(`All validation ${index}:`, {
+                producerHandle: v.producerHandle,
+                current: v.current,
+                required: v.required,
+                groupId: v.groupId,
+                isSelected: selectedProducers.includes(v.producerHandle || ""),
+                isValid: v.isValid,
+              });
+            },
+          );
+
           relevantValidations.forEach((v, index) => {
             console.log(`Relevant validation ${index}:`, {
               producerHandle: v.producerHandle,
               current: v.current,
               required: v.required,
-              groupId: v.groupId
+              groupId: v.groupId,
             });
           });
           setValidations(relevantValidations);
         }
       } catch (error) {
-        console.error('Failed to fetch validations:', error);
+        console.error("Failed to fetch validations:", error);
         setValidations([]);
       }
     };
@@ -199,29 +204,41 @@ export function ProductListContent({
                     <X className="w-3 h-3" />
                   </button>
                 </div>
-                
+
                 {/* Compact progress bars */}
                 <div className="space-y-1.5">
                   {validations.slice(0, 2).map((validation) => {
-                    const collection = collections.find(c => c.handle === validation.producerHandle);
+                    const collection = collections.find(
+                      (c) => c.handle === validation.producerHandle,
+                    );
                     const current = validation?.quantity || 0;
-                    const required = (validation?.quantity || 0) + (validation?.needed || 0);
-                    const progress = required > 0 ? Math.min((current / required) * 100, 100) : 0;
+                    const required =
+                      (validation?.quantity || 0) + (validation?.needed || 0);
+                    const progress =
+                      required > 0
+                        ? Math.min((current / required) * 100, 100)
+                        : 0;
                     const remaining = validation?.needed || 0;
-                    
+
                     // Debug log for progress bar rendering
-                    console.log(`Progress bar for ${validation.producerHandle}:`, {
-                      validation,
-                      current,
-                      required,
-                      progress,
-                      remaining,
-                      quantity: validation?.quantity,
-                      needed: validation?.needed
-                    });
+                    console.log(
+                      `Progress bar for ${validation.producerHandle}:`,
+                      {
+                        validation,
+                        current,
+                        required,
+                        progress,
+                        remaining,
+                        quantity: validation?.quantity,
+                        needed: validation?.needed,
+                      },
+                    );
 
                     return (
-                      <div key={validation.producerHandle} className="space-y-1">
+                      <div
+                        key={validation.producerHandle}
+                        className="space-y-1"
+                      >
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-foreground/70 truncate max-w-[120px]">
                             {collection?.title || validation.producerHandle}
@@ -231,7 +248,7 @@ export function ProductListContent({
                           </span>
                         </div>
                         <div className="relative h-1 bg-foreground/[0.06] rounded-full overflow-hidden">
-                          <div 
+                          <div
                             className="absolute inset-y-0 left-0 bg-gradient-to-r from-foreground/30 to-foreground/40 rounded-full transition-all duration-500 ease-out"
                             style={{ width: `${progress}%` }}
                           />
@@ -239,7 +256,7 @@ export function ProductListContent({
                       </div>
                     );
                   })}
-                  
+
                   {/* Show "and X more" if there are more than 2 producers */}
                   {validations.length > 2 && (
                     <div className="text-xs text-muted-foreground/50 text-center pt-1">
@@ -247,7 +264,7 @@ export function ProductListContent({
                     </div>
                   )}
                 </div>
-                
+
                 {/* Status summary */}
                 <div className="pt-1 border-t border-foreground/[0.04]">
                   <p className="text-xs text-muted-foreground/60 text-center">

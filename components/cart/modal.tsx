@@ -28,7 +28,15 @@ const CartContainer = ({
   return <div className={cn("px-3 md:px-4", className)}>{children}</div>;
 };
 
-const CartItems = ({ closeCart, validations, isValidating }: { closeCart: () => void; validations: ProducerValidation[]; isValidating: boolean }) => {
+const CartItems = ({
+  closeCart,
+  validations,
+  isValidating,
+}: {
+  closeCart: () => void;
+  validations: ProducerValidation[];
+  isValidating: boolean;
+}) => {
   const { cart } = useCart();
 
   if (!cart) return <></>;
@@ -36,8 +44,11 @@ const CartItems = ({ closeCart, validations, isValidating }: { closeCart: () => 
   return (
     <div className="flex flex-col justify-between h-full overflow-hidden">
       {/* Cart Validation Header */}
-      <CartValidationHeader validations={validations} isValidating={isValidating} />
-      
+      <CartValidationHeader
+        validations={validations}
+        isValidating={isValidating}
+      />
+
       <CartContainer className="flex justify-between px-2 text-sm text-muted-foreground">
         <span>Products</span>
         <span>{cart.lines.length} items</span>
@@ -58,13 +69,13 @@ const CartItems = ({ closeCart, validations, isValidating }: { closeCart: () => 
           </AnimatePresence>
         </CartContainer>
       </div>
-      
+
       {/* Validation Display - hidden since we show validation in the button */}
       {/* <CartValidationDisplay 
         validations={validations} 
         isLoading={isValidating}
       /> */}
-      
+
       <CartContainer>
         <div className="py-4 text-sm text-foreground/50 shrink-0">
           <div className="flex justify-between items-center pb-1 mb-3 border-b border-muted-foreground/20">
@@ -81,7 +92,11 @@ const CartItems = ({ closeCart, validations, isValidating }: { closeCart: () => 
             </p>
           </div>
         </div>
-        <CheckoutButton closeCart={closeCart} validations={validations} isValidating={isValidating} />
+        <CheckoutButton
+          closeCart={closeCart}
+          validations={validations}
+          isValidating={isValidating}
+        />
       </CartContainer>
     </div>
   );
@@ -116,12 +131,16 @@ export default function CartModal() {
     const timeoutId = setTimeout(async () => {
       setIsValidating(true);
       try {
-        console.log("🔍 [Cart Modal] Validating cart with", cart.lines.length, "items");
-        
+        console.log(
+          "🔍 [Cart Modal] Validating cart with",
+          cart.lines.length,
+          "items",
+        );
+
         // Call API endpoint instead of running validation client-side
         const response = await fetch("/api/cart/validate");
         const result = await response.json();
-        
+
         console.log("✅ [Cart Modal] Validation result:", result);
         setValidations(result.producerValidations || []);
       } catch (error) {
@@ -150,7 +169,7 @@ export default function CartModal() {
     // Don't open if cart became empty (items removed or cart cleared)
     if (serializedCart.current !== newSerializedCart) {
       serializedCart.current = newSerializedCart;
-      
+
       // Only open if cart has items (don't open on empty cart)
       if (cart.lines.length > 0) {
         setIsOpen(true);
@@ -207,7 +226,13 @@ export default function CartModal() {
       );
     }
 
-    return <CartItems closeCart={closeCart} validations={validations} isValidating={isValidating} />;
+    return (
+      <CartItems
+        closeCart={closeCart}
+        validations={validations}
+        isValidating={isValidating}
+      />
+    );
   };
 
   // Don't render cart button if no cart data
@@ -221,8 +246,8 @@ export default function CartModal() {
         aria-label="Open cart"
         onClick={openCart}
         className={`font-semibold cursor-pointer inline-flex items-center justify-center whitespace-nowrap text-base transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border border-transparent text-white shadow-xs h-7 rounded-sm gap-1.5 py-1 px-2 [&_svg:not([class*='size-'])]:size-4 has-[>svg]:pr-1.5 uppercase ${
-          hasValidationErrors 
-            ? "bg-amber-600 hover:bg-amber-700" 
+          hasValidationErrors
+            ? "bg-amber-600 hover:bg-amber-700"
             : "bg-black hover:bg-black/90"
         }`}
         size={"sm"}
@@ -301,52 +326,61 @@ export default function CartModal() {
   );
 }
 
-function CheckoutButton({ closeCart, validations = [], isValidating = false }: { closeCart: () => void; validations?: ProducerValidation[]; isValidating?: boolean }) {
+function CheckoutButton({
+  closeCart,
+  validations = [],
+  isValidating = false,
+}: {
+  closeCart: () => void;
+  validations?: ProducerValidation[];
+  isValidating?: boolean;
+}) {
   const { pending } = useFormStatus();
   const { cart, isPending } = useCart();
   const router = useRouter();
 
   const checkoutUrl = cart?.checkoutUrl;
-  
+
   // Check if there are validation errors
   const hasValidationErrors = validations.some((v) => !v.isValid);
   const invalidValidations = validations.filter((v) => !v.isValid);
-  
+
   // Determine redirect URL based on number of invalid producers
-  let redirectUrl = '/shop';
-  
+  let redirectUrl = "/shop";
+
   if (invalidValidations.length === 1) {
     // Single producer - redirect to that specific producer/group
     const firstInvalidValidation = invalidValidations[0];
-    redirectUrl = firstInvalidValidation?.groupId 
+    redirectUrl = firstInvalidValidation?.groupId
       ? `/shop/group/${firstInvalidValidation.groupId}`
-      : firstInvalidValidation?.producerHandle 
-      ? `/shop/${firstInvalidValidation.producerHandle}`
-      : '/shop';
+      : firstInvalidValidation?.producerHandle
+        ? `/shop/${firstInvalidValidation.producerHandle}`
+        : "/shop";
   } else if (invalidValidations.length > 1) {
     // Multiple producers - redirect to shop with multiple producer filters
     const producerHandles = invalidValidations
-      .filter(v => v.producerHandle)
-      .map(v => v.producerHandle)
-      .join(',');
+      .filter((v) => v.producerHandle)
+      .map((v) => v.producerHandle)
+      .join(",");
     redirectUrl = `/shop?producers=${producerHandles}`;
   }
 
   const isLoading = pending || isValidating;
-  
+
   // Button should be disabled if:
   // 1. Validation is in progress, OR
   // 2. Normal checkout is disabled AND no validation errors (so user can't click checkout when it's disabled)
   // 3. But if there are validation errors, button should be clickable to redirect to producer page
-  const shouldDisableButton = isValidating || ((!checkoutUrl || isPending) && !hasValidationErrors);
+  const shouldDisableButton =
+    isValidating || ((!checkoutUrl || isPending) && !hasValidationErrors);
 
   return (
     <Button
       type="submit"
       disabled={shouldDisableButton}
       className={`font-semibold cursor-pointer whitespace-nowrap text-base transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border border-transparent shadow-xs h-12 rounded-md px-3 has-[>svg]:pr-3 [&_svg:not([class*='size-'])]:size-6 flex relative gap-3 justify-between items-center w-full ${
-        hasValidationErrors 
-          ? "bg-amber-600 hover:bg-amber-700 text-white" 
+        hasValidationErrors
+          ? "bg-amber-600 hover:bg-amber-700 text-white"
           : "bg-primary text-primary-foreground hover:bg-primary/90"
       }`}
       onClick={() => {
@@ -354,7 +388,7 @@ function CheckoutButton({ closeCart, validations = [], isValidating = false }: {
         if (isValidating) {
           return;
         }
-        
+
         if (hasValidationErrors) {
           // Redirect to producer/group page to add more bottles
           closeCart();
@@ -380,12 +414,11 @@ function CheckoutButton({ closeCart, validations = [], isValidating = false }: {
           ) : (
             <div className="flex justify-between items-center w-full">
               <span>
-                {isValidating 
+                {isValidating
                   ? "Validating..."
-                  : hasValidationErrors 
+                  : hasValidationErrors
                     ? "Add more bottles to proceed to checkout"
-                    : "Proceed to Checkout"
-                }
+                    : "Proceed to Checkout"}
               </span>
               <ArrowRight className="size-6" />
             </div>

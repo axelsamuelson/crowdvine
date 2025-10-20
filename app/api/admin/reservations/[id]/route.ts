@@ -184,7 +184,7 @@ export async function GET(
       .eq("order_id", id)
       .single();
 
-    if (error && error.code === 'PGRST116') {
+    if (error && error.code === "PGRST116") {
       // Not found by order_id, try by id instead
       const { data: reservationById, error: errorById } = await supabase
         .from("order_reservations")

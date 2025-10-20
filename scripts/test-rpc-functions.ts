@@ -18,8 +18,10 @@ async function testRPCFunctions() {
   try {
     // Test validate_invitation_code
     console.log("1️⃣ Testing validate_invitation_code...");
-    const { data: isValid, error: validateError } = await supabase
-      .rpc('validate_invitation_code', { code_input: testCode });
+    const { data: isValid, error: validateError } = await supabase.rpc(
+      "validate_invitation_code",
+      { code_input: testCode },
+    );
 
     if (validateError) {
       console.error("❌ validate_invitation_code error:", validateError);
@@ -29,18 +31,19 @@ async function testRPCFunctions() {
 
     // Test use_invitation_code (this will fail since we're not authenticated)
     console.log("2️⃣ Testing use_invitation_code...");
-    const { data: useResult, error: useError } = await supabase
-      .rpc('use_invitation_code', { 
-        code_input: testCode, 
-        user_email: "test@example.com" 
-      });
+    const { data: useResult, error: useError } = await supabase.rpc(
+      "use_invitation_code",
+      {
+        code_input: testCode,
+        user_email: "test@example.com",
+      },
+    );
 
     if (useError) {
       console.error("❌ use_invitation_code error:", useError);
     } else {
       console.log("✅ use_invitation_code result:", useResult);
     }
-
   } catch (error) {
     console.error("❌ Test failed:", error);
   }

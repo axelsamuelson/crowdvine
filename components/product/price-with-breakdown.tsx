@@ -3,7 +3,10 @@
 import { useState, useEffect } from "react";
 import { MemberPrice } from "@/components/ui/member-price";
 import { PriceBreakdown } from "./price-breakdown";
-import { calculatePriceBreakdown, PriceBreakdownResult } from "@/lib/price-breakdown";
+import {
+  calculatePriceBreakdown,
+  PriceBreakdownResult,
+} from "@/lib/price-breakdown";
 import { useMembership } from "@/lib/context/membership-context";
 import { formatPrice } from "@/lib/shopify/utils";
 import { Product } from "@/lib/shopify/types";
@@ -40,20 +43,26 @@ export function PriceWithBreakdown({ product }: PriceWithBreakdownProps) {
             exchange_rate: product.priceBreakdown!.exchangeRate,
             alcohol_tax_cents: product.priceBreakdown!.alcoholTaxCents,
             margin_percentage: product.priceBreakdown!.marginPercentage,
-            base_price_cents: Number(product.priceRange.minVariantPrice.amount) * 100,
+            base_price_cents:
+              Number(product.priceRange.minVariantPrice.amount) * 100,
           },
-          loading ? 0 : discountPercentage
+          loading ? 0 : discountPercentage,
         );
         setBreakdown(result);
       } catch (error) {
-        console.error('Failed to calculate price breakdown:', error);
+        console.error("Failed to calculate price breakdown:", error);
       } finally {
         setBreakdownLoading(false);
       }
     };
 
     calculateBreakdown();
-  }, [product.priceBreakdown, discountPercentage, loading, product.priceRange.minVariantPrice.amount]);
+  }, [
+    product.priceBreakdown,
+    discountPercentage,
+    loading,
+    product.priceRange.minVariantPrice.amount,
+  ]);
 
   const hasMemberDiscount = !loading && discountPercentage > 0;
 

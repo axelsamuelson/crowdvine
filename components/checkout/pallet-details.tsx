@@ -86,7 +86,9 @@ export function PalletDetails({ pallet }: PalletDetailsProps) {
             {/* Capacity Information */}
             <div className="p-3 bg-gray-50 rounded-lg">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-gray-900">Kapacitet</span>
+                <span className="text-sm font-medium text-gray-900">
+                  Kapacitet
+                </span>
                 <span className="text-sm text-gray-600">
                   {capacityPercentage}% full
                 </span>
@@ -160,10 +162,7 @@ export function PalletDetails({ pallet }: PalletDetailsProps) {
                   <BarChart3 className="w-4 h-4 text-gray-400" />
                   <span className="text-sm text-gray-900">Tillgänglighet</span>
                 </div>
-                <Badge
-                  variant="outline"
-                  className="text-gray-900"
-                >
+                <Badge variant="outline" className="text-gray-900">
                   {isAvailable
                     ? `${pallet.remainingBottles} flaskor kvar`
                     : "Full"}

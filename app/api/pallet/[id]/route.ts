@@ -3,7 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const sb = getSupabaseAdmin();
@@ -15,7 +15,9 @@ export async function GET(
     // Get pallet information
     const { data: pallet, error: palletError } = await sb
       .from("pallets")
-      .select("id, name, bottle_capacity, status, pickup_zone_id, delivery_zone_id")
+      .select(
+        "id, name, bottle_capacity, status, pickup_zone_id, delivery_zone_id",
+      )
       .eq("id", palletId)
       .single();
 
@@ -24,12 +26,15 @@ export async function GET(
       return NextResponse.json({ error: "Pallet not found" }, { status: 404 });
     }
 
-    console.log(`✅ Found pallet: ${pallet.name}, capacity: ${pallet.bottle_capacity}, pickup: ${pallet.pickup_zone_id}, delivery: ${pallet.delivery_zone_id}`);
+    console.log(
+      `✅ Found pallet: ${pallet.name}, capacity: ${pallet.bottle_capacity}, pickup: ${pallet.pickup_zone_id}, delivery: ${pallet.delivery_zone_id}`,
+    );
 
     // Get all reservations for this pallet
     const { data: reservations, error: reservationsError } = await sb
       .from("order_reservations")
-      .select(`
+      .select(
+        `
         id,
         status,
         created_at,
@@ -43,16 +48,22 @@ export async function GET(
             label_image_path
           )
         )
-      `)
+      `,
+      )
       .eq("pickup_zone_id", pallet.pickup_zone_id)
       .eq("delivery_zone_id", pallet.delivery_zone_id);
 
     if (reservationsError) {
       console.error("❌ Error fetching reservations:", reservationsError);
-      return NextResponse.json({ error: "Failed to fetch reservations" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to fetch reservations" },
+        { status: 500 },
+      );
     }
 
-    console.log(`📊 Found ${reservations?.length || 0} reservations for this pallet`);
+    console.log(
+      `📊 Found ${reservations?.length || 0} reservations for this pallet`,
+    );
 
     // Calculate total reserved bottles across all reservations
     let totalReservedBottles = 0;
@@ -72,7 +83,9 @@ export async function GET(
       });
     });
 
-    console.log(`🍷 Total reserved bottles: ${totalReservedBottles}, pallet capacity: ${pallet.bottle_capacity}`);
+    console.log(
+      `🍷 Total reserved bottles: ${totalReservedBottles}, pallet capacity: ${pallet.bottle_capacity}`,
+    );
 
     // Group wines by name + vintage to get totals
     const wineTotals = allWines.reduce((acc: any, wine) => {
@@ -92,11 +105,14 @@ export async function GET(
     }, {});
 
     // Calculate percentage filled
-    const percentageFilled = pallet.bottle_capacity > 0 
-      ? Math.round((totalReservedBottles / pallet.bottle_capacity) * 100)
-      : 0;
+    const percentageFilled =
+      pallet.bottle_capacity > 0
+        ? Math.round((totalReservedBottles / pallet.bottle_capacity) * 100)
+        : 0;
 
-    console.log(`📈 Calculated percentage: ${percentageFilled}% (${totalReservedBottles}/${pallet.bottle_capacity})`);
+    console.log(
+      `📈 Calculated percentage: ${percentageFilled}% (${totalReservedBottles}/${pallet.bottle_capacity})`,
+    );
 
     const result = {
       id: pallet.id,
@@ -113,6 +129,9 @@ export async function GET(
     return NextResponse.json(result);
   } catch (error) {
     console.error("Unexpected error in pallet API:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

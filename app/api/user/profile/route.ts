@@ -4,26 +4,23 @@ import { getCurrentUser } from "@/lib/auth";
 
 /**
  * GET /api/user/profile
- * 
+ *
  * Returns current user's profile information
  */
 export async function GET() {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const sb = getSupabaseAdmin();
 
     // Get profile data
     const { data: profile, error } = await sb
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
       .single();
 
     if (error) throw error;
@@ -38,24 +35,21 @@ export async function GET() {
     console.error("Error fetching profile:", error);
     return NextResponse.json(
       { error: "Failed to fetch profile" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 /**
  * PUT /api/user/profile
- * 
+ *
  * Update user profile
  */
 export async function PUT(request: Request) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const sb = getSupabaseAdmin();
@@ -65,7 +59,7 @@ export async function PUT(request: Request) {
 
     // Update profile
     const { data, error } = await sb
-      .from('profiles')
+      .from("profiles")
       .update({
         full_name,
         phone,
@@ -75,7 +69,7 @@ export async function PUT(request: Request) {
         country,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', user.id)
+      .eq("id", user.id)
       .select()
       .single();
 
@@ -86,14 +80,14 @@ export async function PUT(request: Request) {
     console.error("Error updating profile:", error);
     return NextResponse.json(
       { error: "Failed to update profile" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 /**
  * PATCH /api/user/profile
- * 
+ *
  * Update user profile (alias for PUT)
  */
 export async function PATCH(request: Request) {

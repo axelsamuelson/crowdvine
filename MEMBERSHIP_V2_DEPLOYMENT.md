@@ -16,12 +16,14 @@ This guide will get you from **current system** to **v2 live** in production.
 ```
 
 **Creates:**
+
 - `user_progression_buffs` table
 - `progression_rewards` table
 - Helper functions for buff management
 - Baseline rewards (10 rewards across 3 segments)
 
 **Verify:**
+
 ```sql
 SELECT COUNT(*) FROM progression_rewards;
 -- Should return: 10
@@ -39,12 +41,14 @@ SELECT COUNT(*) FROM progression_rewards;
 ```
 
 **Updates:**
+
 - Adds new IP event types to enum
 - Updates `check_and_upgrade_level()` to clear buffs on level-up
 
 **Verify:**
+
 ```sql
-SELECT enumlabel FROM pg_enum 
+SELECT enumlabel FROM pg_enum
 WHERE enumtypid = (SELECT oid FROM pg_type WHERE typname = 'ip_event_type')
 ORDER BY enumlabel;
 -- Should include: invite_second_order, own_order_large, etc.
@@ -61,6 +65,7 @@ ORDER BY enumlabel;
 All code changes have been pushed to `original-version-for-vercel` branch.
 
 **Commits:**
+
 1. `e1f0a07c` - Phase 1 & 2: Database + IP events
 2. `9afbf608` - Phase 3: UI components
 3. `1d8994a9` - Phase 5: Component enhancements
@@ -164,6 +169,7 @@ https://vercel.com/[your-project]/deployments
 ### Supabase Logs
 
 Check for:
+
 ```
 ✅ [PROGRESSION] Applied X buff(s) (Y%) to order
 ✅ [PROGRESSION] Awarded IP for own order
@@ -178,7 +184,7 @@ Monitor `/api/checkout/confirm` for progression logging.
 
 ```sql
 -- Active buffs across all users
-SELECT 
+SELECT
   u.email,
   b.buff_percentage,
   b.buff_description,
@@ -189,7 +195,7 @@ WHERE b.used_at IS NULL
 ORDER BY b.earned_at DESC;
 
 -- Recent IP events (v2 types)
-SELECT 
+SELECT
   u.email,
   e.event_type,
   e.points_earned,
@@ -219,10 +225,10 @@ Edit `lib/membership/points-engine.ts`:
 
 ```typescript
 export const IP_CONFIG = {
-  INVITE_SIGNUP: 1,        // Change to 2 for more generous
+  INVITE_SIGNUP: 1, // Change to 2 for more generous
   INVITE_RESERVATION: 2,
   // ... etc
-}
+};
 ```
 
 ### Modify Progression Rewards
@@ -233,8 +239,8 @@ Update `progression_rewards` table:
 -- Change buff percentage at 2 IP
 UPDATE progression_rewards
 SET reward_value = '1.0'  -- Change from 0.5% to 1%
-WHERE level_segment = 'basic-bronze' 
-  AND ip_threshold = 2 
+WHERE level_segment = 'basic-bronze'
+  AND ip_threshold = 2
   AND reward_type = 'buff_percentage';
 
 -- Add new custom reward
@@ -262,8 +268,8 @@ Edit `lib/membership/points-engine.ts`:
 ```typescript
 export const IP_CONFIG = {
   // ...
-  RATE_LIMIT_HOURS: 12,  // Change from 24h to 12h
-}
+  RATE_LIMIT_HOURS: 12, // Change from 24h to 12h
+};
 ```
 
 ---
@@ -306,14 +312,14 @@ SELECT award_impact_points(
 ### Check User's Progression Status
 
 ```sql
-SELECT 
+SELECT
   m.level,
   m.impact_points,
-  (SELECT SUM(buff_percentage) 
-   FROM user_progression_buffs 
+  (SELECT SUM(buff_percentage)
+   FROM user_progression_buffs
    WHERE user_id = m.user_id AND used_at IS NULL) as active_buff_total,
-  (SELECT COUNT(*) 
-   FROM user_progression_buffs 
+  (SELECT COUNT(*)
+   FROM user_progression_buffs
    WHERE user_id = m.user_id AND used_at IS NULL) as active_buff_count
 FROM user_memberships m
 WHERE m.user_id = 'user-uuid';
@@ -326,11 +332,13 @@ WHERE m.user_id = 'user-uuid';
 ### Issue: Buffs not showing in profile
 
 **Check:**
+
 1. Migration 042 completed?
 2. `/api/user/progression-buffs` endpoint working?
 3. User has earned IP in current segment?
 
 **Fix:**
+
 ```bash
 # Check API
 curl https://pactwines.com/api/user/progression-buffs
@@ -344,6 +352,7 @@ SELECT * FROM user_progression_buffs WHERE user_id = 'user-id';
 ### Issue: IP not awarded for order
 
 **Check:**
+
 1. Order has ≥6 bottles?
 2. Progression logic in `/api/checkout/confirm`?
 3. Check Vercel logs for errors
@@ -356,10 +365,12 @@ Look for `[PROGRESSION]` logs in Vercel to see where it failed.
 ### Issue: Buffs not clearing on level-up
 
 **Check:**
+
 1. Migration 043 completed?
 2. Function updated correctly?
 
 **Fix:**
+
 ```sql
 -- Manually clear buffs
 SELECT clear_progression_buffs_on_level_up('user-id');
@@ -372,6 +383,7 @@ SELECT clear_progression_buffs_on_level_up('user-id');
 ### Database Indexes
 
 All critical indexes created in migrations:
+
 - `idx_user_progression_buffs_user_id`
 - `idx_user_progression_buffs_active` (partial index for unused buffs)
 - `idx_progression_rewards_segment`
@@ -380,12 +392,14 @@ All critical indexes created in migrations:
 ### Caching
 
 Consider adding Redis cache for:
+
 - Active progression rewards (rarely change)
 - IP_CONFIG values (static)
 
 ### Rate Limiting
 
 Current implementation queries database for rate limit check. For high volume:
+
 - Move to Redis with TTL
 - Or use Vercel Edge Config
 
@@ -396,13 +410,15 @@ Current implementation queries database for rate limit check. For high volume:
 ### Key Metrics to Track
 
 1. **Buff Usage Rate**
+
    ```sql
-   SELECT 
+   SELECT
      COUNT(*) FILTER (WHERE used_at IS NOT NULL) * 100.0 / COUNT(*) as usage_rate
    FROM user_progression_buffs;
    ```
 
 2. **Average Time to Use Buff**
+
    ```sql
    SELECT AVG(EXTRACT(EPOCH FROM (used_at - earned_at)) / 3600) as avg_hours
    FROM user_progression_buffs
@@ -410,8 +426,9 @@ Current implementation queries database for rate limit check. For high volume:
    ```
 
 3. **Most Popular Buffs**
+
    ```sql
-   SELECT 
+   SELECT
      level_segment,
      COUNT(*) as times_earned,
      AVG(buff_percentage) as avg_percentage
@@ -422,7 +439,7 @@ Current implementation queries database for rate limit check. For high volume:
 
 4. **Level-Up Rate**
    ```sql
-   SELECT 
+   SELECT
      description,
      COUNT(*) as upgrades,
      DATE_TRUNC('day', created_at) as date
@@ -447,19 +464,21 @@ After deployment, you should see:
 ✅ Large orders awarding +2 IP instead of +1  
 ✅ Pallet milestones at 6 and 12 pallets working  
 ✅ Admin can view progression rewards configuration  
-✅ Gold celebration triggering at 35 IP  
+✅ Gold celebration triggering at 35 IP
 
 ---
 
 ## Support & Questions
 
 **Documentation:**
+
 - `MEMBERSHIP_LADDER_V2_GUIDE.md` - Full technical reference
 - `MIGRATION_042_GUIDE.md` - Database setup
 - `MIGRATION_043_GUIDE.md` - Integration setup
 - `REWARDS_SYSTEM_GUIDE.md` - Original v1 system
 
 **Code Locations:**
+
 - IP Logic: `lib/membership/points-engine.ts`
 - Progression Logic: `lib/membership/progression-rewards.ts`
 - Order Integration: `app/api/checkout/confirm/route.ts`
@@ -471,4 +490,3 @@ After deployment, you should see:
 **Deployment Status:** ✅ Ready for Production  
 **Last Updated:** 2025-01-11  
 **Version:** 2.0
-

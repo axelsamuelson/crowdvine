@@ -14,7 +14,11 @@ const MembershipContext = createContext<MembershipContextType>({
   loading: true,
 });
 
-export function MembershipProvider({ children }: { children: React.ReactNode }) {
+export function MembershipProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [membershipData, setMembershipData] = useState<MembershipContextType>({
     level: null,
     discountPercentage: 0,
@@ -27,12 +31,14 @@ export function MembershipProvider({ children }: { children: React.ReactNode }) 
 
   const fetchMembership = async () => {
     try {
-      const response = await fetch('/api/user/membership');
+      const response = await fetch("/api/user/membership");
       if (response.ok) {
         const data = await response.json();
-        
+
         // Get discount perk
-        const discountPerk = data.perks?.find((p: any) => p.perk_type === 'discount');
+        const discountPerk = data.perks?.find(
+          (p: any) => p.perk_type === "discount",
+        );
         const discountMatch = discountPerk?.perk_value?.match(/(\d+)/);
         const discount = discountMatch ? parseInt(discountMatch[1]) : 0;
 
@@ -50,10 +56,14 @@ export function MembershipProvider({ children }: { children: React.ReactNode }) 
       } else {
         // Not logged in or no membership
         console.log("👤 User not logged in or no membership");
-        setMembershipData({ level: null, discountPercentage: 0, loading: false });
+        setMembershipData({
+          level: null,
+          discountPercentage: 0,
+          loading: false,
+        });
       }
     } catch (error) {
-      console.error('Error fetching membership:', error);
+      console.error("Error fetching membership:", error);
       setMembershipData({ level: null, discountPercentage: 0, loading: false });
     }
   };
@@ -66,4 +76,3 @@ export function MembershipProvider({ children }: { children: React.ReactNode }) 
 }
 
 export const useMembership = () => useContext(MembershipContext);
-

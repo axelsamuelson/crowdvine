@@ -18,7 +18,7 @@ export async function POST() {
       console.error("Error fetching pallets:", palletsError);
       return NextResponse.json(
         { error: "Failed to fetch pallets" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -54,7 +54,10 @@ export async function POST() {
         .eq("delivery_zone_id", pallet.delivery_zone_id);
 
       if (reservationsError) {
-        console.error(`Error fetching reservations for pallet ${pallet.name}:`, reservationsError);
+        console.error(
+          `Error fetching reservations for pallet ${pallet.name}:`,
+          reservationsError,
+        );
         updateResults.push({
           pallet: pallet.name,
           status: "error",
@@ -64,7 +67,9 @@ export async function POST() {
       }
 
       if (!reservations || reservations.length === 0) {
-        console.log(`✅ Pallet ${pallet.name}: No reservations match this pallet`);
+        console.log(
+          `✅ Pallet ${pallet.name}: No reservations match this pallet`,
+        );
         updateResults.push({
           pallet: pallet.name,
           status: "success",
@@ -74,20 +79,27 @@ export async function POST() {
         continue;
       }
 
-      console.log(`🔄 Pallet ${pallet.name}: Found ${reservations.length} matching reservations`);
+      console.log(
+        `🔄 Pallet ${pallet.name}: Found ${reservations.length} matching reservations`,
+      );
 
       // Now find bookings for these reservations that don't have pallet_id set
       // We need to join through order_reservation_items to link bookings to reservations
       // But since bookings.item_id refers to order_reservation_items.id, we can do this:
-      
+
       // First, get all order_reservation_items for these reservations
       const { data: items, error: itemsError } = await supabase
         .from("order_reservation_items")
         .select("id, reservation_id")
-        .in("reservation_id", reservations.map(r => r.id));
+        .in(
+          "reservation_id",
+          reservations.map((r) => r.id),
+        );
 
       if (itemsError || !items || items.length === 0) {
-        console.log(`⚠️  Pallet ${pallet.name}: No items found for these reservations`);
+        console.log(
+          `⚠️  Pallet ${pallet.name}: No items found for these reservations`,
+        );
         updateResults.push({
           pallet: pallet.name,
           status: "success",
@@ -101,8 +113,8 @@ export async function POST() {
       console.log(`🔄 Pallet ${pallet.name}: Found ${items.length} items`);
 
       // Now update bookings that match these item IDs
-      const itemIds = items.map(i => i.id);
-      
+      const itemIds = items.map((i) => i.id);
+
       const { error: updateError, count } = await supabase
         .from("bookings")
         .update({ pallet_id: pallet.id })
@@ -110,7 +122,10 @@ export async function POST() {
         .or(`pallet_id.is.null,pallet_id.neq.${pallet.id}`);
 
       if (updateError) {
-        console.error(`Error updating bookings for pallet ${pallet.name}:`, updateError);
+        console.error(
+          `Error updating bookings for pallet ${pallet.name}:`,
+          updateError,
+        );
         updateResults.push({
           pallet: pallet.name,
           status: "error",
@@ -134,13 +149,11 @@ export async function POST() {
       totalUpdated,
       results: updateResults,
     });
-
   } catch (error) {
     console.error("Fix booking pallets error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

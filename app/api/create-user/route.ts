@@ -7,11 +7,11 @@ import { clearCartId } from "@/src/lib/cookies";
 // Helper function to get invite quota based on membership level
 function getQuotaForLevel(level: string): number {
   const quotaMap: Record<string, number> = {
-    'basic': 2,
-    'brons': 5,
-    'silver': 12,
-    'guld': 50,
-    'admin': 999,
+    basic: 2,
+    brons: 5,
+    silver: 12,
+    guld: 50,
+    admin: 999,
   };
   return quotaMap[level] || 2;
 }
@@ -285,10 +285,10 @@ export async function POST(request: NextRequest) {
 
       // Step 3.5: Create membership for new user
       console.log("3e. Creating membership for new user...");
-      
+
       // Get initial_level from access token if it exists
-      let initialLevel = 'basic'; // Default to basic
-      
+      let initialLevel = "basic"; // Default to basic
+
       // Try to get initial_level from access_tokens table
       const { data: accessToken } = await supabase
         .from("access_tokens")
@@ -296,21 +296,24 @@ export async function POST(request: NextRequest) {
         .eq("email", normalizedEmail)
         .eq("used", false)
         .maybeSingle();
-      
+
       if (accessToken && accessToken.initial_level) {
         initialLevel = accessToken.initial_level;
-        console.log("3e1. Found initial_level from access token:", initialLevel);
+        console.log(
+          "3e1. Found initial_level from access token:",
+          initialLevel,
+        );
       } else {
         console.log("3e1. No access token found, using default level: basic");
       }
-      
+
       // Check if membership already exists
       const { data: existingMembership } = await supabase
         .from("user_memberships")
         .select("id")
         .eq("user_id", authUserId)
         .maybeSingle();
-      
+
       if (!existingMembership) {
         console.log("3e2. Creating new membership with level:", initialLevel);
         const { error: membershipError } = await supabase
@@ -359,11 +362,12 @@ export async function POST(request: NextRequest) {
       try {
         // Create a server client for signing in
         const serverSupabase = createSupabaseServerClient();
-        
-        const { data: signInData, error: signInError } = await serverSupabase.auth.signInWithPassword({
-          email: normalizedEmail,
-          password,
-        });
+
+        const { data: signInData, error: signInError } =
+          await serverSupabase.auth.signInWithPassword({
+            email: normalizedEmail,
+            password,
+          });
 
         if (signInError) {
           console.error("Auto sign-in failed:", signInError);
@@ -380,21 +384,27 @@ export async function POST(request: NextRequest) {
 
         // CRITICAL SECURITY: Verify that the signed-in user matches the created user
         if (signInData.user?.id !== authUserId) {
-          console.error("SECURITY ALERT: Signed-in user ID does not match created user ID!");
+          console.error(
+            "SECURITY ALERT: Signed-in user ID does not match created user ID!",
+          );
           console.error("Created user ID:", authUserId);
           console.error("Signed-in user ID:", signInData.user?.id);
-          
+
           // Sign out immediately for security
           await serverSupabase.auth.signOut({ scope: "global" });
-          
-          return NextResponse.json({
-            success: false,
-            error: "Security validation failed. Please try signing in manually.",
-          }, { status: 500 });
+
+          return NextResponse.json(
+            {
+              success: false,
+              error:
+                "Security validation failed. Please try signing in manually.",
+            },
+            { status: 500 },
+          );
         }
 
         console.log("6a. User automatically signed in successfully");
-        
+
         // Update response to indicate auto sign-in
         const updatedResponse = NextResponse.json({
           success: true,
@@ -409,7 +419,7 @@ export async function POST(request: NextRequest) {
         // Copy cookies from the server client to the response
         const cookies = await serverSupabase.auth.getSession();
         // The cookies are automatically set by the server client
-        
+
         return updatedResponse;
       } catch (sessionError) {
         console.error("Error creating auth session:", sessionError);
@@ -434,7 +444,8 @@ export async function POST(request: NextRequest) {
           email: normalizedEmail,
         },
         autoSignedIn: false,
-        message: "Account access granted. Please sign in with your existing password.",
+        message:
+          "Account access granted. Please sign in with your existing password.",
       });
     }
 

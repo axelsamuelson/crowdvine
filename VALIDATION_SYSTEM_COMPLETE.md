@@ -9,15 +9,18 @@ Successfully implemented a comprehensive 6-bottle per producer checkout validati
 ### 1. Database Schema (Migration 047)
 
 **Tables Created:**
+
 - `producer_groups` - Groups of linked producers (e.g., "Languedoc Partners")
 - `producer_group_members` - Many-to-many relationship between groups and producers
 
 **Features:**
+
 - RLS policies (public read, admin-only write)
 - Helper function: `get_grouped_producers(producer_id)`
 - Cascade delete (removing group removes all members)
 
 **To Run:**
+
 ```sql
 -- In Supabase SQL Editor
 -- Copy and run: migrations/047_producer_groups.sql
@@ -30,6 +33,7 @@ Successfully implemented a comprehensive 6-bottle per producer checkout validati
 **File:** `lib/checkout-validation.ts`
 
 **How It Works:**
+
 1. Looks up wines in database to get producer_id
 2. Fetches producer groups from database
 3. Groups cart items by producer or group
@@ -37,6 +41,7 @@ Successfully implemented a comprehensive 6-bottle per producer checkout validati
 5. Returns detailed validation results
 
 **Smart Grouping:**
+
 - Single producer: All wines from that producer count together
 - Producer group: All wines from all producers in group count together
 - Example: 3 bottles Producer A + 3 bottles Producer B (both in group) = 6 total ✅
@@ -48,6 +53,7 @@ Successfully implemented a comprehensive 6-bottle per producer checkout validati
 **File:** `components/cart/cart-validation-display.tsx`
 
 **Design:**
+
 ```
 ⚠️ 1 producer needs more bottles [˅]
    ↓ expand
@@ -58,6 +64,7 @@ Successfully implemented a comprehensive 6-bottle per producer checkout validati
 ```
 
 **Features:**
+
 - Collapsible (minimalist)
 - Compact summary bar
 - Expandable details
@@ -71,6 +78,7 @@ Successfully implemented a comprehensive 6-bottle per producer checkout validati
 **File:** `app/checkout/page.tsx`
 
 **Invalid State:**
+
 ```
 ┌──────────────────────────────────────────┐
 │ ⚠️ Order Blocked                  (RED) │
@@ -86,6 +94,7 @@ Successfully implemented a comprehensive 6-bottle per producer checkout validati
 ```
 
 **Valid State:**
+
 ```
 ┌──────────────────────────┐
 │   [Place Reservation]    │
@@ -93,6 +102,7 @@ Successfully implemented a comprehensive 6-bottle per producer checkout validati
 ```
 
 **Features:**
+
 - Clear "Order Blocked" header in red
 - Shows exact problem per producer
 - Action button/link to browse wines
@@ -106,6 +116,7 @@ Successfully implemented a comprehensive 6-bottle per producer checkout validati
 **File:** `app/api/checkout/confirm/route.ts`
 
 **Security:**
+
 - Final validation before creating order
 - Returns 400 error if rule violated
 - Prevents invalid orders even if client validation bypassed
@@ -113,6 +124,7 @@ Successfully implemented a comprehensive 6-bottle per producer checkout validati
 **File:** `app/api/cart/validate/route.ts`
 
 **API Endpoint:**
+
 - GET /api/cart/validate
 - Returns validation results
 - Used by cart and checkout
@@ -124,6 +136,7 @@ Successfully implemented a comprehensive 6-bottle per producer checkout validati
 **File:** `app/admin/producer-groups/page.tsx`
 
 **Features:**
+
 - Create new producer groups
 - Add/remove producers from groups
 - Delete groups
@@ -131,10 +144,12 @@ Successfully implemented a comprehensive 6-bottle per producer checkout validati
 - Info card explaining the 6-bottle rule
 
 **Navigation:**
+
 - Button on `/admin/producers` page
 - "Producer Groups" outline button
 
 **API Routes:**
+
 - GET/POST `/api/admin/producer-groups`
 - DELETE `/api/admin/producer-groups/[id]`
 - POST `/api/admin/producer-groups/members`
@@ -147,12 +162,14 @@ Successfully implemented a comprehensive 6-bottle per producer checkout validati
 **File:** `app/shop/group/[groupId]/page.tsx`
 
 **Shows:**
+
 - All wines from ALL producers in the group
 - Group name and description
 - List of producers in group
 - Standard product grid layout
 
 **Example URL:**
+
 - `/shop/group/abc-123-uuid`
 
 **API:** `GET /api/shop/group/[groupId]/products`
@@ -164,20 +181,25 @@ Successfully implemented a comprehensive 6-bottle per producer checkout validati
 ### Scenario: Customer adds 4 bottles
 
 **1. In Cart:**
+
 ```
 ⚠️ 1 producer needs more bottles [˅]
 ```
+
 - Compact, not intrusive
 - Click to expand for details
 
 **2. Expand Cart Validation:**
+
 ```
 ⚠️ Mas des Mesures  4
    + Add 2 more
 ```
+
 - Click whole box → Go to `/shop/mas-des-mesures`
 
 **3. At Checkout:**
+
 ```
 ⚠️ Order Blocked (RED - very clear)
 Add bottles to meet 6-bottle requirement
@@ -188,14 +210,17 @@ Add bottles to meet 6-bottle requirement
 │ Browse wines from... →       │
 └──────────────────────────────┘
 ```
+
 - Cannot submit (button replaced with warning)
 - Click card → Go to producer page
 
 **4. Add 2 More Bottles:**
+
 - Use cart sidebar (always works)
 - Or browse on producer page
 
 **5. Return to Checkout:**
+
 - Validation re-runs automatically
 - Warning disappears
 - Button appears: `[Place Reservation]`
@@ -206,11 +231,13 @@ Add bottles to meet 6-bottle requirement
 ## With Producer Groups
 
 **Admin Setup:**
+
 1. Go to `/admin/producer-groups`
 2. Create "Languedoc Partners" group
 3. Add Producer A and Producer B
 
 **Customer Experience:**
+
 ```
 Cart:
 - 3 bottles Producer A
@@ -254,9 +281,11 @@ Update UI (cart sidebar, checkout)
 ### API Endpoints
 
 **Validation:**
+
 - `GET /api/cart/validate` - Validate current cart
 
 **Producer Groups (Admin):**
+
 - `GET /api/admin/producer-groups` - List all groups
 - `POST /api/admin/producer-groups` - Create group
 - `DELETE /api/admin/producer-groups/[id]` - Delete group
@@ -264,6 +293,7 @@ Update UI (cart sidebar, checkout)
 - `DELETE /api/admin/producer-groups/members/[id]` - Remove producer
 
 **Shop:**
+
 - `GET /api/shop/group/[groupId]/products` - Get all wines from group
 - `GET /api/admin/producers` - List producers (for admin dropdown)
 
@@ -272,17 +302,20 @@ Update UI (cart sidebar, checkout)
 ## Design Principles
 
 ### Cart Sidebar
+
 - ✅ Minimalist (collapsible summary)
 - ✅ Premium (subtle colors, clean)
 - ✅ Actionable (clickable cards)
 
 ### Checkout
+
 - ✅ Clear blocked state (red "Order Blocked")
 - ✅ Informative (shows exact problem)
 - ✅ Actionable (direct links to fix)
 - ✅ Premium (clean layout, good spacing)
 
 ### Admin
+
 - ✅ Simple CRUD interface
 - ✅ Visual group management
 - ✅ Clear explanations
@@ -292,6 +325,7 @@ Update UI (cart sidebar, checkout)
 ## Files Created/Modified
 
 ### New Files:
+
 - `migrations/047_producer_groups.sql`
 - `lib/checkout-validation.ts`
 - `components/cart/cart-validation-display.tsx`
@@ -306,6 +340,7 @@ Update UI (cart sidebar, checkout)
 - `MIGRATION_047_GUIDE.md`
 
 ### Modified Files:
+
 - `components/cart/modal.tsx` - Added validation display
 - `app/checkout/page.tsx` - Added validation logic and UI
 - `app/api/checkout/confirm/route.ts` - Added server-side validation
@@ -376,4 +411,3 @@ Update UI (cart sidebar, checkout)
 ## Status: COMPLETE ✅
 
 The 6-bottle validation system is fully implemented, tested, and ready for production use.
-

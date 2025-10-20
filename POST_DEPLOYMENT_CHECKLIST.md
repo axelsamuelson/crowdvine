@@ -20,8 +20,8 @@ Run this in Supabase SQL Editor (replace YOUR_EMAIL):
 SELECT id, email FROM auth.users WHERE email = 'YOUR_EMAIL@example.com';
 
 -- Set to admin level
-UPDATE user_memberships 
-SET 
+UPDATE user_memberships
+SET
   level = 'admin',
   invite_quota_monthly = 999999,
   level_assigned_at = NOW(),
@@ -29,7 +29,7 @@ SET
 WHERE user_id = (SELECT id FROM auth.users WHERE email = 'YOUR_EMAIL@example.com');
 
 -- Verify
-SELECT 
+SELECT
   u.email,
   m.level,
   m.impact_points,
@@ -44,6 +44,7 @@ WHERE u.email = 'YOUR_EMAIL@example.com';
 Visit: `https://pactwines.com/profile`
 
 **Check:**
+
 - [ ] Level badge displays (should show your level)
 - [ ] Impact Points shown
 - [ ] If not admin: Progress bar to next level
@@ -54,6 +55,7 @@ Visit: `https://pactwines.com/profile`
 - [ ] My Reservations stats display
 
 **If errors:**
+
 - Check browser console
 - Check network tab for failed API calls
 - Let me know the error message
@@ -69,6 +71,7 @@ On profile page:
 - [ ] Try copying code
 
 **If errors:**
+
 - Check if quota is 0 (button should be disabled)
 - Check browser console
 - Verify invitation was created in database
@@ -92,7 +95,7 @@ ORDER BY CASE level
 END;
 
 -- Check all users have membership
-SELECT 
+SELECT
   COUNT(DISTINCT u.id) as total_users,
   COUNT(DISTINCT m.user_id) as users_with_membership,
   COUNT(DISTINCT u.id) - COUNT(DISTINCT m.user_id) as missing
@@ -101,6 +104,7 @@ LEFT JOIN user_memberships m ON m.user_id = u.id;
 ```
 
 **Expected:**
+
 - All users should have membership
 - Missing should be 0
 - Most users at Basic level (0-4 IP)
@@ -134,6 +138,7 @@ curl -X POST https://pactwines.com/api/admin/invitations/generate \
 ```
 
 **Expected:**
+
 - Returns invitation with `initialLevel: "silver"`
 - When redeemed, user starts at Silver (not Basic)
 
@@ -153,6 +158,7 @@ curl -X POST https://pactwines.com/api/admin/invitations/generate \
 **Cause:** API endpoints failing
 
 **Fix:**
+
 ```sql
 -- Check if user has membership
 SELECT * FROM user_memberships WHERE user_id = 'YOUR_USER_ID';
@@ -167,10 +173,11 @@ VALUES ('YOUR_USER_ID', 'basic', 0, 2);
 **Cause:** Quota = 0
 
 **Fix:**
+
 ```sql
 -- Reset quota for testing
-UPDATE user_memberships 
-SET 
+UPDATE user_memberships
+SET
   invites_used_this_month = 0,
   last_quota_reset = NOW()
 WHERE user_id = 'YOUR_USER_ID';
@@ -181,6 +188,7 @@ WHERE user_id = 'YOUR_USER_ID';
 **Cause:** Frontend build issue or missing data
 
 **Fix:**
+
 1. Check browser console for errors
 2. Hard refresh (Cmd+Shift+R)
 3. Clear Vercel cache if needed
@@ -190,6 +198,7 @@ WHERE user_id = 'YOUR_USER_ID';
 **Cause:** All users at 'requester' level
 
 **Fix:**
+
 ```sql
 -- Upgrade all users to basic minimum
 UPDATE user_memberships SET level = 'basic' WHERE level = 'requester';
@@ -200,8 +209,9 @@ UPDATE user_memberships SET level = 'basic' WHERE level = 'requester';
 ## 📊 Verification Queries
 
 ### Show All Users with Membership
+
 ```sql
-SELECT 
+SELECT
   u.email,
   m.level,
   m.impact_points,
@@ -214,8 +224,9 @@ ORDER BY m.impact_points DESC;
 ```
 
 ### Check IP Events
+
 ```sql
-SELECT 
+SELECT
   u.email,
   e.event_type,
   e.points_earned,
@@ -228,6 +239,7 @@ LIMIT 20;
 ```
 
 ### Check Perks Configuration
+
 ```sql
 SELECT level, COUNT(*) as perk_count
 FROM membership_perks
@@ -247,6 +259,7 @@ END;
 ## 🎉 Success Criteria
 
 System is working if:
+
 - ✅ All users have membership records
 - ✅ Profile page loads with new design
 - ✅ Level badge displays correctly
@@ -270,4 +283,3 @@ System is working if:
 **Current Status:** ✅ Migrations complete, Frontend deployed, System ready for testing!
 
 **Next:** Set admin user and test profile page in browser.
-

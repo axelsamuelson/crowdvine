@@ -9,7 +9,10 @@ interface WhySixBottlesModalProps {
   onClose: () => void;
 }
 
-export function WhySixBottlesModal({ isOpen, onClose }: WhySixBottlesModalProps) {
+export function WhySixBottlesModal({
+  isOpen,
+  onClose,
+}: WhySixBottlesModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
 
   if (!isOpen) return null;
@@ -91,8 +94,8 @@ export function WhySixBottlesModal({ isOpen, onClose }: WhySixBottlesModalProps)
                     index === currentStep
                       ? "bg-amber-500"
                       : index < currentStep
-                      ? "bg-green-500"
-                      : "bg-muted-foreground/30"
+                        ? "bg-green-500"
+                        : "bg-muted-foreground/30"
                   }`}
                 />
               ))}
@@ -122,14 +125,16 @@ export function WhySixBottlesModal({ isOpen, onClose }: WhySixBottlesModalProps)
             >
               Previous
             </button>
-            
+
             <div className="text-xs text-muted-foreground">
               {currentStep + 1} of {steps.length}
             </div>
-            
+
             {currentStep < steps.length - 1 ? (
               <button
-                onClick={() => setCurrentStep(Math.min(steps.length - 1, currentStep + 1))}
+                onClick={() =>
+                  setCurrentStep(Math.min(steps.length - 1, currentStep + 1))
+                }
                 className="px-4 py-2 text-sm bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors"
               >
                 Next

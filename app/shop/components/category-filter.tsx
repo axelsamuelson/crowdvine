@@ -17,12 +17,17 @@ export function CategoryFilter({
   className,
 }: CategoryFilterProps) {
   const params = useParams<{ collection: string }>();
-  const [producersParam] = useQueryState("producers", parseAsString.withDefault(""));
+  const [producersParam] = useQueryState(
+    "producers",
+    parseAsString.withDefault(""),
+  );
   const hasSelectedCategory = !!params.collection;
   const categoryCount = useCategoryFilterCount();
-  
+
   // Parse selected producers from URL parameter
-  const selectedProducers = producersParam ? producersParam.split(',').filter(Boolean) : [];
+  const selectedProducers = producersParam
+    ? producersParam.split(",").filter(Boolean)
+    : [];
 
   return (
     <div className={cn("px-3 py-4 rounded-lg bg-muted", className)}>
@@ -36,7 +41,9 @@ export function CategoryFilter({
         {collections
           .filter((collection) => collection.handle !== "wine-boxes")
           .map((collection, index) => {
-            const isSelected = params.collection === collection.handle || selectedProducers.includes(collection.handle);
+            const isSelected =
+              params.collection === collection.handle ||
+              selectedProducers.includes(collection.handle);
             return (
               <li key={`${collection.handle}-${index}`}>
                 <Link

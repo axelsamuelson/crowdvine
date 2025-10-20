@@ -79,10 +79,10 @@ export default function ReservationsPage() {
 
   const fetchReservations = async () => {
     try {
-      console.log('[Reservations] Fetching reservations...');
+      console.log("[Reservations] Fetching reservations...");
       const response = await fetch("/api/user/reservations");
-      console.log('[Reservations] Response status:', response.status);
-      
+      console.log("[Reservations] Response status:", response.status);
+
       if (!response.ok) {
         if (response.status === 500) {
           setReservations([]);
@@ -93,16 +93,20 @@ export default function ReservationsPage() {
         throw new Error("Failed to fetch reservations");
       }
       const data = await response.json();
-      console.log('[Reservations] Data received:', data);
+      console.log("[Reservations] Data received:", data);
 
       if (Array.isArray(data)) {
-        console.log('[Reservations] Processing', data.length, 'reservations');
+        console.log("[Reservations] Processing", data.length, "reservations");
         setReservations(data);
         const addressPalletGroups = processAddressPalletData(data);
-        console.log('[Reservations] Created', addressPalletGroups.length, 'address/pallet groups');
+        console.log(
+          "[Reservations] Created",
+          addressPalletGroups.length,
+          "address/pallet groups",
+        );
         setAddressPalletData(addressPalletGroups);
       } else {
-        console.warn('[Reservations] Data is not an array:', data);
+        console.warn("[Reservations] Data is not an array:", data);
         setReservations([]);
         setAddressPalletData([]);
       }
@@ -363,67 +367,87 @@ export default function ReservationsPage() {
                         <CreditCard className="w-5 h-5" />
                         Payment Status
                       </h3>
-                      <div className={`p-4 rounded-lg border ${
-                        group.paymentStatus === 'paid' 
-                          ? 'bg-green-50 border-green-200' 
-                          : group.paymentStatus === 'pending' || group.paymentStatus === 'pending_payment'
-                          ? 'bg-amber-50 border-amber-200'
-                          : 'bg-gray-50 border-gray-200'
-                      }`}>
+                      <div
+                        className={`p-4 rounded-lg border ${
+                          group.paymentStatus === "paid"
+                            ? "bg-green-50 border-green-200"
+                            : group.paymentStatus === "pending" ||
+                                group.paymentStatus === "pending_payment"
+                              ? "bg-amber-50 border-amber-200"
+                              : "bg-gray-50 border-gray-200"
+                        }`}
+                      >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <Badge variant={
-                              group.paymentStatus === 'paid' 
-                                ? 'default' 
-                                : group.paymentStatus === 'pending' || group.paymentStatus === 'pending_payment'
-                                ? 'secondary'
-                                : 'outline'
-                            } className={
-                              group.paymentStatus === 'paid' 
-                                ? 'bg-green-600 text-white' 
-                                : group.paymentStatus === 'pending' || group.paymentStatus === 'pending_payment'
-                                ? 'bg-amber-100 text-amber-800'
-                                : 'bg-gray-100 text-gray-800'
-                            }>
-                              {group.paymentStatus === 'paid' 
-                                ? 'Paid' 
-                                : group.paymentStatus === 'pending' || group.paymentStatus === 'pending_payment'
-                                ? 'Payment Required'
-                                : group.paymentStatus}
+                            <Badge
+                              variant={
+                                group.paymentStatus === "paid"
+                                  ? "default"
+                                  : group.paymentStatus === "pending" ||
+                                      group.paymentStatus === "pending_payment"
+                                    ? "secondary"
+                                    : "outline"
+                              }
+                              className={
+                                group.paymentStatus === "paid"
+                                  ? "bg-green-600 text-white"
+                                  : group.paymentStatus === "pending" ||
+                                      group.paymentStatus === "pending_payment"
+                                    ? "bg-amber-100 text-amber-800"
+                                    : "bg-gray-100 text-gray-800"
+                              }
+                            >
+                              {group.paymentStatus === "paid"
+                                ? "Paid"
+                                : group.paymentStatus === "pending" ||
+                                    group.paymentStatus === "pending_payment"
+                                  ? "Payment Required"
+                                  : group.paymentStatus}
                             </Badge>
-                            {group.paymentDeadline && (group.paymentStatus === 'pending' || group.paymentStatus === 'pending_payment') && (
-                              <span className="text-sm text-gray-600">
-                                Deadline: {new Date(group.paymentDeadline).toLocaleDateString('sv-SE')}
-                              </span>
-                            )}
+                            {group.paymentDeadline &&
+                              (group.paymentStatus === "pending" ||
+                                group.paymentStatus === "pending_payment") && (
+                                <span className="text-sm text-gray-600">
+                                  Deadline:{" "}
+                                  {new Date(
+                                    group.paymentDeadline,
+                                  ).toLocaleDateString("sv-SE")}
+                                </span>
+                              )}
                           </div>
-                          {(group.paymentStatus === 'pending' || group.paymentStatus === 'pending_payment') && (
-                            group.paymentLink ? (
-                              <Button 
-                                size="sm" 
-                                onClick={() => window.open(group.paymentLink, '_blank')}
+                          {(group.paymentStatus === "pending" ||
+                            group.paymentStatus === "pending_payment") &&
+                            (group.paymentLink ? (
+                              <Button
+                                size="sm"
+                                onClick={() =>
+                                  window.open(group.paymentLink, "_blank")
+                                }
                                 className="bg-black hover:bg-gray-800 text-white"
                               >
                                 Pay Now
                               </Button>
                             ) : (
-                              <Button 
-                                size="sm" 
+                              <Button
+                                size="sm"
                                 disabled
                                 className="bg-gray-300 text-gray-600 cursor-not-allowed"
                               >
                                 Generating Link...
                               </Button>
-                            )
-                          )}
+                            ))}
                         </div>
-                        {group.paymentStatus === 'pending' || group.paymentStatus === 'pending_payment' ? (
+                        {group.paymentStatus === "pending" ||
+                        group.paymentStatus === "pending_payment" ? (
                           <p className="text-sm text-amber-800 mt-2">
-                            Complete your payment to secure your reservation. If payment is not completed by the deadline, your reservation will be released.
+                            Complete your payment to secure your reservation. If
+                            payment is not completed by the deadline, your
+                            reservation will be released.
                           </p>
-                        ) : group.paymentStatus === 'paid' ? (
+                        ) : group.paymentStatus === "paid" ? (
                           <p className="text-sm text-green-800 mt-2">
-                            Payment completed. Your order is being processed and will be shipped soon.
+                            Payment completed. Your order is being processed and
+                            will be shipped soon.
                           </p>
                         ) : null}
                       </div>

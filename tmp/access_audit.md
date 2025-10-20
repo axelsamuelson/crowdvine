@@ -1,6 +1,7 @@
 # Access Wall Progress Audit
 
 ## Overview
+
 This audit examines the current implementation of the invite/access-wall system with startsida → redirect to /access-request, kodinlösen, konto-skapande, cookie/claims, middleware and RLS.
 
 ## Current Status
@@ -8,6 +9,7 @@ This audit examines the current implementation of the invite/access-wall system 
 ### ✅ What Exists
 
 #### Access Request Page
+
 - **✅ `/app/access-request/page.tsx`** - Full-featured access request page with:
   - Animated background video
   - Form for email/invitation code input
@@ -16,6 +18,7 @@ This audit examines the current implementation of the invite/access-wall system 
   - About section with company information
 
 #### Form Components
+
 - **✅ `/components/form-access-request.tsx`** - Complete form component with:
   - Email vs invitation code detection (20 chars, no @)
   - Mock validation functions
@@ -23,6 +26,7 @@ This audit examines the current implementation of the invite/access-wall system 
   - Success/error state management
 
 #### Database Schema
+
 - **✅ `migration_access_control.sql`** - Complete access control tables:
   - `access_requests` table with email, status, timestamps
   - `invitation_codes` table with code, expiry, usage tracking
@@ -36,12 +40,14 @@ This audit examines the current implementation of the invite/access-wall system 
   - RLS policies for admin/user operations
 
 #### Admin Interface
+
 - **✅ `/app/admin/access-control/page.tsx`** - Admin panel with:
   - Access requests management (approve/reject)
   - Invitation code creation and management
   - Mock data implementation (not connected to real API)
 
 #### API Routes
+
 - **✅ `/app/api/admin/access-requests/route.ts`** - Admin API for access requests
 - **✅ `/app/api/admin/invitation-codes/route.ts`** - Admin API for invitation codes
 - **✅ `/app/api/auth/signup/route.ts`** - User signup endpoint
@@ -78,7 +84,7 @@ This audit examines the current implementation of the invite/access-wall system 
 6. **❌ RLS Policies for Sensitive Tables**
    - No RLS policies requiring `access_granted_at` on:
      - `bookings` table
-     - `producers` table  
+     - `producers` table
      - `campaigns` table
      - `wines` table
      - Other sensitive business data
@@ -108,22 +114,26 @@ This audit examines the current implementation of the invite/access-wall system 
 ## Risk Assessment
 
 ### High Risk Issues
+
 1. **Security Gap**: Middleware is completely disabled - all routes are public
 2. **Data Exposure**: No RLS policies protect sensitive business data
 3. **Mock Implementation**: All access control is fake - no real protection
 
 ### Medium Risk Issues
+
 1. **User Experience**: No smart redirects - users get stuck on access page
 2. **Admin Workflow**: Admin panel doesn't actually work with real data
 3. **Cookie Management**: No persistent access state across sessions
 
 ### Low Risk Issues
+
 1. **UI Polish**: Access page has good UX but no backend integration
 2. **Database Schema**: Well-designed but unused
 
 ## Recommended Next Steps
 
 ### Phase 1: Core Security (Critical)
+
 1. **Implement Real Invitation Code API**
    - Create `/app/api/invite/redeem/route.ts`
    - Connect to database `use_invitation_code()` function
@@ -140,6 +150,7 @@ This audit examines the current implementation of the invite/access-wall system 
    - Implement redirect logic
 
 ### Phase 2: User Experience (High Priority)
+
 4. **Add Access Cookie System**
    - Set `cv-access` cookie after successful invitation redemption
    - Set cookie after login for users with access
@@ -156,6 +167,7 @@ This audit examines the current implementation of the invite/access-wall system 
    - Use in layouts and components
 
 ### Phase 3: Data Protection (High Priority)
+
 7. **Implement RLS Policies**
    - Add access requirements to `bookings`, `producers`, `wines` tables
    - Require `access_granted_at` for sensitive operations
@@ -167,6 +179,7 @@ This audit examines the current implementation of the invite/access-wall system 
    - Add real access request processing
 
 ### Phase 4: Polish (Medium Priority)
+
 9. **Add Email Notifications**
    - Notify admins of new access requests
    - Send invitation codes via email
@@ -178,7 +191,9 @@ This audit examines the current implementation of the invite/access-wall system 
     - Implement access renewal flow
 
 ## Files Modified Outside tmp/
+
 None - this is a read-only audit.
 
 ## Summary
+
 The access wall system has excellent UI/UX and database schema but is completely non-functional due to mock implementations and disabled middleware. Critical security gaps exist with no real access control protecting sensitive data. Immediate action needed on core security components before any production deployment.

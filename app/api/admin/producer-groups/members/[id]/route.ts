@@ -3,7 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function DELETE(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -18,7 +18,7 @@ export async function DELETE(
       console.error("Error removing producer from group:", error);
       return NextResponse.json(
         { error: "Failed to remove producer from group" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -27,8 +27,7 @@ export async function DELETE(
     console.error("Error in remove producer from group API:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

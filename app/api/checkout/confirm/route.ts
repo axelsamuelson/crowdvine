@@ -3,15 +3,15 @@ import { CartService } from "@/src/lib/cart-service";
 import { supabaseServer, getCurrentUser } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { determineZones } from "@/lib/zone-matching";
-import { 
-  awardPointsForOwnOrder, 
+import {
+  awardPointsForOwnOrder,
   awardPointsForInviteSecondOrder,
   checkPalletMilestone,
   awardPointsForPalletMilestone,
 } from "@/lib/membership/points-engine";
-import { 
-  applyProgressionBuffs, 
-  checkAndAwardProgressionRewards 
+import {
+  applyProgressionBuffs,
+  checkAndAwardProgressionRewards,
 } from "@/lib/membership/progression-rewards";
 
 export async function POST(request: Request) {
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    
+
     // Ensure we have an email address - use authenticated user's email as fallback
     if (!address.email || address.email.trim() === "") {
       address.email = user.email;
@@ -80,16 +80,19 @@ export async function POST(request: Request) {
     console.log("🔍 [Checkout API] Validating 6-bottle rule...");
     const { validateSixBottleRule } = await import("@/lib/checkout-validation");
     const validation = await validateSixBottleRule(cart.lines as any);
-    
+
     if (!validation.isValid) {
-      console.error("❌ [Checkout API] 6-bottle validation failed:", validation.errors);
+      console.error(
+        "❌ [Checkout API] 6-bottle validation failed:",
+        validation.errors,
+      );
       return NextResponse.json(
-        { 
+        {
           error: "Order must contain bottles in multiples of 6 per producer",
           validationErrors: validation.errors,
-          producerValidations: validation.producerValidations
+          producerValidations: validation.producerValidations,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
     console.log("✅ [Checkout API] 6-bottle validation passed");
@@ -295,17 +298,17 @@ export async function POST(request: Request) {
         street: address.street,
         city: address.city,
         postcode: address.postcode,
-        countryCode: address.countryCode
+        countryCode: address.countryCode,
       });
       console.log("📧 Cart data:", {
         linesCount: cart.lines.length,
         totalAmount: cart.cost.totalAmount.amount,
-        currency: cart.cost.totalAmount.currencyCode
+        currency: cart.cost.totalAmount.currencyCode,
       });
       console.log("📧 Reservation ID:", reservation.id);
-      
+
       const { sendGridService } = await import("@/lib/sendgrid-service");
-      
+
       const emailData = {
         customerEmail: address.email,
         customerName: address.fullName,
@@ -314,7 +317,9 @@ export async function POST(request: Request) {
         items: cart.lines.map((line) => ({
           name: `${line.merchandise.product.title}`,
           quantity: line.quantity,
-          price: parseFloat(line.merchandise.product.priceRange.minVariantPrice.amount),
+          price: parseFloat(
+            line.merchandise.product.priceRange.minVariantPrice.amount,
+          ),
           image: undefined,
         })),
         subtotal: parseFloat(cart.cost.totalAmount.amount),
@@ -329,15 +334,21 @@ export async function POST(request: Request) {
           country: address.countryCode,
         },
       };
-      
+
       console.log("📧 Prepared email data:", emailData);
-      
+
       const emailSent = await sendGridService.sendOrderConfirmation(emailData);
 
       if (emailSent) {
-        console.log("📧 Order confirmation email sent successfully to:", address.email);
+        console.log(
+          "📧 Order confirmation email sent successfully to:",
+          address.email,
+        );
       } else {
-        console.error("📧 Failed to send order confirmation email to:", address.email);
+        console.error(
+          "📧 Failed to send order confirmation email to:",
+          address.email,
+        );
       }
     } catch (emailError) {
       console.error("📧 Error sending order confirmation email:", emailError);
@@ -348,91 +359,112 @@ export async function POST(request: Request) {
     // ============================================================
     // v2: PROGRESSION BUFFS & IP AWARDS
     // ============================================================
-    
+
     if (currentUser) {
       try {
-        console.log("💎 [PROGRESSION] Processing progression buffs and IP awards for user:", currentUser.id);
-        
+        console.log(
+          "💎 [PROGRESSION] Processing progression buffs and IP awards for user:",
+          currentUser.id,
+        );
+
         // 1. Apply and mark progression buffs as used (before clearing cart)
-        const buffResult = await applyProgressionBuffs(currentUser.id, reservation.id);
+        const buffResult = await applyProgressionBuffs(
+          currentUser.id,
+          reservation.id,
+        );
         if (buffResult.success && buffResult.buffCount > 0) {
-          console.log(`✅ [PROGRESSION] Applied ${buffResult.buffCount} buff(s) (${buffResult.appliedPercentage}%) to order`);
+          console.log(
+            `✅ [PROGRESSION] Applied ${buffResult.buffCount} buff(s) (${buffResult.appliedPercentage}%) to order`,
+          );
         }
-        
+
         // 2. Calculate total bottle count from cart
-        const totalBottles = cart.lines.reduce((sum, line) => sum + line.quantity, 0);
+        const totalBottles = cart.lines.reduce(
+          (sum, line) => sum + line.quantity,
+          0,
+        );
         console.log(`🍾 [PROGRESSION] Total bottles in order: ${totalBottles}`);
-        
+
         // 3. Award IP for own order (handles both regular ≥6 and large ≥12)
         const ownOrderResult = await awardPointsForOwnOrder(
           currentUser.id,
           totalBottles,
-          reservation.id
+          reservation.id,
         );
-        
+
         if (ownOrderResult.success && ownOrderResult.newTotal > 0) {
-          console.log(`✅ [PROGRESSION] Awarded IP for own order. New total: ${ownOrderResult.newTotal} IP`);
-          
+          console.log(
+            `✅ [PROGRESSION] Awarded IP for own order. New total: ${ownOrderResult.newTotal} IP`,
+          );
+
           // 4. Check and award progression rewards at new IP milestone
           const sbAdmin = getSupabaseAdmin();
           const { data: membership } = await sbAdmin
-            .from('user_memberships')
-            .select('level, impact_points')
-            .eq('user_id', currentUser.id)
+            .from("user_memberships")
+            .select("level, impact_points")
+            .eq("user_id", currentUser.id)
             .single();
-          
+
           if (membership) {
             await checkAndAwardProgressionRewards(
               currentUser.id,
               membership.impact_points,
-              membership.level
+              membership.level,
             );
           }
         }
-        
+
         // 5. Check if user was invited and this is their second order
         const { data: inviterInfo } = await sbAdmin
-          .from('user_memberships')
-          .select('invited_by')
-          .eq('user_id', currentUser.id)
+          .from("user_memberships")
+          .select("invited_by")
+          .eq("user_id", currentUser.id)
           .single();
-        
+
         if (inviterInfo?.invited_by) {
           const secondOrderResult = await awardPointsForInviteSecondOrder(
             inviterInfo.invited_by,
             currentUser.id,
-            reservation.id
+            reservation.id,
           );
-          
+
           if (secondOrderResult.success && secondOrderResult.newTotal > 0) {
-            console.log(`✅ [PROGRESSION] Awarded inviter IP for friend's 2nd order`);
+            console.log(
+              `✅ [PROGRESSION] Awarded inviter IP for friend's 2nd order`,
+            );
           }
         }
-        
+
         // 6. Check pallet milestones (3, 6, 12 unique pallets)
         if (palletId) {
           const palletCount = await checkPalletMilestone(currentUser.id);
-          console.log(`📦 [PROGRESSION] User has participated in ${palletCount} unique pallets`);
-          
+          console.log(
+            `📦 [PROGRESSION] User has participated in ${palletCount} unique pallets`,
+          );
+
           // Award milestone IP if reached 3, 6, or 12
           if ([3, 6, 12].includes(palletCount)) {
             const milestoneResult = await awardPointsForPalletMilestone(
               currentUser.id,
-              palletCount
+              palletCount,
             );
-            
+
             if (milestoneResult.success && milestoneResult.newTotal > 0) {
-              console.log(`🎉 [PROGRESSION] Pallet milestone ${palletCount} reached! New total: ${milestoneResult.newTotal} IP`);
+              console.log(
+                `🎉 [PROGRESSION] Pallet milestone ${palletCount} reached! New total: ${milestoneResult.newTotal} IP`,
+              );
             }
           }
         }
-        
       } catch (progressionError) {
-        console.error("❌ [PROGRESSION] Error processing progression rewards:", progressionError);
+        console.error(
+          "❌ [PROGRESSION] Error processing progression rewards:",
+          progressionError,
+        );
         // Don't fail the order if progression logic fails
       }
     }
-    
+
     // Clear cart
     console.log("Clearing cart");
     await CartService.clearCart();
@@ -444,7 +476,9 @@ export async function POST(request: Request) {
       const isComplete = await checkPalletCompletion(palletId);
 
       if (isComplete) {
-        console.log(`🎉 Pallet ${palletId} is now complete! Payment notifications triggered.`);
+        console.log(
+          `🎉 Pallet ${palletId} is now complete! Payment notifications triggered.`,
+        );
       }
     } catch (error) {
       console.error("Error checking pallet completion:", error);

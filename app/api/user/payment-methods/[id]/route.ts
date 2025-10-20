@@ -4,20 +4,17 @@ import { stripe, STRIPE_CONFIG } from "@/lib/stripe";
 
 /**
  * DELETE /api/user/payment-methods/[id]
- * 
+ *
  * Delete a payment method
  */
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = params;
@@ -26,7 +23,7 @@ export async function DELETE(
     if (!STRIPE_CONFIG.isConfigured || !stripe) {
       return NextResponse.json(
         { error: "Stripe not configured" },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
@@ -42,7 +39,7 @@ export async function DELETE(
     console.error("❌ Error deleting payment method:", error);
     return NextResponse.json(
       { error: "Failed to delete payment method", details: error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -12,7 +12,7 @@ const CACHE_DURATION = 5000; // 5 seconds cache
 export async function GET() {
   try {
     const cart = await CartService.getCart();
-    
+
     if (!cart || cart.lines.length === 0) {
       return NextResponse.json({
         isValid: true,
@@ -22,37 +22,39 @@ export async function GET() {
     }
 
     // Create cache key based on cart contents
-    const cacheKey = JSON.stringify(cart.lines.map(line => ({
-      id: line.merchandise.id,
-      quantity: line.quantity
-    })));
+    const cacheKey = JSON.stringify(
+      cart.lines.map((line) => ({
+        id: line.merchandise.id,
+        quantity: line.quantity,
+      })),
+    );
 
     // Check cache first
     const cached = validationCache.get(cacheKey);
-    if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       console.log("🚀 [Validate API] Using cached result");
       return NextResponse.json(cached.result);
     }
 
     console.log("🔍 [Validate API] Running validation");
     const result = await validateSixBottleRule(cart.lines as any);
-    
+
     // Cache the result
     validationCache.set(cacheKey, {
       result,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     // Clean up old cache entries
     if (validationCache.size > 50) {
       const now = Date.now();
       for (const [key, value] of validationCache.entries()) {
-        if ((now - value.timestamp) > CACHE_DURATION) {
+        if (now - value.timestamp > CACHE_DURATION) {
           validationCache.delete(key);
         }
       }
     }
-    
+
     return NextResponse.json(result);
   } catch (error) {
     console.error("❌ [Validate API] Error:", error);
@@ -72,7 +74,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { cart } = body;
-    
+
     if (!cart || !cart.lines || cart.lines.length === 0) {
       return NextResponse.json({
         isValid: true,
@@ -82,37 +84,39 @@ export async function POST(request: Request) {
     }
 
     // Create cache key based on cart contents
-    const cacheKey = JSON.stringify(cart.lines.map((line: any) => ({
-      id: line.merchandise.id,
-      quantity: line.quantity
-    })));
+    const cacheKey = JSON.stringify(
+      cart.lines.map((line: any) => ({
+        id: line.merchandise.id,
+        quantity: line.quantity,
+      })),
+    );
 
     // Check cache first
     const cached = validationCache.get(cacheKey);
-    if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       console.log("🚀 [Validate API] Using cached result for POST");
       return NextResponse.json(cached.result);
     }
 
     console.log("🔍 [Validate API] Running validation for POST");
     const result = await validateSixBottleRule(cart.lines as any);
-    
+
     // Cache the result
     validationCache.set(cacheKey, {
       result,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     // Clean up old cache entries
     if (validationCache.size > 50) {
       const now = Date.now();
       for (const [key, value] of validationCache.entries()) {
-        if ((now - value.timestamp) > CACHE_DURATION) {
+        if (now - value.timestamp > CACHE_DURATION) {
           validationCache.delete(key);
         }
       }
     }
-    
+
     return NextResponse.json(result);
   } catch (error) {
     console.error("❌ [Validate API] POST Error:", error);
@@ -124,4 +128,3 @@ export async function POST(request: Request) {
     });
   }
 }
-

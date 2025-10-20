@@ -93,9 +93,7 @@ export function AccessRequestClient() {
     <>
       <div className="p-4 sm:p-6 lg:p-8 h-[100dvh] w-full">
         <div className="relative h-full w-full">
-          <Background
-            src="https://cdn.pixabay.com/video/2022/10/19/135643-762117669_large.mp4"
-          />
+          <Background src="https://cdn.pixabay.com/video/2022/10/19/135643-762117669_large.mp4" />
           <div className="flex overflow-hidden relative flex-col gap-3 sm:gap-4 justify-center items-center w-full h-full max-w-4xl mx-auto z-10 px-2 sm:px-4">
             <motion.div
               layout="position"
@@ -261,7 +259,7 @@ export function AccessRequestClient() {
                               Already have access
                             </Button>
                           </motion.div>
-                          
+
                           <motion.div
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
@@ -364,26 +362,29 @@ export function AccessRequestClient() {
                   >
                     <article className="relative overflow-y-auto italic p-4 sm:p-6 h-full [&_p]:my-3 sm:[&_p]:my-4 text-sm sm:text-base">
                       <p>
-                        "PACT represents the future of wine — a direct connection between 
-                        producers and consumers. We believe exceptional wine should reach 
-                        those who appreciate it, without traditional barriers."
+                        "PACT represents the future of wine — a direct
+                        connection between producers and consumers. We believe
+                        exceptional wine should reach those who appreciate it,
+                        without traditional barriers."
                       </p>
                       <p>
-                        Our platform brings producers and consumers together in a shared 
-                        pallet system. By consolidating shipments, we make boutique wines 
-                        from around the world accessible and affordable. Every bottle 
-                        travels from vineyard to your door with transparency and care.
+                        Our platform brings producers and consumers together in
+                        a shared pallet system. By consolidating shipments, we
+                        make boutique wines from around the world accessible and
+                        affordable. Every bottle travels from vineyard to your
+                        door with transparency and care.
                       </p>
                       <p>
-                        PACT — Producers And Consumers Together — is more than a marketplace. 
-                        It's a community built on trust, quality, and the shared joy of 
-                        discovering exceptional wines. Join passionate wine lovers and 
-                        dedicated producers in reshaping how great wine is bought and sold.
+                        PACT — Producers And Consumers Together — is more than a
+                        marketplace. It's a community built on trust, quality,
+                        and the shared joy of discovering exceptional wines.
+                        Join passionate wine lovers and dedicated producers in
+                        reshaping how great wine is bought and sold.
                       </p>
                       <p>
-                        Request access to explore limited releases, support independent 
-                        winemakers, and connect with a community that values authenticity 
-                        and craftsmanship.
+                        Request access to explore limited releases, support
+                        independent winemakers, and connect with a community
+                        that values authenticity and craftsmanship.
                       </p>
                     </article>
                   </motion.div>

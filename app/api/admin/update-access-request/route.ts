@@ -14,10 +14,13 @@ export async function POST(request: NextRequest) {
 
     // Validate initial_level if provided
     if (initialLevel) {
-      const validLevels = ['basic', 'brons', 'silver', 'guld'];
+      const validLevels = ["basic", "brons", "silver", "guld"];
       if (!validLevels.includes(initialLevel)) {
         return NextResponse.json(
-          { error: "Invalid initial level. Must be: basic, brons, silver, or guld" },
+          {
+            error:
+              "Invalid initial level. Must be: basic, brons, silver, or guld",
+          },
           { status: 400 },
         );
       }

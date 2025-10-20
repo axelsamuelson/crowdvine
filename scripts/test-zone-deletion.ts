@@ -32,7 +32,9 @@ async function testZoneDeletion() {
 
     // Test deleting the first zone
     const testZone = zones[0];
-    console.log(`🎯 Testing deletion of zone: "${testZone.name}" (${testZone.id})`);
+    console.log(
+      `🎯 Testing deletion of zone: "${testZone.name}" (${testZone.id})`,
+    );
 
     // Try to delete the zone directly
     const { error: deleteError } = await supabase
@@ -47,7 +49,7 @@ async function testZoneDeletion() {
       console.log(`   Error hint: ${deleteError.hint}`);
     } else {
       console.log(`✅ Direct deletion successful!`);
-      
+
       // Recreate the zone for testing
       const { error: recreateError } = await supabase
         .from("pallet_zones")
@@ -66,7 +68,6 @@ async function testZoneDeletion() {
         console.log(`✅ Zone recreated successfully`);
       }
     }
-
   } catch (error) {
     console.error("❌ Error:", error);
   }

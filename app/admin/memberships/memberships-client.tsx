@@ -40,22 +40,37 @@ interface MembershipsClientProps {
 // Helper functions matching invitation page
 const getLevelName = (level: string) => {
   const levelMap: Record<string, string> = {
-    'guld': 'Gold',
-    'silver': 'Silver',
-    'brons': 'Bronze',
-    'basic': 'Basic',
-    'admin': 'Admin'
+    guld: "Gold",
+    silver: "Silver",
+    brons: "Bronze",
+    basic: "Basic",
+    admin: "Admin",
   };
   return levelMap[level] || level.charAt(0).toUpperCase() + level.slice(1);
 };
 
 const getLevelColors = (level: string) => {
   const colorMap: Record<string, { badge: string; text: string }> = {
-    'guld': { badge: 'bg-gradient-to-br from-amber-600 to-yellow-700', text: 'text-white' },
-    'silver': { badge: 'bg-gradient-to-br from-gray-400 to-gray-500', text: 'text-gray-900' },
-    'brons': { badge: 'bg-gradient-to-br from-orange-800 to-amber-900', text: 'text-white' },
-    'basic': { badge: 'bg-gradient-to-br from-slate-600 to-slate-700', text: 'text-white' },
-    'admin': { badge: 'bg-gradient-to-br from-purple-600 to-purple-700', text: 'text-white' },
+    guld: {
+      badge: "bg-gradient-to-br from-amber-600 to-yellow-700",
+      text: "text-white",
+    },
+    silver: {
+      badge: "bg-gradient-to-br from-gray-400 to-gray-500",
+      text: "text-gray-900",
+    },
+    brons: {
+      badge: "bg-gradient-to-br from-orange-800 to-amber-900",
+      text: "text-white",
+    },
+    basic: {
+      badge: "bg-gradient-to-br from-slate-600 to-slate-700",
+      text: "text-white",
+    },
+    admin: {
+      badge: "bg-gradient-to-br from-purple-600 to-purple-700",
+      text: "text-white",
+    },
   };
   return colorMap[level] || colorMap.basic;
 };
@@ -63,11 +78,11 @@ const getLevelColors = (level: string) => {
 // Default discount percentages
 const getDefaultDiscount = (level: string): number => {
   const discountMap: Record<string, number> = {
-    'guld': 10,
-    'silver': 5,
-    'brons': 3,
-    'basic': 0,
-    'admin': 15,
+    guld: 10,
+    silver: 5,
+    brons: 3,
+    basic: 0,
+    admin: 15,
   };
   return discountMap[level] || 0;
 };
@@ -83,11 +98,11 @@ export function MembershipsClient({
   const [saving, setSaving] = useState(false);
   const [perksByLevel, setPerksByLevel] = useState(initialPerksByLevel);
 
-  const levels = ['basic', 'brons', 'silver', 'guld', 'admin'];
+  const levels = ["basic", "brons", "silver", "guld", "admin"];
 
   const getCurrentDiscount = (level: string): number => {
     const perks = perksByLevel[level as keyof typeof perksByLevel] || [];
-    const discountPerk = perks.find(p => p.perk_type === 'discount');
+    const discountPerk = perks.find((p) => p.perk_type === "discount");
     if (discountPerk?.perk_value) {
       const match = discountPerk.perk_value.match(/(\d+)/);
       return match ? parseInt(match[1]) : getDefaultDiscount(level);
@@ -107,8 +122,8 @@ export function MembershipsClient({
     setSaving(true);
     try {
       const response = await fetch(`/api/admin/memberships/${editingLevel}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           discount: discountValue,
           inviteQuota: quotaValue,
@@ -117,11 +132,11 @@ export function MembershipsClient({
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to save');
+        throw new Error(error.error || "Failed to save");
       }
 
       toast.success("Configuration updated successfully");
-      
+
       // Refresh page to show updated data
       window.location.reload();
     } catch (error) {
@@ -138,7 +153,9 @@ export function MembershipsClient({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {levels.map((level) => {
           const perks = perksByLevel[level as keyof typeof perksByLevel] || [];
-          const threshold = levelThresholds[level as keyof typeof levelThresholds] || { min: 0, max: 0 };
+          const threshold = levelThresholds[
+            level as keyof typeof levelThresholds
+          ] || { min: 0, max: 0 };
           const quota = inviteQuotas[level];
           const colors = getLevelColors(level);
 
@@ -147,14 +164,16 @@ export function MembershipsClient({
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between mb-4">
                   {/* Level Badge */}
-                  <div className={`px-4 py-2 rounded-md text-sm font-medium ${colors.badge} ${colors.text}`}>
+                  <div
+                    className={`px-4 py-2 rounded-md text-sm font-medium ${colors.badge} ${colors.text}`}
+                  >
                     {getLevelName(level)} Membership
                   </div>
-                  
+
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
                         onClick={() => handleEditClick(level)}
                       >
@@ -163,12 +182,18 @@ export function MembershipsClient({
                     </DialogTrigger>
                     <DialogContent aria-describedby="edit-membership-description">
                       <DialogHeader>
-                        <DialogTitle>Edit {getLevelName(level)} Membership</DialogTitle>
-                        <p id="edit-membership-description" className="text-sm text-gray-600 mt-2">
-                          Configure discount percentage and invite quota for this membership level
+                        <DialogTitle>
+                          Edit {getLevelName(level)} Membership
+                        </DialogTitle>
+                        <p
+                          id="edit-membership-description"
+                          className="text-sm text-gray-600 mt-2"
+                        >
+                          Configure discount percentage and invite quota for
+                          this membership level
                         </p>
                       </DialogHeader>
-                      
+
                       <div className="space-y-4">
                         <div>
                           <Label htmlFor="discount">Member Discount (%)</Label>
@@ -178,7 +203,9 @@ export function MembershipsClient({
                             min="0"
                             max="100"
                             value={discountValue}
-                            onChange={(e) => setDiscountValue(Number(e.target.value))}
+                            onChange={(e) =>
+                              setDiscountValue(Number(e.target.value))
+                            }
                           />
                           <p className="text-xs text-gray-500 mt-1">
                             Discount applied to all wine purchases
@@ -192,7 +219,9 @@ export function MembershipsClient({
                             type="number"
                             min="0"
                             value={quotaValue}
-                            onChange={(e) => setQuotaValue(Number(e.target.value))}
+                            onChange={(e) =>
+                              setQuotaValue(Number(e.target.value))
+                            }
                           />
                           <p className="text-xs text-gray-500 mt-1">
                             Number of invites per month
@@ -238,13 +267,14 @@ export function MembershipsClient({
                   <div>
                     <p className="text-xs text-gray-500 mb-1">IP Threshold</p>
                     <p className="text-sm font-medium text-gray-900">
-                      {threshold.min} - {threshold.max === Infinity ? '∞' : threshold.max} points
+                      {threshold.min} -{" "}
+                      {threshold.max === Infinity ? "∞" : threshold.max} points
                     </p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Invite Quota</p>
                     <p className="text-sm font-medium text-gray-900">
-                      {quota === 999999 ? 'Unlimited' : `${quota}/month`}
+                      {quota === 999999 ? "Unlimited" : `${quota}/month`}
                     </p>
                   </div>
                 </div>
@@ -262,26 +292,39 @@ export function MembershipsClient({
                   <p className="text-xs text-gray-500 mb-2">Active Perks</p>
                   <div className="space-y-2">
                     {perks.length > 0 ? (
-                      perks.map(perk => (
-                        <div key={perk.id} className="flex items-start gap-2 text-sm">
-                          <Badge variant="outline" className="text-xs mt-0.5 flex-shrink-0">
+                      perks.map((perk) => (
+                        <div
+                          key={perk.id}
+                          className="flex items-start gap-2 text-sm"
+                        >
+                          <Badge
+                            variant="outline"
+                            className="text-xs mt-0.5 flex-shrink-0"
+                          >
                             {perk.perk_type}
                           </Badge>
-                          <span className="text-gray-600 text-xs">{perk.description}</span>
+                          <span className="text-gray-600 text-xs">
+                            {perk.description}
+                          </span>
                         </div>
                       ))
                     ) : (
-                      <p className="text-xs text-gray-400">No perks configured</p>
+                      <p className="text-xs text-gray-400">
+                        No perks configured
+                      </p>
                     )}
                   </div>
                 </div>
 
                 {/* Fee Reduction (from perks) */}
-                {perks.find(p => p.perk_type === 'fee_reduction') && (
+                {perks.find((p) => p.perk_type === "fee_reduction") && (
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Service Fee</p>
                     <p className="text-sm font-medium text-gray-900">
-                      {perks.find(p => p.perk_type === 'fee_reduction')?.perk_value}
+                      {
+                        perks.find((p) => p.perk_type === "fee_reduction")
+                          ?.perk_value
+                      }
                     </p>
                   </div>
                 )}
@@ -298,14 +341,17 @@ export function MembershipsClient({
             Membership System Configuration
           </h3>
           <div className="space-y-1 text-xs text-gray-600">
-            <p>• IP Thresholds and Invite Quotas are currently hardcoded in code</p>
+            <p>
+              • IP Thresholds and Invite Quotas are currently hardcoded in code
+            </p>
             <p>• Perks are stored in the database and can be managed</p>
             <p>• Member discounts apply to all wine purchases</p>
-            <p>• Click Edit on any level to modify discount and quota settings</p>
+            <p>
+              • Click Edit on any level to modify discount and quota settings
+            </p>
           </div>
         </CardContent>
       </Card>
     </>
   );
 }
-

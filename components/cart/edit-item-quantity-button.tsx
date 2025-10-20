@@ -6,7 +6,13 @@ import { CartItem } from "@/lib/shopify/types";
 import { useCart } from "./cart-context";
 import { useRef, useCallback } from "react";
 
-function SubmitButton({ type, onClick }: { type: "plus" | "minus"; onClick: () => void }) {
+function SubmitButton({
+  type,
+  onClick,
+}: {
+  type: "plus" | "minus";
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
@@ -43,21 +49,22 @@ export function EditItemQuantityButton({
 
   const handleClick = useCallback(() => {
     // Calculate next quantity
-    const nextQuantity = type === "plus" 
-      ? pendingQuantityRef.current + 1 
-      : pendingQuantityRef.current - 1;
-    
+    const nextQuantity =
+      type === "plus"
+        ? pendingQuantityRef.current + 1
+        : pendingQuantityRef.current - 1;
+
     // Don't allow quantity below 1
     if (nextQuantity < 1) return;
-    
+
     // Update pending quantity
     pendingQuantityRef.current = nextQuantity;
-    
+
     // Clear existing timer
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
-    
+
     // Set new timer - only call API after 300ms of no clicks
     debounceTimerRef.current = setTimeout(() => {
       console.log("🛒 [DEBOUNCE] Updating item to quantity:", nextQuantity);

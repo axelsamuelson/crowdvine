@@ -4,61 +4,85 @@ import { createPaymentLinkForReservation } from "@/lib/stripe/payment-links";
 /**
  * Trigger payment notifications for all pending reservations in a completed pallet
  */
-export async function triggerPaymentNotifications(palletId: string): Promise<void> {
-  console.log(`📧 [Email Notifications] Triggering payment notifications for pallet ${palletId}`);
-  
+export async function triggerPaymentNotifications(
+  palletId: string,
+): Promise<void> {
+  console.log(
+    `📧 [Email Notifications] Triggering payment notifications for pallet ${palletId}`,
+  );
+
   const supabase = getSupabaseAdmin();
-  
+
   try {
     // Get all reservations for this pallet that need payment
     // Note: Get only basic fields, calculate amounts from items
     const { data: reservations, error: reservationsError } = await supabase
-      .from('order_reservations')
-      .select(`
+      .from("order_reservations")
+      .select(
+        `
         id,
         payment_deadline,
         status,
         profiles!inner(email, full_name),
         pallets(name)
-      `)
-      .eq('pallet_id', palletId)
-      .in('status', ['placed', 'pending_payment']);
-      
+      `,
+      )
+      .eq("pallet_id", palletId)
+      .in("status", ["placed", "pending_payment"]);
+
     if (reservationsError) {
-      console.error(`❌ [Email Notifications] Error fetching reservations for pallet ${palletId}:`, reservationsError);
-      throw new Error(`Failed to fetch reservations: ${reservationsError.message}`);
+      console.error(
+        `❌ [Email Notifications] Error fetching reservations for pallet ${palletId}:`,
+        reservationsError,
+      );
+      throw new Error(
+        `Failed to fetch reservations: ${reservationsError.message}`,
+      );
     }
-    
+
     if (!reservations || reservations.length === 0) {
-      console.log(`ℹ️ [Email Notifications] No pending reservations found for pallet ${palletId}`);
+      console.log(
+        `ℹ️ [Email Notifications] No pending reservations found for pallet ${palletId}`,
+      );
       return;
     }
-    
-    console.log(`📧 [Email Notifications] Found ${reservations.length} reservations needing payment notifications for pallet ${palletId}`);
-    
+
+    console.log(
+      `📧 [Email Notifications] Found ${reservations.length} reservations needing payment notifications for pallet ${palletId}`,
+    );
+
     // Process each reservation
     const results = await Promise.allSettled(
-      reservations.map(reservation => sendPaymentNotification(reservation))
+      reservations.map((reservation) => sendPaymentNotification(reservation)),
     );
-    
+
     // Log results
     let successCount = 0;
     let failureCount = 0;
-    
+
     results.forEach((result, index) => {
-      if (result.status === 'fulfilled') {
+      if (result.status === "fulfilled") {
         successCount++;
-        console.log(`✅ [Email Notifications] Successfully sent notification for reservation ${reservations[index].id}`);
+        console.log(
+          `✅ [Email Notifications] Successfully sent notification for reservation ${reservations[index].id}`,
+        );
       } else {
         failureCount++;
-        console.error(`❌ [Email Notifications] Failed to send notification for reservation ${reservations[index].id}:`, result.reason);
+        console.error(
+          `❌ [Email Notifications] Failed to send notification for reservation ${reservations[index].id}:`,
+          result.reason,
+        );
       }
     });
-    
-    console.log(`📊 [Email Notifications] Payment notifications completed for pallet ${palletId}: ${successCount} success, ${failureCount} failures`);
-    
+
+    console.log(
+      `📊 [Email Notifications] Payment notifications completed for pallet ${palletId}: ${successCount} success, ${failureCount} failures`,
+    );
   } catch (error) {
-    console.error(`❌ [Email Notifications] Error triggering payment notifications for pallet ${palletId}:`, error);
+    console.error(
+      `❌ [Email Notifications] Error triggering payment notifications for pallet ${palletId}:`,
+      error,
+    );
     throw error;
   }
 }
@@ -68,52 +92,58 @@ export async function triggerPaymentNotifications(palletId: string): Promise<voi
  */
 async function sendPaymentNotification(reservation: any): Promise<void> {
   const supabase = getSupabaseAdmin();
-  
+
   try {
     // Get bottle count and prices from order_reservation_items with wine prices
     const { data: items } = await supabase
-      .from('order_reservation_items')
-      .select(`
+      .from("order_reservation_items")
+      .select(
+        `
         quantity,
         item_id,
         wines(base_price_cents)
-      `)
-      .eq('reservation_id', reservation.id);
-    
-    const bottleCount = items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
-    
+      `,
+      )
+      .eq("reservation_id", reservation.id);
+
+    const bottleCount =
+      items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+
     // Calculate total amount from items
-    const totalAmountCents = items?.reduce((sum, item) => {
-      const price = item.wines?.base_price_cents || 0;
-      const quantity = item.quantity || 0;
-      return sum + (price * quantity);
-    }, 0) || 0;
-    
+    const totalAmountCents =
+      items?.reduce((sum, item) => {
+        const price = item.wines?.base_price_cents || 0;
+        const quantity = item.quantity || 0;
+        return sum + price * quantity;
+      }, 0) || 0;
+
     // Create payment link
     const paymentLink = await createPaymentLinkForReservation(reservation.id);
-    
+
     // Calculate deadline info
     const deadline = new Date(reservation.payment_deadline);
-    const deadlineStr = deadline.toLocaleDateString('sv-SE', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    const deadlineStr = deadline.toLocaleDateString("sv-SE", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
-    
+
     // Send email
     await sendPaymentReadyEmail({
       to: reservation.profiles.email,
-      name: reservation.profiles.full_name || 'Friend',
-      palletName: reservation.pallets?.name || 'Your Pallet',
+      name: reservation.profiles.full_name || "Friend",
+      palletName: reservation.pallets?.name || "Your Pallet",
       bottleCount: bottleCount,
       totalAmount: (totalAmountCents / 100).toFixed(2),
       paymentLink: paymentLink,
       deadline: deadlineStr,
-      reservationId: reservation.id
+      reservationId: reservation.id,
     });
-    
   } catch (error) {
-    console.error(`❌ [Email Notification] Error sending payment notification for reservation ${reservation.id}:`, error);
+    console.error(
+      `❌ [Email Notification] Error sending payment notification for reservation ${reservation.id}:`,
+      error,
+    );
     throw error;
   }
 }
@@ -131,29 +161,33 @@ async function sendPaymentReadyEmail(params: {
   deadline: string;
   reservationId: string;
 }): Promise<void> {
-  console.log(`📧 [Email] Sending payment ready email to ${params.to} for reservation ${params.reservationId}`);
-  
+  console.log(
+    `📧 [Email] Sending payment ready email to ${params.to} for reservation ${params.reservationId}`,
+  );
+
   try {
     // Import SendGrid client
-    const sgMail = await import('@sendgrid/mail');
+    const sgMail = await import("@sendgrid/mail");
     sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
-    
+
     const msg = {
       to: params.to,
       from: {
         email: process.env.SENDGRID_FROM_EMAIL!,
-        name: process.env.SENDGRID_FROM_NAME || 'PACT'
+        name: process.env.SENDGRID_FROM_NAME || "PACT",
       },
       subject: `🍷 Your Pallet is Ready - Payment Required`,
       html: generatePaymentEmailHTML(params),
-      text: generatePaymentEmailText(params)
+      text: generatePaymentEmailText(params),
     };
-    
+
     await sgMail.send(msg);
     console.log(`✅ [Email] Payment ready email sent to ${params.to}`);
-    
   } catch (error) {
-    console.error(`❌ [Email] Error sending payment ready email to ${params.to}:`, error);
+    console.error(
+      `❌ [Email] Error sending payment ready email to ${params.to}:`,
+      error,
+    );
     throw error;
   }
 }
@@ -298,16 +332,21 @@ Questions? Contact us at support@pactwines.com
 /**
  * Send reminder email for approaching deadline
  */
-export async function sendPaymentReminder(reservationId: string): Promise<void> {
-  console.log(`⏰ [Email Reminder] Sending payment reminder for reservation ${reservationId}`);
-  
+export async function sendPaymentReminder(
+  reservationId: string,
+): Promise<void> {
+  console.log(
+    `⏰ [Email Reminder] Sending payment reminder for reservation ${reservationId}`,
+  );
+
   const supabase = getSupabaseAdmin();
-  
+
   try {
     // Get reservation details
     const { data: reservation, error } = await supabase
-      .from('order_reservations')
-      .select(`
+      .from("order_reservations")
+      .select(
+        `
         id,
         quantity,
         total_amount_cents,
@@ -315,44 +354,56 @@ export async function sendPaymentReminder(reservationId: string): Promise<void> 
         payment_link,
         profiles!inner(email, full_name),
         pallets(name)
-      `)
-      .eq('id', reservationId)
-      .eq('status', 'pending_payment')
+      `,
+      )
+      .eq("id", reservationId)
+      .eq("status", "pending_payment")
       .single();
-      
+
     if (error || !reservation) {
-      throw new Error(`Reservation ${reservationId} not found or not pending payment`);
+      throw new Error(
+        `Reservation ${reservationId} not found or not pending payment`,
+      );
     }
-    
+
     if (!reservation.payment_link) {
       throw new Error(`No payment link found for reservation ${reservationId}`);
     }
-    
+
     // Calculate time remaining
     const deadline = new Date(reservation.payment_deadline);
     const now = new Date();
-    const hoursRemaining = Math.max(0, Math.floor((deadline.getTime() - now.getTime()) / (1000 * 60 * 60)));
-    
+    const hoursRemaining = Math.max(
+      0,
+      Math.floor((deadline.getTime() - now.getTime()) / (1000 * 60 * 60)),
+    );
+
     if (hoursRemaining === 0) {
-      throw new Error(`Payment deadline has passed for reservation ${reservationId}`);
+      throw new Error(
+        `Payment deadline has passed for reservation ${reservationId}`,
+      );
     }
-    
+
     // Send reminder email
     await sendPaymentReminderEmail({
       to: reservation.profiles.email,
-      name: reservation.profiles.full_name || 'Friend',
-      palletName: reservation.pallets?.name || 'Your Pallet',
+      name: reservation.profiles.full_name || "Friend",
+      palletName: reservation.pallets?.name || "Your Pallet",
       bottleCount: reservation.quantity,
       totalAmount: (reservation.total_amount_cents / 100).toFixed(2),
       paymentLink: reservation.payment_link,
       hoursRemaining: hoursRemaining,
-      reservationId: reservation.id
+      reservationId: reservation.id,
     });
-    
-    console.log(`✅ [Email Reminder] Payment reminder sent to ${reservation.profiles.email}`);
-    
+
+    console.log(
+      `✅ [Email Reminder] Payment reminder sent to ${reservation.profiles.email}`,
+    );
   } catch (error) {
-    console.error(`❌ [Email Reminder] Error sending payment reminder for reservation ${reservationId}:`, error);
+    console.error(
+      `❌ [Email Reminder] Error sending payment reminder for reservation ${reservationId}:`,
+      error,
+    );
     throw error;
   }
 }
@@ -370,14 +421,14 @@ async function sendPaymentReminderEmail(params: {
   hoursRemaining: number;
   reservationId: string;
 }): Promise<void> {
-  const sgMail = await import('@sendgrid/mail');
+  const sgMail = await import("@sendgrid/mail");
   sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
-  
+
   const msg = {
     to: params.to,
     from: {
       email: process.env.SENDGRID_FROM_EMAIL!,
-      name: process.env.SENDGRID_FROM_NAME || 'PACT'
+      name: process.env.SENDGRID_FROM_NAME || "PACT",
     },
     subject: `⏰ Payment Reminder - ${params.hoursRemaining} hours remaining`,
     html: `
@@ -413,8 +464,8 @@ Please complete your payment to secure your reservation:
 ${params.paymentLink}
 
 If you don't complete payment by the deadline, your reservation will be released.
-    `
+    `,
   };
-  
+
   await sgMail.send(msg);
 }

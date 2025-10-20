@@ -4,17 +4,14 @@ import { stripe, STRIPE_CONFIG } from "@/lib/stripe";
 
 /**
  * GET /api/user/payment-methods
- * 
+ *
  * Returns user's payment methods from Stripe
  */
 export async function GET() {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Check if Stripe is configured
@@ -27,7 +24,9 @@ export async function GET() {
 
     // Find Stripe customer for this user
     const customers = await stripe.customers.list({ limit: 100 });
-    const customer = customers.data.find(c => c.metadata?.user_id === user.id);
+    const customer = customers.data.find(
+      (c) => c.metadata?.user_id === user.id,
+    );
 
     if (!customer) {
       console.log("ℹ️ No Stripe customer found for user:", user.id);
@@ -41,7 +40,7 @@ export async function GET() {
     // Get payment methods for this customer
     const paymentMethods = await stripe.paymentMethods.list({
       customer: customer.id,
-      type: 'card',
+      type: "card",
     });
 
     console.log("💳 Payment methods found:", paymentMethods.data.length);
@@ -64,7 +63,7 @@ export async function GET() {
     console.error("❌ Error fetching payment methods:", error);
     return NextResponse.json(
       { error: "Failed to fetch payment methods" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

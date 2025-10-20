@@ -3,7 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const supabase = getSupabaseAdmin();
@@ -19,7 +19,7 @@ export async function GET(
       console.error("Error fetching user IP events:", error);
       return NextResponse.json(
         { error: "Failed to fetch IP events" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -28,8 +28,7 @@ export async function GET(
     console.error("Error in GET /api/admin/users/[id]/ip-events:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

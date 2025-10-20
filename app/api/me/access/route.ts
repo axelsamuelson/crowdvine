@@ -4,14 +4,14 @@ import { getCurrentUser } from "@/lib/auth";
 
 /**
  * GET /api/me/access
- * 
+ *
  * Check if current user has access to the platform
  * Returns { access: boolean, level: string }
  */
 export async function GET() {
   try {
     const user = await getCurrentUser();
-    
+
     if (!user) {
       return NextResponse.json({
         access: false,
@@ -23,13 +23,13 @@ export async function GET() {
 
     // Check user's membership level
     const { data: membership, error } = await sb
-      .from('user_memberships')
-      .select('level')
-      .eq('user_id', user.id)
+      .from("user_memberships")
+      .select("level")
+      .eq("user_id", user.id)
       .maybeSingle();
 
     if (error) {
-      console.error('Error checking access:', error);
+      console.error("Error checking access:", error);
       return NextResponse.json({
         access: false,
         level: null,
@@ -37,7 +37,7 @@ export async function GET() {
     }
 
     // User has access if they have a membership and are not a requester
-    const hasAccess = membership && membership.level !== 'requester';
+    const hasAccess = membership && membership.level !== "requester";
 
     return NextResponse.json({
       access: hasAccess,

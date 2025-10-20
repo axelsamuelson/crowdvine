@@ -8,12 +8,16 @@ export async function POST(request: Request) {
   try {
     const { producerId, zoneData } = await request.json();
 
-    console.log("📍 Creating/updating zone for producer:", producerId, zoneData);
+    console.log(
+      "📍 Creating/updating zone for producer:",
+      producerId,
+      zoneData,
+    );
 
     if (!zoneData) {
       return NextResponse.json(
         { error: "Zone data is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -57,12 +61,14 @@ export async function POST(request: Request) {
         console.error("Error updating zone:", updateError);
         return NextResponse.json(
           { error: `Failed to update zone: ${updateError.message}` },
-          { status: 500 }
+          { status: 500 },
         );
       }
 
       zoneId = updatedZone.id;
-      console.log(`✅ Updated pickup zone ${zoneId} for producer ${producerId}`);
+      console.log(
+        `✅ Updated pickup zone ${zoneId} for producer ${producerId}`,
+      );
     } else {
       // Check if a zone with this name already exists
       const { data: existingZone } = await supabase
@@ -74,7 +80,10 @@ export async function POST(request: Request) {
 
       if (existingZone) {
         // Use existing zone and update its coordinates
-        console.log("Found existing zone with same name, updating:", existingZone.id);
+        console.log(
+          "Found existing zone with same name, updating:",
+          existingZone.id,
+        );
         const { data: updatedZone, error: updateError } = await supabase
           .from("pallet_zones")
           .update({
@@ -89,7 +98,7 @@ export async function POST(request: Request) {
           console.error("Error updating existing zone:", updateError);
           return NextResponse.json(
             { error: `Failed to update zone: ${updateError.message}` },
-            { status: 500 }
+            { status: 500 },
           );
         }
 
@@ -102,7 +111,7 @@ export async function POST(request: Request) {
           .from("pallet_zones")
           .insert({
             name: zoneData.name,
-            zone_type: 'pickup', // Always pickup for producer zones
+            zone_type: "pickup", // Always pickup for producer zones
             center_lat: zoneData.lat,
             center_lon: zoneData.lon,
             radius_km: 100, // Default 100km radius for producer pickup zones
@@ -114,7 +123,7 @@ export async function POST(request: Request) {
           console.error("Error creating zone:", createError);
           return NextResponse.json(
             { error: `Failed to create zone: ${createError.message}` },
-            { status: 500 }
+            { status: 500 },
           );
         }
 
@@ -124,13 +133,11 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ zoneId });
-
   } catch (error: any) {
     console.error("Zone for producer API error:", error);
     return NextResponse.json(
-      { error: `Internal server error: ${error.message || 'Unknown error'}` },
-      { status: 500 }
+      { error: `Internal server error: ${error.message || "Unknown error"}` },
+      { status: 500 },
     );
   }
 }
-

@@ -38,22 +38,25 @@ export async function GET(request: NextRequest) {
     // Use LEFT JOIN to handle cases where the referenced user might be deleted
     const { data: usedInvitations, error } = await supabase
       .from("invitation_codes")
-      .select(`
+      .select(
+        `
         code, 
         used_at, 
         used_by, 
         current_uses, 
         created_at,
         profiles!invitation_codes_used_by_fkey(email)
-      `)
+      `,
+      )
       .eq("created_by", user.id)
       .gt("current_uses", 0)
       .order("used_at", { ascending: false });
-    
+
     // Filter out invitations where the referenced user no longer exists
-    const validInvitations = usedInvitations?.filter(invitation => 
-      invitation.profiles?.email // Only include invitations where the user still exists
-    ) || [];
+    const validInvitations =
+      usedInvitations?.filter(
+        (invitation) => invitation.profiles?.email, // Only include invitations where the user still exists
+      ) || [];
 
     if (error) {
       console.error("Error fetching used invitations:", error);

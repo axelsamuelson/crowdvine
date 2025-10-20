@@ -1,6 +1,6 @@
 /**
  * PACT Wines - Invite Quota Management
- * 
+ *
  * Handles monthly invite quotas based on membership level
  */
 
@@ -20,9 +20,9 @@ export async function getAvailableInvites(userId: string): Promise<{
 
   try {
     const { data: membership, error } = await sb
-      .from('user_memberships')
-      .select('invite_quota_monthly, invites_used_this_month')
-      .eq('user_id', userId)
+      .from("user_memberships")
+      .select("invite_quota_monthly, invites_used_this_month")
+      .eq("user_id", userId)
       .single();
 
     if (error) throw error;
@@ -31,13 +31,13 @@ export async function getAvailableInvites(userId: string): Promise<{
         available: 0,
         used: 0,
         total: 0,
-        error: 'Membership not found',
+        error: "Membership not found",
       };
     }
 
     const available = Math.max(
       0,
-      membership.invite_quota_monthly - membership.invites_used_this_month
+      membership.invite_quota_monthly - membership.invites_used_this_month,
     );
 
     return {
@@ -46,7 +46,7 @@ export async function getAvailableInvites(userId: string): Promise<{
       total: membership.invite_quota_monthly,
     };
   } catch (error) {
-    console.error('Error getting available invites:', error);
+    console.error("Error getting available invites:", error);
     return {
       available: 0,
       used: 0,
@@ -73,30 +73,30 @@ export async function consumeInviteQuota(userId: string): Promise<{
       return {
         success: false,
         remaining: 0,
-        error: 'No invites remaining this month',
+        error: "No invites remaining this month",
       };
     }
 
     // Get current count first, then increment
     const { data: current, error: fetchError } = await sb
-      .from('user_memberships')
-      .select('invites_used_this_month, invite_quota_monthly')
-      .eq('user_id', userId)
+      .from("user_memberships")
+      .select("invites_used_this_month, invite_quota_monthly")
+      .eq("user_id", userId)
       .single();
 
     if (fetchError) throw fetchError;
 
     // Increment used count
     const newUsedCount = current.invites_used_this_month + 1;
-    
+
     const { data, error } = await sb
-      .from('user_memberships')
+      .from("user_memberships")
       .update({
         invites_used_this_month: newUsedCount,
         updated_at: new Date().toISOString(),
       })
-      .eq('user_id', userId)
-      .select('invite_quota_monthly, invites_used_this_month')
+      .eq("user_id", userId)
+      .select("invite_quota_monthly, invites_used_this_month")
       .single();
 
     if (error) throw error;
@@ -108,7 +108,7 @@ export async function consumeInviteQuota(userId: string): Promise<{
       remaining: Math.max(0, remaining),
     };
   } catch (error) {
-    console.error('Error consuming invite quota:', error);
+    console.error("Error consuming invite quota:", error);
     return {
       success: false,
       remaining: 0,
@@ -128,21 +128,21 @@ export async function resetMonthlyQuotas(): Promise<{
   const sb = getSupabaseAdmin();
 
   try {
-    const { error } = await sb.rpc('reset_monthly_invite_quotas');
+    const { error } = await sb.rpc("reset_monthly_invite_quotas");
 
     if (error) throw error;
 
     // Get count of users reset
     const { count } = await sb
-      .from('user_memberships')
-      .select('*', { count: 'exact', head: true });
+      .from("user_memberships")
+      .select("*", { count: "exact", head: true });
 
     return {
       success: true,
       usersReset: count || 0,
     };
   } catch (error) {
-    console.error('Error resetting monthly quotas:', error);
+    console.error("Error resetting monthly quotas:", error);
     return {
       success: false,
       usersReset: 0,
@@ -163,7 +163,9 @@ export function getTimeUntilReset(): {
   const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
   const diffMs = nextMonth.getTime() - now.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const diffHours = Math.floor(
+    (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+  );
 
   return {
     days: diffDays,
@@ -175,23 +177,25 @@ export function getTimeUntilReset(): {
 /**
  * Check if user needs quota reset (if last_quota_reset is before this month)
  */
-export async function checkAndResetQuotaIfNeeded(userId: string): Promise<boolean> {
+export async function checkAndResetQuotaIfNeeded(
+  userId: string,
+): Promise<boolean> {
   const sb = getSupabaseAdmin();
 
   try {
     const { data: membership, error } = await sb
-      .from('user_memberships')
-      .select('last_quota_reset')
-      .eq('user_id', userId)
+      .from("user_memberships")
+      .select("last_quota_reset")
+      .eq("user_id", userId)
       .maybeSingle();
 
     if (error) {
-      console.error('Error fetching membership for quota reset:', error);
+      console.error("Error fetching membership for quota reset:", error);
       return false;
     }
-    
+
     if (!membership) {
-      console.warn('No membership found for user:', userId);
+      console.warn("No membership found for user:", userId);
       return false;
     }
 
@@ -199,22 +203,22 @@ export async function checkAndResetQuotaIfNeeded(userId: string): Promise<boolea
     const currentMonth = new Date(
       new Date().getFullYear(),
       new Date().getMonth(),
-      1
+      1,
     );
 
     // If last reset was before this month, reset now
     if (lastReset < currentMonth) {
       const { error: updateError } = await sb
-        .from('user_memberships')
+        .from("user_memberships")
         .update({
           invites_used_this_month: 0,
           last_quota_reset: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
-        .eq('user_id', userId);
+        .eq("user_id", userId);
 
       if (updateError) {
-        console.error('Error updating quota reset:', updateError);
+        console.error("Error updating quota reset:", updateError);
         return false;
       }
       return true;
@@ -222,8 +226,7 @@ export async function checkAndResetQuotaIfNeeded(userId: string): Promise<boolea
 
     return false;
   } catch (error) {
-    console.error('Error checking/resetting quota:', error);
+    console.error("Error checking/resetting quota:", error);
     return false;
   }
 }
-

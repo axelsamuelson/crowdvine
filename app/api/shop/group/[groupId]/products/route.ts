@@ -3,7 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ groupId: string }> }
+  { params }: { params: Promise<{ groupId: string }> },
 ) {
   const { searchParams } = new URL(request.url);
   const limit = searchParams.get("limit")
@@ -34,7 +34,8 @@ export async function GET(
     // Fetch wines from all producers in the group
     const { data: wines, error: winesError } = await sb
       .from("wines")
-      .select(`
+      .select(
+        `
         id,
         wine_name,
         vintage,
@@ -47,7 +48,8 @@ export async function GET(
         description,
         description_html,
         producers(name, region)
-      `)
+      `,
+      )
       .in("producer_id", producerIds)
       .order("created_at", { ascending: false })
       .limit(limit);
@@ -129,4 +131,3 @@ export async function GET(
     return NextResponse.json([]);
   }
 }
-

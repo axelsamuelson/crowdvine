@@ -44,29 +44,29 @@ export async function GET() {
     // Transform the data to match the expected format
     const transformedReservations = await Promise.all(
       reservations.map(async (reservation) => {
-            // Get pallet name and capacity based on zones
-            let palletName = "Unassigned Pallet";
-            let palletId = null;
-            let palletCapacity = null;
-            let palletIsComplete = false;
-            let palletStatus = null;
+        // Get pallet name and capacity based on zones
+        let palletName = "Unassigned Pallet";
+        let palletId = null;
+        let palletCapacity = null;
+        let palletIsComplete = false;
+        let palletStatus = null;
 
-            if (reservation.pickup_zone_id && reservation.delivery_zone_id) {
-              const { data: pallet } = await supabase
-                .from("pallets")
-                .select("id, name, bottle_capacity, is_complete, status")
-                .eq("pickup_zone_id", reservation.pickup_zone_id)
-                .eq("delivery_zone_id", reservation.delivery_zone_id)
-                .single();
+        if (reservation.pickup_zone_id && reservation.delivery_zone_id) {
+          const { data: pallet } = await supabase
+            .from("pallets")
+            .select("id, name, bottle_capacity, is_complete, status")
+            .eq("pickup_zone_id", reservation.pickup_zone_id)
+            .eq("delivery_zone_id", reservation.delivery_zone_id)
+            .single();
 
-              if (pallet) {
-                palletName = pallet.name;
-                palletId = pallet.id;
-                palletCapacity = pallet.bottle_capacity;
-                palletIsComplete = pallet.is_complete || false;
-                palletStatus = pallet.status;
-              }
-            }
+          if (pallet) {
+            palletName = pallet.name;
+            palletId = pallet.id;
+            palletCapacity = pallet.bottle_capacity;
+            palletIsComplete = pallet.is_complete || false;
+            palletStatus = pallet.status;
+          }
+        }
 
         // Get delivery address instead of zone names
         let deliveryAddress = "No delivery address";
@@ -123,23 +123,23 @@ export async function GET() {
           0,
         );
 
-            return {
-              id: reservation.id,
-              order_id: reservation.order_id || reservation.id,
-              status: reservation.status,
-              created_at: reservation.created_at,
-              pallet_id: palletId,
-              pallet_name: palletName,
-              pallet_capacity: palletCapacity,
-              pallet_is_complete: palletIsComplete,
-              pallet_status: palletStatus,
-              delivery_address: deliveryAddress,
-              total_cost_cents: totalCostCents,
-              items: itemsWithCosts,
-              payment_status: reservation.payment_status,
-              payment_link: reservation.payment_link,
-              payment_deadline: reservation.payment_deadline,
-            };
+        return {
+          id: reservation.id,
+          order_id: reservation.order_id || reservation.id,
+          status: reservation.status,
+          created_at: reservation.created_at,
+          pallet_id: palletId,
+          pallet_name: palletName,
+          pallet_capacity: palletCapacity,
+          pallet_is_complete: palletIsComplete,
+          pallet_status: palletStatus,
+          delivery_address: deliveryAddress,
+          total_cost_cents: totalCostCents,
+          items: itemsWithCosts,
+          payment_status: reservation.payment_status,
+          payment_link: reservation.payment_link,
+          payment_deadline: reservation.payment_deadline,
+        };
       }),
     );
 

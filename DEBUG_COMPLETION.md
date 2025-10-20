@@ -1,6 +1,7 @@
 # Debug Pallet Completion
 
 ## Problem
+
 Pallet shows 786/720 bottles (109%) but `wasCompleted = false`
 
 ## Step 1: Check Pallet Status in Supabase
@@ -8,26 +9,27 @@ Pallet shows 786/720 bottles (109%) but `wasCompleted = false`
 Run this SQL:
 
 ```sql
-SELECT 
-  id, 
-  name, 
+SELECT
+  id,
+  name,
   status,
   is_complete,
   completed_at,
   payment_deadline,
   bottle_capacity
-FROM pallets 
+FROM pallets
 WHERE id = '3985cbfe-178f-4fa1-a897-17183a1f18db';
 ```
 
 Expected:
+
 - `is_complete` should be `FALSE` (if you ran the reset)
 - `status` should be `'open'`
 
 ## Step 2: Check Reservations Status
 
 ```sql
-SELECT 
+SELECT
   id,
   status,
   payment_status,
@@ -38,12 +40,13 @@ ORDER BY created_at;
 ```
 
 Expected:
+
 - All should have `status` IN ('placed', 'pending_payment', 'confirmed')
 
 ## Step 3: Check Order Reservation Items
 
 ```sql
-SELECT 
+SELECT
   ori.id,
   ori.reservation_id,
   ori.quantity,
@@ -55,6 +58,7 @@ WHERE r.pallet_id = '3985cbfe-178f-4fa1-a897-17183a1f18db';
 ```
 
 Expected:
+
 - Should see total 786 bottles across all items
 
 ## Step 4: Check Vercel Logs
@@ -64,6 +68,7 @@ vercel logs pactwines.com --since 5m
 ```
 
 Look for:
+
 - `🔍 [Pallet Completion] Checking pallet`
 - `📊 [Pallet Completion] Pallet X: 786/720 bottles (109.2%)`
 - `🎉 [Pallet Completion] Pallet X is complete!`
@@ -79,7 +84,7 @@ BEGIN;
 
 -- Mark pallet complete
 UPDATE pallets
-SET 
+SET
   status = 'complete',
   is_complete = TRUE,
   completed_at = NOW(),
@@ -88,7 +93,7 @@ WHERE id = '3985cbfe-178f-4fa1-a897-17183a1f18db';
 
 -- Update reservations
 UPDATE order_reservations
-SET 
+SET
   status = 'pending_payment',
   payment_status = 'pending',
   payment_deadline = NOW() + INTERVAL '7 days'
@@ -97,7 +102,7 @@ WHERE pallet_id = '3985cbfe-178f-4fa1-a897-17183a1f18db'
 
 -- Verify
 SELECT * FROM pallets WHERE id = '3985cbfe-178f-4fa1-a897-17183a1f18db';
-SELECT id, status, payment_status FROM order_reservations 
+SELECT id, status, payment_status FROM order_reservations
 WHERE pallet_id = '3985cbfe-178f-4fa1-a897-17183a1f18db';
 
 COMMIT;
@@ -113,7 +118,9 @@ If completion worked but emails didn't send, create payment links manually:
 ## Common Issues
 
 ### Issue 1: is_complete already TRUE
+
 **Solution:** Run reset SQL again
+
 ```sql
 UPDATE pallets
 SET is_complete = FALSE, status = 'open', completed_at = NULL, payment_deadline = NULL
@@ -121,7 +128,9 @@ WHERE id = '3985cbfe-178f-4fa1-a897-17183a1f18db';
 ```
 
 ### Issue 2: Reservations have wrong status
+
 **Solution:** Fix reservation status
+
 ```sql
 UPDATE order_reservations
 SET status = 'placed', payment_status = 'pending'
@@ -130,10 +139,12 @@ WHERE pallet_id = '3985cbfe-178f-4fa1-a897-17183a1f18db'
 ```
 
 ### Issue 3: SendGrid not configured
+
 **Check:** `process.env.SENDGRID_API_KEY` is set in Vercel
 **Check:** `process.env.SENDGRID_FROM_EMAIL` is set in Vercel
 
 ### Issue 4: Stripe not configured
+
 **Check:** `process.env.STRIPE_SECRET_KEY` is set in Vercel
 **Check:** Key has permissions to create Checkout Sessions
 
@@ -155,4 +166,3 @@ WHERE pallet_id = '3985cbfe-178f-4fa1-a897-17183a1f18db'
 1. Run Step 1 SQL and share results
 2. Check Vercel logs for errors
 3. If needed, manually trigger completion (Step 5)
-

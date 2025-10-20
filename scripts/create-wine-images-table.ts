@@ -15,13 +15,15 @@ async function createWineImagesTable() {
   try {
     // First, let's check if the table already exists
     const { data: tables, error: tablesError } = await supabase
-      .from('information_schema.tables')
-      .select('table_name')
-      .eq('table_schema', 'public')
-      .eq('table_name', 'wine_images');
+      .from("information_schema.tables")
+      .select("table_name")
+      .eq("table_schema", "public")
+      .eq("table_name", "wine_images");
 
     if (tablesError) {
-      console.log("Could not check existing tables, proceeding with creation...");
+      console.log(
+        "Could not check existing tables, proceeding with creation...",
+      );
     } else if (tables && tables.length > 0) {
       console.log("✅ wine_images table already exists!");
       return;
@@ -29,17 +31,19 @@ async function createWineImagesTable() {
 
     // Try to create the table using a different approach
     console.log("Attempting to create wine_images table...");
-    
+
     // We'll use a simple approach - try to insert a test record first
     // If it fails, we know the table doesn't exist
     const { error: testError } = await supabase
-      .from('wine_images')
-      .select('id')
+      .from("wine_images")
+      .select("id")
       .limit(1);
 
-    if (testError && testError.code === 'PGRST116') {
+    if (testError && testError.code === "PGRST116") {
       console.log("❌ Table 'wine_images' does not exist.");
-      console.log("\n📝 Please create the table manually in Supabase dashboard:");
+      console.log(
+        "\n📝 Please create the table manually in Supabase dashboard:",
+      );
       console.log("\n1. Go to your Supabase project dashboard");
       console.log("2. Navigate to SQL Editor");
       console.log("3. Run the following SQL:");
@@ -89,18 +93,20 @@ CREATE TRIGGER wine_images_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_wine_images_updated_at();
       `);
-      console.log("\n4. After creating the table, run this script again to verify it works.");
+      console.log(
+        "\n4. After creating the table, run this script again to verify it works.",
+      );
     } else if (testError) {
       console.error("❌ Unexpected error:", testError);
     } else {
       console.log("✅ wine_images table exists and is accessible!");
-      
+
       // Test if we can read from it
       const { data: images, error: readError } = await supabase
-        .from('wine_images')
-        .select('id, wine_id, image_path')
+        .from("wine_images")
+        .select("id, wine_id, image_path")
         .limit(5);
-      
+
       if (readError) {
         console.error("❌ Error reading from wine_images:", readError);
       } else {
@@ -111,7 +117,6 @@ CREATE TRIGGER wine_images_updated_at
         }
       }
     }
-
   } catch (error) {
     console.error("❌ Error:", error);
   }

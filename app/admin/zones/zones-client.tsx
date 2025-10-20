@@ -12,13 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DeleteZoneButton } from "@/components/admin/delete-zone-button";
-import {
-  MapPin,
-  Package,
-  Navigation,
-  Globe,
-  Filter,
-} from "lucide-react";
+import { MapPin, Package, Navigation, Globe, Filter } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -60,7 +54,7 @@ export function ZonesClient({ zones }: ZonesClientProps) {
 
   // Get unique countries for filter
   const uniqueCountries = Array.from(
-    new Set(zones.map((z) => z.country_code).filter(Boolean))
+    new Set(zones.map((z) => z.country_code).filter(Boolean)),
   );
 
   return (
@@ -80,7 +74,10 @@ export function ZonesClient({ zones }: ZonesClientProps) {
                 <label className="text-xs text-gray-600 font-medium">
                   Zone Type
                 </label>
-                <Select value={zoneTypeFilter} onValueChange={setZoneTypeFilter}>
+                <Select
+                  value={zoneTypeFilter}
+                  onValueChange={setZoneTypeFilter}
+                >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="All types" />
                   </SelectTrigger>
@@ -98,7 +95,10 @@ export function ZonesClient({ zones }: ZonesClientProps) {
                   <label className="text-xs text-gray-600 font-medium">
                     Country
                   </label>
-                  <Select value={countryFilter} onValueChange={setCountryFilter}>
+                  <Select
+                    value={countryFilter}
+                    onValueChange={setCountryFilter}
+                  >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="All countries" />
                     </SelectTrigger>
@@ -191,7 +191,9 @@ export function ZonesClient({ zones }: ZonesClientProps) {
                 <div className="flex items-center gap-2 text-sm">
                   <Navigation className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground">Radius:</span>
-                  <span className="font-medium">{zone.radius_km} kilometers</span>
+                  <span className="font-medium">
+                    {zone.radius_km} kilometers
+                  </span>
                 </div>
                 {zone.country_code && (
                   <div className="flex items-center gap-2 text-sm">
@@ -254,7 +256,9 @@ export function ZonesClient({ zones }: ZonesClientProps) {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Filter className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-medium mb-2">No zones match your filters</h3>
+            <h3 className="text-lg font-medium mb-2">
+              No zones match your filters
+            </h3>
             <p className="text-muted-foreground mb-4 text-center max-w-md">
               Try adjusting your filters to see more zones.
             </p>
@@ -273,4 +277,3 @@ export function ZonesClient({ zones }: ZonesClientProps) {
     </>
   );
 }
-

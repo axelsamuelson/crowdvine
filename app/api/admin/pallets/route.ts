@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 export async function GET() {
   try {
     const sb = getSupabaseAdmin();
-    
+
     // Get pallets with full data
     const { data, error } = await sb
       .from("pallets")
@@ -46,7 +46,8 @@ export async function GET() {
     // Transform data to include calculated fields
     const transformedData = data.map((pallet) => {
       const totalBookedBottles =
-        pallet.bookings?.reduce((sum, booking) => sum + booking.quantity, 0) || 0;
+        pallet.bookings?.reduce((sum, booking) => sum + booking.quantity, 0) ||
+        0;
       const remainingBottles = pallet.bottle_capacity - totalBookedBottles;
       const completionPercentage =
         (totalBookedBottles / pallet.bottle_capacity) * 100;

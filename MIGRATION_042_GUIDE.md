@@ -1,7 +1,9 @@
 # Migration 042: Progression Buffs & Rewards System
 
 ## Overview
+
 This migration adds support for the PACT Membership Ladder v2 progression rewards system, including:
+
 - Temporary progression buffs (percentage discounts)
 - Configurable rewards per level segment
 - Helper functions for buff management
@@ -33,14 +35,17 @@ This migration adds support for the PACT Membership Ladder v2 progression reward
 The migration inserts default progression rewards:
 
 **Basic → Bronze (0-4 IP):**
+
 - At 2 IP: +0.5% buff
 - At 4 IP: +0.5% buff + "PACT Initiate" badge
 
 **Bronze → Silver (5-14 IP):**
+
 - At 10 IP: Early Drop Access Token
 - At 14 IP: Free service fee (one-time)
 
 **Silver → Gold (15-34 IP):**
+
 - At 20, 25, 30 IP: +1% buff each
 - At 30 IP: "Silver Collector Pack" badge
 - At 35 IP: Gold unlock celebration
@@ -94,8 +99,8 @@ After running the migration, verify everything is working:
 
 ```sql
 -- Should return 2 tables
-SELECT table_name 
-FROM information_schema.tables 
+SELECT table_name
+FROM information_schema.tables
 WHERE table_name IN ('user_progression_buffs', 'progression_rewards');
 ```
 
@@ -109,6 +114,7 @@ ORDER BY level_segment, sort_order;
 ```
 
 Expected output:
+
 ```
 basic-bronze    | 2  | buff_percentage      | Progress bonus: +0.5% on next reservation
 basic-bronze    | 4  | buff_percentage      | Progress bonus: +0.5% on next reservation
@@ -136,8 +142,8 @@ SELECT * FROM get_progression_rewards_for_segment('basic-bronze');
 
 ```sql
 -- Should return policies for both tables
-SELECT tablename, policyname 
-FROM pg_policies 
+SELECT tablename, policyname
+FROM pg_policies
 WHERE tablename IN ('user_progression_buffs', 'progression_rewards');
 ```
 
@@ -172,19 +178,24 @@ After running this migration:
 ## Troubleshooting
 
 ### Error: "relation already exists"
+
 The tables already exist. You can either:
+
 - Skip this migration (already run)
 - Drop the existing tables and re-run (use rollback SQL above)
 
 ### Error: "permission denied"
+
 You need service_role or postgres role to run this migration. Make sure you're using the correct credentials.
 
 ### Error: "function already exists"
+
 The migration uses `CREATE OR REPLACE` for functions, so this shouldn't happen. If it does, try dropping functions manually first.
 
 ## Questions?
 
 If you encounter issues:
+
 1. Check Supabase logs in Dashboard → Database → Logs
 2. Verify your database connection
 3. Ensure you have proper permissions (service_role or postgres)
@@ -195,4 +206,3 @@ If you encounter issues:
 **Estimated Time:** ~2-3 seconds
 **Rollback:** Safe (reversible)
 **Breaking Changes:** None
-

@@ -1,6 +1,6 @@
 /**
  * Test Membership Ladder System
- * 
+ *
  * Run this script to verify the membership system is working correctly
  * Usage: npx tsx scripts/test-membership-system.ts
  */
@@ -12,7 +12,7 @@ dotenv.config({ path: ".env.local" });
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
 
 async function testMembershipSystem() {
@@ -21,8 +21,8 @@ async function testMembershipSystem() {
   // Test 1: Check if tables exist
   console.log("1️⃣ Checking database tables...");
   const { data: memberships, error: membershipError } = await supabase
-    .from('user_memberships')
-    .select('*')
+    .from("user_memberships")
+    .select("*")
     .limit(1);
 
   if (membershipError) {
@@ -35,9 +35,13 @@ async function testMembershipSystem() {
   // Test 2: Check if functions exist
   console.log("2️⃣ Checking database functions...");
   try {
-    const { data, error } = await supabase.rpc('get_invite_quota_for_level', { lvl: 'basic' });
+    const { data, error } = await supabase.rpc("get_invite_quota_for_level", {
+      lvl: "basic",
+    });
     if (error) throw error;
-    console.log(`✅ get_invite_quota_for_level() works (Basic quota: ${data})\n`);
+    console.log(
+      `✅ get_invite_quota_for_level() works (Basic quota: ${data})\n`,
+    );
   } catch (error) {
     console.error("❌ Database functions not found!");
     console.error("   Run migration 034_membership_system.sql first");
@@ -47,8 +51,8 @@ async function testMembershipSystem() {
   // Test 3: Count users by level
   console.log("3️⃣ Counting users by membership level...");
   const { data: levelCounts } = await supabase
-    .from('user_memberships')
-    .select('level');
+    .from("user_memberships")
+    .select("level");
 
   const counts = levelCounts?.reduce((acc: any, m) => {
     acc[m.level] = (acc[m.level] || 0) + 1;
@@ -64,9 +68,9 @@ async function testMembershipSystem() {
   // Test 4: Check perks configuration
   console.log("4️⃣ Checking membership perks...");
   const { data: perks, error: perksError } = await supabase
-    .from('membership_perks')
-    .select('level, COUNT(*)')
-    .group('level');
+    .from("membership_perks")
+    .select("level, COUNT(*)")
+    .group("level");
 
   if (!perksError && perks) {
     console.log("   Perks per level:");
@@ -79,8 +83,8 @@ async function testMembershipSystem() {
   // Test 5: Sample user check
   console.log("5️⃣ Checking sample user...");
   const { data: sampleUser } = await supabase
-    .from('user_memberships')
-    .select('*, profiles!user_id(email)')
+    .from("user_memberships")
+    .select("*, profiles!user_id(email)")
     .limit(1)
     .single();
 
@@ -89,22 +93,26 @@ async function testMembershipSystem() {
     console.log(`   - Email: ${sampleUser.profiles?.email}`);
     console.log(`   - Level: ${sampleUser.level}`);
     console.log(`   - Impact Points: ${sampleUser.impact_points}`);
-    console.log(`   - Invite Quota: ${sampleUser.invites_used_this_month}/${sampleUser.invite_quota_monthly}`);
+    console.log(
+      `   - Invite Quota: ${sampleUser.invites_used_this_month}/${sampleUser.invite_quota_monthly}`,
+    );
   }
   console.log();
 
   // Test 6: IP Events
   console.log("6️⃣ Checking IP events...");
   const { data: events, count } = await supabase
-    .from('impact_point_events')
-    .select('*', { count: 'exact' })
+    .from("impact_point_events")
+    .select("*", { count: "exact" })
     .limit(5);
 
   console.log(`   Total IP events: ${count}`);
   if (events && events.length > 0) {
     console.log("   Recent events:");
     events.forEach((e: any) => {
-      console.log(`   - ${e.event_type}: +${e.points_earned} IP (${e.description})`);
+      console.log(
+        `   - ${e.event_type}: +${e.points_earned} IP (${e.description})`,
+      );
     });
   }
   console.log();
@@ -113,15 +121,20 @@ async function testMembershipSystem() {
   console.log("7️⃣ Testing IP award function...");
   if (sampleUser?.user_id) {
     try {
-      const { data: newTotal, error } = await supabase.rpc('award_impact_points', {
-        p_user_id: sampleUser.user_id,
-        p_event_type: 'manual_adjustment',
-        p_points: 0,
-        p_description: 'Test event (no points awarded)',
-      });
+      const { data: newTotal, error } = await supabase.rpc(
+        "award_impact_points",
+        {
+          p_user_id: sampleUser.user_id,
+          p_event_type: "manual_adjustment",
+          p_points: 0,
+          p_description: "Test event (no points awarded)",
+        },
+      );
 
       if (error) throw error;
-      console.log(`✅ award_impact_points() works (Current total: ${newTotal} IP)\n`);
+      console.log(
+        `✅ award_impact_points() works (Current total: ${newTotal} IP)\n`,
+      );
     } catch (error) {
       console.error("❌ award_impact_points() failed:", error);
     }
@@ -132,7 +145,9 @@ async function testMembershipSystem() {
   console.log("─".repeat(50));
   console.log(`✅ Database schema: OK`);
   console.log(`✅ Functions: OK`);
-  console.log(`✅ Users migrated: ${Object.values(counts || {}).reduce((a: any, b: any) => a + b, 0)}`);
+  console.log(
+    `✅ Users migrated: ${Object.values(counts || {}).reduce((a: any, b: any) => a + b, 0)}`,
+  );
   console.log(`✅ IP events: ${count || 0}`);
   console.log("─".repeat(50));
   console.log("\n🎉 Membership system is ready!\n");
@@ -144,4 +159,3 @@ async function testMembershipSystem() {
 }
 
 testMembershipSystem().catch(console.error);
-

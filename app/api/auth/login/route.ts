@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 
 /**
  * POST /api/auth/login
- * 
+ *
  * Authenticate user with email and password
  */
 export async function POST(request: Request) {
@@ -14,12 +14,12 @@ export async function POST(request: Request) {
     if (!email || !password) {
       return NextResponse.json(
         { error: "Email and password are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const cookieStore = await cookies();
-    
+
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
             cookieStore.set(name, "", { ...options, maxAge: 0 });
           },
         },
-      }
+      },
     );
 
     // Sign in with Supabase Auth
@@ -45,15 +45,12 @@ export async function POST(request: Request) {
     if (error) {
       return NextResponse.json(
         { error: error.message || "Invalid email or password" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     if (!data.user) {
-      return NextResponse.json(
-        { error: "Login failed" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Login failed" }, { status: 401 });
     }
 
     return NextResponse.json({
@@ -67,7 +64,7 @@ export async function POST(request: Request) {
     console.error("Login error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -7,6 +7,7 @@
 ### 1. Hämta Live Keys från Stripe
 
 **I Stripe Dashboard:**
+
 1. Gå till https://dashboard.stripe.com
 2. Växla till **"Live mode"** (toggle högst upp till höger)
 3. Gå till **Developers → API keys**
@@ -19,6 +20,7 @@
 ### 2. Uppdatera Vercel Environment Variables
 
 **I Vercel Dashboard:**
+
 1. Gå till ditt projekt → **Settings → Environment Variables**
 2. Uppdatera dessa variabler:
 
@@ -26,7 +28,7 @@
 STRIPE_SECRET_KEY
 → Klistra in din sk_live_... key
 
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY  
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 → Klistra in din pk_live_... key
 ```
 
@@ -38,12 +40,14 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 ### 3. Redeploya
 
 **Option A - Auto redeploy:**
+
 ```bash
 git commit --allow-empty -m "Update Stripe to live mode"
 git push origin main
 ```
 
 **Option B - Manual redeploy:**
+
 1. Vercel Dashboard → Deployments
 2. Klicka på senaste deployment → **... → Redeploy**
 
@@ -79,6 +83,7 @@ git push origin main
 ## ✅ Vad Som Fungerar Nu
 
 ### Payment Methods (Sparande av kort)
+
 - ✅ Användare kan lägga till betalkort
 - ✅ Kort sparas säkert i Stripe
 - ✅ PCI-compliant (Stripe hanterar kortdata)
@@ -87,6 +92,7 @@ git push origin main
 - ✅ Väljs i checkout
 
 ### Stripe Integration
+
 - ✅ Stripe SDK v18.5.0
 - ✅ SetupIntents (kortinsamling)
 - ✅ Customer creation
@@ -97,20 +103,24 @@ git push origin main
 ## ⚠️ Vad Som INTE Är Implementerat (Än)
 
 ### Betalningar (Charging)
+
 - ❌ Inga betalningar tas ut automatiskt
 - ❌ Reservationer skapas men kort debiterats inte
 - ❌ PaymentIntents inte implementerat
 
 **Nuvarande beteende:**
+
 1. User lägger till kort → ✅ Sparat
 2. User gör reservation → ✅ Reservation skapad
 3. Kort debiteras? → ❌ NEJ
 
 **Om du vill debitera:**
+
 - Behöver implementera PaymentIntent
 - Kan göra det senare om du vill
 
 ### Webhooks
+
 - ❌ Ingen webhook endpoint
 - ❌ Ingen bekräftelse från Stripe events
 - ❌ Kan inte ta emot payment_succeeded events
@@ -122,6 +132,7 @@ git push origin main
 Innan du tar emot riktiga betalningar:
 
 ### Vercel Environment Variables
+
 ```
 ✅ STRIPE_SECRET_KEY börjar med sk_live_ (inte sk_test_)
 ✅ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY börjar med pk_live_
@@ -129,12 +140,14 @@ Innan du tar emot riktiga betalningar:
 ```
 
 ### Stripe Dashboard Settings
+
 1. **Business Details** fylld i (företagsnamn, adress)
 2. **Bank Account** kopplad (för utbetalningar)
 3. **Tax ID** tillagt (om applicable)
 4. **Email Notifications** aktiverade
 
 ### Testing Före Live
+
 ```
 ⚠️ Testa med test-kort först (4242...)
 ⚠️ Verifiera kort sparas korrekt
@@ -147,11 +160,13 @@ Innan du tar emot riktiga betalningar:
 ## 📊 Monitoring
 
 ### Daglig Check:
+
 - Stripe Dashboard → Payments (se misslyckade)
 - Vercel → Functions → Errors
 - User-rapporterade problem
 
 ### Veckovis:
+
 - Antal nya customers
 - Sparade payment methods
 - API error rate
@@ -161,6 +176,7 @@ Innan du tar emot riktiga betalningar:
 ## 🆘 Troubleshooting
 
 ### "Stripe is not configured"
+
 ```
 → Vercel env vars inte satta
 → Kolla STRIPE_SECRET_KEY finns
@@ -168,6 +184,7 @@ Innan du tar emot riktiga betalningar:
 ```
 
 ### Kort sparas inte
+
 ```
 → Kolla browser console
 → Kolla Stripe Dashboard → Logs
@@ -175,6 +192,7 @@ Innan du tar emot riktiga betalningar:
 ```
 
 ### 401/403 Errors
+
 ```
 → User inte autentiserad
 → Stripe customer inte skapad
@@ -186,6 +204,7 @@ Innan du tar emot riktiga betalningar:
 ## ✨ Sammanfattning
 
 **Nuläge:**
+
 - ✅ Stripe Live aktiverat
 - ✅ Kortinsamling fungerar
 - ✅ Kunder skapas i Stripe
@@ -193,12 +212,14 @@ Innan du tar emot riktiga betalningar:
 - ⚠️ Betalningar tas inte ut (inte implementerat)
 
 **Nästa Steg:**
+
 1. Uppdatera Vercel med live keys
 2. Redeploya
 3. Testa kortinsamling
 4. Verifiera i Stripe Dashboard
 
 **Senare (Om ni vill ta betalt):**
+
 - Implementera PaymentIntent
 - Lägg till webhook handler
 - Testa charging-flöde
@@ -208,6 +229,7 @@ Innan du tar emot riktiga betalningar:
 ## Hjälp Behövs?
 
 Om något inte fungerar:
+
 1. Dela Vercel logs (Functions tab)
 2. Dela Stripe logs (Dashboard → Developers → Logs)
 3. Dela browser console errors
@@ -216,4 +238,3 @@ Om något inte fungerar:
 **Din Stripe-integration är redo för live mode kortinsamling!** 🎉
 
 Vill du att jag implementerar faktisk betalning (charging) också, eller räcker det med kortinsamling för nu?
-

@@ -10,11 +10,11 @@ interface MemberPriceProps {
   showBadge?: boolean;
 }
 
-export function MemberPrice({ 
-  amount, 
-  currencyCode, 
+export function MemberPrice({
+  amount,
+  currencyCode,
   className = "",
-  showBadge = false 
+  showBadge = false,
 }: MemberPriceProps) {
   const { discountPercentage, level, loading } = useMembership();
 
@@ -23,24 +23,28 @@ export function MemberPrice({
     return <span className={`${className} opacity-50`}>—</span>;
   }
 
-  const originalPrice = typeof amount === 'string' ? parseFloat(amount) : amount;
+  const originalPrice =
+    typeof amount === "string" ? parseFloat(amount) : amount;
   const hasDiscount = discountPercentage > 0;
-  const discountedPrice = hasDiscount 
-    ? originalPrice * (1 - discountPercentage / 100) 
+  const discountedPrice = hasDiscount
+    ? originalPrice * (1 - discountPercentage / 100)
     : originalPrice;
 
   if (!hasDiscount) {
     return (
-      <span className={className}>
-        {formatPrice(amount, currencyCode)}
-      </span>
+      <span className={className}>{formatPrice(amount, currencyCode)}</span>
     );
   }
 
   // Get level name for badge
-  const levelName = level === 'guld' ? 'Gold' : 
-                    level === 'silver' ? 'Silver' : 
-                    level === 'brons' ? 'Bronze' : '';
+  const levelName =
+    level === "guld"
+      ? "Gold"
+      : level === "silver"
+        ? "Silver"
+        : level === "brons"
+          ? "Bronze"
+          : "";
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
@@ -63,4 +67,3 @@ export function MemberPrice({
     </div>
   );
 }
-

@@ -9,7 +9,9 @@ interface OnboardingContextType {
   hideWelcome: () => void;
 }
 
-const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
+const OnboardingContext = createContext<OnboardingContextType | undefined>(
+  undefined,
+);
 
 export function useOnboarding() {
   const context = useContext(OnboardingContext);
@@ -19,7 +21,11 @@ export function useOnboarding() {
   return context;
 }
 
-export function OnboardingProvider({ children }: { children: React.ReactNode }) {
+export function OnboardingProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [isWelcomeOpen, setIsWelcomeOpen] = useState(false);
   const [hasChecked, setHasChecked] = useState(false);
   const pathname = usePathname();
@@ -27,17 +33,18 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     // Only check once when component mounts
     if (hasChecked) return;
-    
+
     // Don't show on auth pages or invite pages
-    const isAuthPage = pathname?.startsWith("/log-in") || 
-                       pathname?.startsWith("/signup") || 
-                       pathname?.startsWith("/access-request") ||
-                       pathname?.startsWith("/access-pending") ||
-                       pathname?.startsWith("/i/") ||
-                       pathname?.startsWith("/c/") ||
-                       pathname?.startsWith("/invite-signup") ||
-                       pathname?.startsWith("/code-signup");
-    
+    const isAuthPage =
+      pathname?.startsWith("/log-in") ||
+      pathname?.startsWith("/signup") ||
+      pathname?.startsWith("/access-request") ||
+      pathname?.startsWith("/access-pending") ||
+      pathname?.startsWith("/i/") ||
+      pathname?.startsWith("/c/") ||
+      pathname?.startsWith("/invite-signup") ||
+      pathname?.startsWith("/code-signup");
+
     if (isAuthPage) {
       setHasChecked(true);
       return;
@@ -49,20 +56,24 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
         console.log("🎓 [Onboarding] Checking onboarding status...");
         const response = await fetch("/api/user/onboarding-seen");
         console.log("🎓 [Onboarding] Response status:", response.status);
-        
+
         if (response.ok) {
           const data = await response.json();
           console.log("🎓 [Onboarding] Data:", data);
-          
+
           if (!data.onboardingSeen) {
-            console.log("🎓 [Onboarding] User has NOT seen onboarding, showing modal in 200ms");
+            console.log(
+              "🎓 [Onboarding] User has NOT seen onboarding, showing modal in 200ms",
+            );
             // Small delay to ensure page is loaded
             setTimeout(() => {
               console.log("🎓 [Onboarding] Opening modal now");
               setIsWelcomeOpen(true);
             }, 200);
           } else {
-            console.log("🎓 [Onboarding] User has already seen onboarding, skipping modal");
+            console.log(
+              "🎓 [Onboarding] User has already seen onboarding, skipping modal",
+            );
           }
         } else {
           console.error("🎓 [Onboarding] Response not OK:", response.status);
@@ -75,7 +86,10 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
           }
         }
       } catch (error) {
-        console.error("🎓 [Onboarding] Error checking onboarding status:", error);
+        console.error(
+          "🎓 [Onboarding] Error checking onboarding status:",
+          error,
+        );
       } finally {
         setHasChecked(true);
       }
@@ -90,7 +104,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
 
   const hideWelcome = async () => {
     setIsWelcomeOpen(false);
-    
+
     // Mark as seen in database
     try {
       await fetch("/api/user/onboarding-seen", {
@@ -108,4 +122,3 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     </OnboardingContext.Provider>
   );
 }
-

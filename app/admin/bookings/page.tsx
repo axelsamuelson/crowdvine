@@ -48,14 +48,14 @@ export default function BookingsPage() {
       // Fetch bookings
       const bookingsResponse = await fetch("/api/admin/bookings");
       const bookingsData = await bookingsResponse.json();
-      
+
       console.log("📦 [Bookings Page] Received data:", {
         bookingsCount: bookingsData.bookings?.length || 0,
         reservationsCount: bookingsData.reservations?.length || 0,
         sampleBooking: bookingsData.bookings?.[0],
-        sampleReservation: bookingsData.reservations?.[0]
+        sampleReservation: bookingsData.reservations?.[0],
       });
-      
+
       setBookings(bookingsData.bookings || []);
       setReservations(bookingsData.reservations || []);
 
@@ -335,7 +335,7 @@ export default function BookingsPage() {
                     </th>
                     <th className="text-left p-2 text-xs font-medium text-gray-600">
                       Date
-                  </th>
+                    </th>
                     <th className="text-left p-2 text-xs font-medium text-gray-600">
                       Customer
                     </th>
@@ -364,11 +364,11 @@ export default function BookingsPage() {
                 </thead>
                 <tbody>
                   {filteredBookings.map((booking) => (
-                      <tr
-                        key={booking.id}
-                        className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
-                        onClick={() => handleRowClick(booking)}
-                      >
+                    <tr
+                      key={booking.id}
+                      className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
+                      onClick={() => handleRowClick(booking)}
+                    >
                       <td className="p-2" onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={selectedBookings.includes(booking.id)}
@@ -379,24 +379,29 @@ export default function BookingsPage() {
                       </td>
                       <td className="p-2">
                         <div className="font-mono text-xs text-gray-600">
-                          {booking.reservation?.order_id?.substring(0, 8) || booking.id?.substring(0, 8) || "N/A"}
+                          {booking.reservation?.order_id?.substring(0, 8) ||
+                            booking.id?.substring(0, 8) ||
+                            "N/A"}
                         </div>
                       </td>
                       <td className="p-2 text-xs text-gray-500">
-                        {new Date(booking.created_at).toLocaleDateString("sv-SE")}
+                        {new Date(booking.created_at).toLocaleDateString(
+                          "sv-SE",
+                        )}
                       </td>
                       <td className="p-2">
                         <div className="text-xs">
                           <div className="font-medium text-gray-900">
-                            {booking.profiles?.full_name || 
-                             booking.reservation?.profiles?.full_name || 
-                             booking.profiles?.email ||
-                             booking.reservation?.profiles?.email || 
-                             `User ${booking.user_id?.substring(0, 8)}` ||
-                             "Unknown Customer"}
+                            {booking.profiles?.full_name ||
+                              booking.reservation?.profiles?.full_name ||
+                              booking.profiles?.email ||
+                              booking.reservation?.profiles?.email ||
+                              `User ${booking.user_id?.substring(0, 8)}` ||
+                              "Unknown Customer"}
                           </div>
                           <div className="text-xs text-gray-500 truncate max-w-[120px]">
-                            {booking.profiles?.email || booking.reservation?.profiles?.email}
+                            {booking.profiles?.email ||
+                              booking.reservation?.profiles?.email}
                           </div>
                         </div>
                       </td>
@@ -412,7 +417,8 @@ export default function BookingsPage() {
                           className={
                             booking.reservation?.payment_status === "paid"
                               ? "bg-green-100 text-green-800 text-xs"
-                              : booking.reservation?.payment_status === "pending"
+                              : booking.reservation?.payment_status ===
+                                  "pending"
                                 ? "bg-yellow-100 text-yellow-800 text-xs"
                                 : "bg-red-100 text-red-800 text-xs"
                           }
@@ -424,9 +430,11 @@ export default function BookingsPage() {
                         <Badge
                           variant="secondary"
                           className={
-                            booking.reservation?.fulfillment_status === "fulfilled"
+                            booking.reservation?.fulfillment_status ===
+                            "fulfilled"
                               ? "bg-green-100 text-green-800 text-xs"
-                              : booking.reservation?.fulfillment_status === "processing"
+                              : booking.reservation?.fulfillment_status ===
+                                  "processing"
                                 ? "bg-blue-100 text-blue-800 text-xs"
                                 : "bg-gray-100 text-gray-800 text-xs"
                           }

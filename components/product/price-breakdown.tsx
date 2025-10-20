@@ -50,7 +50,9 @@ export function PriceBreakdown({
   const colorScheme = {
     cost: "bg-gray-200 text-gray-700",
     alcoholTax: "bg-amber-200 text-amber-800",
-    margin: hasMemberDiscount ? "bg-green-200 text-green-800" : "bg-slate-200 text-slate-700",
+    margin: hasMemberDiscount
+      ? "bg-green-200 text-green-800"
+      : "bg-slate-200 text-slate-700",
     vat: "bg-blue-200 text-blue-800",
   };
 
@@ -92,14 +94,16 @@ export function PriceBreakdown({
           <CircleHelp className="w-4 h-4 text-gray-500" />
         </button>
       </PopoverTrigger>
-      <PopoverContent 
+      <PopoverContent
         className="w-80 p-4 bg-white border border-gray-200 shadow-lg rounded-lg"
         align="start"
         side="bottom"
       >
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-gray-900">Prisuppdelning</h3>
-          
+          <h3 className="text-sm font-semibold text-gray-900">
+            Prisuppdelning
+          </h3>
+
           {/* Visual breakdown bars */}
           <div className="space-y-2">
             {components.map((component, index) => (
@@ -112,14 +116,16 @@ export function PriceBreakdown({
                         -{memberDiscountPercent}%
                       </span>
                     )}
-                    <span className="font-medium">{formatCurrency(component.amount)}</span>
+                    <span className="font-medium">
+                      {formatCurrency(component.amount)}
+                    </span>
                   </div>
                 </div>
                 <div className="w-full bg-gray-100 rounded-full h-2">
                   <div
                     className={cn(
                       "h-2 rounded-full transition-all duration-300",
-                      component.color.split(' ')[0] // Use only the background color class
+                      component.color.split(" ")[0], // Use only the background color class
                     )}
                     style={{ width: `${component.percentage}%` }}
                   />

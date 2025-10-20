@@ -11,13 +11,21 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar, User, Package, MapPin, CreditCard, CheckCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  Calendar,
+  User,
+  Package,
+  MapPin,
+  CreditCard,
+  CheckCircle,
+} from "lucide-react";
 
 export default function OrderDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const orderId = params.id as string; // Change to 'id' to match existing dynamic route pattern
-  
+
   const [orderData, setOrderData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [bookings, setBookings] = useState<any[]>([]);
@@ -29,25 +37,28 @@ export default function OrderDetailsPage() {
   const fetchOrderDetails = async () => {
     try {
       // Fetch reservation details (handles both order_id and id lookup)
-      const reservationResponse = await fetch(`/api/admin/reservations/${orderId}`);
+      const reservationResponse = await fetch(
+        `/api/admin/reservations/${orderId}`,
+      );
       const reservationData = await reservationResponse.json();
-      
+
       if (!reservationData.reservation) {
         throw new Error("Reservation not found");
       }
-      
+
       const reservation = reservationData.reservation;
-      
+
       // Convert reservation items to booking-like structure for easier display
-      const reservationBookings = reservation.order_reservation_items?.map((item: any) => ({
-        id: item.id,
-        quantity: item.quantity,
-        wines: item.wines,
-        pallets: { name: "No Pallet" }, // No pallet info available in reservation_items
-        created_at: reservation.created_at,
-        band: null, // Not available in reservation data
-      })) || [];
-      
+      const reservationBookings =
+        reservation.order_reservation_items?.map((item: any) => ({
+          id: item.id,
+          quantity: item.quantity,
+          wines: item.wines,
+          pallets: { name: "No Pallet" }, // No pallet info available in reservation_items
+          created_at: reservation.created_at,
+          band: null, // Not available in reservation data
+        })) || [];
+
       setOrderData(reservation);
       setBookings(reservationBookings);
     } catch (error) {
@@ -65,12 +76,17 @@ export default function OrderDetailsPage() {
   };
 
   const calculateTotal = () => {
-    return bookings.reduce((sum, booking) => 
-      sum + (booking.wines?.base_price_cents || 0) * booking.quantity, 0
+    return bookings.reduce(
+      (sum, booking) =>
+        sum + (booking.wines?.base_price_cents || 0) * booking.quantity,
+      0,
     );
   };
 
-  const totalBottles = bookings.reduce((sum, booking) => sum + booking.quantity, 0);
+  const totalBottles = bookings.reduce(
+    (sum, booking) => sum + booking.quantity,
+    0,
+  );
 
   if (loading) {
     return (
@@ -138,9 +154,12 @@ export default function OrderDetailsPage() {
       {/* Order Info */}
       <Card>
         <CardHeader>
-          <CardTitle>Order #{orderData.order_id?.substring(0, 8) || "Unknown"}</CardTitle>
+          <CardTitle>
+            Order #{orderData.order_id?.substring(0, 8) || "Unknown"}
+          </CardTitle>
           <CardDescription>
-            Order placed on {new Date(orderData.created_at).toLocaleDateString("sv-SE")}
+            Order placed on{" "}
+            {new Date(orderData.created_at).toLocaleDateString("sv-SE")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -153,10 +172,10 @@ export default function OrderDetailsPage() {
               </div>
               <div>
                 <div className="font-medium">
-                  {orderData.profiles?.full_name || 
-                   `${orderData.profiles?.first_name || ''} ${orderData.profiles?.last_name || ''}`.trim() ||
-                   orderData.profiles?.email ||
-                   'Unknown Customer'}
+                  {orderData.profiles?.full_name ||
+                    `${orderData.profiles?.first_name || ""} ${orderData.profiles?.last_name || ""}`.trim() ||
+                    orderData.profiles?.email ||
+                    "Unknown Customer"}
                 </div>
                 <div className="text-sm text-gray-500">
                   {orderData.profiles?.email}
@@ -248,13 +267,17 @@ export default function OrderDetailsPage() {
               <div>
                 <div className="text-xs text-gray-500 mb-1">Delivery Zone</div>
                 <div className="text-sm">
-                  {orderData.delivery_zone_id ? `Zone ${orderData.delivery_zone_id}` : "None"}
+                  {orderData.delivery_zone_id
+                    ? `Zone ${orderData.delivery_zone_id}`
+                    : "None"}
                 </div>
               </div>
               <div>
                 <div className="text-xs text-gray-500 mb-1">Pickup Zone</div>
                 <div className="text-sm">
-                  {orderData.pickup_zone_id ? `Zone ${orderData.pickup_zone_id}` : "None"}
+                  {orderData.pickup_zone_id
+                    ? `Zone ${orderData.pickup_zone_id}`
+                    : "None"}
                 </div>
               </div>
             </div>
@@ -266,9 +289,7 @@ export default function OrderDetailsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Order Items ({bookings.length})</CardTitle>
-          <CardDescription>
-            Wine bottles included in this order
-          </CardDescription>
+          <CardDescription>Wine bottles included in this order</CardDescription>
         </CardHeader>
         <CardContent>
           {bookings.length > 0 ? (
@@ -284,28 +305,35 @@ export default function OrderDetailsPage() {
                         {order.wines?.producers?.name}
                       </div>
                     </div>
-                    
+
                     <div>
                       <div className="text-xs text-gray-500 mb-1">Quantity</div>
-                      <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                      <Badge
+                        variant="secondary"
+                        className="bg-blue-100 text-blue-800"
+                      >
                         {order.quantity} bottles
                       </Badge>
                     </div>
-                    
+
                     <div>
-                      <div className="text-xs text-gray-500 mb-1">Price Each</div>
+                      <div className="text-xs text-gray-500 mb-1">
+                        Price Each
+                      </div>
                       <div className="text-sm font-medium">
                         {formatPrice(order.wines?.base_price_cents || 0)}
                       </div>
                     </div>
-                    
+
                     <div>
                       <div className="text-xs text-gray-500 mb-1">Total</div>
                       <div className="text-sm font-semibold">
-                        {formatPrice((order.wines?.base_price_cents || 0) * order.quantity)}
+                        {formatPrice(
+                          (order.wines?.base_price_cents || 0) * order.quantity,
+                        )}
                       </div>
                     </div>
-                    
+
                     <div>
                       <div className="text-xs text-gray-500 mb-1">Pallet</div>
                       <div className="text-sm">

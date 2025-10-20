@@ -35,7 +35,11 @@ async function createStockholmZone() {
       return;
     }
     console.log("✅ Stockholm delivery zone created:", stockholmZone.name);
-    console.log("📍 Center:", stockholmZone.center_lat, stockholmZone.center_lon);
+    console.log(
+      "📍 Center:",
+      stockholmZone.center_lat,
+      stockholmZone.center_lon,
+    );
     console.log("📏 Radius:", stockholmZone.radius_km, "km");
     console.log("🏳️ Country:", stockholmZone.country_code);
 
@@ -64,7 +68,6 @@ async function createStockholmZone() {
     console.log("Now you can test with Stockholm addresses like:");
     console.log("- Grevgatan 49, 11458 Stockholm");
     console.log("- Centralplan 15, 111 20 Stockholm");
-
   } catch (error) {
     console.error("❌ Error creating Stockholm zones:", error);
   }

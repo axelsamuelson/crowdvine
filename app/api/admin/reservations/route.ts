@@ -38,26 +38,35 @@ export async function GET() {
       .order("created_at", { ascending: false });
 
     if (reservationsError) {
-      console.error("❌ [Reservations API] Error fetching reservations:", reservationsError);
+      console.error(
+        "❌ [Reservations API] Error fetching reservations:",
+        reservationsError,
+      );
       console.error("Error details:", {
         code: reservationsError.code,
         message: reservationsError.message,
         details: reservationsError.details,
-        hint: reservationsError.hint
+        hint: reservationsError.hint,
       });
-      
+
       return NextResponse.json({
         reservations: [],
-        error: reservationsError.message
+        error: reservationsError.message,
       });
     }
 
-    console.log(`✅ [Reservations API] Found ${reservations?.length || 0} reservations`);
+    console.log(
+      `✅ [Reservations API] Found ${reservations?.length || 0} reservations`,
+    );
 
     // Manually fetch profiles for all user_ids
     if (reservations && reservations.length > 0) {
-      const userIds = [...new Set(reservations.map(r => r.user_id).filter(Boolean))];
-      console.log(`🔍 [Reservations API] Fetching profiles for ${userIds.length} unique users`);
+      const userIds = [
+        ...new Set(reservations.map((r) => r.user_id).filter(Boolean)),
+      ];
+      console.log(
+        `🔍 [Reservations API] Fetching profiles for ${userIds.length} unique users`,
+      );
 
       const { data: profiles, error: profilesError } = await sb
         .from("profiles")
@@ -65,20 +74,27 @@ export async function GET() {
         .in("id", userIds);
 
       if (profilesError) {
-        console.error("❌ [Reservations API] Error fetching profiles:", profilesError);
+        console.error(
+          "❌ [Reservations API] Error fetching profiles:",
+          profilesError,
+        );
       } else {
-        console.log(`✅ [Reservations API] Found ${profiles?.length || 0} profiles`);
-        
+        console.log(
+          `✅ [Reservations API] Found ${profiles?.length || 0} profiles`,
+        );
+
         // Create a map for quick lookup
-        const profilesMap = new Map(profiles?.map(p => [p.id, p]) || []);
-        
+        const profilesMap = new Map(profiles?.map((p) => [p.id, p]) || []);
+
         // Attach profiles to reservations
-        const reservationsWithProfiles = reservations.map(reservation => ({
+        const reservationsWithProfiles = reservations.map((reservation) => ({
           ...reservation,
-          profiles: profilesMap.get(reservation.user_id) || null
+          profiles: profilesMap.get(reservation.user_id) || null,
         }));
 
-        console.log(`✅ [Reservations API] Returning ${reservationsWithProfiles.length} reservations with profiles`);
+        console.log(
+          `✅ [Reservations API] Returning ${reservationsWithProfiles.length} reservations with profiles`,
+        );
         return NextResponse.json({
           reservations: reservationsWithProfiles,
         });

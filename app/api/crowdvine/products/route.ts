@@ -17,10 +17,8 @@ export async function GET(request: Request) {
 
   try {
     // Build query with sorting
-    let query = sb
-      .from("wines")
-      .select(
-        `
+    let query = sb.from("wines").select(
+      `
         id,
         wine_name,
         vintage,
@@ -35,7 +33,7 @@ export async function GET(request: Request) {
         created_at,
         producers!inner(name)
       `,
-      );
+    );
 
     // Apply sorting based on sortKey
     switch (sortKey) {

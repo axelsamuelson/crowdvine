@@ -53,7 +53,8 @@ export default function AccessPending() {
 
           {/* Description */}
           <p className="text-sm text-gray-600 text-center mb-8">
-            PACT is an exclusive wine community. You'll need an invitation to access the platform.
+            PACT is an exclusive wine community. You'll need an invitation to
+            access the platform.
           </p>
 
           {/* Status */}
@@ -67,7 +68,8 @@ export default function AccessPending() {
                   Your request has been received
                 </p>
                 <p className="text-xs text-gray-500">
-                  We'll review your application and send you an invitation if approved.
+                  We'll review your application and send you an invitation if
+                  approved.
                 </p>
               </div>
             </div>
@@ -80,8 +82,7 @@ export default function AccessPending() {
               variant="outline"
               className="w-full rounded-full border-gray-300 text-gray-700 hover:bg-gray-50"
             >
-              <Mail className="w-4 h-4 mr-2" />
-              I have an invitation code
+              <Mail className="w-4 h-4 mr-2" />I have an invitation code
             </Button>
           ) : (
             <div className="space-y-4">
@@ -129,7 +130,10 @@ export default function AccessPending() {
           {/* Help Text */}
           <p className="text-xs text-gray-400 text-center mt-6">
             Questions? Contact us at{" "}
-            <a href="mailto:hello@pactwines.com" className="underline hover:text-gray-600">
+            <a
+              href="mailto:hello@pactwines.com"
+              className="underline hover:text-gray-600"
+            >
               hello@pactwines.com
             </a>
           </p>
@@ -138,4 +142,3 @@ export default function AccessPending() {
     </div>
   );
 }
-

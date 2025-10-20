@@ -182,7 +182,7 @@ export const Newsletter = () => {
                 <motion.div
                   className={cn(
                     buttonVariants({ variant: "iconButton", size: "icon" }),
-                    "absolute -top-px -right-px aspect-square"
+                    "absolute -top-px -right-px aspect-square",
                   )}
                   initial={{ opacity: 0, scale: 0.8, rotate: -40 }}
                   animate={{ opacity: 1, scale: 1, rotate: 0 }}
@@ -273,5 +273,11 @@ export const Newsletter = () => {
 const AnimatePresenceGuard = ({ children }: { children: React.ReactNode }) => {
   const isV0 = useIsV0();
 
-  return isV0 ? <>{children}</> : <AnimatePresence mode="popLayout" propagate>{children}</AnimatePresence>;
+  return isV0 ? (
+    <>{children}</>
+  ) : (
+    <AnimatePresence mode="popLayout" propagate>
+      {children}
+    </AnimatePresence>
+  );
 };

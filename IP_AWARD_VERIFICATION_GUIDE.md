@@ -5,17 +5,20 @@
 ### Test 1: Verify invite_signup IP Award
 
 #### Step 1: Note Current IP
+
 1. Log in as admin (ave.samuelson@gmail.com or admin@pactwines.com)
 2. Go to https://pactwines.com/profile
 3. Note your current Impact Points (e.g., "5 IP")
 
 #### Step 2: Generate Invitation
+
 1. On profile page, select level: "Silver"
 2. Click "Generate Silver Invite"
 3. Copy the invitation link
 4. Note: Your "Available invites" count should decrease by 1
 
 #### Step 3: Create New Account
+
 1. Open invitation link in incognito/private mode
 2. See: Silver circle badge, perks, pallet info
 3. Fill form with **completely NEW email** (e.g., test123@example.com)
@@ -23,11 +26,13 @@
 5. Expected: Auto sign-in, redirect to home
 
 #### Step 4: Check Vercel Logs
+
 Go to Vercel Dashboard → Latest Deployment → Runtime Logs
 
 Search for: `[INVITE-REDEEM] Step 5`
 
 You should see:
+
 ```
 [INVITE-REDEEM] Step 5: Awarding +1 IP to inviter: <your-admin-uuid>
 [INVITE-REDEEM] New user ID: <new-user-uuid>
@@ -39,10 +44,12 @@ You should see:
 ```
 
 **If you see STEP-5X FAILED:**
+
 - Send me the full error object
 - I'll fix the specific issue
 
 #### Step 5: Verify in Admin Profile
+
 1. Go back to admin account
 2. Refresh https://pactwines.com/profile
 3. Expected:
@@ -52,6 +59,7 @@ You should see:
    - 🔔 If Realtime works: Toast "Your invite was just used! +1 IP awarded"
 
 #### Step 6: Visit Activity Page
+
 1. Go to https://pactwines.com/profile/activity
 2. Expected:
    - ✅ Page loads (no 404)
@@ -62,17 +70,19 @@ You should see:
    - ✅ Related user: test123@example.com
 
 #### Step 7: Verify in Database
+
 Run in Supabase SQL Editor:
+
 ```sql
 -- Check admin's current points
-SELECT email, impact_points, level 
+SELECT email, impact_points, level
 FROM user_memberships um
 JOIN profiles p ON p.id = um.user_id
 WHERE p.email = 'ave.samuelson@gmail.com';
 -- Should show: 6 points
 
 -- Check IP event was created
-SELECT 
+SELECT
   ipe.event_type,
   ipe.points_earned,
   ipe.description,
@@ -133,24 +143,26 @@ On https://pactwines.com/profile/activity:
    - Note the error code and message
 
 2. **Check Database Manually**
+
    ```sql
    -- Find admin's user_id
    SELECT id, email FROM profiles WHERE email = 'ave.samuelson@gmail.com';
-   
+
    -- Check membership exists
    SELECT * FROM user_memberships WHERE user_id = '<admin-uuid>';
-   
+
    -- Check recent IP events
-   SELECT * FROM impact_point_events 
-   WHERE user_id = '<admin-uuid>' 
-   ORDER BY created_at DESC 
+   SELECT * FROM impact_point_events
+   WHERE user_id = '<admin-uuid>'
+   ORDER BY created_at DESC
    LIMIT 5;
    ```
 
 3. **Check invitation.created_by**
+
    ```sql
    -- Check who created the invitation
-   SELECT 
+   SELECT
      ic.code,
      ic.created_by,
      p.email as creator_email,
@@ -173,18 +185,22 @@ On https://pactwines.com/profile/activity:
 ## Common Issues and Solutions
 
 ### Issue: No Step 5 logs in Vercel
+
 **Cause:** invitation.created_by is null
 **Fix:** Check invitation in database, ensure created_by is set
 
 ### Issue: STEP-5A FAILED
+
 **Cause:** Inviter doesn't have membership
 **Fix:** Run migration 039 to create missing memberships
 
 ### Issue: STEP-5B SUCCESS but points don't show in UI
+
 **Cause:** Frontend cache or Realtime not working
 **Fix:** Hard refresh profile page (Cmd+Shift+R or Ctrl+Shift+R)
 
 ### Issue: STEP-5C FAILED
+
 **Cause:** RLS policy blocking impact_point_events INSERT
 **Fix:** Check RLS policies, might need to use admin client
 
@@ -210,4 +226,3 @@ After verifying invite_signup works:
    - Verify event appears
 
 For now, focus on getting invite_signup working first!
-

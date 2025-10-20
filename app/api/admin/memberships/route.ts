@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 
 /**
  * GET /api/admin/memberships
- * 
+ *
  * Get all user memberships (admin only)
  */
 export async function GET(request: Request) {
@@ -18,24 +18,31 @@ export async function GET(request: Request) {
 
     // Check if user is admin
     const { data: profile } = await sb
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
       .single();
 
-    if (!profile || profile.role !== 'admin') {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+    if (!profile || profile.role !== "admin") {
+      return NextResponse.json(
+        { error: "Admin access required" },
+        { status: 403 },
+      );
     }
 
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get('limit') || '50');
-    const offset = parseInt(searchParams.get('offset') || '0');
+    const limit = parseInt(searchParams.get("limit") || "50");
+    const offset = parseInt(searchParams.get("offset") || "0");
 
     // Get all memberships with user profile info
-    const { data: memberships, error, count } = await sb
-      .from('user_memberships')
-      .select('*, profiles!user_id(email, full_name)', { count: 'exact' })
-      .order('impact_points', { ascending: false })
+    const {
+      data: memberships,
+      error,
+      count,
+    } = await sb
+      .from("user_memberships")
+      .select("*, profiles!user_id(email, full_name)", { count: "exact" })
+      .order("impact_points", { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (error) throw error;
@@ -52,14 +59,14 @@ export async function GET(request: Request) {
     console.error("Error fetching memberships:", error);
     return NextResponse.json(
       { error: "Failed to fetch memberships" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 /**
  * PUT /api/admin/memberships
- * 
+ *
  * Update user membership (admin only)
  */
 export async function PUT(request: Request) {
@@ -73,13 +80,16 @@ export async function PUT(request: Request) {
 
     // Check if user is admin
     const { data: profile } = await sb
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
       .single();
 
-    if (!profile || profile.role !== 'admin') {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+    if (!profile || profile.role !== "admin") {
+      return NextResponse.json(
+        { error: "Admin access required" },
+        { status: 403 },
+      );
     }
 
     const body = await request.json();
@@ -94,23 +104,25 @@ export async function PUT(request: Request) {
     if (level) {
       updates.level = level;
       updates.level_assigned_at = new Date().toISOString();
-      
+
       // Update invite quota based on new level
-      const { data: quotaData } = await sb.rpc('get_invite_quota_for_level', { lvl: level });
+      const { data: quotaData } = await sb.rpc("get_invite_quota_for_level", {
+        lvl: level,
+      });
       if (quotaData) {
         updates.invite_quota_monthly = quotaData;
       }
     }
 
-    if (typeof impactPoints === 'number') {
+    if (typeof impactPoints === "number") {
       updates.impact_points = impactPoints;
     }
 
     // Update membership
     const { data, error } = await sb
-      .from('user_memberships')
+      .from("user_memberships")
       .update(updates)
-      .eq('user_id', userId)
+      .eq("user_id", userId)
       .select()
       .single();
 
@@ -121,8 +133,7 @@ export async function PUT(request: Request) {
     console.error("Error updating membership:", error);
     return NextResponse.json(
       { error: "Failed to update membership" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

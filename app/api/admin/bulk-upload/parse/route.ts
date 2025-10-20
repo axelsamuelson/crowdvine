@@ -3,12 +3,45 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 // Known grape varieties database
 const KNOWN_GRAPES = [
-  'syrah', 'grenache', 'mourvèdre', 'mourvedre', 'cinfandel', 'merlot', 'cabernet sauvignon', 
-  'cab\\\\ernet franc', 'malbec', 'petit verdot', 'sangiovese', 'pinot noir', 'tempranillo', 
-  'nebbiolo', 'barbera', 'dolcetto', 'corvina', 'chardonnay', 'sauvignon blanc', 'riesling',
-  'pinot grigio', 'pinot gris', 'gewurztraminer', 'muscat', 'viognier', 'semillon',
-  'chenin blanc', 'albarino', 'vermentino', 'fiano', 'garganega', 'carignan', 'macabeo',
-  'tempranillo', 'monastrell', 'mourvèdre', 'cinsault', 'cinsaut', 'mourvèdre'
+  "syrah",
+  "grenache",
+  "mourvèdre",
+  "mourvedre",
+  "cinfandel",
+  "merlot",
+  "cabernet sauvignon",
+  "cab\\\\ernet franc",
+  "malbec",
+  "petit verdot",
+  "sangiovese",
+  "pinot noir",
+  "tempranillo",
+  "nebbiolo",
+  "barbera",
+  "dolcetto",
+  "corvina",
+  "chardonnay",
+  "sauvignon blanc",
+  "riesling",
+  "pinot grigio",
+  "pinot gris",
+  "gewurztraminer",
+  "muscat",
+  "viognier",
+  "semillon",
+  "chenin blanc",
+  "albarino",
+  "vermentino",
+  "fiano",
+  "garganega",
+  "carignan",
+  "macabeo",
+  "tempranillo",
+  "monastrell",
+  "mourvèdre",
+  "cinsault",
+  "cinsaut",
+  "mourvèdre",
 ];
 
 // Function to intelligently parse grape varieties
@@ -18,11 +51,11 @@ function parseGrapeVarieties(rawText: string): {
   needsReview: boolean;
   suggestions?: string[];
 } {
-  if (!rawText || rawText.trim() === '') {
+  if (!rawText || rawText.trim() === "") {
     return {
-      grapes: ['Mixed varieties'],
-      originalText: rawText || '',
-      needsReview: true
+      grapes: ["Mixed varieties"],
+      originalText: rawText || "",
+      needsReview: true,
     };
   }
 
@@ -33,25 +66,29 @@ function parseGrapeVarieties(rawText: string): {
   // Method 1: Split by semicolon, comma, or "and"
   const commonSeparators = /[;,]/g;
   const andSeparators = /\s+(and|&|\+)\s+/gi;
-  
+
   let terms = originalText
-    .replace(andSeparators, '; ')
+    .replace(andSeparators, "; ")
     .split(commonSeparators)
-    .map(term => term.trim().toLowerCase())
-    .filter(term => term.length > 0);
+    .map((term) => term.trim().toLowerCase())
+    .filter((term) => term.length > 0);
 
   // Method 2: If no separators, try to detect by word capitalization or common patterns
-  if (terms.length === 1 && !originalText.includes(';') && !originalText.includes(',')) {
+  if (
+    terms.length === 1 &&
+    !originalText.includes(";") &&
+    !originalText.includes(",")
+  ) {
     // Try splitting by spaces and look for capitalized words (likely grape names)
-    const words = originalText.split(' ');
+    const words = originalText.split(" ");
     terms = [];
-    
+
     for (const word of words) {
       if (word.length > 2 && /^[A-Z]/.test(word)) {
         terms.push(word.toLowerCase());
       }
     }
-    
+
     // If no capitalized words found, treat as single term
     if (terms.length === 0) {
       terms = [originalText.toLowerCase()];
@@ -61,25 +98,30 @@ function parseGrapeVarieties(rawText: string): {
   // Detect and match grapes
   for (const term of terms) {
     const normalizedTerm = term.toLowerCase().trim();
-    
+
     // Direct match
-    const directMatch = KNOWN_GRAPES.find(grape => 
-      grape === normalizedTerm || 
-      grape.includes(normalizedTerm) || 
-      normalizedTerm.includes(grape)
+    const directMatch = KNOWN_GRAPES.find(
+      (grape) =>
+        grape === normalizedTerm ||
+        grape.includes(normalizedTerm) ||
+        normalizedTerm.includes(grape),
     );
-    
+
     if (directMatch) {
-      detectedGrapes.push(directMatch.charAt(0).toUpperCase() + directMatch.slice(1));
+      detectedGrapes.push(
+        directMatch.charAt(0).toUpperCase() + directMatch.slice(1),
+      );
     } else {
       // Try fuzzy matching
-      const fuzzyMatch = KNOWN_GRAPES.find(grape => {
+      const fuzzyMatch = KNOWN_GRAPES.find((grape) => {
         const similarity = calculateSimilarity(grape, normalizedTerm);
         return similarity > 0.7;
       });
-      
+
       if (fuzzyMatch) {
-        detectedGrapes.push(fuzzyMatch.charAt(0).toUpperCase() + fuzzyMatch.slice(1));
+        detectedGrapes.push(
+          fuzzyMatch.charAt(0).toUpperCase() + fuzzyMatch.slice(1),
+        );
       } else {
         unknownTerms.push(term);
       }
@@ -88,17 +130,22 @@ function parseGrapeVarieties(rawText: string): {
 
   // Remove duplicates
   detectedGrapes = [...new Set(detectedGrapes)];
-  
+
   const needsReview = unknownTerms.length > 0 || detectedGrapes.length === 0;
-  const suggestions = unknownTerms.length > 0 ? 
-    [...KNOWN_GRAPES.slice(0, 5).map(g => g.charAt(0).toUpperCase() + g.slice(1))] : 
-    undefined;
+  const suggestions =
+    unknownTerms.length > 0
+      ? [
+          ...KNOWN_GRAPES.slice(0, 5).map(
+            (g) => g.charAt(0).toUpperCase() + g.slice(1),
+          ),
+        ]
+      : undefined;
 
   return {
-    grapes: detectedGrapes.length > 0 ? detectedGrapes : ['Unknown varieties'],
+    grapes: detectedGrapes.length > 0 ? detectedGrapes : ["Unknown varieties"],
     originalText,
     needsReview,
-    suggestions
+    suggestions,
   };
 }
 
@@ -107,24 +154,27 @@ function parseGrapeVarieties(rawText: string): {
 function calculateSimilarity(str1: string, str2: string): number {
   const longer = str1.length > str2.length ? str1 : str2;
   const shorter = str1.length > str2.length ? str2 : str1;
-  
+
   if (longer.length === 0) return 1.0;
-  
-  const editDistance = levenshteinDistance(longer.toLowerCase(), shorter.toLowerCase());
+
+  const editDistance = levenshteinDistance(
+    longer.toLowerCase(),
+    shorter.toLowerCase(),
+  );
   return (longer.length - editDistance) / longer.length;
 }
 
 function levenshteinDistance(str1: string, str2: string): number {
   const matrix = [];
-  
+
   for (let i = 0; i <= str2.length; i++) {
     matrix[i] = [i];
   }
-  
+
   for (let j = 0; j <= str1.length; j++) {
     matrix[0][j] = j;
   }
-  
+
   for (let i = 1; i <= str2.length; i++) {
     for (let j = 1; j <= str1.length; j++) {
       if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
@@ -133,12 +183,12 @@ function levenshteinDistance(str1: string, str2: string): number {
         matrix[i][j] = Math.min(
           matrix[i - 1][j - 1] + 1,
           matrix[i][j - 1] + 1,
-          matrix[i - 1][j] + 1
+          matrix[i - 1][j] + 1,
         );
       }
     }
   }
-  
+
   return matrix[str2.length][str1.length];
 }
 
@@ -157,7 +207,7 @@ interface ProductData {
 
 interface ReviewProduct extends ProductData {
   rowNumber: number;
-  status: 'valid' | 'warning' | 'error';
+  status: "valid" | "warning" | "error";
   issues: string[];
   similarProducers?: Array<{
     name: string;
@@ -169,18 +219,15 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File;
-    
+
     if (!file) {
-      return NextResponse.json(
-        { error: "No file uploaded" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
 
-    if (!file.name.toLowerCase().endsWith('.csv')) {
+    if (!file.name.toLowerCase().endsWith(".csv")) {
       return NextResponse.json(
         { error: "Only CSV files are supported" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -188,54 +235,72 @@ export async function POST(request: NextRequest) {
     const csvContent = await file.text();
     const parsingResult = await parseCSVWithDetailedErrors(csvContent);
     const { products, errors } = parsingResult;
-    
+
     if (errors.length > 0) {
-      return NextResponse.json({
-        error: "CSV parsing errors found - detailed breakdown below",
-        details: {
-          summary: {
-            totalRows: csvContent.split('\n').length - 1, // Subtract header row
-            parsedRows: products.length,
-            errorCount: errors.length,
-            criticalErrors: errors.filter(e => e.includes('Critical:')).length,
-            headerErrors: errors.filter(e => e.includes('headers:')).length,
-            rowErrors: errors.filter(e => e.includes('Row ')).length
+      return NextResponse.json(
+        {
+          error: "CSV parsing errors found - detailed breakdown below",
+          details: {
+            summary: {
+              totalRows: csvContent.split("\n").length - 1, // Subtract header row
+              parsedRows: products.length,
+              errorCount: errors.length,
+              criticalErrors: errors.filter((e) => e.includes("Critical:"))
+                .length,
+              headerErrors: errors.filter((e) => e.includes("headers:")).length,
+              rowErrors: errors.filter((e) => e.includes("Row ")).length,
+            },
+            headerIssues: errors.filter((e) => e.includes("Headers:")),
+            rowIssues: errors.filter((e) => e.includes("Row ")),
+            allErrors: errors,
+            csvStructure: {
+              headerRow: csvContent.split("\n")[0],
+              expectedHeaders: [
+                "wine name",
+                "vintage",
+                "grape varieties",
+                "color",
+                "cost",
+                "currency",
+                "margin (%)",
+                "producer name",
+                "description",
+                "image url",
+              ],
+              actualHeaders:
+                csvContent
+                  .split("\n")[0]
+                  ?.split(",")
+                  .map((h) => h.trim().toLowerCase()) || [],
+              columnCount: csvContent.split("\n")[0]?.split(",").length || 0,
+            },
+            parsedProducts: products.length,
+            debugInfo: {
+              fileLines: csvContent.split("\n").length,
+              fileSize: file.size,
+              fileName: file.name,
+              hasContent: csvContent.trim().length > 0,
+              isEmptyFile: csvContent.trim().length === 0,
+            },
           },
-          headerIssues: errors.filter(e => e.includes('Headers:')),
-          rowIssues: errors.filter(e => e.includes('Row ')),
-          allErrors: errors,
-          csvStructure: {
-            headerRow: csvContent.split('\n')[0],
-            expectedHeaders: [
-              'wine name', 'vintage', 'grape varieties', 'color',
-              'cost', 'currency', 'margin (%)', 'producer name', 'description',
-              'image url'
-            ],
-            actualHeaders: csvContent.split('\n')[0]?.split(',').map(h => h.trim().toLowerCase()) || [],
-            columnCount: csvContent.split('\n')[0]?.split(',').length || 0
-          },
-          parsedProducts: products.length,
-          debugInfo: {
-            fileLines: csvContent.split('\n').length,
-            fileSize: file.size,
-            fileName: file.name,
-            hasContent: csvContent.trim().length > 0,
-            isEmptyFile: csvContent.trim().length === 0
-          }
-        }
-      }, { status: 400 });
+        },
+        { status: 400 },
+      );
     }
 
     if (products.length === 0) {
       return NextResponse.json(
         { error: "No valid products found in CSV" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Review products for issues and suggestions
     const supabase = getSupabaseAdmin();
-    const reviewProducts = await reviewProductsWithSuggestions(supabase, products);
+    const reviewProducts = await reviewProductsWithSuggestions(
+      supabase,
+      products,
+    );
 
     return NextResponse.json({
       success: true,
@@ -243,16 +308,15 @@ export async function POST(request: NextRequest) {
       products: reviewProducts,
       summary: {
         total: reviewProducts.length,
-        valid: reviewProducts.filter(p => p.status === 'valid').length,
-        warnings: reviewProducts.filter(p => p.status === 'warning').length,
-        errors: reviewProducts.filter(p => p.status === 'error').length
-      }
+        valid: reviewProducts.filter((p) => p.status === "valid").length,
+        warnings: reviewProducts.filter((p) => p.status === "warning").length,
+        errors: reviewProducts.filter((p) => p.status === "error").length,
+      },
     });
-
   } catch (error) {
     console.error("CSV parse error:", error);
     return NextResponse.json(
-      { 
+      {
         error: "CSV parsing failed with detailed report below",
         details: {
           type: "CSV parsing error",
@@ -262,11 +326,11 @@ export async function POST(request: NextRequest) {
             hasFile: !!file,
             fileSize: file?.size,
             fileName: file?.name,
-            errorStack: error instanceof Error ? error.stack : undefined
-          }
-        }
+            errorStack: error instanceof Error ? error.stack : undefined,
+          },
+        },
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -275,42 +339,63 @@ async function parseCSVWithDetailedErrors(csvContent: string): Promise<{
   products: ProductData[];
   errors: string[];
 }> {
-  const lines = csvContent.trim().split('\n');
+  const lines = csvContent.trim().split("\n");
   const errors: string[] = [];
-  
+
   if (lines.length < 2) {
     errors.push("CSV must have at least a header row and one data row");
     return { products: [], errors };
   }
 
   // Parse header
-  const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+  const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
   const expectedHeaders = [
-    'wine name', 'vintage', 'grape varieties', 'color',
-    'cost', 'currency', 'margin (%)', 'producer name', 'description',
-    'image url'
+    "wine name",
+    "vintage",
+    "grape varieties",
+    "color",
+    "cost",
+    "currency",
+    "margin (%)",
+    "producer name",
+    "description",
+    "image url",
   ];
 
-    // Check for missing headers but continue parsing - show as issues in review
-    const missingHeaders = expectedHeaders.filter(h => !headers.includes(h));
-    
-    // Provide detailed error messages with specific guidance
-    const missingHeadersStr = missingHeaders.join(', ');
-    if (missingHeadersStr) {
-      const severityLevel = missingHeaders.includes('wine name') || missingHeaders.includes('vintage') ? 'critical' : 'warning';
-      errors.push(`${severityLevel}: Missing headers: ${missingHeadersStr}`);
-      errors.push(`Your CSV headers: ${headers.join(', ')}`);
-      errors.push(`Expected headers: ${expectedHeaders.join(', ')}`);
-      
-      if (missingHeadersStr.includes('wine name') || missingHeadersStr.includes('vintage')) {
-        errors.push(`Critical: Cannot parse without required fields: Wine Name and Vintage`);
-        return { products: [], errors };
-      }
-      
-      if (missingHeadersStr.includes('cost') || missingHeadersStr.includes('currency') || missingHeadersStr.includes('margin')) {
-        errors.push(`Warning: You're missing pricing headers (Cost, Currency, Margin %). Please use the new CSV template format.`);
-      }
+  // Check for missing headers but continue parsing - show as issues in review
+  const missingHeaders = expectedHeaders.filter((h) => !headers.includes(h));
+
+  // Provide detailed error messages with specific guidance
+  const missingHeadersStr = missingHeaders.join(", ");
+  if (missingHeadersStr) {
+    const severityLevel =
+      missingHeaders.includes("wine name") || missingHeaders.includes("vintage")
+        ? "critical"
+        : "warning";
+    errors.push(`${severityLevel}: Missing headers: ${missingHeadersStr}`);
+    errors.push(`Your CSV headers: ${headers.join(", ")}`);
+    errors.push(`Expected headers: ${expectedHeaders.join(", ")}`);
+
+    if (
+      missingHeadersStr.includes("wine name") ||
+      missingHeadersStr.includes("vintage")
+    ) {
+      errors.push(
+        `Critical: Cannot parse without required fields: Wine Name and Vintage`,
+      );
+      return { products: [], errors };
     }
+
+    if (
+      missingHeadersStr.includes("cost") ||
+      missingHeadersStr.includes("currency") ||
+      missingHeadersStr.includes("margin")
+    ) {
+      errors.push(
+        `Warning: You're missing pricing headers (Cost, Currency, Margin %). Please use the new CSV template format.`,
+      );
+    }
+  }
 
   const products: ProductData[] = [];
 
@@ -327,69 +412,86 @@ async function parseCSVWithDetailedErrors(csvContent: string): Promise<{
 
     try {
       const product = {
-        wine_name: values[headers.indexOf('wine name')]?.trim() || '',
-        vintage: values[headers.indexOf('vintage')]?.trim() || '',
-        grape_varieties: values[headers.indexOf('grape varieties')]?.trim() || '',
-        color: values[headers.indexOf('color')]?.trim().toLowerCase() || '',
-        cost_amount: parseFloat(values[headers.indexOf('cost')] || '0') || 0,
-        cost_currency: values[headers.indexOf('currency')]?.trim().toUpperCase() || 'EUR',
-        margin_percentage: parseFloat(values[headers.indexOf('margin (%)')] || '10') || 10,
-        producer_name: values[headers.indexOf('producer name')]?.trim() || '',
-        handle: generateHandle(values[headers.indexOf('wine name')] || '', values[headers.indexOf('vintage')] || ''),
-        description: values[headers.indexOf('description')]?.trim() || '',
-        label_image_path: values[headers.indexOf('image url')]?.trim() || 'https://images.unsplash.com/photo-1553361371-9b22f78e8b5d?w=600&h=600&fit=crop&q=80'
+        wine_name: values[headers.indexOf("wine name")]?.trim() || "",
+        vintage: values[headers.indexOf("vintage")]?.trim() || "",
+        grape_varieties:
+          values[headers.indexOf("grape varieties")]?.trim() || "",
+        color: values[headers.indexOf("color")]?.trim().toLowerCase() || "",
+        cost_amount: parseFloat(values[headers.indexOf("cost")] || "0") || 0,
+        cost_currency:
+          values[headers.indexOf("currency")]?.trim().toUpperCase() || "EUR",
+        margin_percentage:
+          parseFloat(values[headers.indexOf("margin (%)")] || "10") || 10,
+        producer_name: values[headers.indexOf("producer name")]?.trim() || "",
+        handle: generateHandle(
+          values[headers.indexOf("wine name")] || "",
+          values[headers.indexOf("vintage")] || "",
+        ),
+        description: values[headers.indexOf("description")]?.trim() || "",
+        label_image_path:
+          values[headers.indexOf("image url")]?.trim() ||
+          "https://images.unsplash.com/photo-1553361371-9b22f78e8b5d?w=600&h=600&fit=crop&q=80",
       };
 
       // Collect issues instead of returning errors immediately
       const rowIssues: string[] = [];
-      
+
       // Critical fields - cannot proceed without these
       if (!product.wine_name) rowIssues.push(`Critical: Wine name is required`);
       if (!product.vintage) rowIssues.push(`Critical: Vintage is required`);
-      
+
       // Intelligently parse grape varieties
       const grapeAnalysis = parseGrapeVarieties(product.grape_varieties);
-      product.grape_varieties = grapeAnalysis.grapes.join('; ');
-      
+      product.grape_varieties = grapeAnalysis.grapes.join("; ");
+
       if (grapeAnalysis.needsReview) {
-        if (grapeAnalysis.originalText.trim() === '') {
+        if (grapeAnalysis.originalText.trim() === "") {
           rowIssues.push(`Warning: Grape varieties missing - using default`);
         } else {
-          rowIssues.push(`Warning: Unknown grape varieties detected: "${grapeAnalysis.originalText}" - please review`);
+          rowIssues.push(
+            `Warning: Unknown grape varieties detected: "${grapeAnalysis.originalText}" - please review`,
+          );
           if (grapeAnalysis.suggestions) {
             (product as any).grapeSuggestions = grapeAnalysis.suggestions;
           }
         }
       }
-      
+
       // Store original grape text for review
       (product as any).originalGrapeText = grapeAnalysis.originalText;
       // Apply defaults for optional fields now made truly optional
       if (!product.description) {
         product.description = "Premium wine"; // Default value - no warning since truly optional
       }
-      
+
       // Required fields that must be fixed
       if (!product.color) rowIssues.push(`Error: Color is required`);
-      else if (!['red', 'white', 'rose'].includes(product.color)) {
+      else if (!["red", "white", "rose"].includes(product.color)) {
         rowIssues.push(`Error: Color must be 'red', 'white', or 'rose'`);
       }
-      
-      if (product.cost_amount <= 0) rowIssues.push(`Error: Cost must be greater than 0`);
-      if (!product.producer_name) rowIssues.push(`Error: Producer name is required`);
+
+      if (product.cost_amount <= 0)
+        rowIssues.push(`Error: Cost must be greater than 0`);
+      if (!product.producer_name)
+        rowIssues.push(`Error: Producer name is required`);
       if (product.margin_percentage <= 0 || product.margin_percentage >= 100) {
         rowIssues.push(`Error: Margin must be between 1 and 99`);
       }
-      
+
       // Generate HTML description if not provided
       if (!product.description_html) {
         product.description_html = `<p>${product.description}</p>`;
       }
 
       // Add to products list - collect all issues for review
-      (product as any).rowIssues = rowIssues.length > 0 ? rowIssues.map(issue => `Row ${i + 1}: ${issue}`) : [];
-      (product as any).canUpload = !rowIssues.some(issue => issue.startsWith('Critical:') || issue.startsWith('Error:'));
-      
+      (product as any).rowIssues =
+        rowIssues.length > 0
+          ? rowIssues.map((issue) => `Row ${i + 1}: ${issue}`)
+          : [];
+      (product as any).canUpload = !rowIssues.some(
+        (issue) => issue.startsWith("Critical:") || issue.startsWith("Error:"),
+      );
+
       products.push(product);
     } catch (error) {
       errors.push(`Row ${i + 1}: Invalid data format`);
@@ -399,65 +501,76 @@ async function parseCSVWithDetailedErrors(csvContent: string): Promise<{
   return { products, errors };
 }
 
-async function reviewProductsWithSuggestions(supabase: any, products: ProductData[]): Promise<ReviewProduct[]> {
+async function reviewProductsWithSuggestions(
+  supabase: any,
+  products: ProductData[],
+): Promise<ReviewProduct[]> {
   const reviewProducts: ReviewProduct[] = [];
 
   for (let index = 0; index < products.length; index++) {
     const product = products[index];
     const rowNumber = index + 2;
-    
+
     const reviewProduct: ReviewProduct = {
       ...product,
       rowNumber,
-      status: 'valid',
+      status: "valid",
       issues: [],
-      similarProducers: []
+      similarProducers: [],
     };
 
     // Check for duplicate wine handles
     const { data: existingWine } = await supabase
-      .from('wines')
-      .select('id')
-      .eq('handle', product.handle)
+      .from("wines")
+      .select("id")
+      .eq("handle", product.handle)
       .single();
 
     if (existingWine) {
-      reviewProduct.status = 'error';
-      reviewProduct.issues.push(`Wine with handle "${product.handle}" already exists`);
+      reviewProduct.status = "error";
+      reviewProduct.issues.push(
+        `Wine with handle "${product.handle}" already exists`,
+      );
     }
 
     // Check for producer matches and fuzzy suggestions
     const { data: existingProducer } = await supabase
-      .from('producers')
-      .select('id')
-      .eq('name', product.producer_name)
+      .from("producers")
+      .select("id")
+      .eq("name", product.producer_name)
       .single();
 
     if (!existingProducer) {
       // Get fuzzy matches for producers
       const { data: producers } = await supabase
-        .from('producers')
-        .select('name');
-      
+        .from("producers")
+        .select("name");
+
       if (producers && producers.length > 0) {
-        const similarities = producers.map(producer => ({
+        const similarities = producers.map((producer) => ({
           name: producer.name,
-          similarity: calculateSimilarity(product.producer_name, producer.name)
+          similarity: calculateSimilarity(product.producer_name, producer.name),
         }));
-        
+
         const similar = similarities
-          .filter(item => item.similarity > 0.7)
+          .filter((item) => item.similarity > 0.7)
           .sort((a, b) => b.similarity - a.similarity)
           .slice(0, 3);
-        
+
         if (similar.length > 0) {
-          reviewProduct.status = reviewProduct.status === 'error' ? 'error' : 'warning';
-          reviewProduct.issues.push(`Producer "${product.producer_name}" not found`);
+          reviewProduct.status =
+            reviewProduct.status === "error" ? "error" : "warning";
+          reviewProduct.issues.push(
+            `Producer "${product.producer_name}" not found`,
+          );
           reviewProduct.similarProducers = similar;
         }
       } else {
-        reviewProduct.status = reviewProduct.status === 'error' ? 'error' : 'warning';
-        reviewProduct.issues.push(`Producer "${product.producer_name}" will be created`);
+        reviewProduct.status =
+          reviewProduct.status === "error" ? "error" : "warning";
+        reviewProduct.issues.push(
+          `Producer "${product.producer_name}" will be created`,
+        );
       }
     }
 
@@ -469,30 +582,34 @@ async function reviewProductsWithSuggestions(supabase: any, products: ProductDat
 
 function parseCSVLine(line: string): string[] {
   const result: string[] = [];
-  let current = '';
+  let current = "";
   let inQuotes = false;
 
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
-    
+
     if (char === '"') {
       inQuotes = !inQuotes;
-    } else if (char === ',' && !inQuotes) {
+    } else if (char === "," && !inQuotes) {
       result.push(current.trim());
-      current = '';
+      current = "";
     } else {
       current += char;
     }
   }
-  
+
   result.push(current.trim());
-  return result.map(s => s.replace(/^"(.*)"$/, '$1'));
+  return result.map((s) => s.replace(/^"(.*)"$/, "$1"));
 }
 
 function generateHandle(wineName: string, vintage: string): string {
-  return wineName
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '')
-    .replace(/\s+/g, '-')
-    .substring(0, 50) + '-' + vintage;
+  return (
+    wineName
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, "")
+      .replace(/\s+/g, "-")
+      .substring(0, 50) +
+    "-" +
+    vintage
+  );
 }

@@ -3,14 +3,15 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const supabase = getSupabaseAdmin();
 
     const { data: reservations, error } = await supabase
       .from("order_reservations")
-      .select(`
+      .select(
+        `
         id,
         created_at,
         status,
@@ -24,7 +25,8 @@ export async function GET(
             base_price_cents
           )
         )
-      `)
+      `,
+      )
       .eq("user_id", params.id)
       .order("created_at", { ascending: false });
 
@@ -32,7 +34,7 @@ export async function GET(
       console.error("Error fetching user reservations:", error);
       return NextResponse.json(
         { error: "Failed to fetch reservations" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -41,14 +43,16 @@ export async function GET(
       id: res.id,
       created_at: res.created_at,
       status: res.status,
-      total_bottles: res.order_reservation_items?.reduce(
-        (sum: number, item: any) => sum + item.quantity,
-        0
-      ) || 0,
-      wines: res.order_reservation_items?.map((item: any) => ({
-        ...item.wines,
-        quantity: item.quantity,
-      })) || [],
+      total_bottles:
+        res.order_reservation_items?.reduce(
+          (sum: number, item: any) => sum + item.quantity,
+          0,
+        ) || 0,
+      wines:
+        res.order_reservation_items?.map((item: any) => ({
+          ...item.wines,
+          quantity: item.quantity,
+        })) || [],
     }));
 
     return NextResponse.json(transformed || []);
@@ -56,8 +60,7 @@ export async function GET(
     console.error("Error in GET /api/admin/users/[id]/reservations:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

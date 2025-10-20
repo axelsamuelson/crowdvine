@@ -212,7 +212,12 @@ export async function updateWineGrapeVarieties(
   // Use admin client for admin operations
   const sb = getSupabaseAdmin();
 
-  console.log("🍇 Updating wine grape varieties for wine:", wineId, "varieties:", grapeVarietyIds);
+  console.log(
+    "🍇 Updating wine grape varieties for wine:",
+    wineId,
+    "varieties:",
+    grapeVarietyIds,
+  );
 
   // Delete existing associations
   const { error: deleteError } = await sb

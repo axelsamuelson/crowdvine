@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     const cookieStore = await cookies();
-    
+
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -23,26 +23,32 @@ export async function GET(request: NextRequest) {
             cookieStore.set(name, "", { ...options, maxAge: 0 });
           },
         },
-      }
+      },
     );
 
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    
+
     if (!error) {
       // Check if this is a password reset flow
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       if (user) {
         // Check if user needs to reset password (session has password reset flag)
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session?.user?.app_metadata?.provider === 'email' && 
-            session?.user?.aud === 'authenticated') {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (
+          session?.user?.app_metadata?.provider === "email" &&
+          session?.user?.aud === "authenticated"
+        ) {
           // Redirect to reset password page
           return NextResponse.redirect(`${origin}/reset-password`);
         }
       }
-      
+
       // Normal auth flow - redirect to intended page
       return NextResponse.redirect(`${origin}${next}`);
     }

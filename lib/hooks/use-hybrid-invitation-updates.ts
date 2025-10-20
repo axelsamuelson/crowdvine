@@ -64,7 +64,7 @@ export function useHybridInvitationUpdates({
             invitation.currentUses === 0 && data.invitation.currentUses > 0;
 
           if (wasJustUsed) {
-            const userEmail = data.invitation.profiles?.email || 'someone';
+            const userEmail = data.invitation.profiles?.email || "someone";
             toast.success(
               `🎉 Your invitation was accepted by ${userEmail}! You've earned a 5% reward! Earn 10% when they make a reservation.`,
             );

@@ -3,7 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const supabase = getSupabaseAdmin();
@@ -19,7 +19,7 @@ export async function GET(
       console.error("Error fetching user invitations:", error);
       return NextResponse.json(
         { error: "Failed to fetch invitations" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -39,7 +39,7 @@ export async function GET(
           };
         }
         return invite;
-      })
+      }),
     );
 
     return NextResponse.json(enrichedInvitations || []);
@@ -47,9 +47,7 @@ export async function GET(
     console.error("Error in GET /api/admin/users/[id]/invitations:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-
-

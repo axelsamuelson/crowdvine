@@ -25,43 +25,52 @@ interface ProgressionRewardsConfigProps {
 }
 
 const segmentNames: Record<string, string> = {
-  'basic-bronze': 'Basic → Bronze (0-4 IP)',
-  'bronze-silver': 'Bronze → Silver (5-14 IP)',
-  'silver-gold': 'Silver → Gold (15-34 IP)',
+  "basic-bronze": "Basic → Bronze (0-4 IP)",
+  "bronze-silver": "Bronze → Silver (5-14 IP)",
+  "silver-gold": "Silver → Gold (15-34 IP)",
 };
 
 const rewardTypeIcons: Record<string, any> = {
-  'buff_percentage': Sparkles,
-  'badge': Award,
-  'early_access_token': TrendingUp,
-  'fee_waiver': Gift,
-  'celebration': Gift,
+  buff_percentage: Sparkles,
+  badge: Award,
+  early_access_token: TrendingUp,
+  fee_waiver: Gift,
+  celebration: Gift,
 };
 
 const rewardTypeColors: Record<string, string> = {
-  'buff_percentage': 'bg-amber-100 text-amber-700',
-  'badge': 'bg-blue-100 text-blue-700',
-  'early_access_token': 'bg-purple-100 text-purple-700',
-  'fee_waiver': 'bg-green-100 text-green-700',
-  'celebration': 'bg-rose-100 text-rose-700',
+  buff_percentage: "bg-amber-100 text-amber-700",
+  badge: "bg-blue-100 text-blue-700",
+  early_access_token: "bg-purple-100 text-purple-700",
+  fee_waiver: "bg-green-100 text-green-700",
+  celebration: "bg-rose-100 text-rose-700",
 };
 
-export function ProgressionRewardsConfig({ rewards }: ProgressionRewardsConfigProps) {
+export function ProgressionRewardsConfig({
+  rewards,
+}: ProgressionRewardsConfigProps) {
   const [rewardsList, setRewardsList] = useState(rewards);
 
   const rewardsBySegment = {
-    'basic-bronze': rewardsList.filter(r => r.level_segment === 'basic-bronze'),
-    'bronze-silver': rewardsList.filter(r => r.level_segment === 'bronze-silver'),
-    'silver-gold': rewardsList.filter(r => r.level_segment === 'silver-gold'),
+    "basic-bronze": rewardsList.filter(
+      (r) => r.level_segment === "basic-bronze",
+    ),
+    "bronze-silver": rewardsList.filter(
+      (r) => r.level_segment === "bronze-silver",
+    ),
+    "silver-gold": rewardsList.filter((r) => r.level_segment === "silver-gold"),
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Progression Rewards</h2>
+          <h2 className="text-2xl font-bold text-gray-900">
+            Progression Rewards
+          </h2>
           <p className="text-sm text-gray-600 mt-1">
-            Configure temporary buffs and rewards earned during level progression
+            Configure temporary buffs and rewards earned during level
+            progression
           </p>
         </div>
       </div>
@@ -92,10 +101,17 @@ export function ProgressionRewardsConfig({ rewards }: ProgressionRewardsConfigPr
                 ) : (
                   <div className="space-y-3">
                     {segmentRewards
-                      .sort((a, b) => a.ip_threshold - b.ip_threshold || a.sort_order - b.sort_order)
+                      .sort(
+                        (a, b) =>
+                          a.ip_threshold - b.ip_threshold ||
+                          a.sort_order - b.sort_order,
+                      )
                       .map((reward) => {
-                        const Icon = rewardTypeIcons[reward.reward_type] || Sparkles;
-                        const colorClass = rewardTypeColors[reward.reward_type] || 'bg-gray-100 text-gray-700';
+                        const Icon =
+                          rewardTypeIcons[reward.reward_type] || Sparkles;
+                        const colorClass =
+                          rewardTypeColors[reward.reward_type] ||
+                          "bg-gray-100 text-gray-700";
 
                         return (
                           <div
@@ -114,7 +130,7 @@ export function ProgressionRewardsConfig({ rewards }: ProgressionRewardsConfigPr
                                   At {reward.ip_threshold} IP
                                 </span>
                                 <Badge variant="outline" className="text-xs">
-                                  {reward.reward_type.replace('_', ' ')}
+                                  {reward.reward_type.replace("_", " ")}
                                 </Badge>
                               </div>
                               <p className="text-sm text-gray-700">
@@ -123,13 +139,18 @@ export function ProgressionRewardsConfig({ rewards }: ProgressionRewardsConfigPr
                               {reward.reward_value && (
                                 <p className="text-xs text-gray-500 mt-1">
                                   Value: {reward.reward_value}
-                                  {reward.reward_type === 'buff_percentage' && '%'}
+                                  {reward.reward_type === "buff_percentage" &&
+                                    "%"}
                                 </p>
                               )}
                             </div>
 
                             {/* Status */}
-                            <Badge variant={reward.is_active ? "default" : "secondary"}>
+                            <Badge
+                              variant={
+                                reward.is_active ? "default" : "secondary"
+                              }
+                            >
                               {reward.is_active ? "Active" : "Inactive"}
                             </Badge>
                           </div>
@@ -146,25 +167,38 @@ export function ProgressionRewardsConfig({ rewards }: ProgressionRewardsConfigPr
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                   <div>
                     <p className="text-2xl font-bold text-gray-900">
-                      {segmentRewards.filter(r => r.is_active).length}
+                      {segmentRewards.filter((r) => r.is_active).length}
                     </p>
                     <p className="text-xs text-gray-600">Active Rewards</p>
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-amber-600">
-                      {segmentRewards.filter(r => r.reward_type === 'buff_percentage').length}
+                      {
+                        segmentRewards.filter(
+                          (r) => r.reward_type === "buff_percentage",
+                        ).length
+                      }
                     </p>
                     <p className="text-xs text-gray-600">Buff Rewards</p>
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-blue-600">
-                      {segmentRewards.filter(r => r.reward_type === 'badge').length}
+                      {
+                        segmentRewards.filter((r) => r.reward_type === "badge")
+                          .length
+                      }
                     </p>
                     <p className="text-xs text-gray-600">Badge Rewards</p>
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-green-600">
-                      {segmentRewards.filter(r => r.reward_type === 'fee_waiver' || r.reward_type === 'early_access_token').length}
+                      {
+                        segmentRewards.filter(
+                          (r) =>
+                            r.reward_type === "fee_waiver" ||
+                            r.reward_type === "early_access_token",
+                        ).length
+                      }
                     </p>
                     <p className="text-xs text-gray-600">Special Rewards</p>
                   </div>
@@ -181,16 +215,34 @@ export function ProgressionRewardsConfig({ rewards }: ProgressionRewardsConfigPr
           <div className="flex gap-3">
             <Sparkles className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
             <div className="space-y-2">
-              <h3 className="font-semibold text-blue-900">How Progression Rewards Work</h3>
+              <h3 className="font-semibold text-blue-900">
+                How Progression Rewards Work
+              </h3>
               <ul className="text-sm text-blue-800 space-y-1">
-                <li>• <strong>Buff Percentage:</strong> Temporary discount applied to next order, then expires</li>
-                <li>• <strong>Badge:</strong> Unlockable achievement shown in user profile</li>
-                <li>• <strong>Early Access Token:</strong> One-time early access to a wine drop</li>
-                <li>• <strong>Fee Waiver:</strong> One-time service fee waived on next order</li>
-                <li>• <strong>Celebration:</strong> Special UI celebration (e.g., confetti for Gold unlock)</li>
+                <li>
+                  • <strong>Buff Percentage:</strong> Temporary discount applied
+                  to next order, then expires
+                </li>
+                <li>
+                  • <strong>Badge:</strong> Unlockable achievement shown in user
+                  profile
+                </li>
+                <li>
+                  • <strong>Early Access Token:</strong> One-time early access
+                  to a wine drop
+                </li>
+                <li>
+                  • <strong>Fee Waiver:</strong> One-time service fee waived on
+                  next order
+                </li>
+                <li>
+                  • <strong>Celebration:</strong> Special UI celebration (e.g.,
+                  confetti for Gold unlock)
+                </li>
               </ul>
               <p className="text-xs text-blue-700 mt-3">
-                All buffs are cleared when user reaches next level. This encourages consistent engagement.
+                All buffs are cleared when user reaches next level. This
+                encourages consistent engagement.
               </p>
             </div>
           </div>
@@ -199,4 +251,3 @@ export function ProgressionRewardsConfig({ rewards }: ProgressionRewardsConfigPr
     </div>
   );
 }
-

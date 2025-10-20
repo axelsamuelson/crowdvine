@@ -45,11 +45,17 @@ async function checkZoneDependencies() {
         .or(`pickup_zone_id.eq.${zone.id},delivery_zone_id.eq.${zone.id}`);
 
       if (reservationsError) {
-        console.log(`   ❌ Error checking reservations: ${reservationsError.message}`);
+        console.log(
+          `   ❌ Error checking reservations: ${reservationsError.message}`,
+        );
       } else if (reservations && reservations.length > 0) {
-        console.log(`   🚫 BLOCKED: Used in ${reservations.length} reservation(s)`);
-        reservations.forEach(r => {
-          console.log(`      - Reservation ${r.id.substring(0, 8)}... (${r.status}, ${new Date(r.created_at).toLocaleDateString()})`);
+        console.log(
+          `   🚫 BLOCKED: Used in ${reservations.length} reservation(s)`,
+        );
+        reservations.forEach((r) => {
+          console.log(
+            `      - Reservation ${r.id.substring(0, 8)}... (${r.status}, ${new Date(r.created_at).toLocaleDateString()})`,
+          );
         });
       } else {
         console.log(`   ✅ No reservations using this zone`);
@@ -65,19 +71,22 @@ async function checkZoneDependencies() {
         console.log(`   ❌ Error checking pallets: ${palletsError.message}`);
       } else if (pallets && pallets.length > 0) {
         console.log(`   🚫 BLOCKED: Used in ${pallets.length} pallet(s)`);
-        pallets.forEach(p => {
-          console.log(`      - Pallet "${p.name}" (${p.id.substring(0, 8)}...)`);
+        pallets.forEach((p) => {
+          console.log(
+            `      - Pallet "${p.name}" (${p.id.substring(0, 8)}...)`,
+          );
         });
       } else {
         console.log(`   ✅ No pallets using this zone`);
       }
 
       // Summary
-      const canDelete = (!reservations || reservations.length === 0) && (!pallets || pallets.length === 0);
-      console.log(`   ${canDelete ? '✅ CAN DELETE' : '🚫 CANNOT DELETE'}`);
+      const canDelete =
+        (!reservations || reservations.length === 0) &&
+        (!pallets || pallets.length === 0);
+      console.log(`   ${canDelete ? "✅ CAN DELETE" : "🚫 CANNOT DELETE"}`);
       console.log("");
     }
-
   } catch (error) {
     console.error("❌ Error:", error);
   }

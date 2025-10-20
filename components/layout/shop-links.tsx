@@ -25,9 +25,9 @@ export function ShopLinks({
   });
 
   // Filter out wine-boxes
-  const filteredCollections = collections?.filter(
-    (collection) => collection.handle !== "wine-boxes"
-  ) || [];
+  const filteredCollections =
+    collections?.filter((collection) => collection.handle !== "wine-boxes") ||
+    [];
 
   console.log("✅ Filtered collections:", filteredCollections.length);
 
@@ -47,8 +47,8 @@ export function ShopLinks({
       <ul className="flex flex-col gap-1.5 leading-5 mt-5">
         {filteredCollections.map((item, index) => (
           <li key={`${item.handle}-${index}`}>
-            <Link 
-              href={`/shop/${item.handle}`} 
+            <Link
+              href={`/shop/${item.handle}`}
               prefetch
               onClick={onLinkClick}
               className="hover:underline text-gray-900"

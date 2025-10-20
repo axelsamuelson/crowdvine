@@ -1,16 +1,19 @@
 # Stripe Live Mode Configuration Checklist
 
 ## Overview
+
 You've activated Stripe Live mode. This guide ensures everything is configured correctly for production payments.
 
 ## Current Stripe Integration
 
 ### What Stripe is Used For:
+
 1. ✅ **Payment Method Storage** - Save customer credit cards for future use
 2. ✅ **SetupIntents** - Securely collect payment methods without charging
 3. ✅ **Customer Management** - Create and manage Stripe customer profiles
 
 ### What Stripe is NOT Used For (Yet):
+
 - ❌ **Actual Payments** - No payment charging implemented
 - ❌ **Webhooks** - No Stripe webhook handler exists
 - ❌ **Subscriptions** - Not implemented
@@ -20,6 +23,7 @@ You've activated Stripe Live mode. This guide ensures everything is configured c
 ### Required Variables (Vercel):
 
 #### 1. Live API Keys
+
 ```bash
 # In Vercel → Settings → Environment Variables
 
@@ -34,6 +38,7 @@ STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxx
 ```
 
 #### 2. Other Required Variables
+
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
@@ -83,6 +88,7 @@ NEXT_PUBLIC_APP_URL=https://pactwines.com
 ### ✅ Working Features:
 
 #### 1. Payment Method Setup (`/api/checkout/setup`)
+
 ```typescript
 // Creates Stripe SetupIntent
 // Redirects user to Stripe hosted page
@@ -91,6 +97,7 @@ NEXT_PUBLIC_APP_URL=https://pactwines.com
 ```
 
 **Flow:**
+
 1. User clicks "Add Payment Method"
 2. API creates SetupIntent with Stripe
 3. User redirected to Stripe Checkout
@@ -101,6 +108,7 @@ NEXT_PUBLIC_APP_URL=https://pactwines.com
 **Status:** ✅ Works in both test and live mode
 
 #### 2. Customer Creation
+
 ```typescript
 // lib/stripe.ts - createCustomer()
 // Creates Stripe customer with email
@@ -109,6 +117,7 @@ NEXT_PUBLIC_APP_URL=https://pactwines.com
 **Status:** ✅ Works in both test and live mode
 
 #### 3. Payment Method Display
+
 ```typescript
 // Profile page shows saved cards
 // Fetches from Stripe customer
@@ -119,11 +128,13 @@ NEXT_PUBLIC_APP_URL=https://pactwines.com
 ### ⚠️ Not Implemented:
 
 #### 1. Payment Processing
+
 - No payment charging implemented
 - Reservations are created but not charged
 - Need to add payment intent creation if charging upfront
 
 #### 2. Stripe Webhooks
+
 - No webhook endpoint exists
 - Can't receive:
   - payment_intent.succeeded
@@ -132,6 +143,7 @@ NEXT_PUBLIC_APP_URL=https://pactwines.com
   - etc.
 
 #### 3. Payment Confirmation
+
 - No verification of successful payment
 - Reservations created without payment confirmation
 
@@ -140,6 +152,7 @@ NEXT_PUBLIC_APP_URL=https://pactwines.com
 ### Test Payment Methods in Live Mode:
 
 **Valid Test Cards (Work in Live Mode for Testing):**
+
 ```
 Card Number: 4242 4242 4242 4242
 Expiry: Any future date (e.g., 12/28)
@@ -154,6 +167,7 @@ This card will:
 ```
 
 **For Real Payments:**
+
 - Use your actual credit card
 - Small test amount to verify
 - Check Stripe Dashboard → Payments
@@ -161,6 +175,7 @@ This card will:
 ### Test Flow:
 
 1. **Add Payment Method:**
+
    ```
    1. Login to pactwines.com
    2. Go to Profile
@@ -174,6 +189,7 @@ This card will:
    ```
 
 2. **Check Stripe Dashboard:**
+
    ```
    1. Go to Stripe Dashboard (Live mode)
    2. Customers → Find customer by email
@@ -194,6 +210,7 @@ This card will:
 ## Required Actions for Live Mode
 
 ### ✅ Already Done:
+
 1. Payment method collection via SetupIntent
 2. Customer creation in Stripe
 3. Payment method display in profile
@@ -202,6 +219,7 @@ This card will:
 ### 🔧 To Do (If Charging Payments):
 
 #### 1. Update Environment Variables in Vercel
+
 ```bash
 # Replace test keys with live keys
 STRIPE_SECRET_KEY=sk_live_... (not sk_test_)
@@ -209,6 +227,7 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_... (not pk_test_)
 ```
 
 #### 2. Create Webhook Endpoint (If Needed)
+
 ```typescript
 // app/api/stripe/webhook/route.ts
 import { stripe } from "@/lib/stripe";
@@ -217,13 +236,13 @@ import { headers } from "next/headers";
 export async function POST(req: Request) {
   const body = await req.text();
   const signature = headers().get("stripe-signature");
-  
+
   const event = stripe.webhooks.constructEvent(
     body,
     signature,
-    process.env.STRIPE_WEBHOOK_SECRET!
+    process.env.STRIPE_WEBHOOK_SECRET!,
   );
-  
+
   // Handle events:
   switch (event.type) {
     case "setup_intent.succeeded":
@@ -233,12 +252,13 @@ export async function POST(req: Request) {
       // Payment successful
       break;
   }
-  
+
   return NextResponse.json({ received: true });
 }
 ```
 
 #### 3. Configure Webhook in Stripe Dashboard
+
 ```
 1. Stripe Dashboard → Developers → Webhooks
 2. Add endpoint: https://pactwines.com/api/stripe/webhook
@@ -250,11 +270,12 @@ export async function POST(req: Request) {
 ```
 
 #### 4. Add Payment Processing (If Charging)
+
 ```typescript
 // In checkout/confirm or separate payment API
 const paymentIntent = await stripe.paymentIntents.create({
   amount: totalAmountCents,
-  currency: 'sek',
+  currency: "sek",
   customer: stripeCustomerId,
   payment_method: selectedPaymentMethodId,
   off_session: true,
@@ -265,6 +286,7 @@ const paymentIntent = await stripe.paymentIntents.create({
 ## Security Checklist
 
 ### ✅ Current Security (Good):
+
 1. ✅ Secret key only used server-side
 2. ✅ Publishable key safe to expose client-side
 3. ✅ Customer creation server-side only
@@ -273,6 +295,7 @@ const paymentIntent = await stripe.paymentIntents.create({
 6. ✅ PCI-compliant (Stripe hosted checkout)
 
 ### ⚠️ Additional Security for Live:
+
 1. ⚠️ Add webhook signature verification (if using webhooks)
 2. ⚠️ Log all Stripe operations for audit trail
 3. ⚠️ Add idempotency keys for payment creation
@@ -282,6 +305,7 @@ const paymentIntent = await stripe.paymentIntents.create({
 ## Monitoring & Alerts
 
 ### Stripe Dashboard Checks:
+
 1. **Daily:**
    - Check Payments tab for errors
    - Review failed payment methods
@@ -298,6 +322,7 @@ const paymentIntent = await stripe.paymentIntents.create({
    - Update API version if needed
 
 ### Set Up Alerts:
+
 1. Stripe Dashboard → Settings → Notifications
 2. Enable email alerts for:
    - Failed payments
@@ -308,28 +333,36 @@ const paymentIntent = await stripe.paymentIntents.create({
 ## Common Issues & Solutions
 
 ### Issue 1: "Stripe is not configured"
+
 **Solution:**
+
 - Check Vercel environment variables
 - Ensure `STRIPE_SECRET_KEY` exists
 - Ensure starts with `sk_live_` (not `sk_test_`)
 - Redeploy after changing
 
 ### Issue 2: Payment method not saving
+
 **Solution:**
+
 - Check browser console for errors
 - Verify publishable key is live mode
 - Check Stripe Dashboard → Logs for API errors
 - Verify customer exists in Stripe
 
 ### Issue 3: Webhook not receiving events
+
 **Solution:**
+
 - Verify webhook URL: https://pactwines.com/api/stripe/webhook
 - Check webhook signing secret in Vercel
 - Check Stripe Dashboard → Webhooks → Delivery attempts
 - Verify endpoint returns 200 response
 
 ### Issue 4: CORS errors in live mode
+
 **Solution:**
+
 - Stripe Checkout handles CORS automatically
 - Ensure return URLs are https://pactwines.com
 - Check domain is verified in Stripe
@@ -337,6 +370,7 @@ const paymentIntent = await stripe.paymentIntents.create({
 ## Verification Steps
 
 ### Step 1: Check Environment Variables
+
 ```bash
 # In Vercel Dashboard
 Settings → Environment Variables
@@ -351,6 +385,7 @@ Scope:
 ```
 
 ### Step 2: Test Payment Method Addition
+
 ```
 1. Create test user account
 2. Go to /profile
@@ -363,6 +398,7 @@ Scope:
 ```
 
 ### Step 3: Check Logs
+
 ```
 Vercel → Functions → Check logs for:
 - "DEBUG: Stripe configured: true"
@@ -375,6 +411,7 @@ Stripe Dashboard → Developers → Logs:
 ```
 
 ### Step 4: Test Complete Flow
+
 ```
 1. Add wines to cart (6-bottle multiples)
 2. Add payment method
@@ -389,17 +426,20 @@ Stripe Dashboard → Developers → Logs:
 ## What Works Now:
 
 ✅ **Payment Method Collection**
+
 - Users can add credit cards
 - Cards stored securely in Stripe
 - PCI-compliant (Stripe handles card data)
 - Works in live mode
 
 ✅ **Customer Management**
+
 - Stripe customers created automatically
 - Linked to user email
 - Payment methods attached to customers
 
 ✅ **SetupIntents**
+
 - Secure card collection flow
 - Stripe hosted checkout
 - Return URL handling
@@ -408,6 +448,7 @@ Stripe Dashboard → Developers → Logs:
 ## What to Add for Full Live Payments:
 
 ### 1. Payment Charging (High Priority)
+
 If you want to actually charge customers:
 
 ```typescript
@@ -416,34 +457,37 @@ import { stripe } from "@/lib/stripe";
 
 export async function POST(req: Request) {
   const { amount, customerId, paymentMethodId } = await req.json();
-  
+
   // Create payment intent
   const paymentIntent = await stripe.paymentIntents.create({
     amount: amount, // in cents
-    currency: 'sek',
+    currency: "sek",
     customer: customerId,
     payment_method: paymentMethodId,
     off_session: true,
     confirm: true,
-    description: 'Wine Reservation',
+    description: "Wine Reservation",
   });
-  
+
   return NextResponse.json({ success: true });
 }
 ```
 
 ### 2. Webhook Handler (High Priority)
+
 ```typescript
 // app/api/stripe/webhook/route.ts
 // Handle payment confirmations, failures, disputes
 ```
 
 ### 3. Error Handling
+
 - Insufficient funds
 - Card declined
 - Authentication required (3D Secure)
 
 ### 4. Refunds (Medium Priority)
+
 - Partial refunds
 - Full refunds
 - Cancellation flow
@@ -451,6 +495,7 @@ export async function POST(req: Request) {
 ## Quick Start: Enable Live Mode
 
 ### 1. Update Vercel Environment Variables
+
 ```bash
 # Get keys from Stripe Dashboard (Live mode)
 # Settings → Environment Variables → Add:
@@ -464,6 +509,7 @@ STRIPE_WEBHOOK_SECRET=whsec_... (if using webhooks)
 ```
 
 ### 2. Redeploy
+
 ```bash
 # Trigger new deployment
 git commit --allow-empty -m "Redeploy for Stripe live keys"
@@ -474,6 +520,7 @@ git push origin main
 ```
 
 ### 3. Test
+
 ```
 1. Go to https://pactwines.com/profile
 2. Add payment method
@@ -484,6 +531,7 @@ git push origin main
 ```
 
 ### 4. Monitor
+
 ```
 Stripe Dashboard → Home
 - Watch for:
@@ -532,6 +580,7 @@ Stripe Dashboard → Home
 ## Testing Checklist
 
 ### Before Going Live:
+
 - [ ] Live keys added to Vercel
 - [ ] Keys start with `sk_live_` and `pk_live_`
 - [ ] Redeployed application
@@ -542,6 +591,7 @@ Stripe Dashboard → Home
 - [ ] Verified return URLs work (https://pactwines.com)
 
 ### After Going Live:
+
 - [ ] Monitor Stripe Dashboard daily
 - [ ] Set up email alerts for failures
 - [ ] Test with real card (small amount)
@@ -553,18 +603,22 @@ Stripe Dashboard → Home
 ## Important Notes
 
 ### Payment Method vs Payment Processing:
+
 - **SetupIntent** = Save card for later (implemented ✅)
 - **PaymentIntent** = Actually charge the card (NOT implemented ⚠️)
 
 ### Current Behavior:
+
 1. User adds payment method → Saved to Stripe ✅
 2. User places reservation → Reservation created ✅
 3. Payment charged? → **NO** ⚠️ (not implemented)
 
 ### If You Want to Charge:
+
 You'll need to implement PaymentIntent creation in checkout/confirm or create a separate payment processing step.
 
 ### Security:
+
 - ✅ Never store card numbers yourself (Stripe handles it)
 - ✅ Use Stripe.js or Checkout (PCI-compliant)
 - ✅ Server-side payment creation only
@@ -574,18 +628,21 @@ You'll need to implement PaymentIntent creation in checkout/confirm or create a 
 ## Next Steps
 
 ### Immediate (Required):
+
 1. ✅ Update Vercel with live Stripe keys
 2. ✅ Redeploy application
 3. ✅ Test payment method addition
 4. ✅ Verify in Stripe Dashboard
 
 ### Soon (Recommended):
+
 1. Add webhook endpoint for payment events
 2. Add proper error handling for declined cards
 3. Add payment confirmation flow
 4. Set up Stripe alerts
 
 ### Future (Nice to Have):
+
 1. Implement actual payment charging
 2. Add refund functionality
 3. Add dispute handling
@@ -613,22 +670,24 @@ You'll need to implement PaymentIntent creation in checkout/confirm or create a 
 ## Summary
 
 ### What's Working:
+
 ✅ Payment method collection  
 ✅ Stripe customer creation  
 ✅ Card storage (PCI-compliant)  
-✅ Setup flow from profile and checkout  
+✅ Setup flow from profile and checkout
 
 ### What Needs Attention:
+
 ⚠️ Update environment variables with live keys  
 ⚠️ Redeploy after updating  
-⚠️ Test thoroughly before accepting real payments  
+⚠️ Test thoroughly before accepting real payments
 
 ### What's Not Implemented (Optional):
+
 ❌ Actual payment charging  
 ❌ Webhook handling  
-❌ Payment confirmation flow  
+❌ Payment confirmation flow
 
 **Your current setup is ready for live mode card collection!**  
 The payment method storage works perfectly.  
 If you want to actually charge customers, we'll need to add PaymentIntent creation.
-

@@ -34,7 +34,7 @@ ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP WITH TIME ZONE,
 ADD COLUMN IF NOT EXISTS payment_deadline TIMESTAMP WITH TIME ZONE;
 
 -- Create index for pallet status queries
-CREATE INDEX IF NOT EXISTS idx_pallets_status 
+CREATE INDEX IF NOT EXISTS idx_pallets_status
 ON pallets(status, is_complete);
 
 -- ============================================
@@ -49,7 +49,7 @@ ADD COLUMN IF NOT EXISTS payment_link TEXT,
 ADD COLUMN IF NOT EXISTS payment_deadline TIMESTAMP WITH TIME ZONE;
 
 -- Create index for finding reservations needing payment
-CREATE INDEX IF NOT EXISTS idx_reservations_payment_status 
+CREATE INDEX IF NOT EXISTS idx_reservations_payment_status
 ON order_reservations(payment_status, pallet_id);
 
 -- Create index for payment deadline queries
@@ -62,7 +62,7 @@ ON order_reservations(payment_deadline) WHERE payment_status = 'pending';
 
 -- Set default payment_status based on existing status
 UPDATE order_reservations
-SET payment_status = CASE 
+SET payment_status = CASE
   WHEN status = 'confirmed' THEN 'paid'
   WHEN status = 'pending_payment' THEN 'pending'
   WHEN status = 'placed' THEN 'pending'
@@ -125,7 +125,7 @@ Efter migration och completion check:
 ## Felsökning
 
 Om något går fel, kontakta utvecklaren med:
+
 - Error message från SQL Editor
 - Screenshot av felmeddelandet
 - Vilken query som kördes
-

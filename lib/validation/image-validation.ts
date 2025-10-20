@@ -45,12 +45,12 @@ export async function validateImage(
   // Skip dimension validation for now - it requires browser APIs
   // which are not available in server-side "use server" functions
   // TODO: Use a proper server-side image library like 'sharp' if needed
-  
+
   // try {
   //   // Get image dimensions
   //   const imageData = await getImageDimensions(file);
   //   dimensions = imageData;
-  //   
+  //
   //   // Check dimensions...
   // } catch (error) {
   //   // Don't fail validation just because we can't read dimensions

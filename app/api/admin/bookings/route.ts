@@ -42,18 +42,21 @@ export async function GET() {
       .order("created_at", { ascending: false });
 
     if (bookingsError) {
-      console.error("❌ [Bookings API] Error fetching bookings:", bookingsError);
+      console.error(
+        "❌ [Bookings API] Error fetching bookings:",
+        bookingsError,
+      );
       console.error("Bookings error details:", {
         code: bookingsError.code,
         message: bookingsError.message,
         details: bookingsError.details,
-        hint: bookingsError.hint
+        hint: bookingsError.hint,
       });
-      
+
       return NextResponse.json({
         bookings: [],
         reservations: [],
-        error: bookingsError.message
+        error: bookingsError.message,
       });
     }
 
@@ -62,8 +65,12 @@ export async function GET() {
     // Manually fetch profiles for bookings user_ids
     let bookingsWithProfiles = bookings || [];
     if (bookings && bookings.length > 0) {
-      const userIds = [...new Set(bookings.map(b => b.user_id).filter(Boolean))];
-      console.log(`🔍 [Bookings API] Fetching profiles for ${userIds.length} unique users`);
+      const userIds = [
+        ...new Set(bookings.map((b) => b.user_id).filter(Boolean)),
+      ];
+      console.log(
+        `🔍 [Bookings API] Fetching profiles for ${userIds.length} unique users`,
+      );
 
       const { data: profiles, error: profilesError } = await sb
         .from("profiles")
@@ -71,14 +78,19 @@ export async function GET() {
         .in("id", userIds);
 
       if (profilesError) {
-        console.error("❌ [Bookings API] Error fetching profiles:", profilesError);
+        console.error(
+          "❌ [Bookings API] Error fetching profiles:",
+          profilesError,
+        );
       } else {
-        console.log(`✅ [Bookings API] Found ${profiles?.length || 0} profiles`);
-        
-        const profilesMap = new Map(profiles?.map(p => [p.id, p]) || []);
-        bookingsWithProfiles = bookings.map(booking => ({
+        console.log(
+          `✅ [Bookings API] Found ${profiles?.length || 0} profiles`,
+        );
+
+        const profilesMap = new Map(profiles?.map((p) => [p.id, p]) || []);
+        bookingsWithProfiles = bookings.map((booking) => ({
           ...booking,
-          profiles: profilesMap.get(booking.user_id) || null
+          profiles: profilesMap.get(booking.user_id) || null,
         }));
       }
     }
@@ -103,30 +115,37 @@ export async function GET() {
       .order("created_at", { ascending: false });
 
     if (reservationsError) {
-      console.error("❌ [Bookings API] Error fetching reservations:", reservationsError);
+      console.error(
+        "❌ [Bookings API] Error fetching reservations:",
+        reservationsError,
+      );
       return NextResponse.json({
         bookings: bookingsWithProfiles,
         reservations: [],
       });
     }
 
-    console.log(`✅ [Bookings API] Found ${reservations?.length || 0} reservations`);
+    console.log(
+      `✅ [Bookings API] Found ${reservations?.length || 0} reservations`,
+    );
 
     // Attach profiles to reservations too
     let reservationsWithProfiles = reservations || [];
     if (reservations && reservations.length > 0) {
-      const resUserIds = [...new Set(reservations.map(r => r.user_id).filter(Boolean))];
-      
+      const resUserIds = [
+        ...new Set(reservations.map((r) => r.user_id).filter(Boolean)),
+      ];
+
       const { data: resProfiles, error: resProfilesError } = await sb
         .from("profiles")
         .select("id, email, full_name")
         .in("id", resUserIds);
 
       if (!resProfilesError && resProfiles) {
-        const resProfilesMap = new Map(resProfiles.map(p => [p.id, p]));
-        reservationsWithProfiles = reservations.map(reservation => ({
+        const resProfilesMap = new Map(resProfiles.map((p) => [p.id, p]));
+        reservationsWithProfiles = reservations.map((reservation) => ({
           ...reservation,
-          profiles: resProfilesMap.get(reservation.user_id) || null
+          profiles: resProfilesMap.get(reservation.user_id) || null,
         }));
       }
     }

@@ -8,7 +8,7 @@ export async function POST(request: Request) {
     if (!groupId || !producerId) {
       return NextResponse.json(
         { error: "Group ID and Producer ID are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     if (existing) {
       return NextResponse.json(
         { error: "Producer is already in this group" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
       console.error("Error adding producer to group:", error);
       return NextResponse.json(
         { error: "Failed to add producer to group" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -52,8 +52,7 @@ export async function POST(request: Request) {
     console.error("Error in add producer to group API:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

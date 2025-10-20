@@ -36,15 +36,15 @@ export function LevelProgress({
           >
             {/* Shimmer effect (FIFA-style) */}
             <div className="absolute inset-0 opacity-40">
-              <div 
+              <div
                 className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent"
-                style={{ 
+                style={{
                   animation: "shimmer 2s ease-in-out infinite",
-                  backgroundSize: "200% 100%"
-                }} 
+                  backgroundSize: "200% 100%",
+                }}
               />
             </div>
-            
+
             {/* Inner glow */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
           </div>
@@ -74,7 +74,9 @@ export function LevelProgress({
           </div>
           <div>
             <p className="text-xs text-gray-500 font-medium">Next Level</p>
-            <p className="text-base font-semibold text-gray-900">{nextLevelName}</p>
+            <p className="text-base font-semibold text-gray-900">
+              {nextLevelName}
+            </p>
           </div>
         </div>
         <div className="text-right">
@@ -106,5 +108,3 @@ export function LevelProgress({
     </div>
   );
 }
-
-

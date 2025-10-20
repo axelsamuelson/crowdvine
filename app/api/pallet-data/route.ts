@@ -9,18 +9,23 @@ export async function GET(request: NextRequest) {
     // Fetch all pallets with zone info
     const { data: pallets, error } = await sb
       .from("pallets")
-      .select(`
+      .select(
+        `
         id,
         from_zone_id,
         to_zone_id,
         capacity_bottles,
         status
-      `)
-      .order('created_at', { ascending: false });
+      `,
+      )
+      .order("created_at", { ascending: false });
 
     if (error) {
       console.error("Error fetching pallets:", error);
-      return NextResponse.json({ error: "Failed to fetch pallets" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to fetch pallets" },
+        { status: 500 },
+      );
     }
 
     // Calculate total bottles for each pallet and fetch zone names
@@ -42,7 +47,7 @@ export async function GET(request: NextRequest) {
         // Count total bottles on this pallet
         const { count } = await sb
           .from("order_reservation_items")
-          .select("*", { count: 'exact', head: true })
+          .select("*", { count: "exact", head: true })
           .eq("pallet_id", pallet.id);
 
         const totalBottles = count || 0;
@@ -53,15 +58,18 @@ export async function GET(request: NextRequest) {
           to_zone_name: toZone?.name || "Unknown",
           capacity_bottles: pallet.capacity_bottles || 720,
           total_bottles_on_pallet: totalBottles,
-          status: pallet.status
+          status: pallet.status,
         };
-      })
+      }),
     );
 
     return NextResponse.json(palletsWithData);
   } catch (error) {
     console.error("Pallet data GET error:", error);
-    return NextResponse.json({ error: "Failed to fetch pallet data" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch pallet data" },
+      { status: 500 },
+    );
   }
 }
 
@@ -70,7 +78,10 @@ export async function POST(request: NextRequest) {
     const { palletIds } = await request.json();
 
     if (!palletIds || !Array.isArray(palletIds)) {
-      return NextResponse.json({ error: "Invalid pallet IDs" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid pallet IDs" },
+        { status: 400 },
+      );
     }
 
     const sb = getSupabaseAdmin();
@@ -83,7 +94,10 @@ export async function POST(request: NextRequest) {
 
     if (palletsError) {
       console.error("Error fetching pallets:", palletsError);
-      return NextResponse.json({ error: "Failed to fetch pallets" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to fetch pallets" },
+        { status: 500 },
+      );
     }
 
     // Get current bottle count for each pallet from bookings
@@ -104,14 +118,19 @@ export async function POST(request: NextRequest) {
           bottle_capacity: pallet.bottle_capacity,
           current_bottles: currentBottles,
         };
-      })
+      }),
     );
 
-    console.log(`✅ Fetched ${palletsWithBottles.length} pallets with bottle counts`);
+    console.log(
+      `✅ Fetched ${palletsWithBottles.length} pallets with bottle counts`,
+    );
 
     return NextResponse.json({ pallets: palletsWithBottles });
   } catch (error) {
     console.error("Pallet data API error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

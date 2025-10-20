@@ -1,9 +1,11 @@
 # Password Reset URL Fix Guide
 
 ## Problem
+
 Password reset emails contain localhost URLs instead of production URLs, causing users to be redirected to non-working pages.
 
 ## Root Cause
+
 The issue is likely in the Supabase project configuration where the Site URL is set to localhost instead of the production domain.
 
 ## Solution Steps
@@ -19,6 +21,7 @@ The issue is likely in the Supabase project configuration where the Site URL is 
 ### 2. Verify Redirect URLs
 
 Make sure these URLs are in your **Redirect URLs** list:
+
 - `https://pactwines.com/auth/callback`
 - `https://pactwines.com/auth/callback?next=/reset-password`
 - `https://pactwines.com/reset-password`
@@ -35,18 +38,20 @@ If the Supabase configuration can't be changed immediately, we can hardcode the 
 
 ```typescript
 // In app/api/auth/forgot-password/route.ts
-const redirectUrl = 'https://pactwines.com/auth/callback?next=/reset-password';
+const redirectUrl = "https://pactwines.com/auth/callback?next=/reset-password";
 ```
 
 ## Current Status
+
 - ✅ Auth callback route created
-- ✅ Reset password page created  
+- ✅ Reset password page created
 - ✅ Error handling page created
 - ✅ Dynamic URL detection improved
 - ✅ Supabase Site URL configuration updated to https://pactwines.com
 - ✅ Hardcoded production URL in forgot-password API
 
 ## Next Steps
+
 1. ✅ ~~Update Supabase Site URL configuration~~ **COMPLETED**
 2. Test password reset flow end-to-end
 3. Verify emails contain correct production URLs

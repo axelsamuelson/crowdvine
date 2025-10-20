@@ -26,10 +26,10 @@ function SignupPageContent() {
   // Map Swedish level names to English
   const getLevelName = (level: string) => {
     const levelMap: Record<string, string> = {
-      'guld': 'Gold',
-      'silver': 'Silver',
-      'brons': 'Bronze',
-      'basic': 'Basic'
+      guld: "Gold",
+      silver: "Silver",
+      brons: "Bronze",
+      basic: "Basic",
     };
     return levelMap[level] || level.charAt(0).toUpperCase() + level.slice(1);
   };
@@ -37,12 +37,24 @@ function SignupPageContent() {
   // Get premium colors for each level
   const getLevelColors = (level: string) => {
     const colorMap: Record<string, { bg: string; text: string }> = {
-      'guld': { bg: 'bg-gradient-to-br from-amber-600 to-yellow-700', text: 'text-white' },
-      'silver': { bg: 'bg-gradient-to-br from-gray-400 to-gray-500', text: 'text-gray-900' },
-      'brons': { bg: 'bg-gradient-to-br from-orange-800 to-amber-900', text: 'text-white' },
-      'basic': { bg: 'bg-gradient-to-br from-slate-600 to-slate-700', text: 'text-white' }
+      guld: {
+        bg: "bg-gradient-to-br from-amber-600 to-yellow-700",
+        text: "text-white",
+      },
+      silver: {
+        bg: "bg-gradient-to-br from-gray-400 to-gray-500",
+        text: "text-gray-900",
+      },
+      brons: {
+        bg: "bg-gradient-to-br from-orange-800 to-amber-900",
+        text: "text-white",
+      },
+      basic: {
+        bg: "bg-gradient-to-br from-slate-600 to-slate-700",
+        text: "text-white",
+      },
     };
-    return colorMap[level] || { bg: 'bg-gray-500', text: 'text-white' };
+    return colorMap[level] || { bg: "bg-gray-500", text: "text-white" };
   };
 
   useEffect(() => {
@@ -93,7 +105,7 @@ function SignupPageContent() {
       if (result.success) {
         setTokenValid(true);
         setEmail(result.email);
-        setMembershipLevel(result.initialLevel || 'basic');
+        setMembershipLevel(result.initialLevel || "basic");
         console.log("Token is valid for email:", result.email);
         console.log("Initial membership level:", result.initialLevel);
       } else {
@@ -207,8 +219,13 @@ function SignupPageContent() {
         }
       } else {
         // Handle security validation errors
-        if (createUserData.error && createUserData.error.includes("Security validation failed")) {
-          setError("Security validation failed. Please try signing in manually.");
+        if (
+          createUserData.error &&
+          createUserData.error.includes("Security validation failed")
+        ) {
+          setError(
+            "Security validation failed. Please try signing in manually.",
+          );
           setTimeout(() => {
             router.push("/log-in");
           }, 2000);
@@ -240,7 +257,8 @@ function SignupPageContent() {
             Invalid Access Token
           </h1>
           <p className="text-sm text-gray-600 mb-6">
-            {error || "This access token is invalid or has expired. Please contact support if you believe this is an error."}
+            {error ||
+              "This access token is invalid or has expired. Please contact support if you believe this is an error."}
           </p>
           <Button
             onClick={() => router.push("/access-request")}
@@ -265,7 +283,8 @@ function SignupPageContent() {
               Welcome to PACT
             </h1>
             <p className="text-sm text-gray-600 mb-6">
-              Your account has been created successfully. Redirecting you to the platform...
+              Your account has been created successfully. Redirecting you to the
+              platform...
             </p>
           </div>
         </div>
@@ -296,18 +315,23 @@ function SignupPageContent() {
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="text-center space-y-3">
               {/* Level Badge - Premium Colors */}
-              <div className={`inline-block px-6 py-2 rounded-md text-sm font-medium ${
-                getLevelColors(membershipLevel).bg
-              } ${getLevelColors(membershipLevel).text}`}>
+              <div
+                className={`inline-block px-6 py-2 rounded-md text-sm font-medium ${
+                  getLevelColors(membershipLevel).bg
+                } ${getLevelColors(membershipLevel).text}`}
+              >
                 {getLevelName(membershipLevel)} Membership
               </div>
 
               {/* Perks - Single line */}
               <p className="text-sm text-gray-600">
-                {membershipLevel === 'guld' && 'Maximum perks • 50 invites/month • Gold level discount'}
-                {membershipLevel === 'silver' && 'Early access • 12 invites/month • Fee capped'}
-                {membershipLevel === 'brons' && 'Queue priority • 5 invites/month'}
-                {membershipLevel === 'basic' && 'Entry level • 2 invites/month'}
+                {membershipLevel === "guld" &&
+                  "Maximum perks • 50 invites/month • Gold level discount"}
+                {membershipLevel === "silver" &&
+                  "Early access • 12 invites/month • Fee capped"}
+                {membershipLevel === "brons" &&
+                  "Queue priority • 5 invites/month"}
+                {membershipLevel === "basic" && "Entry level • 2 invites/month"}
               </p>
             </div>
           </div>
@@ -315,11 +339,13 @@ function SignupPageContent() {
 
         {/* Signup Form */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
-
           <form onSubmit={handleSignup} className="space-y-4">
             {/* Email */}
             <div>
-              <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+              <Label
+                htmlFor="email"
+                className="text-sm font-medium text-gray-700"
+              >
                 Email Address
               </Label>
               <Input
@@ -341,7 +367,10 @@ function SignupPageContent() {
 
             {/* Password */}
             <div>
-              <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+              <Label
+                htmlFor="password"
+                className="text-sm font-medium text-gray-700"
+              >
                 Password
               </Label>
               <Input
@@ -358,7 +387,10 @@ function SignupPageContent() {
 
             {/* Confirm Password */}
             <div>
-              <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">
+              <Label
+                htmlFor="confirmPassword"
+                className="text-sm font-medium text-gray-700"
+              >
                 Confirm Password
               </Label>
               <Input
@@ -401,7 +433,7 @@ function SignupPageContent() {
           <div className="mt-4 text-center">
             <p className="text-xs text-gray-500">
               Already have an account?{" "}
-              <button 
+              <button
                 onClick={() => router.push("/log-in")}
                 className="text-gray-900 underline hover:no-underline"
                 type="button"

@@ -4,23 +4,20 @@ import { getCurrentUser } from "@/lib/auth";
 
 /**
  * DELETE /api/user/invitations/[id]
- * 
+ *
  * Deactivate an invitation (soft delete)
  */
 export async function DELETE(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     console.log("[INVITE-DELETE] Starting delete request");
-    
+
     const user = await getCurrentUser();
     if (!user) {
       console.log("[INVITE-DELETE] No user found");
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     console.log("[INVITE-DELETE] User authenticated:", user.id);
@@ -33,45 +30,48 @@ export async function DELETE(
     // Verify invitation belongs to this user
     console.log("[INVITE-DELETE] Fetching invitation to verify ownership");
     const { data: invitation, error: fetchError } = await sb
-      .from('invitation_codes')
-      .select('created_by')
-      .eq('id', resolvedParams.id)
+      .from("invitation_codes")
+      .select("created_by")
+      .eq("id", resolvedParams.id)
       .single();
 
     if (fetchError || !invitation) {
       console.error("[INVITE-DELETE] Invitation fetch error:", {
         error: fetchError,
         code: fetchError?.code,
-        message: fetchError?.message
+        message: fetchError?.message,
       });
       return NextResponse.json(
-        { 
+        {
           error: "Invitation not found",
-          details: fetchError?.message
+          details: fetchError?.message,
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
-    console.log("[INVITE-DELETE] Invitation found, created by:", invitation.created_by);
+    console.log(
+      "[INVITE-DELETE] Invitation found, created by:",
+      invitation.created_by,
+    );
 
     if (invitation.created_by !== user.id) {
       console.log("[INVITE-DELETE] Ownership mismatch");
       return NextResponse.json(
         { error: "You can only delete your own invitations" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
     // Soft delete: mark as inactive
     console.log("[INVITE-DELETE] Marking invitation as inactive");
     const { error } = await sb
-      .from('invitation_codes')
+      .from("invitation_codes")
       .update({
         is_active: false,
         // Note: updated_at removed - column may not exist in current schema
       })
-      .eq('id', resolvedParams.id);
+      .eq("id", resolvedParams.id);
 
     if (error) {
       console.error("[INVITE-DELETE] Update error:", {
@@ -79,15 +79,15 @@ export async function DELETE(
         code: error?.code,
         message: error?.message,
         details: error?.details,
-        hint: error?.hint
+        hint: error?.hint,
       });
       return NextResponse.json(
-        { 
+        {
           error: "Failed to deactivate invitation",
           details: error?.message,
-          code: error?.code
+          code: error?.code,
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -102,7 +102,10 @@ export async function DELETE(
       .single();
 
     if (membershipFetchError) {
-      console.error("[INVITE-DELETE] Failed to fetch membership:", membershipFetchError);
+      console.error(
+        "[INVITE-DELETE] Failed to fetch membership:",
+        membershipFetchError,
+      );
       // Don't fail the request, invitation was already deleted
     } else if (membership && membership.invites_used_this_month > 0) {
       console.log("[INVITE-DELETE] Decrementing quota");
@@ -131,8 +134,7 @@ export async function DELETE(
     console.error("Error deleting invitation:", error);
     return NextResponse.json(
       { error: "Failed to delete invitation" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

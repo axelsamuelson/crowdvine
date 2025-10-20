@@ -15,10 +15,7 @@ export async function GET() {
 
     if (error) {
       console.error("Get producers error:", error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ producers: producers || [] });
@@ -26,7 +23,7 @@ export async function GET() {
     console.error("Get producers API error:", error);
     return NextResponse.json(
       { error: error.message || "Unknown error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -45,7 +42,7 @@ export async function POST(request: Request) {
     if (!body.name || !body.region) {
       return NextResponse.json(
         { error: "Name and region are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -56,15 +53,15 @@ export async function POST(request: Request) {
         region: body.region,
         lat: body.lat || 0,
         lon: body.lon || 0,
-        country_code: body.country_code || '',
-        address_street: body.address_street || '',
-        address_city: body.address_city || '',
-        address_postcode: body.address_postcode || '',
-        short_description: body.short_description || '',
-        logo_image_path: body.logo_image_path || '',
+        country_code: body.country_code || "",
+        address_street: body.address_street || "",
+        address_city: body.address_city || "",
+        address_postcode: body.address_postcode || "",
+        short_description: body.short_description || "",
+        logo_image_path: body.logo_image_path || "",
         pickup_zone_id: body.pickup_zone_id || null,
         owner_id: null, // Set by admin
-        status: 'active',
+        status: "active",
       })
       .select()
       .single();
@@ -72,25 +69,23 @@ export async function POST(request: Request) {
     if (error) {
       console.error("Create producer error:", error);
       return NextResponse.json(
-        { 
+        {
           error: error.message,
           details: error,
           code: error.code,
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     console.log("Producer created:", producer.id);
 
     return NextResponse.json({ success: true, producer });
-
   } catch (error: any) {
     console.error("Producer API error:", error);
     return NextResponse.json(
       { error: error.message || "Unknown error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

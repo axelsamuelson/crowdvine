@@ -17,13 +17,17 @@ interface GoldCelebrationProps {
  * Celebration modal shown when user reaches Gold level
  * Features confetti animation and congratulatory message
  */
-export function GoldCelebration({ show, onClose, userName }: GoldCelebrationProps) {
+export function GoldCelebration({
+  show,
+  onClose,
+  userName,
+}: GoldCelebrationProps) {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     if (show) {
       setIsVisible(true);
-      
+
       // Trigger confetti
       const duration = 3000;
       const end = Date.now() + duration;
@@ -34,14 +38,14 @@ export function GoldCelebration({ show, onClose, userName }: GoldCelebrationProp
           angle: 60,
           spread: 55,
           origin: { x: 0, y: 0.6 },
-          colors: ['#FFD700', '#FFA500', '#FF8C00'],
+          colors: ["#FFD700", "#FFA500", "#FF8C00"],
         });
         confetti({
           particleCount: 3,
           angle: 120,
           spread: 55,
           origin: { x: 1, y: 0.6 },
-          colors: ['#FFD700', '#FFA500', '#FF8C00'],
+          colors: ["#FFD700", "#FFA500", "#FF8C00"],
         });
 
         if (Date.now() < end) {
@@ -117,11 +121,9 @@ export function GoldCelebration({ show, onClose, userName }: GoldCelebrationProp
                 transition={{ delay: 0.4 }}
               >
                 <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                  Congratulations{userName ? `, ${userName}` : ''}!
+                  Congratulations{userName ? `, ${userName}` : ""}!
                 </h2>
-                <p className="text-lg text-gray-600 mb-6">
-                  You've reached
-                </p>
+                <p className="text-lg text-gray-600 mb-6">You've reached</p>
               </motion.div>
 
               {/* Gold Badge */}
@@ -131,11 +133,7 @@ export function GoldCelebration({ show, onClose, userName }: GoldCelebrationProp
                 transition={{ delay: 0.6 }}
                 className="flex justify-center mb-6"
               >
-                <LevelBadge 
-                  level="guld" 
-                  size="xl" 
-                  showLabel={true}
-                />
+                <LevelBadge level="guld" size="xl" showLabel={true} />
               </motion.div>
 
               {/* Description */}
@@ -155,15 +153,21 @@ export function GoldCelebration({ show, onClose, userName }: GoldCelebrationProp
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <Sparkles className="w-4 h-4 text-amber-500" />
-                    <span className="text-gray-700">48h early access to new releases</span>
+                    <span className="text-gray-700">
+                      48h early access to new releases
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <Sparkles className="w-4 h-4 text-amber-500" />
-                    <span className="text-gray-700">Fee waived up to 30 bottles/month</span>
+                    <span className="text-gray-700">
+                      Fee waived up to 30 bottles/month
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <Sparkles className="w-4 h-4 text-amber-500" />
-                    <span className="text-gray-700">Top priority in oversubscribed pallets</span>
+                    <span className="text-gray-700">
+                      Top priority in oversubscribed pallets
+                    </span>
                   </div>
                 </div>
               </motion.div>
@@ -199,13 +203,13 @@ export function useGoldCelebration() {
 
   const checkAndShowCelebration = (level: string, justUpgraded: boolean) => {
     // Show if user is Gold and just upgraded and hasn't been shown yet
-    if (level === 'guld' && justUpgraded && !hasShown) {
+    if (level === "guld" && justUpgraded && !hasShown) {
       setShowCelebration(true);
       setHasShown(true);
-      
+
       // Store in localStorage to not show again
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('gold_celebration_shown', 'true');
+      if (typeof window !== "undefined") {
+        localStorage.setItem("gold_celebration_shown", "true");
       }
     }
   };
@@ -220,4 +224,3 @@ export function useGoldCelebration() {
     closeCelebration,
   };
 }
-

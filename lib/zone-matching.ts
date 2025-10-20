@@ -85,24 +85,31 @@ export async function determineZones(
 ): Promise<ZoneMatchResult> {
   // Create cache key from cart items and delivery address
   const cacheKey = JSON.stringify({
-    cartItems: cartItems.map(item => item.merchandise.id).sort(),
+    cartItems: cartItems.map((item) => item.merchandise.id).sort(),
     deliveryAddress: {
       postcode: deliveryAddress.postcode,
       city: deliveryAddress.city,
       countryCode: deliveryAddress.countryCode,
-    }
+    },
   });
 
   // Check cache first
   if (zoneCache.has(cacheKey)) {
-    console.log("📍 Using cached zone result for:", deliveryAddress.city, deliveryAddress.countryCode);
+    console.log(
+      "📍 Using cached zone result for:",
+      deliveryAddress.city,
+      deliveryAddress.countryCode,
+    );
     return zoneCache.get(cacheKey)!;
   }
 
   const sb = getSupabaseAdmin(); // Use admin client to bypass RLS
 
   // Get unique producer IDs from cart items
-  console.log("🍷 Fetching wines for cart items:", cartItems.map((item) => item.merchandise.id));
+  console.log(
+    "🍷 Fetching wines for cart items:",
+    cartItems.map((item) => item.merchandise.id),
+  );
   const { data: wines, error: winesError } = await sb
     .from("wines")
     .select("id, producer_id")
@@ -160,7 +167,7 @@ export async function determineZones(
   const pickupZone = producers[0]?.pallet_zones;
   const pickupZoneId = pickupZone?.id || null;
   const pickupZoneName = pickupZone?.name || null;
-  
+
   console.log("📦 Pickup zone determined:", {
     pickupZoneId,
     pickupZoneName,
@@ -271,26 +278,37 @@ export async function determineZones(
           if (matchingZones.length > 0) {
             // Sort by radius (smallest first) to prefer more specific zones
             matchingZones.sort((a, b) => a.radiusKm - b.radiusKm);
-            
+
             deliveryZoneId = matchingZones[0].id;
             deliveryZoneName = matchingZones[0].name;
-            
-            console.log(`✅ Selected zone: ${deliveryZoneName} (${matchingZones[0].radiusKm}km radius)`);
+
+            console.log(
+              `✅ Selected zone: ${deliveryZoneName} (${matchingZones[0].radiusKm}km radius)`,
+            );
             if (matchingZones.length > 1) {
-              console.log(`ℹ️  Also within range of: ${matchingZones.slice(1).map(z => z.name).join(', ')}`);
+              console.log(
+                `ℹ️  Also within range of: ${matchingZones
+                  .slice(1)
+                  .map((z) => z.name)
+                  .join(", ")}`,
+              );
             }
 
             console.log("✅ Found matching delivery zone:", deliveryZoneName);
 
             // Get pallets that match the zones
             const pallets: PalletInfo[] = [];
-            
+
             // Check if we have both zones needed for pallet matching
             if (!pickupZoneId) {
-              console.warn("⚠️ No pickup zone found. Producer may not have pickup_zone_id set.");
-              console.warn("⚠️ Cannot create/find pallets without pickup zone.");
+              console.warn(
+                "⚠️ No pickup zone found. Producer may not have pickup_zone_id set.",
+              );
+              console.warn(
+                "⚠️ Cannot create/find pallets without pickup zone.",
+              );
             }
-            
+
             if (pickupZoneId && deliveryZoneId) {
               let { data: matchingPallets, error: palletsError } = await sb
                 .from("pallets")
@@ -307,12 +325,20 @@ export async function determineZones(
                 .eq("pickup_zone_id", pickupZoneId)
                 .eq("delivery_zone_id", deliveryZoneId);
 
-              console.log("🚚 Matching pallets found:", matchingPallets?.length || 0);
+              console.log(
+                "🚚 Matching pallets found:",
+                matchingPallets?.length || 0,
+              );
 
               // If no pallet exists, create a new one automatically
-              if (!palletsError && (!matchingPallets || matchingPallets.length === 0)) {
-                console.log("🆕 No pallet exists for this route. Creating new pallet...");
-                
+              if (
+                !palletsError &&
+                (!matchingPallets || matchingPallets.length === 0)
+              ) {
+                console.log(
+                  "🆕 No pallet exists for this route. Creating new pallet...",
+                );
+
                 const newPalletName = `${pickupZoneName} to ${deliveryZoneName}`;
                 const { data: newPallet, error: createError } = await sb
                   .from("pallets")
@@ -322,7 +348,7 @@ export async function determineZones(
                     delivery_zone_id: deliveryZoneId,
                     bottle_capacity: 720, // Standard pallet capacity
                     cost_cents: 50000, // Default 500 SEK, can be updated later
-                    status: 'open',
+                    status: "open",
                   })
                   .select()
                   .single();
@@ -330,7 +356,11 @@ export async function determineZones(
                 if (createError) {
                   console.error("❌ Failed to create new pallet:", createError);
                 } else if (newPallet) {
-                  console.log("✅ Created new pallet:", newPallet.id, newPalletName);
+                  console.log(
+                    "✅ Created new pallet:",
+                    newPallet.id,
+                    newPalletName,
+                  );
                   matchingPallets = [newPallet];
                 }
               }
@@ -374,11 +404,15 @@ export async function determineZones(
               availableDeliveryZones: matchingZones,
               pallets,
             };
-            
+
             // Cache the result
             zoneCache.set(cacheKey, result);
-            console.log("💾 Cached zone result for:", deliveryAddress.city, deliveryAddress.countryCode);
-            
+            console.log(
+              "💾 Cached zone result for:",
+              deliveryAddress.city,
+              deliveryAddress.countryCode,
+            );
+
             return result;
           } else {
             console.log("❌ No delivery zones match this address");
@@ -446,10 +480,14 @@ export async function determineZones(
     deliveryZoneName,
     pallets,
   };
-  
+
   // Cache the result (even if no zones found)
   zoneCache.set(cacheKey, result);
-  console.log("💾 Cached zone result (no zones) for:", deliveryAddress.city, deliveryAddress.countryCode);
-  
+  console.log(
+    "💾 Cached zone result (no zones) for:",
+    deliveryAddress.city,
+    deliveryAddress.countryCode,
+  );
+
   return result;
 }

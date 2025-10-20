@@ -44,7 +44,8 @@ export function PaymentMethodSelector({
   // Auto-select when paymentMethods changes
   useEffect(() => {
     if (!selectedMethod && paymentMethods.length > 0) {
-      const defaultMethod = paymentMethods.find(m => m.is_default) || paymentMethods[0];
+      const defaultMethod =
+        paymentMethods.find((m) => m.is_default) || paymentMethods[0];
       console.log("✅ Auto-selected payment method:", defaultMethod.id);
       onPaymentMethodSelected(defaultMethod);
     }
@@ -63,7 +64,8 @@ export function PaymentMethodSelector({
         // Auto-select default payment method if none selected
         if (!selectedMethod && methods.length > 0) {
           const defaultMethod =
-            methods.find((method: PaymentMethod) => method.is_default) || methods[0];
+            methods.find((method: PaymentMethod) => method.is_default) ||
+            methods[0];
           console.log("✅ Auto-selected payment method:", defaultMethod.id);
           onPaymentMethodSelected(defaultMethod);
         }
@@ -86,9 +88,9 @@ export function PaymentMethodSelector({
 
       const profileData = await profileResponse.json();
       const profile = profileData.profile || profileData;
-      
+
       console.log("👤 Profile for payment method:", profile);
-      
+
       if (!profile?.email) {
         toast.error("Email is required to add payment method");
         return;
@@ -97,11 +99,13 @@ export function PaymentMethodSelector({
       // Determine current page for return URL
       const currentPath = window.location.pathname;
       const returnUrl = encodeURIComponent(currentPath);
-      
-      console.log('🔄 Adding payment method from:', currentPath);
+
+      console.log("🔄 Adding payment method from:", currentPath);
 
       // Redirect to Stripe setup with return URL
-      const response = await fetch(`/api/checkout/setup?returnUrl=${returnUrl}`);
+      const response = await fetch(
+        `/api/checkout/setup?returnUrl=${returnUrl}`,
+      );
 
       if (!response.ok) {
         const errorData = await response.json();

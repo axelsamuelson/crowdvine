@@ -11,11 +11,11 @@ export async function POST() {
 
     // Step 1: Add the column (if it doesn't exist)
     console.log("Step 1: Adding pallet_id column...");
-    const { error: addColumnError } = await supabase.rpc('exec_sql', {
+    const { error: addColumnError } = await supabase.rpc("exec_sql", {
       sql: `
         ALTER TABLE order_reservations 
         ADD COLUMN IF NOT EXISTS pallet_id UUID;
-      `
+      `,
     });
 
     if (addColumnError) {
@@ -25,7 +25,7 @@ export async function POST() {
 
     // Step 2: Add foreign key constraint (if it doesn't exist)
     console.log("Step 2: Adding foreign key constraint...");
-    const { error: fkError } = await supabase.rpc('exec_sql', {
+    const { error: fkError } = await supabase.rpc("exec_sql", {
       sql: `
         DO $$ 
         BEGIN
@@ -40,7 +40,7 @@ export async function POST() {
             ON DELETE SET NULL;
           END IF;
         END $$;
-      `
+      `,
     });
 
     if (fkError) {
@@ -50,11 +50,11 @@ export async function POST() {
 
     // Step 3: Create index (if it doesn't exist)
     console.log("Step 3: Creating index...");
-    const { error: indexError } = await supabase.rpc('exec_sql', {
+    const { error: indexError } = await supabase.rpc("exec_sql", {
       sql: `
         CREATE INDEX IF NOT EXISTS idx_order_reservations_pallet_id 
         ON order_reservations(pallet_id);
-      `
+      `,
     });
 
     if (indexError) {
@@ -64,7 +64,7 @@ export async function POST() {
 
     // Step 4: Backfill existing data
     console.log("Step 4: Backfilling data based on zone matching...");
-    
+
     // Get all pallets
     const { data: pallets, error: palletsError } = await supabase
       .from("pallets")
@@ -130,17 +130,15 @@ export async function POST() {
       },
       results,
     });
-
   } catch (error: any) {
     console.error("Migration error:", error);
     return NextResponse.json(
-      { 
+      {
         success: false,
         error: "Migration failed",
-        details: error.message 
+        details: error.message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

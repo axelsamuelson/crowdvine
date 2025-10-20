@@ -15,7 +15,7 @@ async function getLogoForEmail(): Promise<string | null> {
 
   try {
     const logoUrl = await getSiteContentByKey("header_logo");
-    
+
     // Update cache
     logoCache = {
       value: logoUrl,
@@ -29,13 +29,15 @@ async function getLogoForEmail(): Promise<string | null> {
   }
 }
 
-export async function getAccessApprovalEmailTemplate(signupUrl: string): Promise<string> {
+export async function getAccessApprovalEmailTemplate(
+  signupUrl: string,
+): Promise<string> {
   const logoUrl = await getLogoForEmail();
-  
-  const logoHtml = logoUrl 
+
+  const logoHtml = logoUrl
     ? `<img src="${logoUrl}" alt="PACT" style="width: 120px; height: auto; max-width: 200px;" />`
     : `<div style="font-size: 24px; font-weight: bold; color: #000000; letter-spacing: 2px;">PACT</div>`;
-  
+
   return `
     <!DOCTYPE html>
     <html>
@@ -191,7 +193,9 @@ export async function getAccessApprovalEmailTemplate(signupUrl: string): Promise
   `;
 }
 
-export async function getAccessApprovalEmailText(signupUrl: string): Promise<string> {
+export async function getAccessApprovalEmailText(
+  signupUrl: string,
+): Promise<string> {
   return `
 Welcome to PACT
 
@@ -225,11 +229,11 @@ export async function getWelcomeEmailTemplate(data: {
   customerName: string;
 }): Promise<string> {
   const logoUrl = await getLogoForEmail();
-  
-  const logoHtml = logoUrl 
+
+  const logoHtml = logoUrl
     ? `<img src="${logoUrl}" alt="PACT" style="width: 120px; height: auto; max-width: 200px;" />`
     : `<div style="font-size: 24px; font-weight: bold; color: #000000; letter-spacing: 2px;">PACT</div>`;
-  
+
   return `
     <!DOCTYPE html>
     <html>

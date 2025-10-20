@@ -1,46 +1,52 @@
 /**
  * PACT Wines - Impact Points Engine
- * 
+ *
  * Handles all logic for awarding, tracking, and managing Impact Points (IP)
  * and automatic level upgrades in the membership ladder system.
  */
 
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
-export type MembershipLevel = 'requester' | 'basic' | 'brons' | 'silver' | 'guld' | 'admin';
-export type IPEventType = 
-  | 'invite_signup' 
-  | 'invite_reservation' 
-  | 'invite_second_order'
-  | 'own_order' 
-  | 'own_order_large'
-  | 'pallet_milestone' 
-  | 'pallet_milestone_6'
-  | 'pallet_milestone_12'
-  | 'review_submitted'
-  | 'share_action'
-  | 'manual_adjustment' 
-  | 'level_upgrade' 
-  | 'migration';
+export type MembershipLevel =
+  | "requester"
+  | "basic"
+  | "brons"
+  | "silver"
+  | "guld"
+  | "admin";
+export type IPEventType =
+  | "invite_signup"
+  | "invite_reservation"
+  | "invite_second_order"
+  | "own_order"
+  | "own_order_large"
+  | "pallet_milestone"
+  | "pallet_milestone_6"
+  | "pallet_milestone_12"
+  | "review_submitted"
+  | "share_action"
+  | "manual_adjustment"
+  | "level_upgrade"
+  | "migration";
 
 // IP Configuration
 export const IP_CONFIG = {
   // Existing events
-  INVITE_SIGNUP: 1,           // +1 IP when invited user registers
-  INVITE_RESERVATION: 2,      // +2 IP when invited user makes first reservation
-  OWN_ORDER: 1,               // +1 IP for own order ≥6 bottles
-  PALLET_MILESTONE: 3,        // +3 IP at 3 pallets milestone
-  MINIMUM_BOTTLES_FOR_IP: 6,  // Minimum bottles in order to earn IP
-  
+  INVITE_SIGNUP: 1, // +1 IP when invited user registers
+  INVITE_RESERVATION: 2, // +2 IP when invited user makes first reservation
+  OWN_ORDER: 1, // +1 IP for own order ≥6 bottles
+  PALLET_MILESTONE: 3, // +3 IP at 3 pallets milestone
+  MINIMUM_BOTTLES_FOR_IP: 6, // Minimum bottles in order to earn IP
+
   // New events (Membership Ladder v2)
-  INVITE_SECOND_ORDER: 1,     // +1 IP when invited user makes second order
-  OWN_ORDER_LARGE: 2,         // +2 IP for own order ≥12 bottles (replaces OWN_ORDER for large)
-  LARGE_ORDER_THRESHOLD: 12,  // Bottles threshold for large order bonus
-  PALLET_MILESTONE_6: 5,      // +5 IP at 6 unique pallets
-  PALLET_MILESTONE_12: 10,    // +10 IP at 12 unique pallets
-  REVIEW_SUBMITTED: 1,        // +1 IP for submitting a review (rate-limited)
-  SHARE_ACTION: 1,            // +1 IP for sharing wine/pallet (rate-limited)
-  RATE_LIMIT_HOURS: 24,       // Hours between rate-limited actions
+  INVITE_SECOND_ORDER: 1, // +1 IP when invited user makes second order
+  OWN_ORDER_LARGE: 2, // +2 IP for own order ≥12 bottles (replaces OWN_ORDER for large)
+  LARGE_ORDER_THRESHOLD: 12, // Bottles threshold for large order bonus
+  PALLET_MILESTONE_6: 5, // +5 IP at 6 unique pallets
+  PALLET_MILESTONE_12: 10, // +10 IP at 12 unique pallets
+  REVIEW_SUBMITTED: 1, // +1 IP for submitting a review (rate-limited)
+  SHARE_ACTION: 1, // +1 IP for sharing wine/pallet (rate-limited)
+  RATE_LIMIT_HOURS: 24, // Hours between rate-limited actions
 } as const;
 
 // Level Thresholds
@@ -66,25 +72,25 @@ export const INVITE_QUOTAS: Record<MembershipLevel, number> = {
  */
 export async function awardPointsForInviteSignup(
   inviterUserId: string,
-  invitedUserId: string
+  invitedUserId: string,
 ): Promise<{ success: boolean; newTotal: number; error?: string }> {
   const sb = getSupabaseAdmin();
 
   try {
     // Use the award_impact_points function
-    const { data, error } = await sb.rpc('award_impact_points', {
+    const { data, error } = await sb.rpc("award_impact_points", {
       p_user_id: inviterUserId,
-      p_event_type: 'invite_signup',
+      p_event_type: "invite_signup",
       p_points: IP_CONFIG.INVITE_SIGNUP,
       p_related_user_id: invitedUserId,
-      p_description: 'Friend joined PACT',
+      p_description: "Friend joined PACT",
     });
 
     if (error) throw error;
 
     return { success: true, newTotal: data };
   } catch (error) {
-    console.error('Error awarding points for invite signup:', error);
+    console.error("Error awarding points for invite signup:", error);
     return { success: false, newTotal: 0, error: error.message };
   }
 }
@@ -95,29 +101,29 @@ export async function awardPointsForInviteSignup(
 export async function awardPointsForInviteReservation(
   inviterUserId: string,
   invitedUserId: string,
-  orderId?: string
+  orderId?: string,
 ): Promise<{ success: boolean; newTotal: number; error?: string }> {
   const sb = getSupabaseAdmin();
 
   try {
     // Check if this is the invited user's first reservation
     const { data: existingOrders, error: checkError } = await sb
-      .from('order_reservations')
-      .select('id')
-      .eq('user_id', invitedUserId)
+      .from("order_reservations")
+      .select("id")
+      .eq("user_id", invitedUserId)
       .limit(2);
 
     if (checkError) throw checkError;
 
     // Only award if this is first or second order (to handle edge cases)
     if (!existingOrders || existingOrders.length <= 1) {
-      const { data, error } = await sb.rpc('award_impact_points', {
+      const { data, error } = await sb.rpc("award_impact_points", {
         p_user_id: inviterUserId,
-        p_event_type: 'invite_reservation',
+        p_event_type: "invite_reservation",
         p_points: IP_CONFIG.INVITE_RESERVATION,
         p_related_user_id: invitedUserId,
         p_related_order_id: orderId || null,
-        p_description: 'Friend made first reservation',
+        p_description: "Friend made first reservation",
       });
 
       if (error) throw error;
@@ -127,7 +133,7 @@ export async function awardPointsForInviteReservation(
 
     return { success: true, newTotal: 0 };
   } catch (error) {
-    console.error('Error awarding points for invite reservation:', error);
+    console.error("Error awarding points for invite reservation:", error);
     return { success: false, newTotal: 0, error: error.message };
   }
 }
@@ -139,24 +145,24 @@ export async function awardPointsForInviteReservation(
 export async function awardPointsForOwnOrder(
   userId: string,
   bottleCount: number,
-  orderId: string
+  orderId: string,
 ): Promise<{ success: boolean; newTotal: number; error?: string }> {
   const sb = getSupabaseAdmin();
 
   // Determine points and event type based on bottle count
   let points = 0;
-  let eventType: IPEventType = 'own_order';
-  let description = '';
+  let eventType: IPEventType = "own_order";
+  let description = "";
 
   if (bottleCount >= IP_CONFIG.LARGE_ORDER_THRESHOLD) {
     // Large order: ≥12 bottles → +2 IP
     points = IP_CONFIG.OWN_ORDER_LARGE;
-    eventType = 'own_order_large';
+    eventType = "own_order_large";
     description = `Large order with ${bottleCount} bottles`;
   } else if (bottleCount >= IP_CONFIG.MINIMUM_BOTTLES_FOR_IP) {
     // Regular order: ≥6 bottles → +1 IP
     points = IP_CONFIG.OWN_ORDER;
-    eventType = 'own_order';
+    eventType = "own_order";
     description = `Order with ${bottleCount} bottles`;
   } else {
     // Too few bottles, no points
@@ -164,7 +170,7 @@ export async function awardPointsForOwnOrder(
   }
 
   try {
-    const { data, error } = await sb.rpc('award_impact_points', {
+    const { data, error } = await sb.rpc("award_impact_points", {
       p_user_id: userId,
       p_event_type: eventType,
       p_points: points,
@@ -176,7 +182,7 @@ export async function awardPointsForOwnOrder(
 
     return { success: true, newTotal: data };
   } catch (error) {
-    console.error('Error awarding points for own order:', error);
+    console.error("Error awarding points for own order:", error);
     return { success: false, newTotal: 0, error: error.message };
   }
 }
@@ -187,15 +193,24 @@ export async function awardPointsForOwnOrder(
  */
 export async function awardPointsForPalletMilestone(
   userId: string,
-  palletCount: number
+  palletCount: number,
 ): Promise<{ success: boolean; newTotal: number; error?: string }> {
   const sb = getSupabaseAdmin();
 
   // Define milestones with their points and event types
-  const milestoneConfig: Record<number, { points: number; eventType: IPEventType }> = {
-    3: { points: IP_CONFIG.PALLET_MILESTONE, eventType: 'pallet_milestone' },
-    6: { points: IP_CONFIG.PALLET_MILESTONE_6, eventType: 'pallet_milestone_6' },
-    12: { points: IP_CONFIG.PALLET_MILESTONE_12, eventType: 'pallet_milestone_12' },
+  const milestoneConfig: Record<
+    number,
+    { points: number; eventType: IPEventType }
+  > = {
+    3: { points: IP_CONFIG.PALLET_MILESTONE, eventType: "pallet_milestone" },
+    6: {
+      points: IP_CONFIG.PALLET_MILESTONE_6,
+      eventType: "pallet_milestone_6",
+    },
+    12: {
+      points: IP_CONFIG.PALLET_MILESTONE_12,
+      eventType: "pallet_milestone_12",
+    },
   };
 
   // Check if this count is a milestone
@@ -208,11 +223,11 @@ export async function awardPointsForPalletMilestone(
   try {
     // Check if this milestone has already been awarded
     const { data: existingEvent, error: checkError } = await sb
-      .from('impact_point_events')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('event_type', eventType)
-      .eq('description', `${palletCount} pallets milestone`)
+      .from("impact_point_events")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("event_type", eventType)
+      .eq("description", `${palletCount} pallets milestone`)
       .single();
 
     // If already awarded, skip
@@ -220,7 +235,7 @@ export async function awardPointsForPalletMilestone(
       return { success: true, newTotal: 0 };
     }
 
-    const { data, error } = await sb.rpc('award_impact_points', {
+    const { data, error } = await sb.rpc("award_impact_points", {
       p_user_id: userId,
       p_event_type: eventType,
       p_points: points,
@@ -231,7 +246,7 @@ export async function awardPointsForPalletMilestone(
 
     return { success: true, newTotal: data };
   } catch (error) {
-    console.error('Error awarding points for pallet milestone:', error);
+    console.error("Error awarding points for pallet milestone:", error);
     return { success: false, newTotal: 0, error: error.message };
   }
 }
@@ -244,16 +259,16 @@ export async function getUserMembership(userId: string) {
 
   try {
     const { data, error } = await sb
-      .from('user_memberships')
-      .select('*')
-      .eq('user_id', userId)
+      .from("user_memberships")
+      .select("*")
+      .eq("user_id", userId)
       .single();
 
     if (error) throw error;
 
     return { success: true, membership: data };
   } catch (error) {
-    console.error('Error fetching user membership:', error);
+    console.error("Error fetching user membership:", error);
     return { success: false, membership: null, error: error.message };
   }
 }
@@ -263,14 +278,14 @@ export async function getUserMembership(userId: string) {
  */
 function getLevelDisplayName(level: MembershipLevel): string {
   const levelNames: Record<MembershipLevel, string> = {
-    'requester': 'Requester',
-    'basic': 'Basic',
-    'brons': 'Bronze',
-    'silver': 'Silver',
-    'guld': 'Gold',
-    'admin': 'Admin',
+    requester: "Requester",
+    basic: "Basic",
+    brons: "Bronze",
+    silver: "Silver",
+    guld: "Gold",
+    admin: "Admin",
   };
-  
+
   return levelNames[level] || level.charAt(0).toUpperCase() + level.slice(1);
 }
 
@@ -293,12 +308,15 @@ export function getLevelInfo(level: MembershipLevel) {
 /**
  * Get next level and points needed
  */
-export function getNextLevelInfo(currentPoints: number, currentLevel: MembershipLevel) {
-  if (currentLevel === 'admin') {
+export function getNextLevelInfo(
+  currentPoints: number,
+  currentLevel: MembershipLevel,
+) {
+  if (currentLevel === "admin") {
     return null; // Admin is max level
   }
 
-  const levels: MembershipLevel[] = ['basic', 'brons', 'silver', 'guld'];
+  const levels: MembershipLevel[] = ["basic", "brons", "silver", "guld"];
   const currentIndex = levels.indexOf(currentLevel);
 
   if (currentIndex === -1 || currentIndex === levels.length - 1) {
@@ -306,7 +324,8 @@ export function getNextLevelInfo(currentPoints: number, currentLevel: Membership
   }
 
   const nextLevel = levels[currentIndex + 1];
-  const nextLevelInfo = LEVEL_THRESHOLDS[nextLevel as keyof typeof LEVEL_THRESHOLDS];
+  const nextLevelInfo =
+    LEVEL_THRESHOLDS[nextLevel as keyof typeof LEVEL_THRESHOLDS];
   const pointsNeeded = nextLevelInfo.min - currentPoints;
 
   return {
@@ -326,18 +345,18 @@ export async function checkPalletMilestone(userId: string): Promise<number> {
   try {
     // Count unique pallets user has participated in
     const { data, error } = await sb
-      .from('order_reservations')
-      .select('pallet_id')
-      .eq('user_id', userId)
-      .not('pallet_id', 'is', null);
+      .from("order_reservations")
+      .select("pallet_id")
+      .eq("user_id", userId)
+      .not("pallet_id", "is", null);
 
     if (error) throw error;
 
     // Get unique pallet count
-    const uniquePallets = new Set(data.map(r => r.pallet_id));
+    const uniquePallets = new Set(data.map((r) => r.pallet_id));
     return uniquePallets.size;
   } catch (error) {
-    console.error('Error checking pallet milestone:', error);
+    console.error("Error checking pallet milestone:", error);
     return 0;
   }
 }
@@ -348,14 +367,14 @@ export async function checkPalletMilestone(userId: string): Promise<number> {
 export async function adjustImpactPoints(
   userId: string,
   pointsChange: number,
-  description: string
+  description: string,
 ): Promise<{ success: boolean; newTotal: number; error?: string }> {
   const sb = getSupabaseAdmin();
 
   try {
-    const { data, error } = await sb.rpc('award_impact_points', {
+    const { data, error } = await sb.rpc("award_impact_points", {
       p_user_id: userId,
-      p_event_type: 'manual_adjustment',
+      p_event_type: "manual_adjustment",
       p_points: pointsChange,
       p_description: description,
     });
@@ -364,7 +383,7 @@ export async function adjustImpactPoints(
 
     return { success: true, newTotal: data };
   } catch (error) {
-    console.error('Error adjusting impact points:', error);
+    console.error("Error adjusting impact points:", error);
     return { success: false, newTotal: 0, error: error.message };
   }
 }
@@ -375,16 +394,16 @@ export async function adjustImpactPoints(
 export async function awardPointsForInviteSecondOrder(
   inviterUserId: string,
   invitedUserId: string,
-  orderId?: string
+  orderId?: string,
 ): Promise<{ success: boolean; newTotal: number; error?: string }> {
   const sb = getSupabaseAdmin();
 
   try {
     // Check if this is the invited user's second order
     const { data: existingOrders, error: checkError } = await sb
-      .from('order_reservations')
-      .select('id')
-      .eq('user_id', invitedUserId)
+      .from("order_reservations")
+      .select("id")
+      .eq("user_id", invitedUserId)
       .limit(3);
 
     if (checkError) throw checkError;
@@ -396,11 +415,11 @@ export async function awardPointsForInviteSecondOrder(
 
     // Check if inviter hasn't already received this bonus
     const { data: existingEvent, error: eventCheckError } = await sb
-      .from('impact_point_events')
-      .select('id')
-      .eq('user_id', inviterUserId)
-      .eq('event_type', 'invite_second_order')
-      .eq('related_user_id', invitedUserId)
+      .from("impact_point_events")
+      .select("id")
+      .eq("user_id", inviterUserId)
+      .eq("event_type", "invite_second_order")
+      .eq("related_user_id", invitedUserId)
       .single();
 
     // If already awarded, skip
@@ -408,20 +427,20 @@ export async function awardPointsForInviteSecondOrder(
       return { success: true, newTotal: 0 };
     }
 
-    const { data, error } = await sb.rpc('award_impact_points', {
+    const { data, error } = await sb.rpc("award_impact_points", {
       p_user_id: inviterUserId,
-      p_event_type: 'invite_second_order',
+      p_event_type: "invite_second_order",
       p_points: IP_CONFIG.INVITE_SECOND_ORDER,
       p_related_user_id: invitedUserId,
       p_related_order_id: orderId || null,
-      p_description: 'Friend made second reservation',
+      p_description: "Friend made second reservation",
     });
 
     if (error) throw error;
 
     return { success: true, newTotal: data };
   } catch (error) {
-    console.error('Error awarding points for invite second order:', error);
+    console.error("Error awarding points for invite second order:", error);
     return { success: false, newTotal: 0, error: error.message };
   }
 }
@@ -431,19 +450,27 @@ export async function awardPointsForInviteSecondOrder(
  */
 export async function awardPointsForReview(
   userId: string,
-  reviewId?: string
-): Promise<{ success: boolean; newTotal: number; error?: string; rateLimited?: boolean }> {
+  reviewId?: string,
+): Promise<{
+  success: boolean;
+  newTotal: number;
+  error?: string;
+  rateLimited?: boolean;
+}> {
   const sb = getSupabaseAdmin();
 
   try {
     // Check rate limit: no more than 1 review IP per 24 hours
     const rateLimitHours = IP_CONFIG.RATE_LIMIT_HOURS;
     const { data: recentEvent, error: checkError } = await sb
-      .from('impact_point_events')
-      .select('id, created_at')
-      .eq('user_id', userId)
-      .eq('event_type', 'review_submitted')
-      .gte('created_at', new Date(Date.now() - rateLimitHours * 60 * 60 * 1000).toISOString())
+      .from("impact_point_events")
+      .select("id, created_at")
+      .eq("user_id", userId)
+      .eq("event_type", "review_submitted")
+      .gte(
+        "created_at",
+        new Date(Date.now() - rateLimitHours * 60 * 60 * 1000).toISOString(),
+      )
       .single();
 
     // If recent event exists, rate limited
@@ -451,18 +478,18 @@ export async function awardPointsForReview(
       return { success: true, newTotal: 0, rateLimited: true };
     }
 
-    const { data, error } = await sb.rpc('award_impact_points', {
+    const { data, error } = await sb.rpc("award_impact_points", {
       p_user_id: userId,
-      p_event_type: 'review_submitted',
+      p_event_type: "review_submitted",
       p_points: IP_CONFIG.REVIEW_SUBMITTED,
-      p_description: `Review submitted${reviewId ? ` (${reviewId})` : ''}`,
+      p_description: `Review submitted${reviewId ? ` (${reviewId})` : ""}`,
     });
 
     if (error) throw error;
 
     return { success: true, newTotal: data, rateLimited: false };
   } catch (error) {
-    console.error('Error awarding points for review:', error);
+    console.error("Error awarding points for review:", error);
     return { success: false, newTotal: 0, error: error.message };
   }
 }
@@ -472,20 +499,28 @@ export async function awardPointsForReview(
  */
 export async function awardPointsForShare(
   userId: string,
-  shareType: 'wine' | 'pallet',
-  resourceId?: string
-): Promise<{ success: boolean; newTotal: number; error?: string; rateLimited?: boolean }> {
+  shareType: "wine" | "pallet",
+  resourceId?: string,
+): Promise<{
+  success: boolean;
+  newTotal: number;
+  error?: string;
+  rateLimited?: boolean;
+}> {
   const sb = getSupabaseAdmin();
 
   try {
     // Check rate limit: no more than 1 share IP per 24 hours
     const rateLimitHours = IP_CONFIG.RATE_LIMIT_HOURS;
     const { data: recentEvent, error: checkError } = await sb
-      .from('impact_point_events')
-      .select('id, created_at')
-      .eq('user_id', userId)
-      .eq('event_type', 'share_action')
-      .gte('created_at', new Date(Date.now() - rateLimitHours * 60 * 60 * 1000).toISOString())
+      .from("impact_point_events")
+      .select("id, created_at")
+      .eq("user_id", userId)
+      .eq("event_type", "share_action")
+      .gte(
+        "created_at",
+        new Date(Date.now() - rateLimitHours * 60 * 60 * 1000).toISOString(),
+      )
       .single();
 
     // If recent event exists, rate limited
@@ -493,19 +528,18 @@ export async function awardPointsForShare(
       return { success: true, newTotal: 0, rateLimited: true };
     }
 
-    const { data, error } = await sb.rpc('award_impact_points', {
+    const { data, error } = await sb.rpc("award_impact_points", {
       p_user_id: userId,
-      p_event_type: 'share_action',
+      p_event_type: "share_action",
       p_points: IP_CONFIG.SHARE_ACTION,
-      p_description: `Shared ${shareType}${resourceId ? ` (${resourceId})` : ''}`,
+      p_description: `Shared ${shareType}${resourceId ? ` (${resourceId})` : ""}`,
     });
 
     if (error) throw error;
 
     return { success: true, newTotal: data, rateLimited: false };
   } catch (error) {
-    console.error('Error awarding points for share:', error);
+    console.error("Error awarding points for share:", error);
     return { success: false, newTotal: 0, error: error.message };
   }
 }
-

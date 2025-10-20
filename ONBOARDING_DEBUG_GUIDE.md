@@ -3,12 +3,14 @@
 ## Current Problems
 
 ### 1. Onboarding Modal Not Showing
+
 - Modal doesn't appear after new user signup
 - Tested on: Instagram browser, Chrome, Safari, Incognito
 - Tested with: Basic, Bronze, Silver memberships
 - Result: Never shows
 
 ### 2. Cart Sharing Between Users
+
 - New user sees 6 products in cart
 - Cart appears to be shared between users
 - Cart is linked to `session_id` (cookies) not `user_id`
@@ -19,9 +21,9 @@
 
 ```sql
 -- In Supabase SQL Editor
-SELECT column_name, data_type, column_default 
-FROM information_schema.columns 
-WHERE table_name = 'profiles' 
+SELECT column_name, data_type, column_default
+FROM information_schema.columns
+WHERE table_name = 'profiles'
 AND column_name = 'onboarding_seen';
 
 -- Should return:
@@ -30,6 +32,7 @@ AND column_name = 'onboarding_seen';
 ```
 
 If empty, **RUN MIGRATION 048**:
+
 ```sql
 -- Copy and paste from migrations/048_add_onboarding_seen.sql
 ALTER TABLE profiles
@@ -56,6 +59,7 @@ LIMIT 5;
 ```
 
 **Fix if needed:**
+
 ```sql
 -- Reset for specific test user
 UPDATE profiles
@@ -73,6 +77,7 @@ After deploying the latest code with debug logging:
 4. Look for logs starting with 🎓
 
 **Expected log sequence:**
+
 ```
 🎓 [Onboarding] Checking onboarding status...
 🎓 [API] GET /api/user/onboarding-seen called
@@ -87,34 +92,45 @@ After deploying the latest code with debug logging:
 **If you see different logs:**
 
 #### Problem: `onboardingSeen: true`
+
 ```
 🎓 [Onboarding] Data: { onboardingSeen: true }
 🎓 [Onboarding] User has already seen onboarding, skipping modal
 ```
+
 **Solution:** User's `onboarding_seen` is TRUE in database. Reset it:
+
 ```sql
 UPDATE profiles SET onboarding_seen = FALSE WHERE id = '<user-id>';
 ```
 
 #### Problem: 401 Unauthorized
+
 ```
 🎓 [Onboarding] Response status: 401
 ```
+
 **Solution:** User not authenticated. Check:
+
 - Is user actually logged in?
 - Are auth cookies present?
 - Try logout and login again
 
 #### Problem: 500 Error
+
 ```
 🎓 [API] Error fetching onboarding status: <error>
 ```
+
 **Solution:** Database query failed. Check:
+
 - Does `onboarding_seen` column exist?
 - Does user exist in `profiles` table?
 
 #### Problem: No logs at all
-**Solution:** 
+
+**Solution:**
+
 - Code not deployed (check Vercel)
 - JavaScript error preventing execution (check console for errors)
 - User on auth page (modal skipped intentionally)
@@ -122,14 +138,16 @@ UPDATE profiles SET onboarding_seen = FALSE WHERE id = '<user-id>';
 ### Step 4: Cart Sharing Issue
 
 The cart is currently tied to `session_id` from cookies, not `user_id`. This means:
+
 - If cookies are shared or reused, cart is shared
 - Different users can see same cart
 - Cart persists across user logins
 
 **Check in database:**
+
 ```sql
 -- See all carts and their items
-SELECT 
+SELECT
   c.id as cart_id,
   c.session_id,
   c.created_at as cart_created,
@@ -146,6 +164,7 @@ LIMIT 20;
 **To fix cart isolation:**
 
 Option 1: Link cart to user_id instead of session_id
+
 ```sql
 -- Add user_id to carts table
 ALTER TABLE carts ADD COLUMN user_id UUID REFERENCES profiles(id);
@@ -155,6 +174,7 @@ ALTER TABLE carts ADD COLUMN user_id UUID REFERENCES profiles(id);
 ```
 
 Option 2: Clear cart on new user signup
+
 ```typescript
 // In signup flow, after user created:
 await clearCartId(); // Clear cookie
@@ -162,6 +182,7 @@ await clearCartId(); // Clear cookie
 ```
 
 Option 3: Use user_id + session_id composite key
+
 ```sql
 -- More complex but supports logged-out + logged-in carts
 ```
@@ -185,21 +206,27 @@ Option 3: Use user_id + session_id composite key
 ## Quick Fixes
 
 ### Force Show Modal for Testing
+
 ```typescript
 // In browser console:
-localStorage.removeItem('pact-welcome-seen'); // Old system
+localStorage.removeItem("pact-welcome-seen"); // Old system
 // Then manually call:
-fetch('/api/user/onboarding-seen', { method: 'POST', body: JSON.stringify({ seen: false }) });
+fetch("/api/user/onboarding-seen", {
+  method: "POST",
+  body: JSON.stringify({ seen: false }),
+});
 ```
 
 ### Reset Onboarding for User
+
 ```sql
-UPDATE profiles 
-SET onboarding_seen = FALSE 
+UPDATE profiles
+SET onboarding_seen = FALSE
 WHERE email = 'test@example.com';
 ```
 
 ### Clear Cart for User
+
 ```sql
 -- Find user's cart
 SELECT c.id FROM carts c
@@ -215,11 +242,11 @@ DELETE FROM cart_items WHERE cart_id = '<cart-id>';
 1. **Share Console Logs:** Copy all 🎓 logs from console
 2. **Share Database State:** Run and share results:
    ```sql
-   SELECT id, email, onboarding_seen, created_at 
-   FROM profiles 
+   SELECT id, email, onboarding_seen, created_at
+   FROM profiles
    WHERE email = 'your-test-email';
    ```
-3. **Check Network Tab:** 
+3. **Check Network Tab:**
    - F12 → Network
    - Filter by "onboarding-seen"
    - Check request/response
@@ -234,4 +261,3 @@ DELETE FROM cart_items WHERE cart_id = '<cart-id>';
 3. ❌ Auth not working → 401 error → No user check
 4. ❌ Code not deployed → Old code running → localStorage check
 5. ❌ Cart from previous session → session_id reused → Shared cart
-

@@ -7,7 +7,8 @@ export async function GET() {
 
     const { data: groups, error } = await sb
       .from("producer_groups")
-      .select(`
+      .select(
+        `
         id,
         name,
         description,
@@ -21,19 +22,20 @@ export async function GET() {
             region
           )
         )
-      `)
+      `,
+      )
       .order("created_at", { ascending: false });
 
     if (error) {
       console.error("Error fetching producer groups:", error);
       return NextResponse.json(
         { error: "Failed to fetch producer groups" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     // Rename producer_group_members to members for cleaner API
-    const groupsWithMembers = groups?.map(group => ({
+    const groupsWithMembers = groups?.map((group) => ({
       ...group,
       members: group.producer_group_members,
       producer_group_members: undefined,
@@ -46,7 +48,7 @@ export async function GET() {
     console.error("Error in producer groups API:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -58,7 +60,7 @@ export async function POST(request: Request) {
     if (!name || !name.trim()) {
       return NextResponse.json(
         { error: "Group name is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -77,7 +79,7 @@ export async function POST(request: Request) {
       console.error("Error creating producer group:", error);
       return NextResponse.json(
         { error: "Failed to create producer group" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -86,8 +88,7 @@ export async function POST(request: Request) {
     console.error("Error in producer groups API:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

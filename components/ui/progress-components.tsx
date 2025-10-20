@@ -9,15 +9,21 @@ interface MiniProgressProps {
  * Mini progress bar for dropdown pallet rows.
  * 2px height, neutral colors, full width under meta-row.
  */
-export function MiniProgress({ valuePercent, className = "" }: MiniProgressProps) {
-  const percent = valuePercent !== null ? Math.max(0, Math.min(100, valuePercent)) : 0;
+export function MiniProgress({
+  valuePercent,
+  className = "",
+}: MiniProgressProps) {
+  const percent =
+    valuePercent !== null ? Math.max(0, Math.min(100, valuePercent)) : 0;
   const display = valuePercent !== null;
 
   if (!display) return null;
-  
+
   return (
-    <div className={`w-full h-[2px] bg-gray-100/50 rounded-full overflow-hidden ${className}`}>
-      <div 
+    <div
+      className={`w-full h-[2px] bg-gray-100/50 rounded-full overflow-hidden ${className}`}
+    >
+      <div
         className="h-full bg-gray-400 transition-all duration-500 ease-out"
         style={{ width: `${percent}%` }}
       />
@@ -27,14 +33,14 @@ export function MiniProgress({ valuePercent, className = "" }: MiniProgressProps
 
 interface PalletProgressProps {
   valuePercent: number | null;
-  variant: 'bar' | 'ring';
-  size?: 'sm' | 'md' | 'lg';
+  variant: "bar" | "ring";
+  size?: "sm" | "md" | "lg";
   className?: string;
 }
 
 interface ProgressHaloProps {
   valuePercent: number | null;
-  size?: 'sm' | 'md' | 'lg';
+  size?: "sm" | "md" | "lg";
   className?: string;
 }
 
@@ -43,38 +49,41 @@ interface ProgressHaloProps {
  * Variant A (bar): 8-10px bar + large number "64% full"
  * Variant B (ring): 48-56px ring with number in middle
  */
-export function PalletProgress({ 
-  valuePercent, 
-  variant, 
-  size = 'md',
-  className = "" 
+export function PalletProgress({
+  valuePercent,
+  variant,
+  size = "md",
+  className = "",
 }: PalletProgressProps) {
-  const percent = valuePercent !== null ? Math.max(0, Math.min(100, valuePercent)) : 0;
-  const displayPercent = valuePercent !== null ? `${percent}%` : '—%';
-  
+  const percent =
+    valuePercent !== null ? Math.max(0, Math.min(100, valuePercent)) : 0;
+  const displayPercent = valuePercent !== null ? `${percent}%` : "—%";
+
   const sizeClasses = {
     sm: {
-      bar: 'h-2 w-16',
-      ring: 'w-10 h-10',
-      text: 'text-sm'
+      bar: "h-2 w-16",
+      ring: "w-10 h-10",
+      text: "text-sm",
     },
     md: {
-      bar: 'h-2.5 w-20', // 8-10px height
-      ring: 'w-12 h-12', // 48-56px
-      text: 'text-base'
+      bar: "h-2.5 w-20", // 8-10px height
+      ring: "w-12 h-12", // 48-56px
+      text: "text-base",
     },
     lg: {
-      bar: 'h-3 w-24',
-      ring: 'w-14 h-14',
-      text: 'text-lg'
-    }
+      bar: "h-3 w-24",
+      ring: "w-14 h-14",
+      text: "text-lg",
+    },
   };
-  
-  if (variant === 'bar') {
+
+  if (variant === "bar") {
     return (
       <div className={`flex items-center gap-3 ${className}`}>
-        <div className={`${sizeClasses[size].bar} bg-gray-200 rounded-full overflow-hidden`}>
-          <div 
+        <div
+          className={`${sizeClasses[size].bar} bg-gray-200 rounded-full overflow-hidden`}
+        >
+          <div
             className="h-full bg-gray-900 transition-all duration-500 ease-out"
             style={{ width: `${percent}%` }}
           />
@@ -85,16 +94,18 @@ export function PalletProgress({
       </div>
     );
   }
-  
-  if (variant === 'ring') {
-    const radius = size === 'sm' ? 18 : size === 'md' ? 20 : 24;
+
+  if (variant === "ring") {
+    const radius = size === "sm" ? 18 : size === "md" ? 20 : 24;
     const circumference = 2 * Math.PI * radius;
     const strokeDasharray = circumference;
     const strokeDashoffset = circumference - (percent / 100) * circumference;
-    
+
     return (
       <div className={`flex items-center gap-3 ${className}`}>
-        <div className={`${sizeClasses[size].ring} relative flex items-center justify-center`}>
+        <div
+          className={`${sizeClasses[size].ring} relative flex items-center justify-center`}
+        >
           <svg
             className="absolute inset-0 w-full h-full -rotate-90"
             viewBox={`0 0 ${radius * 2 + 4} ${radius * 2 + 4}`}
@@ -125,7 +136,9 @@ export function PalletProgress({
               />
             )}
           </svg>
-          <span className={`${sizeClasses[size].text} font-light text-gray-900 z-10`}>
+          <span
+            className={`${sizeClasses[size].text} font-light text-gray-900 z-10`}
+          >
             {displayPercent}
           </span>
         </div>
@@ -135,43 +148,43 @@ export function PalletProgress({
       </div>
     );
   }
-  
+
   return null;
 }
 
 /**
  * Progress halo for header icons
  */
-export function ProgressHalo({ 
-  valuePercent, 
-  size = 'md',
-  className = "" 
+export function ProgressHalo({
+  valuePercent,
+  size = "md",
+  className = "",
 }: ProgressHaloProps) {
   const percent = valuePercent || 0;
-  
+
   const sizeClasses = {
     sm: {
-      container: 'w-6 h-6',
+      container: "w-6 h-6",
       radius: 12,
-      strokeWidth: 0.75 // Ultra-thin for minimalist look
+      strokeWidth: 0.75, // Ultra-thin for minimalist look
     },
     md: {
-      container: 'w-8 h-8',
+      container: "w-8 h-8",
       radius: 16,
-      strokeWidth: 1 // Thinner than before
+      strokeWidth: 1, // Thinner than before
     },
     lg: {
-      container: 'w-10 h-10',
+      container: "w-10 h-10",
       radius: 20,
-      strokeWidth: 1.25 // Thinner than before
-    }
+      strokeWidth: 1.25, // Thinner than before
+    },
   };
-  
+
   const { container, radius, strokeWidth } = sizeClasses[size];
   const circumference = 2 * Math.PI * radius;
   const strokeDasharray = circumference;
   const strokeDashoffset = circumference - (percent / 100) * circumference;
-  
+
   return (
     <div className={`${container} ${className}`}>
       <svg

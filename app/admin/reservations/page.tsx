@@ -56,7 +56,10 @@ export default function ReservationsPage() {
         "📋 [Reservations Page] Fetched reservations:",
         reservationsData.reservations?.length || 0,
       );
-      console.log("📋 [Reservations Page] Sample reservation:", reservationsData.reservations?.[0]);
+      console.log(
+        "📋 [Reservations Page] Sample reservation:",
+        reservationsData.reservations?.[0],
+      );
 
       setReservations(reservationsData.reservations || []);
     } catch (error) {
@@ -331,7 +334,7 @@ export default function ReservationsPage() {
                       key={reservation.id}
                       className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
                       onClick={() => handleRowClick(reservation)}
-                >
+                    >
                       <td className="p-2" onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={selectedReservations.includes(
@@ -347,28 +350,31 @@ export default function ReservationsPage() {
                       </td>
                       <td className="p-2">
                         <div className="font-mono text-xs text-gray-600">
-                          {reservation.order_id?.substring(0, 8) || reservation.id?.substring(0, 8) || "N/A"}
+                          {reservation.order_id?.substring(0, 8) ||
+                            reservation.id?.substring(0, 8) ||
+                            "N/A"}
                         </div>
                       </td>
                       <td className="p-2 text-xs text-gray-500">
-                        {new Date(reservation.created_at).toLocaleDateString("sv-SE")}
+                        {new Date(reservation.created_at).toLocaleDateString(
+                          "sv-SE",
+                        )}
                       </td>
                       <td className="p-2">
                         <div className="text-xs">
                           <div className="font-medium text-gray-900">
-                            {reservation.profiles?.full_name || 
-                             reservation.profiles?.email || 
-                             `User ${reservation.user_id?.substring(0, 8)}` ||
-                             "Unknown Customer"}
+                            {reservation.profiles?.full_name ||
+                              reservation.profiles?.email ||
+                              `User ${reservation.user_id?.substring(0, 8)}` ||
+                              "Unknown Customer"}
                           </div>
                           <div className="text-xs text-gray-500 truncate max-w-[120px]">
-                            {reservation.profiles?.email || `ID: ${reservation.user_id}`}
+                            {reservation.profiles?.email ||
+                              `ID: ${reservation.user_id}`}
                           </div>
                         </div>
                       </td>
-                      <td className="p-2 text-xs text-gray-500">
-                        N/A
-                      </td>
+                      <td className="p-2 text-xs text-gray-500">N/A</td>
                       <td className="p-2">
                         <Badge
                           variant="secondary"

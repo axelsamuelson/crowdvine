@@ -63,7 +63,9 @@ export async function createProducer(data: CreateProducerData) {
 
   // Get current user to set as owner (from regular client)
   const userSb = await supabaseServer();
-  const { data: { user } } = await userSb.auth.getUser();
+  const {
+    data: { user },
+  } = await userSb.auth.getUser();
 
   console.log("Creating producer with data:", data, "owner:", user?.id);
 
@@ -72,7 +74,7 @@ export async function createProducer(data: CreateProducerData) {
     .insert({
       ...data,
       owner_id: user?.id || null,
-      status: 'active', // Set default status
+      status: "active", // Set default status
     })
     .select()
     .single();
@@ -95,7 +97,7 @@ export async function updateProducer(
   // Use admin client for admin operations
   const sb = getSupabaseAdmin();
 
-  console.log('🔄 Updating producer:', id, data);
+  console.log("🔄 Updating producer:", id, data);
 
   const { data: producer, error } = await sb
     .from("producers")
@@ -105,11 +107,11 @@ export async function updateProducer(
     .single();
 
   if (error) {
-    console.error('❌ Update producer error:', error);
+    console.error("❌ Update producer error:", error);
     throw new Error(error.message);
   }
 
-  console.log('✅ Producer updated:', producer);
+  console.log("✅ Producer updated:", producer);
 
   revalidatePath("/admin/producers");
   revalidatePath(`/admin/producers/${id}`);
@@ -120,16 +122,16 @@ export async function deleteProducer(id: string) {
   // Use admin client for admin operations
   const sb = getSupabaseAdmin();
 
-  console.log('🗑️ Deleting producer:', id);
+  console.log("🗑️ Deleting producer:", id);
 
   const { error } = await sb.from("producers").delete().eq("id", id);
 
   if (error) {
-    console.error('❌ Delete producer error:', error);
+    console.error("❌ Delete producer error:", error);
     throw new Error(error.message);
   }
 
-  console.log('✅ Producer deleted successfully');
+  console.log("✅ Producer deleted successfully");
 
   revalidatePath("/admin/producers");
 }

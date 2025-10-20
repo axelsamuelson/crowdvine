@@ -5,6 +5,7 @@
 Your database triggers `on_auth_user_created` and `on_user_membership_created` are **broken**.
 
 They cause `admin.createUser()` to fail with:
+
 ```
 Database error creating new user
 Code: unexpected_failure
@@ -29,6 +30,7 @@ This prevents ALL invitation signups from working.
 ### 2. Copy Migration 038
 
 Open this file in your codebase:
+
 ```
 migrations/038_drop_signup_triggers.sql
 ```
@@ -43,6 +45,7 @@ Copy the ENTIRE contents.
 ### 4. Verify Success
 
 You should see:
+
 ```
 NOTICE: All signup triggers successfully dropped
 ```
@@ -52,9 +55,10 @@ If you see an error, send me the error message.
 ### 5. Verify Triggers Are Gone
 
 Run this query to confirm:
+
 ```sql
-SELECT tgname, tgrelid::regclass 
-FROM pg_trigger 
+SELECT tgname, tgrelid::regclass
+FROM pg_trigger
 WHERE tgname IN ('on_auth_user_created', 'on_user_membership_created');
 ```
 
@@ -112,6 +116,7 @@ Should return: **0 rows** (or empty result)
 ## What Changed
 
 ### Before Migration 038:
+
 ```
 admin.createUser()
   └─→ Trigger fires → ERROR → "Database error creating new user"
@@ -119,6 +124,7 @@ admin.createUser()
 ```
 
 ### After Migration 038:
+
 ```
 admin.createUser()
   └─→ No triggers → Creates user successfully ✓
@@ -130,6 +136,7 @@ admin.createUser()
 ## Logs You Should See (After Migration)
 
 When testing signup, check Vercel logs for:
+
 ```
 [INVITE-REDEEM] MANUAL CREATION FLOW - Step 1: Create auth.users
 [INVITE-REDEEM] STEP-1 SUCCESS - User created: <uuid>
@@ -146,6 +153,7 @@ When testing signup, check Vercel logs for:
 ## If It Still Doesn't Work
 
 Send me:
+
 1. The Vercel logs showing `[INVITE-REDEEM]` entries
 2. Specifically which STEP failed (STEP-1, STEP-2, or STEP-3)
 3. The error code and message from that step
@@ -159,4 +167,3 @@ Send me:
 🎯 **After migration, invitation signup will work**
 
 **RUN MIGRATION 038 NOW!** Then test and let me know the result!
-

@@ -25,7 +25,16 @@ import { ReservationLoadingModal } from "@/components/checkout/reservation-loadi
 import { MemberPrice } from "@/components/ui/member-price";
 import { ProgressionBuffDisplay } from "@/components/membership/progression-buff-display";
 import { toast } from "sonner";
-import { User, MapPin, CreditCard, Package, AlertCircle, Gift, Check, ArrowRight } from "lucide-react";
+import {
+  User,
+  MapPin,
+  CreditCard,
+  Package,
+  AlertCircle,
+  Gift,
+  Check,
+  ArrowRight,
+} from "lucide-react";
 import { clearZoneCache } from "@/lib/zone-matching";
 import {
   calculateCartShippingCost,
@@ -61,7 +70,7 @@ interface UserReward {
   id: string;
   bottles: number;
   discount_percentage: number;
-  type: 'account_created' | 'reservation_made';
+  type: "account_created" | "reservation_made";
   friend_email?: string;
   earned_at: string;
   used: boolean;
@@ -78,11 +87,11 @@ function CheckoutContent() {
   const [userRewards, setUserRewards] = useState<UserReward[]>([]);
   const [selectedRewards, setSelectedRewards] = useState<UserReward[]>([]);
   const [useRewards, setUseRewards] = useState(false);
-  
+
   // v2: Progression buffs state
   const [progressionBuffs, setProgressionBuffs] = useState<any[]>([]);
   const [totalBuffPercentage, setTotalBuffPercentage] = useState(0);
-  
+
   // 6-bottle validation state
   const [validations, setValidations] = useState<any[]>([]);
   const [isValidCart, setIsValidCart] = useState(true);
@@ -122,7 +131,7 @@ function CheckoutContent() {
         const cartData = await response.json();
         console.log("✅ [Checkout] Cart updated:", {
           totalQuantity: cartData.totalQuantity,
-          items: cartData.lines?.length || 0
+          items: cartData.lines?.length || 0,
         });
         setCart(cartData);
       }
@@ -164,7 +173,11 @@ function CheckoutContent() {
       if (response.ok) {
         const data = await response.json();
         setProgressionBuffs(data.buffs || []);
-        const totalPercentage = data.buffs?.reduce((sum: number, buff: any) => sum + parseFloat(buff.buff_percentage), 0) || 0;
+        const totalPercentage =
+          data.buffs?.reduce(
+            (sum: number, buff: any) => sum + parseFloat(buff.buff_percentage),
+            0,
+          ) || 0;
         setTotalBuffPercentage(totalPercentage);
       }
     } catch (error) {
@@ -177,14 +190,14 @@ function CheckoutContent() {
     fetchProfile();
     fetchUserRewards();
     fetchProgressionBuffs(); // v2: fetch progression buffs
-    
+
     // Check if returning from Stripe payment method setup
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get("payment_method_added") === "true") {
       toast.success("Payment method added and selected!");
       // Clean URL and let PaymentMethodSelector auto-select the new method
       const cleanUrl = window.location.pathname;
-      window.history.replaceState({}, '', cleanUrl);
+      window.history.replaceState({}, "", cleanUrl);
     }
   }, [fetchCart, fetchProfile, fetchUserRewards, fetchProgressionBuffs]);
 
@@ -207,12 +220,16 @@ function CheckoutContent() {
 
     const validateCart = async () => {
       try {
-        console.log("🔍 [Checkout] Validating cart with", cart.totalQuantity, "bottles");
+        console.log(
+          "🔍 [Checkout] Validating cart with",
+          cart.totalQuantity,
+          "bottles",
+        );
         const response = await fetch("/api/cart/validate");
         const result = await response.json();
         console.log("✅ [Checkout] Validation complete:", {
           isValid: result.isValid,
-          validations: result.producerValidations?.length || 0
+          validations: result.producerValidations?.length || 0,
         });
         setValidations(result.producerValidations || []);
         setIsValidCart(result.isValid);
@@ -226,7 +243,6 @@ function CheckoutContent() {
 
     validateCart();
   }, [cart]);
-
 
   useEffect(() => {
     // Update zone info when address changes (with debouncing)
@@ -253,7 +269,7 @@ function CheckoutContent() {
 
     try {
       let deliveryAddress;
-      
+
       if (profile && profile.address && profile.city && profile.postal_code) {
         deliveryAddress = {
           postcode: profile.postal_code || "",
@@ -326,22 +342,33 @@ function CheckoutContent() {
         // Auto-select the best delivery zone (closest/smallest radius)
         let selectedDeliveryZoneId = zoneData.deliveryZoneId;
         let selectedDeliveryZoneName = zoneData.deliveryZoneName;
-        
-        if (zoneData.availableDeliveryZones && zoneData.availableDeliveryZones.length > 0) {
+
+        if (
+          zoneData.availableDeliveryZones &&
+          zoneData.availableDeliveryZones.length > 0
+        ) {
           // Sort by radius (smallest first) to get the most specific zone
-          const sortedZones = [...zoneData.availableDeliveryZones].sort((a, b) => a.radiusKm - b.radiusKm);
+          const sortedZones = [...zoneData.availableDeliveryZones].sort(
+            (a, b) => a.radiusKm - b.radiusKm,
+          );
           selectedDeliveryZoneId = sortedZones[0].id;
           selectedDeliveryZoneName = sortedZones[0].name;
-          console.log(`🎯 Auto-selected delivery zone: ${selectedDeliveryZoneName} (${sortedZones[0].radiusKm}km radius)`);
+          console.log(
+            `🎯 Auto-selected delivery zone: ${selectedDeliveryZoneName} (${sortedZones[0].radiusKm}km radius)`,
+          );
         }
 
         // Auto-select the pallet with the most reserved bottles
         let autoSelectedPallet = null;
         if (zoneData.pallets && zoneData.pallets.length > 0) {
           // Sort by current bottles (most reserved first)
-          const sortedPallets = [...zoneData.pallets].sort((a, b) => b.currentBottles - a.currentBottles);
+          const sortedPallets = [...zoneData.pallets].sort(
+            (a, b) => b.currentBottles - a.currentBottles,
+          );
           autoSelectedPallet = sortedPallets[0];
-          console.log(`🎯 Auto-selected pallet: ${autoSelectedPallet.name} (${autoSelectedPallet.currentBottles} bottles reserved)`);
+          console.log(
+            `🎯 Auto-selected pallet: ${autoSelectedPallet.name} (${autoSelectedPallet.currentBottles} bottles reserved)`,
+          );
         }
 
         console.log("📦 Setting zone info:", {
@@ -351,7 +378,7 @@ function CheckoutContent() {
           selectedDeliveryZoneId,
           pallets: zoneData.pallets?.length || 0,
         });
-        
+
         setZoneInfo({
           pickupZone: zoneData.pickupZoneName,
           pickupZoneId: zoneData.pickupZoneId,
@@ -383,12 +410,13 @@ function CheckoutContent() {
 
   const handleProfileSaved = async (updatedProfile: UserProfile) => {
     setProfile(updatedProfile);
-    
+
     // Check if address is complete
-    const hasAddress = updatedProfile.address && 
-                       updatedProfile.city && 
-                       updatedProfile.postal_code;
-    
+    const hasAddress =
+      updatedProfile.address &&
+      updatedProfile.city &&
+      updatedProfile.postal_code;
+
     if (hasAddress) {
       toast.success("Saving...");
       setZoneLoading(true);
@@ -403,10 +431,9 @@ function CheckoutContent() {
     }
   };
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate required fields
     if (!profile?.email) {
       toast.error("Please add your profile information first");
@@ -417,16 +444,21 @@ function CheckoutContent() {
 
     // Check 6-bottle validation (already validated in useEffect, this is just a safeguard)
     if (!isValidCart) {
-      console.error("❌ [Checkout] Cart validation failed - button should be disabled");
-      toast.error("Please complete your order to meet the 6-bottle requirement");
+      console.error(
+        "❌ [Checkout] Cart validation failed - button should be disabled",
+      );
+      toast.error(
+        "Please complete your order to meet the 6-bottle requirement",
+      );
       return;
     }
 
     setIsPlacingOrder(true); // Show loading modal
 
     // Check if delivery zone is available
-    const hasCompleteAddress = profile?.address && profile?.city && profile?.postal_code;
-      
+    const hasCompleteAddress =
+      profile?.address && profile?.city && profile?.postal_code;
+
     if (hasCompleteAddress && !zoneInfo.selectedDeliveryZoneId) {
       setIsPlacingOrder(false);
       toast.error(
@@ -438,19 +470,21 @@ function CheckoutContent() {
     // Check if pallet is available (should be auto-selected)
     if (zoneInfo.pallets && zoneInfo.pallets.length > 0 && !selectedPallet) {
       setIsPlacingOrder(false);
-      toast.error("No suitable pallet found for your location. Please contact support.");
+      toast.error(
+        "No suitable pallet found for your location. Please contact support.",
+      );
       return;
     }
 
     // Prepare form data
     const formData = new FormData();
-    
+
     // Customer details
     formData.append("fullName", profile?.full_name || "");
     // Use profile email if available, otherwise we'll need to get it from auth
     formData.append("email", profile?.email || "");
     formData.append("phone", profile?.phone || "");
-    
+
     // Delivery address (always from profile)
     if (profile) {
       formData.append("street", profile.address || "");
@@ -476,7 +510,7 @@ function CheckoutContent() {
       );
     }
     // Note: If no profile, form validation will catch missing address
-    
+
     // Zone information
     if (zoneInfo.selectedDeliveryZoneId) {
       formData.append(
@@ -484,12 +518,12 @@ function CheckoutContent() {
         zoneInfo.selectedDeliveryZoneId,
       );
     }
-    
+
     // Pallet information
     if (selectedPallet) {
       formData.append("selectedPalletId", selectedPallet.id);
     }
-    
+
     // Payment method removed - using new payment flow
 
     // User rewards
@@ -555,43 +589,50 @@ function CheckoutContent() {
   const hasProfileInfo = profile?.full_name && profile?.email;
   const hasCompleteProfileAddress =
     profile?.address && profile?.city && profile?.postal_code;
-  
+
   // Calculate shipping cost
-  const shippingCost = selectedPallet && cart?.lines
-    ? calculateCartShippingCost(
-        cart.lines.map((line) => ({ quantity: line.quantity })),
-    {
-      id: selectedPallet.id,
-      name: selectedPallet.name,
-      costCents: selectedPallet.costCents,
-      bottleCapacity: selectedPallet.maxBottles,
-      currentBottles: selectedPallet.currentBottles,
-      remainingBottles: selectedPallet.remainingBottles,
-        },
-      )
-    : null;
+  const shippingCost =
+    selectedPallet && cart?.lines
+      ? calculateCartShippingCost(
+          cart.lines.map((line) => ({ quantity: line.quantity })),
+          {
+            id: selectedPallet.id,
+            name: selectedPallet.name,
+            costCents: selectedPallet.costCents,
+            bottleCapacity: selectedPallet.maxBottles,
+            currentBottles: selectedPallet.currentBottles,
+            remainingBottles: selectedPallet.remainingBottles,
+          },
+        )
+      : null;
 
   // Calculate bottle cost and discount
-  const bottleCost = cart?.lines ? cart.lines.reduce((total, line) => {
-    const pricePerBottle = parseFloat(line.merchandise.product.priceRange.minVariantPrice.amount);
-    return total + (pricePerBottle * line.quantity);
-  }, 0) : 0;
+  const bottleCost = cart?.lines
+    ? cart.lines.reduce((total, line) => {
+        const pricePerBottle = parseFloat(
+          line.merchandise.product.priceRange.minVariantPrice.amount,
+        );
+        return total + pricePerBottle * line.quantity;
+      }, 0)
+    : 0;
 
   // Old rewards discount (being deprecated)
-  const rewardsDiscountAmount = useRewards ? selectedRewards.reduce((total, reward) => {
-    return total + (bottleCost * reward.discount_percentage) / 100;
-  }, 0) : 0;
-  
-  // v2: Progression buff discount
-  const progressionBuffDiscountAmount = totalBuffPercentage > 0 
-    ? (bottleCost * totalBuffPercentage) / 100 
+  const rewardsDiscountAmount = useRewards
+    ? selectedRewards.reduce((total, reward) => {
+        return total + (bottleCost * reward.discount_percentage) / 100;
+      }, 0)
     : 0;
-  
+
+  // v2: Progression buff discount
+  const progressionBuffDiscountAmount =
+    totalBuffPercentage > 0 ? (bottleCost * totalBuffPercentage) / 100 : 0;
+
   // Total discount from both sources
   const discountAmount = rewardsDiscountAmount + progressionBuffDiscountAmount;
 
   const subtotal = bottleCost - discountAmount;
-  const total = subtotal + (shippingCost ? shippingCost.totalShippingCostSek : 0);
+  const total =
+    subtotal + (shippingCost ? shippingCost.totalShippingCostSek : 0);
 
   // Filter available rewards (membership system - no bottle rewards anymore)
   const availableRewards: UserReward[] = [];
@@ -599,180 +640,193 @@ function CheckoutContent() {
   return (
     <>
       <ReservationLoadingModal open={isPlacingOrder} />
-      
-    <div className="max-w-4xl mx-auto p-6 pt-top-spacing space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Checkout</h1>
-        <p className="text-gray-600 mt-2">Complete your wine reservation</p>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Left Column - Order Summary */}
-        <div className="space-y-6">
-          {/* Progression Buff Display (v2) */}
-          {progressionBuffs.length > 0 && (
-            <ProgressionBuffDisplay
-              totalBuffPercentage={totalBuffPercentage}
-              buffDetails={progressionBuffs.map(buff => ({
-                percentage: buff.buff_percentage,
-                description: buff.buff_description,
-                earnedAt: buff.earned_at,
-              }))}
-              expiresOnUse={true}
-              compact={false}
-            />
-          )}
-          
-          <Card className="border border-gray-200">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-base font-semibold text-gray-900">
-                Order Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {cart?.lines?.map((line) => {
-                  // Get price per bottle from product priceRange
-                  const pricePerBottle = parseFloat(line.merchandise.product.priceRange.minVariantPrice.amount);
-                  const totalForLine = pricePerBottle * line.quantity;
-                  
-                  return (
-                    <div
-                      key={line.id}
-                      className="flex justify-between text-sm"
-                    >
-                      <span className="text-gray-600">
-                        {line.merchandise.title} × {line.quantity}
-                    </span>
-                      <MemberPrice
-                        amount={totalForLine}
-                        currencyCode={line.merchandise.product.priceRange.minVariantPrice.currencyCode}
-                        className="text-gray-900 font-medium text-sm"
-                      />
-                  </div>
-                  );
-                })}
-              </div>
-              
-              <div className="border-t border-gray-200 my-3"></div>
-              
-              <div className="space-y-3">
+      <div className="max-w-4xl mx-auto p-6 pt-top-spacing space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Checkout</h1>
+          <p className="text-gray-600 mt-2">Complete your wine reservation</p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left Column - Order Summary */}
+          <div className="space-y-6">
+            {/* Progression Buff Display (v2) */}
+            {progressionBuffs.length > 0 && (
+              <ProgressionBuffDisplay
+                totalBuffPercentage={totalBuffPercentage}
+                buffDetails={progressionBuffs.map((buff) => ({
+                  percentage: buff.buff_percentage,
+                  description: buff.buff_description,
+                  earnedAt: buff.earned_at,
+                }))}
+                expiresOnUse={true}
+                compact={false}
+              />
+            )}
+
+            <Card className="border border-gray-200">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-base font-semibold text-gray-900">
+                  Order Summary
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {cart?.lines?.map((line) => {
+                    // Get price per bottle from product priceRange
+                    const pricePerBottle = parseFloat(
+                      line.merchandise.product.priceRange.minVariantPrice
+                        .amount,
+                    );
+                    const totalForLine = pricePerBottle * line.quantity;
+
+                    return (
+                      <div
+                        key={line.id}
+                        className="flex justify-between text-sm"
+                      >
+                        <span className="text-gray-600">
+                          {line.merchandise.title} × {line.quantity}
+                        </span>
+                        <MemberPrice
+                          amount={totalForLine}
+                          currencyCode={
+                            line.merchandise.product.priceRange.minVariantPrice
+                              .currencyCode
+                          }
+                          className="text-gray-900 font-medium text-sm"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="border-t border-gray-200 my-3"></div>
+
+                <div className="space-y-3">
                   {/* Shipping Cost */}
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Shipping</span>
-                  <span className="text-gray-900 font-medium">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Shipping</span>
+                    <span className="text-gray-900 font-medium">
                       {shippingCost ? (
-                      formatShippingCost(shippingCost.totalShippingCostCents)
+                        formatShippingCost(shippingCost.totalShippingCostCents)
                       ) : (
-                      <span className="text-gray-400">No pallet selected</span>
+                        <span className="text-gray-400">
+                          No pallet selected
+                        </span>
                       )}
                     </span>
                   </div>
 
-                {/* Discount (old rewards) */}
-                {useRewards && selectedRewards.length > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Rabatt ({selectedRewards.length} belöningar)</span>
-                    <span className="text-gray-900 font-medium">
-                      -{Math.round(rewardsDiscountAmount)}{" "}
-                      {cart.cost.totalAmount.currencyCode}
-                    </span>
-                  </div>
-                )}
-                
-                {/* Progression buff discount (v2) */}
-                {progressionBuffDiscountAmount > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-amber-700 font-medium">Progress bonus ({totalBuffPercentage.toFixed(1)}%)</span>
-                    <span className="text-amber-700 font-semibold">
-                      -{Math.round(progressionBuffDiscountAmount)}{" "}
-                      {cart.cost.totalAmount.currencyCode}
-                    </span>
-                  </div>
-                )}
-                  
+                  {/* Discount (old rewards) */}
+                  {useRewards && selectedRewards.length > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">
+                        Rabatt ({selectedRewards.length} belöningar)
+                      </span>
+                      <span className="text-gray-900 font-medium">
+                        -{Math.round(rewardsDiscountAmount)}{" "}
+                        {cart.cost.totalAmount.currencyCode}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Progression buff discount (v2) */}
+                  {progressionBuffDiscountAmount > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-amber-700 font-medium">
+                        Progress bonus ({totalBuffPercentage.toFixed(1)}%)
+                      </span>
+                      <span className="text-amber-700 font-semibold">
+                        -{Math.round(progressionBuffDiscountAmount)}{" "}
+                        {cart.cost.totalAmount.currencyCode}
+                      </span>
+                    </div>
+                  )}
+
                   {/* Subtotal */}
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Subtotal</span>
-                  <span className="text-gray-900 font-medium">
-                    {Math.round(subtotal)}{" "}
-                    {cart.cost.totalAmount.currencyCode}
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Subtotal</span>
+                    <span className="text-gray-900 font-medium">
+                      {Math.round(subtotal)}{" "}
+                      {cart.cost.totalAmount.currencyCode}
                     </span>
+                  </div>
                 </div>
-                  </div>
-              
-              <div className="border-t border-gray-200 my-3"></div>
-                  
-                  {/* Total */}
-              <div className="flex justify-between text-base font-semibold text-gray-900">
-                    <span>Total</span>
-                    <span>
-                  {Math.round(total)}{" "}
-                  {cart.cost.totalAmount.currencyCode}
-                    </span>
-                  </div>
-            </CardContent>
-          </Card>
 
-          {/* Delivery Address */}
-          <Card className="border border-gray-200">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-base font-semibold text-gray-900 flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-gray-600" />
-                Delivery Address
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {!hasCompleteProfileAddress ? (
-                <div className="text-center py-8 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                  <MapPin className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-                  <h3 className="text-sm font-semibold text-gray-900 mb-1">
-                    Add delivery address
-                  </h3>
-                  <p className="text-xs text-gray-600 mb-4">
-                    Address required to continue
-                  </p>
-                  <ProfileInfoModal onProfileSaved={handleProfileSaved} />
+                <div className="border-t border-gray-200 my-3"></div>
+
+                {/* Total */}
+                <div className="flex justify-between text-base font-semibold text-gray-900">
+                  <span>Total</span>
+                  <span>
+                    {Math.round(total)} {cart.cost.totalAmount.currencyCode}
+                  </span>
                 </div>
-              ) : (
-                <div className="flex items-start justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-gray-900">{profile?.address}</p>
-                    <p className="text-xs text-gray-600">
-                      {profile?.postal_code} {profile?.city}
+              </CardContent>
+            </Card>
+
+            {/* Delivery Address */}
+            <Card className="border border-gray-200">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-gray-600" />
+                  Delivery Address
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {!hasCompleteProfileAddress ? (
+                  <div className="text-center py-8 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                    <MapPin className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+                    <h3 className="text-sm font-semibold text-gray-900 mb-1">
+                      Add delivery address
+                    </h3>
+                    <p className="text-xs text-gray-600 mb-4">
+                      Address required to continue
                     </p>
-                    <p className="text-xs text-gray-600">{profile?.country || 'Sweden'}</p>
-              </div>
-                  <ProfileInfoModal
-                    onProfileSaved={handleProfileSaved}
-                    trigger={
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="text-xs"
-                      >
-                        Ändra
-                      </Button>
-                    }
-                  />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Zone Information */}
-            <div className="space-y-4">
-            {/* Zone Loading Indicator */}
-            {zoneLoading && (
-              <Card className="border border-gray-200">
-                <CardContent className="py-6">
-                  <div className="flex items-center gap-3">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
-                    <span className="text-sm text-gray-600">Updating delivery zone...</span>
+                    <ProfileInfoModal onProfileSaved={handleProfileSaved} />
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                ) : (
+                  <div className="flex items-start justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-gray-900">
+                        {profile?.address}
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        {profile?.postal_code} {profile?.city}
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        {profile?.country || "Sweden"}
+                      </p>
+                    </div>
+                    <ProfileInfoModal
+                      onProfileSaved={handleProfileSaved}
+                      trigger={
+                        <Button variant="outline" size="sm" className="text-xs">
+                          Ändra
+                        </Button>
+                      }
+                    />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Zone Information */}
+            <div className="space-y-4">
+              {/* Zone Loading Indicator */}
+              {zoneLoading && (
+                <Card className="border border-gray-200">
+                  <CardContent className="py-6">
+                    <div className="flex items-center gap-3">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
+                      <span className="text-sm text-gray-600">
+                        Updating delivery zone...
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
               {/* No Address Message */}
               {!hasCompleteProfileAddress && !zoneLoading && (
                 <Card className="border border-gray-200">
@@ -807,25 +861,34 @@ function CheckoutContent() {
                   </CardContent>
                 </Card>
               ) : null}
-              
+
               {/* Delivery Zone */}
               {zoneInfo.deliveryZone ? (
                 <ZoneDetails
                   zoneId={zoneInfo.selectedDeliveryZoneId || ""}
                   zoneName={zoneInfo.deliveryZone}
                   zoneType="delivery"
-                  centerLat={zoneInfo.availableDeliveryZones?.find(
-                    (z) => z.id === zoneInfo.selectedDeliveryZoneId
-                  )?.centerLat}
-                  centerLon={zoneInfo.availableDeliveryZones?.find(
-                    (z) => z.id === zoneInfo.selectedDeliveryZoneId
-                  )?.centerLon}
-                  radiusKm={zoneInfo.availableDeliveryZones?.find(
-                    (z) => z.id === zoneInfo.selectedDeliveryZoneId
-                  )?.radiusKm}
+                  centerLat={
+                    zoneInfo.availableDeliveryZones?.find(
+                      (z) => z.id === zoneInfo.selectedDeliveryZoneId,
+                    )?.centerLat
+                  }
+                  centerLon={
+                    zoneInfo.availableDeliveryZones?.find(
+                      (z) => z.id === zoneInfo.selectedDeliveryZoneId,
+                    )?.centerLon
+                  }
+                  radiusKm={
+                    zoneInfo.availableDeliveryZones?.find(
+                      (z) => z.id === zoneInfo.selectedDeliveryZoneId,
+                    )?.radiusKm
+                  }
                 />
-              ) : !zoneLoading && !zoneInfo.usingFallbackAddress && 
-                profile?.address && profile?.city && profile?.postal_code ? (
+              ) : !zoneLoading &&
+                !zoneInfo.usingFallbackAddress &&
+                profile?.address &&
+                profile?.city &&
+                profile?.postal_code ? (
                 <Card className="border border-gray-200">
                   <CardContent className="py-6 text-center">
                     <AlertCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
@@ -852,321 +915,370 @@ function CheckoutContent() {
               ) : null}
             </div>
 
-          {/* Pallet Information */}
-          {(() => {
-            console.log("🚚 Pallet visibility check:", {
-              hasPallets: zoneInfo.pallets && zoneInfo.pallets.length > 0,
-              palletsCount: zoneInfo.pallets?.length || 0,
-              pallets: zoneInfo.pallets,
-              zoneLoading,
-              hasPickupZone: !!zoneInfo.pickupZone,
-              hasDeliveryZone: !!zoneInfo.deliveryZone,
-              shouldShow: (zoneInfo.pallets && zoneInfo.pallets.length > 0) || zoneLoading,
-            });
-            return null;
-          })()}
-          
-          {/* Show pallet if we have pallets or loading */}
-          {zoneLoading ? (
-            <Card className="border border-gray-200">
-              <CardContent className="py-6">
-                <div className="flex items-center gap-3">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
-                  <span className="text-sm text-gray-600">Söker efter pall...</span>
-                      </div>
-              </CardContent>
-            </Card>
-          ) : (zoneInfo.pallets && zoneInfo.pallets.length > 0) ? (
-            <Card className="border border-gray-200">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-base font-semibold text-gray-900 flex items-center gap-2">
-                  <Package className="w-4 h-4 text-gray-600" />
-                  Selected Pallet
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {selectedPallet ? (
-                  <PalletDetails pallet={selectedPallet} />
-                ) : (
-                  <p className="text-sm text-gray-600">No pallet selected</p>
-                )}
-              </CardContent>
-            </Card>
-          ) : !zoneLoading && hasCompleteProfileAddress && zoneInfo.pickupZone && zoneInfo.deliveryZone ? (
-            <Card className="border border-gray-200">
-              <CardContent className="py-6 text-center">
-                <Package className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-sm text-gray-600 mb-1">
-                  No pallet found for this route.
-                </p>
-                <p className="text-xs text-gray-500 mb-2">
-                  Route: {zoneInfo.pickupZone} → {zoneInfo.deliveryZone}
-                </p>
-                <p className="text-xs text-gray-500">
-                  A new pallet should have been created automatically. Contact support if the issue persists.
-                </p>
-              </CardContent>
-            </Card>
-          ) : null}
-        </div>
+            {/* Pallet Information */}
+            {(() => {
+              console.log("🚚 Pallet visibility check:", {
+                hasPallets: zoneInfo.pallets && zoneInfo.pallets.length > 0,
+                palletsCount: zoneInfo.pallets?.length || 0,
+                pallets: zoneInfo.pallets,
+                zoneLoading,
+                hasPickupZone: !!zoneInfo.pickupZone,
+                hasDeliveryZone: !!zoneInfo.deliveryZone,
+                shouldShow:
+                  (zoneInfo.pallets && zoneInfo.pallets.length > 0) ||
+                  zoneLoading,
+              });
+              return null;
+            })()}
 
-        {/* Right Column - Checkout Form */}
-        <div className="space-y-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Profile Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="w-5 h-5" />
-                  Customer Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {!hasProfileInfo ? (
-                  <div className="text-center py-4">
-                    <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
-                    <p className="text-gray-600 mb-4">
-                      Profile information missing
-                    </p>
-                    <ProfileInfoModal onProfileSaved={handleProfileSaved} />
+            {/* Show pallet if we have pallets or loading */}
+            {zoneLoading ? (
+              <Card className="border border-gray-200">
+                <CardContent className="py-6">
+                  <div className="flex items-center gap-3">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
+                    <span className="text-sm text-gray-600">
+                      Söker efter pall...
+                    </span>
                   </div>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-gray-500" />
-                      <span className="font-medium">{profile.full_name}</span>
+                </CardContent>
+              </Card>
+            ) : zoneInfo.pallets && zoneInfo.pallets.length > 0 ? (
+              <Card className="border border-gray-200">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                    <Package className="w-4 h-4 text-gray-600" />
+                    Selected Pallet
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {selectedPallet ? (
+                    <PalletDetails pallet={selectedPallet} />
+                  ) : (
+                    <p className="text-sm text-gray-600">No pallet selected</p>
+                  )}
+                </CardContent>
+              </Card>
+            ) : !zoneLoading &&
+              hasCompleteProfileAddress &&
+              zoneInfo.pickupZone &&
+              zoneInfo.deliveryZone ? (
+              <Card className="border border-gray-200">
+                <CardContent className="py-6 text-center">
+                  <Package className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-600 mb-1">
+                    No pallet found for this route.
+                  </p>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Route: {zoneInfo.pickupZone} → {zoneInfo.deliveryZone}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    A new pallet should have been created automatically. Contact
+                    support if the issue persists.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : null}
+          </div>
+
+          {/* Right Column - Checkout Form */}
+          <div className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Profile Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="w-5 h-5" />
+                    Customer Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {!hasProfileInfo ? (
+                    <div className="text-center py-4">
+                      <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
+                      <p className="text-gray-600 mb-4">
+                        Profile information missing
+                      </p>
+                      <ProfileInfoModal onProfileSaved={handleProfileSaved} />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-4 h-4"></span>
-                      <span className="text-gray-600">{profile.email}</span>
-                    </div>
-                    {profile.phone && (
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4 text-gray-500" />
+                        <span className="font-medium">{profile.full_name}</span>
+                      </div>
                       <div className="flex items-center gap-2">
                         <span className="w-4 h-4"></span>
-                        <span className="text-gray-600">{profile.phone}</span>
+                        <span className="text-gray-600">{profile.email}</span>
                       </div>
-                    )}
-                    <ProfileInfoModal 
-                      onProfileSaved={handleProfileSaved}
-                      trigger={
-                        <Button variant="outline" size="sm" className="mt-2">
-                          Edit Profile
-                        </Button>
-                      }
-                    />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-
-            {/* Rewards Toggle */}
-            {availableRewards.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <Gift className="w-5 h-5" />
-                    Use Rewards
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="useRewardsYes"
-                        checked={useRewards}
-                        onCheckedChange={(checked) => {
-                          setUseRewards(checked as boolean);
-                          if (!checked) {
-                            setSelectedRewards([]);
-                          }
-                        }}
-                      />
-                      <Label htmlFor="useRewardsYes" className="text-sm font-medium">
-                        Yes, use my rewards ({availableRewards.length} available)
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="useRewardsNo"
-                        checked={!useRewards}
-                        onCheckedChange={(checked) => {
-                          setUseRewards(!checked as boolean);
-                          if (checked) {
-                            setSelectedRewards([]);
-                          }
-                        }}
-                      />
-                      <Label htmlFor="useRewardsNo" className="text-sm font-medium">
-                        No, don't use rewards
-                      </Label>
-                    </div>
-                  </div>
-
-                  {/* Rewards Selection - Only show when useRewards is true */}
-                  {useRewards && (
-                    <div className="space-y-3 pt-4 border-t">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-medium text-gray-900">Select Rewards</h4>
-                        {selectedRewards.length > 0 && (
-                          <span className="text-sm font-medium text-gray-600">
-                            {selectedRewards.length} selected
-                          </span>
-                        )}
-                  </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        {availableRewards.map((reward) => (
-                          <div
-                            key={reward.id}
-                            className={`border rounded-lg p-2 cursor-pointer transition-colors ${
-                              selectedRewards.some(r => r.id === reward.id)
-                                ? "border-gray-600 bg-gray-50"
-                                : "border-gray-200 hover:border-gray-300"
-                            }`}
-                            onClick={() => {
-                              const isSelected = selectedRewards.some(r => r.id === reward.id);
-                              if (isSelected) {
-                                setSelectedRewards(selectedRewards.filter(r => r.id !== reward.id));
-                              } else {
-                                setSelectedRewards([...selectedRewards, reward]);
-                              }
-                            }}
-                          >
-                            <div className="flex items-center gap-2">
-                              <div className={`w-3 h-3 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                                selectedRewards.some(r => r.id === reward.id)
-                                  ? "border-gray-600 bg-gray-600"
-                                  : "border-gray-300"
-                              }`}>
-                                {selectedRewards.some(r => r.id === reward.id) && (
-                                  <Check className="w-1.5 h-1.5 text-white" />
-                                )}
-                    </div>
-                              <div className="min-w-0 flex-1">
-                                <p className="text-xs font-medium text-gray-900 truncate">
-                                  {reward.bottles}b @ {reward.discount_percentage}%
-                                </p>
-                                <p className="text-xs text-gray-500 truncate">
-                                  {reward.friend_email}
-                                </p>
-                      </div>
-                      </div>
-                    </div>
-                        ))}
-                    </div>
-                      {selectedRewards.length > 0 && (
-                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                          <p className="text-sm text-gray-600">
-                            <strong>{selectedRewards.length} reward{selectedRewards.length > 1 ? 's' : ''}</strong> selected for a total discount of <strong>{Math.round(discountAmount)} SEK</strong>
-                          </p>
+                      {profile.phone && (
+                        <div className="flex items-center gap-2">
+                          <span className="w-4 h-4"></span>
+                          <span className="text-gray-600">{profile.phone}</span>
                         </div>
                       )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            )}
+                      <ProfileInfoModal
+                        onProfileSaved={handleProfileSaved}
+                        trigger={
+                          <Button variant="outline" size="sm" className="mt-2">
+                            Edit Profile
+                          </Button>
+                        }
+                      />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
-            {/* Payment Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="w-5 h-5" />
-                  Payment Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-6">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Check className="w-8 h-8 text-green-600" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    No Payment Required Yet
-                  </h3>
-                  <p className="text-gray-600 mb-4">
-                    You'll only pay when your pallet reaches 100% and is ready to ship.
-                  </p>
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p className="text-sm text-blue-800">
-                      <strong>How it works:</strong><br />
-                      • Reserve your bottles for free<br />
-                      • When the pallet fills up, you'll receive an email<br />
-                      • Complete payment via secure link<br />
-                      • Your wine ships to the pickup location
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              {/* Rewards Toggle */}
+              {availableRewards.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Gift className="w-5 h-5" />
+                      Use Rewards
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="useRewardsYes"
+                          checked={useRewards}
+                          onCheckedChange={(checked) => {
+                            setUseRewards(checked as boolean);
+                            if (!checked) {
+                              setSelectedRewards([]);
+                            }
+                          }}
+                        />
+                        <Label
+                          htmlFor="useRewardsYes"
+                          className="text-sm font-medium"
+                        >
+                          Yes, use my rewards ({availableRewards.length}{" "}
+                          available)
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="useRewardsNo"
+                          checked={!useRewards}
+                          onCheckedChange={(checked) => {
+                            setUseRewards(!checked as boolean);
+                            if (checked) {
+                              setSelectedRewards([]);
+                            }
+                          }}
+                        />
+                        <Label
+                          htmlFor="useRewardsNo"
+                          className="text-sm font-medium"
+                        >
+                          No, don't use rewards
+                        </Label>
+                      </div>
+                    </div>
 
-            {/* Submit Button or Validation Warning */}
-            {!isValidCart ? (
-              <div className="space-y-4">
-                {/* Header - Clear blocked state */}
-                <div className="flex items-center gap-2 pb-2 border-b border-red-200">
-                  <AlertCircle className="h-5 w-5 text-red-600" />
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-red-600">
-                      Order Blocked
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Add bottles to meet 6-bottle requirement
-                    </p>
-                  </div>
-                </div>
-
-                {/* Action cards per producer */}
-                <div className="space-y-2">
-                  {validations.filter(v => !v.isValid).map((v, i) => {
-                    const href = v.groupId 
-                      ? `/shop/group/${v.groupId}`
-                      : `/shop/${v.producerHandle}`;
-                    
-                    return (
-                      <Link key={i} href={href}>
-                        <div className="w-full p-4 bg-background border border-border hover:border-foreground/20 rounded-md transition-all group">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-foreground mb-1.5">
-                                {v.groupName || v.producerName}
-                              </p>
-                              <p className="text-xs text-muted-foreground mb-2">
-                                Current: {v.quantity} bottle{v.quantity > 1 ? 's' : ''} • 
-                                <span className="text-red-600 font-medium"> Need {v.needed} more</span> for {v.quantity + v.needed} total
-                              </p>
-                              <div className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground group-hover:underline">
-                                Browse wines from this {v.groupId ? 'group' : 'producer'}
-                                <ArrowRight className="h-3 w-3" />
+                    {/* Rewards Selection - Only show when useRewards is true */}
+                    {useRewards && (
+                      <div className="space-y-3 pt-4 border-t">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium text-gray-900">
+                            Select Rewards
+                          </h4>
+                          {selectedRewards.length > 0 && (
+                            <span className="text-sm font-medium text-gray-600">
+                              {selectedRewards.length} selected
+                            </span>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {availableRewards.map((reward) => (
+                            <div
+                              key={reward.id}
+                              className={`border rounded-lg p-2 cursor-pointer transition-colors ${
+                                selectedRewards.some((r) => r.id === reward.id)
+                                  ? "border-gray-600 bg-gray-50"
+                                  : "border-gray-200 hover:border-gray-300"
+                              }`}
+                              onClick={() => {
+                                const isSelected = selectedRewards.some(
+                                  (r) => r.id === reward.id,
+                                );
+                                if (isSelected) {
+                                  setSelectedRewards(
+                                    selectedRewards.filter(
+                                      (r) => r.id !== reward.id,
+                                    ),
+                                  );
+                                } else {
+                                  setSelectedRewards([
+                                    ...selectedRewards,
+                                    reward,
+                                  ]);
+                                }
+                              }}
+                            >
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className={`w-3 h-3 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                                    selectedRewards.some(
+                                      (r) => r.id === reward.id,
+                                    )
+                                      ? "border-gray-600 bg-gray-600"
+                                      : "border-gray-300"
+                                  }`}
+                                >
+                                  {selectedRewards.some(
+                                    (r) => r.id === reward.id,
+                                  ) && (
+                                    <Check className="w-1.5 h-1.5 text-white" />
+                                  )}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-xs font-medium text-gray-900 truncate">
+                                    {reward.bottles}b @{" "}
+                                    {reward.discount_percentage}%
+                                  </p>
+                                  <p className="text-xs text-gray-500 truncate">
+                                    {reward.friend_email}
+                                  </p>
+                                </div>
                               </div>
                             </div>
-                          </div>
+                          ))}
                         </div>
-                      </Link>
-                    );
-                  })}
+                        {selectedRewards.length > 0 && (
+                          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                            <p className="text-sm text-gray-600">
+                              <strong>
+                                {selectedRewards.length} reward
+                                {selectedRewards.length > 1 ? "s" : ""}
+                              </strong>{" "}
+                              selected for a total discount of{" "}
+                              <strong>{Math.round(discountAmount)} SEK</strong>
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Payment Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CreditCard className="w-5 h-5" />
+                    Payment Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-6">
+                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Check className="w-8 h-8 text-green-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      No Payment Required Yet
+                    </h3>
+                    <p className="text-gray-600 mb-4">
+                      You'll only pay when your pallet reaches 100% and is ready
+                      to ship.
+                    </p>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <p className="text-sm text-blue-800">
+                        <strong>How it works:</strong>
+                        <br />
+                        • Reserve your bottles for free
+                        <br />
+                        • When the pallet fills up, you'll receive an email
+                        <br />
+                        • Complete payment via secure link
+                        <br />• Your wine ships to the pickup location
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Submit Button or Validation Warning */}
+              {!isValidCart ? (
+                <div className="space-y-4">
+                  {/* Header - Clear blocked state */}
+                  <div className="flex items-center gap-2 pb-2 border-b border-red-200">
+                    <AlertCircle className="h-5 w-5 text-red-600" />
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-red-600">
+                        Order Blocked
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Add bottles to meet 6-bottle requirement
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Action cards per producer */}
+                  <div className="space-y-2">
+                    {validations
+                      .filter((v) => !v.isValid)
+                      .map((v, i) => {
+                        const href = v.groupId
+                          ? `/shop/group/${v.groupId}`
+                          : `/shop/${v.producerHandle}`;
+
+                        return (
+                          <Link key={i} href={href}>
+                            <div className="w-full p-4 bg-background border border-border hover:border-foreground/20 rounded-md transition-all group">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-foreground mb-1.5">
+                                    {v.groupName || v.producerName}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mb-2">
+                                    Current: {v.quantity} bottle
+                                    {v.quantity > 1 ? "s" : ""} •
+                                    <span className="text-red-600 font-medium">
+                                      {" "}
+                                      Need {v.needed} more
+                                    </span>{" "}
+                                    for {v.quantity + v.needed} total
+                                  </p>
+                                  <div className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground group-hover:underline">
+                                    Browse wines from this{" "}
+                                    {v.groupId ? "group" : "producer"}
+                                    <ArrowRight className="h-3 w-3" />
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </Link>
+                        );
+                      })}
+                  </div>
                 </div>
-              </div>
-            ) : (
-            <Button
-              type="submit"
-                className="w-full bg-black hover:bg-black/90 text-white border-black rounded-md"
-              size="lg"
-                disabled={zoneLoading}
-              >
-                {zoneLoading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Finding Zones...
-                  </>
-                ) : (
-                  "Place Reservation"
-                )}
-            </Button>
-            )}
-          </form>
+              ) : (
+                <Button
+                  type="submit"
+                  className="w-full bg-black hover:bg-black/90 text-white border-black rounded-md"
+                  size="lg"
+                  disabled={zoneLoading}
+                >
+                  {zoneLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                      Finding Zones...
+                    </>
+                  ) : (
+                    "Place Reservation"
+                  )}
+                </Button>
+              )}
+            </form>
+          </div>
         </div>
       </div>
-    </div>
     </>
   );
 }
@@ -1175,13 +1287,13 @@ export default function CheckoutPage() {
   return (
     <Suspense
       fallback={
-      <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-gray-200 rounded mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded mb-2"></div>
-          <div className="h-4 bg-gray-200 rounded"></div>
+        <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
+          <div className="animate-pulse space-y-6">
+            <div className="h-8 bg-gray-200 rounded mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded mb-2"></div>
+            <div className="h-4 bg-gray-200 rounded"></div>
+          </div>
         </div>
-      </div>
       }
     >
       <CheckoutContent />

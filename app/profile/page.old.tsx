@@ -7,15 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { PageLayout } from "@/components/layout/page-layout";
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  CreditCard, 
-  Plus, 
-  Edit, 
-  Save, 
+import {
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  CreditCard,
+  Plus,
+  Edit,
+  Save,
   X,
   Calendar,
   Package,
@@ -33,8 +33,15 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { PaymentMethodCard } from "@/components/ui/payment-method-card";
 import { RewardTierCard } from "@/components/ui/reward-tier-card";
-import { MiniProgress, ProgressHalo } from "@/components/ui/progress-components";
-import { getPercentFilled, formatPercent, shouldShowPercent } from "@/lib/utils/pallet-progress";
+import {
+  MiniProgress,
+  ProgressHalo,
+} from "@/components/ui/progress-components";
+import {
+  getPercentFilled,
+  formatPercent,
+  shouldShowPercent,
+} from "@/lib/utils/pallet-progress";
 import { useHybridInvitationUpdates } from "@/lib/hooks/use-hybrid-invitation-updates";
 
 interface UserProfile {
@@ -214,7 +221,6 @@ export default function ProfilePage() {
     }
   };
 
-
   const fetchUsedInvitations = async () => {
     try {
       const response = await fetch("/api/invitations/used");
@@ -237,76 +243,104 @@ export default function ProfilePage() {
       console.log("🔄 Fetching reservations...");
       const response = await fetch("/api/user/reservations");
       console.log("📡 Reservations response status:", response.status);
-      
+
       if (response.ok) {
         const data = await response.json();
         console.log("📊 Reservations data:", data);
         // /api/user/reservations returns array directly, not {reservations: [...]}
         const reservationsData = Array.isArray(data) ? data : [];
         setReservations(reservationsData);
-        
+
         // Fetch real pallet data from the database (like PalletIcon does)
         const palletDataMap = new Map();
-        
+
         // Get unique pallet IDs from reservations (skip 'unassigned')
-        const uniquePalletIds = [...new Set(reservationsData
-          .map((res: any) => res.pallet_id)
-          .filter((id: string) => id && id !== 'unassigned')
-        )];
-        
+        const uniquePalletIds = [
+          ...new Set(
+            reservationsData
+              .map((res: any) => res.pallet_id)
+              .filter((id: string) => id && id !== "unassigned"),
+          ),
+        ];
+
         console.log(`🔍 Unique pallet IDs from reservations:`, uniquePalletIds);
-        
+
         if (uniquePalletIds.length > 0) {
           // Fetch pallet data from database
           try {
             console.log(`🔄 Fetching pallet data for IDs:`, uniquePalletIds);
-            const palletResponse = await fetch('/api/pallet-data', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ palletIds: uniquePalletIds })
+            const palletResponse = await fetch("/api/pallet-data", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ palletIds: uniquePalletIds }),
             });
-            
-            console.log(`📡 Pallet API response status:`, palletResponse.status);
-            
+
+            console.log(
+              `📡 Pallet API response status:`,
+              palletResponse.status,
+            );
+
             if (palletResponse.ok) {
               const palletDataResponse = await palletResponse.json();
               console.log(`📊 Fetched pallet data:`, palletDataResponse);
-              
+
               // Process each pallet
               palletDataResponse.pallets?.forEach((pallet: any) => {
                 const userBottles = reservationsData
                   .filter((res: any) => res.pallet_id === pallet.id)
                   .reduce((total: number, res: any) => {
-                    return total + (res.items?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0);
+                    return (
+                      total +
+                      (res.items?.reduce(
+                        (sum: number, item: any) => sum + item.quantity,
+                        0,
+                      ) || 0)
+                    );
                   }, 0);
-                
-                const percentage = pallet.bottle_capacity > 0 
-                  ? Math.min(Math.round((pallet.current_bottles / pallet.bottle_capacity) * 100), 100)
-                  : 0;
-                
-                console.log(`✅ Pallet ${pallet.id} (${pallet.name}): ${pallet.current_bottles}/${pallet.bottle_capacity} = ${percentage}%`);
-                
+
+                const percentage =
+                  pallet.bottle_capacity > 0
+                    ? Math.min(
+                        Math.round(
+                          (pallet.current_bottles / pallet.bottle_capacity) *
+                            100,
+                        ),
+                        100,
+                      )
+                    : 0;
+
+                console.log(
+                  `✅ Pallet ${pallet.id} (${pallet.name}): ${pallet.current_bottles}/${pallet.bottle_capacity} = ${percentage}%`,
+                );
+
                 palletDataMap.set(pallet.id, {
                   id: pallet.id,
                   name: pallet.name,
                   total_reserved_bottles: pallet.current_bottles,
                   percentage_filled: percentage,
                   user_bottles: userBottles,
-                  capacity: pallet.bottle_capacity
+                  capacity: pallet.bottle_capacity,
                 });
               });
             } else {
-              console.error(`❌ Pallet API error:`, await palletResponse.text());
+              console.error(
+                `❌ Pallet API error:`,
+                await palletResponse.text(),
+              );
             }
           } catch (error) {
-            console.error('❌ Error fetching pallet data:', error);
+            console.error("❌ Error fetching pallet data:", error);
           }
         }
-        
+
         setPalletData(palletDataMap);
       } else {
         const errorData = await response.json().catch(() => ({}));
-        console.error("❌ Failed to load reservations:", response.status, errorData);
+        console.error(
+          "❌ Failed to load reservations:",
+          response.status,
+          errorData,
+        );
         setReservations([]);
         setPalletData(new Map());
       }
@@ -351,7 +385,7 @@ export default function ProfilePage() {
         toast.error("Please add your profile information first");
         return;
       }
-      
+
       const profile = await profileResponse.json();
       if (!profile.email) {
         toast.error("Email is required to add payment method");
@@ -360,7 +394,7 @@ export default function ProfilePage() {
 
       // Redirect to Stripe setup (no parameters needed - user is authenticated)
       const response = await fetch(`/api/checkout/setup`);
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         toast.error(errorData.error || "Failed to setup payment method");
@@ -399,7 +433,7 @@ export default function ProfilePage() {
           is_default: method.id === methodId,
         })),
       );
-      
+
       toast.success("Default payment method updated");
     } catch (error) {
       console.error("Error setting default payment method:", error);
@@ -467,7 +501,11 @@ export default function ProfilePage() {
     try {
       // Clean the text to remove any potential line breaks and normalize whitespace
       // For URLs, preserve the structure but remove unwanted line breaks
-      const cleanText = text.trim().replace(/\n/g, "").replace(/\r/g, "").replace(/\s+/g, " ");
+      const cleanText = text
+        .trim()
+        .replace(/\n/g, "")
+        .replace(/\r/g, "")
+        .replace(/\s+/g, " ");
       await navigator.clipboard.writeText(cleanText);
       if (type === "code") {
         setCopiedCode(true);
@@ -493,7 +531,7 @@ export default function ProfilePage() {
       }
 
       toast.success("Logged out successfully");
-      
+
       // Clear local state
       setIsAuthenticated(false);
       setProfile(null);
@@ -552,14 +590,24 @@ export default function ProfilePage() {
           <div className="space-y-1">
             <h1 className="text-2xl md:text-3xl font-light text-gray-900">
               {profile?.full_name || "Welcome"}
-              </h1>
-            <p className="text-sm md:text-base text-gray-500">{profile?.email}</p>
+            </h1>
+            <p className="text-sm md:text-base text-gray-500">
+              {profile?.email}
+            </p>
             <div className="flex items-center gap-2 text-xs md:text-sm text-gray-400">
               <Calendar className="w-3 h-3 md:w-4 md:h-4" />
-              <span>Member since {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'N/A'}</span>
+              <span>
+                Member since{" "}
+                {profile?.created_at
+                  ? new Date(profile.created_at).toLocaleDateString("en-US", {
+                      month: "long",
+                      year: "numeric",
+                    })
+                  : "N/A"}
+              </span>
             </div>
           </div>
-          
+
           <button
             onClick={handleLogout}
             className="text-gray-400 hover:text-gray-600 p-2 transition-colors"
@@ -574,7 +622,9 @@ export default function ProfilePage() {
           {/* Personal Information */}
           <section className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg md:text-xl font-light text-gray-900">Personal Information</h2>
+              <h2 className="text-lg md:text-xl font-light text-gray-900">
+                Personal Information
+              </h2>
               {!editing && (
                 <Button
                   onClick={() => setEditing(true)}
@@ -583,15 +633,20 @@ export default function ProfilePage() {
                 >
                   <Edit className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
                   <span className="hidden sm:inline">Edit</span>
-          </Button>
+                </Button>
               )}
-        </div>
+            </div>
 
             <div className="bg-white rounded-xl border border-gray-200/50 p-4 md:p-6 shadow-sm">
               {editing ? (
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="full_name" className="text-sm text-gray-600">Full Name</Label>
+                    <Label
+                      htmlFor="full_name"
+                      className="text-sm text-gray-600"
+                    >
+                      Full Name
+                    </Label>
                     <Input
                       id="full_name"
                       value={editForm.full_name}
@@ -602,9 +657,11 @@ export default function ProfilePage() {
                       className="mt-1"
                     />
                   </div>
-                  
+
                   <div>
-                    <Label htmlFor="phone" className="text-sm text-gray-600">Phone Number</Label>
+                    <Label htmlFor="phone" className="text-sm text-gray-600">
+                      Phone Number
+                    </Label>
                     <Input
                       id="phone"
                       value={editForm.phone}
@@ -615,9 +672,11 @@ export default function ProfilePage() {
                       className="mt-1"
                     />
                   </div>
-                  
+
                   <div>
-                    <Label htmlFor="address" className="text-sm text-gray-600">Address</Label>
+                    <Label htmlFor="address" className="text-sm text-gray-600">
+                      Address
+                    </Label>
                     <Input
                       id="address"
                       value={editForm.address}
@@ -628,10 +687,12 @@ export default function ProfilePage() {
                       className="mt-1"
                     />
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label htmlFor="city" className="text-sm text-gray-600">City</Label>
+                      <Label htmlFor="city" className="text-sm text-gray-600">
+                        City
+                      </Label>
                       <Input
                         id="city"
                         value={editForm.city}
@@ -643,7 +704,12 @@ export default function ProfilePage() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="postal_code" className="text-sm text-gray-600">Postal Code</Label>
+                      <Label
+                        htmlFor="postal_code"
+                        className="text-sm text-gray-600"
+                      >
+                        Postal Code
+                      </Label>
                       <Input
                         id="postal_code"
                         value={editForm.postal_code}
@@ -658,9 +724,11 @@ export default function ProfilePage() {
                       />
                     </div>
                   </div>
-                  
+
                   <div>
-                    <Label htmlFor="country" className="text-sm text-gray-600">Country</Label>
+                    <Label htmlFor="country" className="text-sm text-gray-600">
+                      Country
+                    </Label>
                     <Input
                       id="country"
                       value={editForm.country}
@@ -671,14 +739,17 @@ export default function ProfilePage() {
                       className="mt-1"
                     />
                   </div>
-                  
+
                   <div className="flex gap-2 pt-4">
-                    <Button onClick={updateProfile} className="flex-1 rounded-full bg-gray-900 hover:bg-gray-800 text-sm">
+                    <Button
+                      onClick={updateProfile}
+                      className="flex-1 rounded-full bg-gray-900 hover:bg-gray-800 text-sm"
+                    >
                       <Save className="w-3 h-3 md:w-4 md:h-4 mr-2" />
                       Save
                     </Button>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={() => setEditing(false)}
                       className="flex-1 rounded-full border-gray-200 hover:bg-gray-50 text-sm"
                     >
@@ -689,26 +760,28 @@ export default function ProfilePage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                    <div>
+                  <div>
                     <div className="flex items-center gap-2 text-gray-400 mb-1">
                       <Mail className="w-3 h-3" />
                       <span className="text-xs">Email</span>
                     </div>
                     <p className="text-sm text-gray-900">{profile?.email}</p>
                   </div>
-                  
+
                   {profile?.full_name && (
-                      <div>
+                    <div>
                       <div className="flex items-center gap-2 text-gray-400 mb-1">
                         <User className="w-3 h-3" />
                         <span className="text-xs">Full Name</span>
                       </div>
-                      <p className="text-sm text-gray-900">{profile.full_name}</p>
+                      <p className="text-sm text-gray-900">
+                        {profile.full_name}
+                      </p>
                     </div>
                   )}
-                  
+
                   {profile?.phone && (
-                      <div>
+                    <div>
                       <div className="flex items-center gap-2 text-gray-400 mb-1">
                         <Phone className="w-3 h-3" />
                         <span className="text-xs">Phone</span>
@@ -716,9 +789,9 @@ export default function ProfilePage() {
                       <p className="text-sm text-gray-900">{profile.phone}</p>
                     </div>
                   )}
-                  
+
                   {(profile?.address || profile?.city) && (
-                      <div>
+                    <div>
                       <div className="flex items-center gap-2 text-gray-400 mb-1">
                         <MapPin className="w-3 h-3" />
                         <span className="text-xs">Address</span>
@@ -730,20 +803,22 @@ export default function ProfilePage() {
                           profile.postal_code,
                           profile.country,
                         ]
-                            .filter(Boolean)
+                          .filter(Boolean)
                           .join(", ")}
-                        </p>
-                      </div>
-                  )}
+                      </p>
                     </div>
                   )}
+                </div>
+              )}
             </div>
           </section>
 
           {/* Payment Methods */}
           <section className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg md:text-xl font-light text-gray-900">Payment Methods</h2>
+              <h2 className="text-lg md:text-xl font-light text-gray-900">
+                Payment Methods
+              </h2>
               <div className="flex items-center gap-1.5 text-xs text-gray-400">
                 <svg viewBox="0 0 24 24" className="w-3 h-3">
                   <rect width="24" height="24" rx="4" fill="#635BFF" />
@@ -753,18 +828,22 @@ export default function ProfilePage() {
                   />
                 </svg>
                 <span className="hidden sm:inline">Stripe</span>
-                    </div>
-                  </div>
-                  
+              </div>
+            </div>
+
             <div className="bg-white rounded-xl border border-gray-200/50 p-4 md:p-6 shadow-sm">
               {paymentMethods.length === 0 ? (
                 <div className="text-center py-8 md:py-12">
                   <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-4">
                     <CreditCard className="w-6 h-6 md:w-8 md:h-8 text-gray-400" />
                   </div>
-                  <h3 className="text-base md:text-lg font-light text-gray-900 mb-1">No payment methods</h3>
-                  <p className="text-sm text-gray-500 mb-6">Add a payment method to start making reservations</p>
-                  <Button 
+                  <h3 className="text-base md:text-lg font-light text-gray-900 mb-1">
+                    No payment methods
+                  </h3>
+                  <p className="text-sm text-gray-500 mb-6">
+                    Add a payment method to start making reservations
+                  </p>
+                  <Button
                     onClick={addPaymentMethod}
                     className="rounded-full px-6 md:px-8 bg-gray-900 hover:bg-gray-800 text-white text-sm"
                   >
@@ -775,7 +854,10 @@ export default function ProfilePage() {
               ) : (
                 <div className="space-y-3">
                   {paymentMethods.map((method) => (
-                    <div key={method.id} className="bg-gray-50/50 rounded-xl p-4 border border-gray-200/50 hover:bg-gray-100/50 transition-colors">
+                    <div
+                      key={method.id}
+                      className="bg-gray-50/50 rounded-xl p-4 border border-gray-200/50 hover:bg-gray-100/50 transition-colors"
+                    >
                       <PaymentMethodCard
                         method={method}
                         onSetDefault={setDefaultPaymentMethod}
@@ -790,7 +872,9 @@ export default function ProfilePage() {
                     variant="ghost"
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    <span className="hidden sm:inline">Add Another Payment Method</span>
+                    <span className="hidden sm:inline">
+                      Add Another Payment Method
+                    </span>
                     <span className="sm:hidden">Add Payment Method</span>
                   </Button>
                 </div>
@@ -802,9 +886,13 @@ export default function ProfilePage() {
         {/* Invite Friends */}
         <div className="space-y-4">
           <div className="flex items-start justify-between">
-                        <div>
-              <h2 className="text-lg md:text-xl font-light text-gray-900">Invite Friends</h2>
-              <p className="text-sm text-gray-500 mt-0.5">Invite friends, unlock rewards.</p>
+            <div>
+              <h2 className="text-lg md:text-xl font-light text-gray-900">
+                Invite Friends
+              </h2>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Invite friends, unlock rewards.
+              </p>
             </div>
             {invitation && (
               <div className="flex items-center gap-1.5">
@@ -849,41 +937,49 @@ export default function ProfilePage() {
 
             {/* Rewards Levels */}
             <div className="mb-6">
-              <h3 className="text-base md:text-lg font-light text-gray-900 mb-3">Your Rewards</h3>
-              
+              <h3 className="text-base md:text-lg font-light text-gray-900 mb-3">
+                Your Rewards
+              </h3>
+
               {/* Calculate rewards based on invitations */}
               {(() => {
                 // Calculate rewards based on invitation status
                 // 5% rewards: 6 bottles per friend who joined (account created)
                 // 10% rewards: same 6 bottles but upgraded when friend makes reservation
-                
+
                 const totalEligibleBottles = usedInvitations.length * 6;
-                
+
                 // For now, assume no bottles have been used/applied
                 // TODO: Replace with actual backend data for applied bottles
                 const used5Percent = 0; // Should come from backend
                 const used10Percent = 0; // Should come from backend
-                
+
                 // TODO: Get actual reservation data from backend
                 // For now, assume no friends have made reservations yet
                 const friendsWithReservations = 0; // Should come from backend
-                
+
                 // 5% rewards: available for all friends who joined
-                const available5Percent = Math.max(totalEligibleBottles - used5Percent, 0);
-                
+                const available5Percent = Math.max(
+                  totalEligibleBottles - used5Percent,
+                  0,
+                );
+
                 // 10% rewards: only available for friends who have made reservations
-                const available10Percent = Math.max((friendsWithReservations * 6) - used10Percent, 0);
-                
+                const available10Percent = Math.max(
+                  friendsWithReservations * 6 - used10Percent,
+                  0,
+                );
+
                 return (
                   <>
                     {/* Two-level rewards display */}
                     <div className="grid grid-cols-2 gap-3 mb-3">
-                      <RewardTierCard 
+                      <RewardTierCard
                         tierPercent={5}
                         used={used5Percent}
                         available={available5Percent}
                       />
-                      <RewardTierCard 
+                      <RewardTierCard
                         tierPercent={10}
                         used={used10Percent}
                         available={available10Percent}
@@ -892,16 +988,17 @@ export default function ProfilePage() {
 
                     <div className="text-center">
                       <p className="text-xs md:text-sm text-gray-500 mb-1">
-                        {usedInvitations.length} friend{usedInvitations.length > 1 ? 's' : ''} joined
+                        {usedInvitations.length} friend
+                        {usedInvitations.length > 1 ? "s" : ""} joined
                       </p>
                       <p className="text-xs text-gray-400">
                         Used = already applied • Available = ready to use
-                          </p>
-                        </div>
+                      </p>
+                    </div>
                   </>
                 );
               })()}
-                      </div>
+            </div>
 
             {/* Accepted Invitations - Collapsible */}
             {usedInvitations.length > 0 && (
@@ -916,10 +1013,22 @@ export default function ProfilePage() {
                       </span>
                     </h4>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-gray-400 group-open:hidden hidden sm:inline">View</span>
+                      <span className="text-xs text-gray-400 group-open:hidden hidden sm:inline">
+                        View
+                      </span>
                       <div className="w-3 h-3 flex items-center justify-center">
-                        <svg className="w-2.5 h-2.5 text-gray-400 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        <svg
+                          className="w-2.5 h-2.5 text-gray-400 group-open:rotate-180 transition-transform"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
                         </svg>
                       </div>
                     </div>
@@ -937,26 +1046,35 @@ export default function ProfilePage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-2">
                               <p className="text-sm text-gray-900 truncate">
-                                {usedInvite.profiles?.email || 'Unknown User'}
+                                {usedInvite.profiles?.email || "Unknown User"}
                               </p>
                               <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
-                                {new Date(usedInvite.usedAt).toLocaleDateString()}
+                                {new Date(
+                                  usedInvite.usedAt,
+                                ).toLocaleDateString()}
                               </span>
                             </div>
-                            
+
                             {/* Status and Rewards */}
                             <div className="space-y-1.5">
-                      <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2">
                                 <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
-                                <span className="text-xs text-gray-500">Account created</span>
+                                <span className="text-xs text-gray-500">
+                                  Account created
+                                </span>
                                 <Badge className="bg-white text-gray-600 text-xs ml-auto border border-gray-200 px-2 py-0">
                                   6 @ 5%
                                 </Badge>
                               </div>
                               <div className="flex items-center gap-2">
                                 <div className="w-1.5 h-1.5 bg-gray-200 rounded-full"></div>
-                                <span className="text-xs text-gray-400">Reservation pending</span>
-                                <Badge variant="outline" className="text-xs ml-auto border-gray-200 text-gray-400 px-2 py-0">
+                                <span className="text-xs text-gray-400">
+                                  Reservation pending
+                                </span>
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs ml-auto border-gray-200 text-gray-400 px-2 py-0"
+                                >
                                   6 @ 10%
                                 </Badge>
                               </div>
@@ -971,10 +1089,8 @@ export default function ProfilePage() {
             )}
 
             {/* Current Invitation States */}
-            {!invitation ? (
-              // No invitation - already handled above with Generate Invite CTA
-              null
-            ) : invitation.currentUses && invitation.currentUses > 0 ? (
+            {!invitation ? // No invitation - already handled above with Generate Invite CTA
+            null : invitation.currentUses && invitation.currentUses > 0 ? (
               // Used invitation - success state
               <div className="border-t border-gray-200/50 pt-4">
                 <div className="bg-gray-50/50 rounded-xl p-4 border border-gray-200/50">
@@ -983,28 +1099,37 @@ export default function ProfilePage() {
                       <Check className="w-4 h-4 md:w-5 md:h-5 text-gray-600" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-sm md:text-base font-light text-gray-900">Invitation Accepted!</h3>
-                      <p className="text-xs md:text-sm text-gray-500 truncate">{invitation.profiles?.email || 'Your friend'} joined PACT</p>
+                      <h3 className="text-sm md:text-base font-light text-gray-900">
+                        Invitation Accepted!
+                      </h3>
+                      <p className="text-xs md:text-sm text-gray-500 truncate">
+                        {invitation.profiles?.email || "Your friend"} joined
+                        PACT
+                      </p>
                     </div>
-                          <Button
+                    <Button
                       onClick={generateInvitation}
                       disabled={generatingInvite}
                       className="rounded-full px-3 md:px-4 bg-gray-900 hover:bg-gray-800 text-white text-xs md:text-sm flex-shrink-0"
-                            size="sm"
+                      size="sm"
                     >
                       {generatingInvite ? (
                         <>
                           <div className="animate-spin rounded-full h-2.5 w-2.5 border-b-2 border-white mr-1.5"></div>
-                          <span className="hidden sm:inline">Generating...</span>
+                          <span className="hidden sm:inline">
+                            Generating...
+                          </span>
                         </>
                       ) : (
                         <>
                           <UserPlus className="w-3 h-3 mr-1.5" />
-                          <span className="hidden sm:inline">Invite Another</span>
+                          <span className="hidden sm:inline">
+                            Invite Another
+                          </span>
                           <span className="sm:hidden">+</span>
                         </>
                       )}
-                          </Button>
+                    </Button>
                   </div>
 
                   {/* Rewards status */}
@@ -1012,13 +1137,24 @@ export default function ProfilePage() {
                     <div className="flex flex-col sm:flex-row sm:justify-between gap-2 sm:items-center">
                       <div className="flex items-center gap-2">
                         <Check className="w-3 h-3 text-gray-600" />
-                        <span className="text-xs text-gray-600">6 bottles @ 5%</span>
-                        <Badge className="bg-gray-100 text-gray-800 text-xs px-2 py-0">Earned</Badge>
+                        <span className="text-xs text-gray-600">
+                          6 bottles @ 5%
+                        </span>
+                        <Badge className="bg-gray-100 text-gray-800 text-xs px-2 py-0">
+                          Earned
+                        </Badge>
                       </div>
                       <div className="flex items-center gap-2">
                         <Gift className="w-3 h-3 text-gray-400" />
-                        <span className="text-xs text-gray-500">6 bottles @ 10%</span>
-                        <Badge variant="outline" className="text-xs border-gray-200 text-gray-400 px-2 py-0">Pending</Badge>
+                        <span className="text-xs text-gray-500">
+                          6 bottles @ 10%
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className="text-xs border-gray-200 text-gray-400 px-2 py-0"
+                        >
+                          Pending
+                        </Badge>
                       </div>
                     </div>
                   </div>
@@ -1033,8 +1169,13 @@ export default function ProfilePage() {
                       <UserPlus className="w-4 h-4 md:w-5 md:h-5 text-gray-600" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-sm md:text-base font-light text-gray-900">Invitation Ready</h3>
-                      <p className="text-xs md:text-sm text-gray-500">Expires: {new Date(invitation.expiresAt).toLocaleDateString()}</p>
+                      <h3 className="text-sm md:text-base font-light text-gray-900">
+                        Invitation Ready
+                      </h3>
+                      <p className="text-xs md:text-sm text-gray-500">
+                        Expires:{" "}
+                        {new Date(invitation.expiresAt).toLocaleDateString()}
+                      </p>
                     </div>
                     <Button
                       onClick={generateInvitation}
@@ -1045,7 +1186,9 @@ export default function ProfilePage() {
                       {generatingInvite ? (
                         <>
                           <div className="animate-spin rounded-full h-2.5 w-2.5 border-b-2 border-white mr-1.5"></div>
-                          <span className="hidden sm:inline">Generating...</span>
+                          <span className="hidden sm:inline">
+                            Generating...
+                          </span>
                         </>
                       ) : (
                         <>
@@ -1061,7 +1204,9 @@ export default function ProfilePage() {
                   <div className="space-y-3">
                     {/* Invitation Code */}
                     <div>
-                      <Label className="text-xs text-gray-600 mb-1.5 block">Invitation Code</Label>
+                      <Label className="text-xs text-gray-600 mb-1.5 block">
+                        Invitation Code
+                      </Label>
                       <div className="flex gap-2">
                         <Input
                           value={invitation.code}
@@ -1071,7 +1216,9 @@ export default function ProfilePage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => copyToClipboard(invitation.code, "code")}
+                          onClick={() =>
+                            copyToClipboard(invitation.code, "code")
+                          }
                           className="bg-white hover:bg-gray-50 border-gray-200 rounded-lg px-3 flex-shrink-0"
                         >
                           {copiedCode ? (
@@ -1085,10 +1232,14 @@ export default function ProfilePage() {
 
                     {/* Direct Signup Link */}
                     <div>
-                      <Label className="text-xs text-gray-600 mb-1.5 block">Signup Link</Label>
+                      <Label className="text-xs text-gray-600 mb-1.5 block">
+                        Signup Link
+                      </Label>
                       <div className="flex gap-2">
                         <Input
-                          value={invitation.signupUrl?.replace(/\s+/g, "") || ""}
+                          value={
+                            invitation.signupUrl?.replace(/\s+/g, "") || ""
+                          }
                           readOnly
                           className="text-xs md:text-sm font-mono bg-white border-gray-200 rounded-lg truncate"
                         />
@@ -1096,7 +1247,10 @@ export default function ProfilePage() {
                           size="sm"
                           variant="outline"
                           onClick={() =>
-                            copyToClipboard(invitation.signupUrl?.replace(/\s+/g, "") || "", "url")
+                            copyToClipboard(
+                              invitation.signupUrl?.replace(/\s+/g, "") || "",
+                              "url",
+                            )
                           }
                           className="bg-white hover:bg-gray-50 border-gray-200 rounded-lg px-3 flex-shrink-0"
                         >
@@ -1105,7 +1259,7 @@ export default function ProfilePage() {
                           ) : (
                             <Copy className="w-3 h-3 md:w-4 md:h-4" />
                           )}
-                  </Button>
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -1125,26 +1279,34 @@ export default function ProfilePage() {
                     </button>
                   </div>
                 </div>
-                </div>
-              )}
+              </div>
+            )}
           </div>
         </div>
 
         {/* My Reservations */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg md:text-xl font-light text-gray-900">My Reservations</h2>
-              <Link href="/profile/reservations">
-              <Button variant="outline" size="sm" className="rounded-full border-gray-200 hover:bg-gray-50 text-xs md:text-sm px-3 md:px-4">
+            <h2 className="text-lg md:text-xl font-light text-gray-900">
+              My Reservations
+            </h2>
+            <Link href="/profile/reservations">
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-full border-gray-200 hover:bg-gray-50 text-xs md:text-sm px-3 md:px-4"
+              >
                 View All
-                </Button>
-              </Link>
+              </Button>
+            </Link>
           </div>
 
           <div className="bg-white rounded-xl border border-gray-200/50 p-4 md:p-6 shadow-sm">
             {reservationsLoading ? (
               <div className="flex items-center justify-center py-8 md:py-12">
-                <div className="text-sm text-gray-400">Loading reservations...</div>
+                <div className="text-sm text-gray-400">
+                  Loading reservations...
+                </div>
               </div>
             ) : reservations && reservations.length > 0 ? (
               <div className="space-y-6">
@@ -1154,9 +1316,9 @@ export default function ProfilePage() {
                   const uniqueBottles = new Set();
                   const totalBottles = reservations.reduce((total, res) => {
                     if (res.items) {
-                      res.items.forEach(item => {
+                      res.items.forEach((item) => {
                         // Create unique key for each wine
-                        const wineKey = `${item.wine_name}_${item.vintage || 'unknown'}_${item.color || 'unknown'}`;
+                        const wineKey = `${item.wine_name}_${item.vintage || "unknown"}_${item.color || "unknown"}`;
                         uniqueBottles.add(wineKey);
                         total += item.quantity;
                       });
@@ -1166,7 +1328,7 @@ export default function ProfilePage() {
 
                   // Calculate unique pallets
                   const uniquePallets = new Set();
-                  reservations.forEach(res => {
+                  reservations.forEach((res) => {
                     if (res.pallet_id) {
                       uniquePallets.add(res.pallet_id);
                     }
@@ -1178,8 +1340,12 @@ export default function ProfilePage() {
                         <div className="w-12 h-12 md:w-14 md:h-14 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-2">
                           <Wine className="w-5 h-5 md:w-6 md:h-6 text-gray-400" />
                         </div>
-                        <div className="text-xl md:text-2xl font-light text-gray-900">{uniqueBottles.size}</div>
-                        <div className="text-xs md:text-sm text-gray-500">Unique Bottles</div>
+                        <div className="text-xl md:text-2xl font-light text-gray-900">
+                          {uniqueBottles.size}
+                        </div>
+                        <div className="text-xs md:text-sm text-gray-500">
+                          Unique Bottles
+                        </div>
                       </div>
                       <div className="text-center">
                         <div className="w-12 h-12 md:w-14 md:h-14 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-2 relative">
@@ -1187,33 +1353,45 @@ export default function ProfilePage() {
                           {/* Progress halo showing max % among active pallets */}
                           {(() => {
                             // Calculate max percent among active pallets
-                            const activePallets = reservations.filter(res => 
-                              res.status === 'OPEN' || res.status === 'CONSOLIDATING'
+                            const activePallets = reservations.filter(
+                              (res) =>
+                                res.status === "OPEN" ||
+                                res.status === "CONSOLIDATING",
                             );
-                            
+
                             if (activePallets.length === 0) return null;
-                            
-                            const maxPercent = Math.max(...activePallets.map(res => {
-                              const percent = getPercentFilled({
-                                reserved_bottles: res.items?.reduce((total, item) => total + item.quantity, 0) || 0,
-                                capacity_bottles: res.pallet_capacity,
-                                percent_filled: undefined,
-                                status: res.status.toUpperCase() as any
-                              });
-                              return percent || 0;
-                            }));
-                            
+
+                            const maxPercent = Math.max(
+                              ...activePallets.map((res) => {
+                                const percent = getPercentFilled({
+                                  reserved_bottles:
+                                    res.items?.reduce(
+                                      (total, item) => total + item.quantity,
+                                      0,
+                                    ) || 0,
+                                  capacity_bottles: res.pallet_capacity,
+                                  percent_filled: undefined,
+                                  status: res.status.toUpperCase() as any,
+                                });
+                                return percent || 0;
+                              }),
+                            );
+
                             return maxPercent > 0 ? (
-                              <ProgressHalo 
-                                valuePercent={maxPercent} 
-                                size="md" 
+                              <ProgressHalo
+                                valuePercent={maxPercent}
+                                size="md"
                                 className="absolute inset-0"
                               />
                             ) : null;
                           })()}
                         </div>
-                        <div className="text-xl md:text-2xl font-light text-gray-900">{totalBottles}</div>
-                        <div className="text-xs md:text-sm text-gray-500">Total Bottles</div>
+                        <div className="text-xl md:text-2xl font-light text-gray-900">
+                          {totalBottles}
+                        </div>
+                        <div className="text-xs md:text-sm text-gray-500">
+                          Total Bottles
+                        </div>
                       </div>
                     </div>
                   );
@@ -1221,110 +1399,163 @@ export default function ProfilePage() {
 
                 {/* Pallet Overview */}
                 <div className="space-y-3">
-                  <h3 className="text-base md:text-lg font-light text-gray-900">Pallet Overview</h3>
+                  <h3 className="text-base md:text-lg font-light text-gray-900">
+                    Pallet Overview
+                  </h3>
                   <div className="space-y-2">
                     {(() => {
                       // Group reservations by pallet_id and aggregate data
                       const palletMap = new Map();
-                      
-                      reservations.forEach(reservation => {
-                        const palletId = reservation.pallet_id || 'unassigned';
-                        const palletName = reservation.pallet_name || 'Pallet Assignment Pending';
-                        
+
+                      reservations.forEach((reservation) => {
+                        const palletId = reservation.pallet_id || "unassigned";
+                        const palletName =
+                          reservation.pallet_name ||
+                          "Pallet Assignment Pending";
+
                         if (!palletMap.has(palletId)) {
                           palletMap.set(palletId, {
                             id: palletId,
                             name: palletName,
                             capacity: reservation.pallet_capacity,
-                            status: reservation.status || 'OPEN',
+                            status: reservation.status || "OPEN",
                             reservedBottles: 0,
                             deliveredBottles: 0,
                             latestDate: reservation.created_at,
-                            reservations: []
+                            reservations: [],
                           });
                         }
-                        
+
                         const pallet = palletMap.get(palletId);
-                        pallet.reservedBottles += reservation.items?.reduce((total, item) => total + item.quantity, 0) || 0;
+                        pallet.reservedBottles +=
+                          reservation.items?.reduce(
+                            (total, item) => total + item.quantity,
+                            0,
+                          ) || 0;
                         pallet.deliveredBottles += 0; // TODO: Get from backend
                         pallet.reservations.push(reservation);
-                        
+
                         // Use most recent status
-                        if (new Date(reservation.created_at) > new Date(pallet.latestDate)) {
+                        if (
+                          new Date(reservation.created_at) >
+                          new Date(pallet.latestDate)
+                        ) {
                           pallet.latestDate = reservation.created_at;
                         }
                       });
-                      
+
                       // Sort pallets: OPEN/CONSOLIDATING first, then by date
-                      const sortedPallets = Array.from(palletMap.values()).sort((a, b) => {
-                        const statusOrder = { 'OPEN': 0, 'CONSOLIDATING': 1, 'SHIPPED': 2, 'DELIVERED': 3 };
-                        const aOrder = statusOrder[a.status] || 0;
-                        const bOrder = statusOrder[b.status] || 0;
-                        if (aOrder !== bOrder) return aOrder - bOrder;
-                        return new Date(b.latestDate) - new Date(a.latestDate);
-                      });
-                      
+                      const sortedPallets = Array.from(palletMap.values()).sort(
+                        (a, b) => {
+                          const statusOrder = {
+                            OPEN: 0,
+                            CONSOLIDATING: 1,
+                            SHIPPED: 2,
+                            DELIVERED: 3,
+                          };
+                          const aOrder = statusOrder[a.status] || 0;
+                          const bOrder = statusOrder[b.status] || 0;
+                          if (aOrder !== bOrder) return aOrder - bOrder;
+                          return (
+                            new Date(b.latestDate) - new Date(a.latestDate)
+                          );
+                        },
+                      );
+
                       return sortedPallets.slice(0, 3).map((pallet) => {
                         // Get pallet data from API for accurate percentages
                         const palletApiData = palletData.get(pallet.id);
-                        console.log(`🎯 Profile Pallet ${pallet.id} (${pallet.name}) - API data:`, palletApiData);
-                        
+                        console.log(
+                          `🎯 Profile Pallet ${pallet.id} (${pallet.name}) - API data:`,
+                          palletApiData,
+                        );
+
                         // Use API data if available, otherwise fall back to calculated data
-                        const percentFilled = palletApiData?.percentage_filled || 
+                        const percentFilled =
+                          palletApiData?.percentage_filled ||
                           getPercentFilled({
                             reserved_bottles: pallet.reservedBottles,
                             capacity_bottles: pallet.capacity,
                             percent_filled: undefined,
-                            status: pallet.status.toUpperCase() as any
+                            status: pallet.status.toUpperCase() as any,
                           });
-                        
+
                         const showPercent = shouldShowPercent(pallet.status);
-                        const displayPercent = showPercent ? formatPercent(percentFilled) : '—%';
-                        
-                        console.log(`📊 Profile Pallet ${pallet.id}: status="${pallet.status}", API percentage=${palletApiData?.percentage_filled}, fallback=${percentFilled}, showPercent=${showPercent}, displayPercent="${displayPercent}"`);
-                        
+                        const displayPercent = showPercent
+                          ? formatPercent(percentFilled)
+                          : "—%";
+
+                        console.log(
+                          `📊 Profile Pallet ${pallet.id}: status="${pallet.status}", API percentage=${palletApiData?.percentage_filled}, fallback=${percentFilled}, showPercent=${showPercent}, displayPercent="${displayPercent}"`,
+                        );
+
                         return (
                           <Link key={pallet.id} href={`/pallet/${pallet.id}`}>
                             <div className="bg-gray-50/50 rounded-lg p-3 border border-gray-200/50 hover:bg-gray-100/50 transition-colors cursor-pointer">
-                            {/* Row 1: Pallet name + status tag */}
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-2 flex-1 min-w-0">
-                                <div className="w-6 h-6 bg-white rounded-lg flex items-center justify-center flex-shrink-0">
-                                  <Package className="w-3 h-3 text-gray-400" />
+                              {/* Row 1: Pallet name + status tag */}
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                  <div className="w-6 h-6 bg-white rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <Package className="w-3 h-3 text-gray-400" />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="text-sm text-gray-900 truncate">
+                                      {pallet.name}
+                                    </p>
+                                    <p className="text-xs text-gray-400">
+                                      {new Date(
+                                        pallet.latestDate,
+                                      ).toLocaleDateString()}
+                                    </p>
+                                  </div>
                                 </div>
-                                <div className="min-w-0">
-                                  <p className="text-sm text-gray-900 truncate">{pallet.name}</p>
-                                  <p className="text-xs text-gray-400">
-                                    {new Date(pallet.latestDate).toLocaleDateString()}
-                                  </p>
+                                <Badge
+                                  className={`text-xs rounded-full px-2 py-0 flex-shrink-0 ${
+                                    pallet.status === "confirmed"
+                                      ? "bg-gray-100 text-gray-600 border-gray-200"
+                                      : pallet.status === "pending"
+                                        ? "bg-gray-100 text-gray-600 border-gray-200"
+                                        : pallet.status === "shipped"
+                                          ? "bg-gray-100 text-gray-600 border-gray-200"
+                                          : pallet.status === "delivered"
+                                            ? "bg-gray-100 text-gray-600 border-gray-200"
+                                            : "bg-gray-100 text-gray-600 border-gray-200"
+                                  }`}
+                                >
+                                  {pallet.status === "confirmed"
+                                    ? "CONSOLIDATING"
+                                    : pallet.status === "pending"
+                                      ? "OPEN"
+                                      : pallet.status === "shipped"
+                                        ? "SHIPPED"
+                                        : pallet.status === "delivered"
+                                          ? "DELIVERED"
+                                          : "OPEN"}
+                                </Badge>
+                              </div>
+
+                              {/* Row 2: Meta info with percentage */}
+                              <div className="space-y-1.5">
+                                <div className="text-xs text-gray-500">
+                                  <span className="font-medium">
+                                    {displayPercent}
+                                  </span>
+                                  <span>
+                                    {" "}
+                                    • Reserved: {pallet.reservedBottles} • ETA:{" "}
+                                    {pallet.status === "confirmed"
+                                      ? "Q1 2025"
+                                      : "TBD"}
+                                  </span>
                                 </div>
+
+                                {/* Micro progress bar */}
+                                <MiniProgress
+                                  valuePercent={
+                                    showPercent ? percentFilled : null
+                                  }
+                                />
                               </div>
-                              <Badge 
-                                className={`text-xs rounded-full px-2 py-0 flex-shrink-0 ${
-                                  pallet.status === 'confirmed' ? 'bg-gray-100 text-gray-600 border-gray-200' :
-                                  pallet.status === 'pending' ? 'bg-gray-100 text-gray-600 border-gray-200' :
-                                  pallet.status === 'shipped' ? 'bg-gray-100 text-gray-600 border-gray-200' :
-                                  pallet.status === 'delivered' ? 'bg-gray-100 text-gray-600 border-gray-200' :
-                                  'bg-gray-100 text-gray-600 border-gray-200'
-                                }`}
-                              >
-                                {pallet.status === 'confirmed' ? 'CONSOLIDATING' : 
-                                 pallet.status === 'pending' ? 'OPEN' : 
-                                 pallet.status === 'shipped' ? 'SHIPPED' :
-                                 pallet.status === 'delivered' ? 'DELIVERED' : 'OPEN'}
-                              </Badge>
-                            </div>
-                            
-                            {/* Row 2: Meta info with percentage */}
-                            <div className="space-y-1.5">
-                              <div className="text-xs text-gray-500">
-                                <span className="font-medium">{displayPercent}</span>
-                                <span> • Reserved: {pallet.reservedBottles} • ETA: {pallet.status === 'confirmed' ? 'Q1 2025' : 'TBD'}</span>
-                              </div>
-                              
-                              {/* Micro progress bar */}
-                              <MiniProgress valuePercent={showPercent ? percentFilled : null} />
-                            </div>
                             </div>
                           </Link>
                         );
@@ -1338,12 +1569,17 @@ export default function ProfilePage() {
                   <Link href="/profile/reservations" className="flex-1">
                     <Button className="w-full rounded-full bg-gray-900 hover:bg-gray-800 text-white text-xs md:text-sm">
                       <Package className="w-3 h-3 md:w-4 md:h-4 mr-2" />
-                      <span className="hidden sm:inline">View All Reservations</span>
+                      <span className="hidden sm:inline">
+                        View All Reservations
+                      </span>
                       <span className="sm:hidden">View All</span>
                     </Button>
                   </Link>
                   <Link href="/shop" className="flex-1">
-                    <Button variant="outline" className="w-full rounded-full border-gray-200 hover:bg-gray-50 text-xs md:text-sm">
+                    <Button
+                      variant="outline"
+                      className="w-full rounded-full border-gray-200 hover:bg-gray-50 text-xs md:text-sm"
+                    >
                       <Wine className="w-3 h-3 md:w-4 md:h-4 mr-2" />
                       Browse Wines
                     </Button>
@@ -1355,15 +1591,20 @@ export default function ProfilePage() {
                 <div className="w-14 h-14 md:w-16 md:h-16 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-4">
                   <Package className="w-7 h-7 md:w-8 md:h-8 text-gray-400" />
                 </div>
-                <h3 className="text-base md:text-lg font-light text-gray-900 mb-2">No reservations yet</h3>
-                <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto px-4">Start exploring our wine collection and make your first reservation</p>
-              <Link href="/shop">
+                <h3 className="text-base md:text-lg font-light text-gray-900 mb-2">
+                  No reservations yet
+                </h3>
+                <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto px-4">
+                  Start exploring our wine collection and make your first
+                  reservation
+                </p>
+                <Link href="/shop">
                   <Button className="rounded-full px-6 md:px-8 bg-gray-900 hover:bg-gray-800 text-white text-sm">
                     <Wine className="w-3 h-3 md:w-4 md:h-4 mr-2" />
                     Browse Wines
-                </Button>
-              </Link>
-            </div>
+                  </Button>
+                </Link>
+              </div>
             )}
           </div>
         </div>

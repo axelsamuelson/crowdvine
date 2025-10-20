@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
         { status: 500 },
       );
     }
-    
+
     // Check user has membership and is not a requester
     console.log("[INVITE-GEN] Fetching membership for user:", user.id);
     const { data: membership, error: membershipError } = await adminClient
@@ -66,12 +66,12 @@ export async function POST(request: NextRequest) {
         message: membershipError?.message,
         details: membershipError?.details,
         hint: membershipError?.hint,
-        userId: user.id
+        userId: user.id,
       });
       return NextResponse.json(
-        { 
+        {
           error: "Membership not found",
-          details: membershipError?.message || "No membership record"
+          details: membershipError?.message || "No membership record",
         },
         { status: 403 },
       );
@@ -80,10 +80,10 @@ export async function POST(request: NextRequest) {
     console.log("[INVITE-GEN] Membership found:", {
       level: membership.level,
       quota: membership.invite_quota_monthly,
-      used: membership.invites_used_this_month
+      used: membership.invites_used_this_month,
     });
 
-    if (membership.level === 'requester') {
+    if (membership.level === "requester") {
       return NextResponse.json(
         { error: "Requesters cannot generate invitations" },
         { status: 403 },
@@ -91,7 +91,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user has available invites
-    const availableInvites = membership.invite_quota_monthly - membership.invites_used_this_month;
+    const availableInvites =
+      membership.invite_quota_monthly - membership.invites_used_this_month;
     if (availableInvites <= 0) {
       return NextResponse.json(
         { error: "No invites remaining this month" },
@@ -110,7 +111,7 @@ export async function POST(request: NextRequest) {
       code,
       created_by: user.id,
       expires_at: expiresAt.toISOString(),
-      initial_level: 'basic'
+      initial_level: "basic",
     });
 
     const { data, error } = await adminClient
@@ -121,7 +122,7 @@ export async function POST(request: NextRequest) {
         expires_at: expiresAt.toISOString(),
         max_uses: 1,
         is_active: true,
-        initial_level: 'basic', // Non-admins always create Basic invites
+        initial_level: "basic", // Non-admins always create Basic invites
       })
       .select()
       .single();
@@ -132,13 +133,13 @@ export async function POST(request: NextRequest) {
         code: error?.code,
         message: error?.message,
         details: error?.details,
-        hint: error?.hint
+        hint: error?.hint,
       });
       return NextResponse.json(
-        { 
+        {
           error: "Failed to create invitation",
           details: error?.message || "Database error",
-          code: error?.code
+          code: error?.code,
         },
         { status: 500 },
       );
@@ -165,17 +166,19 @@ export async function POST(request: NextRequest) {
 
     // Generate signup URLs with shorter, more robust structure
     // IMPORTANT: Always trim baseUrl to prevent accidental spaces in environment variable
-    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").trim();
+    const baseUrl = (
+      process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+    ).trim();
 
     // Create shorter URLs that are less likely to be broken by Instagram
     // Use shorter path structure: /i/{code} instead of /invite-signup?invite={code}
     const signupUrl = `${baseUrl}/i/${code}`;
     const codeSignupUrl = `${baseUrl}/c/${code}`;
-    
+
     console.log("[INVITE-GEN] Generated URLs:", {
       baseUrl,
       signupUrl,
-      hasSpace: signupUrl.includes(' '),
+      hasSpace: signupUrl.includes(" "),
     });
 
     return NextResponse.json({

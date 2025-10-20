@@ -7,7 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageLayout } from "@/components/layout/page-layout";
-import { UserPlus, Check, X, Loader2, ArrowRight, Clock, Users } from "lucide-react";
+import {
+  UserPlus,
+  Check,
+  X,
+  Loader2,
+  ArrowRight,
+  Clock,
+  Users,
+} from "lucide-react";
 import { toast } from "sonner";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -65,13 +73,12 @@ export default function InviteSignupPage() {
   useEffect(() => {
     if (code) {
       // Run both functions in parallel but ensure loading is set to false
-      Promise.all([
-        validateInvitation(),
-        fetchCurrentPallet()
-      ]).catch((error) => {
-        console.error("Error in useEffect:", error);
-        setLoading(false);
-      });
+      Promise.all([validateInvitation(), fetchCurrentPallet()]).catch(
+        (error) => {
+          console.error("Error in useEffect:", error);
+          setLoading(false);
+        },
+      );
     }
   }, [code]);
 
@@ -103,19 +110,20 @@ export default function InviteSignupPage() {
   const fetchCurrentPallet = async () => {
     try {
       const response = await fetch("/api/admin/pallets");
-      
+
       if (!response.ok) {
         console.log("Pallet API not available, using mock data");
         setMockPalletData();
         setLoading(false);
         return;
       }
-      
+
       const pallets = await response.json();
-      
+
       if (pallets && pallets.length > 0) {
         // Get the most recent active pallet
-        const activePallet = pallets.find((p: Pallet) => !p.is_complete) || pallets[0];
+        const activePallet =
+          pallets.find((p: Pallet) => !p.is_complete) || pallets[0];
         setPallet(activePallet);
       } else {
         // Create mock pallet data for demonstration
@@ -134,7 +142,8 @@ export default function InviteSignupPage() {
     setPallet({
       id: "mock-pallet",
       name: "Beziers to Stockholm",
-      description: "A curated selection of exceptional wines from Beziers, delivered to Stockholm",
+      description:
+        "A curated selection of exceptional wines from Beziers, delivered to Stockholm",
       bottle_capacity: 600,
       total_booked_bottles: 542,
       remaining_bottles: 58,
@@ -146,7 +155,7 @@ export default function InviteSignupPage() {
           grape_varieties: "Grenache",
           color: "White",
           producer: "Domaine de la Côte",
-          total_quantity: 150
+          total_quantity: 150,
         },
         {
           wine_name: "Les Vignes de l'Étoile",
@@ -154,7 +163,7 @@ export default function InviteSignupPage() {
           grape_varieties: "Syrah, Grenache",
           color: "Red",
           producer: "Château de la Mer",
-          total_quantity: 200
+          total_quantity: 200,
         },
         {
           wine_name: "Côte de Languedoc",
@@ -162,11 +171,11 @@ export default function InviteSignupPage() {
           grape_varieties: "Carignan, Cinsault",
           color: "Red",
           producer: "Domaine des Collines",
-          total_quantity: 192
-        }
+          total_quantity: 192,
+        },
       ],
       delivery_zone: { name: "Stockholm 50km" },
-      pickup_zone: { name: "Stockholm Pickup Point" }
+      pickup_zone: { name: "Stockholm Pickup Point" },
     });
   };
 
@@ -198,7 +207,7 @@ export default function InviteSignupPage() {
           });
 
           toast.success("Account created and signed in successfully!");
-          
+
           // Redirect to home page after a short delay
           setTimeout(() => {
             window.location.href = "/";
@@ -211,7 +220,9 @@ export default function InviteSignupPage() {
       } else {
         // Handle security validation errors
         if (data.error && data.error.includes("Security validation failed")) {
-          toast.error("Security validation failed. Please try signing in manually.");
+          toast.error(
+            "Security validation failed. Please try signing in manually.",
+          );
           router.push("/log-in");
         } else {
           toast.error(data.error || "Failed to create account");
@@ -282,7 +293,7 @@ export default function InviteSignupPage() {
   const senderName = (() => {
     try {
       if (invitation?.profiles?.email) {
-        return invitation.profiles.email.split('@')[0];
+        return invitation.profiles.email.split("@")[0];
       }
       return "A friend";
     } catch (error) {
@@ -304,7 +315,8 @@ export default function InviteSignupPage() {
               {senderName} has given you access to PACT.
             </p>
             <p className="text-base text-gray-600 max-w-xl mx-auto">
-              PACT is a members-only platform where people buy wine together by sharing pallets – just like a wine importer.
+              PACT is a members-only platform where people buy wine together by
+              sharing pallets – just like a wine importer.
             </p>
           </div>
 
@@ -405,7 +417,8 @@ export default function InviteSignupPage() {
             <div className="bg-white rounded-2xl shadow-lg p-6 mt-8">
               <div className="text-center mb-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Help {senderName === "A friend" ? "your friend" : senderName} bring this pallet home
+                  Help {senderName === "A friend" ? "your friend" : senderName}{" "}
+                  bring this pallet home
                 </h3>
                 <h4 className="text-xl font-bold text-gray-900 mb-2">
                   {pallet.name}
@@ -413,7 +426,10 @@ export default function InviteSignupPage() {
                 <div className="flex items-center justify-center gap-4 text-sm text-gray-600">
                   <div className="flex items-center gap-1">
                     <Users className="w-4 h-4" />
-                    <span>{pallet.total_booked_bottles} / {pallet.bottle_capacity} bottles reserved</span>
+                    <span>
+                      {pallet.total_booked_bottles} / {pallet.bottle_capacity}{" "}
+                      bottles reserved
+                    </span>
                   </div>
                 </div>
               </div>
@@ -421,9 +437,11 @@ export default function InviteSignupPage() {
               {/* Animated Progress Bar */}
               <div className="mb-6">
                 <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                  <div 
+                  <div
                     className="bg-gradient-to-r from-green-600 to-green-500 h-3 rounded-full transition-all duration-1000 ease-out"
-                    style={{ width: `${Math.min(pallet.completion_percentage, 100)}%` }}
+                    style={{
+                      width: `${Math.min(pallet.completion_percentage, 100)}%`,
+                    }}
                   />
                 </div>
                 <div className="text-center mt-2 text-sm text-gray-600">

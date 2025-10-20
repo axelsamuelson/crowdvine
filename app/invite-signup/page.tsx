@@ -133,8 +133,13 @@ function InviteSignupContent() {
         }
       } else {
         // Handle security validation errors
-        if (inviteData.error && inviteData.error.includes("Security validation failed")) {
-          setError("Security validation failed. Please try signing in manually.");
+        if (
+          inviteData.error &&
+          inviteData.error.includes("Security validation failed")
+        ) {
+          setError(
+            "Security validation failed. Please try signing in manually.",
+          );
           setTimeout(() => {
             router.push("/log-in");
           }, 2000);
@@ -202,8 +207,8 @@ function InviteSignupContent() {
           </CardHeader>
           <CardContent>
             <p className="text-center text-gray-600 mb-4">
-              Your account has been created and you're now signed in!
-              Welcome to our exclusive wine community.
+              Your account has been created and you're now signed in! Welcome to
+              our exclusive wine community.
             </p>
             <div className="text-center">
               <Button onClick={() => router.push("/")} className="w-full">

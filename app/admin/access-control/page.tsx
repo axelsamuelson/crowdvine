@@ -46,7 +46,9 @@ export default function AccessControlAdmin() {
   const [loading, setLoading] = useState(true);
   const [newCodeEmail, setNewCodeEmail] = useState("");
   const [newCodeExpiry, setNewCodeExpiry] = useState("30");
-  const [selectedLevels, setSelectedLevels] = useState<{[key: string]: string}>({});
+  const [selectedLevels, setSelectedLevels] = useState<{
+    [key: string]: string;
+  }>({});
 
   useEffect(() => {
     fetchAccessRequests();
@@ -365,19 +367,28 @@ export default function AccessControlAdmin() {
                           </div>
                           {getStatusBadge(request.status)}
                         </div>
-                        
+
                         {/* Membership Level Selector */}
                         <div className="mt-3 space-y-2">
-                          <Label htmlFor={`level-${request.id}`} className="text-sm text-gray-600">
+                          <Label
+                            htmlFor={`level-${request.id}`}
+                            className="text-sm text-gray-600"
+                          >
                             Initial Membership Level
                           </Label>
                           <Select
                             value={selectedLevels[request.id] || "basic"}
                             onValueChange={(value) =>
-                              setSelectedLevels({ ...selectedLevels, [request.id]: value })
+                              setSelectedLevels({
+                                ...selectedLevels,
+                                [request.id]: value,
+                              })
                             }
                           >
-                            <SelectTrigger id={`level-${request.id}`} className="w-full">
+                            <SelectTrigger
+                              id={`level-${request.id}`}
+                              className="w-full"
+                            >
                               <SelectValue placeholder="Select level" />
                             </SelectTrigger>
                             <SelectContent>
@@ -388,7 +399,7 @@ export default function AccessControlAdmin() {
                             </SelectContent>
                           </Select>
                         </div>
-                        
+
                         <div className="flex gap-2 mt-3">
                           <Button
                             size="sm"
@@ -396,7 +407,7 @@ export default function AccessControlAdmin() {
                               updateAccessRequest(
                                 request.id,
                                 "approved",
-                                selectedLevels[request.id] || "basic"
+                                selectedLevels[request.id] || "basic",
                               )
                             }
                             className="bg-green-600 hover:bg-green-700"

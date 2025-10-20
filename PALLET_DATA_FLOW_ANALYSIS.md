@@ -1,6 +1,7 @@
 # Pallet Data Flow Analysis
 
 ## Problem
+
 Pallet page shows no wines or participants despite data existing in database.
 
 ## Database Schema Analysis
@@ -8,6 +9,7 @@ Pallet page shows no wines or participants despite data existing in database.
 ### Core Tables Involved
 
 #### 1. `pallets`
+
 ```sql
 - id (UUID, PK)
 - name
@@ -21,6 +23,7 @@ Pallet page shows no wines or participants despite data existing in database.
 ```
 
 #### 2. `order_reservations`
+
 ```sql
 - id (UUID, PK)
 - order_id
@@ -35,6 +38,7 @@ Pallet page shows no wines or participants despite data existing in database.
 ```
 
 #### 3. `order_reservation_items`
+
 ```sql
 - id (UUID, PK)
 - reservation_id (FK → order_reservations)
@@ -44,6 +48,7 @@ Pallet page shows no wines or participants despite data existing in database.
 ```
 
 #### 4. `wines`
+
 ```sql
 - id (UUID, PK)
 - wine_name
@@ -59,6 +64,7 @@ Pallet page shows no wines or participants despite data existing in database.
 ```
 
 #### 5. `producers`
+
 ```sql
 - id (UUID, PK)
 - name
@@ -77,6 +83,7 @@ Pallet page shows no wines or participants despite data existing in database.
 ```
 
 #### 6. `profiles`
+
 ```sql
 - id (UUID, PK)
 - email
@@ -98,29 +105,30 @@ Pallet page shows no wines or participants despite data existing in database.
    - Fetches reservations: `GET /api/pallet/[id]/reservations`
 
 3. **API** (`/api/pallet/[id]/reservations`):
+
    ```typescript
    // Step 1: Get pallet info
    SELECT id, name, pickup_zone_id, delivery_zone_id, bottle_capacity
    FROM pallets
    WHERE id = palletId
-   
+
    // Step 2: Get reservations
    SELECT id, order_id, user_id, status, created_at, delivery_address, total_cost_cents
    FROM order_reservations
    WHERE pallet_id = palletId
-   
+
    // Step 3: For each reservation:
    //   a) Get user profile
    SELECT email, full_name
    FROM profiles
    WHERE id = reservation.user_id
-   
+
    //   b) Get items
-   SELECT item_id, quantity, price_cents, 
+   SELECT item_id, quantity, price_cents,
           wines(wine_name, vintage, label_image_path, grape_varieties, color, producer_id)
    FROM order_reservation_items
    WHERE reservation_id = reservation.id
-   
+
    //   c) Get producer names
    SELECT id, name
    FROM producers
@@ -130,6 +138,7 @@ Pallet page shows no wines or participants despite data existing in database.
 ## Current Issues Found
 
 ### ✅ FIXED Issues:
+
 1. Authentication requirement removed ✅
 2. Nested join `wines(producers(name))` split into separate queries ✅
 3. `pallet_id` added to `order_reservations` table ✅
@@ -192,7 +201,7 @@ const uniqueWines = allItems.reduce((acc, item) => {
     color: item.color,
     grape_varieties: item.grape_varieties,
     total_reserved: (acc[key]?.total_reserved || 0) + item.quantity,
-    image_path: item.image_path
+    image_path: item.image_path,
   };
   return acc;
 }, {});
@@ -208,7 +217,7 @@ const participantsMap = reservations.reduce((map, res) => {
       user_name: res.user_name,
       user_email: res.user_email,
       bottles_reserved: res.bottles_reserved,
-      created_at: res.created_at
+      created_at: res.created_at,
     });
   }
   return map;
@@ -236,4 +245,3 @@ const participantsMap = reservations.reduce((map, res) => {
    SELECT COUNT(*) FROM order_reservation_items;
    SELECT COUNT(*) FROM profiles WHERE id IN (SELECT DISTINCT user_id FROM order_reservations);
    ```
-

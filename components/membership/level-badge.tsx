@@ -76,11 +76,11 @@ const sizeClasses = {
   },
 };
 
-export function LevelBadge({ 
-  level, 
-  size = "lg", 
+export function LevelBadge({
+  level,
+  size = "lg",
   showLabel = true,
-  className 
+  className,
 }: LevelBadgeProps) {
   const config = levelConfig[level];
   const sizes = sizeClasses[size];
@@ -95,21 +95,22 @@ export function LevelBadge({
             config.gradient,
             config.border,
             config.text,
-            sizes.badge
+            sizes.badge,
           )}
         >
           {/* Shimmer Effect for Premium Levels */}
           {config.shimmer && (
             <div className="absolute inset-0 opacity-30">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent animate-shimmer" 
-                   style={{ 
-                     animation: "shimmer 3s ease-in-out infinite",
-                     backgroundSize: "200% 100%"
-                   }} 
+              <div
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent animate-shimmer"
+                style={{
+                  animation: "shimmer 3s ease-in-out infinite",
+                  backgroundSize: "200% 100%",
+                }}
               />
             </div>
           )}
-          
+
           {/* Level Initial */}
           <span className={cn("relative z-10 font-extrabold", sizes.text)}>
             {config.name[0]}
@@ -118,10 +119,10 @@ export function LevelBadge({
 
         {/* Outer glow for premium levels */}
         {config.shimmer && (
-          <div 
+          <div
             className={cn(
               "absolute inset-0 rounded-full blur-xl opacity-20 -z-10",
-              config.gradient
+              config.gradient,
             )}
           />
         )}
@@ -149,4 +150,3 @@ export function LevelBadge({
     </div>
   );
 }
-

@@ -6,30 +6,49 @@
     "meAccessApi": null,
     "layoutGuards": ["/app/layout.tsx"]
   },
-  "profile": { 
-    "accessGrantedAt": false, 
-    "inviteCodeUsed": false 
+  "profile": {
+    "accessGrantedAt": false,
+    "inviteCodeUsed": false
   },
-  "invites": { 
-    "table": true, 
-    "fields": ["code","created_by","used_at","used_by","expires_at","is_active"], 
-    "consumeRpc": true 
+  "invites": {
+    "table": true,
+    "fields": [
+      "code",
+      "created_by",
+      "used_at",
+      "used_by",
+      "expires_at",
+      "is_active"
+    ],
+    "consumeRpc": true
   },
-  "cookie": { 
-    "name": null, 
-    "setOnRedeem": false, 
-    "setOnLogin": false 
+  "cookie": {
+    "name": null,
+    "setOnRedeem": false,
+    "setOnLogin": false
   },
-  "middleware": { 
-    "redirectTo": "/access-request", 
-    "publicWhitelisted": ["/access-request","/api/access-request","/api/invitation-codes","/log-in","/signup","/auth","/_next","/favicon.ico","/api/auth","/admin","/admin-auth"],
+  "middleware": {
+    "redirectTo": "/access-request",
+    "publicWhitelisted": [
+      "/access-request",
+      "/api/access-request",
+      "/api/invitation-codes",
+      "/log-in",
+      "/signup",
+      "/auth",
+      "/_next",
+      "/favicon.ico",
+      "/api/auth",
+      "/admin",
+      "/admin-auth"
+    ],
     "enabled": false
   },
   "meAccessApi": false,
   "smartRedirectOnAccessRequest": false,
-  "rls": { 
-    "enabled": true, 
-    "requiresAccess": [] 
+  "rls": {
+    "enabled": true,
+    "requiresAccess": []
   },
   "notes": [
     "Middleware completely disabled - all routes public",
@@ -42,7 +61,7 @@
   ],
   "nextSteps": [
     "Implement real invitation code redeem API",
-    "Implement access request submission API", 
+    "Implement access request submission API",
     "Add access cookie system",
     "Enable middleware with access control",
     "Add smart redirect logic",

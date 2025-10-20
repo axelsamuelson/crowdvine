@@ -2,20 +2,26 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogHeader, 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -53,8 +59,10 @@ export default function ProducerGroupsPage() {
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showAddMemberDialog, setShowAddMemberDialog] = useState(false);
-  const [selectedGroup, setSelectedGroup] = useState<ProducerGroup | null>(null);
-  
+  const [selectedGroup, setSelectedGroup] = useState<ProducerGroup | null>(
+    null,
+  );
+
   // Form state
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupDescription, setNewGroupDescription] = useState("");
@@ -75,15 +83,19 @@ export default function ProducerGroupsPage() {
       // Fetch all producers
       const producersResponse = await fetch("/api/admin/producers");
       const producersData = await producersResponse.json();
-      console.log("🏭 Fetched producers:", producersData.producers?.length || 0);
-      
+      console.log(
+        "🏭 Fetched producers:",
+        producersData.producers?.length || 0,
+      );
+
       // Transform to expected format
-      const transformedProducers = producersData.producers?.map((p: any) => ({
-        id: p.id,
-        name: p.name,
-        region: p.region || '',
-      })) || [];
-      
+      const transformedProducers =
+        producersData.producers?.map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          region: p.region || "",
+        })) || [];
+
       setProducers(transformedProducers);
     } catch (error) {
       console.error("Failed to fetch data:", error);
@@ -180,9 +192,12 @@ export default function ProducerGroupsPage() {
 
   const handleRemoveProducer = async (groupId: string, memberId: string) => {
     try {
-      const response = await fetch(`/api/admin/producer-groups/members/${memberId}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `/api/admin/producer-groups/members/${memberId}`,
+        {
+          method: "DELETE",
+        },
+      );
 
       if (response.ok) {
         toast.success("Producer removed from group");
@@ -198,7 +213,7 @@ export default function ProducerGroupsPage() {
 
   // Get available producers (not already in selected group)
   const availableProducers = producers.filter(
-    (p) => !selectedGroup?.members?.some((m) => m.producer_id === p.id)
+    (p) => !selectedGroup?.members?.some((m) => m.producer_id === p.id),
   );
 
   return (
@@ -208,7 +223,8 @@ export default function ProducerGroupsPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Producer Groups</h1>
           <p className="text-sm text-gray-600 mt-1">
-            Link producers together so customers can combine their wines to meet the 6-bottle requirement
+            Link producers together so customers can combine their wines to meet
+            the 6-bottle requirement
           </p>
         </div>
         <Button onClick={() => setShowCreateDialog(true)}>
@@ -225,13 +241,15 @@ export default function ProducerGroupsPage() {
             <div className="text-sm text-blue-900">
               <p className="font-medium mb-1">6-Bottle Rule</p>
               <p>
-                Customers must order bottles in multiples of 6 per producer (6, 12, 18, etc.). 
-                By creating producer groups, you allow customers to combine bottles from linked 
-                producers to meet this requirement.
+                Customers must order bottles in multiples of 6 per producer (6,
+                12, 18, etc.). By creating producer groups, you allow customers
+                to combine bottles from linked producers to meet this
+                requirement.
               </p>
               <p className="mt-2">
-                <strong>Example:</strong> If Producer A and Producer B are in the same group, 
-                customers can order 3 bottles from A + 3 bottles from B = 6 total (valid).
+                <strong>Example:</strong> If Producer A and Producer B are in
+                the same group, customers can order 3 bottles from A + 3 bottles
+                from B = 6 total (valid).
               </p>
             </div>
           </div>
@@ -248,9 +266,12 @@ export default function ProducerGroupsPage() {
         <Card>
           <CardContent className="p-12 text-center">
             <Users className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-            <h3 className="text-lg font-medium mb-2 text-gray-900">No producer groups yet</h3>
+            <h3 className="text-lg font-medium mb-2 text-gray-900">
+              No producer groups yet
+            </h3>
             <p className="text-gray-500 mb-4">
-              Create your first producer group to allow customers to combine bottles from different producers.
+              Create your first producer group to allow customers to combine
+              bottles from different producers.
             </p>
             <Button onClick={() => setShowCreateDialog(true)}>
               <Plus className="h-4 w-4 mr-2" />
@@ -267,7 +288,9 @@ export default function ProducerGroupsPage() {
                   <div className="flex-1">
                     <CardTitle className="text-lg">{group.name}</CardTitle>
                     {group.description && (
-                      <CardDescription className="mt-1">{group.description}</CardDescription>
+                      <CardDescription className="mt-1">
+                        {group.description}
+                      </CardDescription>
                     )}
                   </div>
                   <Button
@@ -282,7 +305,9 @@ export default function ProducerGroupsPage() {
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">Producers</span>
+                    <span className="text-sm font-medium text-gray-700">
+                      Producers
+                    </span>
                     <Button
                       size="sm"
                       variant="outline"
@@ -295,7 +320,7 @@ export default function ProducerGroupsPage() {
                       Add
                     </Button>
                   </div>
-                  
+
                   {group.members && group.members.length > 0 ? (
                     <div className="space-y-2">
                       {group.members.map((member) => (
@@ -307,12 +332,16 @@ export default function ProducerGroupsPage() {
                             <p className="text-sm font-medium text-gray-900">
                               {member.producers.name}
                             </p>
-                            <p className="text-xs text-gray-500">{member.producers.region}</p>
+                            <p className="text-xs text-gray-500">
+                              {member.producers.region}
+                            </p>
                           </div>
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => handleRemoveProducer(group.id, member.id)}
+                            onClick={() =>
+                              handleRemoveProducer(group.id, member.id)
+                            }
                           >
                             <Trash2 className="h-3 w-3 text-red-600" />
                           </Button>
@@ -320,12 +349,15 @@ export default function ProducerGroupsPage() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-500 italic">No producers in this group yet</p>
+                    <p className="text-sm text-gray-500 italic">
+                      No producers in this group yet
+                    </p>
                   )}
 
                   <div className="pt-2 border-t">
                     <p className="text-xs text-gray-600">
-                      {group.members?.length || 0} producer{group.members?.length !== 1 ? 's' : ''} in group
+                      {group.members?.length || 0} producer
+                      {group.members?.length !== 1 ? "s" : ""} in group
                     </p>
                   </div>
                 </div>
@@ -341,7 +373,8 @@ export default function ProducerGroupsPage() {
           <DialogHeader>
             <DialogTitle>Create Producer Group</DialogTitle>
             <DialogDescription>
-              Link producers together so customers can combine their bottles to meet the 6-bottle requirement.
+              Link producers together so customers can combine their bottles to
+              meet the 6-bottle requirement.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -366,7 +399,10 @@ export default function ProducerGroupsPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowCreateDialog(false)}
+            >
               Cancel
             </Button>
             <Button onClick={handleCreateGroup}>Create Group</Button>
@@ -386,7 +422,10 @@ export default function ProducerGroupsPage() {
           <div className="space-y-4">
             <div>
               <Label htmlFor="producer">Producer</Label>
-              <Select value={selectedProducerId} onValueChange={setSelectedProducerId}>
+              <Select
+                value={selectedProducerId}
+                onValueChange={setSelectedProducerId}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a producer" />
                 </SelectTrigger>
@@ -401,7 +440,10 @@ export default function ProducerGroupsPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddMemberDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowAddMemberDialog(false)}
+            >
               Cancel
             </Button>
             <Button onClick={handleAddProducer}>Add Producer</Button>
@@ -411,4 +453,3 @@ export default function ProducerGroupsPage() {
     </div>
   );
 }
-

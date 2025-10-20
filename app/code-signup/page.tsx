@@ -132,7 +132,9 @@ function CodeSignupContent() {
       } else {
         // Handle security validation errors
         if (data.error && data.error.includes("Security validation failed")) {
-          toast.error("Security validation failed. Please try signing in manually.");
+          toast.error(
+            "Security validation failed. Please try signing in manually.",
+          );
           router.push("/log-in");
         } else {
           toast.error(data.error || "Failed to create account");

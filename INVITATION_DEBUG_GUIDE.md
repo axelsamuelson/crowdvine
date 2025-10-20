@@ -3,14 +3,18 @@
 ## Deployed Changes
 
 ### Phase 1: Enhanced Error Logging ✅
+
 All invitation endpoints now log detailed error information with prefixes:
+
 - `[INVITE-GEN]` - Invitation generation
 - `[INVITE-DELETE]` - Invitation deletion
 
 ### Phase 2: Diagnostic Endpoint ✅
+
 New endpoint: `GET /api/debug/env-check` (admin-only)
 
 ### Phase 3: RLS Policy Migration ✅
+
 New migration: `migrations/037_fix_invitation_rls.sql`
 
 ---
@@ -22,6 +26,7 @@ New migration: `migrations/037_fix_invitation_rls.sql`
 Visit: **https://pactwines.com/api/debug/env-check**
 
 This will show you:
+
 ```json
 {
   "checks": {
@@ -43,6 +48,7 @@ This will show you:
 ```
 
 **If `supabaseServiceKey.exists: false`:**
+
 1. Go to Vercel Dashboard → Settings → Environment Variables
 2. Add: `SUPABASE_SERVICE_ROLE_KEY`
 3. Value: Get from Supabase Dashboard → Settings → API → `service_role` key
@@ -53,6 +59,7 @@ This will show you:
 Visit: Vercel Dashboard → Deployments → Latest → Runtime Logs
 
 **Look for:**
+
 ```
 [INVITE-GEN] Admin client created successfully
 [INVITE-GEN] Membership found: { level: 'admin', quota: 50, used: 0 }
@@ -61,6 +68,7 @@ Visit: Vercel Dashboard → Deployments → Latest → Runtime Logs
 ```
 
 **Or look for errors:**
+
 ```
 [INVITE-GEN] Failed to create admin client: Missing Supabase admin credentials
 [INVITE-GEN] Membership error: { code: 'PGRST116', message: '...' }
@@ -98,18 +106,22 @@ The toast will now show detailed errors:
 ## Solutions by Error Type
 
 ### Error: "Server configuration error"
+
 **Cause:** `SUPABASE_SERVICE_ROLE_KEY` not set in Vercel
 
 **Fix:**
+
 1. Vercel Dashboard → Settings → Environment Variables
 2. Add `SUPABASE_SERVICE_ROLE_KEY` = `<your-service-role-key>`
 3. Redeploy
 
 ### Error: "Membership not found"
+
 **Cause:** No record in `user_memberships` for your user
 
 **Fix:**
 Run in Supabase SQL Editor:
+
 ```sql
 -- Check if membership exists
 SELECT * FROM user_memberships WHERE user_id = '<your-user-id>';
@@ -119,10 +131,12 @@ SELECT * FROM user_memberships WHERE user_id = '<your-user-id>';
 ```
 
 ### Error: "permission denied" or RLS error
+
 **Cause:** RLS policies blocking operations
 
 **Fix:**
 Run migration 037 in Supabase SQL Editor:
+
 ```sql
 -- Copy and paste contents of migrations/037_fix_invitation_rls.sql
 BEGIN;
@@ -131,14 +145,17 @@ COMMIT;
 ```
 
 Verify policies:
+
 ```sql
 SELECT * FROM pg_policies WHERE tablename = 'invitation_codes';
 ```
 
 ### Error: Still not working after above fixes
+
 **Cause:** Unknown - need more investigation
 
 **Action:**
+
 1. Send me the output from `/api/debug/env-check`
 2. Send me the Vercel logs showing `[INVITE-GEN]` entries
 3. Send me the browser console error with full details
@@ -173,23 +190,27 @@ After applying fixes:
 ## Quick Reference
 
 ### Diagnostic Endpoint
+
 ```bash
 curl -X GET https://pactwines.com/api/debug/env-check \
   -H "Cookie: <your-session-cookie>"
 ```
 
 ### Check Vercel Env Vars
+
 ```bash
 vercel env ls
 ```
 
 ### Run Migration in Supabase
+
 1. Supabase Dashboard → SQL Editor
 2. New Query
 3. Paste migration content
 4. Run
 
 ### View Logs in Vercel
+
 ```bash
 vercel logs <deployment-url>
 ```
@@ -199,6 +220,7 @@ vercel logs <deployment-url>
 ## Common Patterns in Logs
 
 ### Success Pattern
+
 ```
 [INVITE-GEN] Admin client created successfully
 [INVITE-GEN] Fetching membership for user: <uuid>
@@ -210,6 +232,7 @@ vercel logs <deployment-url>
 ```
 
 ### Failure Pattern
+
 ```
 [INVITE-GEN] Admin client created successfully
 [INVITE-GEN] Fetching membership for user: <uuid>
@@ -219,6 +242,7 @@ vercel logs <deployment-url>
   error: { code: '42501', message: 'permission denied for table invitation_codes' }
 }
 ```
+
 → This indicates RLS is blocking the INSERT
 
 ---
@@ -226,6 +250,7 @@ vercel logs <deployment-url>
 ## Phase 4: Fallback Mechanism (If Needed)
 
 If all else fails, Phase 4 adds a fallback where the API will:
+
 1. Try admin client first
 2. If admin client fails, use user's own authenticated client
 3. User's auth should allow them to create their own invitations
@@ -237,7 +262,7 @@ This is **not yet implemented** - we'll add it if needed after seeing the diagno
 ## Contact
 
 If you need help:
+
 1. Send output from `/api/debug/env-check`
 2. Send Vercel logs (search for `[INVITE-GEN]` or `[INVITE-DELETE]`)
 3. Send browser console logs from /profile page
-

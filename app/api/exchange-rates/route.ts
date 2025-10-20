@@ -50,10 +50,10 @@ export async function GET(request: NextRequest) {
         SEK: 11.25, // Approximate EUR to SEK rate
       },
       USD: {
-        SEK: 10.50, // Approximate USD to SEK rate
+        SEK: 10.5, // Approximate USD to SEK rate
       },
       GBP: {
-        SEK: 13.20, // Approximate GBP to SEK rate
+        SEK: 13.2, // Approximate GBP to SEK rate
       },
     };
 

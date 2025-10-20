@@ -17,7 +17,7 @@ async function getLogoForEmail(): Promise<string | null> {
 
   try {
     const logoUrl = await getSiteContentByKey("header_logo");
-    
+
     // Update cache
     logoCache = {
       value: logoUrl,
@@ -85,7 +85,9 @@ class SendGridService {
   async sendEmail(data: EmailData): Promise<boolean> {
     if (!process.env.SENDGRID_API_KEY) {
       console.error("❌ SENDGRID ERROR: API key not configured!");
-      console.error("Please set SENDGRID_API_KEY in Vercel environment variables.");
+      console.error(
+        "Please set SENDGRID_API_KEY in Vercel environment variables.",
+      );
       console.error("For development, you can set it in .env.local file.");
       return false;
     }
@@ -101,41 +103,41 @@ class SendGridService {
       text: data.text || this.stripHtml(data.html),
       // Add headers for better deliverability
       headers: {
-        'X-Mailer': 'PACT Wines Platform',
-        'X-Priority': '1', // High priority
-        'X-MSMail-Priority': 'High',
-        'Importance': 'High',
-        'List-Unsubscribe': '<mailto:unsubscribe@pactwines.com>',
-        'X-Mailgun-Tag': 'approval-email',
-        'X-Custom-Header': 'urgent-delivery',
+        "X-Mailer": "PACT Wines Platform",
+        "X-Priority": "1", // High priority
+        "X-MSMail-Priority": "High",
+        Importance: "High",
+        "List-Unsubscribe": "<mailto:unsubscribe@pactwines.com>",
+        "X-Mailgun-Tag": "approval-email",
+        "X-Custom-Header": "urgent-delivery",
       },
       // Add tracking settings
       trackingSettings: {
         clickTracking: {
           enable: true,
-          enableText: false
+          enableText: false,
         },
         openTracking: {
           enable: true,
-          substitutionTag: '%open-track%'
-        }
+          substitutionTag: "%open-track%",
+        },
       },
       // Add spam score reduction
       mailSettings: {
         spamCheck: {
           enable: true,
           threshold: 3, // Lower threshold for better delivery
-          postToUrl: 'https://pactwines.com/api/spam-webhook'
+          postToUrl: "https://pactwines.com/api/spam-webhook",
         },
         footer: {
-          enable: false
+          enable: false,
         },
         sandboxMode: {
-          enable: false // Make sure sandbox mode is off
-        }
+          enable: false, // Make sure sandbox mode is off
+        },
       },
       // Add categories for better routing
-      categories: ['approval-email', 'urgent', 'hotmail-optimized']
+      categories: ["approval-email", "urgent", "hotmail-optimized"],
     };
 
     console.log("📧 Attempting to send email via SendGrid:", {
@@ -155,7 +157,10 @@ class SendGridService {
       console.error("❌ SendGrid error:", error);
       if (error.response) {
         console.error("SendGrid response status:", error.response?.status);
-        console.error("SendGrid response body:", JSON.stringify(error.response?.body, null, 2));
+        console.error(
+          "SendGrid response body:",
+          JSON.stringify(error.response?.body, null, 2),
+        );
       }
       if (error.message) {
         console.error("SendGrid error message:", error.message);
@@ -188,10 +193,12 @@ class SendGridService {
     });
   }
 
-  private async getOrderConfirmationTemplate(data: OrderConfirmationData): Promise<string> {
+  private async getOrderConfirmationTemplate(
+    data: OrderConfirmationData,
+  ): Promise<string> {
     const logoUrl = await getLogoForEmail();
-    
-    const logoHtml = logoUrl 
+
+    const logoHtml = logoUrl
       ? `<img src="${logoUrl}" alt="PACT" style="width: 120px; height: auto; max-width: 200px;" />`
       : `<div style="font-size: 24px; font-weight: bold; color: #000000; letter-spacing: 2px;">PACT</div>`;
     const itemsHtml = data.items

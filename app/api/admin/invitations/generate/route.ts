@@ -5,7 +5,7 @@ import { MembershipLevel } from "@/lib/membership/points-engine";
 
 /**
  * POST /api/admin/invitations/generate
- * 
+ *
  * Generate invitation with custom initial level (admin only)
  */
 export async function POST(request: NextRequest) {
@@ -19,28 +19,30 @@ export async function POST(request: NextRequest) {
 
     // Check if user is admin
     const { data: profile } = await sb
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
       .single();
 
-    if (!profile || profile.role !== 'admin') {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+    if (!profile || profile.role !== "admin") {
+      return NextResponse.json(
+        { error: "Admin access required" },
+        { status: 403 },
+      );
     }
 
     const body = await request.json();
-    const { 
-      expiresInDays = 30, 
-      initialLevel = 'basic',
-      maxUses = 1,
-    } = body;
+    const { expiresInDays = 30, initialLevel = "basic", maxUses = 1 } = body;
 
     // Validate initial level
-    const validLevels: MembershipLevel[] = ['basic', 'brons', 'silver', 'guld'];
+    const validLevels: MembershipLevel[] = ["basic", "brons", "silver", "guld"];
     if (!validLevels.includes(initialLevel as MembershipLevel)) {
       return NextResponse.json(
-        { error: "Invalid initial level. Must be: basic, brons, silver, or guld" },
-        { status: 400 }
+        {
+          error:
+            "Invalid initial level. Must be: basic, brons, silver, or guld",
+        },
+        { status: 400 },
       );
     }
 
@@ -91,14 +93,16 @@ export async function POST(request: NextRequest) {
 
     // Generate signup URLs
     // IMPORTANT: Always trim baseUrl to prevent accidental spaces in environment variable
-    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").trim();
+    const baseUrl = (
+      process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+    ).trim();
     const signupUrl = `${baseUrl}/i/${code}`;
     const codeSignupUrl = `${baseUrl}/c/${code}`;
-    
+
     console.log("[ADMIN-INVITE-GEN] Generated URLs:", {
       baseUrl,
       signupUrl,
-      hasSpace: signupUrl.includes(' '),
+      hasSpace: signupUrl.includes(" "),
     });
 
     return NextResponse.json({
@@ -130,4 +134,3 @@ function generateInvitationCode(): string {
   }
   return result;
 }
-

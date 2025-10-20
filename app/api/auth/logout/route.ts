@@ -4,13 +4,13 @@ import { cookies } from "next/headers";
 
 /**
  * POST /api/auth/logout
- * 
+ *
  * Sign out current user
  */
 export async function POST() {
   try {
     const cookieStore = await cookies();
-    
+
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -24,23 +24,20 @@ export async function POST() {
             cookieStore.set(name, "", { ...options, maxAge: 0 });
           },
         },
-      }
+      },
     );
 
     // Sign out from Supabase
-    const { error } = await supabase.auth.signOut({ scope: 'global' });
+    const { error } = await supabase.auth.signOut({ scope: "global" });
 
     if (error) {
       console.error("Logout error:", error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
     // Clear admin cookies if present
-    cookieStore.delete('admin-auth');
-    cookieStore.delete('admin-email');
+    cookieStore.delete("admin-auth");
+    cookieStore.delete("admin-email");
 
     return NextResponse.json({
       success: true,
@@ -50,7 +47,7 @@ export async function POST() {
     console.error("Logout error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

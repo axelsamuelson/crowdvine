@@ -9,26 +9,32 @@ This audit reviews the entire PACT Wines platform to identify technical debt, po
 ## 🚨 CRITICAL ISSUES (Fix Immediately)
 
 ### 1. **Inconsistent Database Column Names**
+
 **Problem:** We've encountered multiple instances where code assumes columns exist that don't:
+
 - `order_reservations.order_id` doesn't exist (only `id`)
 - `order_reservation_items.price_cents` doesn't exist
 - Caused multiple 500 errors during development
 
 **Impact:** High - causes runtime errors
-**Solution:** 
+**Solution:**
+
 - Create a database schema documentation file
 - Run `SELECT * FROM [table] LIMIT 0` to verify all column names
 - Create TypeScript types from actual schema
 - Consider using a schema validation tool
 
 **Files to check:**
+
 - All API routes that query `order_reservations`
 - All API routes that query `order_reservation_items`
 
 ---
 
 ### 2. **Dual Authentication Systems (Admin + User)**
+
 **Problem:** Platform has two separate auth systems:
+
 - Admin auth (cookie-based, middleware)
 - User auth (Supabase auth)
 - Confusion about which to use where
@@ -36,11 +42,13 @@ This audit reviews the entire PACT Wines platform to identify technical debt, po
 
 **Impact:** High - security risk, maintenance burden
 **Current state:**
+
 - `/admin/*` uses cookie-based auth
 - `/api/user/*` uses Supabase auth
 - Some `/api/admin/*` endpoints don't check auth at all
 
 **Recommendation:**
+
 - Document which auth is required for each route type
 - Add consistent auth checks to all admin endpoints
 - Consider consolidating to single auth system long-term
@@ -48,13 +56,16 @@ This audit reviews the entire PACT Wines platform to identify technical debt, po
 ---
 
 ### 3. **Missing Database Migrations Tracking**
+
 **Problem:** 30+ migration SQL files in root directory:
+
 - No clear order or versioning
 - Hard to know which have been run
 - Risk of running migrations twice or in wrong order
 
 **Impact:** Medium-High - data integrity risk
 **Solution:**
+
 - Consolidate migrations into `/migrations` directory (already started)
 - Add migration tracking table
 - Use numbered prefixes: `001_create_pallets.sql`, `002_add_pallet_id.sql`
@@ -65,7 +76,9 @@ This audit reviews the entire PACT Wines platform to identify technical debt, po
 ## ⚠️ HIGH PRIORITY (Fix Soon)
 
 ### 4. **Excessive Debug/Test Files**
+
 **Problem:** Many test and debug files in production:
+
 - `app/debug-checkout/`, `app/debug-realtime/`, `app/debug-token/`
 - `app/test-cart/`, `app/test-cookies/`, `app/test-signup/`
 - `scripts/` contains 35 files (many are one-off tests)
@@ -73,27 +86,32 @@ This audit reviews the entire PACT Wines platform to identify technical debt, po
 
 **Impact:** Medium - security, performance, confusion
 **Solution:**
+
 - Move debug routes to development-only (check `process.env.NODE_ENV`)
 - Delete or archive old test files
 - Keep only essential scripts
 
 **Recommendation:**
+
 ```typescript
 // middleware.ts - block debug routes in production
-if (process.env.NODE_ENV === 'production' && pathname.startsWith('/debug')) {
-  return NextResponse.redirect(new URL('/', request.url));
+if (process.env.NODE_ENV === "production" && pathname.startsWith("/debug")) {
+  return NextResponse.redirect(new URL("/", request.url));
 }
 ```
 
 ---
 
 ### 5. **Inconsistent API Patterns**
+
 **Problem:** Three different patterns for similar operations:
+
 - Server Actions (`lib/actions/*`)
 - API Routes (`app/api/*`)
 - Some use both (producers, wines)
 
 **Current inconsistencies:**
+
 - Producers: Server Actions + API Routes (recently added)
 - Wines: Server Actions only
 - Pallets: Server Actions only
@@ -101,6 +119,7 @@ if (process.env.NODE_ENV === 'production' && pathname.startsWith('/debug')) {
 
 **Impact:** Medium - maintenance, confusion
 **Recommendation:**
+
 - Standardize on API Routes for admin operations (better error messages in production)
 - Keep Server Actions for simple client-side mutations
 - Document pattern in README
@@ -108,13 +127,16 @@ if (process.env.NODE_ENV === 'production' && pathname.startsWith('/debug')) {
 ---
 
 ### 6. **No Error Boundary Components**
+
 **Problem:** No error boundaries to catch React errors gracefully
+
 - Errors crash entire page
 - Poor user experience
 - Hard to debug what went wrong
 
 **Impact:** Medium - user experience
 **Solution:**
+
 - Add error boundaries for major sections
 - Add error boundary for checkout flow
 - Log errors to monitoring service (optional)
@@ -122,7 +144,9 @@ if (process.env.NODE_ENV === 'production' && pathname.startsWith('/debug')) {
 ---
 
 ### 7. **Large Checkout Page Component (1100+ lines)**
+
 **Problem:** `app/checkout/page.tsx` is 1100+ lines
+
 - Hard to maintain
 - Many state variables (15+)
 - Complex useEffect chains
@@ -130,6 +154,7 @@ if (process.env.NODE_ENV === 'production' && pathname.startsWith('/debug')) {
 
 **Impact:** Medium - maintainability
 **Solution:**
+
 - Split into smaller components:
   - `CheckoutProfile.tsx`
   - `CheckoutAddress.tsx`
@@ -145,24 +170,29 @@ if (process.env.NODE_ENV === 'production' && pathname.startsWith('/debug')) {
 ## 📊 CODE QUALITY ISSUES
 
 ### 8. **Duplicate Code / Similar Functions**
+
 **Found duplicates:**
 
 **A) Pallet Reservations API (Public vs Admin):**
+
 - `/api/pallet/[id]/reservations/route.ts` (public)
 - `/api/admin/pallets/[id]/reservations/route.ts` (admin)
 - ~80% identical code
 - Should share common logic
 
 **B) Zone Matching Logic:**
+
 - Appears in multiple places
 - `lib/zone-matching.ts` exists but not always used
 - Some endpoints do zone matching inline
 
 **C) Price Formatting:**
+
 - `formatCurrency` implemented multiple times
 - Should be in shared utility
 
 **Solution:**
+
 - Extract common API logic into shared functions
 - Create single source of truth for each operation
 - DRY principle
@@ -170,7 +200,9 @@ if (process.env.NODE_ENV === 'production' && pathname.startsWith('/debug')) {
 ---
 
 ### 9. **Inconsistent TypeScript Types**
+
 **Problem:** Types defined in multiple places for same entities:
+
 - `Wine` type in `lib/actions/wines.ts`
 - Product types in `lib/shopify/types.ts`
 - Component-level interfaces repeated
@@ -178,6 +210,7 @@ if (process.env.NODE_ENV === 'production' && pathname.startsWith('/debug')) {
 
 **Impact:** Low-Medium - type safety
 **Solution:**
+
 - Create central types directory: `lib/types/`
 - Define database types once: `lib/types/database.ts`
 - Use TypeScript's utility types (Pick, Omit)
@@ -186,12 +219,15 @@ if (process.env.NODE_ENV === 'production' && pathname.startsWith('/debug')) {
 ---
 
 ### 10. **Missing Input Validation**
+
 **Problem:** Many API routes lack input validation:
+
 - No schema validation (Zod, Yup)
 - Manual checks scattered in code
 - Inconsistent error messages
 
 **Examples:**
+
 ```typescript
 // Current (no validation)
 const { name, region } = await request.json();
@@ -206,6 +242,7 @@ const data = schema.parse(await request.json());
 ```
 
 **Solution:**
+
 - Add Zod for schema validation
 - Create reusable validation schemas
 - Consistent error responses
@@ -213,7 +250,9 @@ const data = schema.parse(await request.json());
 ---
 
 ### 11. **Console.log Pollution**
+
 **Problem:** Extensive console logging in production:
+
 - Pallet icon: 20+ console.logs
 - Checkout: 15+ console.logs
 - Profile page: 10+ console.logs
@@ -221,6 +260,7 @@ const data = schema.parse(await request.json());
 
 **Impact:** Low - performance, security (data exposure)
 **Solution:**
+
 - Create logger utility with levels
 - Disable debug logs in production
 - Use proper logging service (optional)
@@ -229,7 +269,7 @@ const data = schema.parse(await request.json());
 // lib/logger.ts
 export const logger = {
   debug: (...args: any[]) => {
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === "development") {
       console.log(...args);
     }
   },
@@ -241,13 +281,16 @@ export const logger = {
 ---
 
 ### 12. **Unused Dependencies & Dead Code**
+
 **Potential unused:**
+
 - Multiple unused migration files in root
 - `waitlist/` directory (89 files) - is this still used?
 - `out/` directory
 - Old test files
 
-**Action:** 
+**Action:**
+
 - Review and remove unused directories
 - Clean up old migration files
 - Audit package.json for unused deps
@@ -257,7 +300,9 @@ export const logger = {
 ## 🚀 PERFORMANCE IMPROVEMENTS
 
 ### 13. **No Image Optimization Strategy**
+
 **Issues:**
+
 - Images uploaded without resizing
 - No WebP conversion
 - No lazy loading in some places
@@ -265,6 +310,7 @@ export const logger = {
 
 **Impact:** Medium - page load speed
 **Solution:**
+
 - Add image processing on upload (Sharp, Cloudinary)
 - Generate multiple sizes (thumbnail, medium, large)
 - Use Next.js Image component everywhere
@@ -273,7 +319,9 @@ export const logger = {
 ---
 
 ### 14. **No Caching Strategy**
+
 **Missing caching:**
+
 - Products API: `{ next: { tags: [TAGS.products] } }` but no revalidation
 - Pallet data fetched on every request
 - Zone matching recalculated every time
@@ -281,6 +329,7 @@ export const logger = {
 
 **Impact:** Medium - performance, cost
 **Solution:**
+
 - Add ISR (Incremental Static Regeneration) for products
 - Cache zone calculations (already partially done)
 - Add Redis/Vercel KV for frequently accessed data
@@ -289,12 +338,15 @@ export const logger = {
 ---
 
 ### 15. **N+1 Query Problem**
+
 **Found in:**
+
 - `/api/pallet/[id]/reservations` - fetches profiles one-by-one
 - Fetches producers one-by-one for items
 - Could batch with `.in()` query
 
 **Current:**
+
 ```typescript
 reservations.map(async (res) => {
   const { data: profile } = await supabase
@@ -307,13 +359,14 @@ reservations.map(async (res) => {
 ```
 
 **Better:**
+
 ```typescript
-const userIds = reservations.map(r => r.user_id);
+const userIds = reservations.map((r) => r.user_id);
 const { data: profiles } = await supabase
   .from("profiles")
   .select("id, email, full_name")
   .in("id", userIds);
-const profileMap = new Map(profiles.map(p => [p.id, p]));
+const profileMap = new Map(profiles.map((p) => [p.id, p]));
 ```
 
 **Impact:** Medium - API response time
@@ -322,12 +375,15 @@ const profileMap = new Map(profiles.map(p => [p.id, p]));
 ---
 
 ### 16. **Large Bundle Sizes**
+
 **Observations:**
+
 - First Load JS: 107 kB (good!)
 - Some pages: 175+ kB
 - Shop page includes motion/react for all product cards
 
 **Opportunities:**
+
 - Code-split heavy components (motion animations)
 - Lazy load admin components
 - Dynamic imports for rarely used features
@@ -337,7 +393,9 @@ const profileMap = new Map(profiles.map(p => [p.id, p]));
 ## 🏗️ ARCHITECTURE IMPROVEMENTS
 
 ### 17. **No Database Indexes Verification**
+
 **Concern:** Do we have proper indexes for:
+
 - `order_reservations.pallet_id` ✅ (added in migration)
 - `order_reservations.user_id` ❓
 - `order_reservation_items.reservation_id` ❓
@@ -350,13 +408,16 @@ const profileMap = new Map(profiles.map(p => [p.id, p]));
 ---
 
 ### 18. **No API Rate Limiting**
+
 **Problem:** Public endpoints have no rate limiting:
+
 - `/api/pallet/[id]/reservations` (now public)
 - `/api/crowdvine/products`
 - Vulnerable to abuse/DOS
 
 **Impact:** Low-Medium - security, cost
 **Solution:**
+
 - Add rate limiting middleware
 - Use Vercel Edge Config or Upstash Redis
 - Different limits for auth vs public
@@ -364,12 +425,15 @@ const profileMap = new Map(profiles.map(p => [p.id, p]));
 ---
 
 ### 19. **Environment Variable Management**
+
 **Issues:**
+
 - `.env.local` and `.env.production` both used
 - Some hardcoded values (e.g., `baseUrl = "https://pactwines.com"`)
 - No validation that required vars are set
 
 **Solution:**
+
 - Create `lib/env.ts` with validation
 - Use `z.object()` to validate env vars at startup
 - Fail fast if missing required vars
@@ -377,13 +441,16 @@ const profileMap = new Map(profiles.map(p => [p.id, p]));
 ---
 
 ### 20. **No Monitoring/Observability**
+
 **Missing:**
+
 - Error tracking (Sentry, LogRocket)
 - Performance monitoring (Vercel Analytics enabled?)
 - Database query performance
 - API endpoint metrics
 
 **Recommendation:**
+
 - Add Sentry for error tracking
 - Enable Vercel Speed Insights
 - Track key metrics (checkout conversion, etc.)
@@ -393,11 +460,14 @@ const profileMap = new Map(profiles.map(p => [p.id, p]));
 ## 🐛 POTENTIAL BUGS
 
 ### 21. **Race Conditions in Checkout**
+
 **Found:** Zone matching triggers multiple state updates rapidly
+
 - Fixed the wrapper issue
 - But still potential for races in `handleZoneMatch`
 
 **Review needed:**
+
 - Debounce zone matching
 - Use `useCallback` with stable dependencies
 - Consider state machine for checkout flow
@@ -405,16 +475,19 @@ const profileMap = new Map(profiles.map(p => [p.id, p]));
 ---
 
 ### 22. **Missing Null Checks**
+
 **Examples:**
+
 ```typescript
 // Unsafe
 const palletName = realPalletData.name; // Could be null/undefined
 
 // Should be
-const palletName = realPalletData?.name || 'Unknown Pallet';
+const palletName = realPalletData?.name || "Unknown Pallet";
 ```
 
 **Found in:**
+
 - Pallet pages
 - Profile page
 - Some admin pages
@@ -424,7 +497,9 @@ const palletName = realPalletData?.name || 'Unknown Pallet';
 ---
 
 ### 23. **Unused State Variables**
+
 **Checkout page has:**
+
 - `customAddress` state but validation incomplete
 - `zoneInfo.usingFallbackAddress` set but only used once
 - Some state that could be derived
@@ -436,12 +511,15 @@ const palletName = realPalletData?.name || 'Unknown Pallet';
 ## 🎨 UX/UI IMPROVEMENTS
 
 ### 24. **Inconsistent Loading States**
+
 **Some components have:**
+
 - Skeleton loaders ✅
 - Spinner loaders ✅
 - No loader at all ❌
 
 **Missing loaders:**
+
 - Zone matching (has spinner now)
 - Some admin pages
 - Image uploads
@@ -451,11 +529,14 @@ const palletName = realPalletData?.name || 'Unknown Pallet';
 ---
 
 ### 25. **No Empty States Consistency**
+
 **Good examples:**
+
 - Pallet icon dropdown: "Your pallets will show here" ✅
 - Profile rewards: Shows 0 values ✅
 
 **Missing:**
+
 - Some admin tables show nothing when empty
 - No helpful text
 
@@ -464,12 +545,15 @@ const palletName = realPalletData?.name || 'Unknown Pallet';
 ---
 
 ### 26. **Mobile Responsiveness Gaps**
+
 **Recently fixed:**
+
 - Profile page ✅
 - Pallet pages ✅
 - Header alignment ✅
 
 **Still needs review:**
+
 - Checkout page (very dense on mobile)
 - Admin pages (not mobile-friendly)
 - Some tables overflow on mobile
@@ -479,12 +563,15 @@ const palletName = realPalletData?.name || 'Unknown Pallet';
 ## 📝 DOCUMENTATION GAPS
 
 ### 27. **Missing Documentation**
+
 **What we have:**
+
 - `README.md` (outdated - mentions campaigns)
 - `ADMIN_README.md`
 - Some feature docs (`WINE_IMAGES_FEATURE.md`)
 
 **Missing:**
+
 - API documentation
 - Database schema docs
 - Setup guide for new developers
@@ -494,7 +581,9 @@ const palletName = realPalletData?.name || 'Unknown Pallet';
 ---
 
 ### 28. **No Code Comments in Complex Logic**
+
 **Needs documentation:**
+
 - Zone matching algorithm
 - Pallet fill percentage calculation
 - Gross margin vs markup pricing
@@ -505,12 +594,15 @@ const palletName = realPalletData?.name || 'Unknown Pallet';
 ## 🔒 SECURITY CONCERNS
 
 ### 29. **RLS Policies Not Fully Verified**
+
 **Questions:**
+
 - Are all tables protected by RLS?
 - Are public endpoints properly scoped?
 - Can users access other users' data?
 
 **Action:**
+
 - Audit all Supabase RLS policies
 - Test with different user roles
 - Document expected access patterns
@@ -518,12 +610,15 @@ const palletName = realPalletData?.name || 'Unknown Pallet';
 ---
 
 ### 30. **Sensitive Data in Logs**
+
 **Found:**
+
 - Email addresses logged
 - User IDs logged
 - Some payment method data in logs
 
 **Solution:**
+
 - Sanitize logs before production
 - Use log levels appropriately
 - Never log PII in production
@@ -531,12 +626,15 @@ const palletName = realPalletData?.name || 'Unknown Pallet';
 ---
 
 ### 31. **CORS and Security Headers**
+
 **Missing:**
+
 - CSP (Content Security Policy)
 - Rate limiting (mentioned above)
 - CSRF protection for forms
 
 **Solution:**
+
 - Add security headers in `next.config.mjs`
 - Review middleware for security
 
@@ -545,7 +643,9 @@ const palletName = realPalletData?.name || 'Unknown Pallet';
 ## 🧹 CODE CLEANUP (Low Priority)
 
 ### 32. **Unused Imports**
+
 **Many files have:**
+
 - Imported but unused components
 - Unused types
 - Commented-out imports
@@ -555,12 +655,15 @@ const palletName = realPalletData?.name || 'Unknown Pallet';
 ---
 
 ### 33. **Inconsistent Code Style**
+
 **Variations:**
+
 - Some files use `async/await`, others use `.then()`
 - Mix of `function` and `const fn = () =>`
 - Inconsistent error handling patterns
 
 **Solution:**
+
 - Establish coding standards
 - Add Prettier configuration
 - Consistent error handling pattern
@@ -568,12 +671,15 @@ const palletName = realPalletData?.name || 'Unknown Pallet';
 ---
 
 ### 34. **Magic Numbers**
+
 **Examples:**
+
 - `alcohol_tax_cents: 2219` (22.19 SEK) - hardcoded
 - `radius_km: 100` - default pickup zone radius
 - `CACHE_DURATION = 2 * 60 * 1000` - scattered
 
 **Solution:**
+
 - Create constants file for business logic
 - Document why each number exists
 
@@ -582,7 +688,9 @@ const palletName = realPalletData?.name || 'Unknown Pallet';
 ## 💡 QUICK WINS (Low Hanging Fruit)
 
 ### 35. **Remove Temporary Analysis Files**
+
 **Delete these:**
+
 - `PALLET_DATA_FLOW_ANALYSIS.md` ✅ (created during debugging)
 - Various `test-*.js` files in root
 - `cookies.txt`
@@ -591,19 +699,24 @@ const palletName = realPalletData?.name || 'Unknown Pallet';
 ---
 
 ### 36. **Consolidate Utility Functions**
+
 **Current state:**
+
 - `formatCurrency` defined in multiple files
 - Color mapping in multiple places
 - Date formatting repeated
 
 **Solution:**
+
 - Create `lib/utils/formatting.ts`
 - Single source for all formatting
 
 ---
 
 ### 37. **Optimize Image Loading**
+
 **Quick wins:**
+
 - Add `loading="lazy"` to all non-critical images ✅ (footer logo already has it)
 - Use `priority` for above-fold images
 - Add proper `width` and `height` to prevent CLS
@@ -611,15 +724,18 @@ const palletName = realPalletData?.name || 'Unknown Pallet';
 ---
 
 ### 38. **Add Database Transactions**
+
 **Missing in:**
+
 - Checkout flow (creates reservation + items + updates pallet)
 - Bulk upload (inserts many wines)
 - Order confirmation
 
 **Risk:** Partial data if one operation fails
 **Solution:**
+
 ```typescript
-const { data, error } = await supabase.rpc('create_reservation_transaction', {
+const { data, error } = await supabase.rpc("create_reservation_transaction", {
   // ...
 });
 ```
@@ -627,12 +743,15 @@ const { data, error } = await supabase.rpc('create_reservation_transaction', {
 ---
 
 ### 39. **Standardize Error Messages**
+
 **Current:**
+
 - Mix of generic and specific errors
 - Inconsistent format
 - Some expose stack traces in production
 
 **Solution:**
+
 - Create error response helper
 - Consistent structure: `{ error: string, code?: string, details?: any }`
 - Never expose stack traces in production
@@ -640,13 +759,16 @@ const { data, error } = await supabase.rpc('create_reservation_transaction', {
 ---
 
 ### 40. **Add TypeScript Strict Mode**
+
 **Current:** `tsconfig.json` likely not in strict mode
 **Benefits:**
+
 - Catch more bugs at compile time
 - Better IDE support
 - Forced null checks
 
 **Solution:**
+
 ```json
 {
   "compilerOptions": {
@@ -662,24 +784,28 @@ const { data, error } = await supabase.rpc('create_reservation_transaction', {
 ## 🎯 RECOMMENDED ACTION PLAN
 
 ### Phase 1: Critical Fixes (This Week)
+
 1. ✅ Document database schema (create `DATABASE_SCHEMA.md`)
 2. ✅ Remove or gate debug/test routes
 3. ✅ Fix dual auth confusion (document patterns)
 4. ✅ Consolidate migrations
 
 ### Phase 2: Code Quality (Next Week)
+
 5. ✅ Refactor checkout page into smaller components
 6. ✅ Remove duplicate code (create shared utilities)
 7. ✅ Add error boundaries
 8. ✅ Fix N+1 queries
 
 ### Phase 3: Performance (Week After)
+
 9. ✅ Add image optimization
 10. ✅ Implement caching strategy
 11. ✅ Add database transactions
 12. ✅ Optimize bundle size
 
 ### Phase 4: Polish (Ongoing)
+
 13. ✅ Add monitoring/error tracking
 14. ✅ Improve documentation
 15. ✅ TypeScript strict mode
@@ -690,6 +816,7 @@ const { data, error } = await supabase.rpc('create_reservation_transaction', {
 ## 📋 CHECKLIST BEFORE NEW FEATURES
 
 **Before adding major features, ensure:**
+
 - [ ] Database schema is documented
 - [ ] Migration system is organized
 - [ ] Debug routes are removed/gated
@@ -706,6 +833,7 @@ const { data, error } = await supabase.rpc('create_reservation_transaction', {
 ## 🎓 LESSONS LEARNED
 
 **From recent development:**
+
 1. **Test with actual schema** - Multiple column name mismatches
 2. **Don't assume fields exist** - Always check database first
 3. **Avoid complex conditional wrappers** - Causes React DOM errors
@@ -719,6 +847,7 @@ const { data, error } = await supabase.rpc('create_reservation_transaction', {
 ## 💰 ESTIMATED IMPACT
 
 **If all issues are fixed:**
+
 - **Performance:** 20-30% faster page loads
 - **Maintainability:** 50% easier to add new features
 - **Bug reduction:** 70% fewer runtime errors
@@ -730,6 +859,7 @@ const { data, error } = await supabase.rpc('create_reservation_transaction', {
 ## 🔧 TOOLS TO CONSIDER
 
 **For better DX:**
+
 - [ ] Zod - Schema validation
 - [ ] Prisma - Type-safe database client
 - [ ] Sentry - Error tracking
@@ -754,7 +884,6 @@ const { data, error } = await supabase.rpc('create_reservation_transaction', {
 
 ---
 
-*Generated: October 9, 2025*
-*Platform: PACT Wines (CrowdVine)*
-*Status: Production*
-
+_Generated: October 9, 2025_
+_Platform: PACT Wines (CrowdVine)_
+_Status: Production_

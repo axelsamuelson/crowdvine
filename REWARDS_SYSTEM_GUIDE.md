@@ -20,26 +20,31 @@ Om du letar efter information om det gamla systemet, se slutet av detta dokument
 ## 💎 Membership Ladder System
 
 ### Grundprincip
+
 Användare tjänar Impact Points (IP) genom att bjuda in vänner och vara aktiva på plattformen. IP låser upp högre membership-nivåer med exklusiva perks och förmåner.
 
 ### Medlemsnivåer
 
 #### **Level 0: Requester** (0 IP)
+
 - Ingen access till plattformen
 - Måste få en invitation eller godkännas av admin
 
 #### **Level 1: Basic** (0-4 IP)
+
 - Entry-level membership
 - Kan reservera viner i öppna pallar
 - 2 invites per månad
 
 #### **Level 2: Brons** (5-14 IP)
+
 - Aktiv medlem
 - Lätt kö-prioritet
 - Service fee reducerad med 50% (upp till månadsgräns)
 - 5 invites per månad
 
 #### **Level 3: Silver** (15-34 IP)
+
 - Trusted member
 - 24h early access till nya drops
 - Fee cap per order
@@ -47,6 +52,7 @@ Användare tjänar Impact Points (IP) genom att bjuda in vänner och vara aktiva
 - 12 invites per månad
 
 #### **Level 4: Guld** (≥35 IP)
+
 - Top member
 - 72h early access till nya drops
 - Exklusiva member-only drops
@@ -55,6 +61,7 @@ Användare tjänar Impact Points (IP) genom att bjuda in vänner och vara aktiva
 - 50 invites per månad
 
 #### **Level 5: Admin** (manuell)
+
 - Plattformens operatörer
 - Kan starta och hosta pallar
 - Direktkontakt med producenter
@@ -62,14 +69,15 @@ Användare tjänar Impact Points (IP) genom att bjuda in vänner och vara aktiva
 
 ### Hur Man Tjänar Impact Points
 
-| Aktivitet | IP | Beskrivning |
-|-----------|----|----|
-| Vän registrerar sig | +1 IP | När en inbjuden vän skapar konto |
-| Vän gör första reservation | +2 IP | När samma vän gör sin första order |
-| Egen order ≥6 flaskor | +1 IP | För varje order med minst 6 flaskor |
-| Pallet milestone | +3 IP | Vid 3, 6, 9, 12, 15 unika pallar |
+| Aktivitet                  | IP    | Beskrivning                         |
+| -------------------------- | ----- | ----------------------------------- |
+| Vän registrerar sig        | +1 IP | När en inbjuden vän skapar konto    |
+| Vän gör första reservation | +2 IP | När samma vän gör sin första order  |
+| Egen order ≥6 flaskor      | +1 IP | För varje order med minst 6 flaskor |
+| Pallet milestone           | +3 IP | Vid 3, 6, 9, 12, 15 unika pallar    |
 
 ### Invite Quotas
+
 - Varje nivå har en månadskvot för invitations
 - Kvoten återställs automatiskt den 1:a varje månad
 - Oanvända invites rullar INTE över till nästa månad
@@ -79,6 +87,7 @@ Användare tjänar Impact Points (IP) genom att bjuda in vänner och vara aktiva
 ## 🗄️ Databas-struktur
 
 ### User Memberships Table
+
 ```sql
 CREATE TABLE user_memberships (
   id UUID PRIMARY KEY,
@@ -95,6 +104,7 @@ CREATE TABLE user_memberships (
 ```
 
 ### Impact Point Events Table (Audit Log)
+
 ```sql
 CREATE TABLE impact_point_events (
   id UUID PRIMARY KEY,
@@ -109,6 +119,7 @@ CREATE TABLE impact_point_events (
 ```
 
 ### Membership Perks Table (Configuration)
+
 ```sql
 CREATE TABLE membership_perks (
   id UUID PRIMARY KEY,
@@ -122,6 +133,7 @@ CREATE TABLE membership_perks (
 ```
 
 ### Invitation Codes Table (Updated)
+
 ```sql
 CREATE TABLE invitation_codes (
   id UUID PRIMARY KEY,
@@ -198,31 +210,36 @@ CREATE TABLE invitation_codes (
 ### Frontend Flow
 
 #### 1. Generate Invitation
+
 ```typescript
 // app/profile/page.tsx
 const generateInvitation = async () => {
-  const res = await fetch('/api/user/invitations/generate');
+  const res = await fetch("/api/user/invitations/generate");
   const data = await res.json();
   // Returns: { code, signupUrl, expiresAt }
 };
 ```
 
 #### 2. Track Invitations
+
 ```typescript
 // Uses Supabase Realtime
-const channel = supabase
-  .channel(`invitations:${profile.id}`)
-  .on('postgres_changes', {
-    event: '*',
-    schema: 'public',
-    table: 'invitation_codes',
-    filter: `created_by=eq.${profile.id}`
-  }, (payload) => {
+const channel = supabase.channel(`invitations:${profile.id}`).on(
+  "postgres_changes",
+  {
+    event: "*",
+    schema: "public",
+    table: "invitation_codes",
+    filter: `created_by=eq.${profile.id}`,
+  },
+  (payload) => {
     // Update invitation state
-  });
+  },
+);
 ```
 
 #### 3. Display Rewards
+
 ```typescript
 // Calculate based on usedInvitations
 const totalEligibleBottles = usedInvitations.length * 6;
@@ -239,11 +256,12 @@ const available10Percent = (friendsWithReservations * 6) - used10Percent;
 ## 🎯 Reward Logic Exempel
 
 ### Scenario 1: Grundläggande
+
 ```
 Användare A bjuder in 3 vänner:
 ├─ Vän 1: Registrerar sig
 │  └─ A får: 6 flaskor @ 5% rabatt
-├─ Vän 2: Registrerar sig  
+├─ Vän 2: Registrerar sig
 │  └─ A får: 6 flaskor @ 5% rabatt (totalt 12)
 └─ Vän 3: Registrerar sig
    └─ A får: 6 flaskor @ 5% rabatt (totalt 18)
@@ -252,6 +270,7 @@ Totalt: 18 flaskor @ 5% rabatt
 ```
 
 ### Scenario 2: Med Reservationer
+
 ```
 Användare A bjuder in 3 vänner:
 ├─ Vän 1: Registrerar sig → gör reservation
@@ -265,6 +284,7 @@ Totalt: 12 flaskor @ 10% + 6 flaskor @ 5%
 ```
 
 ### Scenario 3: Använd Rewards
+
 ```
 Användare A har: 18 flaskor @ 5% tillgängliga
 A gör en order med 12 flaskor och använder rewards:
@@ -281,12 +301,14 @@ Remaining: 6 flaskor @ 5% available
 ### Current State (UI Only)
 
 **Checkout Page visar:**
+
 - "Use Rewards?" toggle (Yes/No)
 - När "Yes": Lista över available rewards
 - Användaren kan välja vilka rewards som ska användas
 - UI uppdaterar total-priset (frontend only)
 
 **Men saknar:**
+
 - Backend-validering av rewards
 - Faktisk rabatt-applikation i Stripe/betalning
 - Uppdatering av `used` rewards efter order
@@ -297,15 +319,18 @@ Remaining: 6 flaskor @ 5% available
 ## 📁 Relevanta Filer
 
 ### Frontend
+
 - `app/profile/page.tsx` - Main profile page med rewards display
 - `components/ui/reward-tier-card.tsx` - 5% och 10% reward cards
 - `app/checkout/page.tsx` - Checkout med rewards selection
 
 ### Backend/API
+
 - `app/api/user/invitations/generate/route.ts` - Generera invite-kod
 - `invitation_codes` table - Lagrar alla invitations
 
 ### Database
+
 - `migrations/old/migration_invitation_codes.sql` - Invitation codes schema
 - `migrations/old/migration_access_control.sql` - RLS policies
 
@@ -314,7 +339,9 @@ Remaining: 6 flaskor @ 5% available
 ## 🚧 TODO: Vad Som Behöver Implementeras
 
 ### 1. Backend Rewards Tracking
+
 Skapa en `user_rewards` tabell:
+
 ```sql
 CREATE TABLE user_rewards (
   id UUID PRIMARY KEY,
@@ -329,17 +356,20 @@ CREATE TABLE user_rewards (
 ```
 
 ### 2. API Endpoints
+
 - `GET /api/user/rewards` - Hämta alla user rewards
 - `POST /api/user/rewards/apply` - Applicera rewards på en order
 - `PUT /api/user/rewards/upgrade` - Uppgradera 5% → 10% när vän gör reservation
 
 ### 3. Checkout Integration
+
 - Validera tillgängliga rewards vid checkout
 - Applicera rabatt i Stripe payment intent
 - Uppdatera `used_bottles` efter lyckad order
 - Koppla rewards till `order_reservations` via foreign key
 
 ### 4. Automatic Upgrades
+
 - Webhook/trigger när invited user gör första reservation
 - Uppgradera motsvarande 6 flaskor från 5% → 10%
 - Notifiera användaren om uppgradering
@@ -349,23 +379,25 @@ CREATE TABLE user_rewards (
 ## 🔍 Debugging
 
 ### Kolla Invitation Status
+
 ```sql
 -- Se alla invitations för en user
-SELECT * FROM invitation_codes 
-WHERE created_by = 'USER_ID' 
+SELECT * FROM invitation_codes
+WHERE created_by = 'USER_ID'
 ORDER BY created_at DESC;
 
 -- Se accepted invitations
-SELECT * FROM invitation_codes 
-WHERE created_by = 'USER_ID' 
+SELECT * FROM invitation_codes
+WHERE created_by = 'USER_ID'
 AND used_at IS NOT NULL;
 ```
 
 ### Verifiera Rewards
+
 ```typescript
 // I profile page console:
-console.log('Used invitations:', usedInvitations.length);
-console.log('Total eligible bottles (5%):', usedInvitations.length * 6);
+console.log("Used invitations:", usedInvitations.length);
+console.log("Total eligible bottles (5%):", usedInvitations.length * 6);
 ```
 
 ---
@@ -387,13 +419,15 @@ console.log('Total eligible bottles (5%):', usedInvitations.length * 6);
 ### Vad Som Ändrades
 
 **FÖRE (Rewards):**
+
 - 5% rabatt på 6 flaskor när vän registrerar sig
 - 10% rabatt (upgrade) när vän gör reservation
 - Rabatter appliceras vid checkout
 
 **EFTER (Membership Ladder):**
+
 - +1 IP när vän registrerar sig
-- +2 IP när vän gör reservation  
+- +2 IP när vän gör reservation
 - IP låser upp membership-nivåer med perks
 - Inga direkta prisrabatter
 
@@ -404,7 +438,7 @@ För 0-10 användare (manuell migration):
 ```sql
 -- För varje användare, räkna IP från invitations
 INSERT INTO user_memberships (user_id, level, impact_points, invite_quota_monthly)
-SELECT 
+SELECT
   u.id,
   get_level_from_points(
     COALESCE((SELECT COUNT(*) FROM invitation_codes WHERE created_by = u.id AND used_at IS NOT NULL), 0)
@@ -431,6 +465,7 @@ WHERE NOT EXISTS (SELECT 1 FROM user_memberships WHERE user_id = u.id);
 ## 📁 Relevanta Filer (Nytt System)
 
 ### Backend
+
 - `lib/membership/points-engine.ts` - IP accrual logic
 - `lib/membership/invite-quota.ts` - Quota management
 - `app/api/user/membership/route.ts` - Membership data API
@@ -439,6 +474,7 @@ WHERE NOT EXISTS (SELECT 1 FROM user_memberships WHERE user_id = u.id);
 - `app/api/admin/invitations/generate/route.ts` - Admin invite creation
 
 ### Frontend
+
 - `app/profile/page.tsx` - Redesigned profile with membership
 - `components/membership/level-badge.tsx` - Metallic level badges
 - `components/membership/perks-grid.tsx` - Perks display
@@ -447,10 +483,12 @@ WHERE NOT EXISTS (SELECT 1 FROM user_memberships WHERE user_id = u.id);
 - `components/membership/invite-quota-display.tsx` - Invite quota UI
 
 ### Database
+
 - `migrations/034_membership_system.sql` - Complete membership schema
 - `invitation_codes.initial_level` - Admin-set start level
 
 ### Access Control
+
 - `middleware.ts` - Level-based access gating
 - `app/access-pending/page.tsx` - Requester holding page
 
@@ -459,8 +497,9 @@ WHERE NOT EXISTS (SELECT 1 FROM user_memberships WHERE user_id = u.id);
 ## 🔍 Debugging & Admin Tools
 
 ### Check User Membership
+
 ```sql
-SELECT 
+SELECT
   u.email,
   m.level,
   m.impact_points,
@@ -472,6 +511,7 @@ ORDER BY m.impact_points DESC;
 ```
 
 ### View IP Events for User
+
 ```sql
 SELECT * FROM impact_point_events
 WHERE user_id = 'USER_ID'
@@ -480,15 +520,16 @@ LIMIT 20;
 ```
 
 ### Manual Level Adjustment (Admin)
+
 ```typescript
 // Via admin API
-await fetch('/api/admin/memberships', {
-  method: 'PUT',
+await fetch("/api/admin/memberships", {
+  method: "PUT",
   body: JSON.stringify({
-    userId: 'USER_ID',
-    level: 'silver',
-    impactPoints: 20
-  })
+    userId: "USER_ID",
+    level: "silver",
+    impactPoints: 20,
+  }),
 });
 ```
 
@@ -499,13 +540,13 @@ await fetch('/api/admin/memberships', {
 Admins kan skapa invitations med custom start level:
 
 ```typescript
-await fetch('/api/admin/invitations/generate', {
-  method: 'POST',
+await fetch("/api/admin/invitations/generate", {
+  method: "POST",
   body: JSON.stringify({
-    initialLevel: 'silver',  // basic, brons, silver, or guld
+    initialLevel: "silver", // basic, brons, silver, or guld
     expiresInDays: 30,
-    maxUses: 1
-  })
+    maxUses: 1,
+  }),
 });
 ```
 
@@ -520,19 +561,23 @@ När mottagaren redeemer koden → de börjar direkt på Silver level (bypass IP
 ### Hur Det Gamla Systemet Fungerade
 
 **5% Rabatt:**
+
 - Vän registrerade sig → Du fick 6 flaskor @ 5% rabatt
 - 3 vänner registrerade sig → 18 flaskor @ 5%
 
 **10% Rabatt:**
+
 - Vän registrerade sig OCH gjorde reservation → Samma 6 flaskor uppgraderades till 10%
 - INTE kumulativt: 2 vänner med reservationer = 12 flaskor @ 10%
 
 **Checkout Integration:**
+
 - Användare valde vilka rewards som skulle användas
 - Rabatter applicerades på valda flaskor
 - Backend trackade used vs available bottles
 
 **Varför Vi Bytte:**
+
 - Komplicerad tracking av used/available bottles
 - Svårt att skala (vad händer vid 100+ invites?)
 - Rabatter skapar inte samma exklusivitet som status/perks
@@ -541,4 +586,3 @@ När mottagaren redeemer koden → de börjar direkt på Silver level (bypass IP
 ---
 
 **För frågor om nya membership-systemet, kontakta utvecklingsteamet.**
-

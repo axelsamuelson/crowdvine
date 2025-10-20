@@ -64,7 +64,8 @@ export function AddToCartWithQuantity({
   };
 
   const handleIncrease = () => {
-    if (quantity < 99) { // Max 99 bottles
+    if (quantity < 99) {
+      // Max 99 bottles
       setQuantity(quantity + 1);
     }
   };
@@ -76,34 +77,40 @@ export function AddToCartWithQuantity({
       startTransition(async () => {
         try {
           console.log("🛒 [PDP] Adding", quantity, "items to cart");
-          
+
           // Call new batch endpoint to add multiple items at once
-          const response = await fetch('/api/cart/add-quantity', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
+          const response = await fetch("/api/cart/add-quantity", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
               variantId: resolvedVariant.id,
-              quantity: quantity 
-            })
+              quantity: quantity,
+            }),
           });
-          
+
           if (response.ok) {
             const result = await response.json();
-            console.log("🛒 [PDP] Added successfully, cart has", result.cart.totalQuantity, "items");
-            
+            console.log(
+              "🛒 [PDP] Added successfully, cart has",
+              result.cart.totalQuantity,
+              "items",
+            );
+
             // Dispatch event with the updated cart data
-            if (typeof window !== 'undefined') {
-              window.dispatchEvent(new CustomEvent('cart-refresh', { detail: result.cart }));
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(
+                new CustomEvent("cart-refresh", { detail: result.cart }),
+              );
               console.log("🛒 [PDP] Dispatched cart-refresh event");
             }
-            
+
             // Reset quantity to 1 after successful add
             setQuantity(1);
           } else {
-            console.error('🛒 [PDP] Failed to add items to cart');
+            console.error("🛒 [PDP] Failed to add items to cart");
           }
         } catch (error) {
-          console.error('🛒 [PDP] Error adding to cart:', error);
+          console.error("🛒 [PDP] Error adding to cart:", error);
         }
       });
     }
@@ -123,7 +130,9 @@ export function AddToCartWithQuantity({
             disabled={quantity <= 1 || isDisabled}
             className={cn(
               "px-3 py-2 hover:bg-gray-900 transition-colors border-r border-gray-700",
-              quantity <= 1 || isDisabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"
+              quantity <= 1 || isDisabled
+                ? "opacity-40 cursor-not-allowed"
+                : "cursor-pointer",
             )}
           >
             <Minus className="w-4 h-4 text-white" />
@@ -143,7 +152,9 @@ export function AddToCartWithQuantity({
             disabled={quantity >= 99 || isDisabled}
             className={cn(
               "px-3 py-2 hover:bg-gray-900 transition-colors border-l border-gray-700",
-              quantity >= 99 || isDisabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"
+              quantity >= 99 || isDisabled
+                ? "opacity-40 cursor-not-allowed"
+                : "cursor-pointer",
             )}
           >
             <Plus className="w-4 h-4 text-white" />
@@ -191,4 +202,3 @@ export function AddToCartWithQuantity({
     </form>
   );
 }
-

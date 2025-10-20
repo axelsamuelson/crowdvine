@@ -37,7 +37,7 @@ async function updateStockholmZoneCoordinates() {
       .from("pallet_zones")
       .update({
         center_lat: newLat,
-        center_lon: newLon
+        center_lon: newLon,
       })
       .eq("id", zone.id);
 
@@ -58,12 +58,12 @@ async function updateStockholmZoneCoordinates() {
 
     if (!pickupError && pickupZones && pickupZones.length > 0) {
       const pickupZone = pickupZones[0];
-      
+
       const { error: updatePickupError } = await supabase
         .from("pallet_zones")
         .update({
           center_lat: newLat,
-          center_lon: newLon
+          center_lon: newLon,
         })
         .eq("id", pickupZone.id);
 
@@ -74,7 +74,6 @@ async function updateStockholmZoneCoordinates() {
 
     console.log("\n🎉 Stockholm zones updated successfully!");
     console.log("Now geocoding will work with accurate coordinates");
-
   } catch (error) {
     console.error("❌ Error updating Stockholm zones:", error);
   }

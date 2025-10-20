@@ -35,16 +35,16 @@ export async function GET(
         handle: `wine-box-${calc.wineBoxId}`,
         productType: "wine-box",
         categoryId: "wine-boxes-collection",
-            priceRange: {
-              minVariantPrice: {
-                amount: Math.round(calc.finalPrice).toString(),
-                currencyCode: "SEK",
-              },
-              maxVariantPrice: {
-                amount: Math.round(calc.finalPrice).toString(),
-                currencyCode: "SEK",
-              },
-            },
+        priceRange: {
+          minVariantPrice: {
+            amount: Math.round(calc.finalPrice).toString(),
+            currencyCode: "SEK",
+          },
+          maxVariantPrice: {
+            amount: Math.round(calc.finalPrice).toString(),
+            currencyCode: "SEK",
+          },
+        },
         featuredImage: {
           id: `${calc.wineBoxId}-img`,
           url:
@@ -70,10 +70,10 @@ export async function GET(
             id: `${calc.wineBoxId}-variant`,
             title: `${calc.bottleCount} Bottles`,
             availableForSale: true,
-                price: {
-                  amount: Math.round(calc.finalPrice).toString(),
-                  currencyCode: "SEK",
-                },
+            price: {
+              amount: Math.round(calc.finalPrice).toString(),
+              currencyCode: "SEK",
+            },
             selectedOptions: [
               { name: "Size", value: `${calc.bottleCount} Bottles` },
               {

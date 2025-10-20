@@ -115,12 +115,12 @@ export default function UsersAdmin() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ 
-          userId, 
+        body: JSON.stringify({
+          userId,
           updates: {
             role: updates.role,
-            membership_level: updates.membership_level
-          }
+            membership_level: updates.membership_level,
+          },
         }),
       });
 
@@ -178,7 +178,7 @@ export default function UsersAdmin() {
     setSelectedUser(user);
     setEditForm({
       role: user.role,
-      membership_level: user.membership_level || 'basic',
+      membership_level: user.membership_level || "basic",
     });
     setIsEditDialogOpen(true);
   };
@@ -211,23 +211,23 @@ export default function UsersAdmin() {
 
   const getMembershipBadge = (level: string) => {
     const colors = {
-      'admin': 'bg-purple-600 text-white',
-      'guld': 'bg-yellow-600 text-white',
-      'silver': 'bg-gray-600 text-white',
-      'brons': 'bg-orange-600 text-white',
-      'basic': 'bg-blue-600 text-white',
-      'requester': 'bg-gray-300 text-gray-700'
+      admin: "bg-purple-600 text-white",
+      guld: "bg-yellow-600 text-white",
+      silver: "bg-gray-600 text-white",
+      brons: "bg-orange-600 text-white",
+      basic: "bg-blue-600 text-white",
+      requester: "bg-gray-300 text-gray-700",
     };
-    
+
     const labels = {
-      'admin': 'Admin',
-      'guld': 'Gold',
-      'silver': 'Silver',
-      'brons': 'Bronze',
-      'basic': 'Basic',
-      'requester': 'Requester'
+      admin: "Admin",
+      guld: "Gold",
+      silver: "Silver",
+      brons: "Bronze",
+      basic: "Basic",
+      requester: "Requester",
     };
-    
+
     return (
       <Badge className={colors[level as keyof typeof colors] || colors.basic}>
         {labels[level as keyof typeof labels] || level}
@@ -320,7 +320,7 @@ export default function UsersAdmin() {
             </TableHeader>
             <TableBody>
               {filteredUsers.map((user) => (
-                <TableRow 
+                <TableRow
                   key={user.id}
                   onClick={() => router.push(`/admin/users/${user.id}`)}
                   className="cursor-pointer hover:bg-muted/50 transition-colors"
@@ -454,10 +454,16 @@ export default function UsersAdmin() {
                   <SelectValue placeholder="Select membership level" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="requester">Requester (No Access)</SelectItem>
+                  <SelectItem value="requester">
+                    Requester (No Access)
+                  </SelectItem>
                   <SelectItem value="basic">Basic (2 invites/month)</SelectItem>
-                  <SelectItem value="brons">Bronze (5 invites/month)</SelectItem>
-                  <SelectItem value="silver">Silver (12 invites/month)</SelectItem>
+                  <SelectItem value="brons">
+                    Bronze (5 invites/month)
+                  </SelectItem>
+                  <SelectItem value="silver">
+                    Silver (12 invites/month)
+                  </SelectItem>
                   <SelectItem value="guld">Gold (50 invites/month)</SelectItem>
                   <SelectItem value="admin">Admin (Unlimited)</SelectItem>
                 </SelectContent>

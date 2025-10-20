@@ -54,9 +54,9 @@ export async function POST(request: NextRequest) {
       const errorData = await signupResponse.json().catch(() => ({}));
       console.error("DEBUG: Failed to generate signup URL:", errorData);
       return NextResponse.json(
-        { 
+        {
           error: "Failed to generate signup URL",
-          details: errorData 
+          details: errorData,
         },
         { status: 500 },
       );
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
 
     const signupData = await signupResponse.json();
     console.log("DEBUG: Signup URL data:", signupData);
-    
+
     if (!signupData.signupUrl) {
       console.error("DEBUG: No signupUrl in response:", signupData);
       return NextResponse.json(
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
         { status: 500 },
       );
     }
-    
+
     const { signupUrl } = signupData;
     console.log("DEBUG: Signup URL generated:", signupUrl);
 
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
     // Generate email templates
     const htmlTemplate = await getAccessApprovalEmailTemplate(signupUrl);
     const textTemplate = await getAccessApprovalEmailText(signupUrl);
-    
+
     console.log("DEBUG: Email details:", {
       to: email,
       subject: "Welcome to PACT - Your Access Has Been Approved",
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
       hasHtml: !!htmlTemplate,
       hasText: !!textTemplate,
     });
-    
+
     const emailSent = await sendGridService.sendEmail({
       to: email,
       subject: "✅ Welcome to PACT - Your Access Has Been Approved",
@@ -108,7 +108,10 @@ export async function POST(request: NextRequest) {
         signupUrl: signupUrl,
       });
     } else {
-      console.error("DEBUG: SendGrid returned false - email NOT sent to:", email);
+      console.error(
+        "DEBUG: SendGrid returned false - email NOT sent to:",
+        email,
+      );
       return NextResponse.json(
         { error: "Failed to send approval email - SendGrid returned false" },
         { status: 500 },

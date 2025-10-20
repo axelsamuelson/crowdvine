@@ -15,26 +15,26 @@ export function Footer() {
                 Navigation
               </h3>
               <div className="flex flex-col gap-2">
-                <Link 
-                  href="/" 
+                <Link
+                  href="/"
                   className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
                 >
                   Home
                 </Link>
-                <Link 
-                  href="/shop" 
+                <Link
+                  href="/shop"
                   className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
                 >
                   Shop
                 </Link>
-                <Link 
-                  href="/about" 
+                <Link
+                  href="/about"
                   className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
                 >
                   About
                 </Link>
-                <Link 
-                  href="/profile" 
+                <Link
+                  href="/profile"
                   className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
                 >
                   Profile

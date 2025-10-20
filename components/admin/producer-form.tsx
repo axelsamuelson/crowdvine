@@ -72,7 +72,7 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
         // Create or update pickup zone for this producer
         const zoneData = {
           name: `${formData.name} (Pickup)`,
-          type: 'pickup' as const,
+          type: "pickup" as const,
           lat: formData.lat,
           lon: formData.lon,
           address_city: formData.address_city,
@@ -80,14 +80,14 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
           country_code: formData.country_code,
         };
 
-        console.log('📍 Sending zone creation request:', {
+        console.log("📍 Sending zone creation request:", {
           producerId: producer?.id,
           zoneData,
         });
 
-        const zoneResponse = await fetch('/api/admin/zones/for-producer', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const zoneResponse = await fetch("/api/admin/zones/for-producer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             producerId: producer?.id,
             zoneData,
@@ -96,59 +96,61 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
 
         if (!zoneResponse.ok) {
           const errorData = await zoneResponse.json();
-          console.error('❌ Zone creation failed:', errorData);
-          throw new Error(errorData.error || 'Failed to create/update pickup zone');
+          console.error("❌ Zone creation failed:", errorData);
+          throw new Error(
+            errorData.error || "Failed to create/update pickup zone",
+          );
         }
 
         const { zoneId } = await zoneResponse.json();
-        console.log('✅ Zone created/updated:', zoneId);
+        console.log("✅ Zone created/updated:", zoneId);
         formData.pickup_zone_id = zoneId;
       } else if (!isPickupZone && producer?.pickup_zone_id) {
         // User unchecked the box - remove the pickup zone association
         formData.pickup_zone_id = "";
       }
 
-      console.log('📝 Submitting producer data:', formData);
+      console.log("📝 Submitting producer data:", formData);
 
       // Use API routes instead of Server Actions for better error handling in production
       if (producer) {
         // Update existing producer
         const response = await fetch(`/api/admin/producers/${producer.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData),
         });
 
         if (!response.ok) {
           const errorData = await response.json();
-          console.error('❌ Update failed:', errorData);
-          throw new Error(errorData.error || 'Failed to update producer');
+          console.error("❌ Update failed:", errorData);
+          throw new Error(errorData.error || "Failed to update producer");
         }
 
         const result = await response.json();
-        console.log('✅ Producer updated:', result.producer);
+        console.log("✅ Producer updated:", result.producer);
       } else {
         // Create new producer
-        const response = await fetch('/api/admin/producers', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const response = await fetch("/api/admin/producers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData),
         });
 
         if (!response.ok) {
           const errorData = await response.json();
-          console.error('❌ Create failed:', errorData);
-          throw new Error(errorData.error || 'Failed to create producer');
+          console.error("❌ Create failed:", errorData);
+          throw new Error(errorData.error || "Failed to create producer");
         }
 
         const result = await response.json();
-        console.log('✅ Producer created:', result.producer);
+        console.log("✅ Producer created:", result.producer);
       }
-      
+
       router.push("/admin/producers");
       router.refresh();
     } catch (err) {
-      console.error('❌ Producer creation error:', err);
+      console.error("❌ Producer creation error:", err);
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
@@ -161,7 +163,14 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     // Reset geocode success when address changes
-    if (['address_street', 'address_city', 'address_postcode', 'country_code'].includes(field)) {
+    if (
+      [
+        "address_street",
+        "address_city",
+        "address_postcode",
+        "country_code",
+      ].includes(field)
+    ) {
       setGeocodeSuccess(false);
     }
   };
@@ -189,10 +198,10 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
 
       // Use Nominatim API (same as delivery zones)
       const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressString)}&limit=1`;
-      
+
       const response = await fetch(nominatimUrl, {
         headers: {
-          'User-Agent': 'PACT-Wines-Admin/1.0',
+          "User-Agent": "PACT-Wines-Admin/1.0",
         },
       });
 
@@ -203,7 +212,9 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
       const results = await response.json();
 
       if (!results || results.length === 0) {
-        throw new Error("Address not found. Please check the address and try again.");
+        throw new Error(
+          "Address not found. Please check the address and try again.",
+        );
       }
 
       const location = results[0];
@@ -220,12 +231,13 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
       }));
 
       setGeocodeSuccess(true);
-      
+
       // Clear success message after 3 seconds
       setTimeout(() => setGeocodeSuccess(false), 3000);
-
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to geocode address");
+      setError(
+        err instanceof Error ? err.message : "Failed to geocode address",
+      );
       console.error("Geocoding error:", err);
     } finally {
       setGeocoding(false);
@@ -285,7 +297,9 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
                     handleChange("lat", parseFloat(e.target.value) || 0)
                   }
                   required
-                  className={geocodeSuccess ? "border-green-500 bg-green-50" : ""}
+                  className={
+                    geocodeSuccess ? "border-green-500 bg-green-50" : ""
+                  }
                 />
               </div>
 
@@ -300,7 +314,9 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
                     handleChange("lon", parseFloat(e.target.value) || 0)
                   }
                   required
-                  className={geocodeSuccess ? "border-green-500 bg-green-50" : ""}
+                  className={
+                    geocodeSuccess ? "border-green-500 bg-green-50" : ""
+                  }
                 />
               </div>
 
@@ -335,7 +351,15 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
 
             {formData.address_city && (
               <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded border border-gray-200">
-                📍 Will geocode: {[formData.address_street, formData.address_city, formData.address_postcode, formData.country_code].filter(Boolean).join(", ")}
+                📍 Will geocode:{" "}
+                {[
+                  formData.address_street,
+                  formData.address_city,
+                  formData.address_postcode,
+                  formData.country_code,
+                ]
+                  .filter(Boolean)
+                  .join(", ")}
               </div>
             )}
           </div>
@@ -407,22 +431,30 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
                 className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
               <div className="flex-1">
-                <Label htmlFor="is_pickup_zone" className="font-semibold text-blue-900 cursor-pointer">
+                <Label
+                  htmlFor="is_pickup_zone"
+                  className="font-semibold text-blue-900 cursor-pointer"
+                >
                   Make this producer a pickup zone
                 </Label>
                 <p className="text-sm text-blue-700 mt-1">
-                  Automatically creates a pickup zone at the producer's location for pallet consolidation
+                  Automatically creates a pickup zone at the producer's location
+                  for pallet consolidation
                 </p>
               </div>
             </div>
 
             {!isPickupZone && (
               <div className="space-y-2">
-                <Label htmlFor="pickup_zone_id">Or select existing Pickup Zone</Label>
+                <Label htmlFor="pickup_zone_id">
+                  Or select existing Pickup Zone
+                </Label>
                 <select
                   id="pickup_zone_id"
                   value={formData.pickup_zone_id || ""}
-                  onChange={(e) => handleChange("pickup_zone_id", e.target.value)}
+                  onChange={(e) =>
+                    handleChange("pickup_zone_id", e.target.value)
+                  }
                   className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-1 text-base transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm aria-[invalid=true]:border-red-500 aria-[invalid=true]:focus-visible:!ring-red-500"
                 >
                   <option value="">No pickup zone selected</option>
@@ -434,10 +466,13 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
                 </select>
               </div>
             )}
-            
+
             {isPickupZone && (
               <div className="text-sm text-gray-600 p-3 bg-gray-50 border border-gray-200 rounded-md">
-                ℹ️ A pickup zone named "<strong>{formData.name} (Pickup)</strong>" will be {producer?.pickup_zone_id ? 'updated' : 'created'} at this producer's location
+                ℹ️ A pickup zone named "
+                <strong>{formData.name} (Pickup)</strong>" will be{" "}
+                {producer?.pickup_zone_id ? "updated" : "created"} at this
+                producer's location
               </div>
             )}
           </div>

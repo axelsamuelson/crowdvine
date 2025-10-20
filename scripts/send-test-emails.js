@@ -1,18 +1,18 @@
 // Script to send test emails for building sender reputation
 // Run this daily to improve email deliverability speed
 
-import sgMail from '@sendgrid/mail';
-import dotenv from 'dotenv';
+import sgMail from "@sendgrid/mail";
+import dotenv from "dotenv";
 
 // Load environment variables
-dotenv.config({ path: '.env.local' });
+dotenv.config({ path: ".env.local" });
 
 // Initialize SendGrid
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const testEmails = [
-  'axelrib@hotmail.com',
-  'ave.samuelson@gmail.com',
+  "axelrib@hotmail.com",
+  "ave.samuelson@gmail.com",
   // Add more test emails here
 ];
 
@@ -80,38 +80,37 @@ const testEmailTemplate = `
 `;
 
 async function sendTestEmails() {
-  console.log('🚀 Starting reputation building emails...');
-  
+  console.log("🚀 Starting reputation building emails...");
+
   for (const email of testEmails) {
     try {
       const msg = {
         to: email,
         from: {
-          email: 'welcome@pactwines.com',
-          name: 'PACT Wines'
+          email: "welcome@pactwines.com",
+          name: "PACT Wines",
         },
         subject: `PACT Test Email - ${new Date().toLocaleDateString()}`,
         html: testEmailTemplate,
         text: `PACT Test Email - ${new Date().toLocaleDateString()}\n\nThis is a test email to build sender reputation.\n\nVisit: https://pactwines.com`,
         headers: {
-          'X-Mailer': 'PACT Wines Platform',
-          'X-Priority': '3',
-        }
+          "X-Mailer": "PACT Wines Platform",
+          "X-Priority": "3",
+        },
       };
 
       const result = await sgMail.send(msg);
       console.log(`✅ Test email sent to ${email}`);
       console.log(`   Status: ${result[0].statusCode}`);
-      
+
       // Wait 2 seconds between emails to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
     } catch (error) {
       console.error(`❌ Failed to send to ${email}:`, error.message);
     }
   }
-  
-  console.log('🎉 Reputation building emails completed!');
+
+  console.log("🎉 Reputation building emails completed!");
 }
 
 // Run if called directly

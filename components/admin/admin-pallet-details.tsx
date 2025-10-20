@@ -3,34 +3,37 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { 
-  Package, 
-  MapPin, 
-  Users, 
-  Wine, 
+import {
+  Package,
+  MapPin,
+  Users,
+  Wine,
   TrendingUp,
   Edit,
   Calendar,
   DollarSign,
-  Box
+  Box,
 } from "lucide-react";
-import { getPercentFilled, shouldShowPercent } from "@/lib/utils/pallet-progress";
+import {
+  getPercentFilled,
+  shouldShowPercent,
+} from "@/lib/utils/pallet-progress";
 
 // Format currency in SEK
 const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('sv-SE', {
-    style: 'currency',
-    currency: 'SEK',
+  return new Intl.NumberFormat("sv-SE", {
+    style: "currency",
+    currency: "SEK",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount);
@@ -88,7 +91,10 @@ interface AdminPalletDetailsProps {
   palletId: string;
 }
 
-export default function AdminPalletDetails({ pallet, palletId }: AdminPalletDetailsProps) {
+export default function AdminPalletDetails({
+  pallet,
+  palletId,
+}: AdminPalletDetailsProps) {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [stats, setStats] = useState<PalletStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -102,40 +108,48 @@ export default function AdminPalletDetails({ pallet, palletId }: AdminPalletDeta
   const fetchPalletData = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch reservations for this pallet (admin endpoint)
-      const resResponse = await fetch(`/api/admin/pallets/${palletId}/reservations`);
+      const resResponse = await fetch(
+        `/api/admin/pallets/${palletId}/reservations`,
+      );
       if (!resResponse.ok) {
         const errorData = await resResponse.json();
-        console.error('API error:', errorData);
+        console.error("API error:", errorData);
         throw new Error(errorData.error || "Failed to fetch reservations");
       }
-      
+
       const resData = await resResponse.json();
       const reservationsList = Array.isArray(resData) ? resData : [];
       setReservations(reservationsList);
 
       // Calculate stats
-      const uniqueUsers = new Set(reservationsList.map((r: Reservation) => r.user_email)).size;
+      const uniqueUsers = new Set(
+        reservationsList.map((r: Reservation) => r.user_email),
+      ).size;
       const uniqueWines = new Set(
-        reservationsList.flatMap((r: Reservation) => 
-          r.items.map(item => `${item.producer_name}-${item.wine_name}`)
-        )
+        reservationsList.flatMap((r: Reservation) =>
+          r.items.map((item) => `${item.producer_name}-${item.wine_name}`),
+        ),
       ).size;
 
       const totalBottles = reservationsList.reduce(
-        (sum: number, r: Reservation) => sum + r.total_bottles, 
-        0
-      );
-      
-      const totalRevenue = reservationsList.reduce(
-        (sum: number, r: Reservation) => sum + r.total_cost_cents, 
-        0
+        (sum: number, r: Reservation) => sum + r.total_bottles,
+        0,
       );
 
-      const percentageFilled = pallet.bottle_capacity > 0 
-        ? Math.min(Math.round((totalBottles / pallet.bottle_capacity) * 100), 100)
-        : 0;
+      const totalRevenue = reservationsList.reduce(
+        (sum: number, r: Reservation) => sum + r.total_cost_cents,
+        0,
+      );
+
+      const percentageFilled =
+        pallet.bottle_capacity > 0
+          ? Math.min(
+              Math.round((totalBottles / pallet.bottle_capacity) * 100),
+              100,
+            )
+          : 0;
 
       setStats({
         total_reservations: reservationsList.length,
@@ -145,7 +159,6 @@ export default function AdminPalletDetails({ pallet, palletId }: AdminPalletDeta
         unique_wines: uniqueWines,
         percentage_filled: percentageFilled,
       });
-
     } catch (err) {
       console.error("Failed to fetch pallet data:", err);
       setError(err instanceof Error ? err.message : "Failed to load data");
@@ -157,18 +170,20 @@ export default function AdminPalletDetails({ pallet, palletId }: AdminPalletDeta
   const getStatusBadge = (status: string) => {
     const statusUpper = status.toUpperCase();
     const colorMap: { [key: string]: string } = {
-      'PLACED': 'bg-blue-100 text-blue-700',
-      'PENDING': 'bg-yellow-100 text-yellow-700',
-      'CONFIRMED': 'bg-green-100 text-green-700',
-      'OPEN': 'bg-blue-100 text-blue-700',
-      'CONSOLIDATING': 'bg-orange-100 text-orange-700',
-      'SHIPPED': 'bg-purple-100 text-purple-700',
-      'DELIVERED': 'bg-green-100 text-green-700',
-      'CANCELLED': 'bg-red-100 text-red-700',
+      PLACED: "bg-blue-100 text-blue-700",
+      PENDING: "bg-yellow-100 text-yellow-700",
+      CONFIRMED: "bg-green-100 text-green-700",
+      OPEN: "bg-blue-100 text-blue-700",
+      CONSOLIDATING: "bg-orange-100 text-orange-700",
+      SHIPPED: "bg-purple-100 text-purple-700",
+      DELIVERED: "bg-green-100 text-green-700",
+      CANCELLED: "bg-red-100 text-red-700",
     };
 
     return (
-      <Badge className={`${colorMap[statusUpper] || 'bg-gray-100 text-gray-700'} border-0`}>
+      <Badge
+        className={`${colorMap[statusUpper] || "bg-gray-100 text-gray-700"} border-0`}
+      >
         {status}
       </Badge>
     );
@@ -223,7 +238,9 @@ export default function AdminPalletDetails({ pallet, palletId }: AdminPalletDeta
               <div className="flex items-center gap-3">
                 <TrendingUp className="w-8 h-8 text-blue-600" />
                 <div>
-                  <div className="text-2xl font-bold">{stats.percentage_filled}%</div>
+                  <div className="text-2xl font-bold">
+                    {stats.percentage_filled}%
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     {stats.total_bottles} / {pallet.bottle_capacity} bottles
                   </p>
@@ -264,7 +281,9 @@ export default function AdminPalletDetails({ pallet, palletId }: AdminPalletDeta
                 <Users className="w-8 h-8 text-purple-600" />
                 <div>
                   <div className="text-2xl font-bold">{stats.unique_users}</div>
-                  <p className="text-xs text-muted-foreground">unique customers</p>
+                  <p className="text-xs text-muted-foreground">
+                    unique customers
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -281,7 +300,9 @@ export default function AdminPalletDetails({ pallet, palletId }: AdminPalletDeta
                 <Wine className="w-8 h-8 text-red-600" />
                 <div>
                   <div className="text-2xl font-bold">{stats.unique_wines}</div>
-                  <p className="text-xs text-muted-foreground">different wines</p>
+                  <p className="text-xs text-muted-foreground">
+                    different wines
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -300,15 +321,19 @@ export default function AdminPalletDetails({ pallet, palletId }: AdminPalletDeta
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <div className="text-sm font-medium text-muted-foreground mb-1">Pickup Zone</div>
+              <div className="text-sm font-medium text-muted-foreground mb-1">
+                Pickup Zone
+              </div>
               <div className="text-base">
-                {pallet.pickup_zone?.name || 'Not set'}
+                {pallet.pickup_zone?.name || "Not set"}
               </div>
             </div>
             <div>
-              <div className="text-sm font-medium text-muted-foreground mb-1">Delivery Zone</div>
+              <div className="text-sm font-medium text-muted-foreground mb-1">
+                Delivery Zone
+              </div>
               <div className="text-base">
-                {pallet.delivery_zone?.name || 'Not set'}
+                {pallet.delivery_zone?.name || "Not set"}
               </div>
             </div>
           </CardContent>
@@ -323,19 +348,23 @@ export default function AdminPalletDetails({ pallet, palletId }: AdminPalletDeta
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <div className="text-sm font-medium text-muted-foreground mb-1">Transport Cost</div>
+              <div className="text-sm font-medium text-muted-foreground mb-1">
+                Transport Cost
+              </div>
               <div className="text-base font-semibold">
                 {formatCurrency(pallet.cost_cents / 100)}
               </div>
             </div>
             <div>
-              <div className="text-sm font-medium text-muted-foreground mb-1">Capacity</div>
-              <div className="text-base">
-                {pallet.bottle_capacity} bottles
+              <div className="text-sm font-medium text-muted-foreground mb-1">
+                Capacity
               </div>
+              <div className="text-base">{pallet.bottle_capacity} bottles</div>
             </div>
             <div>
-              <div className="text-sm font-medium text-muted-foreground mb-1">Created</div>
+              <div className="text-sm font-medium text-muted-foreground mb-1">
+                Created
+              </div>
               <div className="text-base">
                 {new Date(pallet.created_at).toLocaleDateString()}
               </div>
@@ -362,25 +391,46 @@ export default function AdminPalletDetails({ pallet, palletId }: AdminPalletDeta
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-medium text-sm">Order ID</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm">Customer</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm">Status</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm">Bottles</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm">Total</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm">Date</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm">Actions</th>
+                    <th className="text-left py-3 px-4 font-medium text-sm">
+                      Order ID
+                    </th>
+                    <th className="text-left py-3 px-4 font-medium text-sm">
+                      Customer
+                    </th>
+                    <th className="text-left py-3 px-4 font-medium text-sm">
+                      Status
+                    </th>
+                    <th className="text-left py-3 px-4 font-medium text-sm">
+                      Bottles
+                    </th>
+                    <th className="text-left py-3 px-4 font-medium text-sm">
+                      Total
+                    </th>
+                    <th className="text-left py-3 px-4 font-medium text-sm">
+                      Date
+                    </th>
+                    <th className="text-left py-3 px-4 font-medium text-sm">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {reservations.map((reservation) => (
-                    <tr key={reservation.id} className="border-b hover:bg-gray-50">
+                    <tr
+                      key={reservation.id}
+                      className="border-b hover:bg-gray-50"
+                    >
                       <td className="py-3 px-4 text-sm font-mono">
                         {reservation.order_id.slice(0, 8)}...
                       </td>
                       <td className="py-3 px-4 text-sm">
                         <div>
-                          <div className="font-medium">{reservation.user_name || 'Unknown'}</div>
-                          <div className="text-xs text-muted-foreground">{reservation.user_email}</div>
+                          <div className="font-medium">
+                            {reservation.user_name || "Unknown"}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {reservation.user_email}
+                          </div>
                         </div>
                       </td>
                       <td className="py-3 px-4 text-sm">
@@ -427,39 +477,49 @@ export default function AdminPalletDetails({ pallet, palletId }: AdminPalletDeta
           ) : (
             <div className="space-y-3">
               {Array.from(
-                reservations.flatMap(r => r.items).reduce((acc, item) => {
-                  const key = `${item.producer_name}-${item.wine_name}`;
-                  if (!acc.has(key)) {
-                    acc.set(key, {
-                      producer: item.producer_name,
-                      wine: item.wine_name,
-                      quantity: 0,
-                      price: item.price_cents,
-                    });
-                  }
-                  const existing = acc.get(key)!;
-                  existing.quantity += item.quantity;
-                  return acc;
-                }, new Map()).values()
+                reservations
+                  .flatMap((r) => r.items)
+                  .reduce((acc, item) => {
+                    const key = `${item.producer_name}-${item.wine_name}`;
+                    if (!acc.has(key)) {
+                      acc.set(key, {
+                        producer: item.producer_name,
+                        wine: item.wine_name,
+                        quantity: 0,
+                        price: item.price_cents,
+                      });
+                    }
+                    const existing = acc.get(key)!;
+                    existing.quantity += item.quantity;
+                    return acc;
+                  }, new Map())
+                  .values(),
               )
-              .sort((a, b) => b.quantity - a.quantity)
-              .map((wine, idx) => (
-                <div key={idx} className="flex items-center justify-between py-3 px-4 border rounded-lg hover:bg-gray-50">
-                  <div className="flex items-center gap-3">
-                    <Wine className="w-5 h-5 text-red-600" />
-                    <div>
-                      <div className="font-medium">{wine.wine}</div>
-                      <div className="text-sm text-muted-foreground">{wine.producer}</div>
+                .sort((a, b) => b.quantity - a.quantity)
+                .map((wine, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between py-3 px-4 border rounded-lg hover:bg-gray-50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Wine className="w-5 h-5 text-red-600" />
+                      <div>
+                        <div className="font-medium">{wine.wine}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {wine.producer}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-semibold">
+                        {wine.quantity} bottles
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {formatCurrency(wine.price / 100)} each
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="font-semibold">{wine.quantity} bottles</div>
-                    <div className="text-sm text-muted-foreground">
-                      {formatCurrency(wine.price / 100)} each
-                    </div>
-                  </div>
-                </div>
-              ))}
+                ))}
             </div>
           )}
         </CardContent>
@@ -467,4 +527,3 @@ export default function AdminPalletDetails({ pallet, palletId }: AdminPalletDeta
     </div>
   );
 }
-

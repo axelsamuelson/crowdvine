@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
         email: email.toLowerCase().trim(),
         expires_at: expiresAt.toISOString(),
         used: false,
-        initial_level: accessRequest.initial_level || 'basic',
+        initial_level: accessRequest.initial_level || "basic",
       });
 
     if (tokenError) {
@@ -53,7 +53,9 @@ export async function POST(request: NextRequest) {
 
     // Generate signup URL with token
     // IMPORTANT: Trim baseUrl to remove any whitespace/newlines from environment variable
-    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://pactwines.com").trim();
+    const baseUrl = (
+      process.env.NEXT_PUBLIC_APP_URL || "https://pactwines.com"
+    ).trim();
     const signupUrl = `${baseUrl}/signup?token=${accessToken}`;
 
     return NextResponse.json({

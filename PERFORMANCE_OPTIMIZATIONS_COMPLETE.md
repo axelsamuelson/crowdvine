@@ -1,4 +1,5 @@
 # Performance Optimizations - Complete Implementation
+
 **Date:** October 9, 2025  
 **Status:** ✅ **ALL OPTIMIZATIONS DEPLOYED**
 
@@ -9,22 +10,26 @@
 ### ✅ **1. ISR (Incremental Static Regeneration) Enabled**
 
 **Changed from:**
+
 ```typescript
 export const dynamic = "force-dynamic"; // Every request = server render
 ```
 
 **Changed to:**
+
 ```typescript
 export const revalidate = 60; // Cache for 60s, then regenerate
 ```
 
 **Pages updated:**
+
 - ✅ `app/shop/page.tsx` (60s revalidation)
 - ✅ `app/shop/[collection]/page.tsx` (60s revalidation)
 - ✅ `app/product/[handle]/page.tsx` (60s revalidation)
 - ✅ `app/page.tsx` (120s revalidation - homepage cached longer)
 
 **Impact:**
+
 - **First visitor:** Normal speed
 - **Subsequent visitors:** ⚡ **Instant** (served from cache)
 - **After 60s:** Regenerated in background
@@ -35,16 +40,19 @@ export const revalidate = 60; // Cache for 60s, then regenerate
 ### ✅ **2. Reduced Product Fetch Limit**
 
 **Changed from:**
+
 ```typescript
 const limit = 200; // Fetching ALL products
 ```
 
 **Changed to:**
+
 ```typescript
 const limit = 24; // Only fetch what's needed for first page
 ```
 
 **Impact:**
+
 - **Data transferred:** 2MB → 250KB (**87% reduction**)
 - **Database load:** 200 rows → 24 rows (**88% less**)
 - **Processing time:** Faster JSON parsing
@@ -55,20 +63,23 @@ const limit = 24; // Only fetch what's needed for first page
 ### ✅ **3. Cache Headers Added**
 
 **Added to API response:**
+
 ```typescript
 return NextResponse.json(products, {
   headers: {
-    'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+    "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
   },
 });
 ```
 
 **What this means:**
+
 - `public` - CDN can cache
 - `s-maxage=60` - Cache for 60 seconds
 - `stale-while-revalidate=300` - Serve stale for 5min while updating
 
 **Impact:**
+
 - **Browser caching:** Products cached for 60s
 - **CDN caching:** Vercel Edge caches responses
 - **Stale-while-revalidate:** Always fast, never blocking
@@ -79,6 +90,7 @@ return NextResponse.json(products, {
 ### ✅ **4. Combined Wine Images Query**
 
 **Before (2 queries):**
+
 ```typescript
 // Query 1: Get wines
 const wines = await sb.from("wines").select("..., producers(name)");
@@ -88,6 +100,7 @@ const wineImages = await sb.from("wine_images").in("wine_id", wineIds);
 ```
 
 **After (1 query):**
+
 ```typescript
 // Single query with nested JOIN
 const wines = await sb.from("wines").select(`
@@ -98,6 +111,7 @@ const wines = await sb.from("wines").select(`
 ```
 
 **Impact:**
+
 - **Database queries:** 2 → 1 (**50% reduction**)
 - **Network roundtrips:** 1 less
 - **Response time:** ~50-100ms faster
@@ -108,17 +122,20 @@ const wines = await sb.from("wines").select(`
 ### ✅ **5. Fixed Invalid Environment Variable**
 
 **Problem found:**
+
 ```bash
 .env.local: NEXT_PUBLIC_APP_URL="vercel domains add dev.pactwines.com"
 # This is a Vercel CLI command, not a URL! 🤦
 ```
 
 **Fixed to:**
+
 ```bash
 .env.local: NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
 
 **Also improved:**
+
 - Added validation in `lib/shopify/index.ts`
 - Detects invalid URLs
 - Fallback to safe defaults
@@ -130,45 +147,46 @@ const wines = await sb.from("wines").select(`
 
 ### Database Queries
 
-| Operation | Before | After | Improvement |
-|-----------|--------|-------|-------------|
-| Shop page load | 2 queries | 1 query | **50% fewer** |
-| Products fetched | 200 rows | 24 rows | **88% less** |
-| Cart ID lookup | 2/operation | 1 (cached) | **50% less** |
+| Operation        | Before      | After      | Improvement   |
+| ---------------- | ----------- | ---------- | ------------- |
+| Shop page load   | 2 queries   | 1 query    | **50% fewer** |
+| Products fetched | 200 rows    | 24 rows    | **88% less**  |
+| Cart ID lookup   | 2/operation | 1 (cached) | **50% less**  |
 
 ### Data Transfer
 
-| Metric | Before | After | Reduction |
-|--------|--------|-------|-----------|
-| Products API response | ~2 MB | ~250 KB | **87%** |
+| Metric                | Before   | After    | Reduction   |
+| --------------------- | -------- | -------- | ----------- |
+| Products API response | ~2 MB    | ~250 KB  | **87%**     |
 | Images query overhead | Separate | Included | **0 extra** |
-| Total shop page | ~2.5 MB | ~400 KB | **84%** |
+| Total shop page       | ~2.5 MB  | ~400 KB  | **84%**     |
 
 ### Page Load Times (Estimated)
 
-| Page | Before | After | Improvement |
-|------|--------|-------|-------------|
-| Shop (first visit) | ~2-3s | ~1-1.5s | **40-50%** |
-| Shop (cached) | ~2-3s | ~200ms | **90%** ⚡ |
-| Product page (first) | ~1.5-2s | ~800ms | **50%** |
-| Product page (cached) | ~1.5-2s | ~100ms | **95%** ⚡ |
-| Homepage (first) | ~2s | ~1s | **50%** |
-| Homepage (cached) | ~2s | ~100ms | **95%** ⚡ |
+| Page                  | Before  | After   | Improvement |
+| --------------------- | ------- | ------- | ----------- |
+| Shop (first visit)    | ~2-3s   | ~1-1.5s | **40-50%**  |
+| Shop (cached)         | ~2-3s   | ~200ms  | **90%** ⚡  |
+| Product page (first)  | ~1.5-2s | ~800ms  | **50%**     |
+| Product page (cached) | ~1.5-2s | ~100ms  | **95%** ⚡  |
+| Homepage (first)      | ~2s     | ~1s     | **50%**     |
+| Homepage (cached)     | ~2s     | ~100ms  | **95%** ⚡  |
 
 ### Server & Cost Impact
 
-| Metric | Before | After | Savings |
-|--------|--------|-------|---------|
-| Server renders/day | ~10,000 | ~500 | **95% fewer** |
-| Database queries/day | ~20,000 | ~2,000 | **90% fewer** |
-| Vercel function invocations | High | Low | **~90% less** |
-| Estimated cost | Baseline | -60% | **Significant savings** |
+| Metric                      | Before   | After  | Savings                 |
+| --------------------------- | -------- | ------ | ----------------------- |
+| Server renders/day          | ~10,000  | ~500   | **95% fewer**           |
+| Database queries/day        | ~20,000  | ~2,000 | **90% fewer**           |
+| Vercel function invocations | High     | Low    | **~90% less**           |
+| Estimated cost              | Baseline | -60%   | **Significant savings** |
 
 ---
 
 ## 🚀 Expected User Experience
 
 ### Before Optimizations:
+
 ```
 User visits shop → 2-3 seconds loading...
 User navigates away and back → 2-3 seconds loading again...
@@ -176,6 +194,7 @@ User clicks product → 1.5-2 seconds...
 ```
 
 ### After Optimizations:
+
 ```
 First user visits shop → 1-1.5 seconds loading ✅
 Second user visits shop → ~200ms (cached!) ⚡
@@ -200,6 +219,7 @@ Route                          Size    First Load JS   Type
 ```
 
 **Key improvements:**
+
 - ✅ Shop pages now use **SSG/ISR** instead of dynamic
 - ✅ Product pages use **SSG** (Static Site Generation)
 - ✅ Smaller bundle sizes
@@ -254,6 +274,7 @@ Route                          Size    First Load JS   Type
 ## 🧪 Verification
 
 ### Build Status
+
 ```bash
 ✓ Compiled successfully
 ✓ Generating static pages (102/102)
@@ -261,6 +282,7 @@ Route                          Size    First Load JS   Type
 ```
 
 ### Deployment
+
 ```bash
 ✅ Deployed to production
 ✅ No breaking changes
@@ -286,6 +308,7 @@ curl -I https://pactwines.com/api/crowdvine/products | grep -i cache
 ### ISR (Incremental Static Regeneration)
 
 **How it works:**
+
 1. **First request:** Page is generated and cached (60s)
 2. **Next 60s:** All visitors get cached version (instant!)
 3. **After 60s:** Next visitor triggers regeneration in background
@@ -293,6 +316,7 @@ curl -I https://pactwines.com/api/crowdvine/products | grep -i cache
 5. **After regeneration:** New cached version ready
 
 **Benefits:**
+
 - Always fast (never waiting for regeneration)
 - Always fresh (max 60s old)
 - Scales infinitely (cached at edge)
@@ -306,6 +330,7 @@ curl -I https://pactwines.com/api/crowdvine/products | grep -i cache
 - `stale-while-revalidate=300` - Serve stale while updating for 5min
 
 **User experience:**
+
 - First user: ~1s load
 - All other users (within 60s): ~50ms load ⚡
 - After 60s: Still fast (stale-while-revalidate)
@@ -317,12 +342,14 @@ curl -I https://pactwines.com/api/crowdvine/products | grep -i cache
 ### For 100 Daily Visitors:
 
 **Before:**
+
 - 100 server renders of shop page
 - 200 database queries
 - ~200s total server time
 - High costs
 
 **After:**
+
 - 2-3 server renders (rest served from cache)
 - 2-6 database queries
 - ~10s total server time
@@ -331,11 +358,13 @@ curl -I https://pactwines.com/api/crowdvine/products | grep -i cache
 ### For User Experience:
 
 **Before:**
+
 - Every page load: 2-3 seconds
 - User frustration: High
 - Bounce rate: Higher
 
 **After:**
+
 - First load: 1-1.5 seconds
 - Cached loads: 50-200ms ⚡
 - User experience: Excellent
@@ -362,26 +391,31 @@ All objectives met:
 ## 🎓 Key Lessons
 
 ### 1. ISR is Powerful
+
 - Best of static and dynamic
 - Always fast, always fresh
 - Huge performance gains
 
 ### 2. Limit Data Fetching
+
 - Don't fetch what you don't show
 - 200 products → 24 products
 - Massive improvement
 
 ### 3. Single Queries > Multiple Queries
+
 - JOINs are your friend
 - Reduce network roundtrips
 - Much faster
 
 ### 4. Cache Everything Possible
+
 - Browser cache
 - CDN cache
 - Stale-while-revalidate
 
 ### 5. Validate Environment Variables
+
 - Bad env vars can break builds
 - Always validate and fallback
 - Save hours of debugging
@@ -393,6 +427,7 @@ All objectives met:
 ### Current State: ✅ **EXCELLENT**
 
 Platform is now highly optimized for:
+
 - Fast page loads
 - Low server costs
 - Great user experience
@@ -429,9 +464,8 @@ Platform is now highly optimized for:
 
 ---
 
-*Completed: October 9, 2025*  
-*Status: Production*  
-*Performance: 75-90% improvement*  
-*Cost: 60-90% reduction*  
-*User Experience: Excellent*
-
+_Completed: October 9, 2025_  
+_Status: Production_  
+_Performance: 75-90% improvement_  
+_Cost: 60-90% reduction_  
+_User Experience: Excellent_

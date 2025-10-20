@@ -16,11 +16,35 @@ async function testAdminQueries() {
   try {
     // Test each query that admin dashboard uses
     const queries = [
-      { name: "producers", query: () => supabase.from("producers").select("*", { count: "exact", head: true }) },
-      { name: "wines", query: () => supabase.from("wines").select("*", { count: "exact", head: true }) },
-      { name: "bookings", query: () => supabase.from("bookings").select("*", { count: "exact", head: true }) },
-      { name: "pallet_zones", query: () => supabase.from("pallet_zones").select("*", { count: "exact", head: true }) },
-      { name: "pallets", query: () => supabase.from("pallets").select("*", { count: "exact", head: true }) },
+      {
+        name: "producers",
+        query: () =>
+          supabase
+            .from("producers")
+            .select("*", { count: "exact", head: true }),
+      },
+      {
+        name: "wines",
+        query: () =>
+          supabase.from("wines").select("*", { count: "exact", head: true }),
+      },
+      {
+        name: "bookings",
+        query: () =>
+          supabase.from("bookings").select("*", { count: "exact", head: true }),
+      },
+      {
+        name: "pallet_zones",
+        query: () =>
+          supabase
+            .from("pallet_zones")
+            .select("*", { count: "exact", head: true }),
+      },
+      {
+        name: "pallets",
+        query: () =>
+          supabase.from("pallets").select("*", { count: "exact", head: true }),
+      },
     ];
 
     for (const { name, query } of queries) {
@@ -42,24 +66,28 @@ async function testAdminQueries() {
 
     // Test complex queries
     console.log("🔍 Testing complex queries...");
-    
+
     // Test bookings with joins
     try {
       const { data, error } = await supabase
         .from("bookings")
-        .select(`
+        .select(
+          `
           id,
           quantity,
           created_at,
           wines(wine_name, vintage, producers(name))
-        `)
+        `,
+        )
         .order("created_at", { ascending: false })
         .limit(5);
-        
+
       if (error) {
         console.log(`   ❌ Bookings join error: ${error.message}`);
       } else {
-        console.log(`   ✅ Bookings join success: ${data?.length || 0} records`);
+        console.log(
+          `   ✅ Bookings join success: ${data?.length || 0} records`,
+        );
       }
     } catch (err) {
       console.log(`   ❌ Bookings join exception: ${err}`);
@@ -69,14 +97,16 @@ async function testAdminQueries() {
     try {
       const { data, error } = await supabase
         .from("pallets")
-        .select(`
+        .select(
+          `
           id,
           name,
           bottle_capacity,
           bookings(quantity)
-        `)
+        `,
+        )
         .limit(5);
-        
+
       if (error) {
         console.log(`   ❌ Pallets join error: ${error.message}`);
       } else {
@@ -85,7 +115,6 @@ async function testAdminQueries() {
     } catch (err) {
       console.log(`   ❌ Pallets join exception: ${err}`);
     }
-
   } catch (error) {
     console.error("❌ Error:", error);
   }

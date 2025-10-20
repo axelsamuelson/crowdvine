@@ -65,10 +65,10 @@ export function LogoSvg({ className }: { className?: string }) {
       })
       .catch((err) => {
         // Don't log AbortError (normal timeout behavior)
-        if (err.name !== 'AbortError') {
+        if (err.name !== "AbortError") {
           console.warn("Error fetching header logo:", err);
         }
-        
+
         // Set loading to false and use PACT text instead of ACME fallback
         setLoading(false);
         setHeaderLogo(null);

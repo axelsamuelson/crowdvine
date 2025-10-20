@@ -4,17 +4,14 @@ import { getProgressionSummary } from "@/lib/membership/progression-rewards";
 
 /**
  * GET /api/user/progression-buffs
- * 
+ *
  * Returns user's active progression buffs and total percentage
  */
 export async function GET() {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Get progression summary (buffs + total percentage)
@@ -33,8 +30,7 @@ export async function GET() {
     console.error("Error fetching progression buffs:", error);
     return NextResponse.json(
       { error: "Failed to fetch progression buffs" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

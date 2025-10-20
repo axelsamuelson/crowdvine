@@ -1,11 +1,13 @@
 # Wine Multiple Images Feature
 
 ## Overview
+
 This feature enables wine products to have multiple images with drag-and-drop reordering and individual image management in the admin panel.
 
 ## Database Changes
 
 ### New Table: `wine_images`
+
 ```sql
 CREATE TABLE wine_images (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -20,6 +22,7 @@ CREATE TABLE wine_images (
 ```
 
 ### Indexes
+
 - `idx_wine_images_wine_id` - For wine lookups
 - `idx_wine_images_sort_order` - For ordered image retrieval
 - `idx_wine_images_primary` - For primary image queries
@@ -28,6 +31,7 @@ CREATE TABLE wine_images (
 ## New Components
 
 ### `WineImageUpload`
+
 - **Location**: `components/admin/wine-image-upload.tsx`
 - **Features**:
   - Multiple image upload with drag-and-drop
@@ -38,6 +42,7 @@ CREATE TABLE wine_images (
   - Position indicators
 
 ### `wine-images.ts` Actions
+
 - **Location**: `lib/actions/wine-images.ts`
 - **Functions**:
   - `getWineImages(wineId)` - Get all images for a wine
@@ -50,6 +55,7 @@ CREATE TABLE wine_images (
 ## Updated Components
 
 ### `WineForm`
+
 - **Location**: `components/admin/wine-form.tsx`
 - **Changes**:
   - Replaced `ImageUpload` with `WineImageUpload`
@@ -58,6 +64,7 @@ CREATE TABLE wine_images (
   - Loads existing images when editing
 
 ### API Routes
+
 - **Updated**: `app/api/crowdvine/products/route.ts`
 - **Updated**: `app/api/crowdvine/products/[handle]/route.ts`
 - **Changes**:
@@ -68,6 +75,7 @@ CREATE TABLE wine_images (
 ## Usage
 
 ### Admin Panel
+
 1. Navigate to wine edit/create page
 2. Use the "Product Images" section
 3. Drag and drop images or click "Choose Files"
@@ -77,12 +85,15 @@ CREATE TABLE wine_images (
 7. First image automatically becomes primary if no existing images
 
 ### Product Display
+
 - First image (primary) is used as featured image
 - All images are available in product galleries
 - Images maintain sort order from admin panel
 
 ## Migration
+
 Run the migration script to create the table and migrate existing data:
+
 ```bash
 npx tsx scripts/run-wine-images-migration.ts
 ```
@@ -90,6 +101,7 @@ npx tsx scripts/run-wine-images-migration.ts
 Or manually execute the SQL in Supabase dashboard.
 
 ## Backward Compatibility
+
 - Existing `label_image_path` field is preserved
 - API routes fall back to `label_image_path` if no images in `wine_images` table
 - Migration automatically creates `wine_images` entries from existing `label_image_path` data

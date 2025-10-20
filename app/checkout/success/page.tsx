@@ -104,12 +104,12 @@ function CheckoutConfirmationContent() {
 
       // Get user email from reservation data
       const userEmail =
-        reservationData.customer_email || 
-        reservationData.items[0]?.customer_email || 
+        reservationData.customer_email ||
+        reservationData.items[0]?.customer_email ||
         "customer@pactwines.com"; // Fallback
       const userName =
-        reservationData.customer_name || 
-        reservationData.items[0]?.customer_name || 
+        reservationData.customer_name ||
+        reservationData.items[0]?.customer_name ||
         "Valued Customer"; // Fallback
 
       console.log("📧 Using email:", userEmail, "and name:", userName);

@@ -7,7 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageLayout } from "@/components/layout/page-layout";
 import { PalletProgress } from "@/components/ui/progress-components";
-import { getPercentFilled, formatPercent, shouldShowPercent } from "@/lib/utils/pallet-progress";
+import {
+  getPercentFilled,
+  formatPercent,
+  shouldShowPercent,
+} from "@/lib/utils/pallet-progress";
 import {
   Package,
   Wine,
@@ -23,7 +27,7 @@ import Image from "next/image";
 interface PalletData {
   id: string;
   name: string;
-  status: 'OPEN' | 'CONSOLIDATING' | 'SHIPPED' | 'DELIVERED';
+  status: "OPEN" | "CONSOLIDATING" | "SHIPPED" | "DELIVERED";
   percent_filled?: number;
   capacity_bottles?: number;
   reserved_bottles: number;
@@ -65,22 +69,22 @@ export default function PalletPage() {
   const fetchPallet = async (palletId: string) => {
     try {
       setLoading(true);
-      
+
       // First, fetch real pallet data from backend for accurate info
       let realPalletData: any = null;
       try {
         console.log(`🔄 Fetching real pallet data for ID: ${palletId}`);
-        const palletResponse = await fetch('/api/pallet-data', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ palletIds: [palletId] })
+        const palletResponse = await fetch("/api/pallet-data", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ palletIds: [palletId] }),
         });
-        
+
         if (palletResponse.ok) {
           const palletDataResponse = await palletResponse.json();
           console.log(`📊 Fetched pallet data:`, palletDataResponse);
           realPalletData = palletDataResponse.pallets?.[0];
-          
+
           if (!realPalletData) {
             throw new Error("Pallet not found in database");
           }
@@ -89,10 +93,10 @@ export default function PalletPage() {
           throw new Error("Failed to fetch pallet data");
         }
       } catch (error) {
-        console.error('❌ Error fetching pallet data:', error);
+        console.error("❌ Error fetching pallet data:", error);
         throw error;
       }
-      
+
       // Then fetch all reservations for this pallet (including other users)
       let palletReservations: any[] = [];
       try {
@@ -113,24 +117,34 @@ export default function PalletPage() {
         // Continue with empty reservations array
       }
 
-      console.log(`📋 Found ${palletReservations.length} reservations for pallet`);
+      console.log(
+        `📋 Found ${palletReservations.length} reservations for pallet`,
+      );
       if (palletReservations.length > 0) {
         console.log(`🔍 First reservation structure:`, palletReservations[0]);
-        console.log(`🔍 First reservation items:`, palletReservations[0]?.items);
+        console.log(
+          `🔍 First reservation items:`,
+          palletReservations[0]?.items,
+        );
       }
 
       // Aggregate data from reservations if any exist
       let totalDeliveredBottles = 0;
       const allItems: any[] = [];
-      
+
       if (palletReservations.length > 0) {
         palletReservations.forEach((res: any) => {
           // totalDeliveredBottles += res.delivered_bottles || 0; // TODO: Get from backend
           if (res.items && Array.isArray(res.items)) {
-            console.log(`📦 Adding ${res.items.length} items from reservation ${res.id}`);
+            console.log(
+              `📦 Adding ${res.items.length} items from reservation ${res.id}`,
+            );
             allItems.push(...res.items);
           } else {
-            console.warn(`⚠️ Reservation ${res.id} has no items or items is not an array:`, res.items);
+            console.warn(
+              `⚠️ Reservation ${res.id} has no items or items is not an array:`,
+              res.items,
+            );
           }
         });
       }
@@ -145,8 +159,8 @@ export default function PalletPage() {
           acc[key] = {
             wine_name: item.wine_name,
             vintage: item.vintage,
-            color: item.color || 'Unknown',
-            grape_varieties: item.grape_varieties || 'Unknown',
+            color: item.color || "Unknown",
+            grape_varieties: item.grape_varieties || "Unknown",
             total_reserved: 0,
             total_delivered: 0,
             image_path: item.image_path,
@@ -160,16 +174,18 @@ export default function PalletPage() {
       const totalReservedBottles = realPalletData.current_bottles;
       const capacityBottles = realPalletData.bottle_capacity;
       const palletName = realPalletData.name;
-      
-      console.log(`✅ Pallet Page - ${palletName}: ${totalReservedBottles}/${capacityBottles} bottles`);
+
+      console.log(
+        `✅ Pallet Page - ${palletName}: ${totalReservedBottles}/${capacityBottles} bottles`,
+      );
 
       // Aggregate participants (unique users with total bottles)
       const participantsMap = new Map<string, any>();
-      
+
       if (palletReservations.length > 0) {
         palletReservations.forEach((res: any) => {
           const userId = res.user_id;
-          
+
           if (participantsMap.has(userId)) {
             // Add to existing participant's bottle count
             const existing = participantsMap.get(userId);
@@ -196,21 +212,21 @@ export default function PalletPage() {
       const palletData: PalletData = {
         id: palletId,
         name: palletName,
-        status: 'OPEN', // Default status, can be updated from backend if available
+        status: "OPEN", // Default status, can be updated from backend if available
         capacity_bottles: capacityBottles,
         reserved_bottles: totalReservedBottles,
         delivered_bottles: totalDeliveredBottles,
-        pickup_zone: 'TBD', // TODO: Get from backend
-        delivery_zone: 'TBD', // TODO: Get from backend
-        eta: 'TBD', // TODO: Get from backend
+        pickup_zone: "TBD", // TODO: Get from backend
+        delivery_zone: "TBD", // TODO: Get from backend
+        eta: "TBD", // TODO: Get from backend
         created_at: new Date().toISOString(),
         reservations: uniqueParticipants,
         wines: Object.values(uniqueWines),
       };
-      
+
       setPallet(palletData);
     } catch (error) {
-      console.error('Error fetching pallet:', error);
+      console.error("Error fetching pallet:", error);
       setPallet(null);
     } finally {
       setLoading(false);
@@ -249,8 +265,13 @@ export default function PalletPage() {
           <Card>
             <CardContent className="p-6 md:p-8 text-center">
               <Package className="w-12 h-12 md:w-16 md:h-16 text-gray-400 mx-auto mb-4" />
-              <h2 className="text-lg md:text-xl font-light text-gray-900 mb-2">Pallet not found</h2>
-              <p className="text-sm md:text-base text-gray-500 mb-6">The pallet you're looking for doesn't exist or you don't have access to it.</p>
+              <h2 className="text-lg md:text-xl font-light text-gray-900 mb-2">
+                Pallet not found
+              </h2>
+              <p className="text-sm md:text-base text-gray-500 mb-6">
+                The pallet you're looking for doesn't exist or you don't have
+                access to it.
+              </p>
               <Link href="/profile">
                 <Button className="rounded-full px-6 bg-gray-900 hover:bg-gray-800 text-white text-sm md:text-base">
                   Back to Profile
@@ -272,7 +293,7 @@ export default function PalletPage() {
   });
 
   const showPercent = shouldShowPercent(pallet.status);
-  const displayPercent = showPercent ? formatPercent(percentFilled) : '—%';
+  const displayPercent = showPercent ? formatPercent(percentFilled) : "—%";
 
   return (
     <PageLayout className="px-sides">
@@ -285,7 +306,9 @@ export default function PalletPage() {
             </button>
           </Link>
           <div>
-            <h1 className="text-xl md:text-2xl lg:text-3xl font-light text-gray-900">{pallet.name}</h1>
+            <h1 className="text-xl md:text-2xl lg:text-3xl font-light text-gray-900">
+              {pallet.name}
+            </h1>
             <p className="text-sm md:text-base text-gray-500">Pallet Details</p>
           </div>
         </div>
@@ -303,27 +326,37 @@ export default function PalletPage() {
                     {pallet.name}
                   </CardTitle>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs md:text-sm text-gray-500">
-                    <span>Status: <span className="font-medium">{pallet.status}</span></span>
+                    <span>
+                      Status:{" "}
+                      <span className="font-medium">{pallet.status}</span>
+                    </span>
                     <span className="hidden sm:inline">•</span>
-                    <span>ETA: <span className="font-medium">{pallet.eta || 'TBD'}</span></span>
+                    <span>
+                      ETA:{" "}
+                      <span className="font-medium">{pallet.eta || "TBD"}</span>
+                    </span>
                   </div>
                 </div>
               </div>
-              
+
               {/* Progress Indicator */}
               <div className="flex items-center gap-3 md:gap-6 flex-wrap">
-                <PalletProgress 
+                <PalletProgress
                   valuePercent={showPercent ? percentFilled : null}
                   variant="bar"
                   size="md"
                 />
-                <Badge 
+                <Badge
                   className={`text-xs md:text-sm px-3 md:px-4 py-1 md:py-2 ${
-                    pallet.status === 'CONSOLIDATING' ? 'bg-gray-100 text-gray-600 border-gray-200' :
-                    pallet.status === 'OPEN' ? 'bg-gray-100 text-gray-600 border-gray-200' :
-                    pallet.status === 'SHIPPED' ? 'bg-gray-100 text-gray-600 border-gray-200' :
-                    pallet.status === 'DELIVERED' ? 'bg-gray-100 text-gray-600 border-gray-200' :
-                    'bg-gray-100 text-gray-600 border-gray-200'
+                    pallet.status === "CONSOLIDATING"
+                      ? "bg-gray-100 text-gray-600 border-gray-200"
+                      : pallet.status === "OPEN"
+                        ? "bg-gray-100 text-gray-600 border-gray-200"
+                        : pallet.status === "SHIPPED"
+                          ? "bg-gray-100 text-gray-600 border-gray-200"
+                          : pallet.status === "DELIVERED"
+                            ? "bg-gray-100 text-gray-600 border-gray-200"
+                            : "bg-gray-100 text-gray-600 border-gray-200"
                   }`}
                 >
                   {pallet.status}
@@ -342,8 +375,12 @@ export default function PalletPage() {
                   <Wine className="w-5 h-5 text-gray-400" />
                 </div>
                 <div>
-                  <p className="text-xs md:text-sm text-gray-500">Reserved Bottles</p>
-                  <p className="text-xl md:text-2xl font-light text-gray-900">{pallet.reserved_bottles}</p>
+                  <p className="text-xs md:text-sm text-gray-500">
+                    Reserved Bottles
+                  </p>
+                  <p className="text-xl md:text-2xl font-light text-gray-900">
+                    {pallet.reserved_bottles}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -356,8 +393,12 @@ export default function PalletPage() {
                   <Truck className="w-5 h-5 text-gray-400" />
                 </div>
                 <div>
-                  <p className="text-xs md:text-sm text-gray-500">Delivered Bottles</p>
-                  <p className="text-xl md:text-2xl font-light text-gray-900">{pallet.delivered_bottles}</p>
+                  <p className="text-xs md:text-sm text-gray-500">
+                    Delivered Bottles
+                  </p>
+                  <p className="text-xl md:text-2xl font-light text-gray-900">
+                    {pallet.delivered_bottles}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -370,8 +411,12 @@ export default function PalletPage() {
                   <Users className="w-5 h-5 text-gray-400" />
                 </div>
                 <div>
-                  <p className="text-xs md:text-sm text-gray-500">Participants</p>
-                  <p className="text-xl md:text-2xl font-light text-gray-900">{pallet.reservations.length}</p>
+                  <p className="text-xs md:text-sm text-gray-500">
+                    Participants
+                  </p>
+                  <p className="text-xl md:text-2xl font-light text-gray-900">
+                    {pallet.reservations.length}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -381,12 +426,17 @@ export default function PalletPage() {
         {/* Wines in Pallet */}
         <Card className="border border-gray-200/50">
           <CardHeader className="p-4 md:p-6">
-            <CardTitle className="text-base md:text-lg lg:text-xl font-light text-gray-900">Wines in Pallet</CardTitle>
+            <CardTitle className="text-base md:text-lg lg:text-xl font-light text-gray-900">
+              Wines in Pallet
+            </CardTitle>
           </CardHeader>
           <CardContent className="p-4 md:p-6 pt-0">
             <div className="space-y-3 md:space-y-4">
               {pallet.wines.map((wine, index) => (
-                <div key={index} className="flex items-center gap-3 md:gap-4 p-3 md:p-4 bg-gray-50/50 rounded-lg md:rounded-xl">
+                <div
+                  key={index}
+                  className="flex items-center gap-3 md:gap-4 p-3 md:p-4 bg-gray-50/50 rounded-lg md:rounded-xl"
+                >
                   {wine.image_path ? (
                     <Image
                       src={wine.image_path}
@@ -401,14 +451,22 @@ export default function PalletPage() {
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm md:text-base font-light text-gray-900 truncate">{wine.wine_name}</h3>
-                    <p className="text-xs md:text-sm text-gray-500">{wine.vintage} • {wine.color}</p>
+                    <h3 className="text-sm md:text-base font-light text-gray-900 truncate">
+                      {wine.wine_name}
+                    </h3>
+                    <p className="text-xs md:text-sm text-gray-500">
+                      {wine.vintage} • {wine.color}
+                    </p>
                     {wine.grape_varieties && (
-                      <p className="text-xs text-gray-400 truncate">{wine.grape_varieties}</p>
+                      <p className="text-xs text-gray-400 truncate">
+                        {wine.grape_varieties}
+                      </p>
                     )}
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="text-xs md:text-sm font-medium text-gray-900">{wine.total_reserved} bottles</p>
+                    <p className="text-xs md:text-sm font-medium text-gray-900">
+                      {wine.total_reserved} bottles
+                    </p>
                     <p className="text-xs text-gray-500">Reserved</p>
                   </div>
                 </div>
@@ -420,18 +478,29 @@ export default function PalletPage() {
         {/* Participants */}
         <Card className="border border-gray-200/50">
           <CardHeader className="p-4 md:p-6">
-            <CardTitle className="text-base md:text-lg lg:text-xl font-light text-gray-900">Participants</CardTitle>
+            <CardTitle className="text-base md:text-lg lg:text-xl font-light text-gray-900">
+              Participants
+            </CardTitle>
           </CardHeader>
           <CardContent className="p-4 md:p-6 pt-0">
             <div className="space-y-2 md:space-y-3">
               {pallet.reservations.map((reservation) => (
-                <div key={reservation.id} className="flex items-center justify-between p-3 md:p-4 bg-gray-50/50 rounded-lg md:rounded-xl">
+                <div
+                  key={reservation.id}
+                  className="flex items-center justify-between p-3 md:p-4 bg-gray-50/50 rounded-lg md:rounded-xl"
+                >
                   <div className="min-w-0 flex-1 mr-3">
-                    <p className="text-sm md:text-base font-light text-gray-900 truncate">{reservation.user_name}</p>
-                    <p className="text-xs md:text-sm text-gray-500 truncate">{reservation.user_email}</p>
+                    <p className="text-sm md:text-base font-light text-gray-900 truncate">
+                      {reservation.user_name}
+                    </p>
+                    <p className="text-xs md:text-sm text-gray-500 truncate">
+                      {reservation.user_email}
+                    </p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="text-xs md:text-sm font-medium text-gray-900">{reservation.bottles_reserved} bottles</p>
+                    <p className="text-xs md:text-sm font-medium text-gray-900">
+                      {reservation.bottles_reserved} bottles
+                    </p>
                     <p className="text-xs text-gray-500">
                       {new Date(reservation.created_at).toLocaleDateString()}
                     </p>

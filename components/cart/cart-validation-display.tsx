@@ -48,7 +48,9 @@ export function CartValidationDisplay({
             <AlertCircle className="h-4 w-4 text-amber-600" />
           )}
           <span className="text-sm font-medium text-gray-900">
-            {allValid ? "Ready to order" : `${validations.filter(v => !v.isValid).length} producer${validations.filter(v => !v.isValid).length > 1 ? 's' : ''} need${validations.filter(v => !v.isValid).length === 1 ? 's' : ''} more bottles`}
+            {allValid
+              ? "Ready to order"
+              : `${validations.filter((v) => !v.isValid).length} producer${validations.filter((v) => !v.isValid).length > 1 ? "s" : ""} need${validations.filter((v) => !v.isValid).length === 1 ? "s" : ""} more bottles`}
           </span>
         </div>
         {isExpanded ? (
@@ -70,54 +72,59 @@ export function CartValidationDisplay({
           <div className="space-y-2">
             {validations.map((validation, index) => {
               // If it's a group, link to group page; otherwise link to producer page
-              const href = validation.groupId 
+              const href = validation.groupId
                 ? `/shop/group/${validation.groupId}`
                 : `/shop/${validation.producerHandle}`;
-              
-              console.log("🔗 [Validation Display] Link for", validation.producerName || validation.groupName, ":", {
-                hasGroupId: !!validation.groupId,
-                groupId: validation.groupId,
-                href,
-              });
-              
-              return (
-              <Link
-                key={index}
-                href={href}
-                className={`block p-2 rounded-md border transition-all ${
-                  validation.isValid
-                    ? "bg-green-50/50 border-green-200 hover:bg-green-100/50"
-                    : "bg-amber-50/50 border-amber-200 hover:bg-amber-100/50"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  {validation.isValid ? (
-                    <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                  ) : (
-                    <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-xs font-medium text-gray-900 truncate">
-                        {validation.groupName || validation.producerName}
-                      </span>
-                      <span className={`text-xs ${validation.isValid ? "text-green-700" : "text-amber-700"}`}>
-                        {validation.quantity}
-                      </span>
-                    </div>
 
-                    {!validation.isValid ? (
-                      <span className="text-xs text-amber-700">
-                        + Add {validation.needed} more
-                      </span>
+              console.log(
+                "🔗 [Validation Display] Link for",
+                validation.producerName || validation.groupName,
+                ":",
+                {
+                  hasGroupId: !!validation.groupId,
+                  groupId: validation.groupId,
+                  href,
+                },
+              );
+
+              return (
+                <Link
+                  key={index}
+                  href={href}
+                  className={`block p-2 rounded-md border transition-all ${
+                    validation.isValid
+                      ? "bg-green-50/50 border-green-200 hover:bg-green-100/50"
+                      : "bg-amber-50/50 border-amber-200 hover:bg-amber-100/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {validation.isValid ? (
+                      <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
                     ) : (
-                      <span className="text-xs text-green-700">
-                        ✓ Ready
-                      </span>
+                      <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0" />
                     )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-xs font-medium text-gray-900 truncate">
+                          {validation.groupName || validation.producerName}
+                        </span>
+                        <span
+                          className={`text-xs ${validation.isValid ? "text-green-700" : "text-amber-700"}`}
+                        >
+                          {validation.quantity}
+                        </span>
+                      </div>
+
+                      {!validation.isValid ? (
+                        <span className="text-xs text-amber-700">
+                          + Add {validation.needed} more
+                        </span>
+                      ) : (
+                        <span className="text-xs text-green-700">✓ Ready</span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </Link>
+                </Link>
               );
             })}
           </div>
@@ -126,4 +133,3 @@ export function CartValidationDisplay({
     </div>
   );
 }
-

@@ -11,11 +11,11 @@ export async function GET(request: NextRequest) {
 
     // Use admin client to get all users with profiles
     const adminSupabase = getSupabaseAdmin();
-    
+
     // Get all users from auth.users
     const { data: authUsers, error: listUsersError } =
       await adminSupabase.auth.admin.listUsers();
-    
+
     if (listUsersError) {
       console.error("Error fetching auth users:", listUsersError);
       return NextResponse.json(
@@ -27,9 +27,7 @@ export async function GET(request: NextRequest) {
     // Get all profiles with membership data
     const { data: profiles, error: profilesError } = await adminSupabase
       .from("profiles")
-      .select(
-        "id, email, role, created_at, full_name",
-      );
+      .select("id, email, role, created_at, full_name");
 
     if (profilesError) {
       console.error("Error fetching profiles:", profilesError);
@@ -42,7 +40,9 @@ export async function GET(request: NextRequest) {
     // Get all memberships
     const { data: memberships, error: membershipsError } = await adminSupabase
       .from("user_memberships")
-      .select("user_id, level, impact_points, invite_quota_monthly, invites_used_this_month, created_at");
+      .select(
+        "user_id, level, impact_points, invite_quota_monthly, invites_used_this_month, created_at",
+      );
 
     if (membershipsError) {
       console.error("Error fetching memberships:", membershipsError);
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
       .map((authUser) => {
         const profile = profiles?.find((p) => p.id === authUser.id);
         const membership = memberships?.find((m) => m.user_id === authUser.id);
-        
+
         return {
           id: authUser.id,
           email: authUser.email,
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
           email_confirmed_at: authUser.email_confirmed_at,
           role: profile?.role || "user",
           // Membership data
-          membership_level: membership?.level || 'requester',
+          membership_level: membership?.level || "requester",
           impact_points: membership?.impact_points || 0,
           invite_quota: membership?.invite_quota_monthly || 0,
           invites_used: membership?.invites_used_this_month || 0,
@@ -245,7 +245,10 @@ export async function DELETE(request: NextRequest) {
         .eq("created_by", userId);
 
       if (createdByError) {
-        console.warn("Warning: Could not update invitation_codes.created_by:", createdByError.message);
+        console.warn(
+          "Warning: Could not update invitation_codes.created_by:",
+          createdByError.message,
+        );
       } else {
         console.log("Updated invitation_codes.created_by references to null");
       }
@@ -257,12 +260,18 @@ export async function DELETE(request: NextRequest) {
         .eq("used_by", userId);
 
       if (usedByError) {
-        console.warn("Warning: Could not update invitation_codes.used_by:", usedByError.message);
+        console.warn(
+          "Warning: Could not update invitation_codes.used_by:",
+          usedByError.message,
+        );
       } else {
         console.log("Updated invitation_codes.used_by references to null");
       }
     } catch (invitationError) {
-      console.warn("Warning: Could not handle invitation codes:", invitationError);
+      console.warn(
+        "Warning: Could not handle invitation codes:",
+        invitationError,
+      );
     }
 
     // Handle discount codes separately - update earned_by_user_id to null
@@ -274,9 +283,14 @@ export async function DELETE(request: NextRequest) {
         .eq("earned_by_user_id", userId);
 
       if (discountError) {
-        console.warn("Warning: Could not update discount_codes.earned_by_user_id:", discountError.message);
+        console.warn(
+          "Warning: Could not update discount_codes.earned_by_user_id:",
+          discountError.message,
+        );
       } else {
-        console.log("Updated discount_codes.earned_by_user_id references to null");
+        console.log(
+          "Updated discount_codes.earned_by_user_id references to null",
+        );
       }
     } catch (discountError) {
       console.warn("Warning: Could not handle discount codes:", discountError);

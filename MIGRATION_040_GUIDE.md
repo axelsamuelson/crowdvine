@@ -3,6 +3,7 @@
 ## Problem
 
 Admin memberships page returns 500 error when trying to save discount:
+
 ```
 Error: invalid input value for enum perk_type: "discount"
 ```
@@ -41,7 +42,7 @@ ALTER TYPE perk_type ADD VALUE IF NOT EXISTS 'discount';
 
 ```sql
 INSERT INTO membership_perks (level, perk_type, perk_value, description, sort_order, is_active)
-VALUES 
+VALUES
   ('basic', 'discount', '0%', 'No discount', 10, true),
   ('brons', 'discount', '3%', '3% discount on all wine purchases', 10, true),
   ('silver', 'discount', '5%', '5% discount on all wine purchases', 10, true),
@@ -56,8 +57,8 @@ ON CONFLICT (level, perk_type) DO NOTHING;
 2. Run the INSERT statement above
 3. ✅ Verify with:
    ```sql
-   SELECT level, perk_type, perk_value, description 
-   FROM membership_perks 
+   SELECT level, perk_type, perk_value, description
+   FROM membership_perks
    WHERE perk_type = 'discount'
    ORDER BY level;
    ```
@@ -89,15 +90,18 @@ admin  | discount  | 15%        | 15% discount on all wine purchases
 ## Troubleshooting
 
 **If Step 2 still fails:**
+
 - Wait longer after Step 1 (up to 10 seconds)
 - Refresh SQL Editor page
 - Try Step 2 again
 
 **If discount still not saving:**
+
 - Verify enum: `SELECT enum_range(NULL::perk_type);`
 - Should include 'discount' in the list
 
 **To rollback (if needed):**
+
 ```sql
 -- Delete discount perks
 DELETE FROM membership_perks WHERE perk_type = 'discount';
@@ -106,4 +110,3 @@ DELETE FROM membership_perks WHERE perk_type = 'discount';
 -- But can deactivate perks:
 UPDATE membership_perks SET is_active = false WHERE perk_type = 'discount';
 ```
-

@@ -2,7 +2,18 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, ArrowRight, ArrowLeft, Wine, Users, Package, Truck, MapPin, CheckCircle, TrendingDown } from "lucide-react";
+import {
+  X,
+  ArrowRight,
+  ArrowLeft,
+  Wine,
+  Users,
+  Package,
+  Truck,
+  MapPin,
+  CheckCircle,
+  TrendingDown,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LogoSvg } from "@/components/layout/header/logo-svg";
 import { PriceComparisonVisual } from "./price-comparison-visual";
@@ -68,223 +79,261 @@ const membershipLevels: Record<MembershipLevel, MembershipConfig> = {
 
 const getSteps = (membershipLevel: MembershipLevel) => {
   const levelConfig = membershipLevels[membershipLevel];
-  
+
   return [
-  {
-    id: 1,
-    title: "Welcome to",
-    subtitle: "A smarter way to buy wine — together",
-    icon: Wine,
-    content: (
-      <div className="space-y-6 text-center h-[280px] flex flex-col justify-center">
-        <div className="flex justify-center mb-6">
-          <LogoSvg className="h-16 w-auto" />
-        </div>
-        <p className="text-base text-muted-foreground leading-relaxed max-w-md mx-auto">
-          We buy wine together, directly from winemakers, without middlemen or markups. A new system built on transparency, better prices, and a shared pact between producers and consumers.
-        </p>
-      </div>
-    ),
-  },
-  {
-    id: 2,
-    title: "Why PACT is Cheaper",
-    subtitle: "No middlemen. No warehouses. No hidden costs.",
-    icon: TrendingDown,
-    content: <PriceComparisonVisual />,
-  },
-  {
-    id: 3,
-    title: "How It Works",
-    subtitle: "Crowdsourcing wine, step by step",
-    icon: Package,
-    content: (
-      <div className="space-y-4 max-w-md mx-auto h-[280px] flex flex-col justify-center">
-        <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-medium flex-shrink-0 mt-0.5">
-            1
+    {
+      id: 1,
+      title: "Welcome to",
+      subtitle: "A smarter way to buy wine — together",
+      icon: Wine,
+      content: (
+        <div className="space-y-6 text-center h-[280px] flex flex-col justify-center">
+          <div className="flex justify-center mb-6">
+            <LogoSvg className="h-16 w-auto" />
           </div>
-          <div>
-            <h4 className="font-medium text-foreground text-sm mb-1">Discover & Reserve</h4>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Browse curated natural wines and reserve bottles.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-medium flex-shrink-0 mt-0.5">
-            2
-          </div>
-          <div>
-            <h4 className="font-medium text-foreground text-sm mb-1">Collective Shipping</h4>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              When the pallet fills, wines ship directly from winemakers.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-medium flex-shrink-0 mt-0.5">
-            3
-          </div>
-          <div>
-            <h4 className="font-medium text-foreground text-sm mb-1">Track Progress</h4>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              See exactly where your wine is at every step.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-medium flex-shrink-0 mt-0.5">
-            4
-          </div>
-          <div>
-            <h4 className="font-medium text-foreground text-sm mb-1">Receive & Enjoy</h4>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Pure wine from winemaker to your door.
-            </p>
-          </div>
-        </div>
-      </div>
-    ),
-  },
-  {
-    id: 4,
-    title: "Pallets & Progress",
-    subtitle: "Watch your reservation come to life",
-    icon: Truck,
-    content: (
-      <div className="space-y-6 max-w-md mx-auto h-[280px] flex flex-col justify-center">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Pallet Progress</span>
-            <span className="font-medium text-foreground">487 / 700 bottles</span>
-          </div>
-          <div className="h-3 bg-muted rounded-full overflow-hidden">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: "70%" }}
-              transition={{ duration: 1.5, ease: "easeOut" }}
-              className="h-full bg-foreground rounded-full"
-            />
-          </div>
-          <p className="text-xs text-center text-muted-foreground">
-            213 bottles to go — estimated shipping in 2-3 weeks
+          <p className="text-base text-muted-foreground leading-relaxed max-w-md mx-auto">
+            We buy wine together, directly from winemakers, without middlemen or
+            markups. A new system built on transparency, better prices, and a
+            shared pact between producers and consumers.
           </p>
         </div>
-
-        <div className="space-y-3 pt-2">
+      ),
+    },
+    {
+      id: 2,
+      title: "Why PACT is Cheaper",
+      subtitle: "No middlemen. No warehouses. No hidden costs.",
+      icon: TrendingDown,
+      content: <PriceComparisonVisual />,
+    },
+    {
+      id: 3,
+      title: "How It Works",
+      subtitle: "Crowdsourcing wine, step by step",
+      icon: Package,
+      content: (
+        <div className="space-y-4 max-w-md mx-auto h-[280px] flex flex-col justify-center">
           <div className="flex items-start gap-3">
-            <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+            <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-medium flex-shrink-0 mt-0.5">
+              1
+            </div>
             <div>
-              <p className="text-sm font-medium text-foreground">Reservation Confirmed</p>
-              <p className="text-xs text-muted-foreground">Your bottles are reserved</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3 opacity-40">
-            <Package className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Pallet Complete</p>
-              <p className="text-xs text-muted-foreground">Waiting for capacity</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3 opacity-40">
-            <Truck className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">In Transit</p>
-              <p className="text-xs text-muted-foreground">Shipping to you</p>
-            </div>
-          </div>
-        </div>
-
-        <p className="text-sm text-center text-muted-foreground pt-2">
-          You&apos;ll receive email updates at each stage
-        </p>
-      </div>
-    ),
-  },
-  {
-    id: 5,
-    title: "Your Membership",
-    subtitle: "Earn points, unlock perks",
-    icon: Users,
-    content: (
-      <div className="space-y-6 max-w-md mx-auto h-[280px] flex flex-col justify-center">
-        <div className="text-center space-y-3">
-          <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full ${levelConfig.bgColor} ${levelConfig.color} text-base font-medium`}>
-            {levelConfig.displayName}
-          </div>
-          <p className="text-sm text-muted-foreground">{levelConfig.description}</p>
-        </div>
-
-        {levelConfig.nextLevel ? (
-          <>
-            <div className="space-y-3">
-              <p className="text-sm font-medium text-foreground text-center">Earn Impact Points by:</p>
-              <div className="space-y-2 text-sm text-muted-foreground text-center">
-                <p>Inviting friends • Making reservations • Participating in pallets</p>
-              </div>
-            </div>
-
-            <div className="pt-2">
-              <div className="flex items-center justify-center gap-3">
-                <span className="text-sm font-medium">{levelConfig.displayName}</span>
-                <ArrowRight className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-medium text-orange-600">{levelConfig.nextLevel}</span>
-              </div>
-              <p className="text-xs text-center text-muted-foreground mt-2">
-                {levelConfig.pointsToNext} Impact Points to unlock {levelConfig.nextLevel}
+              <h4 className="font-medium text-foreground text-sm mb-1">
+                Discover & Reserve
+              </h4>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Browse curated natural wines and reserve bottles.
               </p>
             </div>
-          </>
-        ) : (
-          <div className="text-center py-4">
-            <p className="text-sm text-muted-foreground">
-              You&apos;ve reached the highest membership level!
+          </div>
+
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-medium flex-shrink-0 mt-0.5">
+              2
+            </div>
+            <div>
+              <h4 className="font-medium text-foreground text-sm mb-1">
+                Collective Shipping
+              </h4>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                When the pallet fills, wines ship directly from winemakers.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-medium flex-shrink-0 mt-0.5">
+              3
+            </div>
+            <div>
+              <h4 className="font-medium text-foreground text-sm mb-1">
+                Track Progress
+              </h4>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                See exactly where your wine is at every step.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-medium flex-shrink-0 mt-0.5">
+              4
+            </div>
+            <div>
+              <h4 className="font-medium text-foreground text-sm mb-1">
+                Receive & Enjoy
+              </h4>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Pure wine from winemaker to your door.
+              </p>
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 4,
+      title: "Pallets & Progress",
+      subtitle: "Watch your reservation come to life",
+      icon: Truck,
+      content: (
+        <div className="space-y-6 max-w-md mx-auto h-[280px] flex flex-col justify-center">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Pallet Progress</span>
+              <span className="font-medium text-foreground">
+                487 / 700 bottles
+              </span>
+            </div>
+            <div className="h-3 bg-muted rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: "70%" }}
+                transition={{ duration: 1.5, ease: "easeOut" }}
+                className="h-full bg-foreground rounded-full"
+              />
+            </div>
+            <p className="text-xs text-center text-muted-foreground">
+              213 bottles to go — estimated shipping in 2-3 weeks
             </p>
           </div>
-        )}
 
-        <p className="text-sm text-center text-muted-foreground pt-2">
-          Track your progress in your profile
-        </p>
-      </div>
-    ),
-  },
-  {
-    id: 6,
-    title: "Ready to Start?",
-    subtitle: "Explore wines and make your first reservation",
-    icon: Wine,
-    content: (
-      <div className="space-y-8 text-center h-[280px] flex flex-col justify-center">
-        <div className="space-y-4">
-          <p className="text-base text-muted-foreground leading-relaxed max-w-md mx-auto">
-            Browse our curated selection of natural wines, reserve your bottles, and watch your pallet fill up.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Remember: wines are shipped in 6-bottle multiples per producer.
+          <div className="space-y-3 pt-2">
+            <div className="flex items-start gap-3">
+              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  Reservation Confirmed
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Your bottles are reserved
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 opacity-40">
+              <Package className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Pallet Complete
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Waiting for capacity
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 opacity-40">
+              <Truck className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  In Transit
+                </p>
+                <p className="text-xs text-muted-foreground">Shipping to you</p>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-sm text-center text-muted-foreground pt-2">
+            You&apos;ll receive email updates at each stage
           </p>
         </div>
+      ),
+    },
+    {
+      id: 5,
+      title: "Your Membership",
+      subtitle: "Earn points, unlock perks",
+      icon: Users,
+      content: (
+        <div className="space-y-6 max-w-md mx-auto h-[280px] flex flex-col justify-center">
+          <div className="text-center space-y-3">
+            <div
+              className={`inline-flex items-center justify-center w-16 h-16 rounded-full ${levelConfig.bgColor} ${levelConfig.color} text-base font-medium`}
+            >
+              {levelConfig.displayName}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {levelConfig.description}
+            </p>
+          </div>
 
-        <div className="bg-foreground text-background rounded-2xl p-8 space-y-4">
-          <p className="text-lg font-light">Crowdsource your wine.</p>
-          <p className="text-sm opacity-70">
-            Buy direct, drink better, and know exactly where your money goes.
+          {levelConfig.nextLevel ? (
+            <>
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-foreground text-center">
+                  Earn Impact Points by:
+                </p>
+                <div className="space-y-2 text-sm text-muted-foreground text-center">
+                  <p>
+                    Inviting friends • Making reservations • Participating in
+                    pallets
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <div className="flex items-center justify-center gap-3">
+                  <span className="text-sm font-medium">
+                    {levelConfig.displayName}
+                  </span>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-orange-600">
+                    {levelConfig.nextLevel}
+                  </span>
+                </div>
+                <p className="text-xs text-center text-muted-foreground mt-2">
+                  {levelConfig.pointsToNext} Impact Points to unlock{" "}
+                  {levelConfig.nextLevel}
+                </p>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-4">
+              <p className="text-sm text-muted-foreground">
+                You&apos;ve reached the highest membership level!
+              </p>
+            </div>
+          )}
+
+          <p className="text-sm text-center text-muted-foreground pt-2">
+            Track your progress in your profile
           </p>
         </div>
-      </div>
-    ),
-  },
-];
+      ),
+    },
+    {
+      id: 6,
+      title: "Ready to Start?",
+      subtitle: "Explore wines and make your first reservation",
+      icon: Wine,
+      content: (
+        <div className="space-y-8 text-center h-[280px] flex flex-col justify-center">
+          <div className="space-y-4">
+            <p className="text-base text-muted-foreground leading-relaxed max-w-md mx-auto">
+              Browse our curated selection of natural wines, reserve your
+              bottles, and watch your pallet fill up.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Remember: wines are shipped in 6-bottle multiples per producer.
+            </p>
+          </div>
+
+          <div className="bg-foreground text-background rounded-2xl p-8 space-y-4">
+            <p className="text-lg font-light">Crowdsource your wine.</p>
+            <p className="text-sm opacity-70">
+              Buy direct, drink better, and know exactly where your money goes.
+            </p>
+          </div>
+        </div>
+      ),
+    },
+  ];
 };
 
 export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState(0);
-  const [membershipLevel, setMembershipLevel] = useState<MembershipLevel>("basic");
+  const [membershipLevel, setMembershipLevel] =
+    useState<MembershipLevel>("basic");
   const [loading, setLoading] = useState(true);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -300,7 +349,7 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
         console.log("🎓 [Modal] Fetching membership level...");
         const response = await fetch("/api/user/membership");
         console.log("🎓 [Modal] Membership response status:", response.status);
-        
+
         if (response.ok) {
           const data = await response.json();
           console.log("🎓 [Modal] Membership data:", data);
@@ -308,7 +357,9 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
           console.log("🎓 [Modal] Using membership level:", level);
           setMembershipLevel(level as MembershipLevel);
         } else {
-          console.error("🎓 [Modal] Failed to fetch membership, defaulting to basic");
+          console.error(
+            "🎓 [Modal] Failed to fetch membership, defaulting to basic",
+          );
           setMembershipLevel("basic");
         }
       } catch (error) {
@@ -361,7 +412,7 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
 
   const onTouchEnd = () => {
     if (!touchStart || !touchEnd) return;
-    
+
     const distance = touchStart - touchEnd;
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
@@ -437,7 +488,7 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
                       <Icon className="w-8 h-8 text-foreground" />
                     </motion.div>
                   )}
-                  
+
                   <motion.div
                     key={`title-${currentStep}`}
                     initial={{ opacity: 0, y: 10 }}
@@ -534,4 +585,3 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
     </AnimatePresence>
   );
 }
-

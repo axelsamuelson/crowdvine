@@ -40,7 +40,7 @@ FROM impact_point_events
 WHERE event_type = 'migration';
 
 -- 3. Verify all users have membership
-SELECT 
+SELECT
   COUNT(DISTINCT u.id) as total_users,
   COUNT(DISTINCT m.user_id) as users_with_membership
 FROM auth.users u
@@ -48,6 +48,7 @@ LEFT JOIN user_memberships m ON m.user_id = u.id;
 ```
 
 **Expected Results:**
+
 - All users should have a membership record
 - Migration events count should equal user count
 - No missing memberships
@@ -57,8 +58,8 @@ LEFT JOIN user_memberships m ON m.user_id = u.id;
 Manually update admin users:
 
 ```sql
-UPDATE user_memberships 
-SET 
+UPDATE user_memberships
+SET
   level = 'admin',
   invite_quota_monthly = 999999,
   level_assigned_at = NOW()
@@ -84,10 +85,12 @@ See testing section below.
 ### 1. Profile Page UI ✓
 
 **Test:**
+
 - Visit `https://pactwines.com/profile`
 - Should see new Amex-inspired design
 
 **Expected:**
+
 - Metallic level badge (Brons/Silver/Guld gradient)
 - Impact Points prominently displayed
 - Progress bar to next level
@@ -96,6 +99,7 @@ See testing section below.
 - Recent IP activity timeline
 
 **Check:**
+
 - [ ] Level badge displays correctly
 - [ ] IP count matches database
 - [ ] Progress bar shows correct percentage
@@ -107,15 +111,18 @@ See testing section below.
 ### 2. Invite Generation ✓
 
 **Test:**
+
 - Click "Generate Invite Link" on profile page
 
 **Expected:**
+
 - Button disabled if quota = 0
 - Creates new invitation code
 - Shows code and shareable URL
 - Decrements available invites
 
 **Check:**
+
 - [ ] Can generate invite
 - [ ] Code is displayed (12 characters)
 - [ ] URL is shareable
@@ -125,15 +132,18 @@ See testing section below.
 ### 3. Access Gating ✓
 
 **Test:**
+
 - Create a new user without invitation
 - Or set existing user to 'requester' level
 
 **Expected:**
+
 - Redirected to `/access-pending` page
 - Cannot access /shop, /profile, etc.
 - Can redeem invitation code
 
 **Check:**
+
 - [ ] Requester redirected to access-pending
 - [ ] Access-pending page displays correctly
 - [ ] Can enter and redeem invite code
@@ -142,10 +152,12 @@ See testing section below.
 ### 4. Level Progression ✓
 
 **Test:**
+
 - Award IP manually via admin API
 - Check if level auto-upgrades
 
 **Admin Test:**
+
 ```bash
 curl -X PUT https://pactwines.com/api/admin/memberships \
   -H "Content-Type: application/json" \
@@ -156,12 +168,14 @@ curl -X PUT https://pactwines.com/api/admin/memberships \
 ```
 
 **Expected:**
+
 - User auto-upgrades to Silver (15 IP)
 - Invite quota increases to 12/month
 - Level badge updates
 - Perks update to Silver perks
 
 **Check:**
+
 - [ ] Level upgrades at correct thresholds
 - [ ] Invite quota updates automatically
 - [ ] UI reflects new level immediately
@@ -170,6 +184,7 @@ curl -X PUT https://pactwines.com/api/admin/memberships \
 ### 5. Invite Quota Reset ✓
 
 **Test:**
+
 - Run quota reset function manually
 
 ```sql
@@ -177,10 +192,12 @@ SELECT reset_monthly_invite_quotas();
 ```
 
 **Expected:**
+
 - All users' `invites_used_this_month` reset to 0
 - `last_quota_reset` updated to NOW()
 
 **Check:**
+
 - [ ] All users reset
 - [ ] Available invites = quota again
 - [ ] UI shows full quota
@@ -188,6 +205,7 @@ SELECT reset_monthly_invite_quotas();
 ### 6. Admin Invite with Custom Level ✓
 
 **Test:**
+
 - Use admin invite generation API
 
 ```bash
@@ -200,11 +218,13 @@ curl -X POST https://pactwines.com/api/admin/invitations/generate \
 ```
 
 **Expected:**
+
 - Creates invite with `initial_level` = 'silver'
 - When redeemed, user starts at Silver (not Basic)
 - User gets 12 invites/month from start
 
 **Check:**
+
 - [ ] Invite created with custom level
 - [ ] New user starts at specified level
 - [ ] Quota matches level (not Basic default)
@@ -212,16 +232,19 @@ curl -X POST https://pactwines.com/api/admin/invitations/generate \
 ### 7. IP Accrual (Integration Test) ✓
 
 **Test:**
+
 - Create invite
 - Have friend redeem and register
 - Check if inviter gets +1 IP
 
 **Expected:**
+
 - IP increases automatically
 - Event logged in `impact_point_events`
 - Timeline shows "Friend joined: +1 IP"
 
 **Check:**
+
 - [ ] IP awarded on invite signup
 - [ ] Event logged correctly
 - [ ] UI updates to show new IP
@@ -236,6 +259,7 @@ curl -X POST https://pactwines.com/api/admin/invitations/generate \
 **Symptom:** Migration SQL errors
 
 **Fix:**
+
 1. Check if migration 034 ran successfully first
 2. Verify enums were created
 3. Check for duplicate constraint errors
@@ -245,6 +269,7 @@ curl -X POST https://pactwines.com/api/admin/invitations/generate \
 **Symptom:** User can't access profile, redirected to access-request
 
 **Fix:**
+
 ```sql
 -- Manually create membership
 INSERT INTO user_memberships (user_id, level, impact_points, invite_quota_monthly)
@@ -256,10 +281,11 @@ VALUES ('USER_ID', 'basic', 0, 2);
 **Symptom:** Users still have invites_used_this_month after month change
 
 **Fix:**
+
 ```sql
 -- Manual reset
 UPDATE user_memberships
-SET 
+SET
   invites_used_this_month = 0,
   last_quota_reset = NOW();
 ```
@@ -269,6 +295,7 @@ SET
 **Symptom:** User has enough IP but level hasn't upgraded
 
 **Fix:**
+
 ```sql
 -- Trigger upgrade check
 SELECT check_and_upgrade_level('USER_ID');
@@ -279,8 +306,9 @@ SELECT check_and_upgrade_level('USER_ID');
 ## 📊 Monitoring Queries
 
 ### Active Users by Level
+
 ```sql
-SELECT 
+SELECT
   level,
   COUNT(*) as users,
   ROUND(AVG(impact_points), 1) as avg_ip,
@@ -298,8 +326,9 @@ END;
 ```
 
 ### Top Users by IP
+
 ```sql
-SELECT 
+SELECT
   p.email,
   p.full_name,
   m.level,
@@ -313,8 +342,9 @@ LIMIT 20;
 ```
 
 ### Recent IP Events
+
 ```sql
-SELECT 
+SELECT
   p.email,
   e.event_type,
   e.points_earned,
@@ -327,8 +357,9 @@ LIMIT 50;
 ```
 
 ### Invite Quota Usage
+
 ```sql
-SELECT 
+SELECT
   level,
   SUM(invites_used_this_month) as used,
   SUM(invite_quota_monthly) as total_quota,
@@ -344,12 +375,14 @@ GROUP BY level;
 If something goes wrong:
 
 ### Option 1: Revert Frontend Only
+
 ```bash
 git checkout rollback-before-performance-audit~1
 git push origin rollback-before-performance-audit:original-version-for-vercel --force
 ```
 
 ### Option 2: Revert Database (DESTRUCTIVE)
+
 ```sql
 -- WARNING: This deletes all membership data
 DROP TABLE IF EXISTS impact_point_events CASCADE;
@@ -387,12 +420,14 @@ After deployment:
 ## 🆘 Support
 
 **Issues?**
+
 1. Check Vercel logs for errors
 2. Check Supabase logs for database errors
 3. Review `REWARDS_SYSTEM_GUIDE.md` for system overview
 4. Review `PRODUCER_FILTERING_GUIDE.md` if producer pages break
 
 **Emergency Contact:**
+
 - Review git history: commits around `03722013`
 - Check middleware logs for access control issues
 - Verify database migration status in Supabase
@@ -401,4 +436,3 @@ After deployment:
 
 **Deployment Date:** October 9, 2025  
 **Version:** 1.0.0 - Membership Ladder System
-

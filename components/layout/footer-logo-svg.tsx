@@ -72,7 +72,7 @@ export function FooterLogoSvg({ className }: { className?: string }) {
         clearTimeout(timeoutId);
         isCompleted = true;
         // Only log if it's not an abort error from cleanup
-        if (error.name !== 'AbortError') {
+        if (error.name !== "AbortError") {
           console.warn("Failed to load footer logo:", error);
         }
         setFooterLogo(null);

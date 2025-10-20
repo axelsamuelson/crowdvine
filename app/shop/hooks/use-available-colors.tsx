@@ -15,15 +15,15 @@ const allColors: (Color | [Color, Color])[] = [
   // Blend colors with dual display
   [
     { name: "Red", value: COLOR_MAP["red"] },
-    { name: "Orange", value: COLOR_MAP["orange"] }
+    { name: "Orange", value: COLOR_MAP["orange"] },
   ],
   [
     { name: "Red", value: COLOR_MAP["red"] },
-    { name: "White", value: COLOR_MAP["white"] }
+    { name: "White", value: COLOR_MAP["white"] },
   ],
   [
     { name: "Orange", value: COLOR_MAP["orange"] },
-    { name: "White", value: COLOR_MAP["white"] }
+    { name: "White", value: COLOR_MAP["white"] },
   ],
 ];
 
@@ -45,7 +45,9 @@ export function useAvailableColors(products: Product[]) {
   const availableColorNames = useMemo(() => {
     const colorSet = new Set<string>();
 
-    console.log(`🎨 Processing ${products.length} products for color filtering`);
+    console.log(
+      `🎨 Processing ${products.length} products for color filtering`,
+    );
 
     products.forEach((product) => {
       const colorOption = product.options.find(
@@ -72,8 +74,10 @@ export function useAvailableColors(products: Product[]) {
               // Dual color - match exact string "Red & Orange" or "Red/Orange"
               const dualName1 = `${c[0].name} & ${c[1].name}`;
               const dualName2 = `${c[0].name}/${c[1].name}`;
-              const matches = colorName === dualName1 || colorName === dualName2;
-              if (matches) console.log(`✅ Matched blend: ${colorName} → ${dualName1}`);
+              const matches =
+                colorName === dualName1 || colorName === dualName2;
+              if (matches)
+                console.log(`✅ Matched blend: ${colorName} → ${dualName1}`);
               return matches;
             } else {
               // Single color - exact match
@@ -82,9 +86,9 @@ export function useAvailableColors(products: Product[]) {
               return matches;
             }
           });
-          
+
           if (matchingColor) {
-            const displayName = Array.isArray(matchingColor) 
+            const displayName = Array.isArray(matchingColor)
               ? `${matchingColor[0].name}/${matchingColor[1].name}`
               : matchingColor.name;
             colorSet.add(displayName);

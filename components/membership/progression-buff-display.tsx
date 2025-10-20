@@ -34,10 +34,7 @@ export function ProgressionBuffDisplay({
   if (compact) {
     // Compact version for checkout summary
     return (
-      <div className={cn(
-        "flex items-center gap-2 text-sm",
-        className
-      )}>
+      <div className={cn("flex items-center gap-2 text-sm", className)}>
         <Sparkles className="w-4 h-4 text-amber-500" />
         <span className="font-medium text-amber-700">
           Progress bonus: +{totalBuffPercentage.toFixed(1)}%
@@ -51,10 +48,12 @@ export function ProgressionBuffDisplay({
 
   // Full version for profile page
   return (
-    <div className={cn(
-      "rounded-xl border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50 p-4 shadow-sm",
-      className
-    )}>
+    <div
+      className={cn(
+        "rounded-xl border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50 p-4 shadow-sm",
+        className,
+      )}
+    >
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className="p-2 rounded-lg bg-amber-100">
@@ -64,19 +63,15 @@ export function ProgressionBuffDisplay({
             <h3 className="text-sm font-semibold text-gray-900">
               Active Progress Bonus
             </h3>
-            <p className="text-xs text-gray-600">
-              Applied to your next order
-            </p>
+            <p className="text-xs text-gray-600">Applied to your next order</p>
           </div>
         </div>
-        
+
         <div className="text-right">
           <div className="text-2xl font-bold text-amber-600">
             +{totalBuffPercentage.toFixed(1)}%
           </div>
-          <div className="text-xs text-gray-500">
-            discount
-          </div>
+          <div className="text-xs text-gray-500">discount</div>
         </div>
       </div>
 
@@ -104,7 +99,8 @@ export function ProgressionBuffDisplay({
         <div className="mt-3 pt-3 border-t border-amber-200">
           <p className="text-xs text-gray-600 flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            This bonus will be automatically applied to your next reservation and then expire.
+            This bonus will be automatically applied to your next reservation
+            and then expire.
           </p>
         </div>
       )}
@@ -125,14 +121,15 @@ export function ProgressionBuffBadge({
   if (percentage <= 0) return null;
 
   return (
-    <div className={cn(
-      "inline-flex items-center gap-1 px-2 py-1 rounded-full",
-      "bg-amber-100 text-amber-700 text-xs font-medium",
-      className
-    )}>
+    <div
+      className={cn(
+        "inline-flex items-center gap-1 px-2 py-1 rounded-full",
+        "bg-amber-100 text-amber-700 text-xs font-medium",
+        className,
+      )}
+    >
       <Sparkles className="w-3 h-3" />
       <span>+{percentage.toFixed(1)}% bonus</span>
     </div>
   );
 }
-

@@ -54,9 +54,7 @@ export function ZoneDetails({
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
-            <div className="p-2 rounded-lg bg-gray-100">
-              {info.icon}
-            </div>
+            <div className="p-2 rounded-lg bg-gray-100">{info.icon}</div>
             <div>
               <div className="font-semibold text-gray-900">{zoneName}</div>
               <div className="text-xs text-gray-600 font-normal">
@@ -116,7 +114,9 @@ export function ZoneDetails({
                   <Clock className="w-4 h-4 text-gray-400" />
                   <div>
                     <div className="text-xs text-gray-500">Country</div>
-                    <div className="text-sm text-gray-900 font-medium">{countryCode}</div>
+                    <div className="text-sm text-gray-900 font-medium">
+                      {countryCode}
+                    </div>
                   </div>
                 </div>
               )}

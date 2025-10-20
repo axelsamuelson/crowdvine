@@ -9,7 +9,7 @@ export async function addItem(
   variantId: string | undefined,
 ): Promise<Cart | null> {
   console.log("🔧 addItem server action called with variantId:", variantId);
-  
+
   if (!variantId) {
     console.error("addItem: No variantId provided");
     return null;
@@ -19,23 +19,31 @@ export async function addItem(
     // Extract base ID from variant ID (remove -default suffix)
     const baseId = variantId.replace("-default", "");
     console.log("🔧 Extracted baseId:", baseId);
-    
+
     // Add item to cart
     console.log("🔧 Calling CartService.addItem...");
     const cart = await CartService.addItem(baseId, 1);
     console.log("🔧 CartService.addItem returned:", cart ? "success" : "null");
-    
+
     if (cart) {
-      console.log("🔧 Cart has", cart.lines.length, "items, total quantity:", cart.totalQuantity);
+      console.log(
+        "🔧 Cart has",
+        cart.lines.length,
+        "items, total quantity:",
+        cart.totalQuantity,
+      );
     }
-    
+
     // Note: We don't revalidateTag here because it causes unnecessary re-renders
     // The cart context will handle the UI update via setCart
-    
+
     return cart;
   } catch (error) {
     console.error("🔧 addItem error:", error);
-    console.error("🔧 Error stack:", error instanceof Error ? error.stack : "No stack trace");
+    console.error(
+      "🔧 Error stack:",
+      error instanceof Error ? error.stack : "No stack trace",
+    );
     return null;
   }
 }

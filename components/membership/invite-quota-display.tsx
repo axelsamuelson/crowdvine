@@ -33,7 +33,9 @@ export function InviteQuotaDisplay({
             <p className="text-xs text-gray-500 mb-0.5">Monthly Invites</p>
             <p className="text-2xl font-semibold text-gray-900">
               {available}
-              <span className="text-base text-gray-500 font-normal ml-1">/ {total}</span>
+              <span className="text-base text-gray-500 font-normal ml-1">
+                / {total}
+              </span>
             </p>
           </div>
         </div>
@@ -55,18 +57,18 @@ export function InviteQuotaDisplay({
       {/* Progress Bar */}
       <div className="space-y-2">
         <div className="flex justify-between items-center">
-          <span className="text-xs text-gray-500">
-            {used} used
-          </span>
-          <span className="text-xs text-gray-500">
-            {available} remaining
-          </span>
+          <span className="text-xs text-gray-500">{used} used</span>
+          <span className="text-xs text-gray-500">{available} remaining</span>
         </div>
         <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
           <div
             className={cn(
               "h-full transition-all duration-500 rounded-full",
-              percentUsed >= 90 ? "bg-red-500" : percentUsed >= 70 ? "bg-yellow-500" : "bg-green-500"
+              percentUsed >= 90
+                ? "bg-red-500"
+                : percentUsed >= 70
+                  ? "bg-yellow-500"
+                  : "bg-green-500",
             )}
             style={{ width: `${percentUsed}%` }}
           />
@@ -77,7 +79,8 @@ export function InviteQuotaDisplay({
       {available <= 1 && available > 0 && (
         <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
           <p className="text-xs text-yellow-800">
-            Only {available} invite{available !== 1 ? 's' : ''} remaining this month
+            Only {available} invite{available !== 1 ? "s" : ""} remaining this
+            month
           </p>
         </div>
       )}
@@ -93,4 +96,3 @@ export function InviteQuotaDisplay({
     </div>
   );
 }
-

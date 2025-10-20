@@ -1,4 +1,14 @@
-import { UserPlus, ShoppingBag, Package, TrendingUp, Award, ShoppingCart, Star, Share2, MessageSquare } from "lucide-react";
+import {
+  UserPlus,
+  ShoppingBag,
+  Package,
+  TrendingUp,
+  Award,
+  ShoppingCart,
+  Star,
+  Share2,
+  MessageSquare,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface IPEvent {
@@ -27,14 +37,14 @@ const eventIcons: Record<string, any> = {
   level_upgrade: TrendingUp,
   manual_adjustment: Award,
   migration: Award,
-  
+
   // New events (v2)
-  invite_second_order: ShoppingCart,      // Friend's 2nd order
-  own_order_large: ShoppingCart,          // Large order (12+ bottles)
-  pallet_milestone_6: Package,            // 6 pallets milestone
-  pallet_milestone_12: Package,           // 12 pallets milestone
-  review_submitted: Star,                 // Review submitted
-  share_action: Share2,                   // Shared wine/pallet
+  invite_second_order: ShoppingCart, // Friend's 2nd order
+  own_order_large: ShoppingCart, // Large order (12+ bottles)
+  pallet_milestone_6: Package, // 6 pallets milestone
+  pallet_milestone_12: Package, // 12 pallets milestone
+  review_submitted: Star, // Review submitted
+  share_action: Share2, // Shared wine/pallet
 };
 
 const eventColors: Record<string, string> = {
@@ -46,7 +56,7 @@ const eventColors: Record<string, string> = {
   level_upgrade: "text-yellow-600 bg-yellow-50",
   manual_adjustment: "text-gray-600 bg-gray-50",
   migration: "text-gray-600 bg-gray-50",
-  
+
   // New events (v2)
   invite_second_order: "text-emerald-600 bg-emerald-50",
   own_order_large: "text-indigo-600 bg-indigo-50",
@@ -105,7 +115,8 @@ export function IPTimeline({ events, className }: IPTimelineProps) {
     <div className={cn("space-y-2", className)}>
       {events.map((event) => {
         const Icon = eventIcons[event.event_type] || Award;
-        const colorClass = eventColors[event.event_type] || "text-gray-600 bg-gray-50";
+        const colorClass =
+          eventColors[event.event_type] || "text-gray-600 bg-gray-50";
         const isPositive = event.points_earned > 0;
 
         return (
@@ -114,7 +125,12 @@ export function IPTimeline({ events, className }: IPTimelineProps) {
             className="flex items-start gap-3 p-3 rounded-xl bg-white border border-gray-200/50 hover:bg-gray-50/50 transition-colors"
           >
             {/* Icon */}
-            <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0", colorClass)}>
+            <div
+              className={cn(
+                "w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0",
+                colorClass,
+              )}
+            >
               <Icon className="w-4 h-4" />
             </div>
 
@@ -136,10 +152,14 @@ export function IPTimeline({ events, className }: IPTimelineProps) {
             {/* Points Badge */}
             {isPositive && (
               <div className="flex-shrink-0">
-                <span className={cn(
-                  "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
-                  event.points_earned > 0 ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"
-                )}>
+                <span
+                  className={cn(
+                    "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
+                    event.points_earned > 0
+                      ? "bg-green-100 text-green-800"
+                      : "bg-gray-100 text-gray-600",
+                  )}
+                >
                   +{event.points_earned} IP
                 </span>
               </div>
@@ -150,4 +170,3 @@ export function IPTimeline({ events, className }: IPTimelineProps) {
     </div>
   );
 }
-

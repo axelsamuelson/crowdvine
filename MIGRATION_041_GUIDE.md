@@ -1,9 +1,11 @@
 # Migration 041: Add Initial Level to Access System
 
 ## Problem
+
 Getting "Failed to update access request" error when approving access requests in admin panel.
 
 ## Root Cause
+
 The `initial_level` column doesn't exist in the `access_requests` and `access_tokens` tables yet.
 
 ## Solution: Run Migration
@@ -22,14 +24,14 @@ Copy and paste this SQL:
 -- This allows admins to specify the membership level when approving access requests
 
 -- Add initial_level column to access_requests table
-ALTER TABLE access_requests 
+ALTER TABLE access_requests
 ADD COLUMN IF NOT EXISTS initial_level VARCHAR(20) DEFAULT 'basic';
 
 -- Add comment to explain the column
 COMMENT ON COLUMN access_requests.initial_level IS 'The membership level to assign when user completes signup (basic, brons, silver, guld)';
 
--- Add initial_level column to access_tokens table  
-ALTER TABLE access_tokens 
+-- Add initial_level column to access_tokens table
+ALTER TABLE access_tokens
 ADD COLUMN IF NOT EXISTS initial_level VARCHAR(20) DEFAULT 'basic';
 
 -- Add comment to explain the column
@@ -43,6 +45,7 @@ CREATE INDEX IF NOT EXISTS idx_access_tokens_initial_level ON access_tokens(init
 ### Step 3: Click "Run"
 
 You should see:
+
 ```
 Success. No rows returned
 ```
@@ -53,19 +56,20 @@ Run this query to verify the columns were added:
 
 ```sql
 -- Check access_requests table
-SELECT column_name, data_type, column_default 
-FROM information_schema.columns 
-WHERE table_name = 'access_requests' 
+SELECT column_name, data_type, column_default
+FROM information_schema.columns
+WHERE table_name = 'access_requests'
 AND column_name = 'initial_level';
 
 -- Check access_tokens table
-SELECT column_name, data_type, column_default 
-FROM information_schema.columns 
-WHERE table_name = 'access_tokens' 
+SELECT column_name, data_type, column_default
+FROM information_schema.columns
+WHERE table_name = 'access_tokens'
 AND column_name = 'initial_level';
 ```
 
 You should see both columns with:
+
 - `data_type`: character varying
 - `column_default`: 'basic'::character varying
 
@@ -122,4 +126,3 @@ The complete flow will work:
    - Bronze: 5 invites/month
    - Silver: 12 invites/month
    - Gold: 50 invites/month
-

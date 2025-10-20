@@ -2,7 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Mail, Calendar, Award, Users, Package, CreditCard, TrendingUp } from "lucide-react";
+import {
+  ArrowLeft,
+  Mail,
+  Calendar,
+  Award,
+  Users,
+  Package,
+  CreditCard,
+  TrendingUp,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
 
@@ -73,14 +82,19 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
       setLoading(true);
 
       // Fetch all user data in parallel
-      const [profileRes, membershipRes, reservationsRes, invitationsRes, ipEventsRes] = 
-        await Promise.all([
-          fetch(`/api/admin/users/${params.id}/profile`),
-          fetch(`/api/admin/users/${params.id}/membership`),
-          fetch(`/api/admin/users/${params.id}/reservations`),
-          fetch(`/api/admin/users/${params.id}/invitations`),
-          fetch(`/api/admin/users/${params.id}/ip-events`),
-        ]);
+      const [
+        profileRes,
+        membershipRes,
+        reservationsRes,
+        invitationsRes,
+        ipEventsRes,
+      ] = await Promise.all([
+        fetch(`/api/admin/users/${params.id}/profile`),
+        fetch(`/api/admin/users/${params.id}/membership`),
+        fetch(`/api/admin/users/${params.id}/reservations`),
+        fetch(`/api/admin/users/${params.id}/invitations`),
+        fetch(`/api/admin/users/${params.id}/ip-events`),
+      ]);
 
       if (profileRes.ok) {
         const data = await profileRes.json();
@@ -158,7 +172,9 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
     );
   }
 
-  const levelColors = membership ? getLevelColor(membership.level) : getLevelColor("basic");
+  const levelColors = membership
+    ? getLevelColor(membership.level)
+    : getLevelColor("basic");
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
@@ -185,13 +201,17 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
               </div>
               <div className="flex items-center gap-1.5">
                 <Calendar className="w-4 h-4" />
-                <span>Joined {new Date(profile.created_at).toLocaleDateString()}</span>
+                <span>
+                  Joined {new Date(profile.created_at).toLocaleDateString()}
+                </span>
               </div>
             </div>
           </div>
 
           {membership && (
-            <div className={`px-4 py-2 rounded-full ${levelColors.bg} ${levelColors.text} text-sm font-medium`}>
+            <div
+              className={`px-4 py-2 rounded-full ${levelColors.bg} ${levelColors.text} text-sm font-medium`}
+            >
               {getLevelDisplayName(membership.level)}
             </div>
           )}
@@ -235,7 +255,7 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
             </div>
             <div>
               <p className="text-2xl font-light text-foreground">
-                {invitations.filter(i => i.used_at).length}
+                {invitations.filter((i) => i.used_at).length}
               </p>
               <p className="text-xs text-muted-foreground">Invites Used</p>
             </div>
@@ -249,7 +269,9 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
             </div>
             <div>
               <p className="text-2xl font-light text-foreground">
-                {membership ? `${membership.invites_used_this_month}/${membership.invite_quota_monthly}` : "0/0"}
+                {membership
+                  ? `${membership.invites_used_this_month}/${membership.invite_quota_monthly}`
+                  : "0/0"}
               </p>
               <p className="text-xs text-muted-foreground">Quota This Month</p>
             </div>
@@ -269,7 +291,9 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
             </h2>
 
             {reservations.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4">No reservations yet</p>
+              <p className="text-sm text-muted-foreground py-4">
+                No reservations yet
+              </p>
             ) : (
               <div className="space-y-3">
                 {reservations.map((reservation) => (
@@ -283,23 +307,33 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
                           {reservation.total_bottles} bottles
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(reservation.created_at).toLocaleDateString()}
+                          {new Date(
+                            reservation.created_at,
+                          ).toLocaleDateString()}
                         </p>
                       </div>
-                      <span className={`px-2 py-1 rounded text-xs ${
-                        reservation.status === 'completed' ? 'bg-green-100 text-green-900' :
-                        reservation.status === 'pending' ? 'bg-yellow-100 text-yellow-900' :
-                        'bg-gray-100 text-gray-900'
-                      }`}>
+                      <span
+                        className={`px-2 py-1 rounded text-xs ${
+                          reservation.status === "completed"
+                            ? "bg-green-100 text-green-900"
+                            : reservation.status === "pending"
+                              ? "bg-yellow-100 text-yellow-900"
+                              : "bg-gray-100 text-gray-900"
+                        }`}
+                      >
                         {reservation.status}
                       </span>
                     </div>
-                    
+
                     {reservation.wines && reservation.wines.length > 0 && (
                       <div className="mt-2 pt-2 border-t border-border/50">
                         <p className="text-xs text-muted-foreground">
-                          {reservation.wines.slice(0, 2).map((w: any) => w.wine_name).join(", ")}
-                          {reservation.wines.length > 2 && ` +${reservation.wines.length - 2} more`}
+                          {reservation.wines
+                            .slice(0, 2)
+                            .map((w: any) => w.wine_name)
+                            .join(", ")}
+                          {reservation.wines.length > 2 &&
+                            ` +${reservation.wines.length - 2} more`}
                         </p>
                       </div>
                     )}
@@ -317,7 +351,9 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
             </h2>
 
             {ipEvents.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4">No activity yet</p>
+              <p className="text-sm text-muted-foreground py-4">
+                No activity yet
+              </p>
             ) : (
               <div className="space-y-2">
                 {ipEvents.map((event) => (
@@ -355,26 +391,37 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
 
               <div className="space-y-4">
                 <div className="text-center py-4">
-                  <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full ${levelColors.bg} ${levelColors.text} text-lg font-medium mb-2`}>
+                  <div
+                    className={`inline-flex items-center justify-center w-20 h-20 rounded-full ${levelColors.bg} ${levelColors.text} text-lg font-medium mb-2`}
+                  >
                     {getLevelDisplayName(membership.level)}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Member since {new Date(membership.created_at).toLocaleDateString()}
+                    Member since{" "}
+                    {new Date(membership.created_at).toLocaleDateString()}
                   </p>
                 </div>
 
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Impact Points</span>
-                    <span className="font-medium">{membership.impact_points}</span>
+                    <span className="font-medium">
+                      {membership.impact_points}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Monthly Quota</span>
-                    <span className="font-medium">{membership.invite_quota_monthly}</span>
+                    <span className="font-medium">
+                      {membership.invite_quota_monthly}
+                    </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Used This Month</span>
-                    <span className="font-medium">{membership.invites_used_this_month}</span>
+                    <span className="text-muted-foreground">
+                      Used This Month
+                    </span>
+                    <span className="font-medium">
+                      {membership.invites_used_this_month}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -396,30 +443,32 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
               <div className="flex justify-between">
                 <span>Used:</span>
                 <span className="font-medium text-green-600">
-                  {invitations.filter(i => i.used_at).length}
+                  {invitations.filter((i) => i.used_at).length}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span>Active:</span>
                 <span className="font-medium">
-                  {invitations.filter(i => !i.used_at && i.is_active).length}
+                  {invitations.filter((i) => !i.used_at && i.is_active).length}
                 </span>
               </div>
             </div>
 
             {invitations.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4">No invitations created</p>
+              <p className="text-sm text-muted-foreground py-4">
+                No invitations created
+              </p>
             ) : (
               <div className="space-y-3 max-h-[500px] overflow-y-auto">
                 {invitations.map((invite) => (
                   <div
                     key={invite.id}
                     className={`border rounded-lg p-4 ${
-                      invite.used_at 
-                        ? "border-green-200 bg-green-50/30" 
+                      invite.used_at
+                        ? "border-green-200 bg-green-50/30"
                         : invite.is_active
-                        ? "border-border bg-background"
-                        : "border-red-200 bg-red-50/30"
+                          ? "border-border bg-background"
+                          : "border-red-200 bg-red-50/30"
                     }`}
                   >
                     <div className="space-y-3">
@@ -430,17 +479,26 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
                             {invite.code}
                           </code>
                           <p className="text-xs text-muted-foreground mt-1">
-                            Level: <span className="font-medium">{invite.initial_level || 'basic'}</span>
+                            Level:{" "}
+                            <span className="font-medium">
+                              {invite.initial_level || "basic"}
+                            </span>
                           </p>
                         </div>
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          invite.used_at 
-                            ? "bg-green-100 text-green-900" 
+                        <span
+                          className={`px-2 py-1 rounded text-xs font-medium ${
+                            invite.used_at
+                              ? "bg-green-100 text-green-900"
+                              : invite.is_active
+                                ? "bg-blue-100 text-blue-900"
+                                : "bg-red-100 text-red-900"
+                          }`}
+                        >
+                          {invite.used_at
+                            ? "Used"
                             : invite.is_active
-                            ? "bg-blue-100 text-blue-900"
-                            : "bg-red-100 text-red-900"
-                        }`}>
-                          {invite.used_at ? "Used" : invite.is_active ? "Active" : "Inactive"}
+                              ? "Active"
+                              : "Inactive"}
                         </span>
                       </div>
 
@@ -469,7 +527,8 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
                       {/* Created Date */}
                       <div className="pt-2 border-t border-border/50">
                         <p className="text-xs text-muted-foreground">
-                          Created {new Date(invite.created_at).toLocaleDateString()} at{" "}
+                          Created{" "}
+                          {new Date(invite.created_at).toLocaleDateString()} at{" "}
                           {new Date(invite.created_at).toLocaleTimeString()}
                         </p>
                       </div>
@@ -484,4 +543,3 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
     </div>
   );
 }
-

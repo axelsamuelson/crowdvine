@@ -27,11 +27,13 @@ async function createStockholmPallet() {
       return;
     }
 
-    const pickupZone = zones.find(z => z.zone_type === "pickup");
-    const deliveryZone = zones.find(z => z.zone_type === "delivery");
+    const pickupZone = zones.find((z) => z.zone_type === "pickup");
+    const deliveryZone = zones.find((z) => z.zone_type === "delivery");
 
     if (!pickupZone || !deliveryZone) {
-      console.error("❌ Stockholm zones not found. Run create-stockholm-zone.ts first.");
+      console.error(
+        "❌ Stockholm zones not found. Run create-stockholm-zone.ts first.",
+      );
       return;
     }
 
@@ -77,7 +79,6 @@ async function createStockholmPallet() {
 
     console.log("\n🎉 Stockholm pallet created successfully!");
     console.log("Now checkout should work with Stockholm addresses!");
-
   } catch (error) {
     console.error("❌ Error creating Stockholm pallet:", error);
   }

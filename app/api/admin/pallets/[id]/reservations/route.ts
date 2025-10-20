@@ -7,7 +7,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
  */
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const supabase = getSupabaseAdmin();
@@ -24,23 +24,25 @@ export async function GET(
 
     if (palletError || !pallet) {
       console.error("[Admin] Error fetching pallet:", palletError);
-      return NextResponse.json(
-        { error: "Pallet not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Pallet not found" }, { status: 404 });
     }
 
     // Get all reservations for this pallet (using pallet_id directly)
     const { data: reservations, error: reservationsError } = await supabase
       .from("order_reservations")
-      .select("id, order_id, user_id, status, created_at, delivery_address, total_cost_cents")
+      .select(
+        "id, order_id, user_id, status, created_at, delivery_address, total_cost_cents",
+      )
       .eq("pallet_id", palletId)
       .order("created_at", { ascending: false });
 
     if (reservationsError) {
       console.error("[Admin] Error fetching reservations:", reservationsError);
       return NextResponse.json(
-        { error: "Failed to fetch reservations", details: reservationsError.message },
+        {
+          error: "Failed to fetch reservations",
+          details: reservationsError.message,
+        },
         { status: 500 },
       );
     }
@@ -86,7 +88,10 @@ export async function GET(
           .eq("reservation_id", reservation.id);
 
         if (itemsError) {
-          console.error(`[Admin] Error fetching items for reservation ${reservation.id}:`, itemsError);
+          console.error(
+            `[Admin] Error fetching items for reservation ${reservation.id}:`,
+            itemsError,
+          );
         }
 
         const itemsData =
@@ -123,15 +128,19 @@ export async function GET(
       }),
     );
 
-    console.log(`[Admin] Returning ${reservationsWithItems.length} reservations with full details`);
+    console.log(
+      `[Admin] Returning ${reservationsWithItems.length} reservations with full details`,
+    );
 
     return NextResponse.json(reservationsWithItems);
   } catch (error) {
     console.error("[Admin] Pallet reservations API error:", error);
     return NextResponse.json(
-      { error: "Internal server error", details: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 },
     );
   }
 }
-

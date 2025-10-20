@@ -21,7 +21,7 @@ async function createTestUsers() {
         invite_code_used: "57280597760032980000",
       },
       {
-        id: randomUUID(), 
+        id: randomUUID(),
         email: "jane.smith@example.com",
         role: "user",
         access_granted_at: null,
@@ -38,8 +38,8 @@ async function createTestUsers() {
 
     for (const user of testUsers) {
       const { error } = await supabase
-        .from('profiles')
-        .upsert(user, { onConflict: 'id' });
+        .from("profiles")
+        .upsert(user, { onConflict: "id" });
 
       if (error) {
         console.error(`❌ Error creating user ${user.email}:`, error);
@@ -49,7 +49,6 @@ async function createTestUsers() {
     }
 
     console.log("🎉 Test users created successfully!");
-
   } catch (error) {
     console.error("❌ Script failed:", error);
   }

@@ -36,7 +36,7 @@ export type ValidationResult = {
  * - Producers in the same group can be combined to meet the requirement
  */
 export async function validateSixBottleRule(
-  cartItems: CartItem[]
+  cartItems: CartItem[],
 ): Promise<ValidationResult> {
   if (!cartItems || cartItems.length === 0) {
     return {
@@ -51,9 +51,13 @@ export async function validateSixBottleRule(
   try {
     // 1. Get producer_id for each cart item by looking up the wine in database
     // This is more reliable than depending on cached product data
-    const wineIds = cartItems.map(item => item.merchandise.id);
-    console.log("🔍 [Validation] Looking up producer_ids for", wineIds.length, "wines");
-    
+    const wineIds = cartItems.map((item) => item.merchandise.id);
+    console.log(
+      "🔍 [Validation] Looking up producer_ids for",
+      wineIds.length,
+      "wines",
+    );
+
     const { data: wines, error: winesError } = await sb
       .from("wines")
       .select("id, producer_id, wine_name, producers(id, name)")
@@ -64,7 +68,11 @@ export async function validateSixBottleRule(
       throw winesError;
     }
 
-    console.log("✅ [Validation] Found", wines?.length || 0, "wines with producer info");
+    console.log(
+      "✅ [Validation] Found",
+      wines?.length || 0,
+      "wines with producer info",
+    );
 
     // Create map: wineId -> { producerId, producerName }
     const wineToProducer = new Map<string, { id: string; name: string }>();
@@ -76,9 +84,9 @@ export async function validateSixBottleRule(
     });
 
     // 2. Get all producer groups and their members
-    const { data: groupMembers, error: groupError } = await sb
-      .from("producer_group_members")
-      .select(`
+    const { data: groupMembers, error: groupError } = await sb.from(
+      "producer_group_members",
+    ).select(`
         group_id,
         producer_id,
         producer_groups!inner(id, name)
@@ -99,7 +107,10 @@ export async function validateSixBottleRule(
       }
     });
 
-    console.log("🔍 [Validation] Producer groups loaded:", producerToGroup.size);
+    console.log(
+      "🔍 [Validation] Producer groups loaded:",
+      producerToGroup.size,
+    );
 
     // 3. Group cart items by producer or group
     // Key format: "group_{groupId}" or "producer_{producerId}"
@@ -118,7 +129,10 @@ export async function validateSixBottleRule(
       // Get producer info from our lookup map
       const wineInfo = wineToProducer.get(item.merchandise.id);
       if (!wineInfo) {
-        console.warn("❌ [Validation] Wine not found in database:", item.merchandise.id);
+        console.warn(
+          "❌ [Validation] Wine not found in database:",
+          item.merchandise.id,
+        );
         continue;
       }
 
@@ -146,7 +160,7 @@ export async function validateSixBottleRule(
     console.log(
       "🔍 [Validation] Grouped by producer/group:",
       quantityByProducerOrGroup.size,
-      "entries"
+      "entries",
     );
 
     // 3. Validate each producer/group against the 6-bottle rule
@@ -157,7 +171,7 @@ export async function validateSixBottleRule(
       const isValid = entry.quantity % 6 === 0;
       const needed = isValid ? 0 : 6 - (entry.quantity % 6);
       const producerName = Array.from(entry.producerNames).join(" + ");
-      
+
       // Generate handle from producer name (same as collections API)
       const producerHandle = producerName.toLowerCase().replace(/\s+/g, "-");
 
@@ -185,11 +199,11 @@ export async function validateSixBottleRule(
         const nextMultiple = entry.quantity + needed;
         if (entry.groupName) {
           errors.push(
-            `${entry.groupName}: ${entry.quantity} bottles. Add ${needed} more for ${nextMultiple} total.`
+            `${entry.groupName}: ${entry.quantity} bottles. Add ${needed} more for ${nextMultiple} total.`,
           );
         } else {
           errors.push(
-            `${producerName}: ${entry.quantity} bottles. Add ${needed} more for ${nextMultiple} total.`
+            `${producerName}: ${entry.quantity} bottles. Add ${needed} more for ${nextMultiple} total.`,
           );
         }
       }
@@ -218,4 +232,3 @@ export async function validateSixBottleRule(
     };
   }
 }
-

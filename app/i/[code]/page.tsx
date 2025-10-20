@@ -69,7 +69,6 @@ export default function InviteSignupPage() {
     }
   };
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -98,7 +97,7 @@ export default function InviteSignupPage() {
           });
 
           toast.success("Account created and signed in successfully!");
-          
+
           // Redirect to home page after a short delay
           setTimeout(() => {
             window.location.href = "/";
@@ -111,7 +110,9 @@ export default function InviteSignupPage() {
       } else {
         // Handle security validation errors
         if (data.error && data.error.includes("Security validation failed")) {
-          toast.error("Security validation failed. Please try signing in manually.");
+          toast.error(
+            "Security validation failed. Please try signing in manually.",
+          );
           router.push("/log-in");
         } else {
           toast.error(data.error || "Failed to create account");
@@ -144,7 +145,7 @@ export default function InviteSignupPage() {
           <p className="text-sm text-gray-600 mb-6">
             This invitation code is not valid or has expired.
           </p>
-          <Button 
+          <Button
             onClick={() => router.push("/access-request")}
             className="bg-black hover:bg-black/90 text-white"
           >
@@ -171,7 +172,7 @@ export default function InviteSignupPage() {
               ? "This invitation has expired. Please request a new one."
               : "This invitation has already been used."}
           </p>
-          <Button 
+          <Button
             onClick={() => router.push("/access-request")}
             className="bg-black hover:bg-black/90 text-white"
           >
@@ -190,7 +191,7 @@ export default function InviteSignupPage() {
         return invitation.profiles.full_name;
       }
       if (invitation?.profiles?.email) {
-        return invitation.profiles.email.split('@')[0];
+        return invitation.profiles.email.split("@")[0];
       }
       return "A friend";
     } catch (error) {
@@ -202,10 +203,10 @@ export default function InviteSignupPage() {
   // Map Swedish level names to English
   const getLevelName = (level: string) => {
     const levelMap: Record<string, string> = {
-      'guld': 'Gold',
-      'silver': 'Silver',
-      'brons': 'Bronze',
-      'basic': 'Basic'
+      guld: "Gold",
+      silver: "Silver",
+      brons: "Bronze",
+      basic: "Basic",
     };
     return levelMap[level] || level.charAt(0).toUpperCase() + level.slice(1);
   };
@@ -213,12 +214,24 @@ export default function InviteSignupPage() {
   // Get premium colors for each level
   const getLevelColors = (level: string) => {
     const colorMap: Record<string, { bg: string; text: string }> = {
-      'guld': { bg: 'bg-gradient-to-br from-amber-600 to-yellow-700', text: 'text-white' },
-      'silver': { bg: 'bg-gradient-to-br from-gray-400 to-gray-500', text: 'text-gray-900' },
-      'brons': { bg: 'bg-gradient-to-br from-orange-800 to-amber-900', text: 'text-white' },
-      'basic': { bg: 'bg-gradient-to-br from-slate-600 to-slate-700', text: 'text-white' }
+      guld: {
+        bg: "bg-gradient-to-br from-amber-600 to-yellow-700",
+        text: "text-white",
+      },
+      silver: {
+        bg: "bg-gradient-to-br from-gray-400 to-gray-500",
+        text: "text-gray-900",
+      },
+      brons: {
+        bg: "bg-gradient-to-br from-orange-800 to-amber-900",
+        text: "text-white",
+      },
+      basic: {
+        bg: "bg-gradient-to-br from-slate-600 to-slate-700",
+        text: "text-white",
+      },
     };
-    return colorMap[level] || { bg: 'bg-gray-500', text: 'text-white' };
+    return colorMap[level] || { bg: "bg-gray-500", text: "text-white" };
   };
 
   return (
@@ -244,18 +257,24 @@ export default function InviteSignupPage() {
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="text-center space-y-3">
               {/* Level Badge - Premium Colors */}
-              <div className={`inline-block px-6 py-2 rounded-md text-sm font-medium ${
-                getLevelColors(invitation.initial_level).bg
-              } ${getLevelColors(invitation.initial_level).text}`}>
+              <div
+                className={`inline-block px-6 py-2 rounded-md text-sm font-medium ${
+                  getLevelColors(invitation.initial_level).bg
+                } ${getLevelColors(invitation.initial_level).text}`}
+              >
                 {getLevelName(invitation.initial_level)} Membership
               </div>
 
               {/* Perks - Single line */}
               <p className="text-sm text-gray-600">
-                {invitation.initial_level === 'guld' && 'Maximum perks • 50 invites/month • Gold level discount'}
-                {invitation.initial_level === 'silver' && 'Early access • 12 invites/month • Fee capped'}
-                {invitation.initial_level === 'brons' && 'Queue priority • 5 invites/month'}
-                {invitation.initial_level === 'basic' && 'Entry level • 2 invites/month'}
+                {invitation.initial_level === "guld" &&
+                  "Maximum perks • 50 invites/month • Gold level discount"}
+                {invitation.initial_level === "silver" &&
+                  "Early access • 12 invites/month • Fee capped"}
+                {invitation.initial_level === "brons" &&
+                  "Queue priority • 5 invites/month"}
+                {invitation.initial_level === "basic" &&
+                  "Entry level • 2 invites/month"}
               </p>
             </div>
           </div>
@@ -265,7 +284,10 @@ export default function InviteSignupPage() {
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="full_name" className="text-sm font-medium text-gray-700">
+              <Label
+                htmlFor="full_name"
+                className="text-sm font-medium text-gray-700"
+              >
                 Full Name
               </Label>
               <Input
@@ -281,7 +303,10 @@ export default function InviteSignupPage() {
             </div>
 
             <div>
-              <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+              <Label
+                htmlFor="email"
+                className="text-sm font-medium text-gray-700"
+              >
                 Email
               </Label>
               <Input
@@ -297,7 +322,10 @@ export default function InviteSignupPage() {
             </div>
 
             <div>
-              <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+              <Label
+                htmlFor="password"
+                className="text-sm font-medium text-gray-700"
+              >
                 Password
               </Label>
               <Input
@@ -333,7 +361,7 @@ export default function InviteSignupPage() {
           <div className="mt-4 text-center">
             <p className="text-xs text-gray-500">
               Already have an account?{" "}
-              <button 
+              <button
                 onClick={() => router.push("/log-in")}
                 className="text-gray-900 underline hover:no-underline"
                 type="button"

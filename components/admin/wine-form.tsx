@@ -158,7 +158,11 @@ export default function WineForm({ wine, producers }: WineFormProps) {
     setError("");
 
     // Generate handle from wine name and vintage
-    const generatedHandle = `${formData.wine_name.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "")}-${formData.vintage}`;
+    const generatedHandle = `${formData.wine_name
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "")}-${formData.vintage}`;
 
     // Validate required fields
     const missingFields: string[] = [];
@@ -195,7 +199,9 @@ export default function WineForm({ wine, producers }: WineFormProps) {
           if (!uploadResponse.ok) {
             const errorData = await uploadResponse.json();
             console.error("❌ Upload failed:", errorData);
-            throw new Error(errorData.error || errorData.details || "Failed to upload images");
+            throw new Error(
+              errorData.error || errorData.details || "Failed to upload images",
+            );
           }
 
           const uploadResult = await uploadResponse.json();
@@ -204,7 +210,9 @@ export default function WineForm({ wine, producers }: WineFormProps) {
         } catch (uploadError) {
           console.error("Image upload error:", uploadError);
           // Make image upload non-blocking - wine can be created without images
-          setError(`Warning: Image upload failed - ${uploadError instanceof Error ? uploadError.message : 'Unknown error'}. Wine will be created without images.`);
+          setError(
+            `Warning: Image upload failed - ${uploadError instanceof Error ? uploadError.message : "Unknown error"}. Wine will be created without images.`,
+          );
           // Continue with wine creation even if images fail
         }
       }
@@ -307,7 +315,6 @@ export default function WineForm({ wine, producers }: WineFormProps) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
             <div className="space-y-2">
               <Label htmlFor="color">Color *</Label>
               <Select
@@ -322,9 +329,15 @@ export default function WineForm({ wine, producers }: WineFormProps) {
                   <SelectItem value="White">White</SelectItem>
                   <SelectItem value="Rose">Rosé</SelectItem>
                   <SelectItem value="Orange">Orange</SelectItem>
-                  <SelectItem value="Red & Orange">Red & Orange (Blend)</SelectItem>
-                  <SelectItem value="Red & White">Red & White (Blend)</SelectItem>
-                  <SelectItem value="Orange & White">Orange & White (Blend)</SelectItem>
+                  <SelectItem value="Red & Orange">
+                    Red & Orange (Blend)
+                  </SelectItem>
+                  <SelectItem value="Red & White">
+                    Red & White (Blend)
+                  </SelectItem>
+                  <SelectItem value="Orange & White">
+                    Orange & White (Blend)
+                  </SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">

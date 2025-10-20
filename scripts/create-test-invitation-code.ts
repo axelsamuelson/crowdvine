@@ -12,7 +12,9 @@ const supabase = createClient(
 
 function generateSimpleCode(): string {
   // Generate a 20-digit random number
-  return Math.floor(Math.random() * 100000000000000000000).toString().padStart(20, '0');
+  return Math.floor(Math.random() * 100000000000000000000)
+    .toString()
+    .padStart(20, "0");
 }
 
 async function createTestInvitationCode() {
@@ -28,7 +30,7 @@ async function createTestInvitationCode() {
     expiresAt.setDate(expiresAt.getDate() + 30); // 30 days
 
     const { data, error } = await supabase
-      .from('invitation_codes')
+      .from("invitation_codes")
       .insert({
         code,
         email: null, // General use
@@ -41,7 +43,9 @@ async function createTestInvitationCode() {
     if (error) {
       console.error("❌ Error creating invitation code:", error);
       console.log("💡 This might mean the migration hasn't been run yet.");
-      console.log("📋 Please run the migration_access_control.sql in your Supabase SQL editor first.");
+      console.log(
+        "📋 Please run the migration_access_control.sql in your Supabase SQL editor first.",
+      );
       return;
     }
 
@@ -49,7 +53,6 @@ async function createTestInvitationCode() {
     console.log(`📝 Code: ${data.code}`);
     console.log(`⏰ Expires: ${data.expires_at}`);
     console.log("\n🧪 Test this code at: http://localhost:3000/access-request");
-
   } catch (error) {
     console.error("❌ Script failed:", error);
   }

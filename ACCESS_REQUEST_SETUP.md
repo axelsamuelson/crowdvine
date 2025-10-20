@@ -124,6 +124,7 @@ curl -X POST https://pactwines.com/api/admin/cleanup-tokens
 ### Data Management
 
 **När du tar bort en access request:**
+
 - ✅ Access request tas bort från `access_requests` tabellen
 - ✅ Alla access tokens för email:en tas bort från `access_tokens`
 - ✅ Alla invitation codes för email:en tas bort från `invitation_codes`
@@ -131,6 +132,7 @@ curl -X POST https://pactwines.com/api/admin/cleanup-tokens
 - ✅ Detaljerad feedback om vad som rensats
 
 **Automatisk cleanup:**
+
 - Gamla pending requests (>30 dagar) rensas automatiskt
 - Expired tokens rensas dagligen
 - Orphaned users fixas vid cleanup
@@ -138,11 +140,13 @@ curl -X POST https://pactwines.com/api/admin/cleanup-tokens
 ## 🔒 Säkerhet
 
 ### Rate Limiting
+
 - **Access Requests**: 5 per 15 minuter
 - **Signup**: 3 per timme
 - **Headers**: `X-RateLimit-*` för transparens
 
 ### Token Management
+
 - **Access Tokens**: 7 dagars expiry
 - **Invitation Codes**: Konfigurerbar expiry (7-365 dagar)
 - **Automatisk cleanup**: Gamla tokens rensas bort
@@ -179,12 +183,14 @@ curl -X POST https://pactwines.com/api/access-request \
 ## 📊 Monitoring
 
 ### Loggar att följa:
+
 - Access request submissions
 - Email sending success/failure
 - Rate limiting triggers
 - Cleanup operations
 
 ### Metrics att övervaka:
+
 - Antal access requests per dag
 - Email delivery rates
 - Rate limiting violations

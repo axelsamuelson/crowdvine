@@ -278,18 +278,24 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         // Silent fail - cart will remain undefined
       });
   }, []);
-  
+
   // Separate useEffect for cart-refresh event listener
   useEffect(() => {
     const handleCartRefresh = (event: Event) => {
       const customEvent = event as CustomEvent;
-      console.log("🛒 [CONTEXT] Cart refresh event received", customEvent.detail);
-      
+      console.log(
+        "🛒 [CONTEXT] Cart refresh event received",
+        customEvent.detail,
+      );
+
       if (customEvent.detail) {
         console.log("🛒 [CONTEXT] Updating cart with new data");
         setCart(customEvent.detail);
         try {
-          localStorage.setItem("cart-cache", JSON.stringify(customEvent.detail));
+          localStorage.setItem(
+            "cart-cache",
+            JSON.stringify(customEvent.detail),
+          );
           localStorage.setItem("cart-cache-time", Date.now().toString());
         } catch (error) {
           console.warn("Failed to cache cart:", error);
@@ -304,13 +310,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         });
       }
     };
-    
+
     console.log("🛒 [CONTEXT] Setting up cart-refresh listener");
-    window.addEventListener('cart-refresh', handleCartRefresh);
-    
+    window.addEventListener("cart-refresh", handleCartRefresh);
+
     return () => {
       console.log("🛒 [CONTEXT] Removing cart-refresh listener");
-      window.removeEventListener('cart-refresh', handleCartRefresh);
+      window.removeEventListener("cart-refresh", handleCartRefresh);
     };
   }, []);
 
@@ -323,13 +329,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           payload: { merchandiseId, nextQuantity },
         });
       });
-      
+
       // Perform server update
       const fresh = await CartActions.updateItem({
         lineId,
         quantity: nextQuantity,
       });
-      
+
       if (fresh) {
         setCart(fresh);
         // Update localStorage cache
@@ -346,16 +352,27 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const add = useCallback(
     async (variant: ProductVariant, product: Product) => {
-      console.log("🛒 Cart add() called with variant:", variant.id, "product:", product.id);
-      
+      console.log(
+        "🛒 Cart add() called with variant:",
+        variant.id,
+        "product:",
+        product.id,
+      );
+
       // Normalize variant ID by removing -default suffix for comparison
       const normalizedVariantId = variant.id.replace("-default", "");
       const previousQuantity =
-        optimisticCart?.lines.find((l) => l.merchandise.id === normalizedVariantId)
-          ?.quantity || 0;
-      
-      console.log("🛒 Previous quantity:", previousQuantity, "normalized ID:", normalizedVariantId);
-      
+        optimisticCart?.lines.find(
+          (l) => l.merchandise.id === normalizedVariantId,
+        )?.quantity || 0;
+
+      console.log(
+        "🛒 Previous quantity:",
+        previousQuantity,
+        "normalized ID:",
+        normalizedVariantId,
+      );
+
       // Optimistic update for instant UI feedback
       startTransition(() => {
         console.log("🛒 Performing optimistic update...");
@@ -364,24 +381,30 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           payload: { variant, product, previousQuantity },
         });
       });
-      
+
       // Perform server update using simple API route (optimized)
       console.log("🛒 Calling simple API route for addItem...");
       let fresh = null;
       try {
-        const response = await fetch('/api/cart/simple-add', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ variantId: variant.id })
+        const response = await fetch("/api/cart/simple-add", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ variantId: variant.id }),
         });
-        
+
         if (response.ok) {
           const result = await response.json();
           fresh = result.cart;
-          console.log("🛒 Simple API route returned:", fresh ? "success" : "null");
-          
+          console.log(
+            "🛒 Simple API route returned:",
+            fresh ? "success" : "null",
+          );
+
           if (fresh) {
-            console.log("🛒 Setting cart with fresh data, items:", fresh.lines.length);
+            console.log(
+              "🛒 Setting cart with fresh data, items:",
+              fresh.lines.length,
+            );
             setCart(fresh);
             // Update localStorage cache
             try {
@@ -392,7 +415,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             }
           }
         } else {
-          console.error("🛒 Simple API route failed with status:", response.status);
+          console.error(
+            "🛒 Simple API route failed with status:",
+            response.status,
+          );
           const errorText = await response.text();
           console.error("🛒 Error response:", errorText);
           // If add failed, revert optimistic update

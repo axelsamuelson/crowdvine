@@ -3,7 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 /**
  * OPTIMIZED VERSION - Use after running migrations 045 & 046
- * 
+ *
  * This version uses:
  * 1. Automatic profiles join (via FK constraint)
  * 2. Optional: bookings_with_customers view for even better performance
@@ -54,15 +54,20 @@ export async function GET() {
       .order("created_at", { ascending: false });
 
     if (bookingsError) {
-      console.error("❌ [Bookings API] Error fetching bookings:", bookingsError);
+      console.error(
+        "❌ [Bookings API] Error fetching bookings:",
+        bookingsError,
+      );
       return NextResponse.json({
         bookings: [],
         reservations: [],
-        error: bookingsError.message
+        error: bookingsError.message,
       });
     }
 
-    console.log(`✅ [Bookings API] Found ${bookings?.length || 0} bookings with profiles`);
+    console.log(
+      `✅ [Bookings API] Found ${bookings?.length || 0} bookings with profiles`,
+    );
 
     // Fetch reservations with profiles join
     const { data: reservations, error: reservationsError } = await sb
@@ -85,14 +90,19 @@ export async function GET() {
       .order("created_at", { ascending: false });
 
     if (reservationsError) {
-      console.error("❌ [Bookings API] Error fetching reservations:", reservationsError);
+      console.error(
+        "❌ [Bookings API] Error fetching reservations:",
+        reservationsError,
+      );
       return NextResponse.json({
         bookings: bookings || [],
         reservations: [],
       });
     }
 
-    console.log(`✅ [Bookings API] Found ${reservations?.length || 0} reservations with profiles`);
+    console.log(
+      `✅ [Bookings API] Found ${reservations?.length || 0} reservations with profiles`,
+    );
 
     return NextResponse.json({
       bookings: bookings || [],
@@ -216,4 +226,3 @@ export async function DELETE(request: Request) {
     );
   }
 }
-

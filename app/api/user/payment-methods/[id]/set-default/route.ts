@@ -4,20 +4,17 @@ import { stripe, STRIPE_CONFIG } from "@/lib/stripe";
 
 /**
  * PATCH /api/user/payment-methods/[id]/set-default
- * 
+ *
  * Set a payment method as default
  */
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = params;
@@ -26,7 +23,7 @@ export async function PATCH(
     if (!STRIPE_CONFIG.isConfigured || !stripe) {
       return NextResponse.json(
         { error: "Stripe not configured" },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
@@ -34,12 +31,14 @@ export async function PATCH(
 
     // Find Stripe customer for this user
     const customers = await stripe.customers.list({ limit: 100 });
-    const customer = customers.data.find(c => c.metadata?.user_id === user.id);
+    const customer = customers.data.find(
+      (c) => c.metadata?.user_id === user.id,
+    );
 
     if (!customer) {
       return NextResponse.json(
         { error: "Customer not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -50,14 +49,19 @@ export async function PATCH(
       },
     });
 
-    console.log("✅ Default payment method set:", id, "for customer:", customer.id);
+    console.log(
+      "✅ Default payment method set:",
+      id,
+      "for customer:",
+      customer.id,
+    );
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("❌ Error setting default payment method:", error);
     return NextResponse.json(
       { error: "Failed to set default payment method", details: error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
