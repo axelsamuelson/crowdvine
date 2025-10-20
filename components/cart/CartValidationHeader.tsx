@@ -1,9 +1,10 @@
 "use client";
 
 import { motion } from "motion/react";
-import { CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
+import { CheckCircle2, ChevronDown, ChevronUp, HelpCircle } from "lucide-react";
 import { useState } from "react";
 import type { ProducerValidation } from "@/lib/checkout-validation";
+import { WhySixBottlesModal } from "./WhySixBottlesModal";
 
 interface CartValidationHeaderProps {
   validations: ProducerValidation[];
@@ -12,6 +13,7 @@ interface CartValidationHeaderProps {
 
 export function CartValidationHeader({ validations, isValidating }: CartValidationHeaderProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showWhyModal, setShowWhyModal] = useState(false);
   if (isValidating) {
     return (
       <motion.div
@@ -76,6 +78,13 @@ export function CartValidationHeader({ validations, isValidating }: CartValidati
                 <div className="flex items-center gap-1">
                   <div className="w-2 h-2 rounded-full bg-gradient-to-r from-amber-500 to-amber-600"></div>
                   <span className="text-muted-foreground">{invalidValidations.length} producer{invalidValidations.length !== 1 ? 's' : ''} need more bottles</span>
+                  <button
+                    onClick={() => setShowWhyModal(true)}
+                    className="text-muted-foreground/60 hover:text-muted-foreground/80 transition-colors"
+                    title="Why 6 bottles per producer?"
+                  >
+                    <HelpCircle className="w-3 h-3" />
+                  </button>
                 </div>
               </div>
               <button
@@ -147,6 +156,12 @@ export function CartValidationHeader({ validations, isValidating }: CartValidati
           )}
         </div>
       </div>
+      
+      {/* Why Six Bottles Modal */}
+      <WhySixBottlesModal 
+        isOpen={showWhyModal} 
+        onClose={() => setShowWhyModal(false)} 
+      />
     </motion.div>
   );
 }
