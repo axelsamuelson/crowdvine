@@ -121,13 +121,18 @@ export async function GET(
         base_price_cents,
         label_image_path,
         producer_id,
-        producers(name)
+        producers!inner(name)
       `,
       )
       .eq("producer_id", resolvedParams.id)
       .limit(limit);
 
     if (error) throw error;
+
+    console.log(`🔍 [Collection Products] Found ${data?.length || 0} wines for producer ${resolvedParams.id}`);
+    if (data && data.length > 0) {
+      console.log(`📝 [Collection Products] First wine producer name: ${data[0].producers?.name || 'MISSING'}`);
+    }
 
     // Helper function to convert relative paths to full URLs
     const convertToFullUrl = (path: string | null | undefined): string => {
@@ -170,7 +175,7 @@ export async function GET(
         productType: "wine",
         categoryId: i.producer_id,
         producerId: i.producer_id,
-        producerName: i.producers?.name || "Unknown Producer",
+        producerName: i.producers?.name || `Producer ${resolvedParams.id.substring(0, 8)}`,
         options: [
           {
             id: "grape-varieties",
