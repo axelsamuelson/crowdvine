@@ -180,37 +180,42 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
                 />
               </Suspense>
             ) : (
-              <div className="col-start-2 flex items-center gap-1">
-                <Suspense
-                  fallback={
-                    <AddToCartButton
-                      product={product}
-                      iconOnly
-                      variant="default"
-                      size="sm"
-                    />
-                  }
-                >
-                  <AddToCart
-                    product={product}
-                    iconOnly
-                    variant="default"
+              <>
+                {/* Add to Cart button positioned absolutely within the grid cell */}
+                <div className="col-start-2 relative">
+                  <div className="absolute left-0 top-0 z-10">
+                    <Suspense
+                      fallback={
+                        <AddToCartButton
+                          product={product}
+                          iconOnly
+                          variant="default"
+                          size="sm"
+                        />
+                      }
+                    >
+                      <AddToCart
+                        product={product}
+                        iconOnly
+                        variant="default"
+                        size="sm"
+                      />
+                    </Suspense>
+                  </div>
+                  <Button
+                    className="w-full bg-black hover:bg-black/90 text-white border-black rounded-md"
                     size="sm"
-                  />
-                </Suspense>
-                <Button
-                  className="flex-1 bg-black hover:bg-black/90 text-white border-black rounded-md"
-                  size="sm"
-                  asChild
-                >
-                  <Link href={`/product/${product.handle}`}>
-                    <div className="flex justify-between items-center w-full">
-                      <span>View Product</span>
-                      <ArrowRightIcon />
-                    </div>
-                  </Link>
-                </Button>
-              </div>
+                    asChild
+                  >
+                    <Link href={`/product/${product.handle}`}>
+                      <div className="flex justify-between items-center w-full">
+                        <span>View Product</span>
+                        <ArrowRightIcon />
+                      </div>
+                    </Link>
+                  </Button>
+                </div>
+              </>
             )}
           </div>
         </div>
