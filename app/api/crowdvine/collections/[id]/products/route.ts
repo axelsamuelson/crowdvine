@@ -14,6 +14,8 @@ export async function GET(
   const sb = await supabaseServer();
   const resolvedParams = await params;
 
+  console.log(`🔍 [Collection Products] Processing request for ID: ${resolvedParams.id}`);
+
   try {
     // Handle wine boxes collection
     if (resolvedParams.id === "wine-boxes-collection") {
@@ -134,18 +136,18 @@ export async function GET(
       console.log(`📝 [Collection Products] First wine producer name: ${data[0].producers?.name || 'MISSING'}`);
     }
 
-    // If no wines found or producer names are missing, try to get producer info directly
-    let producerName = null;
-    if (!data || data.length === 0 || !data[0]?.producers?.name) {
-      console.log(`🔍 [Collection Products] Fetching producer info directly for ${resolvedParams.id}`);
-      const { data: producerData } = await sb
-        .from("producers")
-        .select("name")
-        .eq("id", resolvedParams.id)
-        .single();
-      
-      producerName = producerData?.name;
-      console.log(`📝 [Collection Products] Direct producer name: ${producerName || 'NOT FOUND'}`);
+    // Always try to get producer info directly for better debugging
+    console.log(`🔍 [Collection Products] Fetching producer info directly for ${resolvedParams.id}`);
+    const { data: producerData, error: producerError } = await sb
+      .from("producers")
+      .select("name")
+      .eq("id", resolvedParams.id)
+      .single();
+    
+    const producerName = producerData?.name;
+    console.log(`📝 [Collection Products] Direct producer name: ${producerName || 'NOT FOUND'}`);
+    if (producerError) {
+      console.log(`❌ [Collection Products] Producer lookup error:`, producerError);
     }
 
     // Helper function to convert relative paths to full URLs
