@@ -32,13 +32,13 @@ export function WhySixBottlesModal({
     {
       id: "mix-wines",
       question: "Can I mix different wines in one box?",
-      answer: "Yes, as long as they're from the same producer. You can fill your 6-bottle box with any mix of that producer's wines.",
+      answer: "Yes. You can mix any bottles from the same producer or from a producer group that shares logistics. All wines in a box travel together from the same place.",
       icon: "🔄"
     },
     {
       id: "different-producers",
       question: "Why can't I mix wines from different producers?",
-      answer: "Each producer ships their own wines directly to you. Mixing between producers would require repacking, extra handling, and higher costs, which we avoid.",
+      answer: "Each producer ships their own wines directly from the cellar. Mixing bottles from unrelated producers would mean repacking, extra handling and higher transport costs. The only exception is when producers belong to the same producer group and ship together.",
       icon: "🚫"
     },
     {
