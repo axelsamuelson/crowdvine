@@ -121,7 +121,7 @@ export async function GET(
         base_price_cents,
         label_image_path,
         producer_id,
-        producers!inner(name)
+        producers(name)
       `,
       )
       .eq("producer_id", resolvedParams.id)
@@ -132,6 +132,20 @@ export async function GET(
     console.log(`🔍 [Collection Products] Found ${data?.length || 0} wines for producer ${resolvedParams.id}`);
     if (data && data.length > 0) {
       console.log(`📝 [Collection Products] First wine producer name: ${data[0].producers?.name || 'MISSING'}`);
+    }
+
+    // If no wines found or producer names are missing, try to get producer info directly
+    let producerName = null;
+    if (!data || data.length === 0 || !data[0]?.producers?.name) {
+      console.log(`🔍 [Collection Products] Fetching producer info directly for ${resolvedParams.id}`);
+      const { data: producerData } = await sb
+        .from("producers")
+        .select("name")
+        .eq("id", resolvedParams.id)
+        .single();
+      
+      producerName = producerData?.name;
+      console.log(`📝 [Collection Products] Direct producer name: ${producerName || 'NOT FOUND'}`);
     }
 
     // Helper function to convert relative paths to full URLs
@@ -175,7 +189,7 @@ export async function GET(
         productType: "wine",
         categoryId: i.producer_id,
         producerId: i.producer_id,
-        producerName: i.producers?.name || `Producer ${resolvedParams.id.substring(0, 8)}`,
+        producerName: i.producers?.name || producerName || `Producer ${resolvedParams.id.substring(0, 8)}`,
         options: [
           {
             id: "grape-varieties",
