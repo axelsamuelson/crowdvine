@@ -101,6 +101,29 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
           </div>
         )}
 
+        {/* Mobile: Add to Cart button in bottom-right corner (shows on hover) */}
+        {!renderInCardAddToCart && (
+          <div className="md:hidden absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
+            <Suspense
+              fallback={
+                <AddToCartButton
+                  product={product}
+                  iconOnly
+                  variant="default"
+                  size="sm"
+                />
+              }
+            >
+              <AddToCart
+                product={product}
+                iconOnly
+                variant="default"
+                size="sm"
+              />
+            </Suspense>
+          </div>
+        )}
+
         {/* Desktop Hover: White card with full details (only on desktop) */}
         <div className="hidden md:flex absolute inset-x-3 bottom-3 flex-col gap-8 px-2 py-3 rounded-md transition-all duration-300 pointer-events-none bg-popover opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 translate-y-1/3 group-hover:translate-y-0 group-focus-visible:translate-y-0 group-hover:pointer-events-auto group-focus-visible:pointer-events-auto">
           <div className="grid grid-cols-2 gap-x-4 gap-y-8 items-end">
@@ -157,18 +180,37 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
                 />
               </Suspense>
             ) : (
-              <Button
-                className="col-start-2 bg-black hover:bg-black/90 text-white border-black rounded-md"
-                size="sm"
-                asChild
-              >
-                <Link href={`/product/${product.handle}`}>
-                  <div className="flex justify-between items-center w-full">
-                    <span>View Product</span>
-                    <ArrowRightIcon />
-                  </div>
-                </Link>
-              </Button>
+              <div className="col-start-2 flex gap-2">
+                <Suspense
+                  fallback={
+                    <AddToCartButton
+                      product={product}
+                      iconOnly
+                      variant="default"
+                      size="sm"
+                    />
+                  }
+                >
+                  <AddToCart
+                    product={product}
+                    iconOnly
+                    variant="default"
+                    size="sm"
+                  />
+                </Suspense>
+                <Button
+                  className="bg-black hover:bg-black/90 text-white border-black rounded-md"
+                  size="sm"
+                  asChild
+                >
+                  <Link href={`/product/${product.handle}`}>
+                    <div className="flex justify-between items-center w-full">
+                      <span>View Product</span>
+                      <ArrowRightIcon />
+                    </div>
+                  </Link>
+                </Button>
+              </div>
             )}
           </div>
         </div>
