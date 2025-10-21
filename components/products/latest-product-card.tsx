@@ -47,11 +47,12 @@ export function LatestProductCard({
           )}
         </Link>
         <div className="absolute bottom-0 left-0 grid w-full grid-cols-4 gap-6 pointer-events-none max-md:contents p-sides">
-          <FeaturedProductLabel
-            className="col-span-3 col-start-2 pointer-events-auto 2xl:col-start-3 2xl:col-span-2 shrink-0"
-            product={product}
-            principal
-          />
+          <div className="col-span-3 col-start-2 pointer-events-auto 2xl:col-start-3 2xl:col-span-2 shrink-0">
+            <FeaturedProductLabel
+              product={product}
+              principal
+            />
+          </div>
         </div>
       </div>
     );
