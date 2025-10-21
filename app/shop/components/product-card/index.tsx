@@ -148,7 +148,7 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
         )}
 
         {/* Desktop Hover: White card with full details (only on desktop) */}
-        <div className="hidden md:flex absolute inset-x-3 bottom-3 flex-col gap-8 px-2 py-3 rounded-md transition-all duration-300 pointer-events-none bg-popover opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 translate-y-1/3 group-hover:translate-y-0 group-focus-visible:translate-y-0 group-hover:pointer-events-auto group-focus-visible:pointer-events-auto">
+        <div className="hidden md:flex absolute inset-x-3 bottom-3 flex-col gap-8 px-2 py-3 rounded-md transition-all duration-300 pointer-events-none bg-white/90 backdrop-blur-sm opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 translate-y-1/3 group-hover:translate-y-0 group-focus-visible:translate-y-0 group-hover:pointer-events-auto group-focus-visible:pointer-events-auto">
           <div className="grid grid-cols-2 gap-x-4 gap-y-8 items-end">
             <div className="flex flex-col">
               <p className="text-lg font-semibold text-pretty">
