@@ -180,7 +180,7 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
                 />
               </Suspense>
             ) : (
-              <div className="col-start-2 flex gap-2">
+              <div className="col-start-2 flex items-center gap-1">
                 <Suspense
                   fallback={
                     <AddToCartButton
@@ -199,7 +199,7 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
                   />
                 </Suspense>
                 <Button
-                  className="bg-black hover:bg-black/90 text-white border-black rounded-md"
+                  className="flex-1 bg-black hover:bg-black/90 text-white border-black rounded-md"
                   size="sm"
                   asChild
                 >
