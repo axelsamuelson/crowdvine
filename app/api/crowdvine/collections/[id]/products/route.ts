@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabase-server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getAllWineBoxCalculations } from "@/lib/wine-box-calculations";
 
 export async function GET(
@@ -11,7 +11,7 @@ export async function GET(
     ? parseInt(searchParams.get("limit")!)
     : 200;
 
-  const sb = await supabaseServer();
+  const sb = getSupabaseAdmin();
   const resolvedParams = await params;
 
   console.log(`🔍 [Collection Products] Processing request for ID: ${resolvedParams.id}`);
