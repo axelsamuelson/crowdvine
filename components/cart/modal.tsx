@@ -123,6 +123,7 @@ export default function CartModal() {
   // Validate cart whenever it changes (with debounce)
   useEffect(() => {
     if (!cart || cart.lines.length === 0) {
+      // Still show validation header even with empty cart for educational purposes
       setValidations([]);
       return;
     }
@@ -202,27 +203,35 @@ export default function CartModal() {
   const renderCartContent = () => {
     if (!cart || cart.lines.length === 0) {
       return (
-        <CartContainer className="flex w-full">
-          <Link
-            href="/shop"
-            className="p-2 w-full rounded-lg border border-dashed bg-background border-border"
-            onClick={closeCart}
-          >
-            <div className="flex flex-row gap-6">
-              <div className="flex overflow-hidden relative justify-center items-center rounded-sm border border-dashed size-20 shrink-0 border-border">
-                <PlusCircleIcon className="size-6 text-muted-foreground" />
+        <div className="flex flex-col justify-between h-full overflow-hidden">
+          {/* Always show validation header for educational purposes */}
+          <CartValidationHeader
+            validations={[]}
+            isValidating={false}
+          />
+          
+          <CartContainer className="flex w-full">
+            <Link
+              href="/shop"
+              className="p-2 w-full rounded-lg border border-dashed bg-background border-border"
+              onClick={closeCart}
+            >
+              <div className="flex flex-row gap-6">
+                <div className="flex overflow-hidden relative justify-center items-center rounded-sm border border-dashed size-20 shrink-0 border-border">
+                  <PlusCircleIcon className="size-6 text-muted-foreground" />
+                </div>
+                <div className="flex flex-col flex-1 gap-2 justify-center 2xl:gap-3">
+                  <span className="text-lg font-semibold 2xl:text-xl">
+                    Cart is empty
+                  </span>
+                  <p className="text-sm text-muted-foreground hover:underline">
+                    Start shopping to get started
+                  </p>
+                </div>
               </div>
-              <div className="flex flex-col flex-1 gap-2 justify-center 2xl:gap-3">
-                <span className="text-lg font-semibold 2xl:text-xl">
-                  Cart is empty
-                </span>
-                <p className="text-sm text-muted-foreground hover:underline">
-                  Start shopping to get started
-                </p>
-              </div>
-            </div>
-          </Link>
-        </CartContainer>
+            </Link>
+          </CartContainer>
+        </div>
       );
     }
 

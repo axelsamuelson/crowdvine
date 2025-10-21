@@ -36,14 +36,13 @@ export function CartValidationHeader({
     );
   }
 
-  if (validations.length === 0) {
-    return null;
-  }
+  // Always show header when there are items in cart, even if no validation errors
+  // This allows users to learn about the 6-bottle rule via the help icon
 
   // Check if all validations are valid
   const allValid = validations.every((v) => v.isValid);
 
-  if (allValid) {
+  if (allValid && validations.length > 0) {
     return (
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -56,8 +55,58 @@ export function CartValidationHeader({
             <span className="text-xs text-emerald-700 font-medium">
               Ready to checkout
             </span>
+            <button
+              onClick={() => setShowWhyModal(true)}
+              className="text-emerald-600/60 hover:text-emerald-600/80 transition-colors ml-auto"
+              title="Why 6 bottles per producer?"
+            >
+              <HelpCircle className="w-3 h-3" />
+            </button>
           </div>
         </div>
+        
+        {/* Why Six Bottles Modal */}
+        <WhySixBottlesModal
+          isOpen={showWhyModal}
+          onClose={() => setShowWhyModal(false)}
+        />
+      </motion.div>
+    );
+  }
+
+  // Show informational header when no validation errors but cart has items
+  if (validations.length === 0) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="px-3 md:px-4 mb-2"
+      >
+        <div className="bg-background/95 backdrop-blur-md border border-border/30 rounded-lg p-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs">
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600"></div>
+                <span className="text-muted-foreground">
+                  Learn about our 6-bottle minimum rule
+                </span>
+                <button
+                  onClick={() => setShowWhyModal(true)}
+                  className="text-muted-foreground/60 hover:text-muted-foreground/80 transition-colors"
+                  title="Why 6 bottles per producer?"
+                >
+                  <HelpCircle className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Why Six Bottles Modal */}
+        <WhySixBottlesModal
+          isOpen={showWhyModal}
+          onClose={() => setShowWhyModal(false)}
+        />
       </motion.div>
     );
   }
