@@ -1,7 +1,7 @@
 "use client";
 
-import { motion } from "motion/react";
-import { X, Package, Truck, Users, Zap } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { X, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 
 interface WhySixBottlesModalProps {
@@ -9,50 +9,83 @@ interface WhySixBottlesModalProps {
   onClose: () => void;
 }
 
+interface FAQItem {
+  id: string;
+  question: string;
+  answer: string;
+  icon: string;
+}
+
 export function WhySixBottlesModal({
   isOpen,
   onClose,
 }: WhySixBottlesModalProps) {
-  const [currentStep, setCurrentStep] = useState(0);
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
-  if (!isOpen) return null;
-
-  const steps = [
+  const faqs: FAQItem[] = [
     {
-      icon: Package,
-      title: "Efficient Packaging",
-      description: "6 bottles fit perfectly in a standard wine box",
-      visual: "📦",
+      id: "single-bottles",
+      question: "Why can't I buy just one or two bottles?",
+      answer: "Because producers pack and ship wine in 6-bottle boxes. It keeps transport efficient, safe, and affordable — no repacking or broken bottles.",
+      icon: "🍷"
     },
     {
-      icon: Truck,
-      title: "Optimized Shipping",
-      description: "Reduces shipping costs and environmental impact",
-      visual: "🚛",
+      id: "mix-wines",
+      question: "Can I mix different wines in one box?",
+      answer: "Yes — as long as they're from the same producer. You can fill your 6-bottle box with any mix of that producer's wines.",
+      icon: "🔄"
     },
     {
-      icon: Users,
-      title: "Group Orders",
-      description: "Multiple customers share shipping costs",
-      visual: "👥",
+      id: "different-producers",
+      question: "Why can't I mix wines from different producers?",
+      answer: "Each producer ships their own wines directly to you. Mixing between producers would require repacking, extra handling, and higher costs — which we avoid.",
+      icon: "🚫"
     },
     {
-      icon: Zap,
-      title: "Direct from Producer",
-      description: "No warehouses, no middlemen, better prices",
-      visual: "⚡",
+      id: "producer-groups",
+      question: "What's a \"producer group\"?",
+      answer: "It's a set of nearby winemakers who share logistics. If producers belong to the same group, you can mix their wines in the same box.",
+      icon: "👥"
     },
+    {
+      id: "separate-boxes",
+      question: "Why does every producer need a separate box?",
+      answer: "Because each producer (or group) prepares, seals, and labels their boxes for shipment. This guarantees origin, authenticity, and fair transport costs.",
+      icon: "📦"
+    },
+    {
+      id: "incomplete-box",
+      question: "What happens if my box isn't full yet?",
+      answer: "You'll see the progress bar — once it reaches 6 bottles, the box is complete and ready to ship. Until then, you can add more bottles or wait for others to join.",
+      icon: "⏳"
+    },
+    {
+      id: "pay-per-bottle",
+      question: "Why not let me pay per bottle and combine later?",
+      answer: "That would mean repacking bottles from different wineries, breaking seals, and adding warehouse costs — exactly what we're avoiding to keep prices fair and shipping green.",
+      icon: "💰"
+    }
   ];
 
-  const currentStepData = steps[currentStep];
+  const toggleExpanded = (id: string) => {
+    const newExpanded = new Set(expandedItems);
+    if (newExpanded.has(id)) {
+      newExpanded.delete(id);
+    } else {
+      newExpanded.add(id);
+    }
+    setExpandedItems(newExpanded);
+  };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-    >
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      >
       {/* Backdrop */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -67,12 +100,12 @@ export function WhySixBottlesModal({
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-md bg-background/95 backdrop-blur-md border border-border/30 rounded-2xl shadow-xl"
+        className="relative w-full max-w-2xl max-h-[80vh] bg-background/95 backdrop-blur-md border border-border/30 rounded-2xl shadow-xl overflow-hidden"
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border/20">
           <h2 className="text-lg font-semibold text-foreground">
-            Why 6 bottles?
+            Why 6 bottles per producer?
           </h2>
           <button
             onClick={onClose}
@@ -83,73 +116,70 @@ export function WhySixBottlesModal({
         </div>
 
         {/* Content */}
-        <div className="p-6">
-          {/* Step indicator */}
-          <div className="flex justify-center mb-6">
-            <div className="flex gap-2">
-              {steps.map((_, index) => (
-                <div
-                  key={index}
-                  className={`w-2 h-2 rounded-full transition-colors ${
-                    index === currentStep
-                      ? "bg-amber-500"
-                      : index < currentStep
-                        ? "bg-green-500"
-                        : "bg-muted-foreground/30"
-                  }`}
-                />
-              ))}
-            </div>
+        <div className="p-4 max-h-[60vh] overflow-y-auto">
+          <div className="space-y-2">
+            {faqs.map((faq) => {
+              const isExpanded = expandedItems.has(faq.id);
+              
+              return (
+                <motion.div
+                  key={faq.id}
+                  initial={false}
+                  animate={{ height: "auto" }}
+                  className="border border-border/20 rounded-lg overflow-hidden"
+                >
+                  {/* Question */}
+                  <button
+                    onClick={() => toggleExpanded(faq.id)}
+                    className="w-full p-4 text-left hover:bg-muted-foreground/5 transition-colors flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg">{faq.icon}</span>
+                      <span className="text-sm font-medium text-foreground">
+                        {faq.question}
+                      </span>
+                    </div>
+                    {isExpanded ? (
+                      <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                    )}
+                  </button>
+
+                  {/* Answer */}
+                  <motion.div
+                    initial={false}
+                    animate={{
+                      height: isExpanded ? "auto" : 0,
+                      opacity: isExpanded ? 1 : 0,
+                    }}
+                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-4 pb-4 pt-0">
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {faq.answer}
+                      </p>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              );
+            })}
           </div>
+        </div>
 
-          {/* Current step content */}
-          <div className="text-center space-y-4">
-            <div className="text-4xl mb-2">{currentStepData.visual}</div>
-            <div className="w-12 h-12 mx-auto bg-gradient-to-br from-amber-500/20 to-amber-600/20 rounded-xl flex items-center justify-center">
-              <currentStepData.icon className="w-6 h-6 text-amber-600" />
-            </div>
-            <h3 className="text-xl font-semibold text-foreground">
-              {currentStepData.title}
-            </h3>
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              {currentStepData.description}
-            </p>
-          </div>
-
-          {/* Navigation */}
-          <div className="flex justify-between items-center mt-8">
-            <button
-              onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
-              disabled={currentStep === 0}
-              className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Previous
-            </button>
-
-            <div className="text-xs text-muted-foreground">
-              {currentStep + 1} of {steps.length}
-            </div>
-
-            {currentStep < steps.length - 1 ? (
-              <button
-                onClick={() =>
-                  setCurrentStep(Math.min(steps.length - 1, currentStep + 1))
-                }
-                className="px-4 py-2 text-sm bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors"
-              >
-                Next
-              </button>
-            ) : (
-              <button
-                onClick={onClose}
-                className="px-4 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-              >
-                Got it!
-              </button>
-            )}
-          </div>
+        {/* Footer */}
+        <div className="p-4 border-t border-border/20">
+          <button
+            onClick={onClose}
+            className="w-full px-4 py-2 text-sm bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors"
+          >
+            Got it!
+          </button>
         </div>
       </motion.div>
     </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
