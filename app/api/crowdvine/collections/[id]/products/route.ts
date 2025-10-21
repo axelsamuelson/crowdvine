@@ -123,7 +123,7 @@ export async function GET(
         base_price_cents,
         label_image_path,
         producer_id,
-        producers!inner(name)
+        producers(name)
       `,
       )
       .eq("producer_id", resolvedParams.id)
@@ -191,7 +191,7 @@ export async function GET(
         productType: "wine",
         categoryId: i.producer_id,
         producerId: i.producer_id,
-        producerName: i.producers?.name || producerName || `Producer ${resolvedParams.id.substring(0, 8)}`,
+        producerName: producerName || i.producers?.name || `Producer ${resolvedParams.id.substring(0, 8)}`,
         options: [
           {
             id: "grape-varieties",
