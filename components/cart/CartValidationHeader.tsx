@@ -47,19 +47,19 @@ export function CartValidationHeader({
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="px-3 md:px-4 mb-3"
+        className="px-3 md:px-4 mb-2"
       >
-        <div className="bg-gradient-to-r from-emerald-50/30 to-green-50/20 backdrop-blur-sm border border-emerald-200/30 rounded-xl p-4">
+        <div className="bg-background/95 backdrop-blur-md border border-border/30 rounded-lg p-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-              <span className="text-sm text-emerald-700 font-medium tracking-wide">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="text-xs text-emerald-700 font-medium">
                 Ready to checkout
               </span>
             </div>
             <button
               onClick={() => setShowWhyModal(true)}
-              className="text-xs text-emerald-600/70 hover:text-emerald-600 font-medium tracking-wide uppercase transition-colors"
+              className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
               title="Why 6 bottles per producer?"
             >
               Why?
@@ -82,19 +82,19 @@ export function CartValidationHeader({
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="px-3 md:px-4 mb-3"
+        className="px-3 md:px-4 mb-2"
       >
-        <div className="bg-gradient-to-r from-blue-50/30 to-indigo-50/20 backdrop-blur-sm border border-blue-200/30 rounded-xl p-4">
+        <div className="bg-background/95 backdrop-blur-md border border-border/30 rounded-lg p-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-              <span className="text-sm text-blue-700 font-medium tracking-wide">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-muted-foreground/40"></div>
+              <span className="text-xs text-muted-foreground">
                 Learn about our 6-bottle minimum rule
               </span>
             </div>
             <button
               onClick={() => setShowWhyModal(true)}
-              className="text-xs text-blue-600/70 hover:text-blue-600 font-medium tracking-wide uppercase transition-colors"
+              className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
               title="Why 6 bottles per producer?"
             >
               Why?
@@ -124,16 +124,16 @@ export function CartValidationHeader({
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="px-3 md:px-4 mb-3"
+      className="px-3 md:px-4 mb-2"
     >
-      <div className="bg-gradient-to-r from-amber-50/30 to-orange-50/20 backdrop-blur-sm border border-amber-200/30 rounded-xl p-4">
-        <div className="space-y-3">
+      <div className="bg-background/95 backdrop-blur-md border border-border/30 rounded-lg p-3">
+        <div className="space-y-2">
           {/* Folded state - show only summary */}
           {!isExpanded && (
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-amber-500"></div>
-                <span className="text-sm text-amber-700 font-medium tracking-wide">
+                <span className="text-xs text-muted-foreground">
                   {invalidValidations.length} producer
                   {invalidValidations.length !== 1 ? "s" : ""} need more bottles
                 </span>
@@ -141,16 +141,16 @@ export function CartValidationHeader({
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowWhyModal(true)}
-                  className="text-xs text-amber-600/70 hover:text-amber-600 font-medium tracking-wide uppercase transition-colors"
+                  className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
                   title="Why 6 bottles per producer?"
                 >
                   Why?
                 </button>
                 <button
                   onClick={() => setIsExpanded(!isExpanded)}
-                  className="p-1 hover:bg-amber-100/50 rounded transition-colors"
+                  className="p-1 hover:bg-muted-foreground/10 rounded transition-colors"
                 >
-                  <ChevronDown className="w-4 h-4 text-amber-600" />
+                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
                 </button>
               </div>
             </div>
@@ -162,36 +162,36 @@ export function CartValidationHeader({
               {/* Header with fold/unfold button */}
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <p className="text-sm text-amber-800 font-medium tracking-wide">
+                  <p className="text-xs text-foreground font-medium">
                     Add more bottles from{" "}
                     {invalidValidations.length === 1
                       ? "this producer"
                       : "these producers"}{" "}
                     to checkout
                   </p>
-                  <p className="text-xs text-amber-600/70 mt-1">
+                  <p className="text-xs text-muted-foreground/70">
                     Mix freely within each producer
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setShowWhyModal(true)}
-                    className="text-xs text-amber-600/70 hover:text-amber-600 font-medium tracking-wide uppercase transition-colors"
+                    className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
                     title="Why 6 bottles per producer?"
                   >
                     Why?
                   </button>
                   <button
                     onClick={() => setIsExpanded(!isExpanded)}
-                    className="p-1 hover:bg-amber-100/50 rounded transition-colors"
+                    className="p-1 hover:bg-muted-foreground/10 rounded transition-colors"
                   >
-                    <ChevronUp className="w-4 h-4 text-amber-600" />
+                    <ChevronUp className="w-4 h-4 text-muted-foreground" />
                   </button>
                 </div>
               </div>
 
               {/* Progress bars */}
-              <div className="space-y-3 pt-2">
+              <div className="space-y-2">
                 {allValidations.map((validation) => {
                   const current = validation.quantity || 0;
                   const needed = validation.needed || 0;
@@ -201,22 +201,22 @@ export function CartValidationHeader({
                   const isComplete = validation.isValid;
 
                   return (
-                    <div key={validation.producerHandle} className="space-y-2">
+                    <div key={validation.producerHandle} className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-amber-800 font-medium">
+                        <span className="text-xs text-muted-foreground font-medium">
                           {validation.producerName}
                         </span>
                         <span
-                          className={`text-sm font-semibold ${isComplete ? "text-emerald-600" : "text-amber-600"}`}
+                          className={`text-xs font-medium ${isComplete ? "text-green-600" : "text-amber-600"}`}
                         >
                           {current}/{total}
                         </span>
                       </div>
-                      <div className="relative h-1.5 bg-amber-100 rounded-full overflow-hidden">
+                      <div className="relative h-1 bg-foreground/[0.06] rounded-full overflow-hidden">
                         <div
                           className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out ${
                             isComplete
-                              ? "bg-gradient-to-r from-emerald-500 to-emerald-600"
+                              ? "bg-gradient-to-r from-green-500 to-green-600"
                               : "bg-gradient-to-r from-amber-500 to-amber-600"
                           }`}
                           style={{ width: `${progress}%` }}
