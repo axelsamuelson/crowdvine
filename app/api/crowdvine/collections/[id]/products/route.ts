@@ -123,7 +123,7 @@ export async function GET(
         base_price_cents,
         label_image_path,
         producer_id,
-        producers(name)
+        producers!inner(name)
       `,
       )
       .eq("producer_id", resolvedParams.id)
