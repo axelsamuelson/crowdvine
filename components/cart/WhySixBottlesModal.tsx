@@ -26,7 +26,7 @@ export function WhySixBottlesModal({
     {
       id: "single-bottles",
       question: "Why can't I buy just one or two bottles?",
-      answer: "Because producers pack and ship wine in 6-bottle boxes. It keeps transport efficient, safe, and affordable, with no repacking or broken bottles.",
+      answer: "Because every order is part of a shared shipment built directly from each producer's cellar. Producers pack their wines in 6-bottle boxes, and the platform fills those boxes collectively. That's what allows us to ship efficiently and offer prices up to 50% lower than traditional retail.",
       icon: "🍷"
     },
     {
