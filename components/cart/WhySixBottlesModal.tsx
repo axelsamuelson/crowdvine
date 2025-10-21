@@ -20,7 +20,7 @@ export function WhySixBottlesModal({
   isOpen,
   onClose,
 }: WhySixBottlesModalProps) {
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(["single-bottles"]));
 
   const faqs: FAQItem[] = [
     {
@@ -90,21 +90,16 @@ export function WhySixBottlesModal({
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         className="relative w-full max-w-2xl max-h-[80vh] bg-background border border-border/20 rounded-2xl shadow-xl overflow-hidden"
       >
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-border/10">
-          <h2 className="text-lg font-medium text-foreground">
-            Why 6 bottles per producer?
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-1.5 hover:bg-muted-foreground/10 rounded-lg transition-colors"
-          >
-            <X className="w-4 h-4 text-muted-foreground" />
-          </button>
-        </div>
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 p-1.5 hover:bg-muted-foreground/10 rounded-lg transition-colors z-10"
+        >
+          <X className="w-4 h-4 text-muted-foreground" />
+        </button>
 
         {/* Content */}
-        <div className="p-5 max-h-[60vh] overflow-y-auto">
+        <div className="p-5 max-h-[80vh] overflow-y-auto">
           <div className="space-y-2">
             {faqs.map((faq) => {
               const isExpanded = expandedItems.has(faq.id);
