@@ -84,14 +84,16 @@ export function LatestProductCard({
 
       <div
         className={cn(
-          "absolute flex p-sides inset-0 items-end justify-end",
+          "absolute flex p-sides inset-0 items-end justify-end pointer-events-none",
           labelPosition === "top-left" && "md:justify-start md:items-start",
           labelPosition === "top-right" && "md:justify-end md:items-start",
           labelPosition === "bottom-left" && "md:justify-start md:items-end",
           labelPosition === "bottom-right" && "md:justify-end md:items-end",
         )}
       >
-        <FeaturedProductLabel product={product} />
+        <div className="pointer-events-auto">
+          <FeaturedProductLabel product={product} />
+        </div>
       </div>
     </div>
   );
