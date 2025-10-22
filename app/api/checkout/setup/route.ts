@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { stripe, STRIPE_CONFIG } from "@/lib/stripe";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET(request: Request) {
   try {
@@ -167,6 +168,20 @@ export async function GET(request: Request) {
 
     console.log("DEBUG: Session created:", session.id);
     console.log("DEBUG: Session URL:", session.url);
+
+    // Track checkout started event
+    try {
+      const sb = getSupabaseAdmin();
+      await sb.from("user_events").insert({
+        user_id: user.id,
+        session_id: session.id,
+        event_type: "checkout_started",
+        event_category: "checkout",
+        event_metadata: { sessionId: session.id, type: "payment_method_setup" }
+      });
+    } catch (trackingError) {
+      console.error("Failed to track checkout event:", trackingError);
+    }
 
     return NextResponse.json({
       url: session.url,

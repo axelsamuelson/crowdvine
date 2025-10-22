@@ -10,6 +10,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { ReactNode } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Loader } from "../ui/loader";
+import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 
 interface AddToCartProps extends ButtonProps {
   product: Product;
@@ -83,6 +84,12 @@ export function AddToCartButton({
         if (resolvedVariant) {
           startTransition(async () => {
             addItem(resolvedVariant, product);
+            // Track add to cart event
+            AnalyticsTracker.trackAddToCart(
+              product.id,
+              product.title,
+              parseFloat(product.priceRange.minVariantPrice.amount)
+            );
           });
         }
       }}

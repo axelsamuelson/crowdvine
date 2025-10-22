@@ -3,8 +3,8 @@ import * as dotenv from "dotenv";
 import { readFileSync } from "fs";
 import { join } from "path";
 
-// Load environment variables from .env.local
-dotenv.config({ path: ".env.local" });
+// Load environment variables from .env.development
+dotenv.config({ path: ".env.development" });
 
 // Use service role key for admin operations
 const supabase = createClient(
@@ -13,21 +13,30 @@ const supabase = createClient(
 );
 
 async function runMigration() {
-  console.log("🚀 Running access control migration...");
+  console.log("🚀 Running analytics migration...");
 
   try {
     // Read the migration file
-    const migrationPath = join(process.cwd(), "migration_access_control.sql");
+    const migrationPath = join(process.cwd(), "migrations/050_create_analytics_tables.sql");
     const migrationSQL = readFileSync(migrationPath, "utf8");
 
     console.log("📋 Executing migration SQL...");
 
-    // Execute the migration
-    const { error } = await supabase.rpc("exec_sql", { sql: migrationSQL });
+    // Split SQL into individual statements and execute them
+    const statements = migrationSQL
+      .split(';')
+      .map(stmt => stmt.trim())
+      .filter(stmt => stmt.length > 0);
 
-    if (error) {
-      console.error("❌ Migration error:", error);
-      return;
+    for (const statement of statements) {
+      console.log(`Executing: ${statement.substring(0, 50)}...`);
+      const { error } = await supabase.rpc('exec', { sql: statement });
+      
+      if (error) {
+        console.error("❌ Statement error:", error);
+        console.error("Statement:", statement);
+        return;
+      }
     }
 
     console.log("✅ Migration completed successfully!");

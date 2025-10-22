@@ -22,15 +22,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  User,
-  Mail,
-  Phone,
-  MapPin,
-  CreditCard,
-  Plus,
-  Edit,
-  Save,
+import { 
+  User, 
+  Mail, 
+  Phone, 
+  MapPin, 
+  CreditCard, 
+  Plus, 
+  Edit, 
+  Save, 
   X,
   LogOut,
   UserPlus,
@@ -217,7 +217,7 @@ export default function ProfilePage() {
         const data = await res.json();
         if (data.profile) {
           setProfile(data.profile);
-          setEditForm({
+      setEditForm({
             full_name: data.profile.full_name || "",
             phone: data.profile.phone || "",
             address: data.profile.address || "",
@@ -513,17 +513,17 @@ export default function ProfilePage() {
 
             {/* Membership Info */}
             <div className="flex-1 text-center md:text-left space-y-4 w-full">
-              <div>
+            <div>
                 <h1 className="text-3xl md:text-4xl font-light text-gray-900 mb-1">
                   {membershipData.levelInfo.name}
-                </h1>
+              </h1>
                 <p className="text-sm text-gray-500">
                   Member since{" "}
                   {new Date(
                     membershipData.membership.levelAssignedAt,
                   ).toLocaleDateString()}
                 </p>
-              </div>
+            </div>
 
               {/* Impact Points */}
               <div className="flex items-baseline gap-2 justify-center md:justify-start">
@@ -533,8 +533,8 @@ export default function ProfilePage() {
                 <span className="text-lg text-gray-500 font-light">
                   Impact Points
                 </span>
-              </div>
-
+          </div>
+          
               {/* Progress to Next Level */}
               {membershipData.nextLevel && (
                 <LevelProgress
@@ -586,7 +586,7 @@ export default function ProfilePage() {
                 Personal Information
               </h2>
               {!editing ? (
-                <Button
+          <Button 
                   onClick={() => setEditing(true)}
                   variant="ghost"
                   size="sm"
@@ -611,10 +611,10 @@ export default function ProfilePage() {
                   >
                     <Save className="w-4 h-4 mr-2" />
                     Save
-                  </Button>
+          </Button>
                 </div>
               )}
-            </div>
+        </div>
 
             <div className="bg-white rounded-xl border border-gray-200/50 p-4 md:p-6 shadow-sm">
               {editing ? (
@@ -701,11 +701,11 @@ export default function ProfilePage() {
                   <div className="flex items-center gap-2 text-gray-400 mb-3">
                     <Mail className="w-4 h-4" />
                     <span className="text-xs">Email</span>
-                  </div>
+                    </div>
                   <p className="text-sm text-gray-900 -mt-2">{profile.email}</p>
-
+                  
                   {profile.full_name && (
-                    <div>
+                      <div>
                       <div className="flex items-center gap-2 text-gray-400 mb-1">
                         <User className="w-3 h-3" />
                         <span className="text-xs">Full Name</span>
@@ -715,9 +715,9 @@ export default function ProfilePage() {
                       </p>
                     </div>
                   )}
-
+                  
                   {profile.phone && (
-                    <div>
+                      <div>
                       <div className="flex items-center gap-2 text-gray-400 mb-1">
                         <Phone className="w-3 h-3" />
                         <span className="text-xs">Phone</span>
@@ -725,9 +725,9 @@ export default function ProfilePage() {
                       <p className="text-sm text-gray-900">{profile.phone}</p>
                     </div>
                   )}
-
+                  
                   {(profile.address || profile.city) && (
-                    <div>
+                      <div>
                       <div className="flex items-center gap-2 text-gray-400 mb-1">
                         <MapPin className="w-3 h-3" />
                         <span className="text-xs">Address</span>
@@ -739,13 +739,13 @@ export default function ProfilePage() {
                           profile.postal_code,
                           profile.country,
                         ]
-                          .filter(Boolean)
+                            .filter(Boolean)
                           .join(", ")}
-                      </p>
+                        </p>
+                      </div>
+                  )}
                     </div>
                   )}
-                </div>
-              )}
             </div>
           </section>
 
@@ -868,14 +868,14 @@ export default function ProfilePage() {
                         <Button className="rounded-full px-8 bg-blue-600 hover:bg-blue-700 text-white">
                           <Package className="w-4 h-4 mr-2" />
                           View Reservations ({nearlyFullReservations.length})
-                        </Button>
+                  </Button>
                       </Link>
-                    </div>
+                </div>
                   );
                 }
 
                 return (
-                  <div className="text-center py-8">
+                <div className="text-center py-8">
                     <div className="w-16 h-16 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-4">
                       <CreditCard className="w-8 h-8 text-green-600" />
                     </div>
@@ -890,9 +890,9 @@ export default function ProfilePage() {
                       <Button className="rounded-full px-8 bg-gray-900 hover:bg-gray-800 text-white">
                         <Package className="w-4 h-4 mr-2" />
                         View Reservations
-                      </Button>
+                  </Button>
                     </Link>
-                  </div>
+                </div>
                 );
               })()}
             </div>
@@ -910,7 +910,7 @@ export default function ProfilePage() {
         {/* INVITE FRIENDS */}
         <section className="space-y-4">
           <div className="flex items-start justify-between">
-            <div>
+                        <div>
               <h2 className="text-base md:text-lg lg:text-xl font-light text-gray-900">
                 Invite Friends
               </h2>
@@ -953,8 +953,8 @@ export default function ProfilePage() {
                 </Select>
                 <p className="text-xs text-gray-500">
                   Choose which level the invitee will start at
-                </p>
-              </div>
+                          </p>
+                        </div>
             )}
 
             {/* Non-Admin: Info text */}
@@ -965,7 +965,7 @@ export default function ProfilePage() {
                   your friends join and earn Impact Points, they'll progress
                   naturally through the levels.
                 </p>
-              </div>
+                      </div>
             )}
 
             {/* Generate Invite Button */}
@@ -1024,17 +1024,17 @@ export default function ProfilePage() {
                           {inv.code}
                         </code>
                       </div>
-                      <Button
+                          <Button
                         onClick={() => {
                           navigator.clipboard.writeText(inv.code);
                           toast.success("Code copied!");
                         }}
-                        size="sm"
+                            size="sm"
                         variant="ghost"
                         className="h-8"
-                      >
+                          >
                         <Copy className="w-3 h-3" />
-                      </Button>
+                          </Button>
                     </div>
 
                     {/* Share Link */}
@@ -1066,21 +1066,21 @@ export default function ProfilePage() {
                       <span className="text-xs text-gray-500">
                         Expires {new Date(inv.expires_at).toLocaleDateString()}
                       </span>
-                      <Button
+                        <Button
                         onClick={() => deleteInvitation(inv.id)}
-                        size="sm"
+                          size="sm"
                         variant="ghost"
                         className="h-7 text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
+                        >
                         <X className="w-3 h-3 mr-1" />
                         Delete
-                      </Button>
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  ))}
+                </div>
+              )}
+        </div>
         </section>
 
         {/* IMPACT POINTS TIMELINE */}
@@ -1114,15 +1114,15 @@ export default function ProfilePage() {
               className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
             >
               View all
-            </Link>
-          </div>
+              </Link>
+            </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div className="p-4 bg-white rounded-xl border border-gray-200/50 shadow-sm">
               <div className="flex items-center gap-2 text-gray-400 mb-2">
                 <Package className="w-4 h-4" />
                 <span className="text-xs">Total Bottles</span>
-              </div>
+      </div>
               <p className="text-2xl font-semibold text-gray-900">
                 {reservations.reduce((sum, r) => sum + (r.quantity || 0), 0)}
               </p>

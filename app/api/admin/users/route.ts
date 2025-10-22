@@ -11,11 +11,11 @@ export async function GET(request: NextRequest) {
 
     // Use admin client to get all users with profiles
     const adminSupabase = getSupabaseAdmin();
-
+    
     // Get all users from auth.users
     const { data: authUsers, error: listUsersError } =
       await adminSupabase.auth.admin.listUsers();
-
+    
     if (listUsersError) {
       console.error("Error fetching auth users:", listUsersError);
       return NextResponse.json(

@@ -269,7 +269,7 @@ function CheckoutContent() {
 
     try {
       let deliveryAddress;
-
+      
       if (profile && profile.address && profile.city && profile.postal_code) {
         deliveryAddress = {
           postcode: profile.postal_code || "",
@@ -378,7 +378,7 @@ function CheckoutContent() {
           selectedDeliveryZoneId,
           pallets: zoneData.pallets?.length || 0,
         });
-
+        
         setZoneInfo({
           pickupZone: zoneData.pickupZoneName,
           pickupZoneId: zoneData.pickupZoneId,
@@ -433,7 +433,7 @@ function CheckoutContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    
     // Validate required fields
     if (!profile?.email) {
       toast.error("Please add your profile information first");
@@ -458,7 +458,7 @@ function CheckoutContent() {
     // Check if delivery zone is available
     const hasCompleteAddress =
       profile?.address && profile?.city && profile?.postal_code;
-
+      
     if (hasCompleteAddress && !zoneInfo.selectedDeliveryZoneId) {
       setIsPlacingOrder(false);
       toast.error(
@@ -478,13 +478,13 @@ function CheckoutContent() {
 
     // Prepare form data
     const formData = new FormData();
-
+    
     // Customer details
     formData.append("fullName", profile?.full_name || "");
     // Use profile email if available, otherwise we'll need to get it from auth
     formData.append("email", profile?.email || "");
     formData.append("phone", profile?.phone || "");
-
+    
     // Delivery address (always from profile)
     if (profile) {
       formData.append("street", profile.address || "");
@@ -510,7 +510,7 @@ function CheckoutContent() {
       );
     }
     // Note: If no profile, form validation will catch missing address
-
+    
     // Zone information
     if (zoneInfo.selectedDeliveryZoneId) {
       formData.append(
@@ -518,12 +518,12 @@ function CheckoutContent() {
         zoneInfo.selectedDeliveryZoneId,
       );
     }
-
+    
     // Pallet information
     if (selectedPallet) {
       formData.append("selectedPalletId", selectedPallet.id);
     }
-
+    
     // Payment method removed - using new payment flow
 
     // User rewards
@@ -589,19 +589,19 @@ function CheckoutContent() {
   const hasProfileInfo = profile?.full_name && profile?.email;
   const hasCompleteProfileAddress =
     profile?.address && profile?.city && profile?.postal_code;
-
+  
   // Calculate shipping cost
   const shippingCost =
     selectedPallet && cart?.lines
       ? calculateCartShippingCost(
           cart.lines.map((line) => ({ quantity: line.quantity })),
-          {
-            id: selectedPallet.id,
-            name: selectedPallet.name,
-            costCents: selectedPallet.costCents,
-            bottleCapacity: selectedPallet.maxBottles,
-            currentBottles: selectedPallet.currentBottles,
-            remainingBottles: selectedPallet.remainingBottles,
+    {
+      id: selectedPallet.id,
+      name: selectedPallet.name,
+      costCents: selectedPallet.costCents,
+      bottleCapacity: selectedPallet.maxBottles,
+      currentBottles: selectedPallet.currentBottles,
+      remainingBottles: selectedPallet.remainingBottles,
           },
         )
       : null;
@@ -641,15 +641,15 @@ function CheckoutContent() {
     <>
       <ReservationLoadingModal open={isPlacingOrder} />
 
-      <div className="max-w-4xl mx-auto p-6 pt-top-spacing space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Checkout</h1>
-          <p className="text-gray-600 mt-2">Complete your wine reservation</p>
-        </div>
+    <div className="max-w-4xl mx-auto p-6 pt-top-spacing space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Checkout</h1>
+        <p className="text-gray-600 mt-2">Complete your wine reservation</p>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Column - Order Summary */}
-          <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Left Column - Order Summary */}
+        <div className="space-y-6">
             {/* Progression Buff Display (v2) */}
             {progressionBuffs.length > 0 && (
               <ProgressionBuffDisplay
@@ -667,11 +667,11 @@ function CheckoutContent() {
             <Card className="border border-gray-200">
               <CardHeader className="pb-4">
                 <CardTitle className="text-base font-semibold text-gray-900">
-                  Order Summary
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
+                Order Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
                   {cart?.lines?.map((line) => {
                     // Get price per bottle from product priceRange
                     const pricePerBottle = parseFloat(
@@ -687,7 +687,7 @@ function CheckoutContent() {
                       >
                         <span className="text-gray-600">
                           {line.merchandise.title} × {line.quantity}
-                        </span>
+                    </span>
                         <MemberPrice
                           amount={totalForLine}
                           currencyCode={
@@ -696,10 +696,10 @@ function CheckoutContent() {
                           }
                           className="text-gray-900 font-medium text-sm"
                         />
-                      </div>
+                  </div>
                     );
                   })}
-                </div>
+              </div>
 
                 <div className="border-t border-gray-200 my-3"></div>
 
@@ -743,7 +743,7 @@ function CheckoutContent() {
                       </span>
                     </div>
                   )}
-
+                  
                   {/* Subtotal */}
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Subtotal</span>
@@ -752,17 +752,17 @@ function CheckoutContent() {
                       {cart.cost.totalAmount.currencyCode}
                     </span>
                   </div>
-                </div>
+                  </div>
 
                 <div className="border-t border-gray-200 my-3"></div>
-
-                {/* Total */}
+                  
+                  {/* Total */}
                 <div className="flex justify-between text-base font-semibold text-gray-900">
-                  <span>Total</span>
-                  <span>
+                    <span>Total</span>
+                    <span>
                     {Math.round(total)} {cart.cost.totalAmount.currencyCode}
-                  </span>
-                </div>
+                    </span>
+                  </div>
               </CardContent>
             </Card>
 
@@ -785,7 +785,7 @@ function CheckoutContent() {
                       Address required to continue
                     </p>
                     <ProfileInfoModal onProfileSaved={handleProfileSaved} />
-                  </div>
+                </div>
                 ) : (
                   <div className="flex items-start justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
                     <div className="space-y-1">
@@ -798,7 +798,7 @@ function CheckoutContent() {
                       <p className="text-xs text-gray-600">
                         {profile?.country || "Sweden"}
                       </p>
-                    </div>
+              </div>
                     <ProfileInfoModal
                       onProfileSaved={handleProfileSaved}
                       trigger={
@@ -809,10 +809,10 @@ function CheckoutContent() {
                     />
                   </div>
                 )}
-              </CardContent>
-            </Card>
+            </CardContent>
+          </Card>
 
-            {/* Zone Information */}
+          {/* Zone Information */}
             <div className="space-y-4">
               {/* Zone Loading Indicator */}
               {zoneLoading && (
@@ -861,7 +861,7 @@ function CheckoutContent() {
                   </CardContent>
                 </Card>
               ) : null}
-
+              
               {/* Delivery Zone */}
               {zoneInfo.deliveryZone ? (
                 <ZoneDetails
@@ -915,7 +915,7 @@ function CheckoutContent() {
               ) : null}
             </div>
 
-            {/* Pallet Information */}
+          {/* Pallet Information */}
             {(() => {
               console.log("🚚 Pallet visibility check:", {
                 hasPallets: zoneInfo.pallets && zoneInfo.pallets.length > 0,
@@ -940,7 +940,7 @@ function CheckoutContent() {
                     <span className="text-sm text-gray-600">
                       Söker efter pall...
                     </span>
-                  </div>
+                      </div>
                 </CardContent>
               </Card>
             ) : zoneInfo.pallets && zoneInfo.pallets.length > 0 ? (
@@ -979,73 +979,73 @@ function CheckoutContent() {
                 </CardContent>
               </Card>
             ) : null}
-          </div>
+        </div>
 
-          {/* Right Column - Checkout Form */}
-          <div className="space-y-6">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Profile Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <User className="w-5 h-5" />
-                    Customer Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {!hasProfileInfo ? (
-                    <div className="text-center py-4">
-                      <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
+        {/* Right Column - Checkout Form */}
+        <div className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Profile Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="w-5 h-5" />
+                  Customer Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {!hasProfileInfo ? (
+                  <div className="text-center py-4">
+                    <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
                       <p className="text-gray-600 mb-4">
                         Profile information missing
                       </p>
-                      <ProfileInfoModal onProfileSaved={handleProfileSaved} />
+                    <ProfileInfoModal onProfileSaved={handleProfileSaved} />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4 text-gray-500" />
+                      <span className="font-medium">{profile.full_name}</span>
                     </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-gray-500" />
-                        <span className="font-medium">{profile.full_name}</span>
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-4 h-4"></span>
+                      <span className="text-gray-600">{profile.email}</span>
+                    </div>
+                    {profile.phone && (
                       <div className="flex items-center gap-2">
                         <span className="w-4 h-4"></span>
-                        <span className="text-gray-600">{profile.email}</span>
+                        <span className="text-gray-600">{profile.phone}</span>
                       </div>
-                      {profile.phone && (
-                        <div className="flex items-center gap-2">
-                          <span className="w-4 h-4"></span>
-                          <span className="text-gray-600">{profile.phone}</span>
-                        </div>
-                      )}
-                      <ProfileInfoModal
-                        onProfileSaved={handleProfileSaved}
-                        trigger={
-                          <Button variant="outline" size="sm" className="mt-2">
-                            Edit Profile
-                          </Button>
-                        }
-                      />
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                    )}
+                    <ProfileInfoModal 
+                      onProfileSaved={handleProfileSaved}
+                      trigger={
+                        <Button variant="outline" size="sm" className="mt-2">
+                          Edit Profile
+                        </Button>
+                      }
+                    />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
               {/* Rewards Toggle */}
               {availableRewards.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
                       <Gift className="w-5 h-5" />
                       Use Rewards
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                     <div className="flex items-center space-x-4">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
                           id="useRewardsYes"
                           checked={useRewards}
-                          onCheckedChange={(checked) => {
+                        onCheckedChange={(checked) => {
                             setUseRewards(checked as boolean);
                             if (!checked) {
                               setSelectedRewards([]);
@@ -1058,13 +1058,13 @@ function CheckoutContent() {
                         >
                           Yes, use my rewards ({availableRewards.length}{" "}
                           available)
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
                           id="useRewardsNo"
                           checked={!useRewards}
-                          onCheckedChange={(checked) => {
+                        onCheckedChange={(checked) => {
                             setUseRewards(!checked as boolean);
                             if (checked) {
                               setSelectedRewards([]);
@@ -1076,9 +1076,9 @@ function CheckoutContent() {
                           className="text-sm font-medium"
                         >
                           No, don't use rewards
-                        </Label>
-                      </div>
+                      </Label>
                     </div>
+                  </div>
 
                     {/* Rewards Selection - Only show when useRewards is true */}
                     {useRewards && (
@@ -1092,7 +1092,7 @@ function CheckoutContent() {
                               {selectedRewards.length} selected
                             </span>
                           )}
-                        </div>
+                  </div>
                         <div className="grid grid-cols-2 gap-2">
                           {availableRewards.map((reward) => (
                             <div
@@ -1135,7 +1135,7 @@ function CheckoutContent() {
                                   ) && (
                                     <Check className="w-1.5 h-1.5 text-white" />
                                   )}
-                                </div>
+                    </div>
                                 <div className="min-w-0 flex-1">
                                   <p className="text-xs font-medium text-gray-900 truncate">
                                     {reward.bottles}b @{" "}
@@ -1144,11 +1144,11 @@ function CheckoutContent() {
                                   <p className="text-xs text-gray-500 truncate">
                                     {reward.friend_email}
                                   </p>
-                                </div>
-                              </div>
-                            </div>
+                      </div>
+                      </div>
+                    </div>
                           ))}
-                        </div>
+                    </div>
                         {selectedRewards.length > 0 && (
                           <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                             <p className="text-sm text-gray-600">
@@ -1161,21 +1161,21 @@ function CheckoutContent() {
                             </p>
                           </div>
                         )}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
               )}
 
               {/* Payment Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CreditCard className="w-5 h-5" />
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="w-5 h-5" />
                     Payment Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
                   <div className="text-center py-6">
                     <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <Check className="w-8 h-8 text-green-600" />
@@ -1200,8 +1200,8 @@ function CheckoutContent() {
                       </p>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+              </CardContent>
+            </Card>
 
               {/* Submit Button or Validation Warning */}
               {!isValidCart ? (
@@ -1259,10 +1259,10 @@ function CheckoutContent() {
                   </div>
                 </div>
               ) : (
-                <Button
-                  type="submit"
+            <Button
+              type="submit"
                   className="w-full bg-black hover:bg-black/90 text-white border-black rounded-md"
-                  size="lg"
+              size="lg"
                   disabled={zoneLoading}
                 >
                   {zoneLoading ? (
@@ -1273,12 +1273,12 @@ function CheckoutContent() {
                   ) : (
                     "Place Reservation"
                   )}
-                </Button>
+            </Button>
               )}
-            </form>
-          </div>
+          </form>
         </div>
       </div>
+    </div>
     </>
   );
 }
@@ -1287,13 +1287,13 @@ export default function CheckoutPage() {
   return (
     <Suspense
       fallback={
-        <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
-          <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-gray-200 rounded mb-4"></div>
-            <div className="h-4 bg-gray-200 rounded mb-2"></div>
-            <div className="h-4 bg-gray-200 rounded"></div>
-          </div>
+      <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 bg-gray-200 rounded mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded"></div>
         </div>
+      </div>
       }
     >
       <CheckoutContent />

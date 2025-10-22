@@ -18,6 +18,7 @@ import {
   Shield,
   Award,
   LogOut,
+  BarChart3,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -30,6 +31,11 @@ const navigation = [
     name: "Dashboard",
     href: "/admin",
     icon: LayoutDashboard,
+  },
+  {
+    name: "Analytics",
+    href: "/admin/analytics",
+    icon: BarChart3,
   },
   {
     name: "Users",

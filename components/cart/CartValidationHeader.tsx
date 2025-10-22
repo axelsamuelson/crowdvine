@@ -5,6 +5,7 @@ import { CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 import type { ProducerValidation } from "@/lib/checkout-validation";
 import { WhySixBottlesModal } from "./WhySixBottlesModal";
+import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 
 interface CartValidationHeaderProps {
   validations: ProducerValidation[];
@@ -58,7 +59,13 @@ export function CartValidationHeader({
               </span>
             </div>
             <button
-              onClick={() => setShowWhyModal(true)}
+              onClick={() => {
+                setShowWhyModal(true);
+                AnalyticsTracker.trackEvent({
+                  eventType: "why_modal_opened",
+                  eventCategory: "engagement",
+                });
+              }}
               className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
               title="Why 6 bottles per producer?"
             >
@@ -93,7 +100,13 @@ export function CartValidationHeader({
               </span>
             </div>
             <button
-              onClick={() => setShowWhyModal(true)}
+              onClick={() => {
+                setShowWhyModal(true);
+                AnalyticsTracker.trackEvent({
+                  eventType: "why_modal_opened",
+                  eventCategory: "engagement",
+                });
+              }}
               className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
               title="Why 6 bottles per producer?"
             >
@@ -140,7 +153,13 @@ export function CartValidationHeader({
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setShowWhyModal(true)}
+                  onClick={() => {
+                setShowWhyModal(true);
+                AnalyticsTracker.trackEvent({
+                  eventType: "why_modal_opened",
+                  eventCategory: "engagement",
+                });
+              }}
                   className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
                   title="Why 6 bottles per producer?"
                 >
@@ -175,7 +194,13 @@ export function CartValidationHeader({
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setShowWhyModal(true)}
+                    onClick={() => {
+                setShowWhyModal(true);
+                AnalyticsTracker.trackEvent({
+                  eventType: "why_modal_opened",
+                  eventCategory: "engagement",
+                });
+              }}
                     className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
                     title="Why 6 bottles per producer?"
                   >
