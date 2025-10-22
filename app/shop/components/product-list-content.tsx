@@ -189,7 +189,7 @@ export function ProductListContent({
       {validations.length > 0 && !isHidden && (
         <>
           {/* Sticky compact progress indicator */}
-          <div className="fixed top-12 right-4 z-40 max-w-xs">
+          <div className="fixed top-16 right-4 z-40 max-w-xs">
             <div className="p-3 bg-background/95 backdrop-blur-md border border-foreground/[0.08] rounded-xl shadow-lg">
               <div className="space-y-2">
                 {/* Header */}
@@ -199,9 +199,9 @@ export function ProductListContent({
                   </h4>
                   <button
                     onClick={() => setIsHidden(true)}
-                    className="text-muted-foreground/50 hover:text-muted-foreground/70 transition-colors pointer-events-auto"
+                    className="p-1 text-muted-foreground/50 hover:text-muted-foreground/70 hover:bg-muted-foreground/10 transition-colors pointer-events-auto rounded"
                   >
-                    <X className="w-3 h-3" />
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
 
@@ -276,7 +276,7 @@ export function ProductListContent({
 
       {/* Show button when hidden */}
       {validations.length > 0 && isHidden && (
-        <div className="fixed top-12 right-4 z-40">
+        <div className="fixed top-16 right-4 z-40">
           <button
             onClick={() => setIsHidden(false)}
             className="p-2 bg-background/95 backdrop-blur-md border border-foreground/[0.08] rounded-lg shadow-lg text-muted-foreground/60 hover:text-foreground/80 transition-colors"
