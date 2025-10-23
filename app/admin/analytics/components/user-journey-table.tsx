@@ -22,6 +22,15 @@ export function UserJourneyTable({ users }: UserJourneyTableProps) {
     return <XCircle className="w-4 h-4 text-gray-300" />;
   };
 
+  const getUserName = (user: any) => {
+    if (user.profiles?.first_name || user.profiles?.last_name) {
+      const firstName = user.profiles.first_name || "";
+      const lastName = user.profiles.last_name || "";
+      return `${firstName} ${lastName}`.trim() || "No name";
+    }
+    return "No name";
+  };
+
   return (
     <Card className="p-6">
       <h3 className="text-lg font-semibold mb-4">User Journeys</h3>
@@ -29,7 +38,7 @@ export function UserJourneyTable({ users }: UserJourneyTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>User ID</TableHead>
+              <TableHead>Name</TableHead>
               <TableHead>Access Req</TableHead>
               <TableHead>Approved</TableHead>
               <TableHead>First Login</TableHead>
@@ -43,8 +52,8 @@ export function UserJourneyTable({ users }: UserJourneyTableProps) {
           <TableBody>
             {users?.slice(0, 50).map((user) => (
               <TableRow key={user.user_id}>
-                <TableCell className="font-mono text-xs">
-                  {user.user_id.substring(0, 8)}...
+                <TableCell className="font-medium">
+                  {getUserName(user)}
                 </TableCell>
                 <TableCell>{getStatusIcon(user.access_requested_at)}</TableCell>
                 <TableCell>{getStatusIcon(user.access_approved_at)}</TableCell>

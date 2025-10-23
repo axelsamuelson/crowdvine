@@ -16,10 +16,21 @@ export async function GET(request: Request) {
 
   try {
     if (metric === "funnel") {
-      // Get funnel data from view
+      // Get funnel data from view with user names
       const { data, error } = await sb
         .from("user_journey_funnel")
-        .select("*");
+        .select(`
+          user_id,
+          access_requested_at,
+          access_approved_at,
+          first_login_at,
+          first_product_view_at,
+          first_add_to_cart_at,
+          cart_validation_passed_at,
+          checkout_started_at,
+          reservation_completed_at,
+          profiles!inner(first_name, last_name)
+        `);
 
       if (error) throw error;
 
