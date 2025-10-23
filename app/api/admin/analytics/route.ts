@@ -29,7 +29,7 @@ export async function GET(request: Request) {
           cart_validation_passed_at,
           checkout_started_at,
           reservation_completed_at,
-          profiles!inner(first_name, last_name)
+          profiles(first_name, last_name)
         `);
 
       if (error) throw error;
