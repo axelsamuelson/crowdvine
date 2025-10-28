@@ -147,8 +147,9 @@ export function CartValidationHeader({
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-amber-500"></div>
                 <span className="text-xs text-muted-foreground">
-                  {invalidValidations.length} producer
-                  {invalidValidations.length !== 1 ? "s" : ""} need more bottles
+                  {invalidValidations.length === 1
+                    ? `1 producer needs ${invalidValidations[0].needed} more bottles`
+                    : `${invalidValidations.length} producers need more bottles`}
                 </span>
               </div>
               <div className="flex items-center gap-2">
