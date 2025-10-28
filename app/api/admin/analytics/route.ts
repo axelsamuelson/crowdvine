@@ -29,7 +29,7 @@ export async function GET(request: Request) {
           cart_validation_passed_at,
           checkout_started_at,
           reservation_completed_at,
-          profiles(first_name, last_name)
+          profiles(full_name, email)
         `);
 
       if (error) {
@@ -77,6 +77,34 @@ export async function GET(request: Request) {
 
         const funnelUsers = Array.from(usersMap.values());
         
+        // Get profiles for users
+        const userIds = [...new Set(funnelUsers.map(u => u.user_id))];
+        let profilesMap: Record<string, any> = {};
+        
+        if (userIds.length > 0) {
+          try {
+            const { data: profiles, error: profilesError } = await sb
+              .from("profiles")
+              .select("id, full_name, email")
+              .in("id", userIds);
+            
+            if (!profilesError && profiles) {
+              profilesMap = profiles.reduce((acc, profile) => {
+                acc[profile.id] = profile;
+                return acc;
+              }, {} as Record<string, any>);
+            }
+          } catch (profilesError) {
+            console.error("Error fetching profiles:", profilesError);
+          }
+        }
+
+        // Attach profile data to users
+        const usersWithProfiles = funnelUsers.map(user => ({
+          ...user,
+          profiles: profilesMap[user.user_id]
+        }));
+        
         const metrics = {
           total_users: funnelUsers.length,
           access_requested: funnelUsers.filter(u => u.access_requested_at).length,
@@ -89,7 +117,7 @@ export async function GET(request: Request) {
           reservation_completed: funnelUsers.filter(u => u.reservation_completed_at).length,
         };
 
-        return NextResponse.json({ funnel: metrics, users: funnelUsers });
+        return NextResponse.json({ funnel: metrics, users: usersWithProfiles });
       }
 
       // Calculate funnel metrics
