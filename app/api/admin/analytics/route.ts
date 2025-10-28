@@ -111,15 +111,41 @@ export async function GET(request: Request) {
     if (metric === "events") {
       const { data, error } = await sb
         .from("user_events")
-        .select(`
-          *,
-          profiles(first_name, last_name, email)
-        `)
+        .select("*")
         .order("created_at", { ascending: false })
         .limit(1000);
 
       if (error) throw error;
-      return NextResponse.json({ events: data });
+
+      // Get user profile data separately to avoid join errors
+      const userIds = [...new Set(data.filter(e => e.user_id).map(e => e.user_id))];
+      let profilesMap: Record<string, any> = {};
+      
+      if (userIds.length > 0) {
+        try {
+          const { data: profiles, error: profilesError } = await sb
+            .from("profiles")
+            .select("id, first_name, last_name, email")
+            .in("id", userIds);
+          
+          if (!profilesError && profiles) {
+            profilesMap = profiles.reduce((acc, profile) => {
+              acc[profile.id] = profile;
+              return acc;
+            }, {} as Record<string, any>);
+          }
+        } catch (profilesError) {
+          console.error("Error fetching profiles:", profilesError);
+        }
+      }
+
+      // Attach profile data to events
+      const eventsWithProfiles = data.map(event => ({
+        ...event,
+        profiles: event.user_id ? profilesMap[event.user_id] : undefined
+      }));
+
+      return NextResponse.json({ events: eventsWithProfiles });
     }
 
     return NextResponse.json({ error: "Invalid metric" }, { status: 400 });
