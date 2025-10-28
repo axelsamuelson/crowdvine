@@ -378,6 +378,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       // Optimistic update for instant UI feedback
       startTransition(() => {
         console.log("🛒 Performing optimistic update...");
+        console.log("🛒 Product object being added:", JSON.stringify(product, null, 2));
         updateOptimisticCart({
           type: "ADD_ITEM",
           payload: { variant, product, previousQuantity },
