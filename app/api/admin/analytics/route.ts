@@ -60,7 +60,7 @@ export async function GET(request: Request) {
         const usersMap = new Map();
         eventsData.forEach((event: any) => {
           if (!usersMap.has(event.user_id)) {
-            usersMap.set(event.user_id, {});
+            usersMap.set(event.user_id, { user_id: event.user_id });
           }
           const user = usersMap.get(event.user_id);
           
