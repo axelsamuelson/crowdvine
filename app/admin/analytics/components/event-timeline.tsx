@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -10,9 +10,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Search, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface EventTimelineProps {
   events: any[];
@@ -20,6 +30,8 @@ interface EventTimelineProps {
 
 export function EventTimeline({ events }: EventTimelineProps) {
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const getEventColor = (category: string) => {
     const colors = {
       auth: "bg-blue-100 text-blue-800",
@@ -32,13 +44,106 @@ export function EventTimeline({ events }: EventTimelineProps) {
     return colors[category as keyof typeof colors] || "bg-gray-100 text-gray-800";
   };
 
+  // Get unique categories and event types for filters
+  const categories = useMemo(() => {
+    const uniqueCategories = Array.from(new Set(events.map(e => e.event_category)));
+    return uniqueCategories;
+  }, [events]);
+
+  const eventTypes = useMemo(() => {
+    const uniqueTypes = Array.from(new Set(events.map(e => e.event_type)));
+    return uniqueTypes;
+  }, [events]);
+
+  // Filter events
+  const filteredEvents = useMemo(() => {
+    return events.filter(event => {
+      // Category filter
+      if (selectedCategory !== "all" && event.event_category !== selectedCategory) {
+        return false;
+      }
+
+      // Search query filter
+      if (searchQuery && !event.event_type.toLowerCase().includes(searchQuery.toLowerCase()) &&
+          !event.page_url?.toLowerCase().includes(searchQuery.toLowerCase())) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [events, selectedCategory, searchQuery]);
+
   return (
     <>
       <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">Recent Events</h3>
-        <ScrollArea className="h-[600px]">
-          <div className="space-y-3">
-            {events.map((event) => (
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">Recent Events</h3>
+          <div className="flex gap-2 items-center">
+            <Badge variant="outline">{filteredEvents.length} events</Badge>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 pb-4 border-b">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Filter by Category</label>
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="All categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map(cat => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Search Events</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search by event type or URL..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                  onClick={() => setSearchQuery("")}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {filteredEvents.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500">No events found matching your filters.</p>
+            <Button
+              variant="outline"
+              className="mt-2"
+              onClick={() => {
+                setSelectedCategory("all");
+                setSearchQuery("");
+              }}
+            >
+              Clear Filters
+            </Button>
+          </div>
+        ) : (
+          <ScrollArea className="h-[600px]">
+            <div className="space-y-3">
+              {filteredEvents.map((event) => (
               <div
                 key={event.id}
                 onClick={() => setSelectedEvent(event)}
@@ -73,9 +178,10 @@ export function EventTimeline({ events }: EventTimelineProps) {
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </ScrollArea>
+              ))}
+            </div>
+          </ScrollArea>
+        )}
       </Card>
 
       <Dialog open={!!selectedEvent} onOpenChange={() => setSelectedEvent(null)}>
