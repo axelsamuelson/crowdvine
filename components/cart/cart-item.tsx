@@ -48,6 +48,13 @@ export function CartItemCard({ item, onCloseCart }: CartItemProps) {
 
   // Check if image is available
   const hasImage = renderImage && renderImage.url;
+  
+  // Debug: Check if producer name exists
+  console.log("Cart item:", {
+    title: item.merchandise.product.title,
+    producerName: item.merchandise.product.producerName,
+    product: item.merchandise.product
+  });
 
   return (
     <div className="bg-popover rounded-lg p-2">
