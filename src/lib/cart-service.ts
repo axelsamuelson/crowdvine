@@ -71,10 +71,10 @@ export class CartService {
             label_image_path,
             base_price_cents,
             color,
-            producer_id
-          ),
-          wines!producer_id (
-            name
+            producer_id,
+            producers (
+              name
+            )
           )
         `,
         )
@@ -130,7 +130,7 @@ export class CartService {
               id: item.wines.id,
               title: `${item.wines.wine_name} ${item.wines.vintage}`,
               handle: item.wines.handle,
-              producerName: (item.wines as any).name || undefined,
+              producerName: (item.wines as any).producers?.name || undefined,
               description: "",
               descriptionHtml: "",
               productType: "wine",
