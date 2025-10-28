@@ -39,17 +39,20 @@ ORDER BY created_at DESC;
 -- Step 3: UPDATE product_viewed to product_list_viewed
 -- Only convert events from PLP pages (where page_url does NOT contain '/product/')
 -- Events with '/product/' in URL are actual PDP views and should remain as product_viewed
--- Uncomment the lines below to run the update
-
--- UPDATE user_events
--- SET 
---   event_type = 'product_list_viewed',
---   event_metadata = event_metadata || jsonb_build_object(
---     'converted_from', 'product_viewed',
---     'original_event_type', 'product_viewed'
---   )
--- WHERE event_type = 'product_viewed'
---   AND (page_url IS NULL OR page_url NOT LIKE '%/product/%');
+-- 
+-- IMPORTANT: Review Step 2 output above before running this!
+-- This will convert only PLP events (those NOT from /product/ URLs)
+-- 
+-- To run the update, execute the following:
+UPDATE user_events
+SET 
+  event_type = 'product_list_viewed',
+  event_metadata = COALESCE(event_metadata, '{}'::jsonb) || jsonb_build_object(
+    'converted_from', 'product_viewed',
+    'original_event_type', 'product_viewed'
+  )
+WHERE event_type = 'product_viewed'
+  AND (page_url IS NULL OR page_url NOT LIKE '%/product/%');
 
 -- Step 4: Verify the update (run AFTER the UPDATE above)
 SELECT 
