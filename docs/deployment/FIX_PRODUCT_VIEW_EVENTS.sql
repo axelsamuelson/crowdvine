@@ -36,9 +36,9 @@ FROM user_events
 WHERE event_type = 'product_viewed'
 ORDER BY created_at DESC;
 
--- Step 3: UPDATE ALL product_viewed to product_list_viewed
--- Since ProductCard was used on PLP pages, all existing product_viewed
--- events were actually from viewing product lists, not individual products
+-- Step 3: UPDATE product_viewed to product_list_viewed
+-- Only convert events from PLP pages (where page_url does NOT contain '/product/')
+-- Events with '/product/' in URL are actual PDP views and should remain as product_viewed
 -- Uncomment the lines below to run the update
 
 -- UPDATE user_events
@@ -48,7 +48,8 @@ ORDER BY created_at DESC;
 --     'converted_from', 'product_viewed',
 --     'original_event_type', 'product_viewed'
 --   )
--- WHERE event_type = 'product_viewed';
+-- WHERE event_type = 'product_viewed'
+--   AND (page_url IS NULL OR page_url NOT LIKE '%/product/%');
 
 -- Step 4: Verify the update (run AFTER the UPDATE above)
 SELECT 
@@ -60,10 +61,11 @@ GROUP BY event_type
 ORDER BY event_type;
 
 -- IMPORTANT NOTES:
--- 1. This will convert ALL existing product_viewed events to product_list_viewed
--- 2. This is safe because ProductCard tracking was only added to PLP pages
--- 3. New product_viewed events from PDP pages will be correctly tracked
--- 4. Always review the SELECT queries before running the UPDATE
--- 5. Consider backing up your data first: 
+-- 1. This will ONLY convert product_viewed events from PLP pages (not from /product/ URLs)
+-- 2. Events where page_url contains '/product/' will remain as product_viewed (they are correct)
+-- 3. This is safe because ProductCard tracking was only added to PLP pages, not PDP pages
+-- 4. New events from now on will be correctly tracked automatically
+-- 5. Always review the SELECT queries before running the UPDATE
+-- 6. Consider backing up your data first: 
 --    SELECT * FROM user_events WHERE event_type = 'product_viewed';
 
