@@ -357,6 +357,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         variant.id,
         "product:",
         product.id,
+        "producerName:",
+        product.producerName,
       );
 
       // Normalize variant ID by removing -default suffix for comparison
