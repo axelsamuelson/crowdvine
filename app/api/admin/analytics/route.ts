@@ -105,10 +105,26 @@ export async function GET(request: Request) {
           profiles: profilesMap[user.user_id]
         }));
         
-        console.log("Total unique users from events:", usersWithProfiles.length);
+        // Now get ALL profiles and add users without events
+        const { data: allProfiles, error: allProfilesError } = await sb
+          .from("profiles")
+          .select("id, full_name, email");
+        
+        if (!allProfilesError && allProfiles) {
+          const usersWithEventIds = new Set(funnelUsers.map(u => u.user_id));
+          const usersWithoutEvents = allProfiles
+            .filter(p => !usersWithEventIds.has(p.id))
+            .map(p => ({
+              user_id: p.id,
+              has_no_events: true,
+              profiles: { full_name: p.full_name, email: p.email }
+            }));
+          
+          usersWithProfiles.push(...usersWithoutEvents);
+        }
         
         const metrics = {
-          total_users: funnelUsers.length,
+          total_users: usersWithProfiles.length,
           access_requested: funnelUsers.filter(u => u.access_requested_at).length,
           access_approved: funnelUsers.filter(u => u.access_approved_at).length,
           first_login: funnelUsers.filter(u => u.first_login_at).length,
@@ -162,6 +178,24 @@ export async function GET(request: Request) {
         ...user,
         profiles: profilesMap[user.user_id] || user.profiles
       }));
+      
+      // Now get ALL profiles and add users without events
+      const { data: allProfiles, error: allProfilesError } = await sb
+        .from("profiles")
+        .select("id, full_name, email");
+      
+      if (!allProfilesError && allProfiles) {
+        const usersWithEventIds = new Set(data.map(u => u.user_id));
+        const usersWithoutEvents = allProfiles
+          .filter(p => !usersWithEventIds.has(p.id))
+          .map(p => ({
+            user_id: p.id,
+            has_no_events: true,
+            profiles: { full_name: p.full_name, email: p.email }
+          }));
+        
+        usersWithProfiles.push(...usersWithoutEvents);
+      }
 
       return NextResponse.json({ funnel: metrics, users: usersWithProfiles });
     }

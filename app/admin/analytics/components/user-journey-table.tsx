@@ -62,20 +62,26 @@ export function UserJourneyTable({ users }: UserJourneyTableProps) {
   };
 
   const getStepsCompleted = (user: any) => {
+    if (user.has_no_events) return 0;
     return STEPS.filter(step => user[step.key]).length;
   };
 
   const getCompletionPercentage = (user: any) => {
+    if (user.has_no_events) return 0;
     const completed = getStepsCompleted(user);
     return Math.round((completed / STEPS.length) * 100);
   };
 
   const getReachedStep = (user: any) => {
+    if (user.has_no_events) return 'No events recorded';
     const reached = STEPS.filter(step => user[step.key]);
     return reached.length > 0 ? reached[reached.length - 1].name : 'Not started';
   };
 
   const getCompletionStatus = (user: any) => {
+    if (user.has_no_events) {
+      return { status: 'no-events', color: 'bg-gray-100 text-gray-600', label: 'No events', icon: XCircle };
+    }
     if (user.reservation_completed_at) {
       return { status: 'completed', color: 'bg-green-100 text-green-800', label: 'Completed', icon: Award };
     } else if (user.checkout_started_at) {
@@ -92,7 +98,9 @@ export function UserJourneyTable({ users }: UserJourneyTableProps) {
     let filtered = users;
 
     // Filter by completion status
-    if (filterCompleted === "completed") {
+    if (filterCompleted === "no-events") {
+      filtered = filtered.filter(user => user.has_no_events);
+    } else if (filterCompleted === "completed") {
       filtered = filtered.filter(user => user.reservation_completed_at);
     } else if (filterCompleted === "in-progress") {
       filtered = filtered.filter(user => user.checkout_started_at && !user.reservation_completed_at);
@@ -139,6 +147,7 @@ export function UserJourneyTable({ users }: UserJourneyTableProps) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Users</SelectItem>
+              <SelectItem value="no-events">No Events</SelectItem>
               <SelectItem value="completed">Completed Reservations</SelectItem>
               <SelectItem value="in-progress">In Progress (Checkout)</SelectItem>
               <SelectItem value="active">Active (3+ steps)</SelectItem>
