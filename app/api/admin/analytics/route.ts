@@ -133,7 +133,35 @@ export async function GET(request: Request) {
         reservation_completed: data.filter(u => u.reservation_completed_at).length,
       };
 
-      return NextResponse.json({ funnel: metrics, users: data });
+      // Get profiles separately to ensure we have the data
+      const userIds = [...new Set(data.map(u => u.user_id))];
+      let profilesMap: Record<string, any> = {};
+      
+      if (userIds.length > 0) {
+        try {
+          const { data: profiles, error: profilesError } = await sb
+            .from("profiles")
+            .select("id, full_name, email")
+            .in("id", userIds);
+          
+          if (!profilesError && profiles) {
+            profilesMap = profiles.reduce((acc, profile) => {
+              acc[profile.id] = profile;
+              return acc;
+            }, {} as Record<string, any>);
+          }
+        } catch (profilesError) {
+          console.error("Error fetching profiles:", profilesError);
+        }
+      }
+
+      // Attach profile data to users (use profiles from map if view didn't return it)
+      const usersWithProfiles = data.map(user => ({
+        ...user,
+        profiles: profilesMap[user.user_id] || user.profiles
+      }));
+
+      return NextResponse.json({ funnel: metrics, users: usersWithProfiles });
     }
 
     if (metric === "events") {
