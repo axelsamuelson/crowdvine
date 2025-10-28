@@ -125,7 +125,7 @@ export async function GET(request: Request) {
         try {
           const { data: profiles, error: profilesError } = await sb
             .from("profiles")
-            .select("id, first_name, last_name, email")
+            .select("id, full_name, email")
             .in("id", userIds);
           
           if (!profilesError && profiles) {

@@ -145,7 +145,7 @@ export function EventTimeline({ events }: EventTimelineProps) {
             <div className="space-y-3">
               {filteredEvents.map((event) => {
                 const userName = event.profiles 
-                  ? `${event.profiles.first_name || ''} ${event.profiles.last_name || ''}`.trim() || event.profiles.email
+                  ? (event.profiles.full_name || event.profiles.email || 'Guest User')
                   : 'Guest User';
                 
                 return (
@@ -209,11 +209,9 @@ export function EventTimeline({ events }: EventTimelineProps) {
                   <div>
                     <p className="text-sm font-medium text-gray-500 mb-1">User</p>
                     <p className="text-sm font-semibold">
-                      {selectedEvent.profiles.first_name || selectedEvent.profiles.last_name
-                        ? `${selectedEvent.profiles.first_name || ''} ${selectedEvent.profiles.last_name || ''}`.trim()
-                        : selectedEvent.profiles.email}
+                      {selectedEvent.profiles.full_name || selectedEvent.profiles.email || 'Guest User'}
                     </p>
-                    {selectedEvent.profiles.email && (
+                    {selectedEvent.profiles.email && selectedEvent.profiles.full_name && (
                       <p className="text-xs text-gray-400">{selectedEvent.profiles.email}</p>
                     )}
                   </div>
