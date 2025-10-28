@@ -1,4 +1,4 @@
-import React, { Suspense, memo, useEffect } from "react";
+import React, { Suspense, memo } from "react";
 import Link from "next/link";
 import { Product } from "@/lib/shopify/types";
 import { AddToCart, AddToCartButton } from "@/components/cart/add-to-cart";
@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { ArrowRightIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { MemberPrice } from "@/components/ui/member-price";
-import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 
 export const ProductCard = memo(({ product }: { product: Product }) => {
   const hasNoOptions = product.options.length === 0;
@@ -25,15 +24,6 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
   // Check if this is a wine box product
   const isWineBox = product.productType === "wine-box";
   const discountInfo = (product as any).discountInfo;
-
-  // Track product view
-  useEffect(() => {
-    AnalyticsTracker.trackEvent({
-      eventType: "product_viewed",
-      eventCategory: "navigation",
-      metadata: { productId: product.id, productName: product.title }
-    });
-  }, [product.id, product.title]);
 
   return (
     <div className="relative w-full aspect-[3/4] md:aspect-square bg-muted group overflow-hidden">

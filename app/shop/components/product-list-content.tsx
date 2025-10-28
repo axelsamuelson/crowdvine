@@ -11,6 +11,7 @@ import { Card } from "../../../components/ui/card";
 import { useCart } from "@/components/cart/cart-context";
 import { ProducerValidation } from "@/lib/checkout-validation";
 import { X } from "lucide-react";
+import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 
 interface ProductListContentProps {
   products: Product[];
@@ -183,6 +184,19 @@ export function ProductListContent({
     setOriginalProducts(products);
     setProducts(filteredProducts);
   }, [products, filteredProducts, setProducts, setOriginalProducts]);
+
+  // Track product list viewed event
+  useEffect(() => {
+    AnalyticsTracker.trackEvent({
+      eventType: "product_list_viewed",
+      eventCategory: "navigation",
+      metadata: { 
+        productCount: filteredProducts.length,
+        totalProducts: products.length,
+        hasFilters: colorFilters.length > 0 || selectedProducers.length > 0
+      }
+    });
+  }, [filteredProducts.length, products.length, colorFilters.length, selectedProducers.length]);
 
   return (
     <>

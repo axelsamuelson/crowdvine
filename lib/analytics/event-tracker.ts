@@ -11,6 +11,7 @@ export type EventType =
   // Navigation
   | "page_view"
   | "producer_viewed"
+  | "product_list_viewed"
   | "product_viewed"
   | "filter_used"
   // Cart & Validation

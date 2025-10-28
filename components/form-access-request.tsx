@@ -183,6 +183,17 @@ export const FormAccessRequest = ({
       );
 
       if (state.success === true) {
+        // Track access approval event
+        const { AnalyticsTracker } = await import("@/lib/analytics/event-tracker");
+        AnalyticsTracker.trackEvent({
+          eventType: "access_approved",
+          eventCategory: "auth",
+          metadata: { 
+            email: values.email,
+            invitationCode: inviteCode 
+          },
+        });
+
         setShowInviteModal(false);
         form.reset({ input: "" });
         inviteForm.reset();
@@ -391,6 +402,14 @@ async function requestAccess(email: string): Promise<ActionResult<string>> {
     const result = await response.json();
 
     if (response.ok) {
+      // Track access request submitted event
+      const { AnalyticsTracker } = await import("@/lib/analytics/event-tracker");
+      AnalyticsTracker.trackEvent({
+        eventType: "access_request_submitted",
+        eventCategory: "auth",
+        metadata: { email },
+      });
+
       return {
         success: true,
         data:

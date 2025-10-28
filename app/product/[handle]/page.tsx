@@ -31,6 +31,7 @@ import { VariantSelectorSlots } from "./components/variant-selector-slots";
 import { MobileGallerySlider } from "./components/mobile-gallery-slider";
 import { DesktopGallery } from "./components/desktop-gallery";
 import { WineBoxDiscountInfo } from "@/components/products/wine-box-discount-info";
+import { ProductViewTracker } from "./components/product-view-tracker";
 
 // Generate static params for all products at build time
 export async function generateStaticParams() {
@@ -123,6 +124,8 @@ export default async function ProductPage(props: {
           __html: JSON.stringify(productJsonLd),
         }}
       />
+
+      <ProductViewTracker product={product} />
 
       <div className="flex flex-col md:grid md:grid-cols-12 md:gap-sides min-h-max">
         {/* Mobile Gallery Slider */}

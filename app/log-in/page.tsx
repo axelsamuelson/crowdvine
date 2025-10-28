@@ -97,6 +97,18 @@ export default function LogInPage() {
           throw new Error(data.error || "Invalid email or password");
         }
 
+        // Track login event
+        try {
+          const { AnalyticsTracker } = await import("@/lib/analytics/event-tracker");
+          await AnalyticsTracker.trackEvent({
+            eventType: "user_first_login",
+            eventCategory: "auth",
+            metadata: { email },
+          });
+        } catch (trackingError) {
+          console.error("Failed to track login event:", trackingError);
+        }
+
         setSuccess("Login successful! Redirecting...");
         setEmail("");
         setPassword("");

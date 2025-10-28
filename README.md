@@ -2,6 +2,21 @@
 
 A Next.js storefront for Crowdvine wine campaigns, built with Supabase and Stripe.
 
+## Documentation Structure
+
+All project documentation is organized in the `docs/` directory:
+
+- `docs/migrations/` - Database migration guides
+- `docs/deployment/` - Deployment procedures and checklists
+- `docs/debugging/` - Debugging guides for troubleshooting
+- `docs/setup/` - Setup instructions for different services
+- `docs/fixes/` - Fix guides for specific issues
+- `docs/audits/` - System audit reports
+- `docs/features/` - Feature documentation and guides
+- `docs/performance/` - Performance optimization documentation
+- `docs/issues/` - Known issues and resolutions
+- `docs/sql/` - SQL scripts and queries
+
 ## Setup
 
 1. Install dependencies:
