@@ -17,6 +17,7 @@ interface ProductListContentProps {
   products: Product[];
   collections: Collection[];
   selectedProducers?: string[];
+  collectionHandle?: string;
 }
 
 // Client-side color filtering function
@@ -90,7 +91,8 @@ export function ProductListContent({
   products,
   collections,
   selectedProducers = [],
-}: ProductListContentProps) {
+  collectionHandle,
+}: ProductListContentProps & { collectionHandle?: string }) {
   const { setProducts, setOriginalProducts } = useProducts();
   const { cart } = useCart();
   const [validations, setValidations] = useState<ProducerValidation[]>([]);
@@ -187,16 +189,21 @@ export function ProductListContent({
 
   // Track product list viewed event
   useEffect(() => {
+    // Check if viewing a collection (producer filter)
+    const isCollectionPage = !!collectionHandle && collectionHandle !== 'joyco-root' && collectionHandle !== 'all-wines';
+    
     AnalyticsTracker.trackEvent({
       eventType: "product_list_viewed",
       eventCategory: "navigation",
       metadata: { 
         productCount: filteredProducts.length,
         totalProducts: products.length,
-        hasFilters: colorFilters.length > 0 || selectedProducers.length > 0
+        hasFilters: colorFilters.length > 0 || selectedProducers.length > 0 || isCollectionPage,
+        collectionHandle: collectionHandle,
+        isCollectionPage: isCollectionPage
       }
     });
-  }, [filteredProducts.length, products.length, colorFilters.length, selectedProducers.length]);
+  }, [filteredProducts.length, products.length, colorFilters.length, selectedProducers.length, collectionHandle]);
 
   return (
     <>

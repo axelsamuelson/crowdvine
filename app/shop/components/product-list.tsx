@@ -93,6 +93,7 @@ export default async function ProductList({
       products={products}
       collections={collections}
       selectedProducers={producers}
+      collectionHandle={collection}
     />
   );
 }
