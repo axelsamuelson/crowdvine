@@ -8,7 +8,15 @@ interface MetricsCardsProps {
 }
 
 export function MetricsCards({ data }: MetricsCardsProps) {
-  if (!data) return null;
+  if (!data || data.total_users === 0) {
+    return (
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <p className="text-sm text-yellow-800">
+          ⚠️ Analytics tables not found. Run <code className="bg-yellow-100 px-1 rounded">docs/deployment/ANALYTICS_MIGRATION.sql</code> in Supabase SQL Editor.
+        </p>
+      </div>
+    );
+  }
 
   const overallConversion = data.total_users > 0
     ? ((data.reservation_completed / data.total_users) * 100).toFixed(1)

@@ -25,6 +25,9 @@ export function AnalyticsDashboard() {
         const funnel = await funnelRes.json();
         const eventsData = await eventsRes.json();
 
+        console.log("Funnel data:", funnel);
+        console.log("Events data:", eventsData);
+
         setFunnelData(funnel);
         setEvents(eventsData.events || []);
       } catch (error) {

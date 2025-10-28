@@ -17,7 +17,21 @@ interface FunnelChartProps {
 }
 
 export function FunnelChart({ data }: FunnelChartProps) {
-  if (!data) return null;
+  // Show message if no data available
+  if (!data || data.total_users === 0) {
+    return (
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4">Conversion Funnel</h3>
+        <div className="text-center py-12">
+          <p className="text-gray-500 mb-2">No conversion data available yet</p>
+          <p className="text-sm text-gray-400">
+            Run the analytics migration to start tracking user journeys.
+            See docs/deployment/ANALYTICS_MIGRATION.sql
+          </p>
+        </div>
+      </Card>
+    );
+  }
 
   const funnelSteps = [
     { name: "Access Requested", value: data.access_requested, color: "#3b82f6" },
