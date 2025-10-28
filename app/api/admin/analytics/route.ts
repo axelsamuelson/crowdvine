@@ -32,8 +32,16 @@ export async function GET(request: Request) {
           profiles(full_name, email)
         `);
 
+      console.log("DEBUG: Attempting to fetch from user_journey_funnel view");
+      
+      if (data) {
+        console.log("DEBUG: Fetched from view, data length:", data.length);
+        console.log("DEBUG: Sample data from view:", data[0]);
+      }
+      
       if (error) {
         console.error("Analytics funnel error:", error);
+        console.log("DEBUG: Falling back to raw events method");
         // If view doesn't exist or error, try to get data directly from user_events
         const { data: eventsData, error: eventsError } = await sb
           .from("user_events")
@@ -76,9 +84,12 @@ export async function GET(request: Request) {
         });
 
         const funnelUsers = Array.from(usersMap.values());
+        console.log("DEBUG: Calculated funnel users:", funnelUsers.length);
+        console.log("DEBUG: Sample user:", funnelUsers[0]);
         
         // Get profiles for users
         const userIds = [...new Set(funnelUsers.map(u => u.user_id))];
+        console.log("DEBUG: Fetching profiles for user IDs:", userIds);
         let profilesMap: Record<string, any> = {};
         
         if (userIds.length > 0) {
@@ -93,6 +104,10 @@ export async function GET(request: Request) {
                 acc[profile.id] = profile;
                 return acc;
               }, {} as Record<string, any>);
+              console.log("DEBUG: Fetched profiles:", profiles.length);
+              console.log("DEBUG: Sample profile:", profiles[0]);
+            } else {
+              console.log("DEBUG: Failed to fetch profiles:", profilesError);
             }
           } catch (profilesError) {
             console.error("Error fetching profiles:", profilesError);
@@ -104,6 +119,9 @@ export async function GET(request: Request) {
           ...user,
           profiles: profilesMap[user.user_id]
         }));
+        
+        console.log("DEBUG: After attaching profiles, sample user:", usersWithProfiles[0]);
+        console.log("DEBUG: First user's profile:", usersWithProfiles[0]?.profiles);
         
         const metrics = {
           total_users: funnelUsers.length,
@@ -133,8 +151,12 @@ export async function GET(request: Request) {
         reservation_completed: data.filter(u => u.reservation_completed_at).length,
       };
 
+      console.log("DEBUG: Calculated metrics from view");
+      console.log("DEBUG: User IDs from view:", data.map(u => u.user_id));
+
       // Get profiles separately to ensure we have the data
       const userIds = [...new Set(data.map(u => u.user_id))];
+      console.log("DEBUG: Fetching profiles for user IDs:", userIds);
       let profilesMap: Record<string, any> = {};
       
       if (userIds.length > 0) {
@@ -149,6 +171,10 @@ export async function GET(request: Request) {
               acc[profile.id] = profile;
               return acc;
             }, {} as Record<string, any>);
+            console.log("DEBUG: Fetched profiles from database:", profiles.length);
+            console.log("DEBUG: Sample profile:", profiles[0]);
+          } else {
+            console.log("DEBUG: Failed to fetch profiles:", profilesError);
           }
         } catch (profilesError) {
           console.error("Error fetching profiles:", profilesError);
@@ -160,6 +186,10 @@ export async function GET(request: Request) {
         ...user,
         profiles: profilesMap[user.user_id] || user.profiles
       }));
+
+      console.log("DEBUG: Final users with profiles count:", usersWithProfiles.length);
+      console.log("DEBUG: First user with profile:", usersWithProfiles[0]);
+      console.log("DEBUG: First user's profile object:", usersWithProfiles[0]?.profiles);
 
       return NextResponse.json({ funnel: metrics, users: usersWithProfiles });
     }
