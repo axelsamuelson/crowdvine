@@ -105,6 +105,8 @@ export async function GET(request: Request) {
           profiles: profilesMap[user.user_id]
         }));
         
+        console.log("Total unique users from events:", usersWithProfiles.length);
+        
         const metrics = {
           total_users: funnelUsers.length,
           access_requested: funnelUsers.filter(u => u.access_requested_at).length,
