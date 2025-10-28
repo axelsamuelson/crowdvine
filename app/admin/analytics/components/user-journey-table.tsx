@@ -39,10 +39,6 @@ const STEPS = [
 ];
 
 export function UserJourneyTable({ users }: UserJourneyTableProps) {
-  console.log("DEBUG: UserJourneyTable received users:", users);
-  console.log("DEBUG: Number of users:", users?.length);
-  console.log("DEBUG: Sample user:", users?.[0]);
-  
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCompleted, setFilterCompleted] = useState<string>("all");
 
@@ -189,17 +185,7 @@ export function UserJourneyTable({ users }: UserJourneyTableProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedAndFilteredUsers.slice(0, 100).map((user) => {
-                // Debug logging
-                if (user.user_id && !user.profiles) {
-                  console.log("DEBUG: User without profile - user_id:", user.user_id);
-                  console.log("DEBUG: User object:", user);
-                } else if (user.profiles) {
-                  console.log("DEBUG: User with profile - user_id:", user.user_id);
-                  console.log("DEBUG: Profile object:", user.profiles);
-                  console.log("DEBUG: Profile full_name:", user.profiles.full_name);
-                }
-                
+              {sortedAndFilteredUsers.map((user) => {
                 const completionInfo = getCompletionStatus(user);
                 const CompletionIcon = completionInfo.icon;
                 
@@ -209,10 +195,6 @@ export function UserJourneyTable({ users }: UserJourneyTableProps) {
                       <div>
                         <div>{getUserName(user)}</div>
                         <div className="text-xs text-gray-500">{getUserEmail(user)}</div>
-                        {/* Debug info */}
-                        <div className="text-xs text-red-500 mt-1">
-                          Debug: {user.profiles ? `Has profile. full_name: ${user.profiles.full_name}` : 'No profile'}
-                        </div>
                       </div>
                     </TableCell>
                     <TableCell>
