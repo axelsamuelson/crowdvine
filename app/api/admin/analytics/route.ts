@@ -52,7 +52,7 @@ export async function GET(request: Request) {
         const usersMap = new Map();
         eventsData.forEach((event: any) => {
           if (!usersMap.has(event.user_id)) {
-            usersMap.set(event.user_id, { user_id: event.user_id });
+            usersMap.set(event.user_id, { user_id: event.user_id, product_list_view_count: 0 });
           }
           const user = usersMap.get(event.user_id);
           
@@ -64,6 +64,11 @@ export async function GET(request: Request) {
             user.first_login_at = event.created_at;
           } else if (event.event_type === 'product_viewed' && !user.first_product_view_at) {
             user.first_product_view_at = event.created_at;
+          } else if (event.event_type === 'product_list_viewed') {
+            if (!user.product_list_view_count) {
+              user.product_list_view_count = 0;
+            }
+            user.product_list_view_count++;
           } else if (event.event_type === 'add_to_cart' && !user.first_add_to_cart_at) {
             user.first_add_to_cart_at = event.created_at;
           } else if (event.event_type === 'cart_validation_passed' && !user.cart_validation_passed_at) {
@@ -117,6 +122,7 @@ export async function GET(request: Request) {
             .map(p => ({
               user_id: p.id,
               has_no_events: true,
+              product_list_view_count: 0,
               profiles: { full_name: p.full_name, email: p.email }
             }));
           
@@ -191,6 +197,7 @@ export async function GET(request: Request) {
           .map(p => ({
             user_id: p.id,
             has_no_events: true,
+            product_list_view_count: 0,
             profiles: { full_name: p.full_name, email: p.email }
           }));
         

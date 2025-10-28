@@ -183,6 +183,7 @@ export function UserJourneyTable({ users }: UserJourneyTableProps) {
                 <TableHead>Progress</TableHead>
                 <TableHead>Steps</TableHead>
                 <TableHead>Reached</TableHead>
+                <TableHead className="text-center">Lists</TableHead>
                 <TableHead className="text-center">Request</TableHead>
                 <TableHead className="text-center">Approved</TableHead>
                 <TableHead className="text-center">Login</TableHead>
@@ -232,6 +233,13 @@ export function UserJourneyTable({ users }: UserJourneyTableProps) {
                     </TableCell>
                     <TableCell className="text-sm text-gray-600">
                       {getReachedStep(user)}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {user.has_no_events ? (
+                        <span className="text-gray-400">-</span>
+                      ) : (
+                        <Badge variant="outline">{user.product_list_view_count || 0}</Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-center">{getStatusIcon(user.access_requested_at)}</TableCell>
                     <TableCell className="text-center">{getStatusIcon(user.access_approved_at)}</TableCell>
