@@ -143,25 +143,33 @@ export function EventTimeline({ events }: EventTimelineProps) {
         ) : (
           <ScrollArea className="h-[600px]">
             <div className="space-y-3">
-              {filteredEvents.map((event) => (
-              <div
-                key={event.id}
-                onClick={() => setSelectedEvent(event)}
-                className="p-4 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-medium ${getEventColor(event.event_category)}`}
-                      >
-                        {event.event_type}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {format(new Date(event.created_at), "MMM d, HH:mm:ss")}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-600">{event.page_url}</p>
+              {filteredEvents.map((event) => {
+                const userName = event.profiles 
+                  ? `${event.profiles.first_name || ''} ${event.profiles.last_name || ''}`.trim() || event.profiles.email
+                  : 'Guest User';
+                
+                return (
+                <div
+                  key={event.id}
+                  onClick={() => setSelectedEvent(event)}
+                  className="p-4 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span
+                          className={`px-2 py-1 rounded text-xs font-medium ${getEventColor(event.event_category)}`}
+                        >
+                          {event.event_type}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {format(new Date(event.created_at), "MMM d, HH:mm:ss")}
+                        </span>
+                        <span className="text-xs font-medium text-blue-600">
+                          {userName}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600">{event.page_url}</p>
                     {event.event_metadata && Object.keys(event.event_metadata).length > 0 && (
                       <div className="text-xs bg-gray-100 p-2 rounded mt-2 overflow-x-auto">
                         {Object.entries(event.event_metadata).slice(0, 3).map(([key, value]) => (
@@ -178,7 +186,7 @@ export function EventTimeline({ events }: EventTimelineProps) {
                   </div>
                 </div>
               </div>
-              ))}
+              )})}
             </div>
           </ScrollArea>
         )}
@@ -195,6 +203,24 @@ export function EventTimeline({ events }: EventTimelineProps) {
           
           {selectedEvent && (
             <div className="space-y-4 mt-4">
+              {/* User Info */}
+              {selectedEvent.profiles && (
+                <>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500 mb-1">User</p>
+                    <p className="text-sm font-semibold">
+                      {selectedEvent.profiles.first_name || selectedEvent.profiles.last_name
+                        ? `${selectedEvent.profiles.first_name || ''} ${selectedEvent.profiles.last_name || ''}`.trim()
+                        : selectedEvent.profiles.email}
+                    </p>
+                    {selectedEvent.profiles.email && (
+                      <p className="text-xs text-gray-400">{selectedEvent.profiles.email}</p>
+                    )}
+                  </div>
+                  <Separator />
+                </>
+              )}
+
               {/* Event Type & Category */}
               <div className="grid grid-cols-2 gap-4">
                 <div>

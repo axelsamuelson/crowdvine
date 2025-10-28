@@ -111,7 +111,10 @@ export async function GET(request: Request) {
     if (metric === "events") {
       const { data, error } = await sb
         .from("user_events")
-        .select("*")
+        .select(`
+          *,
+          profiles(first_name, last_name, email)
+        `)
         .order("created_at", { ascending: false })
         .limit(1000);
 
