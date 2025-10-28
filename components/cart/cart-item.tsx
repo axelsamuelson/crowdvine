@@ -52,12 +52,12 @@ export function CartItemCard({ item, onCloseCart }: CartItemProps) {
   return (
     <div className="bg-popover rounded-lg p-2">
       <div className="flex flex-row gap-6">
-        <div className="relative size-[120px] overflow-hidden rounded-sm shrink-0">
+        <div className="relative size-[80px] overflow-hidden rounded-sm shrink-0">
           {hasImage ? (
             <Image
               className="size-full object-cover"
-              width={240}
-              height={240}
+              width={160}
+              height={160}
               blurDataURL={renderImage.url}
               alt={renderImage.altText || item.merchandise.product.title}
               src={renderImage.url}
@@ -99,6 +99,11 @@ export function CartItemCard({ item, onCloseCart }: CartItemProps) {
             <span className="2xl:text-lg font-semibold">
               {item.merchandise.product.title}
             </span>
+            {item.merchandise.product.producerName && (
+              <span className="text-sm text-muted-foreground">
+                {item.merchandise.product.producerName}
+              </span>
+            )}
           </Link>
           <p className="2xl:text-lg font-semibold">
             {formatPrice(
