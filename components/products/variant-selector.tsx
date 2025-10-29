@@ -20,7 +20,7 @@ type Combination = {
   [key: string]: string | boolean;
 };
 
-const variantOptionSelectorVariants = cva("flex items-start gap-4", {
+const variantOptionSelectorVariants = cva("flex items-center gap-4", {
   variants: {
     variant: {
       card: "rounded-lg bg-popover py-2.5 px-3 justify-between",
