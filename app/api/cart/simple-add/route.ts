@@ -143,7 +143,11 @@ export async function POST(request: Request) {
           vintage,
           label_image_path,
           base_price_cents,
-          color
+          color,
+          producer_id,
+          producers (
+            name
+          )
         )
       `,
       )
@@ -165,6 +169,11 @@ export async function POST(request: Request) {
       const selectedOptions = item.wines.color
         ? [{ name: "Color", value: item.wines.color }]
         : [];
+      
+      // Get producer name - producers can be array or object
+      const producerName = Array.isArray(item.wines.producers)
+        ? item.wines.producers[0]?.name
+        : item.wines.producers?.name;
 
       return {
         id: item.id,
@@ -185,6 +194,7 @@ export async function POST(request: Request) {
             id: item.wines.id,
             title: `${item.wines.wine_name} ${item.wines.vintage}`,
             handle: item.wines.handle,
+            producerName: producerName,
             featuredImage: {
               url: item.wines.label_image_path || "/placeholder-wine.jpg",
               altText: `${item.wines.wine_name} ${item.wines.vintage}`,
