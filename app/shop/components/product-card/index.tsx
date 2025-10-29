@@ -162,7 +162,21 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
                 </div>
               </Suspense>
             ) : (
-              <></>
+              <Suspense
+                fallback={
+                  <AddToCartButton
+                    product={product}
+                    size="sm"
+                    className="bg-black hover:bg-black/90 text-white border-black rounded-md"
+                  />
+                }
+              >
+                <AddToCart
+                  product={product}
+                  size="sm"
+                  className="bg-black hover:bg-black/90 text-white border-black rounded-md"
+                />
+              </Suspense>
             )}
 
             {renderInCardAddToCart ? (
@@ -182,35 +196,18 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
                 />
               </Suspense>
             ) : (
-              <div className="col-start-2 flex flex-row gap-2">
-                <Suspense
-                  fallback={
-                    <AddToCartButton
-                      product={product}
-                      size="sm"
-                      className="bg-black hover:bg-black/90 text-white border-black rounded-md"
-                    />
-                  }
-                >
-                  <AddToCart
-                    product={product}
-                    size="sm"
-                    className="bg-black hover:bg-black/90 text-white border-black rounded-md"
-                  />
-                </Suspense>
-                <Button
-                  className="bg-black hover:bg-black/90 text-white border-black rounded-md"
-                  size="sm"
-                  asChild
-                >
-                  <Link href={`/product/${product.handle}`}>
-                    <div className="flex justify-between items-center w-full">
-                      <span>View Product</span>
-                      <ArrowRightIcon />
-                    </div>
-                  </Link>
-                </Button>
-              </div>
+              <Button
+                className="col-start-2 bg-black hover:bg-black/90 text-white border-black rounded-md"
+                size="sm"
+                asChild
+              >
+                <Link href={`/product/${product.handle}`}>
+                  <div className="flex justify-between items-center w-full">
+                    <span>View Product</span>
+                    <ArrowRightIcon />
+                  </div>
+                </Link>
+              </Button>
             )}
           </div>
         </div>
