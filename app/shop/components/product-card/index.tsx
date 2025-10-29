@@ -32,16 +32,24 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
   const { addItem } = useCart();
   const [isTouched, setIsTouched] = useState(false);
 
-  // Get wine color from tags or options
+  // Get wine color from options or tags; handle both string and object values
   const getWineColor = (): string | null => {
-    // First check if color exists in options
     const colorOption = product.options.find(
-      (opt) => opt.name.toLowerCase() === "color"
+      (opt) => opt.name?.toLowerCase() === "color"
     );
-    if (colorOption && colorOption.values.length > 0) {
-      return colorOption.values[0];
+    if (colorOption && Array.isArray(colorOption.values) && colorOption.values.length > 0) {
+      const firstValue: unknown = colorOption.values[0] as unknown;
+      if (typeof firstValue === "string") return firstValue;
+      if (
+        firstValue &&
+        typeof firstValue === "object" &&
+        // @ts-expect-error runtime guard for possible { id, name }
+        typeof (firstValue as any).name === "string"
+      ) {
+        // @ts-expect-error reading name from possible object shape
+        return (firstValue as any).name as string;
+      }
     }
-    // Fallback to tags (common color tags)
     const colorTags = ["Red", "White", "Rosé", "Orange", "Rött", "Vitt", "Rosévin"];
     const foundColor = product.tags?.find((tag) =>
       colorTags.some((colorTag) => tag.toLowerCase().includes(colorTag.toLowerCase()))
