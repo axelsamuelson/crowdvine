@@ -67,7 +67,7 @@ export function PriceWithBreakdown({ product }: PriceWithBreakdownProps) {
   const hasMemberDiscount = !loading && discountPercentage > 0;
 
   return (
-    <div className="flex gap-3 items-center">
+    <div className="flex flex-col gap-1 items-start">
       <MemberPrice
         amount={product.priceRange.minVariantPrice.amount}
         currencyCode={product.priceRange.minVariantPrice.currencyCode}
@@ -75,17 +75,19 @@ export function PriceWithBreakdown({ product }: PriceWithBreakdownProps) {
         showBadge={true}
       />
       {breakdown && (
-        <PriceBreakdown
-          costAmount={breakdown.cost}
-          alcoholTax={breakdown.alcoholTax}
-          margin={breakdown.margin}
-          vat={breakdown.vat}
-          totalPrice={Number(product.priceRange.minVariantPrice.amount)}
-          marginPercentage={breakdown.marginPercentage}
-          originalMarginPercentage={breakdown.originalMarginPercentage}
-          hasMemberDiscount={hasMemberDiscount}
-          memberDiscountPercent={discountPercentage}
-        />
+        <div className="mt-0.5">
+          <PriceBreakdown
+            costAmount={breakdown.cost}
+            alcoholTax={breakdown.alcoholTax}
+            margin={breakdown.margin}
+            vat={breakdown.vat}
+            totalPrice={Number(product.priceRange.minVariantPrice.amount)}
+            marginPercentage={breakdown.marginPercentage}
+            originalMarginPercentage={breakdown.originalMarginPercentage}
+            hasMemberDiscount={hasMemberDiscount}
+            memberDiscountPercent={discountPercentage}
+          />
+        </div>
       )}
     </div>
   );
