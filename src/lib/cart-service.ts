@@ -110,6 +110,12 @@ export class CartService {
           ? [{ name: "Color", value: item.wines.color }]
           : [];
 
+        // Get producer name - wines.producers returns an array
+        const producerName = Array.isArray((item.wines as any).producers) 
+          ? (item.wines as any).producers[0]?.name 
+          : (item.wines as any).producers?.name 
+          || undefined;
+
         return {
           id: item.id,
           quantity: item.quantity,
@@ -130,7 +136,7 @@ export class CartService {
               id: item.wines.id,
               title: `${item.wines.wine_name} ${item.wines.vintage}`,
               handle: item.wines.handle,
-              producerName: (item.wines as any).producers?.name || undefined,
+              producerName: producerName,
               description: "",
               descriptionHtml: "",
               productType: "wine",
