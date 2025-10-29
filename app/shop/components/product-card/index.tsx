@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, memo, useEffect, useRef, useState } from "react";
+import React, { Suspense, memo, useEffect, useState } from "react";
 import Link from "next/link";
 import { Product } from "@/lib/shopify/types";
 import { AddToCart, AddToCartButton } from "@/components/cart/add-to-cart";
@@ -33,26 +33,24 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
 
   const { addItem } = useCart();
   const [isTouched, setIsTouched] = useState(false);
-  const touchHideTimeout = useRef<number | null>(null);
 
-  const showOverlayFor = (ms: number = 3000) => {
-    setIsTouched(true);
-    if (touchHideTimeout.current) {
-      window.clearTimeout(touchHideTimeout.current);
-    }
-    touchHideTimeout.current = window.setTimeout(() => {
-      setIsTouched(false);
-      touchHideTimeout.current = null;
-    }, ms);
-  };
-
+  // Keep overlay visible until another product card is activated
   useEffect(() => {
-    return () => {
-      if (touchHideTimeout.current) {
-        window.clearTimeout(touchHideTimeout.current);
+    const onActivate = (e: Event) => {
+      const detail = (e as CustomEvent<{ id: string }>).detail;
+      if (!detail) return;
+      if (detail.id !== product.id) {
+        setIsTouched(false);
       }
     };
-  }, []);
+    window.addEventListener("productCard:activate", onActivate as EventListener);
+    return () => {
+      window.removeEventListener(
+        "productCard:activate",
+        onActivate as EventListener,
+      );
+    };
+  }, [product.id]);
 
   // Get wine color object from options or tags; handle both string and object values
   const getWineColor = (): { name: string; value: string | [string, string] } | null => {
@@ -142,7 +140,13 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
   return (
     <div
       className="relative w-full aspect-[3/4] md:aspect-square bg-muted group overflow-hidden"
-      onTouchStart={() => showOverlayFor(3000)}
+      onTouchStart={() => {
+        setIsTouched(true);
+        const ev = new CustomEvent("productCard:activate", {
+          detail: { id: product.id },
+        });
+        window.dispatchEvent(ev);
+      }}
       onMouseEnter={() => setIsTouched(true)}
       onMouseLeave={() => setIsTouched(false)}
     >
