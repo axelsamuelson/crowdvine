@@ -124,28 +124,7 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
           </div>
         )}
 
-        {/* Desktop: Add to Cart button in top-right corner (hover only) */}
-        {!renderInCardAddToCart && (
-          <div className="hidden md:block absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
-            <Suspense
-              fallback={
-                <AddToCartButton
-                  product={product}
-                  iconOnly
-                  variant="default"
-                  size="sm"
-                />
-              }
-            >
-              <AddToCart
-                product={product}
-                iconOnly
-                variant="default"
-                size="sm"
-              />
-            </Suspense>
-          </div>
-        )}
+        {/* Desktop: Move Add to Cart into the white info box instead of top-right */}
 
         {/* Desktop Hover: White card with full details (only on desktop) */}
         <div className="hidden md:flex absolute inset-x-3 bottom-3 flex-col gap-8 px-2 py-3 rounded-md transition-all duration-300 pointer-events-none bg-white/90 backdrop-blur-sm opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 translate-y-1/3 group-hover:translate-y-0 group-focus-visible:translate-y-0 group-hover:pointer-events-auto group-focus-visible:pointer-events-auto">
@@ -158,6 +137,28 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
                 <p className="text-sm text-muted-foreground font-normal">
                   {product.producerName}
                 </p>
+              )}
+              {/* Add to Cart plus button under producer name */}
+              {!renderInCardAddToCart && (
+                <div className="mt-2">
+                  <Suspense
+                    fallback={
+                      <AddToCartButton
+                        product={product}
+                        iconOnly
+                        size="sm"
+                        className="h-9"
+                      />
+                    }
+                  >
+                    <AddToCart
+                      product={product}
+                      iconOnly
+                      size="sm"
+                      className="h-9"
+                    />
+                  </Suspense>
+                </div>
               )}
             </div>
             <div className="flex gap-2 items-center place-self-end text-lg font-semibold">
