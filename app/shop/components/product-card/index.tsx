@@ -38,12 +38,13 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          setIsVisible(entry.isIntersecting);
+          // Only show when at least 50% of the card is visible
+          setIsVisible(entry.isIntersecting && entry.intersectionRatio >= 0.5);
         });
       },
       {
-        threshold: 0.1,
-        rootMargin: "0px",
+        threshold: [0, 0.5, 1],
+        rootMargin: "-10% 0px -10% 0px", // Account for top and bottom margins
       }
     );
 
@@ -146,11 +147,9 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
         </div>
 
         {/* Mobile: Premium bottom overlay with Add to Cart button (visible on scroll) */}
-        {renderInCardAddToCart && (
+        {renderInCardAddToCart && isVisible && (
           <div
-            className={`md:hidden absolute inset-x-2 bottom-2 px-3 py-2.5 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg transition-opacity duration-300 ${
-              isVisible ? "opacity-100" : "opacity-0"
-            }`}
+            className="md:hidden absolute inset-x-2 bottom-2 px-3 py-2.5 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg"
           >
             <div className="flex gap-2 items-center justify-between">
               <div className="flex-1 min-w-0 pr-2">
@@ -183,11 +182,9 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
         )}
 
         {/* Mobile: View Product button for products with variants (visible on scroll) */}
-        {!renderInCardAddToCart && (
+        {!renderInCardAddToCart && isVisible && (
           <div
-            className={`md:hidden absolute inset-x-2 bottom-2 px-3 py-2.5 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg transition-opacity duration-300 ${
-              isVisible ? "opacity-100" : "opacity-0"
-            }`}
+            className="md:hidden absolute inset-x-2 bottom-2 px-3 py-2.5 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg"
           >
             <div className="flex gap-2 items-center justify-between">
               <div className="flex-1 min-w-0 pr-2">
