@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, memo, useEffect, useRef, useState } from "react";
+import React, { Suspense, memo, useState } from "react";
 import Link from "next/link";
 import { Product } from "@/lib/shopify/types";
 import { AddToCart, AddToCartButton } from "@/components/cart/add-to-cart";
@@ -29,36 +29,8 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
   const isWineBox = product.productType === "wine-box";
   const discountInfo = (product as any).discountInfo;
 
-  // Scroll detection for mobile overlay
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
   const { addItem } = useCart();
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          // Only show when at least 50% of the card is visible
-          setIsVisible(entry.isIntersecting && entry.intersectionRatio >= 0.5);
-        });
-      },
-      {
-        threshold: [0, 0.5, 1],
-        rootMargin: "-10% 0px -10% 0px", // Account for top and bottom margins
-      }
-    );
-
-    const currentCard = cardRef.current;
-    if (currentCard) {
-      observer.observe(currentCard);
-    }
-
-    return () => {
-      if (currentCard) {
-        observer.unobserve(currentCard);
-      }
-    };
-  }, []);
+  const [isTouched, setIsTouched] = useState(false);
 
   // Get base variant for products without options
   const getBaseProductVariant = (): any => {
@@ -92,8 +64,11 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
 
   return (
     <div
-      ref={cardRef}
       className="relative w-full aspect-[3/4] md:aspect-square bg-muted group overflow-hidden"
+      onTouchStart={() => setIsTouched(true)}
+      onTouchEnd={() => setIsTouched(false)}
+      onMouseEnter={() => setIsTouched(true)}
+      onMouseLeave={() => setIsTouched(false)}
     >
       {/* Discount Badge for Wine Boxes */}
       {isWineBox && discountInfo && (
@@ -146,10 +121,12 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
           </div>
         </div>
 
-        {/* Mobile: Premium bottom overlay with Add to Cart button (visible on scroll) */}
-        {renderInCardAddToCart && isVisible && (
+        {/* Mobile: Premium bottom overlay with Add to Cart button (visible on touch/hover) */}
+        {renderInCardAddToCart && (
           <div
-            className="md:hidden absolute inset-x-2 bottom-2 px-3 py-2.5 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg"
+            className={`md:hidden absolute inset-x-2 bottom-2 px-3 py-2.5 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg transition-opacity duration-200 ${
+              isTouched ? "opacity-100" : "opacity-0"
+            }`}
           >
             <div className="flex gap-2 items-center justify-between">
               <div className="flex-1 min-w-0 pr-2">
@@ -181,10 +158,12 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
           </div>
         )}
 
-        {/* Mobile: View Product button for products with variants (visible on scroll) */}
-        {!renderInCardAddToCart && isVisible && (
+        {/* Mobile: View Product button for products with variants (visible on touch/hover) */}
+        {!renderInCardAddToCart && (
           <div
-            className="md:hidden absolute inset-x-2 bottom-2 px-3 py-2.5 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg"
+            className={`md:hidden absolute inset-x-2 bottom-2 px-3 py-2.5 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg transition-opacity duration-200 ${
+              isTouched ? "opacity-100" : "opacity-0"
+            }`}
           >
             <div className="flex gap-2 items-center justify-between">
               <div className="flex-1 min-w-0 pr-2">
