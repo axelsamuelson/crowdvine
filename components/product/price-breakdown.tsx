@@ -58,26 +58,26 @@ export function PriceBreakdown({
 
   const components = [
     {
-      label: "Kostnad flaska",
+      label: "Bottle cost",
       amount: costAmount,
       percentage: percentages.cost,
       color: colorScheme.cost,
     },
     {
-      label: "Alkoholskatt",
+      label: "Alcohol tax",
       amount: alcoholTax,
       percentage: percentages.alcoholTax,
       color: colorScheme.alcoholTax,
     },
     {
-      label: "Marginal",
+      label: "Margin",
       amount: margin,
       percentage: percentages.margin,
       color: colorScheme.margin,
       isDiscounted: hasMemberDiscount,
     },
     {
-      label: "Moms",
+      label: "VAT",
       amount: vat,
       percentage: percentages.vat,
       color: colorScheme.vat,
@@ -88,46 +88,79 @@ export function PriceBreakdown({
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <button
-          className="inline-flex items-center justify-center w-5 h-5 rounded-full hover:bg-gray-100 transition-colors"
-          aria-label="Visa prisuppdelning"
+          className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs text-foreground/70 hover:bg-foreground/5 transition-colors"
+          aria-label="Show price information"
         >
-          <CircleHelp className="w-4 h-4 text-gray-500" />
+          <CircleHelp className="size-3.5 text-foreground/70" />
+          <span className="hidden sm:inline">Price info</span>
         </button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-80 p-4 bg-white border border-gray-200 shadow-lg rounded-lg"
+        className="w-[320px] md:w-[380px] p-4 rounded-xl border bg-popover shadow-2xl"
         align="start"
         side="bottom"
+        sideOffset={8}
       >
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-gray-900">
-            Prisuppdelning
-          </h3>
+        <div className="space-y-4">
+          {/* Header */}
+          <div className="flex items-start gap-3">
+            <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <CircleHelp className="size-4" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold text-foreground">How this price is composed</h3>
+              <p className="text-xs text-muted-foreground">
+                The price includes bottle cost, alcohol tax, VAT, and our margin.
+                Member discount is applied on the margin.
+              </p>
+            </div>
+          </div>
 
           {/* Visual breakdown bars */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             {components.map((component, index) => (
-              <div key={index} className="space-y-1">
+              <div key={index} className="space-y-1.5">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-gray-600">{component.label}</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span
+                      className="inline-block size-2.5 rounded-full"
+                      style={{
+                        backgroundColor:
+                          component.color.includes("amber")
+                            ? "#f59e0b33"
+                            : component.color.includes("green")
+                              ? "#10b98133"
+                              : component.color.includes("blue")
+                                ? "#3b82f633"
+                                : "#e5e7eb",
+                        outline: "1px solid rgba(0,0,0,0.05)",
+                      }}
+                    />
+                    <span className="text-foreground/70 truncate">{component.label}</span>
+                  </div>
                   <div className="flex items-center gap-1">
                     {component.isDiscounted && (
                       <span className="text-xs text-green-600 font-medium">
                         -{memberDiscountPercent}%
                       </span>
                     )}
-                    <span className="font-medium">
-                      {formatCurrency(component.amount)}
-                    </span>
+                    <span className="font-medium">{formatCurrency(component.amount)}</span>
                   </div>
                 </div>
-                <div className="w-full bg-gray-100 rounded-full h-2">
+                <div className="w-full bg-muted rounded-full h-2">
                   <div
-                    className={cn(
-                      "h-2 rounded-full transition-all duration-300",
-                      component.color.split(" ")[0], // Use only the background color class
-                    )}
-                    style={{ width: `${component.percentage}%` }}
+                    className="h-2 rounded-full transition-all duration-300"
+                    style={{
+                      width: `${component.percentage}%`,
+                      background:
+                        component.color.includes("amber")
+                          ? "linear-gradient(90deg,#fde68a,#f59e0b)"
+                          : component.color.includes("green")
+                            ? "linear-gradient(90deg,#bbf7d0,#10b981)"
+                            : component.color.includes("blue")
+                              ? "linear-gradient(90deg,#bfdbfe,#3b82f6)"
+                              : "linear-gradient(90deg,#e5e7eb,#9ca3af)",
+                    }}
                   />
                 </div>
               </div>
@@ -135,19 +168,17 @@ export function PriceBreakdown({
           </div>
 
           {/* Total */}
-          <div className="pt-2 border-t border-gray-200">
+          <div className="pt-2 border-t">
             <div className="flex justify-between items-center">
-              <span className="text-sm font-semibold text-gray-900">Total</span>
-              <span className="text-sm font-bold text-gray-900">
-                {formatCurrency(totalPrice)}
-              </span>
+              <span className="text-sm font-semibold">Total</span>
+              <span className="text-sm font-bold">{formatCurrency(totalPrice)}</span>
             </div>
           </div>
 
           {/* Member discount info */}
           {hasMemberDiscount && (
-            <div className="text-xs text-green-600 bg-green-50 p-2 rounded">
-              ✨ Medlemsrabatt på marginalen tillämpad
+            <div className="text-xs text-green-700 bg-green-50 px-2 py-1.5 rounded-md">
+              ✨ Member discount applied on margin
             </div>
           )}
         </div>
