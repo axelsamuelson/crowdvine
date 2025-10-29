@@ -92,8 +92,8 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
 
       {/* Interactive Overlay */}
       <div className="absolute inset-0 p-2 w-full pointer-events-none">
-        {/* Mobile & Desktop Default: Info overlay (hidden on mobile, visible on desktop until hover) */}
-        <div className="hidden md:flex gap-6 justify-between items-baseline px-3 py-1 w-full font-semibold transition-all duration-300 translate-y-0 md:group-hover:opacity-0 md:group-focus-visible:opacity-0 md:group-hover:-translate-y-full md:group-focus-visible:-translate-y-full">
+        {/* Mobile & Desktop Default: Info overlay (always visible on mobile, visible on desktop until hover) */}
+        <div className="flex gap-6 justify-between items-baseline px-3 py-1 w-full font-semibold transition-all duration-300 translate-y-0 md:group-hover:opacity-0 md:group-focus-visible:opacity-0 md:group-hover:-translate-y-full md:group-focus-visible:-translate-y-full">
           <div className="flex flex-col">
             <p className="text-xs md:text-sm uppercase 2xl:text-base text-balance">
               {product.title}
