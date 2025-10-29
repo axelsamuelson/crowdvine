@@ -178,16 +178,25 @@ export default async function ProductPage(props: {
 
             <div className="flex flex-col col-span-full gap-4 md:mb-10 max-md:order-2">
               <div className="flex flex-col grid-cols-2 px-3 py-2 rounded-md bg-popover md:grid md:gap-x-4 md:gap-y-10 place-items-baseline">
-                <h1 className="text-lg font-semibold lg:text-xl 2xl:text-2xl text-balance max-md:mb-1">
-                  {product.title}
-                </h1>
-                {product.producerName && (
-                  <p className="text-sm text-muted-foreground mb-2">
-                    {product.producerName}
-                  </p>
-                )}
-                <p className="text-sm font-medium">{product.description}</p>
-                <div className="flex gap-3 items-center text-lg font-semibold lg:text-xl 2xl:text-2xl max-md:mt-4">
+                {/* Row 1, Col 1: Title + Producer */}
+                <div className="md:col-start-1 md:row-start-1">
+                  <h1 className="text-lg font-semibold lg:text-xl 2xl:text-2xl text-balance max-md:mb-1">
+                    {product.title}
+                  </h1>
+                  {product.producerName && (
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {product.producerName}
+                    </p>
+                  )}
+                </div>
+
+                {/* Row 1, Col 2: Description */}
+                <p className="text-sm font-medium md:col-start-2 md:row-start-1">
+                  {product.description}
+                </p>
+
+                {/* Row 2, Col 1: Price + Price Info */}
+                <div className="flex gap-3 items-center text-lg font-semibold lg:text-xl 2xl:text-2xl max-md:mt-4 md:col-start-1 md:row-start-2">
                   <PriceWithBreakdown product={product} />
                   {product.compareAtPrice && (
                     <span className="line-through opacity-30">
