@@ -1,4 +1,6 @@
-import React, { Suspense, memo } from "react";
+"use client";
+
+import React, { Suspense, memo, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Product } from "@/lib/shopify/types";
 import { AddToCart, AddToCartButton } from "@/components/cart/add-to-cart";
@@ -6,9 +8,11 @@ import { formatPrice } from "@/lib/shopify/utils";
 import { VariantSelector } from "../variant-selector";
 import { ProductImage } from "./product-image";
 import { Button } from "@/components/ui/button";
-import { ArrowRightIcon } from "lucide-react";
+import { ArrowRightIcon, CirclePlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { MemberPrice } from "@/components/ui/member-price";
+import { useCart } from "@/components/cart/cart-context";
+import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 
 export const ProductCard = memo(({ product }: { product: Product }) => {
   const hasNoOptions = product.options.length === 0;
@@ -25,8 +29,71 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
   const isWineBox = product.productType === "wine-box";
   const discountInfo = (product as any).discountInfo;
 
+  // Scroll detection for mobile overlay
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const { addItem } = useCart();
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          setIsVisible(entry.isIntersecting);
+        });
+      },
+      {
+        threshold: 0.1,
+        rootMargin: "0px",
+      }
+    );
+
+    const currentCard = cardRef.current;
+    if (currentCard) {
+      observer.observe(currentCard);
+    }
+
+    return () => {
+      if (currentCard) {
+        observer.unobserve(currentCard);
+      }
+    };
+  }, []);
+
+  // Get base variant for products without options
+  const getBaseProductVariant = (): any => {
+    if (product.variants.length === 0) {
+      return {
+        id: product.id,
+        title: product.title,
+        availableForSale: product.availableForSale,
+        selectedOptions: [],
+        price: product.priceRange.minVariantPrice,
+      };
+    }
+    if (product.variants.length === 1) {
+      return product.variants[0];
+    }
+    return null;
+  };
+
+  const handleAddToCart = () => {
+    const variant = getBaseProductVariant();
+    if (variant) {
+      addItem(variant, product);
+      // Track add to cart event
+      AnalyticsTracker.trackAddToCart(
+        product.id,
+        product.title,
+        parseFloat(product.priceRange.minVariantPrice.amount)
+      );
+    }
+  };
+
   return (
-    <div className="relative w-full aspect-[3/4] md:aspect-square bg-muted group overflow-hidden">
+    <div
+      ref={cardRef}
+      className="relative w-full aspect-[3/4] md:aspect-square bg-muted group overflow-hidden"
+    >
       {/* Discount Badge for Wine Boxes */}
       {isWineBox && discountInfo && (
         <div className="absolute top-2 left-2 z-10">
@@ -78,69 +145,63 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
           </div>
         </div>
 
-        {/* Mobile: Premium bottom overlay with Add to Cart button (always visible on mobile) */}
+        {/* Mobile: Premium bottom overlay with Add to Cart button (visible on scroll) */}
         {renderInCardAddToCart && (
-          <div className="md:hidden absolute inset-x-2 bottom-2 px-3 py-2.5 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg">
+          <div
+            className={`md:hidden absolute inset-x-2 bottom-2 px-3 py-2.5 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg transition-opacity duration-300 ${
+              isVisible ? "opacity-100" : "opacity-0"
+            }`}
+          >
             <div className="flex gap-2 items-center justify-between">
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 pr-2">
                 <p className="text-xs font-semibold truncate leading-tight">
                   {product.title}
                 </p>
-                <div className="flex gap-1.5 items-center mt-0.5">
-                  {product.producerName && (
-                    <p className="text-[10px] text-muted-foreground truncate">
-                      {product.producerName}
-                    </p>
-                  )}
-                  <MemberPrice
-                    amount={product.priceRange.minVariantPrice.amount}
-                    currencyCode={product.priceRange.minVariantPrice.currencyCode}
-                    className="text-xs font-semibold ml-auto"
-                  />
-                </div>
+                {product.producerName && (
+                  <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+                    {product.producerName}
+                  </p>
+                )}
               </div>
-              <Suspense
-                fallback={
-                  <AddToCartButton
-                    product={product}
-                    size="sm"
-                    className="bg-black hover:bg-black/90 text-white border-black rounded-md shrink-0 ml-2"
-                  />
-                }
+              <Button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleAddToCart();
+                }}
+                disabled={!product.availableForSale || !getBaseProductVariant()}
+                className="bg-black hover:bg-black/90 text-white border-black rounded-md shrink-0"
+                size="sm"
               >
-                <AddToCart
-                  product={product}
-                  size="sm"
-                  className="bg-black hover:bg-black/90 text-white border-black rounded-md shrink-0 ml-2"
-                />
-              </Suspense>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs">Add to cart</span>
+                  <CirclePlus className="size-3.5" />
+                </div>
+              </Button>
             </div>
           </div>
         )}
 
-        {/* Mobile: View Product button for products with variants (bottom overlay) */}
+        {/* Mobile: View Product button for products with variants (visible on scroll) */}
         {!renderInCardAddToCart && (
-          <div className="md:hidden absolute inset-x-2 bottom-2 px-3 py-2.5 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg">
+          <div
+            className={`md:hidden absolute inset-x-2 bottom-2 px-3 py-2.5 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg transition-opacity duration-300 ${
+              isVisible ? "opacity-100" : "opacity-0"
+            }`}
+          >
             <div className="flex gap-2 items-center justify-between">
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 pr-2">
                 <p className="text-xs font-semibold truncate leading-tight">
                   {product.title}
                 </p>
-                <div className="flex gap-1.5 items-center mt-0.5">
-                  {product.producerName && (
-                    <p className="text-[10px] text-muted-foreground truncate">
-                      {product.producerName}
-                    </p>
-                  )}
-                  <MemberPrice
-                    amount={product.priceRange.minVariantPrice.amount}
-                    currencyCode={product.priceRange.minVariantPrice.currencyCode}
-                    className="text-xs font-semibold ml-auto"
-                  />
-                </div>
+                {product.producerName && (
+                  <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+                    {product.producerName}
+                  </p>
+                )}
               </div>
               <Button
-                className="bg-black hover:bg-black/90 text-white border-black rounded-md shrink-0 ml-2"
+                className="bg-black hover:bg-black/90 text-white border-black rounded-md shrink-0"
                 size="sm"
                 asChild
               >
