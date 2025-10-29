@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { MemberPrice } from "@/components/ui/member-price";
 import { useCart } from "@/components/cart/cart-context";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
+import { ColorSwatch } from "@/components/ui/color-picker";
+import { getColorHex } from "@/lib/utils";
 
 export const ProductCard = memo(({ product }: { product: Product }) => {
   const hasNoOptions = product.options.length === 0;
@@ -32,29 +34,53 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
   const { addItem } = useCart();
   const [isTouched, setIsTouched] = useState(false);
 
-  // Get wine color from options or tags; handle both string and object values
-  const getWineColor = (): string | null => {
+  // Get wine color object from options or tags; handle both string and object values
+  const getWineColor = (): { name: string; value: string | [string, string] } | null => {
+    let colorName: string | null = null;
+    
     const colorOption = product.options.find(
       (opt) => opt.name?.toLowerCase() === "color"
     );
     if (colorOption && Array.isArray(colorOption.values) && colorOption.values.length > 0) {
       const firstValue: unknown = colorOption.values[0] as unknown;
-      if (typeof firstValue === "string") return firstValue;
-      if (
+      if (typeof firstValue === "string") {
+        colorName = firstValue;
+      } else if (
         firstValue &&
         typeof firstValue === "object" &&
         // @ts-expect-error runtime guard for possible { id, name }
         typeof (firstValue as any).name === "string"
       ) {
         // @ts-expect-error reading name from possible object shape
-        return (firstValue as any).name as string;
+        colorName = (firstValue as any).name as string;
       }
     }
-    const colorTags = ["Red", "White", "Rosé", "Orange", "Rött", "Vitt", "Rosévin"];
-    const foundColor = product.tags?.find((tag) =>
-      colorTags.some((colorTag) => tag.toLowerCase().includes(colorTag.toLowerCase()))
-    );
-    return foundColor || null;
+    
+    // Fallback to tags (common color tags)
+    if (!colorName) {
+      const colorTags = ["Red", "White", "Rosé", "Orange", "Rött", "Vitt", "Rosévin"];
+      colorName = product.tags?.find((tag) =>
+        colorTags.some((colorTag) => tag.toLowerCase().includes(colorTag.toLowerCase()))
+      ) || null;
+    }
+    
+    if (!colorName) return null;
+    
+    // Get hex color value
+    const colorHex = getColorHex(colorName);
+    
+    // Return color object in ColorSwatch format
+    if (Array.isArray(colorHex)) {
+      return {
+        name: colorName,
+        value: [colorHex[0], colorHex[1]] as [string, string],
+      };
+    }
+    
+    return {
+      name: colorName,
+      value: colorHex,
+    };
   };
 
   const wineColor = getWineColor();
@@ -162,9 +188,20 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
             <div className="flex gap-3 items-center justify-between">
               {wineColor && (
                 <div className="flex items-center">
-                  <span className="text-xs font-semibold uppercase tracking-[0.1em] text-foreground/80">
-                    {wineColor}
-                  </span>
+                  <ColorSwatch
+                    color={
+                      Array.isArray(wineColor.value)
+                        ? [
+                            { name: wineColor.name, value: wineColor.value[0] },
+                            { name: wineColor.name, value: wineColor.value[1] },
+                          ]
+                        : { name: wineColor.name, value: wineColor.value as string }
+                    }
+                    isSelected={false}
+                    onColorChange={() => {}} // No-op since this is just for display
+                    size="sm"
+                    atLeastOneColorSelected={false}
+                  />
                 </div>
               )}
               <Button
@@ -198,9 +235,20 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
             <div className="flex gap-3 items-center justify-between">
               {wineColor && (
                 <div className="flex items-center">
-                  <span className="text-xs font-semibold uppercase tracking-[0.1em] text-foreground/80">
-                    {wineColor}
-                  </span>
+                  <ColorSwatch
+                    color={
+                      Array.isArray(wineColor.value)
+                        ? [
+                            { name: wineColor.name, value: wineColor.value[0] },
+                            { name: wineColor.name, value: wineColor.value[1] },
+                          ]
+                        : { name: wineColor.name, value: wineColor.value as string }
+                    }
+                    isSelected={false}
+                    onColorChange={() => {}} // No-op since this is just for display
+                    size="sm"
+                    atLeastOneColorSelected={false}
+                  />
                 </div>
               )}
               <Button
