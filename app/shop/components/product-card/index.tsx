@@ -32,7 +32,7 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
   const { addItem } = useCart();
   const [isTouched, setIsTouched] = useState(false);
 
-  // Get base variant for products without options
+  // Get base variant for products without options or first variant for products with variants
   const getBaseProductVariant = (): any => {
     if (product.variants.length === 0) {
       return {
@@ -44,6 +44,10 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
       };
     }
     if (product.variants.length === 1) {
+      return product.variants[0];
+    }
+    // Return first variant for products with multiple variants (for mobile add to cart)
+    if (product.variants.length > 1) {
       return product.variants[0];
     }
     return null;
@@ -158,7 +162,7 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
           </div>
         )}
 
-        {/* Mobile: View Product button for products with variants (visible on touch/hover) */}
+        {/* Mobile: Add to Cart button for products with variants (visible on touch/hover) */}
         {!renderInCardAddToCart && (
           <div
             className={`md:hidden absolute inset-x-2 bottom-2 px-3 py-2.5 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg transition-opacity duration-200 ${
@@ -177,16 +181,19 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
                 )}
               </div>
               <Button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleAddToCart();
+                }}
+                disabled={!product.availableForSale || !getBaseProductVariant()}
                 className="bg-black hover:bg-black/90 text-white border-black rounded-md shrink-0"
                 size="sm"
-                asChild
               >
-                <Link href={`/product/${product.handle}`}>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs">View</span>
-                    <ArrowRightIcon className="size-3.5" />
-                  </div>
-                </Link>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs">Add to cart</span>
+                  <CirclePlus className="size-3.5" />
+                </div>
               </Button>
             </div>
           </div>
