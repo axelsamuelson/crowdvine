@@ -141,6 +141,7 @@ function cartReducer(state: Cart | undefined, action: CartAction): Cart {
     }
     case "ADD_ITEM": {
       const { variant, product, previousQuantity } = action.payload;
+      console.log("🛒 ADD_ITEM reducer - product.producerName:", product.producerName);
       // Normalize variant ID by removing -default suffix for comparison
       const normalizedVariantId = variant.id.replace("-default", "");
       const existingItem = currentCart.lines.find(
@@ -376,6 +377,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       // Optimistic update for instant UI feedback
       startTransition(() => {
         console.log("🛒 Performing optimistic update...");
+        console.log("🛒 Product has producerName:", product.producerName);
         updateOptimisticCart({
           type: "ADD_ITEM",
           payload: { variant, product, previousQuantity },
