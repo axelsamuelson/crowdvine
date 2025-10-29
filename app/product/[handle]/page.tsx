@@ -178,11 +178,16 @@ export default async function ProductPage(props: {
 
             <div className="flex flex-col col-span-full gap-4 md:mb-10 max-md:order-2">
               <div className="flex flex-col grid-cols-2 px-3 py-2 rounded-md bg-popover md:grid md:gap-x-4 md:gap-y-10 place-items-baseline">
-                <h1 className="text-lg font-semibold lg:text-xl 2xl:text-2xl text-balance max-md:mb-4">
+                <h1 className="text-lg font-semibold lg:text-xl 2xl:text-2xl text-balance max-md:mb-1">
                   {product.title}
                 </h1>
+                {product.producerName && (
+                  <p className="text-sm text-muted-foreground mb-2">
+                    {product.producerName}
+                  </p>
+                )}
                 <p className="text-sm font-medium">{product.description}</p>
-                <div className="flex gap-3 items-center text-lg font-semibold lg:text-xl 2xl:text-2xl max-md:mt-8">
+                <div className="flex gap-3 items-center text-lg font-semibold lg:text-xl 2xl:text-2xl max-md:mt-4">
                   <PriceWithBreakdown product={product} />
                   {product.compareAtPrice && (
                     <span className="line-through opacity-30">
@@ -193,6 +198,11 @@ export default async function ProductPage(props: {
                     </span>
                   )}
                 </div>
+
+                {/* Add to Cart placed under producer name inside the white box */}
+                <div className="col-span-full w-full mt-4">
+                  <AddToCartWithQuantity product={product} className="w-full" />
+                </div>
               </div>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <Suspense
@@ -201,19 +211,6 @@ export default async function ProductPage(props: {
                   }
                 >
                   <VariantSelectorSlots product={product} />
-                </Suspense>
-
-                <Suspense
-                  fallback={
-                    <div className="h-12 bg-muted animate-pulse rounded" />
-                  }
-                >
-                  <AddToCartWithQuantity
-                    product={product}
-                    className={cn("", {
-                      "col-span-full": !hasVariants || hasEvenOptions,
-                    })}
-                  />
                 </Suspense>
               </div>
             </div>
