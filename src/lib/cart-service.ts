@@ -80,6 +80,9 @@ export class CartService {
         )
         .eq("cart_id", ensureCartId)
         .order("created_at", { ascending: false });
+      
+      console.log("🔧 Cart items fetched, sample:", cartItems?.[0]);
+      console.log("🔧 Sample producers data:", (cartItems?.[0]?.wines as any)?.producers);
 
       if (error) {
         console.error("🔧 Failed to get cart items:", error);
