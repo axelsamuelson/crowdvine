@@ -49,8 +49,8 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
 
       {/* Interactive Overlay */}
       <div className="absolute inset-0 p-2 w-full pointer-events-none">
-        {/* Mobile & Desktop Default: Info overlay (always visible on mobile, hidden on desktop until hover) */}
-        <div className="flex gap-6 justify-between items-baseline px-3 py-1 w-full font-semibold transition-all duration-300 translate-y-0 md:group-hover:opacity-0 md:group-focus-visible:opacity-0 md:group-hover:-translate-y-full md:group-focus-visible:-translate-y-full">
+        {/* Mobile & Desktop Default: Info overlay (hidden on mobile, visible on desktop until hover) */}
+        <div className="hidden md:flex gap-6 justify-between items-baseline px-3 py-1 w-full font-semibold transition-all duration-300 translate-y-0 md:group-hover:opacity-0 md:group-focus-visible:opacity-0 md:group-hover:-translate-y-full md:group-focus-visible:-translate-y-full">
           <div className="flex flex-col">
             <p className="text-xs md:text-sm uppercase 2xl:text-base text-balance">
               {product.title}
@@ -78,49 +78,80 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
           </div>
         </div>
 
-        {/* Mobile: Add to Cart button (shows on active/touch) */}
+        {/* Mobile: Premium bottom overlay with Add to Cart button (always visible on mobile) */}
         {renderInCardAddToCart && (
-          <div className="md:hidden absolute inset-0 flex items-center justify-center opacity-0 active:opacity-100 transition-opacity duration-200 pointer-events-none active:pointer-events-auto">
-            <Suspense
-              fallback={
-                <AddToCartButton
+          <div className="md:hidden absolute inset-x-2 bottom-2 px-3 py-2.5 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg">
+            <div className="flex gap-2 items-center justify-between">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold truncate leading-tight">
+                  {product.title}
+                </p>
+                <div className="flex gap-1.5 items-center mt-0.5">
+                  {product.producerName && (
+                    <p className="text-[10px] text-muted-foreground truncate">
+                      {product.producerName}
+                    </p>
+                  )}
+                  <MemberPrice
+                    amount={product.priceRange.minVariantPrice.amount}
+                    currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                    className="text-xs font-semibold ml-auto"
+                  />
+                </div>
+              </div>
+              <Suspense
+                fallback={
+                  <AddToCartButton
+                    product={product}
+                    size="sm"
+                    className="bg-black hover:bg-black/90 text-white border-black rounded-md shrink-0 ml-2"
+                  />
+                }
+              >
+                <AddToCart
                   product={product}
-                  iconOnly
-                  variant="default"
-                  size="lg"
+                  size="sm"
+                  className="bg-black hover:bg-black/90 text-white border-black rounded-md shrink-0 ml-2"
                 />
-              }
-            >
-              <AddToCart
-                product={product}
-                iconOnly
-                variant="default"
-                size="lg"
-              />
-            </Suspense>
+              </Suspense>
+            </div>
           </div>
         )}
 
-        {/* Mobile: Add to Cart button in bottom-right corner (shows on hover) */}
+        {/* Mobile: View Product button for products with variants (bottom overlay) */}
         {!renderInCardAddToCart && (
-          <div className="md:hidden absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
-            <Suspense
-              fallback={
-                <AddToCartButton
-                  product={product}
-                  iconOnly
-                  variant="default"
-                  size="sm"
-                />
-              }
-            >
-              <AddToCart
-                product={product}
-                iconOnly
-                variant="default"
+          <div className="md:hidden absolute inset-x-2 bottom-2 px-3 py-2.5 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg">
+            <div className="flex gap-2 items-center justify-between">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold truncate leading-tight">
+                  {product.title}
+                </p>
+                <div className="flex gap-1.5 items-center mt-0.5">
+                  {product.producerName && (
+                    <p className="text-[10px] text-muted-foreground truncate">
+                      {product.producerName}
+                    </p>
+                  )}
+                  <MemberPrice
+                    amount={product.priceRange.minVariantPrice.amount}
+                    currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                    className="text-xs font-semibold ml-auto"
+                  />
+                </div>
+              </div>
+              <Button
+                className="bg-black hover:bg-black/90 text-white border-black rounded-md shrink-0 ml-2"
                 size="sm"
-              />
-            </Suspense>
+                asChild
+              >
+                <Link href={`/product/${product.handle}`}>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs">View</span>
+                    <ArrowRightIcon className="size-3.5" />
+                  </div>
+                </Link>
+              </Button>
+            </div>
           </div>
         )}
 
