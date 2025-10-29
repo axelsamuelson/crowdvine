@@ -32,6 +32,25 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
   const { addItem } = useCart();
   const [isTouched, setIsTouched] = useState(false);
 
+  // Get wine color from tags or options
+  const getWineColor = (): string | null => {
+    // First check if color exists in options
+    const colorOption = product.options.find(
+      (opt) => opt.name.toLowerCase() === "color"
+    );
+    if (colorOption && colorOption.values.length > 0) {
+      return colorOption.values[0];
+    }
+    // Fallback to tags (common color tags)
+    const colorTags = ["Red", "White", "Rosé", "Orange", "Rött", "Vitt", "Rosévin"];
+    const foundColor = product.tags?.find((tag) =>
+      colorTags.some((colorTag) => tag.toLowerCase().includes(colorTag.toLowerCase()))
+    );
+    return foundColor || null;
+  };
+
+  const wineColor = getWineColor();
+
   // Get base variant for products without options or first variant for products with variants
   const getBaseProductVariant = (): any => {
     if (product.variants.length === 0) {
@@ -132,17 +151,14 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
               isTouched ? "opacity-100" : "opacity-0"
             }`}
           >
-            <div className="flex gap-2 items-center justify-between">
-              <div className="flex-1 min-w-0 pr-2">
-                <p className="text-xs font-semibold truncate leading-tight">
-                  {product.title}
-                </p>
-                {product.producerName && (
-                  <p className="text-[10px] text-muted-foreground truncate mt-0.5">
-                    {product.producerName}
-                  </p>
-                )}
-              </div>
+            <div className="flex gap-3 items-center justify-between">
+              {wineColor && (
+                <div className="flex items-center">
+                  <span className="text-xs font-semibold uppercase tracking-[0.1em] text-foreground/80">
+                    {wineColor}
+                  </span>
+                </div>
+              )}
               <Button
                 onClick={(e) => {
                   e.preventDefault();
@@ -150,7 +166,9 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
                   handleAddToCart();
                 }}
                 disabled={!product.availableForSale || !getBaseProductVariant()}
-                className="bg-black hover:bg-black/90 text-white border-black rounded-md shrink-0"
+                className={`bg-black hover:bg-black/90 text-white border-black rounded-md shrink-0 ${
+                  wineColor ? "ml-auto" : ""
+                }`}
                 size="sm"
               >
                 <div className="flex items-center gap-1.5">
@@ -169,17 +187,14 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
               isTouched ? "opacity-100" : "opacity-0"
             }`}
           >
-            <div className="flex gap-2 items-center justify-between">
-              <div className="flex-1 min-w-0 pr-2">
-                <p className="text-xs font-semibold truncate leading-tight">
-                  {product.title}
-                </p>
-                {product.producerName && (
-                  <p className="text-[10px] text-muted-foreground truncate mt-0.5">
-                    {product.producerName}
-                  </p>
-                )}
-              </div>
+            <div className="flex gap-3 items-center justify-between">
+              {wineColor && (
+                <div className="flex items-center">
+                  <span className="text-xs font-semibold uppercase tracking-[0.1em] text-foreground/80">
+                    {wineColor}
+                  </span>
+                </div>
+              )}
               <Button
                 onClick={(e) => {
                   e.preventDefault();
@@ -187,7 +202,9 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
                   handleAddToCart();
                 }}
                 disabled={!product.availableForSale || !getBaseProductVariant()}
-                className="bg-black hover:bg-black/90 text-white border-black rounded-md shrink-0"
+                className={`bg-black hover:bg-black/90 text-white border-black rounded-md shrink-0 ${
+                  wineColor ? "ml-auto" : ""
+                }`}
                 size="sm"
               >
                 <div className="flex items-center gap-1.5">
