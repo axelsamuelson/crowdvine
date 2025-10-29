@@ -145,17 +145,15 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
                     fallback={
                       <AddToCartButton
                         product={product}
-                        iconOnly
                         size="sm"
-                        className="h-9"
+                        className="bg-black hover:bg-black/90 text-white border-black rounded-md h-9"
                       />
                     }
                   >
                     <AddToCart
                       product={product}
-                      iconOnly
                       size="sm"
-                      className="h-9"
+                      className="bg-black hover:bg-black/90 text-white border-black rounded-md h-9"
                     />
                   </Suspense>
                 </div>
