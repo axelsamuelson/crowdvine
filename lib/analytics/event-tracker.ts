@@ -30,12 +30,7 @@ export type EventType =
   | "scroll_depth"
   | "time_on_page"
   | "modal_opened"
-  | "modal_closed"
-  | "shared_box_created"
-  | "shared_box_invited"
-  | "shared_box_joined"
-  | "user_followed"
-  | "user_unfollowed";
+  | "modal_closed";
 
 export type EventCategory =
   | "auth"
@@ -43,8 +38,7 @@ export type EventCategory =
   | "engagement"
   | "cart"
   | "checkout"
-  | "validation"
-  | "social";
+  | "validation";
 
 interface TrackEventParams {
   eventType: EventType;
@@ -116,30 +110,6 @@ export class AnalyticsTracker {
       eventType: "checkout_started",
       eventCategory: "checkout",
       metadata: { cartValue, itemCount },
-    });
-  }
-
-  static trackSharedBoxCreated(metadata: Record<string, any>) {
-    return this.trackEvent({
-      eventType: "shared_box_created",
-      eventCategory: "social",
-      metadata,
-    });
-  }
-
-  static trackSharedBoxInvite(metadata: Record<string, any>) {
-    return this.trackEvent({
-      eventType: "shared_box_invited",
-      eventCategory: "social",
-      metadata,
-    });
-  }
-
-  static trackFollowAction(action: "follow" | "unfollow", targetUserId: string) {
-    return this.trackEvent({
-      eventType: action === "follow" ? "user_followed" : "user_unfollowed",
-      eventCategory: "social",
-      metadata: { targetUserId },
     });
   }
 }

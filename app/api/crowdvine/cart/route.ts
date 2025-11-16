@@ -4,20 +4,6 @@ import { CartService } from "@/src/lib/cart-service";
 export async function GET() {
   try {
     const cart = await CartService.getCart();
-    // Return empty cart structure if cart is null
-    if (!cart) {
-      return NextResponse.json({
-        id: "",
-        checkoutUrl: "/checkout",
-        cost: {
-          subtotalAmount: { amount: "0.00", currencyCode: "SEK" },
-          totalAmount: { amount: "0.00", currencyCode: "SEK" },
-          totalTaxAmount: { amount: "0", currencyCode: "SEK" },
-        },
-        totalQuantity: 0,
-        lines: [],
-      });
-    }
     return NextResponse.json(cart);
   } catch (error) {
     console.error("GET /api/crowdvine/cart error:", error);
@@ -54,20 +40,6 @@ export async function POST(request: Request) {
     }
 
     const cart = await CartService.getCart();
-    // Return empty cart structure if cart is null
-    if (!cart) {
-      return NextResponse.json({
-        id: "",
-        checkoutUrl: "/checkout",
-        cost: {
-          subtotalAmount: { amount: "0.00", currencyCode: "SEK" },
-          totalAmount: { amount: "0.00", currencyCode: "SEK" },
-          totalTaxAmount: { amount: "0", currencyCode: "SEK" },
-        },
-        totalQuantity: 0,
-        lines: [],
-      });
-    }
     return NextResponse.json(cart);
   } catch (error) {
     console.error("POST /api/crowdvine/cart error:", error);

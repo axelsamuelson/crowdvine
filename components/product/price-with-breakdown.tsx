@@ -76,17 +76,17 @@ export function PriceWithBreakdown({ product }: PriceWithBreakdownProps) {
       />
       {breakdown && (
         <div className="mt-0.5">
-        <PriceBreakdown
-          costAmount={breakdown.cost}
-          alcoholTax={breakdown.alcoholTax}
-          margin={breakdown.margin}
-          vat={breakdown.vat}
-          totalPrice={Number(product.priceRange.minVariantPrice.amount)}
-          marginPercentage={breakdown.marginPercentage}
-          originalMarginPercentage={breakdown.originalMarginPercentage}
-          hasMemberDiscount={hasMemberDiscount}
-          memberDiscountPercent={discountPercentage}
-        />
+          <PriceBreakdown
+            costAmount={breakdown.cost}
+            alcoholTax={breakdown.alcoholTax}
+            margin={breakdown.margin}
+            vat={breakdown.vat}
+            totalPrice={Number(product.priceRange.minVariantPrice.amount)}
+            marginPercentage={breakdown.marginPercentage}
+            originalMarginPercentage={breakdown.originalMarginPercentage}
+            hasMemberDiscount={hasMemberDiscount}
+            memberDiscountPercent={discountPercentage}
+          />
         </div>
       )}
     </div>

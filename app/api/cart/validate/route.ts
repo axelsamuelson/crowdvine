@@ -11,32 +11,15 @@ const CACHE_DURATION = 5000; // 5 seconds cache
  */
 export async function GET() {
   try {
-    console.log("🔍 [Validate API] GET request received");
     const cart = await CartService.getCart();
 
-    if (!cart) {
-      console.log("⚠️ [Validate API] Cart is null");
+    if (!cart || cart.lines.length === 0) {
       return NextResponse.json({
         isValid: true,
         producerValidations: [],
         errors: [],
       });
     }
-
-    if (cart.lines.length === 0) {
-      console.log("⚠️ [Validate API] Cart has no lines");
-      return NextResponse.json({
-        isValid: true,
-        producerValidations: [],
-        errors: [],
-      });
-    }
-
-    console.log(
-      "✅ [Validate API] Cart has",
-      cart.lines.length,
-      "items, validating...",
-    );
 
     // Create cache key based on cart contents
     const cacheKey = JSON.stringify(

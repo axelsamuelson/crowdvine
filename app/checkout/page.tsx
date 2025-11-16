@@ -129,23 +129,14 @@ function CheckoutContent() {
       const response = await fetch("/api/crowdvine/cart");
       if (response.ok) {
         const cartData = await response.json();
-        if (cartData) {
-          console.log("✅ [Checkout] Cart updated:", {
-            totalQuantity: cartData.totalQuantity,
-            items: cartData.lines?.length || 0,
-          });
-          setCart(cartData);
-        } else {
-          console.warn("⚠️ [Checkout] Cart data is null");
-          setCart(null);
-        }
-      } else {
-        console.warn("⚠️ [Checkout] Failed to fetch cart, response not ok");
-        setCart(null);
+        console.log("✅ [Checkout] Cart updated:", {
+          totalQuantity: cartData.totalQuantity,
+          items: cartData.lines?.length || 0,
+        });
+        setCart(cartData);
       }
     } catch (error) {
       console.error("Failed to fetch cart:", error);
-      setCart(null);
     } finally {
       setLoading(false);
     }

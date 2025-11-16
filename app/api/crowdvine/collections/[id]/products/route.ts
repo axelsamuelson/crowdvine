@@ -123,10 +123,6 @@ export async function GET(
         base_price_cents,
         label_image_path,
         producer_id,
-        description,
-        description_html,
-        info_section_text,
-        alcohol_percentage,
         producers(name)
       `,
       )
@@ -185,21 +181,12 @@ export async function GET(
           : [];
 
       const colorName = i.color;
-      const wineDescription =
-        i.description ||
-        `This ${i.color || "wine"} from ${i.vintage} highlights ${i.grape_varieties || "carefully selected grapes"}.`;
-      const wineDescriptionHtml =
-        i.description_html || `<p>${wineDescription}</p>`;
-      const infoSectionText = i.info_section_text || null;
-      const alcoholPercentage = i.alcohol_percentage || null;
 
       return {
         id: i.id,
         title: `${i.wine_name} ${i.vintage}`,
-        description: wineDescription,
-        descriptionHtml: wineDescriptionHtml,
-        infoSectionText,
-        alcoholPercentage,
+        description: "",
+        descriptionHtml: "",
         handle: i.handle,
         productType: "wine",
         categoryId: i.producer_id,
@@ -209,37 +196,13 @@ export async function GET(
           {
             id: "grape-varieties",
             name: "Grape Varieties",
-            values: grapeVarieties.map((variety: string) => ({
-              id: variety.toLowerCase().replace(/\s+/g, "-"),
-              name: variety,
-            })),
+            values: grapeVarieties,
           },
           {
             id: "color",
             name: "Color",
-            values: colorName
-              ? [
-                  {
-                    id: colorName.toLowerCase().replace(/\s+/g, "-"),
-                    name: colorName,
-                  },
-                ]
-              : [],
+            values: colorName ? [colorName] : [],
           },
-          ...(alcoholPercentage
-            ? [
-                {
-                  id: "alcohol-percentage",
-                  name: "Alcohol",
-                  values: [
-                    {
-                      id: "alcohol",
-                      name: alcoholPercentage,
-                    },
-                  ],
-                },
-              ]
-            : []),
         ],
         variants: [
           {
@@ -260,14 +223,6 @@ export async function GET(
                     {
                       name: "Color",
                       value: colorName,
-                    },
-                  ]
-                : []),
-              ...(alcoholPercentage
-                ? [
-                    {
-                      name: "Alcohol",
-                      value: alcoholPercentage,
                     },
                   ]
                 : []),
@@ -300,12 +255,8 @@ export async function GET(
             height: 600,
           },
         ],
-        seo: { title: i.wine_name, description: wineDescription },
-        tags: [
-          ...grapeVarieties,
-          ...(colorName ? [colorName] : []),
-          ...(alcoholPercentage ? [alcoholPercentage] : []),
-        ],
+        seo: { title: i.wine_name, description: "" },
+        tags: [...grapeVarieties, ...(colorName ? [colorName] : [])],
         availableForSale: true,
         currencyCode: "SEK",
         updatedAt: new Date().toISOString(),

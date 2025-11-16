@@ -1,139 +1,155 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, Search } from "lucide-react";
-
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Input } from "@/components/ui/input";
-import { adminNavSections } from "@/components/admin/navigation";
-import { useAdminLayout } from "@/components/admin/layout-context";
+import { Separator } from "@/components/ui/separator";
+import {
+  LayoutDashboard,
+  Users,
+  Wine,
+  MapPin,
+  Package,
+  Calendar,
+  FileText,
+  Gift,
+  Shield,
+  Award,
+  LogOut,
+  BarChart3,
+} from "lucide-react";
 
 interface SidebarProps {
   userEmail: string;
   onSignOut: () => void;
 }
 
+const navigation = [
+  {
+    name: "Dashboard",
+    href: "/admin",
+    icon: LayoutDashboard,
+  },
+  {
+    name: "Analytics",
+    href: "/admin/analytics",
+    icon: BarChart3,
+  },
+  {
+    name: "Users",
+    href: "/admin/users",
+    icon: Users,
+  },
+  {
+    name: "Memberships",
+    href: "/admin/memberships",
+    icon: Award,
+  },
+  {
+    name: "Producers",
+    href: "/admin/producers",
+    icon: Wine,
+  },
+  {
+    name: "Wines",
+    href: "/admin/wines",
+    icon: Wine,
+  },
+  {
+    name: "Zones",
+    href: "/admin/zones",
+    icon: MapPin,
+  },
+  {
+    name: "Pallets",
+    href: "/admin/pallets",
+    icon: Package,
+  },
+  {
+    name: "Bookings",
+    href: "/admin/bookings",
+    icon: Calendar,
+  },
+  {
+    name: "Reservations",
+    href: "/admin/reservations",
+    icon: FileText,
+  },
+  {
+    name: "Wine Boxes",
+    href: "/admin/wine-boxes",
+    icon: Gift,
+  },
+  {
+    name: "Access Control",
+    href: "/admin/access-control",
+    icon: Shield,
+  },
+];
+
 export function Sidebar({ userEmail, onSignOut }: SidebarProps) {
   const pathname = usePathname();
-  const { navBadges } = useAdminLayout();
-  const [query, setQuery] = useState("");
-
-  const filteredSections = useMemo(() => {
-    if (!query) return adminNavSections;
-    return adminNavSections
-      .map((section) => ({
-        ...section,
-        links: section.links.filter((link) =>
-          link.label.toLowerCase().includes(query.toLowerCase()),
-        ),
-      }))
-      .filter((section) => section.links.length > 0);
-  }, [query]);
 
   return (
-    <div className="flex h-full w-64 flex-col border-r border-slate-200 bg-white/90 backdrop-blur">
-      <div className="flex h-16 items-center px-5">
-        <Link href="/admin" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-white font-semibold">
-            CV
+    <div className="flex h-full w-64 flex-col bg-white border-r border-gray-200">
+      {/* Logo */}
+      <div className="flex h-16 items-center px-6 border-b border-gray-200">
+        <Link href="/admin" className="flex items-center space-x-2">
+          <div className="h-8 w-8 bg-gray-900 rounded-lg flex items-center justify-center">
+            <span className="text-white font-bold text-sm">C</span>
           </div>
-          <div>
-            <p className="text-sm font-semibold text-slate-900">CrowdVine</p>
-            <p className="text-xs text-slate-400">Admin Suite</p>
-          </div>
+          <span className="text-xl font-bold text-gray-900">CrowdVine</span>
         </Link>
       </div>
 
-      <div className="px-4 pb-3">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Quick search"
-            className="h-9 border-slate-200 pl-9 text-sm"
-          />
-        </div>
-      </div>
-
-      <ScrollArea className="flex-1 px-3 pb-6">
-        <nav className="space-y-6">
-          {filteredSections.map((section) => (
-            <div key={section.label} className="space-y-2">
-              <p className="px-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                {section.label}
-              </p>
-              <div className="space-y-1">
-                {section.links.map((link) => {
-                  const isActive = pathname === link.href;
-                  const badgeCount = navBadges[link.id];
-                  return (
-                    <Link
-                      key={link.id}
-                      href={link.href}
-                      className={cn(
-                        "group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
-                        isActive
-                          ? "bg-slate-900 text-white"
-                          : "text-slate-600 hover:bg-slate-100",
-                      )}
-                    >
-                      {link.icon && (
-                        <link.icon
-                          className={cn(
-                            "h-4 w-4",
-                            isActive ? "text-white" : "text-slate-400",
-                          )}
-                        />
-                      )}
-                      <span className="flex-1 truncate">{link.label}</span>
-                      {badgeCount !== undefined && (
-                        <span
-                          className={cn(
-                            "rounded-full px-2 py-0.5 text-xs font-semibold",
-                            isActive
-                              ? "bg-white/20 text-white"
-                              : "bg-slate-100 text-slate-700",
-                          )}
-                        >
-                          {badgeCount}
-                        </span>
-                      )}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-          {filteredSections.length === 0 && (
-            <p className="px-3 text-xs text-slate-400">No matches</p>
-          )}
+      {/* Navigation */}
+      <ScrollArea className="flex-1 px-3 py-4">
+        <nav className="space-y-1">
+          {navigation.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={cn(
+                  "flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors",
+                  isActive
+                    ? "bg-gray-100 text-gray-900"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
+                )}
+              >
+                <item.icon className="mr-3 h-5 w-5" />
+                {item.name}
+              </Link>
+            );
+          })}
         </nav>
       </ScrollArea>
 
-      <div className="border-t border-slate-200 p-4">
-        <div className="mb-3 flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
-            {userEmail.charAt(0).toUpperCase()}
+      {/* User section */}
+      <div className="border-t border-gray-200 p-4">
+        <div className="flex items-center space-x-3 mb-3">
+          <div className="h-8 w-8 bg-gray-200 rounded-full flex items-center justify-center">
+            <span className="text-gray-600 font-medium text-sm">
+              {userEmail.charAt(0).toUpperCase()}
+            </span>
           </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-slate-900">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-900 truncate">
               {userEmail}
             </p>
-            <p className="text-xs text-slate-400">Administrator</p>
+            <p className="text-xs text-gray-500">Admin</p>
           </div>
         </div>
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={onSignOut}
-          className="w-full justify-start gap-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"
+          className="w-full justify-start"
         >
-          <LogOut className="h-4 w-4" />
+          <LogOut className="mr-2 h-4 w-4" />
           Sign Out
         </Button>
       </div>

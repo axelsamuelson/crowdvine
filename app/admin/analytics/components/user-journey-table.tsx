@@ -174,10 +174,10 @@ export function UserJourneyTable({ users }: UserJourneyTableProps) {
           <p className="text-gray-500">No users found matching your filters.</p>
         </div>
       ) : (
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
                 <TableHead>User</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Progress</TableHead>
@@ -192,16 +192,16 @@ export function UserJourneyTable({ users }: UserJourneyTableProps) {
                 <TableHead className="text-center">Validate</TableHead>
                 <TableHead className="text-center">Checkout</TableHead>
                 <TableHead className="text-center">Completed</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {sortedAndFilteredUsers.map((user) => {
                 const completionInfo = getCompletionStatus(user);
                 const CompletionIcon = completionInfo.icon;
                 
                 return (
-              <TableRow key={user.user_id}>
-                <TableCell className="font-medium">
+                  <TableRow key={user.user_id}>
+                    <TableCell className="font-medium">
                       <div>
                         <div>{getUserName(user)}</div>
                         <div className="text-xs text-gray-500">{getUserEmail(user)}</div>
@@ -240,7 +240,7 @@ export function UserJourneyTable({ users }: UserJourneyTableProps) {
                       ) : (
                         <Badge variant="outline">{user.product_list_view_count || 0}</Badge>
                       )}
-                </TableCell>
+                    </TableCell>
                     <TableCell className="text-center">{getStatusIcon(user.access_requested_at)}</TableCell>
                     <TableCell className="text-center">{getStatusIcon(user.access_approved_at)}</TableCell>
                     <TableCell className="text-center">{getStatusIcon(user.first_login_at)}</TableCell>
@@ -249,12 +249,12 @@ export function UserJourneyTable({ users }: UserJourneyTableProps) {
                     <TableCell className="text-center">{getStatusIcon(user.cart_validation_passed_at)}</TableCell>
                     <TableCell className="text-center">{getStatusIcon(user.checkout_started_at)}</TableCell>
                     <TableCell className="text-center">{getStatusIcon(user.reservation_completed_at)}</TableCell>
-              </TableRow>
+                  </TableRow>
                 );
               })}
-          </TableBody>
-        </Table>
-      </div>
+            </TableBody>
+          </Table>
+        </div>
       )}
     </Card>
   );

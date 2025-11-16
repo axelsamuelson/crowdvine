@@ -63,27 +63,6 @@ export class CartService {
           `
           id,
           quantity,
-          shared_box_id,
-          shared_boxes (
-            id,
-            title,
-            status,
-            target_quantity,
-            total_quantity,
-            remaining_quantity,
-            producer_id,
-            producer_name,
-            shared_box_participants (
-              user_id,
-              role,
-              invite_status,
-              contribution_bottles,
-              profiles (
-                full_name,
-                avatar_url
-              )
-            )
-          ),
           wines (
             id,
             handle,
@@ -140,16 +119,6 @@ export class CartService {
           : (item.wines as any).producers?.name 
           || undefined;
 
-        const sharedBoxParticipants =
-          item.shared_boxes?.shared_box_participants?.map((participant) => ({
-            userId: participant.user_id,
-            role: participant.role,
-            inviteStatus: participant.invite_status,
-            contributionBottles: participant.contribution_bottles,
-            fullName: participant.profiles?.full_name ?? undefined,
-            avatarUrl: participant.profiles?.avatar_url ?? undefined,
-          })) ?? [];
-
         return {
           id: item.id,
           quantity: item.quantity,
@@ -162,19 +131,6 @@ export class CartService {
               currencyCode: "SEK",
             },
           },
-          sharedBox: item.shared_boxes
-            ? {
-                id: item.shared_boxes.id,
-                title: item.shared_boxes.title,
-                producerId: item.shared_boxes.producer_id,
-                producerName: item.shared_boxes.producer_name,
-                status: item.shared_boxes.status,
-                targetQuantity: item.shared_boxes.target_quantity,
-                totalQuantity: item.shared_boxes.total_quantity,
-                remainingQuantity: item.shared_boxes.remaining_quantity,
-                participants: sharedBoxParticipants,
-              }
-            : undefined,
           merchandise: {
             id: item.wines.id,
             title: `${item.wines.wine_name} ${item.wines.vintage}`,
@@ -283,7 +239,6 @@ export class CartService {
   static async addItem(
     wineId: string,
     quantity: number = 1,
-    sharedBoxId?: string,
   ): Promise<Cart | null> {
     console.log(
       "🔧 CartService.addItem called with wineId:",
@@ -308,7 +263,6 @@ export class CartService {
           cart_id: cartId,
           wine_id: wineId,
           quantity: sb.raw(`COALESCE(quantity, 0) + ${quantity}`),
-          shared_box_id: sharedBoxId ?? null,
         },
         {
           onConflict: "cart_id,wine_id",
@@ -321,7 +275,7 @@ export class CartService {
         // Fallback to manual check and update if upsert fails
         const { data: existingItem } = await sb
           .from("cart_items")
-          .select("id, quantity, shared_box_id")
+          .select("id, quantity")
           .eq("cart_id", cartId)
           .eq("wine_id", wineId)
           .single();
@@ -330,10 +284,7 @@ export class CartService {
           console.log("🔧 Found existing item, updating quantity");
           const { error: updateError } = await sb
             .from("cart_items")
-            .update({
-              quantity: existingItem.quantity + quantity,
-              shared_box_id: sharedBoxId ?? existingItem.shared_box_id ?? null,
-            })
+            .update({ quantity: existingItem.quantity + quantity })
             .eq("id", existingItem.id);
 
           if (updateError) {
@@ -346,7 +297,6 @@ export class CartService {
             cart_id: cartId,
             wine_id: wineId,
             quantity,
-            shared_box_id: sharedBoxId ?? null,
           });
 
           if (insertError) {

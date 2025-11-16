@@ -1,19 +1,4 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import {
-  Activity,
-  Calendar,
-  CheckCircle,
-  CreditCard,
-  Database,
-  Package,
-  Plus,
-  Shield,
-  TrendingUp,
-  Users,
-  Wine,
-} from "lucide-react";
 import {
   Card,
   CardContent,
@@ -23,8 +8,24 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { AdminPageShell } from "@/components/admin/admin-page-shell";
-import { AdminStatGrid } from "@/components/admin/admin-stat-grid";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import {
+  Users,
+  Wine,
+  Calendar,
+  MapPin,
+  Package,
+  TrendingUp,
+  Plus,
+  Activity,
+  CheckCircle,
+  AlertCircle,
+  Database,
+  CreditCard,
+  Shield,
+  FileText,
+} from "lucide-react";
 
 export default async function AdminDashboard() {
   const sb = getSupabaseAdmin();
@@ -89,271 +90,317 @@ export default async function AdminDashboard() {
   const overallCompletion =
     totalCapacity > 0 ? (totalBookedBottles / totalCapacity) * 100 : 0;
 
-  const insightStats = [
-    {
-      label: "Producers",
-      value: producersCount || 0,
-      helper: "Active partners",
-      icon: Users,
-    },
-    {
-      label: "Wines",
-      value: winesCount || 0,
-      helper: "Available SKUs",
-      icon: Wine,
-    },
-    {
-      label: "Bookings",
-      value: bookingsCount || 0,
-      helper: "Bottles reserved",
-      icon: Calendar,
-    },
-    {
-      label: "Capacity Filled",
-      value: `${overallCompletion.toFixed(1)}%`,
-      helper: `${totalBookedBottles} / ${totalCapacity || 0} bottles`,
-      icon: TrendingUp,
-    },
-  ];
-
   return (
-    <AdminPageShell
-      header={{
-        title: "Dashboard",
-        description: "Monitor CrowdVine performance across catalog and ops.",
-        badges: [{ label: "Live", tone: "success" }],
-      }}
-    >
-      <section className="rounded-3xl border border-slate-200 bg-white/80 p-6 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-wider text-slate-400">
-              Insights
-            </p>
-            <h1 className="text-3xl font-semibold text-slate-900">
-              Platform pulse
-            </h1>
-            <p className="text-sm text-slate-500">
-              At-a-glance view of health across catalog and logistics.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button asChild variant="secondary">
-              <Link href="/admin/producers/new">
-                <Plus className="mr-2 h-4 w-4" />
-                Add producer
-              </Link>
-            </Button>
-            <Button asChild>
-              <Link href="/admin/wines/new">
-                <Plus className="mr-2 h-4 w-4" />
-                Add wine
-              </Link>
-            </Button>
-          </div>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-4xl font-bold text-gray-900">Admin Dashboard</h1>
+          <p className="text-gray-600 mt-2">
+            Monitor and manage your Crowdvine platform
+          </p>
         </div>
-        <div className="mt-8">
-          <AdminStatGrid stats={insightStats} />
+        <div className="flex gap-2">
+          <Button asChild variant="outline">
+            <Link href="/admin/producers/new">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Producer
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link href="/admin/wines/new">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Wine
+            </Link>
+          </Button>
         </div>
-      </section>
+      </div>
 
-      <section className="grid gap-6 lg:grid-cols-5">
-        <div className="col-span-3 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-wider text-slate-400">
-                Operations
-              </p>
-              <h2 className="text-xl font-semibold text-slate-900">
-                Pallet readiness
-              </h2>
-            </div>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/admin/pallets">View pallets</Link>
-            </Button>
-          </div>
-          <div className="mt-6 space-y-4">
-            {palletStats.length === 0 && (
-              <div className="rounded-2xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500">
-                No pallets in progress
+      {/* Main Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
+        <Card className="col-span-2">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Total Producers
+                </p>
+                <p className="text-3xl font-bold text-blue-600">
+                  {producersCount || 0}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Wine producers in system
+                </p>
               </div>
-            )}
+              <Users className="h-12 w-12 text-blue-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="col-span-2">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Total Wines
+                </p>
+                <p className="text-3xl font-bold text-purple-600">
+                  {winesCount || 0}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Available wines
+                </p>
+              </div>
+              <Wine className="h-12 w-12 text-purple-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="col-span-2">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Total Bookings
+                </p>
+                <p className="text-3xl font-bold text-green-600">
+                  {bookingsCount || 0}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Bottles reserved
+                </p>
+              </div>
+              <Calendar className="h-12 w-12 text-green-600" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Secondary Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Zones
+                </p>
+                <p className="text-2xl font-bold">{zonesCount || 0}</p>
+              </div>
+              <MapPin className="h-8 w-8 text-orange-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Pallets
+                </p>
+                <p className="text-2xl font-bold">{palletsCount || 0}</p>
+              </div>
+              <Package className="h-8 w-8 text-indigo-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Completion
+                </p>
+                <p className="text-2xl font-bold">
+                  {overallCompletion.toFixed(1)}%
+                </p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-emerald-600" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Pallet Progress */}
+      {palletStats.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Pallet Status Overview
+            </CardTitle>
+            <CardDescription>
+              Current bottle capacity and completion status
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
             {palletStats.map((pallet) => (
-              <div
-                key={pallet.id}
-                className="rounded-2xl border border-slate-100 p-4"
-              >
+              <div key={pallet.id} className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-slate-900">
-                      {pallet.name}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {pallet.totalBooked} / {pallet.bottle_capacity} bottles
-                    </p>
-                  </div>
+                  <span className="text-sm font-medium">{pallet.name}</span>
                   <Badge
                     variant={pallet.percentage >= 100 ? "default" : "secondary"}
                   >
                     {pallet.percentage.toFixed(1)}%
                   </Badge>
                 </div>
-                <Progress value={pallet.percentage} className="mt-3 h-2" />
-                <div className="mt-2 flex justify-between text-xs text-slate-500">
-                  <span>{pallet.totalBooked} booked</span>
+                <Progress value={pallet.percentage} className="h-2" />
+                <div className="flex justify-between text-xs text-muted-foreground">
                   <span>
-                    {Math.max(pallet.bottle_capacity - pallet.totalBooked, 0)}{" "}
-                    remaining
+                    {pallet.totalBooked} / {pallet.bottle_capacity} bottles
+                  </span>
+                  <span>
+                    {pallet.bottle_capacity - pallet.totalBooked} remaining
                   </span>
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-        <div className="col-span-2 flex flex-col gap-6">
-          <Card className="rounded-3xl border-slate-200">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Activity className="h-4 w-4" />
-                Recent bookings
-              </CardTitle>
-              <CardDescription>Latest bottle movements</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {recentBookings && recentBookings.length > 0 ? (
-                <div className="space-y-3">
-                  {recentBookings.map((booking) => (
-                    <div
-                      key={booking.id}
-                      className="rounded-2xl border border-slate-100 p-3"
-                    >
-                      <div className="flex items-center justify-between text-sm">
-                        <div>
-                          <p className="font-medium text-slate-900">
-                            {booking.wines?.wine_name} {booking.wines?.vintage}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            {booking.wines?.producers?.name}
-                          </p>
-                        </div>
-                        <span className="text-xs text-slate-500">
-                          {new Date(booking.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <p className="text-sm text-slate-600">
-                        {booking.quantity} bottles
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Recent Activity & Quick Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Bookings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5" />
+              Recent Bookings
+            </CardTitle>
+            <CardDescription>Latest wine reservations</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {recentBookings && recentBookings.length > 0 ? (
+              <div className="space-y-3">
+                {recentBookings.map((booking) => (
+                  <div
+                    key={booking.id}
+                    className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                  >
+                    <div>
+                      <p className="font-medium text-sm">
+                        {booking.wines?.wine_name} {booking.wines?.vintage}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {booking.wines?.producers?.name}
                       </p>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="py-6 text-center text-sm text-slate-500">
-                  <Calendar className="mx-auto mb-3 h-10 w-10 text-slate-300" />
-                  No recent bookings
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-3xl border-slate-200">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Shield className="h-4 w-4" />
-                System status
-              </CardTitle>
-              <CardDescription>Live service checks</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {[
-                { label: "Database", icon: Database, status: "Online" },
-                { label: "Stripe", icon: CreditCard, status: "Connected" },
-                { label: "Authentication", icon: Shield, status: "Active" },
-              ].map((item) => (
-                <div
-                  key={item.label}
-                  className="flex items-center justify-between rounded-2xl border border-slate-100 p-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <item.icon className="h-5 w-5 text-emerald-500" />
-                    <span className="text-sm font-medium text-slate-900">
-                      {item.label}
-                    </span>
+                    <div className="text-right">
+                      <p className="font-medium text-sm">
+                        {booking.quantity} bottles
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(booking.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
-                  <Badge className="bg-emerald-100 text-emerald-900">
-                    <CheckCircle className="mr-1 h-3 w-3" />
-                    {item.status}
-                  </Badge>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
-      </section>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No recent bookings</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-wider text-slate-400">
-              Catalog & access
-            </p>
-            <h2 className="text-xl font-semibold text-slate-900">
-              Quick actions
-            </h2>
-          </div>
-        </div>
-        <div className="mt-6 grid gap-6 md:grid-cols-2">
-          <div className="rounded-2xl border border-slate-100 p-4">
-            <p className="text-sm font-semibold uppercase tracking-wide text-slate-400">
-              Catalog
-            </p>
-            <div className="mt-4 space-y-3">
-              {[
-                { label: "Manage producers", href: "/admin/producers", icon: Users },
-                { label: "Manage wines", href: "/admin/wines", icon: Wine },
-                { label: "Manage wine boxes", href: "/admin/wine-boxes", icon: Package },
-                { label: "Update content", href: "/admin/content", icon: Shield },
-              ].map((action) => (
-                <Button
-                  key={action.label}
-                  asChild
-                  variant="ghost"
-                  className="w-full justify-start gap-3 rounded-xl border border-slate-100 bg-slate-50 text-slate-700 hover:bg-white"
-                >
-                  <Link href={action.href}>
-                    <action.icon className="h-4 w-4 text-slate-400" />
-                    {action.label}
-                  </Link>
-                </Button>
-              ))}
+        {/* System Status */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              System Status
+            </CardTitle>
+            <CardDescription>Platform health and connectivity</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Database className="h-5 w-5 text-green-600" />
+                  <span className="font-medium">Database</span>
+                </div>
+                <Badge variant="default" className="bg-green-600">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Online
+                </Badge>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <CreditCard className="h-5 w-5 text-green-600" />
+                  <span className="font-medium">Stripe</span>
+                </div>
+                <Badge variant="default" className="bg-green-600">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Connected
+                </Badge>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Shield className="h-5 w-5 text-green-600" />
+                  <span className="font-medium">Authentication</span>
+                </div>
+                <Badge variant="default" className="bg-green-600">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Active
+                </Badge>
+              </div>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick Actions</CardTitle>
+          <CardDescription>Common administrative tasks</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <Button asChild variant="outline" className="h-auto p-4 flex-col">
+              <Link href="/admin/producers">
+                <Users className="h-6 w-6 mb-2" />
+                <span>Manage Producers</span>
+              </Link>
+            </Button>
+
+            <Button asChild variant="outline" className="h-auto p-4 flex-col">
+              <Link href="/admin/wines">
+                <Wine className="h-6 w-6 mb-2" />
+                <span>Manage Wines</span>
+              </Link>
+            </Button>
+
+            <Button asChild variant="outline" className="h-auto p-4 flex-col">
+              <Link href="/admin/pallets">
+                <Package className="h-6 w-6 mb-2" />
+                <span>Manage Pallets</span>
+              </Link>
+            </Button>
+
+            <Button asChild variant="outline" className="h-auto p-4 flex-col">
+              <Link href="/admin/bookings">
+                <Calendar className="h-6 w-6 mb-2" />
+                <span>View Bookings</span>
+              </Link>
+            </Button>
+
+            <Button asChild variant="outline" className="h-auto p-4 flex-col">
+              <Link href="/admin/content">
+                <FileText className="h-6 w-6 mb-2" />
+                <span>Content</span>
+              </Link>
+            </Button>
           </div>
-          <div className="rounded-2xl border border-slate-100 p-4">
-            <p className="text-sm font-semibold uppercase tracking-wide text-slate-400">
-              Access
-            </p>
-            <div className="mt-4 space-y-3">
-              {[
-                { label: "Manage users", href: "/admin/users", icon: Users },
-                { label: "Membership settings", href: "/admin/memberships", icon: Users },
-                { label: "Producer groups", href: "/admin/producer-groups", icon: Users },
-                { label: "Access control", href: "/admin/access-control", icon: Shield },
-              ].map((action) => (
-                <Button
-                  key={action.label}
-                  asChild
-                  variant="ghost"
-                  className="w-full justify-start gap-3 rounded-xl border border-slate-100 bg-slate-50 text-slate-700 hover:bg-white"
-                >
-                  <Link href={action.href}>
-                    <action.icon className="h-4 w-4 text-slate-400" />
-                    {action.label}
-                  </Link>
-                </Button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-    </AdminPageShell>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
