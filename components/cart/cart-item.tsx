@@ -10,6 +10,9 @@ import { EditItemQuantityButton } from "./edit-item-quantity-button";
 import { formatPrice } from "@/lib/shopify/utils";
 import { ColorSwatch } from "@/components/ui/color-picker";
 import { useProductImages } from "../products/variant-selector";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Users } from "lucide-react";
 
 type MerchandiseSearchParams = {
   [key: string]: string;
@@ -45,10 +48,11 @@ export function CartItemCard({ item, onCloseCart }: CartItemProps) {
   );
 
   const [renderImage] = imgs;
+  const sharedBox = item.sharedBox;
 
   // Check if image is available
   const hasImage = renderImage && renderImage.url;
-  
+
   // Debug producerName
   console.log("Cart item render - producerName:", item.merchandise.product.producerName);
 
@@ -114,6 +118,56 @@ export function CartItemCard({ item, onCloseCart }: CartItemProps) {
               item.cost.totalAmount.currencyCode,
             )}
           </p>
+          {sharedBox && (
+            <div className="rounded-lg border border-dashed border-gray-200/70 bg-gray-50/70 p-3">
+              <div className="flex items-center justify-between text-xs text-gray-500">
+                <div className="flex items-center gap-1 font-medium text-gray-700">
+                  <Users className="h-3.5 w-3.5" />
+                  Shared box
+                </div>
+                <Badge variant="secondary" className="text-[11px]">
+                  {sharedBox.totalQuantity}/{sharedBox.targetQuantity} bottles
+                </Badge>
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <div className="flex -space-x-2">
+                  {sharedBox.participants.slice(0, 3).map((participant) => (
+                    <Avatar
+                      key={participant.userId}
+                      className="h-7 w-7 border border-white"
+                      title={
+                        participant.fullName ||
+                        (participant.isCurrentUser ? "You" : "Contributor")
+                      }
+                    >
+                      {participant.avatarUrl ? (
+                        <AvatarImage src={participant.avatarUrl} />
+                      ) : (
+                        <AvatarFallback className="text-[10px]">
+                          {(participant.fullName || "U")
+                            .split(" ")
+                            .map((part) => part[0])
+                            .join("")
+                            .slice(0, 2)
+                            .toUpperCase()}
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
+                  ))}
+                  {sharedBox.participants.length > 3 && (
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-gray-300 bg-white text-[10px] font-medium text-gray-500">
+                      +{sharedBox.participants.length - 3}
+                    </div>
+                  )}
+                </div>
+                <span className="text-xs text-gray-500">
+                  {sharedBox.remainingQuantity > 0
+                    ? `${sharedBox.remainingQuantity} bottles left`
+                    : "Box complete"}
+                </span>
+              </div>
+            </div>
+          )}
           <div className="flex justify-between items-end mt-auto">
             <div className="flex h-8 flex-row items-center rounded-md border border-neutral-200">
               <EditItemQuantityButton item={item} type="minus" />

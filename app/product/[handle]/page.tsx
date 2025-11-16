@@ -225,10 +225,12 @@ export default async function ProductPage(props: {
             </div>
           </div>
 
-          <Prose
-            className="col-span-full mb-auto opacity-70 max-md:order-3 max-md:my-6"
-            html={product.descriptionHtml}
-          />
+          {product.infoSectionText ? (
+            <Prose
+              className="col-span-full mb-auto opacity-70 max-md:order-3 max-md:my-6"
+              html={`<p>${product.infoSectionText}</p>`}
+            />
+          ) : null}
 
           <WineBoxDiscountInfo product={product} />
 

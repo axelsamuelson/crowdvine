@@ -75,7 +75,7 @@ export function EventTimeline({ events }: EventTimelineProps) {
 
   return (
     <>
-      <Card className="p-6">
+    <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">Recent Events</h3>
           <div className="flex gap-2 items-center">
@@ -141,36 +141,36 @@ export function EventTimeline({ events }: EventTimelineProps) {
             </Button>
           </div>
         ) : (
-          <ScrollArea className="h-[600px]">
-            <div className="space-y-3">
+      <ScrollArea className="h-[600px]">
+        <div className="space-y-3">
               {filteredEvents.map((event) => {
                 const userName = event.profiles 
                   ? (event.profiles.full_name || event.profiles.email || 'Guest User')
                   : 'Guest User';
                 
                 return (
-                <div
-                  key={event.id}
+            <div
+              key={event.id}
                   onClick={() => setSelectedEvent(event)}
                   className="p-4 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span
-                          className={`px-2 py-1 rounded text-xs font-medium ${getEventColor(event.event_category)}`}
-                        >
-                          {event.event_type}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {format(new Date(event.created_at), "MMM d, HH:mm:ss")}
-                        </span>
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-medium ${getEventColor(event.event_category)}`}
+                    >
+                      {event.event_type}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {format(new Date(event.created_at), "MMM d, HH:mm:ss")}
+                    </span>
                         <span className="text-xs font-medium text-blue-600">
                           {userName}
                         </span>
-                      </div>
-                      <p className="text-sm text-gray-600">{event.page_url}</p>
-                    {event.event_metadata && Object.keys(event.event_metadata).length > 0 && (
+                  </div>
+                  <p className="text-sm text-gray-600">{event.page_url}</p>
+                  {event.event_metadata && Object.keys(event.event_metadata).length > 0 && (
                       <div className="text-xs bg-gray-100 p-2 rounded mt-2 overflow-x-auto">
                         {Object.entries(event.event_metadata).slice(0, 3).map(([key, value]) => (
                           <div key={key} className="truncate">

@@ -140,6 +140,8 @@ export type Product = {
   producerId?: string;
   description: string;
   descriptionHtml: string;
+  infoSectionText?: string | null;
+  alcoholPercentage?: string | null;
   featuredImage: Image;
   currencyCode: string;
   priceRange: {
@@ -154,6 +156,8 @@ export type Product = {
   images: Image[];
   availableForSale: boolean;
   producerName?: string;
+  producerMinimumCase?: number;
+  allowsSharedBox?: boolean;
   priceBreakdown?: {
     costAmount: number;
     exchangeRate: number;
@@ -244,12 +248,38 @@ export type CartItem = {
   cost: {
     totalAmount: Money;
   };
+  sharedBox?: SharedBoxMeta;
   merchandise: {
     id: string;
     title: string;
     selectedOptions: SelectedOptions;
     product: Product;
   };
+};
+
+export type SharedBoxParticipant = {
+  userId: string;
+  fullName?: string | null;
+  avatarUrl?: string | null;
+  contributionBottles: number;
+  inviteStatus: "pending" | "accepted";
+  role: "owner" | "member";
+  isCurrentUser?: boolean;
+};
+
+export type SharedBoxStatus = "open" | "locked" | "submitted" | "fulfilled";
+
+export type SharedBoxMeta = {
+  id: string;
+  producerId?: string;
+  producerName?: string;
+  title?: string | null;
+  status: SharedBoxStatus;
+  targetQuantity: number;
+  totalQuantity: number;
+  remainingQuantity: number;
+  createdBy?: string | null;
+  participants: SharedBoxParticipant[];
 };
 
 export type CartProduct = Product;

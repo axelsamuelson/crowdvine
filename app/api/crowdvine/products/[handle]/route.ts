@@ -172,7 +172,9 @@ export async function GET(
         label_image_path,
         producer_id,
         description,
-        description_html,
+      description_html,
+      info_section_text,
+      alcohol_percentage,
         producers!inner(name)
       `,
       )
@@ -265,12 +267,16 @@ export async function GET(
     `This exceptional ${i.color || "wine"} wine from ${i.vintage} showcases the unique characteristics of ${i.grape_varieties || "carefully selected grapes"}. Crafted with precision and passion, this wine offers a perfect balance of flavors and aromas that will delight your palate.`;
 
   const wineDescriptionHtml = i.description_html || `<p>${wineDescription}</p>`;
+  const infoSectionText = i.info_section_text || null;
+  const alcoholPercentage = i.alcohol_percentage || null;
 
   const product = {
     id: i.id,
     title: `${i.wine_name} ${i.vintage}`,
     description: wineDescription,
     descriptionHtml: wineDescriptionHtml,
+    infoSectionText,
+    alcoholPercentage,
     handle: i.handle,
     productType: "wine",
     categoryId: i.producer_id,
@@ -299,6 +305,20 @@ export async function GET(
             ]
           : [],
       },
+      ...(alcoholPercentage
+        ? [
+            {
+              id: "alcohol-percentage",
+              name: "Alcohol",
+              values: [
+                {
+                  id: "alcohol",
+                  name: alcoholPercentage,
+                },
+              ],
+            },
+          ]
+        : []),
     ],
     variants: [
       {
@@ -324,6 +344,14 @@ export async function GET(
                 },
               ]
             : []),
+          ...(alcoholPercentage
+            ? [
+                {
+                  name: "Alcohol",
+                  value: alcoholPercentage,
+                },
+              ]
+            : []),
         ],
       },
     ],
@@ -345,6 +373,7 @@ export async function GET(
       ...grapeVarieties,
       // Add color as tag
       ...(colorName ? [colorName] : []),
+      ...(alcoholPercentage ? [alcoholPercentage] : []),
     ],
     availableForSale: true,
     currencyCode: "SEK",

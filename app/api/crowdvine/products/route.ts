@@ -30,6 +30,8 @@ export async function GET(request: Request) {
         producer_id,
         description,
         description_html,
+        info_section_text,
+        alcohol_percentage,
         created_at,
         producers!inner(name)
       `,
@@ -157,12 +159,16 @@ export async function GET(request: Request) {
 
     const wineDescriptionHtml =
       i.description_html || `<p>${wineDescription}</p>`;
+    const infoSectionText = i.info_section_text || null;
+    const alcoholPercentage = i.alcohol_percentage || null;
 
     return {
       id: i.id,
       title: `${i.wine_name} ${i.vintage}`,
       description: wineDescription,
       descriptionHtml: wineDescriptionHtml,
+      infoSectionText,
+      alcoholPercentage,
       handle: i.handle,
       productType: "wine",
       categoryId: i.producer_id,
@@ -191,6 +197,20 @@ export async function GET(request: Request) {
               ]
             : [],
         },
+        ...(alcoholPercentage
+          ? [
+              {
+                id: "alcohol-percentage",
+                name: "Alcohol",
+                values: [
+                  {
+                    id: "alcohol",
+                    name: alcoholPercentage,
+                  },
+                ],
+              },
+            ]
+          : []),
       ],
       variants: [
         {
@@ -216,6 +236,14 @@ export async function GET(request: Request) {
                   },
                 ]
               : []),
+            ...(alcoholPercentage
+              ? [
+                  {
+                    name: "Alcohol",
+                    value: alcoholPercentage,
+                  },
+                ]
+              : []),
           ],
         },
       ],
@@ -237,6 +265,7 @@ export async function GET(request: Request) {
         ...grapeVarieties,
         // Add color as tag
         ...(colorName ? [colorName] : []),
+        ...(alcoholPercentage ? [alcoholPercentage] : []),
       ],
       availableForSale: true,
       currencyCode: "SEK",

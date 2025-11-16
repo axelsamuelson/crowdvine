@@ -11,6 +11,15 @@ export type CartItem = {
       producerName?: string;
     };
   };
+  sharedBox?: {
+    id: string;
+    title?: string | null;
+    producerId?: string;
+    producerName?: string;
+    targetQuantity: number;
+    totalQuantity: number;
+    remainingQuantity: number;
+  };
 };
 
 export type ProducerValidation = {
@@ -56,6 +65,7 @@ export async function validateSixBottleRule(
       "🔍 [Validation] Looking up producer_ids for",
       wineIds.length,
       "wines",
+      wineIds,
     );
 
     const { data: wines, error: winesError } = await sb
@@ -72,16 +82,29 @@ export async function validateSixBottleRule(
       "✅ [Validation] Found",
       wines?.length || 0,
       "wines with producer info",
+      wines,
     );
 
     // Create map: wineId -> { producerId, producerName }
     const wineToProducer = new Map<string, { id: string; name: string }>();
     wines?.forEach((wine: any) => {
+      if (!wine.producer_id) {
+        console.warn(
+          "⚠️ [Validation] Wine",
+          wine.id,
+          "has no producer_id",
+        );
+      }
       wineToProducer.set(wine.id, {
         id: wine.producer_id,
         name: wine.producers?.name || "Unknown Producer",
       });
     });
+
+    console.log(
+      "🔍 [Validation] Wine to producer map:",
+      Array.from(wineToProducer.entries()),
+    );
 
     // 2. Get all producer groups and their members
     const { data: groupMembers, error: groupError } = await sb.from(
@@ -112,6 +135,32 @@ export async function validateSixBottleRule(
       producerToGroup.size,
     );
 
+    // Track shared boxes for validation
+    const sharedBoxStatus = new Map<
+      string,
+      {
+        title?: string | null;
+        producerId?: string;
+        producerName?: string;
+        targetQuantity: number;
+        totalQuantity: number;
+        remainingQuantity: number;
+      }
+    >();
+
+    cartItems.forEach((item) => {
+      if (item.sharedBox) {
+        sharedBoxStatus.set(item.sharedBox.id, {
+          title: item.sharedBox.title,
+          producerId: item.sharedBox.producerId,
+          producerName: item.sharedBox.producerName,
+          targetQuantity: item.sharedBox.targetQuantity,
+          totalQuantity: item.sharedBox.totalQuantity,
+          remainingQuantity: item.sharedBox.remainingQuantity,
+        });
+      }
+    });
+
     // 3. Group cart items by producer or group
     // Key format: "group_{groupId}" or "producer_{producerId}"
     const quantityByProducerOrGroup = new Map<
@@ -132,6 +181,16 @@ export async function validateSixBottleRule(
         console.warn(
           "❌ [Validation] Wine not found in database:",
           item.merchandise.id,
+          "Skipping this item",
+        );
+        continue;
+      }
+
+      if (!wineInfo.id) {
+        console.warn(
+          "⚠️ [Validation] Wine",
+          item.merchandise.id,
+          "has no producer_id, skipping",
         );
         continue;
       }
@@ -161,6 +220,11 @@ export async function validateSixBottleRule(
       "🔍 [Validation] Grouped by producer/group:",
       quantityByProducerOrGroup.size,
       "entries",
+      Array.from(quantityByProducerOrGroup.entries()).map(([key, value]) => ({
+        key,
+        quantity: value.quantity,
+        producerNames: Array.from(value.producerNames),
+      })),
     );
 
     // 3. Validate each producer/group against the 6-bottle rule
@@ -207,6 +271,25 @@ export async function validateSixBottleRule(
           );
         }
       }
+    }
+
+    for (const [sharedBoxId, sharedBox] of sharedBoxStatus) {
+      if (sharedBox.remainingQuantity <= 0) continue;
+      const name =
+        sharedBox.title || sharedBox.producerName || "Shared box contribution";
+      producerValidations.push({
+        producerId: sharedBox.producerId ?? sharedBoxId,
+        producerName: name,
+        producerHandle: name.toLowerCase().replace(/\s+/g, "-"),
+        quantity: sharedBox.totalQuantity,
+        isValid: false,
+        needed: sharedBox.remainingQuantity,
+        groupId: sharedBoxId,
+        groupName: "Shared box",
+      });
+      errors.push(
+        `${name} needs ${sharedBox.remainingQuantity} more bottle(s) before checkout.`,
+      );
     }
 
     const isValid = producerValidations.every((v) => v.isValid);

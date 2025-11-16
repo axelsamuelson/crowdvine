@@ -102,7 +102,9 @@ export function VariantOptionSelector({
           const isGrapeVarietyOption =
             optionNameLowerCase === "grape variety" ||
             optionNameLowerCase === "grape varieties";
-          const isDisplayOnlyOption = isColorOption || isGrapeVarietyOption;
+          const isAlcoholOption = optionNameLowerCase === "alcohol";
+          const isDisplayOnlyOption =
+            isColorOption || isGrapeVarietyOption || isAlcoholOption;
 
           // If this is a color option, show color display only
           if (isColorOption) {
@@ -130,6 +132,21 @@ export function VariantOptionSelector({
                 {value.name}
               </span>
             );
+          }
+
+          // Alcohol option display
+          if (isAlcoholOption) {
+            const displayValue =
+              typeof value.name === "string" && value.name.length > 0
+                ? value.name.endsWith("%")
+                  ? value.name
+                  : `${value.name}%`
+                : "";
+            return displayValue ? (
+              <span key={key} className="text-sm font-semibold text-gray-800">
+                {displayValue}
+              </span>
+            ) : null;
           }
 
           // For other options, keep the interactive button behavior

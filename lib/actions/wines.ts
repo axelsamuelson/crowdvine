@@ -38,6 +38,8 @@ export interface Wine {
   // Description fields
   description?: string;
   description_html?: string;
+  info_section_text?: string | null;
+  alcohol_percentage?: string | null;
 }
 
 export interface CreateWineData {
@@ -62,6 +64,8 @@ export interface CreateWineData {
   // Description fields
   description?: string;
   description_html?: string;
+  info_section_text?: string;
+  alcohol_percentage?: string;
 }
 
 export async function getWines() {
@@ -92,6 +96,8 @@ export async function getWines() {
       volume_liters,
       description,
       description_html,
+      info_section_text,
+      alcohol_percentage,
       created_at,
       updated_at
     `,
@@ -147,6 +153,8 @@ export async function getWine(id: string) {
       volume_liters,
       description,
       description_html,
+      info_section_text,
+      alcohol_percentage,
       created_at,
       updated_at
     `,
@@ -254,6 +262,8 @@ export async function createWine(data: CreateWineData) {
     // Description fields
     description: data.description,
     description_html: data.description_html,
+    info_section_text: data.info_section_text,
+    alcohol_percentage: data.alcohol_percentage,
   };
 
   // First create the wine
@@ -282,6 +292,8 @@ export async function createWine(data: CreateWineData) {
       volume_liters,
       description,
       description_html,
+      info_section_text,
+      alcohol_percentage,
       created_at,
       updated_at
     `,
@@ -333,6 +345,10 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
   if (data.description !== undefined) updateData.description = data.description;
   if (data.description_html !== undefined)
     updateData.description_html = data.description_html;
+  if (data.info_section_text !== undefined)
+    updateData.info_section_text = data.info_section_text;
+  if (data.alcohol_percentage !== undefined)
+    updateData.alcohol_percentage = data.alcohol_percentage;
   if (data.supplier_price !== undefined)
     updateData.supplier_price = data.supplier_price;
   if (data.volume_liters !== undefined)
@@ -463,6 +479,10 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
       supplier_price,
       sb_price,
       volume_liters,
+      description,
+      description_html,
+      info_section_text,
+      alcohol_percentage,
       created_at,
       updated_at
     `,

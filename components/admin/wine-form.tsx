@@ -63,6 +63,8 @@ export default function WineForm({ wine, producers }: WineFormProps) {
     // Description fields
     description: wine?.description || "",
     description_html: wine?.description_html || "",
+    info_section_text: wine?.info_section_text || "",
+    alcohol_percentage: wine?.alcohol_percentage || "",
   });
 
   const [images, setImages] = useState<File[]>([]);
@@ -344,6 +346,21 @@ export default function WineForm({ wine, producers }: WineFormProps) {
                 Blend colors will show as split swatches in the shop filter
               </p>
             </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="alcohol_percentage">Alcohol</Label>
+            <Input
+              id="alcohol_percentage"
+              value={formData.alcohol_percentage}
+              onChange={(e) =>
+                handleChange("alcohol_percentage", e.target.value)
+              }
+              placeholder="12.5%"
+            />
+            <p className="text-xs text-muted-foreground">
+              Displayed next to grape varieties on the PDP.
+            </p>
+          </div>
           </div>
 
           {/* New Grape Varieties Selector */}
@@ -408,6 +425,23 @@ export default function WineForm({ wine, producers }: WineFormProps) {
               <p className="text-sm text-muted-foreground">
                 Custom HTML for rich formatting. Leave empty to use
                 auto-generated HTML from description.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="info_section_text">Story text (under white box)</Label>
+              <Textarea
+                id="info_section_text"
+                value={formData.info_section_text}
+                onChange={(e) =>
+                  handleChange("info_section_text", e.target.value)
+                }
+                placeholder="Give readers a fuller story that appears under the info grid…"
+                rows={4}
+              />
+              <p className="text-sm text-muted-foreground">
+                Optional copy displayed beneath the PDP info grid. Keeps the upper
+                description concise.
               </p>
             </div>
           </div>

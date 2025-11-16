@@ -140,12 +140,24 @@ export default function CartModal() {
 
         // Call API endpoint instead of running validation client-side
         const response = await fetch("/api/cart/validate");
+        
+        if (!response.ok) {
+          console.error(
+            "❌ [Cart Modal] Validation API returned error:",
+            response.status,
+            response.statusText,
+          );
+          setValidations([]);
+          return;
+        }
+
         const result = await response.json();
 
         console.log("✅ [Cart Modal] Validation result:", result);
         setValidations(result.producerValidations || []);
       } catch (error) {
         console.error("❌ [Cart Modal] Validation error:", error);
+        // Don't silently fail - show empty validations but log the error
         setValidations([]);
       } finally {
         setIsValidating(false);
@@ -244,10 +256,8 @@ export default function CartModal() {
     );
   };
 
-  // Don't render cart button if no cart data
-  if (!cart) {
-    return null;
-  }
+  // Always render cart button, even if cart is null (show 0 items)
+  const totalQuantity = cart?.totalQuantity ?? 0;
 
   return (
     <>
@@ -269,7 +279,7 @@ export default function CartModal() {
           </div>
         ) : (
           <>
-            <span className="max-md:hidden">cart</span> ({cart.totalQuantity})
+            <span className="max-md:hidden">cart</span> ({totalQuantity})
           </>
         )}
       </Button>

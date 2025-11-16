@@ -15,6 +15,7 @@ import { useCart } from "@/components/cart/cart-context";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { ColorSwatch } from "@/components/ui/color-picker";
 import { getColorHex } from "@/lib/utils";
+import { SharedBoxDialog } from "@/components/cart/shared-box-dialog";
 
 export const ProductCard = memo(({ product }: { product: Product }) => {
   const hasNoOptions = product.options.length === 0;
@@ -102,6 +103,10 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
   };
 
   const wineColor = getWineColor();
+  const canStartSharedBox =
+    (product.allowsSharedBox ?? true) &&
+    (product.producerMinimumCase ?? 6) >= 6 &&
+    Boolean(product.producerId);
 
   // Get base variant for products without options or first variant for products with variants
   const getBaseProductVariant = (): any => {
@@ -245,6 +250,32 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
                 </div>
               </Button>
             </div>
+            {canStartSharedBox && (
+              <div className="mt-3">
+                <SharedBoxDialog
+                  product={{
+                    id: product.id,
+                    title: product.title,
+                    producerName: product.producerName,
+                    producerId: product.producerId,
+                  }}
+                  trigger={
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full rounded-md border-dashed border-gray-300 text-gray-700"
+                      size="sm"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                    >
+                      Start shared box
+                    </Button>
+                  }
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -292,6 +323,32 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
                 </div>
               </Button>
             </div>
+            {canStartSharedBox && (
+              <div className="mt-3">
+                <SharedBoxDialog
+                  product={{
+                    id: product.id,
+                    title: product.title,
+                    producerName: product.producerName,
+                    producerId: product.producerId,
+                  }}
+                  trigger={
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full rounded-md border-dashed border-gray-300 text-gray-700"
+                      size="sm"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                    >
+                      Start shared box
+                    </Button>
+                  }
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -379,6 +436,28 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
                   </div>
                 </Link>
               </Button>
+            )}
+            {canStartSharedBox && (
+              <div className="col-span-2">
+                <SharedBoxDialog
+                  product={{
+                    id: product.id,
+                    title: product.title,
+                    producerName: product.producerName,
+                    producerId: product.producerId,
+                  }}
+                  trigger={
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full rounded-full border-dashed border-gray-300 text-gray-700"
+                      size="sm"
+                    >
+                      Start shared box
+                    </Button>
+                  }
+                />
+              </div>
             )}
           </div>
         </div>
