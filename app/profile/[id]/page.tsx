@@ -172,6 +172,7 @@ export default function PublicProfilePage() {
           </Button>
         </div>
         <SocialProfileHeader
+          userId={profile.id}
           userName={profile.full_name || "User"}
           avatarUrl={avatarUrl}
           bio={profile.description}

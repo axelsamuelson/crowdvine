@@ -801,6 +801,7 @@ export default function ProfilePage() {
           <div className="space-y-6">
             {/* Social Profile Header - NEW DESIGN */}
             <SocialProfileHeader
+              userId={profile.id}
               userName={userName}
               userHandle={profile?.handle}
               avatarUrl={avatarUrl}
@@ -884,8 +885,8 @@ export default function ProfilePage() {
                   <div>
                     <h3 className="text-sm font-semibold text-foreground">Most ordered bottles</h3>
                     <p className="text-xs text-muted-foreground">Top list, aggregated by wine.</p>
-                  </div>
-                </div>
+            </div>
+        </div>
 
                 {(() => {
                   const map = new Map<string, any>();
@@ -930,7 +931,7 @@ export default function ProfilePage() {
                                 className="h-full w-full object-cover"
                               />
                             ) : null}
-                          </div>
+                  </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center justify-between gap-3">
                               <p className="truncate text-sm font-semibold text-foreground">
@@ -939,7 +940,7 @@ export default function ProfilePage() {
                               <span className="shrink-0 whitespace-nowrap text-sm font-semibold text-foreground">
                                 × {w.quantity}
                               </span>
-                            </div>
+                  </div>
                             <div className="mt-0.5 flex items-center justify-between gap-3">
                               <p className="truncate text-xs text-muted-foreground">
                                 {w.producer_name || 'Unknown producer'}
@@ -949,20 +950,20 @@ export default function ProfilePage() {
                                   {w.color}
                                 </span>
                               ) : null}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                  </div>
                     </div>
+                    </div>
+                      ))}
+                  </div>
                   );
                 })()}
-              </div>
-            </div>
+                </div>
+                    </div>
               </section>
 
-        </div>
-          )}
-
+                    </div>
+                  )}
+                  
           {activeTab === "activity" && (
                 <div className="space-y-4">
               <section className="space-y-4">
@@ -998,7 +999,7 @@ export default function ProfilePage() {
                       View all
                     </Link>
                   )}
-                    </div>
+                      </div>
                 {reservations.length === 0 ? (
                   <div className="text-sm text-muted-foreground">
                     You have no reservations yet.
@@ -1049,13 +1050,13 @@ export default function ProfilePage() {
                               <div className="mt-1 text-[11px] text-muted-foreground">
                                 {percentFull}% full
                     </div>
-                            </div>
-                          )}
+                      </div>
+                  )}
                 </div>
                 );
                     })}
-          </div>
-                )}
+                    </div>
+                  )}
               </section>
                     </div>
                 )}
@@ -1136,7 +1137,7 @@ export default function ProfilePage() {
                             const startIndex = cursor;
                             cursor += items.length;
 
-                            return (
+                  return (
                               <div className="px-2">
                                 <div className="px-2 pb-1 pt-2 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
                                   {label}
@@ -1144,7 +1145,7 @@ export default function ProfilePage() {
                                 <div className="space-y-1">
                                   {items.map((item, localIdx) => {
                                     const idx = startIndex + localIdx;
-                                    return (
+                  return (
                                       <Link
                                         key={item.key}
                                         href={item.href}
@@ -1165,7 +1166,7 @@ export default function ProfilePage() {
                                               className="object-cover"
                                             />
                                           ) : null}
-                                        </div>
+                      </div>
                                         <div className="min-w-0 flex-1">
                                           <div className="flex items-center justify-between gap-3">
                                             <p className="truncate text-sm font-semibold text-foreground">
@@ -1182,13 +1183,13 @@ export default function ProfilePage() {
                                               {item.subtitle}
                                             </p>
                                           ) : null}
-                                        </div>
+                    </div>
                                       </Link>
                                     );
                                   })}
-                                </div>
-                              </div>
-                            );
+                      </div>
+                </div>
+                  );
                           };
 
                           const sections = [
@@ -1197,18 +1198,18 @@ export default function ProfilePage() {
                             renderSection("Producers", searchSectioned.producers),
                           ].filter(Boolean);
 
-                          return (
+                return (
                             <div className="divide-y divide-border">
                               {sections}
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    )}
-                  </div>
                 </div>
-              )}
-            </div>
+                );
+              })()}
+          </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
 
             {/* You might like */}
             <div className="rounded-xl border border-border bg-white p-4 shadow-sm space-y-3">
@@ -1225,8 +1226,8 @@ export default function ProfilePage() {
                   suggestedUsers.length === 0 && (
                     <div className="px-2 py-2 text-xs text-muted-foreground">
                       No suggestions right now.
-                    </div>
-                  )}
+                  </div>
+                )}
 
                 {suggestedUsers.map((u) => {
                   const avatarUrl = u.avatar_image_path
@@ -1269,21 +1270,21 @@ export default function ProfilePage() {
                               {u.description}
                             </p>
                           ) : null}
-                        </div>
-                      </div>
+                            </div>
+                          </div>
 
-                      <Button
-                        size="sm"
+                          <Button
+                            size="sm"
                         className="rounded-full bg-black text-white hover:bg-white hover:text-black hover:border-black"
                         onClick={() => toggleFollowUser(u.id, false)}
-                      >
+                          >
                         Follow
-                      </Button>
-                    </div>
+                          </Button>
+                        </div>
                   );
                 })}
-              </div>
-            </div>
+                      </div>
+                  </div>
 
             {/* Last Viewed */}
             <div className="rounded-xl border border-border bg-white p-4 shadow-sm space-y-3">
@@ -1310,7 +1311,7 @@ export default function ProfilePage() {
                             className="object-cover"
                           />
                         ) : null}
-                      </div>
+                        </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-3">
                           <p className="truncate text-sm font-semibold text-foreground">
@@ -1321,7 +1322,7 @@ export default function ProfilePage() {
                               {formatPrice(p.price, p.currencyCode)}
                             </span>
                           ) : null}
-                        </div>
+                      </div>
                         <div className="mt-0.5 flex items-center justify-between gap-3">
                           <p className="truncate text-xs text-muted-foreground">
                             {p.producerName || "Unknown producer"}
@@ -1331,16 +1332,16 @@ export default function ProfilePage() {
                               {p.color}
                             </span>
                           ) : null}
-                        </div>
+                </div>
                       </div>
                     </Link>
                   ))
                 )}
-              </div>
-            </div>
-                      </div>
           </div>
         </div>
+            </div>
+          </div>
+      </div>
 
       {/* Gold Celebration Modal (v2) */}
       <GoldCelebration

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Calendar,
   LinkIcon,
@@ -21,9 +21,20 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface SocialProfileHeaderProps {
   // User data
+  userId?: string;
   userName: string;
   userHandle?: string;
   avatarUrl?: string;
@@ -52,6 +63,7 @@ interface SocialProfileHeaderProps {
 }
 
 export function SocialProfileHeader({
+  userId,
   userName,
   userHandle,
   avatarUrl,
@@ -71,6 +83,70 @@ export function SocialProfileHeader({
   membershipLabel,
 }: SocialProfileHeaderProps) {
   const [isCurrentlyFollowing, setIsCurrentlyFollowing] = useState(isFollowing);
+  const [followDialogOpen, setFollowDialogOpen] = useState(false);
+  const [followTab, setFollowTab] = useState<"following" | "followers">(
+    "following",
+  );
+  const [query, setQuery] = useState("");
+  const [loadingList, setLoadingList] = useState(false);
+  const [listError, setListError] = useState<string | null>(null);
+  const [followersList, setFollowersList] = useState<any[] | null>(null);
+  const [followingList, setFollowingList] = useState<any[] | null>(null);
+
+  const openFollowDialog = (tab: "following" | "followers") => {
+    setFollowTab(tab);
+    setFollowDialogOpen(true);
+  };
+
+  useEffect(() => {
+    if (!followDialogOpen || !userId) return;
+
+    const run = async () => {
+      setListError(null);
+      setLoadingList(true);
+      try {
+        if (followTab === "followers" && followersList === null) {
+          const res = await fetch(
+            `/api/user/follow/list?userId=${encodeURIComponent(
+              userId,
+            )}&type=followers`,
+          );
+          const json = await res.json();
+          if (!res.ok) throw new Error(json?.error || "Failed to load followers");
+          setFollowersList(Array.isArray(json.users) ? json.users : []);
+        }
+        if (followTab === "following" && followingList === null) {
+          const res = await fetch(
+            `/api/user/follow/list?userId=${encodeURIComponent(
+              userId,
+            )}&type=following`,
+          );
+          const json = await res.json();
+          if (!res.ok) throw new Error(json?.error || "Failed to load following");
+          setFollowingList(Array.isArray(json.users) ? json.users : []);
+        }
+      } catch (e: any) {
+        setListError(e?.message || "Failed to load list");
+      } finally {
+        setLoadingList(false);
+      }
+    };
+
+    run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [followDialogOpen, followTab, userId]);
+
+  const visibleUsers = useMemo(() => {
+    const list = followTab === "followers" ? followersList : followingList;
+    if (!list) return null;
+    const q = query.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter((u: any) => {
+      const name = String(u.full_name || "").toLowerCase();
+      const desc = String(u.description || "").toLowerCase();
+      return name.includes(q) || desc.includes(q);
+    });
+  }, [followersList, followingList, followTab, query]);
 
   const handleFollowClick = () => {
     if (isCurrentlyFollowing) {
@@ -251,16 +327,197 @@ export function SocialProfileHeader({
 
         {/* Stats */}
         <div className="mt-3 flex gap-5 text-sm">
-          <button className="hover:underline">
+          <button
+            className="hover:underline"
+            onClick={() => openFollowDialog("following")}
+            disabled={!userId}
+          >
             <span className="font-semibold">{followingCount}</span>{" "}
             <span className="text-muted-foreground">Following</span>
           </button>
-          <button className="hover:underline">
+          <button
+            className="hover:underline"
+            onClick={() => openFollowDialog("followers")}
+            disabled={!userId}
+          >
             <span className="font-semibold">{followersCount}</span>{" "}
             <span className="text-muted-foreground">Followers</span>
           </button>
         </div>
       </div>
+
+      <Dialog open={followDialogOpen} onOpenChange={setFollowDialogOpen}>
+        <DialogContent className="max-w-lg p-0 overflow-hidden">
+          <div className="p-5">
+            <DialogHeader className="space-y-0 text-left">
+              <DialogTitle className="text-base">Connections</DialogTitle>
+            </DialogHeader>
+
+            <div className="mt-4">
+              <Tabs
+                value={followTab}
+                onValueChange={(v) => setFollowTab(v as any)}
+              >
+                <TabsList className="w-full justify-start bg-white border border-border shadow-sm rounded-xl">
+                  <TabsTrigger value="following">
+                    Following{" "}
+                    <span className="ml-2 text-muted-foreground">
+                      {followingCount}
+                    </span>
+                  </TabsTrigger>
+                  <TabsTrigger value="followers">
+                    Followers{" "}
+                    <span className="ml-2 text-muted-foreground">
+                      {followersCount}
+                    </span>
+                  </TabsTrigger>
+                </TabsList>
+
+                <div className="mt-4">
+                  <Input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search…"
+                    className="rounded-xl"
+                  />
+                </div>
+
+                <TabsContent value="following" className="mt-4">
+                  {listError ? (
+                    <p className="text-sm text-red-600">{listError}</p>
+                  ) : loadingList && followingList === null ? (
+                    <div className="space-y-2">
+                      <Skeleton className="h-12 w-full rounded-xl" />
+                      <Skeleton className="h-12 w-full rounded-xl" />
+                      <Skeleton className="h-12 w-full rounded-xl" />
+                    </div>
+                  ) : (
+                    <ScrollArea className="max-h-[420px] pr-3">
+                      <div className="space-y-1">
+                        {(visibleUsers || []).length === 0 ? (
+                          <p className="text-sm text-muted-foreground py-2">
+                            No users.
+                          </p>
+                        ) : (
+                          (visibleUsers || []).map((u: any) => {
+                            const uAvatar = u.avatar_image_path
+                              ? u.avatar_image_path.startsWith("http")
+                                ? u.avatar_image_path
+                                : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${u.avatar_image_path}`
+                              : null;
+                            return (
+                              <a
+                                key={u.id}
+                                href={`/profile/${u.id}`}
+                                className="-mx-2 flex items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-muted/30"
+                                onClick={() => setFollowDialogOpen(false)}
+                              >
+                                <Avatar className="h-9 w-9">
+                                  <AvatarImage
+                                    src={
+                                      uAvatar ||
+                                      "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f464.svg"
+                                    }
+                                    alt={u.full_name || "User"}
+                                  />
+                                  <AvatarFallback className="text-xs">
+                                    {(u.full_name || "U")
+                                      .split(" ")
+                                      .map((n: string) => n[0])
+                                      .join("")
+                                      .slice(0, 2)
+                                      .toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-semibold text-foreground truncate">
+                                    {u.full_name || "User"}
+                                  </p>
+                                  {u.description ? (
+                                    <p className="text-xs text-muted-foreground line-clamp-1">
+                                      {u.description}
+                                    </p>
+                                  ) : null}
+                                </div>
+                              </a>
+                            );
+                          })
+                        )}
+                      </div>
+                    </ScrollArea>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="followers" className="mt-4">
+                  {listError ? (
+                    <p className="text-sm text-red-600">{listError}</p>
+                  ) : loadingList && followersList === null ? (
+                    <div className="space-y-2">
+                      <Skeleton className="h-12 w-full rounded-xl" />
+                      <Skeleton className="h-12 w-full rounded-xl" />
+                      <Skeleton className="h-12 w-full rounded-xl" />
+                    </div>
+                  ) : (
+                    <ScrollArea className="max-h-[420px] pr-3">
+                      <div className="space-y-1">
+                        {(visibleUsers || []).length === 0 ? (
+                          <p className="text-sm text-muted-foreground py-2">
+                            No users.
+                          </p>
+                        ) : (
+                          (visibleUsers || []).map((u: any) => {
+                            const uAvatar = u.avatar_image_path
+                              ? u.avatar_image_path.startsWith("http")
+                                ? u.avatar_image_path
+                                : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${u.avatar_image_path}`
+                              : null;
+                            return (
+                              <a
+                                key={u.id}
+                                href={`/profile/${u.id}`}
+                                className="-mx-2 flex items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-muted/30"
+                                onClick={() => setFollowDialogOpen(false)}
+                              >
+                                <Avatar className="h-9 w-9">
+                                  <AvatarImage
+                                    src={
+                                      uAvatar ||
+                                      "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f464.svg"
+                                    }
+                                    alt={u.full_name || "User"}
+                                  />
+                                  <AvatarFallback className="text-xs">
+                                    {(u.full_name || "U")
+                                      .split(" ")
+                                      .map((n: string) => n[0])
+                                      .join("")
+                                      .slice(0, 2)
+                                      .toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-semibold text-foreground truncate">
+                                    {u.full_name || "User"}
+                                  </p>
+                                  {u.description ? (
+                                    <p className="text-xs text-muted-foreground line-clamp-1">
+                                      {u.description}
+                                    </p>
+                                  ) : null}
+                                </div>
+                              </a>
+                            );
+                          })
+                        )}
+                      </div>
+                    </ScrollArea>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
