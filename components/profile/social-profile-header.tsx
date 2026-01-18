@@ -421,7 +421,7 @@ export function SocialProfileHeader({
                   return (
                     <div
                       key={u.id}
-                      className="relative w-[180px] shrink-0 snap-start rounded-2xl border border-border bg-white p-2.5 shadow-sm"
+                      className="relative w-[152px] shrink-0 snap-start rounded-2xl border border-border bg-white p-2 shadow-sm"
                     >
                       {/* Dismiss (local only) */}
                       <button
@@ -447,7 +447,7 @@ export function SocialProfileHeader({
                         onClick={() => setMobileSuggestionsOpen(false)}
                       >
                         <div className="flex flex-col items-center text-center">
-                          <Avatar className="h-12 w-12 border border-border">
+                          <Avatar className="h-11 w-11 border border-border">
                             <AvatarImage src={avatar} alt={u.full_name || "User"} />
                             <AvatarFallback className="text-xs">
                               {(u.full_name || "U")
@@ -459,7 +459,7 @@ export function SocialProfileHeader({
                             </AvatarFallback>
                           </Avatar>
 
-                          <p className="mt-2 text-sm font-semibold text-foreground truncate w-full">
+                          <p className="mt-2 text-[13px] font-semibold text-foreground truncate w-full">
                             {u.full_name || "User"}
                           </p>
 
