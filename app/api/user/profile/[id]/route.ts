@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { supabaseServer } from "@/lib/supabase-server";
 import { getCurrentUser } from "@/lib/auth";
 
 export async function GET(
@@ -17,15 +18,26 @@ export async function GET(
       return NextResponse.json({ error: "Bad request" }, { status: 400 });
     }
 
-    const sb = getSupabaseAdmin();
+    let sb;
+    try {
+      sb = getSupabaseAdmin();
+    } catch (error) {
+      console.warn(
+        "[PROFILE] Supabase admin unavailable, falling back to server client",
+      );
+      sb = await supabaseServer();
+    }
 
     const { data, error } = await sb
       .from("profiles")
       .select("id, full_name, avatar_image_path, description, created_at")
       .eq("id", targetId)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
+    if (!data) {
+      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+    }
 
     return NextResponse.json({ profile: data });
   } catch (error) {
