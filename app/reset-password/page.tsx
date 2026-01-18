@@ -26,8 +26,6 @@ export default function ResetPasswordPage() {
   const [success, setSuccess] = useState(false);
   const router = useRouter();
 
-  const supabase = getSupabaseBrowserClient();
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -47,6 +45,7 @@ export default function ResetPasswordPage() {
     }
 
     try {
+      const supabase = getSupabaseBrowserClient();
       const { error } = await supabase.auth.updateUser({
         password: password,
       });

@@ -35,6 +35,17 @@ import { getSiteContentByKey } from "@/lib/actions/content";
 
 export async function generateMetadata(): Promise<Metadata> {
   try {
+    const hasAdminCreds =
+      !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!hasAdminCreds) {
+      return {
+        title: "CrowdVine",
+        description: "Premium Wine Community",
+        generator: "v0.app",
+      };
+    }
+
     const siteTitle = (await getSiteContentByKey("site_title")) || "CrowdVine";
     const siteDescription =
       (await getSiteContentByKey("site_description")) ||
