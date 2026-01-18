@@ -559,36 +559,6 @@ function CheckoutContent() {
     // Don't set false on success - keep showing during redirect
   };
 
-  if (loading) {
-    return (
-      <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-gray-200 rounded mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded mb-2"></div>
-          <div className="h-4 bg-gray-200 rounded"></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!cart || cart.totalQuantity === 0) {
-    return (
-      <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
-        <h1 className="text-2xl font-semibold mb-4">Checkout</h1>
-        <p className="text-gray-600">
-          Your cart is empty. Please add some items before proceeding to
-          checkout.
-        </p>
-        <a
-          href="/"
-          className="inline-block mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          Continue Shopping
-        </a>
-      </div>
-    );
-  }
-
   const hasProfileInfo = profile?.full_name && profile?.email;
   const hasCompleteProfileAddress =
     profile?.address && profile?.city && profile?.postal_code;
@@ -696,6 +666,37 @@ function CheckoutContent() {
       document.body.style.paddingBottom = "0";
     };
   }, []);
+
+  // IMPORTANT: keep these conditional returns AFTER all hooks above to preserve hook order
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 bg-gray-200 rounded mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!cart || cart.totalQuantity === 0) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
+        <h1 className="text-2xl font-semibold mb-4">Checkout</h1>
+        <p className="text-gray-600">
+          Your cart is empty. Please add some items before proceeding to
+          checkout.
+        </p>
+        <a
+          href="/"
+          className="inline-block mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          Continue Shopping
+        </a>
+      </div>
+    );
+  }
 
   return (
     <>
