@@ -322,120 +322,6 @@ export function SocialProfileHeader({
           </div>
         </div>
 
-        {/* Mobile-only: swipe carousel for "You might like" */}
-        {isOwnProfile && mobileSuggestionsOpen ? (
-          <div className="mt-4 sm:hidden">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-semibold text-foreground">
-                You might like
-              </p>
-              {suggestionsError ? (
-                <p className="text-xs text-red-600">{suggestionsError}</p>
-              ) : null}
-            </div>
-
-            {suggestionsLoading ? (
-              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                <Skeleton className="h-[72px] w-[220px] rounded-xl shrink-0" />
-                <Skeleton className="h-[72px] w-[220px] rounded-xl shrink-0" />
-                <Skeleton className="h-[72px] w-[220px] rounded-xl shrink-0" />
-              </div>
-            ) : suggestedUsers.length === 0 ? (
-              <p className="text-xs text-muted-foreground">
-                No suggestions right now.
-              </p>
-            ) : (
-              <div className="flex gap-3 overflow-x-auto pb-2 pr-1 scrollbar-hide snap-x snap-mandatory">
-                {visibleSuggestedUsers.map((u) => {
-                  const avatar =
-                    u.avatar_image_path && u.avatar_image_path.startsWith("http")
-                      ? u.avatar_image_path
-                      : u.avatar_image_path
-                        ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${u.avatar_image_path}`
-                        : "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f464.svg";
-
-                  return (
-                    <div
-                      key={u.id}
-                      className="relative w-[240px] shrink-0 snap-start rounded-2xl border border-border bg-white p-3 shadow-sm"
-                    >
-                      {/* Dismiss (local only) */}
-                      <button
-                        type="button"
-                        className="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-white/80 text-muted-foreground backdrop-blur hover:text-foreground"
-                        aria-label="Dismiss suggestion"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setDismissedSuggestionIds((prev) => {
-                            const next = new Set(prev);
-                            next.add(u.id);
-                            return next;
-                          });
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-
-                      <a
-                        href={`/profile/${u.id}`}
-                        className="block"
-                        onClick={() => setMobileSuggestionsOpen(false)}
-                      >
-                        <div className="flex flex-col items-center text-center">
-                          <Avatar className="h-16 w-16 border border-border">
-                            <AvatarImage src={avatar} alt={u.full_name || "User"} />
-                            <AvatarFallback className="text-sm">
-                              {(u.full_name || "U")
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")
-                                .slice(0, 2)
-                                .toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-
-                          <p className="mt-3 text-sm font-semibold text-foreground truncate w-full">
-                            {u.full_name || "User"}
-                          </p>
-
-                          <p className="mt-1 text-[11px] text-muted-foreground truncate w-full">
-                            Suggested for you
-                          </p>
-
-                          {u.description ? (
-                            <p className="mt-2 text-xs text-muted-foreground line-clamp-2">
-                              {u.description}
-                            </p>
-                          ) : (
-                            <div className="h-8" />
-                          )}
-                        </div>
-                      </a>
-
-                      {onFollowSuggestedUser ? (
-                        <div className="mt-3">
-                          <Button
-                            size="sm"
-                            className="w-full rounded-xl bg-black text-white hover:bg-white hover:text-black hover:border-black"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              onFollowSuggestedUser(u.id);
-                            }}
-                          >
-                            Follow
-                          </Button>
-                        </div>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        ) : null}
-
         {/* User Info */}
         <div className="mt-3">
           <div className="flex items-center gap-2">
@@ -499,6 +385,112 @@ export function SocialProfileHeader({
             <span className="text-muted-foreground">Followers</span>
           </button>
         </div>
+
+        {/* Mobile-only: swipe carousel for "You might like" (placed under stats) */}
+        {isOwnProfile && mobileSuggestionsOpen ? (
+          <div className="mt-4 sm:hidden">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-semibold text-foreground">
+                You might like
+              </p>
+              {suggestionsError ? (
+                <p className="text-xs text-red-600">{suggestionsError}</p>
+              ) : null}
+            </div>
+
+            {suggestionsLoading ? (
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                <Skeleton className="h-[64px] w-[170px] rounded-xl shrink-0" />
+                <Skeleton className="h-[64px] w-[170px] rounded-xl shrink-0" />
+                <Skeleton className="h-[64px] w-[170px] rounded-xl shrink-0" />
+              </div>
+            ) : visibleSuggestedUsers.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                No suggestions right now.
+              </p>
+            ) : (
+              <div className="flex gap-3 overflow-x-auto pb-2 pr-1 scrollbar-hide snap-x snap-mandatory">
+                {visibleSuggestedUsers.map((u) => {
+                  const avatar =
+                    u.avatar_image_path && u.avatar_image_path.startsWith("http")
+                      ? u.avatar_image_path
+                      : u.avatar_image_path
+                        ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${u.avatar_image_path}`
+                        : "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f464.svg";
+
+                  return (
+                    <div
+                      key={u.id}
+                      className="relative w-[180px] shrink-0 snap-start rounded-2xl border border-border bg-white p-2.5 shadow-sm"
+                    >
+                      {/* Dismiss (local only) */}
+                      <button
+                        type="button"
+                        className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-white/80 text-muted-foreground backdrop-blur hover:text-foreground"
+                        aria-label="Dismiss suggestion"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setDismissedSuggestionIds((prev) => {
+                            const next = new Set(prev);
+                            next.add(u.id);
+                            return next;
+                          });
+                        }}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+
+                      <a
+                        href={`/profile/${u.id}`}
+                        className="block"
+                        onClick={() => setMobileSuggestionsOpen(false)}
+                      >
+                        <div className="flex flex-col items-center text-center">
+                          <Avatar className="h-12 w-12 border border-border">
+                            <AvatarImage src={avatar} alt={u.full_name || "User"} />
+                            <AvatarFallback className="text-xs">
+                              {(u.full_name || "U")
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")
+                                .slice(0, 2)
+                                .toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+
+                          <p className="mt-2 text-sm font-semibold text-foreground truncate w-full">
+                            {u.full_name || "User"}
+                          </p>
+
+                          <p className="mt-0.5 text-[11px] text-muted-foreground truncate w-full">
+                            Suggested for you
+                          </p>
+                        </div>
+                      </a>
+
+                      {onFollowSuggestedUser ? (
+                        <div className="mt-2">
+                          <Button
+                            size="sm"
+                            className="h-8 w-full rounded-xl bg-black text-white hover:bg-white hover:text-black hover:border-black"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              onFollowSuggestedUser(u.id);
+                            }}
+                          >
+                            Follow
+                          </Button>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ) : null}
       </div>
 
       <Dialog open={followDialogOpen} onOpenChange={setFollowDialogOpen}>
