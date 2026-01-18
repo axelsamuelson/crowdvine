@@ -4,10 +4,10 @@ import { supabaseServer } from "@/lib/supabase-server";
 
 export async function GET(
   _req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const targetId = params.id;
+    const { id: targetId } = await params;
     if (!targetId) {
       return NextResponse.json({ error: "Bad request" }, { status: 400 });
     }

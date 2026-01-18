@@ -4,10 +4,10 @@ import { getLevelInfo } from "@/lib/membership/points-engine";
 
 export async function GET(
   _request: Request,
-  context: { params: { id?: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const userId = context.params?.id;
+    const { id: userId } = await context.params;
     if (!userId) {
       return NextResponse.json({ error: "Missing user id" }, { status: 400 });
     }
