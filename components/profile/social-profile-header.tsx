@@ -9,6 +9,7 @@ import {
   UserMinus,
   MessageCircle,
   MoreHorizontal,
+  X,
 } from "lucide-react";
 import { LevelBadge } from "@/components/membership/level-badge";
 import { MembershipLevel } from "@/lib/membership/points-engine";
@@ -108,6 +109,15 @@ export function SocialProfileHeader({
   const [followersList, setFollowersList] = useState<any[] | null>(null);
   const [followingList, setFollowingList] = useState<any[] | null>(null);
   const [mobileSuggestionsOpen, setMobileSuggestionsOpen] = useState(false);
+  const [dismissedSuggestionIds, setDismissedSuggestionIds] = useState<
+    Set<string>
+  >(new Set());
+
+  const visibleSuggestedUsers = useMemo(() => {
+    if (!suggestedUsers?.length) return [];
+    if (dismissedSuggestionIds.size === 0) return suggestedUsers;
+    return suggestedUsers.filter((u) => u?.id && !dismissedSuggestionIds.has(u.id));
+  }, [suggestedUsers, dismissedSuggestionIds]);
 
   const openFollowDialog = (tab: "following" | "followers") => {
     setFollowTab(tab);
@@ -336,7 +346,7 @@ export function SocialProfileHeader({
               </p>
             ) : (
               <div className="flex gap-3 overflow-x-auto pb-2 pr-1 scrollbar-hide snap-x snap-mandatory">
-                {suggestedUsers.map((u) => {
+                {visibleSuggestedUsers.map((u) => {
                   const avatar =
                     u.avatar_image_path && u.avatar_image_path.startsWith("http")
                       ? u.avatar_image_path
@@ -347,16 +357,35 @@ export function SocialProfileHeader({
                   return (
                     <div
                       key={u.id}
-                      className="w-[240px] shrink-0 snap-start rounded-xl border border-border bg-white p-3 shadow-sm"
+                      className="relative w-[240px] shrink-0 snap-start rounded-2xl border border-border bg-white p-3 shadow-sm"
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <a
-                          href={`/profile/${u.id}`}
-                          className="flex items-start gap-3 min-w-0"
-                        >
-                          <Avatar className="h-10 w-10">
+                      {/* Dismiss (local only) */}
+                      <button
+                        type="button"
+                        className="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-white/80 text-muted-foreground backdrop-blur hover:text-foreground"
+                        aria-label="Dismiss suggestion"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setDismissedSuggestionIds((prev) => {
+                            const next = new Set(prev);
+                            next.add(u.id);
+                            return next;
+                          });
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+
+                      <a
+                        href={`/profile/${u.id}`}
+                        className="block"
+                        onClick={() => setMobileSuggestionsOpen(false)}
+                      >
+                        <div className="flex flex-col items-center text-center">
+                          <Avatar className="h-16 w-16 border border-border">
                             <AvatarImage src={avatar} alt={u.full_name || "User"} />
-                            <AvatarFallback className="text-xs">
+                            <AvatarFallback className="text-sm">
                               {(u.full_name || "U")
                                 .split(" ")
                                 .map((n) => n[0])
@@ -365,28 +394,40 @@ export function SocialProfileHeader({
                                 .toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-foreground truncate">
-                              {u.full_name || "User"}
-                            </p>
-                            {u.description ? (
-                              <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
-                                {u.description}
-                              </p>
-                            ) : null}
-                          </div>
-                        </a>
 
-                        {onFollowSuggestedUser ? (
+                          <p className="mt-3 text-sm font-semibold text-foreground truncate w-full">
+                            {u.full_name || "User"}
+                          </p>
+
+                          <p className="mt-1 text-[11px] text-muted-foreground truncate w-full">
+                            Suggested for you
+                          </p>
+
+                          {u.description ? (
+                            <p className="mt-2 text-xs text-muted-foreground line-clamp-2">
+                              {u.description}
+                            </p>
+                          ) : (
+                            <div className="h-8" />
+                          )}
+                        </div>
+                      </a>
+
+                      {onFollowSuggestedUser ? (
+                        <div className="mt-3">
                           <Button
                             size="sm"
-                            className="h-8 rounded-full bg-black text-white hover:bg-white hover:text-black hover:border-black"
-                            onClick={() => onFollowSuggestedUser(u.id)}
+                            className="w-full rounded-xl bg-black text-white hover:bg-white hover:text-black hover:border-black"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              onFollowSuggestedUser(u.id);
+                            }}
                           >
                             Follow
                           </Button>
-                        ) : null}
-                      </div>
+                        </div>
+                      ) : null}
                     </div>
                   );
                 })}
