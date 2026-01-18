@@ -70,6 +70,7 @@ export function PalletDetails({ pallet }: PalletDetailsProps) {
             size="sm"
             onClick={() => setIsExpanded(!isExpanded)}
             className="p-1"
+            type="button"
           >
             {isExpanded ? (
               <ChevronUp className="w-4 h-4" />
