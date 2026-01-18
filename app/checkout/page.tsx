@@ -855,92 +855,106 @@ function CheckoutContent() {
             {/* Step 1: Bottles */}
             {(step === 1 || step === 3) && (
               <Card className="p-6 bg-white border border-gray-200 rounded-2xl">
-              <AppleImageCarousel
-                images={carouselImages}
-                alt="Your reservation"
-              />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                  {/* Left: Image */}
+                  <div className="md:sticky md:top-6">
+                    <AppleImageCarousel
+                      images={carouselImages}
+                      alt="Your reservation"
+                    />
+                  </div>
 
-              <div className="flex items-baseline justify-between gap-4 mb-4">
-                <div>
-                  <h2 className="text-2xl font-medium text-gray-900">
-                    Your bottles
-                  </h2>
-                  <p className="text-gray-500">
-                    {cart?.totalQuantity} bottle
-                    {cart?.totalQuantity === 1 ? "" : "s"} reserved
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                {cart?.lines?.map((line) => {
-                  const pricePerBottle = parseFloat(
-                    line.merchandise.product.priceRange.minVariantPrice.amount,
-                  );
-                  const totalForLine = pricePerBottle * line.quantity;
-
-                  return (
-                    <div
-                      key={line.id}
-                      className="flex justify-between text-sm"
-                    >
-                      <span className="text-gray-600">
-                        {line.merchandise.title} × {line.quantity}
-                      </span>
-                      <MemberPrice
-                        amount={totalForLine}
-                        currencyCode={
-                          line.merchandise.product.priceRange.minVariantPrice
-                            .currencyCode
-                        }
-                        className="text-gray-900 font-medium text-sm"
-                      />
+                  {/* Right: Text */}
+                  <div className="min-w-0">
+                    <div className="flex items-baseline justify-between gap-4 mb-4">
+                      <div className="min-w-0">
+                        <h2 className="text-2xl font-medium text-gray-900">
+                          Your bottles
+                        </h2>
+                        <p className="text-gray-500">
+                          {cart?.totalQuantity} bottle
+                          {cart?.totalQuantity === 1 ? "" : "s"} reserved
+                        </p>
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
 
-              <div className="border-t border-gray-200 pt-6 mt-6">
-                <div className="flex justify-between mb-2">
-                  <span className="text-gray-500">Shipping</span>
-                  <span className="font-medium text-gray-900">
-                    {shippingCost ? (
-                      formatShippingCost(shippingCost.totalShippingCostCents)
-                    ) : (
-                      <span className="text-gray-400">No pallet selected</span>
-                    )}
-                  </span>
-                </div>
+                    <div className="space-y-3">
+                      {cart?.lines?.map((line) => {
+                        const pricePerBottle = parseFloat(
+                          line.merchandise.product.priceRange.minVariantPrice
+                            .amount,
+                        );
+                        const totalForLine = pricePerBottle * line.quantity;
 
-                {progressionBuffDiscountAmount > 0 && (
-                  <div className="flex justify-between mb-2">
-                    <span className="text-amber-700">
-                      Progress bonus ({totalBuffPercentage.toFixed(1)}%)
-                    </span>
-                    <span className="font-medium text-amber-700">
-                      -{Math.round(progressionBuffDiscountAmount)} {currencyCode}
-                    </span>
+                        return (
+                          <div
+                            key={line.id}
+                            className="flex justify-between text-sm gap-4"
+                          >
+                            <span className="text-gray-600 min-w-0 truncate">
+                              {line.merchandise.title} × {line.quantity}
+                            </span>
+                            <MemberPrice
+                              amount={totalForLine}
+                              currencyCode={
+                                line.merchandise.product.priceRange
+                                  .minVariantPrice.currencyCode
+                              }
+                              className="text-gray-900 font-medium text-sm whitespace-nowrap"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="border-t border-gray-200 pt-6 mt-6">
+                      <div className="flex justify-between mb-2">
+                        <span className="text-gray-500">Shipping</span>
+                        <span className="font-medium text-gray-900">
+                          {shippingCost ? (
+                            formatShippingCost(
+                              shippingCost.totalShippingCostCents,
+                            )
+                          ) : (
+                            <span className="text-gray-400">
+                              No pallet selected
+                            </span>
+                          )}
+                        </span>
+                      </div>
+
+                      {progressionBuffDiscountAmount > 0 && (
+                        <div className="flex justify-between mb-2">
+                          <span className="text-amber-700">
+                            Progress bonus ({totalBuffPercentage.toFixed(1)}%)
+                          </span>
+                          <span className="font-medium text-amber-700">
+                            -{Math.round(progressionBuffDiscountAmount)}{" "}
+                            {currencyCode}
+                          </span>
+                        </div>
+                      )}
+
+                      {useRewards && selectedRewards.length > 0 && (
+                        <div className="flex justify-between mb-2">
+                          <span className="text-gray-500">
+                            Rewards ({selectedRewards.length})
+                          </span>
+                          <span className="font-medium text-gray-900">
+                            -{Math.round(rewardsDiscountAmount)} {currencyCode}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between items-center border-t border-gray-200 pt-4 mt-2">
+                        <span className="text-lg font-medium">Total</span>
+                        <span className="text-xl font-medium">
+                          {Math.round(total)} {currencyCode}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                )}
-
-                {useRewards && selectedRewards.length > 0 && (
-                  <div className="flex justify-between mb-2">
-                    <span className="text-gray-500">
-                      Rewards ({selectedRewards.length})
-                    </span>
-                    <span className="font-medium text-gray-900">
-                      -{Math.round(rewardsDiscountAmount)} {currencyCode}
-                    </span>
-                  </div>
-                )}
-
-                <div className="flex justify-between items-center border-t border-gray-200 pt-4 mt-2">
-                  <span className="text-lg font-medium">Total</span>
-                  <span className="text-xl font-medium">
-                    {Math.round(total)} {currencyCode}
-                  </span>
                 </div>
-              </div>
               </Card>
             )}
 
