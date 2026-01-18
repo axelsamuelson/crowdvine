@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 interface ImageCarouselProps {
   images: string[];
@@ -35,8 +36,9 @@ export function AppleImageCarousel({ images, alt }: ImageCarouselProps) {
   if (safeImages.length === 0) return null;
 
   return (
-    <div className="relative w-full h-64 mb-6">
-      <div className="relative w-full h-full overflow-hidden">
+    <div className="relative w-full mb-6">
+      <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-b from-white to-gray-50">
+        <AspectRatio ratio={16 / 10}>
         {safeImages.map((src, index) => (
           <div
             key={`${src}-${index}`}
@@ -46,15 +48,18 @@ export function AppleImageCarousel({ images, alt }: ImageCarouselProps) {
                 : "opacity-0 pointer-events-none"
             }`}
           >
+            {/* Subtle backplate so bottle shots don't feel "boxed" */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(0,0,0,0.06),transparent_55%)]" />
             <Image
               src={src || "/placeholder.svg"}
               alt={`${alt} - View ${index + 1}`}
               fill
-              className="object-contain"
+              className="object-contain p-6 md:p-10"
               priority={index === 0}
             />
           </div>
         ))}
+        </AspectRatio>
       </div>
 
       {safeImages.length > 1 && (
@@ -62,7 +67,7 @@ export function AppleImageCarousel({ images, alt }: ImageCarouselProps) {
           <Button
             variant="outline"
             size="icon"
-            className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-white/80 hover:bg-white"
+            className="absolute left-3 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-white/85 hover:bg-white shadow-sm"
             onClick={goToPrevious}
             aria-label="Previous image"
             type="button"
@@ -73,7 +78,7 @@ export function AppleImageCarousel({ images, alt }: ImageCarouselProps) {
           <Button
             variant="outline"
             size="icon"
-            className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-white/80 hover:bg-white"
+            className="absolute right-3 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-white/85 hover:bg-white shadow-sm"
             onClick={goToNext}
             aria-label="Next image"
             type="button"
@@ -81,7 +86,7 @@ export function AppleImageCarousel({ images, alt }: ImageCarouselProps) {
             <ChevronRight className="h-4 w-4" />
           </Button>
 
-          <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5">
+          <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
             {safeImages.map((_, index) => (
               <button
                 key={index}
