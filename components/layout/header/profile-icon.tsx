@@ -85,17 +85,15 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
     );
   }
 
-  // Don't show if not authenticated
-  if (!isAuthenticated) {
-    return null;
-  }
-
   return (
     <div className="relative inline-block">
       <button
         type="button"
-        className={`p-2 hover:bg-background/20 transition-colors rounded-md relative ${className}`}
+        className={`p-2 transition-colors rounded-md relative ${className} ${
+          isAuthenticated ? "hover:bg-background/20" : "hover:bg-background/10 opacity-80"
+        }`}
         onClick={handleClick}
+        aria-label="Profile"
       >
         <div className="relative">
           <User className={sizeClasses[size]} />

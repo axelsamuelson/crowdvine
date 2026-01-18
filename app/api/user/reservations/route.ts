@@ -99,6 +99,8 @@ export async function GET() {
             grape_varieties,
             color,
             base_price_cents
+            ,
+            producers(name)
           )
         `,
           )
@@ -114,6 +116,7 @@ export async function GET() {
             grape_varieties: item.wines?.grape_varieties || null,
             color: item.wines?.color || null,
             price_per_bottle_cents: item.wines?.base_price_cents || 0,
+            producer_name: item.wines?.producers?.name || null,
             total_cost_cents:
               (item.wines?.base_price_cents || 0) * item.quantity,
           })) || [];

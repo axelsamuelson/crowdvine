@@ -55,20 +55,37 @@ export async function PUT(request: Request) {
     const sb = getSupabaseAdmin();
     const body = await request.json();
 
-    const { full_name, phone, address, city, postal_code, country } = body;
+    const {
+      full_name,
+      phone,
+      address,
+      city,
+      postal_code,
+      country,
+      description,
+      avatar_image_path,
+      cover_image_path,
+    } = body;
 
-    // Update profile
+    const updatePayload: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (full_name !== undefined) updatePayload.full_name = full_name;
+    if (phone !== undefined) updatePayload.phone = phone;
+    if (address !== undefined) updatePayload.address = address;
+    if (city !== undefined) updatePayload.city = city;
+    if (postal_code !== undefined) updatePayload.postal_code = postal_code;
+    if (country !== undefined) updatePayload.country = country;
+    if (description !== undefined) updatePayload.description = description;
+    if (avatar_image_path !== undefined)
+      updatePayload.avatar_image_path = avatar_image_path;
+    if (cover_image_path !== undefined)
+      updatePayload.cover_image_path = cover_image_path;
+
     const { data, error } = await sb
       .from("profiles")
-      .update({
-        full_name,
-        phone,
-        address,
-        city,
-        postal_code,
-        country,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq("id", user.id)
       .select()
       .single();

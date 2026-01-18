@@ -1,0 +1,17 @@
+# Ignorera node_modules om någon designreferens inkluderar dem
+node_modules/
+.next/
+dist/
+build/
+
+# Men behåll källkoden
+!**/*.tsx
+!**/*.ts
+!**/*.jsx
+!**/*.js
+!**/*.css
+!**/*.md
+
+
+
+
