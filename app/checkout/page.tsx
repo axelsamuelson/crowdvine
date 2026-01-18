@@ -89,6 +89,7 @@ function CheckoutContent() {
   const [userRewards, setUserRewards] = useState<UserReward[]>([]);
   const [selectedRewards, setSelectedRewards] = useState<UserReward[]>([]);
   const [useRewards, setUseRewards] = useState(false);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
 
   // v2: Progression buffs state
   const [progressionBuffs, setProgressionBuffs] = useState<any[]>([]);
@@ -667,6 +668,58 @@ function CheckoutContent() {
     };
   }, []);
 
+  const canProceedToPayment = useCallback(() => {
+    if (!hasProfileInfo) {
+      toast.error("Please add your customer information first.");
+      return false;
+    }
+    if (!hasCompleteProfileAddress) {
+      toast.error("Please add a delivery address first.");
+      return false;
+    }
+    if (!zoneInfo.selectedDeliveryZoneId) {
+      toast.error(
+        "No delivery zone matches your address. Please contact support or try a different address.",
+      );
+      return false;
+    }
+    if (zoneInfo.pallets && zoneInfo.pallets.length > 0 && !selectedPallet) {
+      toast.error(
+        "No suitable pallet found for your location. Please contact support.",
+      );
+      return false;
+    }
+    return true;
+  }, [
+    hasCompleteProfileAddress,
+    hasProfileInfo,
+    selectedPallet,
+    zoneInfo.pallets,
+    zoneInfo.selectedDeliveryZoneId,
+  ]);
+
+  const goToStep = useCallback(
+    (nextStep: 1 | 2 | 3) => {
+      // Always allow going backwards
+      if (nextStep <= step) {
+        setStep(nextStep);
+        return;
+      }
+
+      // Forward guards
+      if (step === 1 && nextStep === 2) {
+        setStep(2);
+        return;
+      }
+      if (step === 2 && nextStep === 3) {
+        if (zoneLoading) return;
+        if (!canProceedToPayment()) return;
+        setStep(3);
+      }
+    },
+    [canProceedToPayment, step, zoneLoading],
+  );
+
   // IMPORTANT: keep these conditional returns AFTER all hooks above to preserve hook order
   if (loading) {
     return (
@@ -711,9 +764,81 @@ function CheckoutContent() {
           </p>
         </div>
 
+        {/* Stepper */}
+        <div className="flex items-center justify-between gap-3">
+          {[
+            { n: 1 as const, title: "Bottles" },
+            { n: 2 as const, title: "Delivery" },
+            { n: 3 as const, title: "Payment" },
+          ].map((s) => {
+            const isActive = step === s.n;
+            const isComplete = step > s.n;
+            return (
+              <button
+                key={s.n}
+                type="button"
+                onClick={() => goToStep(s.n)}
+                className={[
+                  "flex-1 rounded-2xl border px-4 py-3 text-left transition-colors",
+                  isActive
+                    ? "border-gray-900 bg-white"
+                    : "border-gray-200 bg-white/60 hover:bg-white",
+                ].join(" ")}
+                aria-current={isActive ? "step" : undefined}
+              >
+                <div className="flex items-center gap-2">
+                  <div
+                    className={[
+                      "h-7 w-7 rounded-full flex items-center justify-center text-sm font-medium",
+                      isComplete
+                        ? "bg-gray-900 text-white"
+                        : isActive
+                          ? "bg-gray-900 text-white"
+                          : "bg-gray-100 text-gray-600",
+                    ].join(" ")}
+                  >
+                    {s.n}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-gray-900">
+                      {s.title}
+                    </div>
+                    <div className="text-xs text-gray-500 truncate">
+                      {s.n === 1
+                        ? "Review items"
+                        : s.n === 2
+                          ? "Address, zones, pallet"
+                          : "Confirm & reserve"}
+                    </div>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {step > 1 && (
+          <div className="flex items-center justify-start">
+            <Button
+              variant="ghost"
+              size="sm"
+              type="button"
+              onClick={() => goToStep((step - 1) as 1 | 2 | 3)}
+              className="px-0"
+            >
+              Back
+            </Button>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left column */}
-          <div className="space-y-6">
+          <div
+            className={[
+              "space-y-6",
+              step === 1 ? "lg:col-span-2" : "",
+            ].join(" ")}
+          >
             {progressionBuffs.length > 0 && (
               <ProgressionBuffDisplay
                 totalBuffPercentage={totalBuffPercentage}
@@ -727,7 +852,9 @@ function CheckoutContent() {
               />
             )}
 
-            <Card className="p-6 bg-white border border-gray-200 rounded-2xl">
+            {/* Step 1: Bottles */}
+            {(step === 1 || step === 3) && (
+              <Card className="p-6 bg-white border border-gray-200 rounded-2xl">
               <AppleImageCarousel
                 images={carouselImages}
                 alt="Your reservation"
@@ -814,61 +941,66 @@ function CheckoutContent() {
                   </span>
                 </div>
               </div>
-            </Card>
+              </Card>
+            )}
 
-            <Card className="p-6 bg-white border border-gray-200 rounded-2xl">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Delivery Address
-              </h3>
-              {!hasCompleteProfileAddress ? (
-                <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-                  <MapPin className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-                  <h4 className="text-sm font-semibold text-gray-900 mb-1">
-                    Add delivery address
-                  </h4>
-                  <p className="text-xs text-gray-600 mb-4">
-                    Address required to continue
-                  </p>
-                  <ProfileInfoModal onProfileSaved={handleProfileSaved} />
-                </div>
-              ) : (
-                <div className="flex items-start justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-gray-900">
-                      {profile?.address}
+            {/* Step 2: Delivery */}
+            {step === 2 && (
+              <Card className="p-6 bg-white border border-gray-200 rounded-2xl">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  Delivery Address
+                </h3>
+                {!hasCompleteProfileAddress ? (
+                  <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                    <MapPin className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+                    <h4 className="text-sm font-semibold text-gray-900 mb-1">
+                      Add delivery address
+                    </h4>
+                    <p className="text-xs text-gray-600 mb-4">
+                      Address required to continue
                     </p>
-                    <p className="text-xs text-gray-600">
-                      {profile?.postal_code} {profile?.city}
-                    </p>
-                    <p className="text-xs text-gray-600">
-                      {profile?.country || "Sweden"}
-                    </p>
+                    <ProfileInfoModal onProfileSaved={handleProfileSaved} />
                   </div>
-                  <ProfileInfoModal
-                    onProfileSaved={handleProfileSaved}
-                    trigger={
-                      <Button variant="outline" size="sm" className="text-xs">
-                        Change
-                      </Button>
-                    }
-                  />
-                </div>
-              )}
-            </Card>
+                ) : (
+                  <div className="flex items-start justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-gray-900">
+                        {profile?.address}
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        {profile?.postal_code} {profile?.city}
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        {profile?.country || "Sweden"}
+                      </p>
+                    </div>
+                    <ProfileInfoModal
+                      onProfileSaved={handleProfileSaved}
+                      trigger={
+                        <Button variant="outline" size="sm" className="text-xs">
+                          Change
+                        </Button>
+                      }
+                    />
+                  </div>
+                )}
+              </Card>
+            )}
           </div>
 
           {/* Right column */}
-          <div className="space-y-6">
+          <div className={step === 1 ? "hidden" : "space-y-6"}>
             <Card className="p-6 bg-white border border-gray-200 rounded-2xl">
               <form
                 ref={formRef}
                 onSubmit={handleSubmit}
                 className="space-y-8"
               >
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">
-                    Customer information
-                  </h3>
+                {step >= 2 && (
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">
+                      Customer information
+                    </h3>
                 {!hasProfileInfo ? (
                     <div className="text-center py-4">
                     <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
@@ -903,14 +1035,16 @@ function CheckoutContent() {
                     />
                     </div>
                   )}
-                </div>
+                  </div>
+                )}
 
-                <div className="border-t border-gray-200" />
+                {step >= 2 && <div className="border-t border-gray-200" />}
 
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    Delivery zones
-                  </h3>
+                {step === 2 && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      Delivery zones
+                    </h3>
 
                   {zoneLoading && (
                     <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
@@ -999,14 +1133,16 @@ function CheckoutContent() {
                       </Button>
                     </div>
                   ) : null}
-                </div>
+                  </div>
+                )}
 
-                <div className="border-t border-gray-200" />
+                {step === 2 && <div className="border-t border-gray-200" />}
 
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    Selected pallet
-                  </h3>
+                {step === 2 && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      Selected pallet
+                    </h3>
 
                   {zoneLoading ? (
                     <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
@@ -1045,7 +1181,8 @@ function CheckoutContent() {
                       </p>
                     </div>
                   ) : null}
-                </div>
+                  </div>
+                )}
 
               {/* Rewards Toggle */}
               {availableRewards.length > 0 && (
@@ -1184,12 +1321,13 @@ function CheckoutContent() {
             </Card>
               )}
 
-                <div className="border-t border-gray-200" />
+                {step === 3 && <div className="border-t border-gray-200" />}
 
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">
-                    Payment
-                  </h3>
+                {step === 3 && (
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">
+                      Payment
+                    </h3>
                   <div className="text-center py-6 bg-gray-50 rounded-xl border border-gray-200">
                     <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <Check className="w-8 h-8 text-green-600" />
@@ -1214,10 +1352,11 @@ function CheckoutContent() {
                       </p>
                     </div>
                   </div>
-                </div>
+                  </div>
+                )}
 
               {/* Submit Button or Validation Warning */}
-              {!isValidCart ? (
+              {step === 3 && !isValidCart ? (
                 <div className="space-y-4">
                   {/* Header - Clear blocked state */}
                   <div className="flex items-center gap-2 pb-2 border-b border-red-200">
@@ -1271,7 +1410,7 @@ function CheckoutContent() {
                       })}
                   </div>
                 </div>
-              ) : (
+              ) : step === 3 ? (
             <Button
               type="submit"
                   className="w-full bg-black hover:bg-black/90 text-white border-black rounded-full"
@@ -1287,7 +1426,7 @@ function CheckoutContent() {
                     "Place Reservation"
                   )}
             </Button>
-              )}
+              ) : null}
               </form>
             </Card>
           </div>
@@ -1299,9 +1438,23 @@ function CheckoutContent() {
       totalLabel="Total"
       totalValue={`${Math.round(total)} ${currencyCode}`}
       lines={stickyLines}
-      ctaLabel={!isValidCart ? "Fix order" : "Place reservation"}
-      disabled={zoneLoading || !isValidCart}
-      onCheckout={() => formRef.current?.requestSubmit()}
+      ctaLabel={
+        step === 1
+          ? "Continue"
+          : step === 2
+            ? "Continue to payment"
+            : !isValidCart
+              ? "Fix order"
+              : "Place reservation"
+      }
+      disabled={
+        zoneLoading || (step === 3 && !isValidCart) || (step === 2 && zoneLoading)
+      }
+      onCheckout={() => {
+        if (step === 1) return goToStep(2);
+        if (step === 2) return goToStep(3);
+        return formRef.current?.requestSubmit();
+      }}
     />
     </>
   );
