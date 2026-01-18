@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentUser } from "@/lib/auth";
+import { supabaseServer } from "@/lib/supabase-server";
 
 function shuffleInPlace<T>(arr: T[]) {
   for (let i = arr.length - 1; i > 0; i--) {
@@ -16,14 +17,25 @@ function shuffleInPlace<T>(arr: T[]) {
  * - Never includes users the current user already follows
  * - Shuffles results so the list changes over time
  */
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const sb = getSupabaseAdmin();
+    const url = new URL(request.url);
+    const limitRaw = Number(url.searchParams.get("limit") || "6");
+    const limit = Number.isFinite(limitRaw)
+      ? Math.max(1, Math.min(50, Math.floor(limitRaw)))
+      : 6;
+
+    let sb;
+    try {
+      sb = getSupabaseAdmin();
+    } catch {
+      sb = await supabaseServer();
+    }
 
     // Fetch a bigger pool and shuffle, then filter out already-followed.
     const { data: users, error } = await sb
@@ -49,7 +61,7 @@ export async function GET() {
 
       if (followErr?.code === "PGRST205") {
         // Followers table missing; return shuffled pool without follow flag.
-        return NextResponse.json({ users: shuffleInPlace(pool).slice(0, 6) });
+        return NextResponse.json({ users: shuffleInPlace(pool).slice(0, limit) });
       }
 
       if (!followErr && followingRows) {
@@ -63,7 +75,7 @@ export async function GET() {
 
     shuffleInPlace(notFollowing);
 
-    return NextResponse.json({ users: notFollowing.slice(0, 6) });
+    return NextResponse.json({ users: notFollowing.slice(0, limit) });
   } catch (error) {
     console.error("Error fetching user suggestions:", error);
     return NextResponse.json(

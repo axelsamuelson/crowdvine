@@ -391,8 +391,15 @@ export function SocialProfileHeader({
           <div className="mt-4 sm:hidden">
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-semibold text-foreground">
-                You might like
+                Other PACTers to follow
               </p>
+              <a
+                href="/profile/suggestions"
+                className="text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+                onClick={() => setMobileSuggestionsOpen(false)}
+              >
+                Show all
+              </a>
               {suggestionsError ? (
                 <p className="text-xs text-red-600">{suggestionsError}</p>
               ) : null}

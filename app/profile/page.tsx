@@ -1215,9 +1215,19 @@ export default function ProfilePage() {
                 )}
               </div>
 
-            {/* You might like (desktop/sidebar) */}
+            {/* Suggestions (desktop/sidebar) */}
             <div className="hidden lg:block rounded-xl border border-border bg-white p-4 shadow-sm space-y-3">
-              <h3 className="text-sm font-semibold text-foreground">You might like</h3>
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold text-foreground">
+                  Other PACTers to follow
+                </h3>
+                <Link
+                  href="/profile/suggestions"
+                  className="text-xs text-muted-foreground hover:text-foreground hover:underline underline-offset-4"
+                >
+                  Show all
+                </Link>
+              </div>
               <div className="space-y-1">
                 {loadingSuggestions && (
                   <div className="px-2 py-2 text-xs text-muted-foreground">Loading...</div>
