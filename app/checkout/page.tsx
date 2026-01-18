@@ -976,7 +976,7 @@ function CheckoutContent() {
 
             {/* Step 2: Delivery */}
             {step === 2 && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-6">
                 {/* Customer info */}
                 <Card className="p-6 bg-white border border-gray-200 rounded-2xl">
                   <h3 className="text-lg font-medium text-gray-900 mb-4">
