@@ -1445,6 +1445,24 @@ function CheckoutContent() {
             </Card>
           </div>
         </div>
+
+        {/* Desktop/inline Next button (explicit) */}
+        {(step === 1 || step === 2) && (
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              size="lg"
+              className="bg-black hover:bg-black/90 text-white rounded-full px-10"
+              disabled={zoneLoading}
+              onClick={() => {
+                if (step === 1) return goToStep(2);
+                return goToStep(3);
+              }}
+            >
+              Next
+            </Button>
+          </div>
+        )}
       </div>
     </main>
 
