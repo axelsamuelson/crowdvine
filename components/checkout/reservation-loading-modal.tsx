@@ -1,6 +1,7 @@
 "use client";
 
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { motion } from "framer-motion";
 
 interface ReservationLoadingModalProps {
@@ -16,6 +17,9 @@ export function ReservationLoadingModal({
         className="max-w-md border border-gray-200 shadow-2xl bg-white"
         aria-describedby="reservation-loading-description"
       >
+        <VisuallyHidden.Root>
+          <DialogTitle>Confirming reservation</DialogTitle>
+        </VisuallyHidden.Root>
         <div className="text-center py-12 px-6">
           {/* Minimalist Wine Bottle Animation */}
           <motion.div
