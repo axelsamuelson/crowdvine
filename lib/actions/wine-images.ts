@@ -4,8 +4,6 @@ import { supabaseServer } from "@/lib/supabase-server";
 import { revalidatePath } from "next/cache";
 import type { WineImage, CreateWineImageData } from "@/lib/types/wine-images";
 
-export type { WineImage, CreateWineImageData };
-
 export async function getWineImages(wineId: string): Promise<WineImage[]> {
   const sb = await supabaseServer();
 
