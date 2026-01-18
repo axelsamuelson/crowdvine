@@ -60,6 +60,17 @@ interface SocialProfileHeaderProps {
   onUnfollow?: () => void;
   onMessage?: () => void;
   onSettings?: () => void;
+
+  // Suggestions (mobile UX)
+  suggestedUsers?: Array<{
+    id: string;
+    full_name?: string;
+    avatar_image_path?: string;
+    description?: string;
+  }>;
+  suggestionsLoading?: boolean;
+  suggestionsError?: string | null;
+  onFollowSuggestedUser?: (userId: string) => void;
 }
 
 export function SocialProfileHeader({
@@ -81,6 +92,10 @@ export function SocialProfileHeader({
   onSettings,
   membershipLevel,
   membershipLabel,
+  suggestedUsers = [],
+  suggestionsLoading = false,
+  suggestionsError = null,
+  onFollowSuggestedUser,
 }: SocialProfileHeaderProps) {
   const [isCurrentlyFollowing, setIsCurrentlyFollowing] = useState(isFollowing);
   const [followDialogOpen, setFollowDialogOpen] = useState(false);
@@ -92,6 +107,7 @@ export function SocialProfileHeader({
   const [listError, setListError] = useState<string | null>(null);
   const [followersList, setFollowersList] = useState<any[] | null>(null);
   const [followingList, setFollowingList] = useState<any[] | null>(null);
+  const [mobileSuggestionsOpen, setMobileSuggestionsOpen] = useState(false);
 
   const openFollowDialog = (tab: "following" | "followers") => {
     setFollowTab(tab);
@@ -202,6 +218,21 @@ export function SocialProfileHeader({
           <div className="mt-3 flex items-center gap-2">
             {isOwnProfile ? (
               <>
+                {/* Mobile: quick suggestions */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "sm:hidden rounded-full border border-border hover:bg-muted",
+                    mobileSuggestionsOpen && "bg-muted",
+                  )}
+                  onClick={() => setMobileSuggestionsOpen((v) => !v)}
+                  aria-label="People you might like"
+                >
+                  <UserPlus className="h-4 w-4" />
+                </Button>
+
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
@@ -280,6 +311,89 @@ export function SocialProfileHeader({
             )}
           </div>
         </div>
+
+        {/* Mobile-only: swipe carousel for "You might like" */}
+        {isOwnProfile && mobileSuggestionsOpen ? (
+          <div className="mt-4 sm:hidden">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-semibold text-foreground">
+                You might like
+              </p>
+              {suggestionsError ? (
+                <p className="text-xs text-red-600">{suggestionsError}</p>
+              ) : null}
+            </div>
+
+            {suggestionsLoading ? (
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                <Skeleton className="h-[72px] w-[220px] rounded-xl shrink-0" />
+                <Skeleton className="h-[72px] w-[220px] rounded-xl shrink-0" />
+                <Skeleton className="h-[72px] w-[220px] rounded-xl shrink-0" />
+              </div>
+            ) : suggestedUsers.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                No suggestions right now.
+              </p>
+            ) : (
+              <div className="flex gap-3 overflow-x-auto pb-2 pr-1 scrollbar-hide snap-x snap-mandatory">
+                {suggestedUsers.map((u) => {
+                  const avatar =
+                    u.avatar_image_path && u.avatar_image_path.startsWith("http")
+                      ? u.avatar_image_path
+                      : u.avatar_image_path
+                        ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${u.avatar_image_path}`
+                        : "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f464.svg";
+
+                  return (
+                    <div
+                      key={u.id}
+                      className="w-[240px] shrink-0 snap-start rounded-xl border border-border bg-white p-3 shadow-sm"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <a
+                          href={`/profile/${u.id}`}
+                          className="flex items-start gap-3 min-w-0"
+                        >
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={avatar} alt={u.full_name || "User"} />
+                            <AvatarFallback className="text-xs">
+                              {(u.full_name || "U")
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")
+                                .slice(0, 2)
+                                .toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-foreground truncate">
+                              {u.full_name || "User"}
+                            </p>
+                            {u.description ? (
+                              <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
+                                {u.description}
+                              </p>
+                            ) : null}
+                          </div>
+                        </a>
+
+                        {onFollowSuggestedUser ? (
+                          <Button
+                            size="sm"
+                            className="h-8 rounded-full bg-black text-white hover:bg-white hover:text-black hover:border-black"
+                            onClick={() => onFollowSuggestedUser(u.id)}
+                          >
+                            Follow
+                          </Button>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ) : null}
 
         {/* User Info */}
         <div className="mt-3">

@@ -816,6 +816,10 @@ export default function ProfilePage() {
               onSettings={handleSettings}
               membershipLevel={membershipData.membership.level}
               membershipLabel={membershipData.levelInfo.name}
+              suggestedUsers={suggestedUsers}
+              suggestionsLoading={loadingSuggestions}
+              suggestionsError={suggestionsError}
+              onFollowSuggestedUser={(id) => toggleFollowUser(id, false)}
             />
 
             {/* Profile Tabs */}
@@ -1211,8 +1215,8 @@ export default function ProfilePage() {
                 )}
               </div>
 
-            {/* You might like */}
-            <div className="rounded-xl border border-border bg-white p-4 shadow-sm space-y-3">
+            {/* You might like (desktop/sidebar) */}
+            <div className="hidden lg:block rounded-xl border border-border bg-white p-4 shadow-sm space-y-3">
               <h3 className="text-sm font-semibold text-foreground">You might like</h3>
               <div className="space-y-1">
                 {loadingSuggestions && (
