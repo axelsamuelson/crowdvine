@@ -976,45 +976,99 @@ function CheckoutContent() {
 
             {/* Step 2: Delivery */}
             {step === 2 && (
-              <Card className="p-6 bg-white border border-gray-200 rounded-2xl">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">
-                  Delivery Address
-                </h3>
-                {!hasCompleteProfileAddress ? (
-                  <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-                    <MapPin className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-                    <h4 className="text-sm font-semibold text-gray-900 mb-1">
-                      Add delivery address
-                    </h4>
-                    <p className="text-xs text-gray-600 mb-4">
-                      Address required to continue
-                    </p>
-                    <ProfileInfoModal onProfileSaved={handleProfileSaved} />
-                  </div>
-                ) : (
-                  <div className="flex items-start justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-gray-900">
-                        {profile?.address}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Customer info */}
+                <Card className="p-6 bg-white border border-gray-200 rounded-2xl">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    Customer information
+                  </h3>
+                  {!hasProfileInfo ? (
+                    <div className="text-center py-4">
+                      <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
+                      <p className="text-gray-600 mb-4">
+                        Profile information missing
                       </p>
-                      <p className="text-xs text-gray-600">
-                        {profile?.postal_code} {profile?.city}
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        {profile?.country || "Sweden"}
-                      </p>
+                      <ProfileInfoModal onProfileSaved={handleProfileSaved} />
                     </div>
-                    <ProfileInfoModal
-                      onProfileSaved={handleProfileSaved}
-                      trigger={
-                        <Button variant="outline" size="sm" className="text-xs">
-                          Change
-                        </Button>
-                      }
-                    />
-                  </div>
-                )}
-              </Card>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4 text-gray-500" />
+                        <span className="font-medium">{profile.full_name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-4 h-4" />
+                        <span className="text-gray-600">{profile.email}</span>
+                      </div>
+                      {profile.phone && (
+                        <div className="flex items-center gap-2">
+                          <span className="w-4 h-4" />
+                          <span className="text-gray-600">{profile.phone}</span>
+                        </div>
+                      )}
+                      <ProfileInfoModal
+                        onProfileSaved={handleProfileSaved}
+                        trigger={
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-2"
+                            type="button"
+                          >
+                            Edit Profile
+                          </Button>
+                        }
+                      />
+                    </div>
+                  )}
+                </Card>
+
+                {/* Delivery address */}
+                <Card className="p-6 bg-white border border-gray-200 rounded-2xl">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    Delivery Address
+                  </h3>
+                  {!hasCompleteProfileAddress ? (
+                    <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                      <MapPin className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+                      <h4 className="text-sm font-semibold text-gray-900 mb-1">
+                        Add delivery address
+                      </h4>
+                      <p className="text-xs text-gray-600 mb-4">
+                        Address required to continue
+                      </p>
+                      <ProfileInfoModal onProfileSaved={handleProfileSaved} />
+                    </div>
+                  ) : (
+                    <div className="flex items-start justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-gray-900">
+                          {profile?.address}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          {profile?.postal_code} {profile?.city}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          {profile?.country || "Sweden"}
+                        </p>
+                      </div>
+                      <ProfileInfoModal
+                        onProfileSaved={handleProfileSaved}
+                        trigger={
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs"
+                            type="button"
+                          >
+                            Change
+                          </Button>
+                        }
+                      />
+                    </div>
+                  )}
+                </Card>
+              </div>
             )}
           </div>
 
@@ -1026,50 +1080,6 @@ function CheckoutContent() {
                 onSubmit={handleSubmit}
                 className="space-y-8"
               >
-                {step >= 2 && (
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">
-                      Customer information
-                    </h3>
-                {!hasProfileInfo ? (
-                    <div className="text-center py-4">
-                    <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
-                        <p className="text-gray-600 mb-4">
-                          Profile information missing
-                        </p>
-                    <ProfileInfoModal onProfileSaved={handleProfileSaved} />
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-gray-500" />
-                      <span className="font-medium">{profile.full_name}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-4 h-4"></span>
-                      <span className="text-gray-600">{profile.email}</span>
-                    </div>
-                    {profile.phone && (
-                      <div className="flex items-center gap-2">
-                        <span className="w-4 h-4"></span>
-                        <span className="text-gray-600">{profile.phone}</span>
-                      </div>
-                    )}
-                    <ProfileInfoModal 
-                      onProfileSaved={handleProfileSaved}
-                      trigger={
-                        <Button variant="outline" size="sm" className="mt-2">
-                          Edit Profile
-                        </Button>
-                      }
-                    />
-                    </div>
-                  )}
-                  </div>
-                )}
-
-                {step >= 2 && <div className="border-t border-gray-200" />}
-
                 {step === 2 && (
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium text-gray-900 mb-2">
