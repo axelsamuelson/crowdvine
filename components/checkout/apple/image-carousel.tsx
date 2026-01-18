@@ -37,8 +37,9 @@ export function AppleImageCarousel({ images, alt }: ImageCarouselProps) {
 
   return (
     <div className="relative w-full mb-6">
-      <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-b from-white to-gray-50">
-        <AspectRatio ratio={16 / 10}>
+      {/* "Gray rounded box" that the image fully fills */}
+      <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-gray-100">
+        <AspectRatio ratio={1}>
         {safeImages.map((src, index) => (
           <div
             key={`${src}-${index}`}
@@ -48,13 +49,11 @@ export function AppleImageCarousel({ images, alt }: ImageCarouselProps) {
                 : "opacity-0 pointer-events-none"
             }`}
           >
-            {/* Subtle backplate so bottle shots don't feel "boxed" */}
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(0,0,0,0.06),transparent_55%)]" />
             <Image
               src={src || "/placeholder.svg"}
               alt={`${alt} - View ${index + 1}`}
               fill
-              className="object-contain p-6 md:p-10"
+              className="object-cover"
               priority={index === 0}
             />
           </div>
