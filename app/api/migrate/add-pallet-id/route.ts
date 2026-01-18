@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const sb = createClient(supabaseUrl, supabaseKey);
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET() {
   try {
+    const sb = getSupabaseAdmin();
+
     // Check if pallet_id column exists
     const { data: bookings, error: bookingsError } = await sb
       .from("bookings")

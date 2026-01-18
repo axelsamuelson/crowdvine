@@ -1,12 +1,9 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const sb = createClient(supabaseUrl, supabaseKey);
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET(request: Request) {
   try {
+    const sb = getSupabaseAdmin();
     const { searchParams } = new URL(request.url);
     const reservationId = searchParams.get("reservationId");
 
