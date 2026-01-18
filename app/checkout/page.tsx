@@ -1111,6 +1111,21 @@ function CheckoutContent() {
                       <p className="text-xs text-gray-500">
                         Producer missing pickup zone. Contact support.
                       </p>
+                      <div className="mt-4 flex justify-center">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          type="button"
+                          onClick={() => {
+                            clearZoneCache();
+                            updateZoneInfo();
+                          }}
+                          disabled={zoneLoading}
+                          className="text-xs"
+                        >
+                          Try Again
+                        </Button>
+                      </div>
                     </div>
                   ) : null}
 
