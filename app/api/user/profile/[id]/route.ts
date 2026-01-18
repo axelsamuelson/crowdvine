@@ -1,18 +1,12 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { supabaseServer } from "@/lib/supabase-server";
-import { getCurrentUser } from "@/lib/auth";
 
 export async function GET(
   _req: Request,
   { params }: { params: { id: string } },
 ) {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const targetId = params.id;
     if (!targetId) {
       return NextResponse.json({ error: "Bad request" }, { status: 400 });
