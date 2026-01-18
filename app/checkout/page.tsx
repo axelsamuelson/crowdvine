@@ -952,6 +952,22 @@ function CheckoutContent() {
                           {Math.round(total)} {currencyCode}
                         </span>
                       </div>
+
+                      {step === 1 && (
+                        <div className="pt-6">
+                          <div className="flex justify-end">
+                            <Button
+                              type="button"
+                              size="lg"
+                              className="bg-black hover:bg-black/90 text-white rounded-full px-10"
+                              disabled={zoneLoading}
+                              onClick={() => goToStep(2)}
+                            >
+                              Next
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1195,6 +1211,22 @@ function CheckoutContent() {
                       </p>
                     </div>
                   ) : null}
+                  </div>
+                )}
+
+                {step === 2 && (
+                  <div className="pt-2">
+                    <div className="flex justify-end">
+                      <Button
+                        type="button"
+                        size="lg"
+                        className="bg-black hover:bg-black/90 text-white rounded-full px-10"
+                        disabled={zoneLoading}
+                        onClick={() => goToStep(3)}
+                      >
+                        Next
+                      </Button>
+                    </div>
                   </div>
                 )}
 
@@ -1445,24 +1477,6 @@ function CheckoutContent() {
             </Card>
           </div>
         </div>
-
-        {/* Desktop/inline Next button (explicit) */}
-        {(step === 1 || step === 2) && (
-          <div className="flex justify-end">
-            <Button
-              type="button"
-              size="lg"
-              className="bg-black hover:bg-black/90 text-white rounded-full px-10"
-              disabled={zoneLoading}
-              onClick={() => {
-                if (step === 1) return goToStep(2);
-                return goToStep(3);
-              }}
-            >
-              Next
-            </Button>
-          </div>
-        )}
       </div>
     </main>
 
