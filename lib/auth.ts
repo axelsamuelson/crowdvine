@@ -12,15 +12,28 @@ export interface User {
   producer_id?: string;
 }
 
-// Supabase client för auth
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// Supabase client för auth (lazy-init to avoid build-time env errors)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+let cachedClient: ReturnType<typeof createClient> | null = null;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+function getSupabaseClient() {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Missing Supabase auth credentials");
+  }
+  if (!cachedClient) {
+    cachedClient = createClient(supabaseUrl, supabaseAnonKey);
+  }
+  return cachedClient;
+}
 
 // Server-side auth helpers
 export async function getCurrentUser(): Promise<User | null> {
   try {
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error("Missing Supabase auth credentials");
+      return null;
+    }
     const cookieStore = await cookies();
     const supabaseServer = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
@@ -96,7 +109,7 @@ export async function requireAuth(
 
 // Client-side auth helpers
 export async function signIn(email: string, password: string) {
-  const { data, error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await getSupabaseClient().auth.signInWithPassword({
     email,
     password,
   });
@@ -108,7 +121,7 @@ export async function signUp(
   password: string,
   role: UserRole = "user",
 ) {
-  const { data, error } = await supabase.auth.signUp({
+  const { data, error } = await getSupabaseClient().auth.signUp({
     email,
     password,
     options: {
@@ -120,7 +133,7 @@ export async function signUp(
 
   if (data.user && !error) {
     // Skapa profile med role
-    await supabase.from("profiles").insert({
+    await getSupabaseClient().from("profiles").insert({
       id: data.user.id,
       role,
       email,
@@ -132,5 +145,5 @@ export async function signUp(
 
 export async function signOut() {
   // Använd global signOut för att rensa alla sessioner
-  return await supabase.auth.signOut({ scope: "global" });
+  return await getSupabaseClient().auth.signOut({ scope: "global" });
 }
