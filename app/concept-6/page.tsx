@@ -13,6 +13,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentAdmin } from "@/lib/admin-auth-server";
+import { PHASE_PRODUCTION_BUILD } from "next/constants";
 
 // Dynamically import Three.js component to avoid SSR issues
 const WineGalaxyVisualization = dynamic(
@@ -34,6 +35,10 @@ const WineGalaxyVisualization = dynamic(
 export const dynamic = "force-dynamic";
 
 export default async function Concept6Page() {
+  if (process.env.NEXT_PHASE === PHASE_PRODUCTION_BUILD) {
+    return <div />;
+  }
+
   // Check if user is admin
   const admin = await getCurrentAdmin();
   if (!admin) {
