@@ -549,8 +549,30 @@ function CheckoutContent() {
         window.location.href = "/checkout/success";
       } else {
         setIsPlacingOrder(false); // Hide modal on error
-        const errorData = await response.json();
-        toast.error(errorData.error || "Failed to place reservation");
+        const contentType = response.headers.get("content-type") || "";
+        let errorMessage = "Failed to place reservation";
+
+        if (contentType.includes("application/json")) {
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData?.error || errorMessage;
+          } catch {
+            // fall through to generic message
+          }
+        } else {
+          // In dev, Next.js can return an HTML error page for 500s (or an access page).
+          const text = await response.text();
+          console.error(
+            "❌ [Checkout] /api/checkout/confirm returned non-JSON error:",
+            {
+              status: response.status,
+              contentType,
+              bodyStart: text.slice(0, 200),
+            },
+          );
+        }
+
+        toast.error(errorMessage);
       }
     } catch (error) {
       setIsPlacingOrder(false); // Hide modal on error
