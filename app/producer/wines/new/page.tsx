@@ -24,14 +24,25 @@ export default async function ProducerNewWinePage() {
   const producers: Producer[] = producer ? [producer as Producer] : [];
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <Link href="/producer/wines">
-          <Button variant="outline">Back</Button>
-        </Link>
+    <main className="min-h-screen bg-gray-50">
+      <div className="max-w-5xl mx-auto p-6 pt-top-spacing space-y-8">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h1 className="text-2xl font-medium text-gray-900 mb-2">Add Wine</h1>
+            <p className="text-gray-500">Create a new wine for your producer.</p>
+          </div>
+          <div className="flex gap-2">
+            <Link href="/producer/wines">
+              <Button variant="outline" className="rounded-full">
+                Back
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        <WineForm producers={producers} />
       </div>
-      <WineForm producers={producers} />
-    </div>
+    </main>
   );
 }
 

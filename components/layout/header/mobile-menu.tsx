@@ -8,7 +8,8 @@ import Link from "next/link";
 import { ShopLinks } from "@/components/layout/shop-links";
 import { SidebarLinks } from "@/components/layout/sidebar/product-sidebar-links";
 import { useMobileMenu } from "@/components/layout/header/mobile-menu-context";
-import { User } from "lucide-react";
+import { Factory, User } from "lucide-react";
+import { useUserRole } from "@/lib/hooks/use-user-role";
 
 const navItems = [
   { href: "/shop", label: "Shop" },
@@ -20,6 +21,7 @@ const navItems = [
 export function MobileMenu({ collections }: { collections: any[] }) {
   const { isOpen, openMobileMenu, closeMobileMenu } = useMobileMenu();
   const pathname = usePathname();
+  const { role } = useUserRole();
   const [isClient, setIsClient] = useState(false);
 
   // Ensure animations only run on client
@@ -95,6 +97,21 @@ export function MobileMenu({ collections }: { collections: any[] }) {
                   {/* Scrollable content area */}
                   <div className="flex-1 overflow-y-auto -mx-3 px-3 md:-mx-4 md:px-4">
                     <nav className="grid grid-cols-2 gap-y-4 gap-x-6 mb-10">
+                      {(role === "producer" || role === "admin") && (
+                        <Button
+                          key="/producer"
+                          size="sm"
+                          variant="secondary"
+                          onClick={closeMobileMenu}
+                          className="justify-start uppercase bg-background/50"
+                          asChild
+                        >
+                          <Link href="/producer" prefetch>
+                            <Factory className="w-4 h-4 mr-2" />
+                            Producer
+                          </Link>
+                        </Button>
+                      )}
                       {navItems.map((item) => (
                         <Button
                           key={item.href}

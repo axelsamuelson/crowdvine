@@ -176,6 +176,7 @@ export function PricingCalculator({
               id="cost_amount"
               type="number"
               step="0.01"
+              className="no-spinner"
               value={pricingData.cost_amount}
               onChange={(e) =>
                 updatePricingData(
@@ -219,6 +220,7 @@ export function PricingCalculator({
             id="margin_percentage"
             type="number"
             step="0.1"
+            className="no-spinner"
             value={pricingData.margin_percentage}
             onChange={(e) =>
               updatePricingData(

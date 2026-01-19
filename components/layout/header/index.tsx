@@ -11,6 +11,7 @@ import { PalletIcon } from "./pallet-icon";
 import { NavItem } from "@/lib/types";
 import { Collection } from "@/lib/shopify/types";
 import { CompleteOrderRail } from "@/components/cart/complete-order-rail";
+import { useUserRole } from "@/lib/hooks/use-user-role";
 
 export const navItems: NavItem[] = [
   {
@@ -29,6 +30,7 @@ interface HeaderProps {
 
 export function Header({ collections }: HeaderProps) {
   const pathname = usePathname();
+  const { role } = useUserRole();
 
   return (
     <header className="grid fixed top-0 left-0 z-50 grid-cols-3 items-start w-full p-sides md:grid-cols-12 md:gap-sides">
@@ -63,6 +65,22 @@ export function Header({ collections }: HeaderProps) {
                 </Link>
               </li>
             ))}
+            {(role === "producer" || role === "admin") && (
+              <li>
+                <Link
+                  href="/producer"
+                  className={cn(
+                    "font-semibold text-base transition-colors duration-200 uppercase",
+                    pathname?.startsWith("/producer")
+                      ? "text-foreground"
+                      : "text-foreground/50",
+                  )}
+                  prefetch
+                >
+                  producer
+                </Link>
+              </li>
+            )}
           </ul>
         </div>
         <PalletIcon />

@@ -487,11 +487,11 @@ export default function UsersAdmin() {
               <div className="space-y-2">
                 <Label htmlFor="producer_id">Linked Producer</Label>
                 <Select
-                  value={editForm.producer_id || ""}
+                  value={editForm.producer_id || "__none__"}
                   onValueChange={(value) =>
                     setEditForm({
                       ...editForm,
-                      producer_id: value === "" ? null : value,
+                      producer_id: value === "__none__" ? null : value,
                     })
                   }
                 >
@@ -499,7 +499,7 @@ export default function UsersAdmin() {
                     <SelectValue placeholder="Select producer" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No producer linked</SelectItem>
+                    <SelectItem value="__none__">No producer linked</SelectItem>
                     {producers.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
                         {p.name}

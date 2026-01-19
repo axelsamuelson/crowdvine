@@ -91,46 +91,58 @@ export function ProducerProfileEditor() {
 
   if (loading) {
     return (
-      <div className="p-8">
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground"></div>
+      <main className="min-h-screen bg-gray-50">
+        <div className="max-w-5xl mx-auto p-6 pt-top-spacing">
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+          </div>
         </div>
-      </div>
+      </main>
     );
   }
 
   if (!producer) {
     return (
-      <div className="p-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Producer Profile</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
+      <main className="min-h-screen bg-gray-50">
+        <div className="max-w-5xl mx-auto p-6 pt-top-spacing space-y-8">
+          <div>
+            <h1 className="text-2xl font-medium text-gray-900 mb-2">
+              Producer Profile
+            </h1>
+            <p className="text-gray-500">
               No producer is linked to this account yet. Ask an admin to link a
               producer to your user.
             </p>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+
+          <Card className="p-6 bg-white border border-gray-200 rounded-2xl">
+            <div className="text-sm text-gray-600">
+              Once linked, you’ll be able to update producer information shown
+              across the platform.
+            </div>
+          </Card>
+        </div>
+      </main>
     );
   }
 
   return (
-    <div className="p-8 max-w-3xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-3xl font-light text-foreground">Producer Profile</h1>
-        <p className="text-sm text-muted-foreground mt-2">
-          Update your producer information shown across the platform.
-        </p>
-      </div>
+    <main className="min-h-screen bg-gray-50">
+      <div className="max-w-5xl mx-auto p-6 pt-top-spacing space-y-8">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h1 className="text-2xl font-medium text-gray-900 mb-2">
+              Producer Profile
+            </h1>
+            <p className="text-gray-500">
+              Update your producer information shown across the platform.
+            </p>
+          </div>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Details</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-5">
+        <Card className="p-6 bg-white border border-gray-200 rounded-2xl">
+          <div className="text-sm font-medium text-gray-900">Details</div>
+          <div className="mt-4 space-y-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
@@ -217,13 +229,18 @@ export function ProducerProfileEditor() {
           </div>
 
           <div className="flex justify-end pt-2">
-            <Button onClick={onSave} disabled={saving}>
+            <Button
+              onClick={onSave}
+              disabled={saving}
+              className="bg-black hover:bg-black/90 text-white rounded-full"
+            >
               {saving ? "Saving..." : "Save"}
             </Button>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+          </div>
+        </Card>
+      </div>
+    </main>
   );
 }
 
