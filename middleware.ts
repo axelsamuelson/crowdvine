@@ -114,8 +114,11 @@ export async function middleware(req: NextRequest) {
     });
 
     // Redirect requesters to access-pending page (unless they're already there)
+    // Producers/admins should not be blocked by membership gating.
     if (
       membership?.level === "requester" &&
+      profile?.role !== "producer" &&
+      profile?.role !== "admin" &&
       !pathname.startsWith("/access-pending")
     ) {
       console.log(
@@ -126,7 +129,8 @@ export async function middleware(req: NextRequest) {
     }
 
     // If no membership exists, redirect to access-request
-    if (!membership) {
+    // Producers/admins should not be blocked by membership gating.
+    if (!membership && profile?.role !== "producer" && profile?.role !== "admin") {
       console.log(
         "🚫 MIDDLEWARE: No membership found, redirecting to access-request",
       );

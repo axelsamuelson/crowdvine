@@ -303,6 +303,8 @@ export async function createWine(data: CreateWineData) {
   };
 
   revalidatePath("/admin/wines");
+  revalidatePath("/producer/wines");
+  revalidatePath("/producer");
   return wineWithProducer;
 }
 
@@ -488,6 +490,8 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
 
   revalidatePath("/admin/wines");
   revalidatePath(`/admin/wines/${id}`);
+  revalidatePath("/producer/wines");
+  revalidatePath("/producer");
   return wineWithProducer;
 }
 
@@ -499,4 +503,6 @@ export async function deleteWine(id: string) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/admin/wines");
+  revalidatePath("/producer/wines");
+  revalidatePath("/producer");
 }
