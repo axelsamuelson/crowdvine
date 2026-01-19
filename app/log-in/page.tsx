@@ -11,8 +11,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Loader2, Mail, Lock, ArrowLeft } from "lucide-react";
-import { Background } from "@/components/background";
 import { FooterLogoSvg } from "@/components/layout/footer-logo-svg";
+import InfiniteGallery from "@/components/access-request/infinite-gallery";
+import { galleryImages } from "@/components/access-request/gallery-images";
 
 const DURATION = 0.3;
 const DELAY = DURATION;
@@ -133,29 +134,37 @@ export default function LogInPage() {
   };
 
   return (
-    <div className="p-inset h-[100dvh] w-full">
-      <div className="relative h-full w-full">
-        <Background src="https://cdn.pixabay.com/video/2022/10/19/135643-762117669_large.mp4" />
+    <main className="min-h-screen">
+      <InfiniteGallery
+        images={galleryImages}
+        speed={1.2}
+        zSpacing={3}
+        visibleCount={12}
+        falloff={{ near: 0.8, far: 14 }}
+        className="h-[100dvh] w-full rounded-lg overflow-hidden"
+      />
 
-        <div className="flex overflow-hidden relative flex-col gap-4 justify-center items-center w-full h-full max-w-md mx-auto z-10">
+      {/* Center overlay (same style as /access-request) */}
+      <div className="h-[100dvh] inset-0 pointer-events-none fixed flex items-center justify-center text-center px-3 mix-blend-exclusion text-white">
+        <div className="pointer-events-auto flex flex-col items-center justify-center w-full max-w-md gap-6">
           {/* Logo */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: DURATION, ease: EASE_OUT }}
-            className="flex justify-center mb-8"
+            className="flex justify-center"
           >
             <FooterLogoSvg className="h-16 sm:h-20 lg:h-24 w-auto text-white" />
           </motion.div>
 
           {/* Login Card */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: DURATION, ease: EASE_OUT, delay: DELAY }}
             className="w-full"
           >
-            <Card className="backdrop-blur-xl border-2 border-white/20 bg-white/10 max-w-md mx-auto">
+            <Card className="backdrop-blur-xl border-2 border-white/20 bg-white/10">
               <CardHeader className="text-center pb-6">
                 <CardTitle className="text-2xl font-semibold text-white">
                   {isForgotPassword ? "Reset your password" : "Welcome back"}
@@ -354,6 +363,12 @@ export default function LogInPage() {
           </motion.div>
         </div>
       </div>
-    </div>
+
+      {/* Bottom instructions (template style) */}
+      <div className="text-center fixed bottom-10 left-0 right-0 font-mono uppercase text-[11px] font-semibold text-white/90 mix-blend-exclusion">
+        <p>Wine, but not like this.</p>
+        <p className="opacity-60">Membership by invitation.</p>
+      </div>
+    </main>
   );
 }
