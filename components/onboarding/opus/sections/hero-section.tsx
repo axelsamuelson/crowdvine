@@ -4,9 +4,9 @@ import { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 
 const images = [
-  "/opus/minimal-architecture-portfolio-with-clean-lines.jpg",
-  "/opus/fashion-photography-editorial-black-and-white.jpg",
-  "/opus/modern-ui-design-portfolio-mockup.jpg",
+  "/opus/bottles/bottle-1.png",
+  "/opus/bottles/bottle-2.png",
+  "/opus/bottles/bottle-3.jpg",
 ];
 
 export function HeroSection() {
@@ -80,7 +80,7 @@ export function HeroSection() {
         transition={{ duration: 1, delay: 0.8 }}
       >
         <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif text-center text-foreground mix-blend-difference">
-          Your work, <em className="italic">curated</em>.
+          You are <em className="italic">invited</em>.
         </h1>
       </motion.div>
 
