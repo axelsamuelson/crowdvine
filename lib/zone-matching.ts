@@ -129,7 +129,9 @@ export async function determineZones(
     };
   }
 
-  const producerIds = [...new Set(wines.map((wine) => wine.producer_id))];
+  const producerIds = [
+    ...new Set(wines.map((wine) => wine.producer_id).filter(Boolean)),
+  ];
   console.log("👨‍🌾 Producer IDs from wines:", producerIds);
 
   // Get producers with their pickup zones
@@ -163,16 +165,17 @@ export async function determineZones(
     };
   }
 
-  // Determine pickup zone (use the first producer's pickup zone)
-  const pickupZone = producers[0]?.pallet_zones;
+  // Determine pickup zone:
+  // Some producers may be missing pickup_zone_id; pick the first valid pickup zone.
+  const producerWithPickupZone = producers.find((p) => p.pallet_zones) || null;
+  const pickupZone = producerWithPickupZone?.pallet_zones || null;
   const pickupZoneId = pickupZone?.id || null;
   const pickupZoneName = pickupZone?.name || null;
 
   console.log("📦 Pickup zone determined:", {
     pickupZoneId,
     pickupZoneName,
-    firstProducer: producers[0],
-    palletzones: producers[0]?.pallet_zones,
+    producerWithPickupZone,
   });
 
   // For delivery zone, we need to check if the address actually falls within a zone

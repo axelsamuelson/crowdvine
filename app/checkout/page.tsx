@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, Suspense, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import type { Cart } from "@/lib/shopify/types";
@@ -41,6 +41,12 @@ import {
   formatShippingCost,
 } from "@/lib/shipping-calculations";
 import type { PalletInfo } from "@/lib/zone-matching";
+import { AppleStickyPriceFooter } from "@/components/checkout/apple/sticky-price-footer";
+import { AppleImageCarousel } from "@/components/checkout/apple/image-carousel";
+import {
+  ShareBottlesDialog,
+  type ShareAllocation,
+} from "@/components/checkout/share-bottles-dialog";
 
 interface UserProfile {
   id: string;
@@ -87,6 +93,12 @@ function CheckoutContent() {
   const [userRewards, setUserRewards] = useState<UserReward[]>([]);
   const [selectedRewards, setSelectedRewards] = useState<UserReward[]>([]);
   const [useRewards, setUseRewards] = useState(false);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareAllocation, setShareAllocation] = useState<ShareAllocation | null>(
+    null,
+  );
+  const [shareFriendIds, setShareFriendIds] = useState<string[] | null>(null);
 
   // v2: Progression buffs state
   const [progressionBuffs, setProgressionBuffs] = useState<any[]>([]);
@@ -121,6 +133,7 @@ function CheckoutContent() {
   }>({ pickupZone: null, deliveryZone: null, selectedDeliveryZoneId: null });
 
   const searchParams = useSearchParams();
+  const formRef = useRef<HTMLFormElement | null>(null);
 
   // Define all fetch functions BEFORE useEffects to avoid hoisting issues
   const fetchCart = useCallback(async () => {
@@ -533,6 +546,17 @@ function CheckoutContent() {
       });
     }
 
+    // Optional: share allocations
+    if (shareAllocation && shareFriendIds && shareFriendIds.length > 0) {
+      formData.append(
+        "shareBottles",
+        JSON.stringify({
+          friendIds: shareFriendIds,
+          allocations: shareAllocation,
+        }),
+      );
+    }
+
     try {
       const response = await fetch("/api/checkout/confirm", {
         method: "POST",
@@ -540,13 +564,42 @@ function CheckoutContent() {
       });
 
       if (response.ok) {
-        // Keep modal open during redirect
+        // Successful API call returns JSON with redirectUrl (do not rely on fetch redirects)
+        const contentType = response.headers.get("content-type") || "";
+        let redirectUrl: string | null = null;
+        if (contentType.includes("application/json")) {
+          const data = await response.json().catch(() => null);
+          redirectUrl = data?.redirectUrl || null;
+        }
+
         toast.success("Reservation placed successfully!");
-        window.location.href = "/checkout/success";
+        window.location.href = redirectUrl || "/checkout/success";
       } else {
         setIsPlacingOrder(false); // Hide modal on error
-        const errorData = await response.json();
-        toast.error(errorData.error || "Failed to place reservation");
+        const contentType = response.headers.get("content-type") || "";
+        let errorMessage = "Failed to place reservation";
+
+        if (contentType.includes("application/json")) {
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData?.error || errorMessage;
+            if (errorData?.debug) {
+              console.error("❌ [Checkout] /api/checkout/confirm debug:", errorData.debug);
+            }
+          } catch {
+            // fall through to generic message
+          }
+        } else {
+          // In dev, Next.js can return an HTML error page for 500s (or an access page).
+          const text = await response.text();
+          console.error(
+            `❌ [Checkout] /api/checkout/confirm returned non-JSON error: status=${response.status} content-type=${contentType} bodyStart=${JSON.stringify(
+              text.slice(0, 200),
+            )}`,
+          );
+        }
+
+        toast.error(errorMessage);
       }
     } catch (error) {
       setIsPlacingOrder(false); // Hide modal on error
@@ -555,36 +608,6 @@ function CheckoutContent() {
     }
     // Don't set false on success - keep showing during redirect
   };
-
-  if (loading) {
-    return (
-      <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-gray-200 rounded mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded mb-2"></div>
-          <div className="h-4 bg-gray-200 rounded"></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!cart || cart.totalQuantity === 0) {
-    return (
-      <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
-        <h1 className="text-2xl font-semibold mb-4">Checkout</h1>
-        <p className="text-gray-600">
-          Your cart is empty. Please add some items before proceeding to
-          checkout.
-        </p>
-        <a
-          href="/"
-          className="inline-block mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          Continue Shopping
-        </a>
-      </div>
-    );
-  }
 
   const hasProfileInfo = profile?.full_name && profile?.email;
   const hasCompleteProfileAddress =
@@ -637,20 +660,257 @@ function CheckoutContent() {
   // Filter available rewards (membership system - no bottle rewards anymore)
   const availableRewards: UserReward[] = [];
 
+  const currencyCode = cart?.cost?.totalAmount?.currencyCode || "SEK";
+
+  const carouselImages = useMemo(() => {
+    if (!cart?.lines?.length) return [];
+    const urls = cart.lines
+      .map((line) => line.merchandise.product?.featuredImage?.url)
+      .filter(Boolean) as string[];
+    return Array.from(new Set(urls)).slice(0, 6);
+  }, [cart?.lines]);
+
+  const stickyLines = useMemo(() => {
+    const lines: Array<{ label: string; value: string; subtle?: boolean; accent?: boolean }> = [];
+    lines.push({
+      label: "Bottles",
+      value: `${Math.round(bottleCost)} ${currencyCode}`,
+    });
+    lines.push({
+      label: "Shipping",
+      value: shippingCost
+        ? formatShippingCost(shippingCost.totalShippingCostCents)
+        : "No pallet selected",
+      subtle: !shippingCost,
+    });
+    if (progressionBuffDiscountAmount > 0) {
+      lines.push({
+        label: `Progress bonus (${totalBuffPercentage.toFixed(1)}%)`,
+        value: `-${Math.round(progressionBuffDiscountAmount)} ${currencyCode}`,
+        accent: true,
+      });
+    }
+    if (useRewards && selectedRewards.length > 0 && rewardsDiscountAmount > 0) {
+      lines.push({
+        label: `Rewards (${selectedRewards.length})`,
+        value: `-${Math.round(rewardsDiscountAmount)} ${currencyCode}`,
+      });
+    }
+    return lines;
+  }, [
+    bottleCost,
+    currencyCode,
+    formatShippingCost,
+    progressionBuffDiscountAmount,
+    rewardsDiscountAmount,
+    selectedRewards.length,
+    shippingCost,
+    totalBuffPercentage,
+    useRewards,
+  ]);
+
+  useEffect(() => {
+    // Add padding so the mobile sticky footer doesn't cover the final CTA
+    document.body.style.paddingBottom = "96px";
+    return () => {
+      document.body.style.paddingBottom = "0";
+    };
+  }, []);
+
+  const canProceedToPayment = useCallback(() => {
+    if (!hasProfileInfo) {
+      toast.error("Please add your customer information first.");
+      return false;
+    }
+    if (!hasCompleteProfileAddress) {
+      toast.error("Please add a delivery address first.");
+      return false;
+    }
+    if (!zoneInfo.selectedDeliveryZoneId) {
+      toast.error(
+        "No delivery zone matches your address. Please contact support or try a different address.",
+      );
+      return false;
+    }
+    if (zoneInfo.pallets && zoneInfo.pallets.length > 0 && !selectedPallet) {
+      toast.error(
+        "No suitable pallet found for your location. Please contact support.",
+      );
+      return false;
+    }
+    return true;
+  }, [
+    hasCompleteProfileAddress,
+    hasProfileInfo,
+    selectedPallet,
+    zoneInfo.pallets,
+    zoneInfo.selectedDeliveryZoneId,
+  ]);
+
+  const goToStep = useCallback(
+    (nextStep: 1 | 2 | 3) => {
+      // Always allow going backwards
+      if (nextStep <= step) {
+        setStep(nextStep);
+        return;
+      }
+
+      // Forward guards
+      if (step === 1 && nextStep === 2) {
+        setStep(2);
+        return;
+      }
+      if (step === 2 && nextStep === 3) {
+        if (zoneLoading) return;
+        if (!canProceedToPayment()) return;
+        setStep(3);
+      }
+    },
+    [canProceedToPayment, step, zoneLoading],
+  );
+
+  // IMPORTANT: keep these conditional returns AFTER all hooks above to preserve hook order
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 bg-gray-200 rounded mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!cart || cart.totalQuantity === 0) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
+        <h1 className="text-2xl font-semibold mb-4">Checkout</h1>
+        <p className="text-gray-600">
+          Your cart is empty. Please add some items before proceeding to
+          checkout.
+        </p>
+        <a
+          href="/"
+          className="inline-block mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          Continue Shopping
+        </a>
+      </div>
+    );
+  }
+
   return (
     <>
       <ReservationLoadingModal open={isPlacingOrder} />
+      <ShareBottlesDialog
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+        userId={profile?.id || null}
+        currencyCode={currencyCode}
+        discountRate={
+          bottleCost > 0
+            ? Math.max(0, Math.min(1, discountAmount / bottleCost))
+            : 0
+        }
+        cartLines={(cart?.lines || []).map((l) => ({
+          id: l.id,
+          title: l.merchandise.title,
+          quantity: l.quantity,
+          unitPrice: parseFloat(
+            l.merchandise.product.priceRange.minVariantPrice.amount,
+          ),
+        }))}
+        onConfirm={({ selectedFriends, allocations }) => {
+          setShareFriendIds(selectedFriends.map((f) => f.id));
+          setShareAllocation(allocations);
+        }}
+      />
 
-    <div className="max-w-4xl mx-auto p-6 pt-top-spacing space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Checkout</h1>
-        <p className="text-gray-600 mt-2">Complete your wine reservation</p>
-      </div>
+    <main className="min-h-screen bg-gray-50">
+      <div className="max-w-5xl mx-auto p-6 pt-top-spacing space-y-8">
+        <div>
+          <h1 className="text-2xl font-medium text-gray-900 mb-2">Checkout</h1>
+          <p className="text-gray-500">
+            Review your reservation and confirm delivery details.
+          </p>
+        </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Left Column - Order Summary */}
-        <div className="space-y-6">
-            {/* Progression Buff Display (v2) */}
+        {/* Stepper */}
+        <div className="flex items-center justify-between gap-3">
+          {[
+            { n: 1 as const, title: "Bottles" },
+            { n: 2 as const, title: "Delivery" },
+            { n: 3 as const, title: "Payment" },
+          ].map((s) => {
+            const isActive = step === s.n;
+            const isComplete = step > s.n;
+            return (
+              <button
+                key={s.n}
+                type="button"
+                onClick={() => goToStep(s.n)}
+                className={[
+                  "flex-1 rounded-2xl border px-4 py-3 text-left transition-colors",
+                  isActive
+                    ? "border-gray-900 bg-white"
+                    : "border-gray-200 bg-white/60 hover:bg-white",
+                ].join(" ")}
+                aria-current={isActive ? "step" : undefined}
+              >
+                <div className="flex items-center gap-2">
+                  <div
+                    className={[
+                      "h-7 w-7 rounded-full flex items-center justify-center text-sm font-medium",
+                      isComplete
+                        ? "bg-gray-900 text-white"
+                        : isActive
+                          ? "bg-gray-900 text-white"
+                          : "bg-gray-100 text-gray-600",
+                    ].join(" ")}
+                  >
+                    {s.n}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-gray-900">
+                      {s.title}
+                    </div>
+                    <div className="text-xs text-gray-500 truncate">
+                      {s.n === 1
+                        ? "Review items"
+                        : s.n === 2
+                          ? "Address, zones, pallet"
+                          : "Confirm & reserve"}
+                    </div>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {step > 1 && (
+          <div className="flex items-center justify-start">
+            <Button
+              variant="ghost"
+              size="sm"
+              type="button"
+              onClick={() => goToStep((step - 1) as 1 | 2 | 3)}
+              className="px-0"
+            >
+              Back
+            </Button>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left column */}
+          <div
+            className={[
+              "space-y-6",
+              step === 1 ? "lg:col-span-2" : "",
+            ].join(" ")}
+          >
             {progressionBuffs.length > 0 && (
               <ProgressionBuffDisplay
                 totalBuffPercentage={totalBuffPercentage}
@@ -664,371 +924,426 @@ function CheckoutContent() {
               />
             )}
 
-            <Card className="border border-gray-200">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-base font-semibold text-gray-900">
-                Order Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                  {cart?.lines?.map((line) => {
-                    // Get price per bottle from product priceRange
-                    const pricePerBottle = parseFloat(
-                      line.merchandise.product.priceRange.minVariantPrice
-                        .amount,
-                    );
-                    const totalForLine = pricePerBottle * line.quantity;
-
-                    return (
-                      <div
-                        key={line.id}
-                        className="flex justify-between text-sm"
-                      >
-                        <span className="text-gray-600">
-                          {line.merchandise.title} × {line.quantity}
-                    </span>
-                        <MemberPrice
-                          amount={totalForLine}
-                          currencyCode={
-                            line.merchandise.product.priceRange.minVariantPrice
-                              .currencyCode
-                          }
-                          className="text-gray-900 font-medium text-sm"
-                        />
-                  </div>
-                    );
-                  })}
-              </div>
-
-                <div className="border-t border-gray-200 my-3"></div>
-
-                <div className="space-y-3">
-                  {/* Shipping Cost */}
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Shipping</span>
-                    <span className="text-gray-900 font-medium">
-                      {shippingCost ? (
-                        formatShippingCost(shippingCost.totalShippingCostCents)
-                      ) : (
-                        <span className="text-gray-400">
-                          No pallet selected
-                        </span>
-                      )}
-                    </span>
-                  </div>
-
-                  {/* Discount (old rewards) */}
-                  {useRewards && selectedRewards.length > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">
-                        Rabatt ({selectedRewards.length} belöningar)
-                      </span>
-                      <span className="text-gray-900 font-medium">
-                        -{Math.round(rewardsDiscountAmount)}{" "}
-                        {cart.cost.totalAmount.currencyCode}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Progression buff discount (v2) */}
-                  {progressionBuffDiscountAmount > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-amber-700 font-medium">
-                        Progress bonus ({totalBuffPercentage.toFixed(1)}%)
-                      </span>
-                      <span className="text-amber-700 font-semibold">
-                        -{Math.round(progressionBuffDiscountAmount)}{" "}
-                        {cart.cost.totalAmount.currencyCode}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {/* Subtotal */}
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Subtotal</span>
-                    <span className="text-gray-900 font-medium">
-                      {Math.round(subtotal)}{" "}
-                      {cart.cost.totalAmount.currencyCode}
-                    </span>
-                  </div>
-                  </div>
-
-                <div className="border-t border-gray-200 my-3"></div>
-                  
-                  {/* Total */}
-                <div className="flex justify-between text-base font-semibold text-gray-900">
-                    <span>Total</span>
-                    <span>
-                    {Math.round(total)} {cart.cost.totalAmount.currencyCode}
-                    </span>
-                  </div>
-              </CardContent>
-            </Card>
-
-            {/* Delivery Address */}
-            <Card className="border border-gray-200">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-base font-semibold text-gray-900 flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-gray-600" />
-                  Delivery Address
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {!hasCompleteProfileAddress ? (
-                  <div className="text-center py-8 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                    <MapPin className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-                    <h3 className="text-sm font-semibold text-gray-900 mb-1">
-                      Add delivery address
-                    </h3>
-                    <p className="text-xs text-gray-600 mb-4">
-                      Address required to continue
-                    </p>
-                    <ProfileInfoModal onProfileSaved={handleProfileSaved} />
-                </div>
-                ) : (
-                  <div className="flex items-start justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-gray-900">
-                        {profile?.address}
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        {profile?.postal_code} {profile?.city}
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        {profile?.country || "Sweden"}
-                      </p>
-              </div>
-                    <ProfileInfoModal
-                      onProfileSaved={handleProfileSaved}
-                      trigger={
-                        <Button variant="outline" size="sm" className="text-xs">
-                          Ändra
-                        </Button>
-                      }
+            {/* Step 1: Bottles */}
+            {(step === 1 || step === 3) && (
+              <Card className="p-6 bg-white border border-gray-200 rounded-2xl">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                  {/* Left: Image */}
+                  <div className="md:sticky md:top-6">
+                    <AppleImageCarousel
+                      images={carouselImages}
+                      alt="Your reservation"
                     />
                   </div>
-                )}
-            </CardContent>
-          </Card>
 
-          {/* Zone Information */}
-            <div className="space-y-4">
-              {/* Zone Loading Indicator */}
-              {zoneLoading && (
-                <Card className="border border-gray-200">
-                  <CardContent className="py-6">
-                    <div className="flex items-center gap-3">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
-                      <span className="text-sm text-gray-600">
-                        Updating delivery zone...
-                      </span>
+                  {/* Right: Text */}
+                  <div className="min-w-0">
+                    <div className="flex items-baseline justify-between gap-4 mb-4">
+                      <div className="min-w-0">
+                        <h2 className="text-2xl font-medium text-gray-900">
+                          Your bottles
+                        </h2>
+                        <p className="text-gray-500">
+                          {cart?.totalQuantity} bottle
+                          {cart?.totalQuantity === 1 ? "" : "s"} reserved
+                        </p>
+                      </div>
                     </div>
-                  </CardContent>
+
+                    <div className="space-y-3">
+                      {cart?.lines?.map((line) => {
+                        const pricePerBottle = parseFloat(
+                          line.merchandise.product.priceRange.minVariantPrice
+                            .amount,
+                        );
+                        const totalForLine = pricePerBottle * line.quantity;
+
+                        return (
+                          <div
+                            key={line.id}
+                            className="flex justify-between text-sm gap-4"
+                          >
+                            <span className="text-gray-600 min-w-0 truncate">
+                              {line.merchandise.title} × {line.quantity}
+                            </span>
+                            <MemberPrice
+                              amount={totalForLine}
+                              currencyCode={
+                                line.merchandise.product.priceRange
+                                  .minVariantPrice.currencyCode
+                              }
+                              className="text-gray-900 font-medium text-sm whitespace-nowrap"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="border-t border-gray-200 pt-6 mt-6">
+                      <div className="flex justify-between mb-2">
+                        <span className="text-gray-500">Shipping</span>
+                        <span className="font-medium text-gray-900">
+                          {shippingCost ? (
+                            formatShippingCost(
+                              shippingCost.totalShippingCostCents,
+                            )
+                          ) : (
+                            <span className="text-gray-400">
+                              No pallet selected
+                            </span>
+                          )}
+                        </span>
+                      </div>
+
+                      {progressionBuffDiscountAmount > 0 && (
+                        <div className="flex justify-between mb-2">
+                          <span className="text-amber-700">
+                            Progress bonus ({totalBuffPercentage.toFixed(1)}%)
+                          </span>
+                          <span className="font-medium text-amber-700">
+                            -{Math.round(progressionBuffDiscountAmount)}{" "}
+                            {currencyCode}
+                          </span>
+                        </div>
+                      )}
+
+                      {useRewards && selectedRewards.length > 0 && (
+                        <div className="flex justify-between mb-2">
+                          <span className="text-gray-500">
+                            Rewards ({selectedRewards.length})
+                          </span>
+                          <span className="font-medium text-gray-900">
+                            -{Math.round(rewardsDiscountAmount)} {currencyCode}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between items-center border-t border-gray-200 pt-4 mt-2">
+                        <span className="text-lg font-medium">Total</span>
+                        <span className="text-xl font-medium">
+                          {Math.round(total)} {currencyCode}
+                        </span>
+                      </div>
+
+                      {step === 1 && (
+                        <div className="pt-6">
+                          <div className="flex justify-end gap-3">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="lg"
+                              className="rounded-full px-8"
+                              disabled={zoneLoading}
+                              onClick={() => setShareDialogOpen(true)}
+                            >
+                              Share bottles
+                            </Button>
+                            <Button
+                              type="button"
+                              size="lg"
+                              className="bg-black hover:bg-black/90 text-white rounded-full px-10"
+                              disabled={zoneLoading}
+                              onClick={() => goToStep(2)}
+                            >
+                              Next
+                            </Button>
+                          </div>
+                          {shareFriendIds && shareFriendIds.length > 0 && (
+                            <p className="text-xs text-gray-500 mt-3 text-right">
+                              Sharing set up with {shareFriendIds.length}{" "}
+                              {shareFriendIds.length === 1
+                                ? "friend"
+                                : "friends"}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {/* Step 2: Delivery */}
+            {step === 2 && (
+              <div className="grid grid-cols-1 gap-6">
+                {/* Customer info */}
+                <Card className="p-6 bg-white border border-gray-200 rounded-2xl">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    Customer information
+                  </h3>
+                  {!hasProfileInfo ? (
+                    <div className="text-center py-4">
+                      <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
+                      <p className="text-gray-600 mb-4">
+                        Profile information missing
+                      </p>
+                      <ProfileInfoModal onProfileSaved={handleProfileSaved} />
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4 text-gray-500" />
+                        <span className="font-medium">{profile.full_name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-4 h-4" />
+                        <span className="text-gray-600">{profile.email}</span>
+                      </div>
+                      {profile.phone && (
+                        <div className="flex items-center gap-2">
+                          <span className="w-4 h-4" />
+                          <span className="text-gray-600">{profile.phone}</span>
+                        </div>
+                      )}
+                      <ProfileInfoModal
+                        onProfileSaved={handleProfileSaved}
+                        trigger={
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-2"
+                            type="button"
+                          >
+                            Edit Profile
+                          </Button>
+                        }
+                      />
+                    </div>
+                  )}
                 </Card>
-              )}
-              {/* No Address Message */}
-              {!hasCompleteProfileAddress && !zoneLoading && (
-                <Card className="border border-gray-200">
-                  <CardContent className="py-6">
-                    <div className="text-center">
+
+                {/* Delivery address */}
+                <Card className="p-6 bg-white border border-gray-200 rounded-2xl">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    Delivery Address
+                  </h3>
+                  {!hasCompleteProfileAddress ? (
+                    <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                      <MapPin className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+                      <h4 className="text-sm font-semibold text-gray-900 mb-1">
+                        Add delivery address
+                      </h4>
+                      <p className="text-xs text-gray-600 mb-4">
+                        Address required to continue
+                      </p>
+                      <ProfileInfoModal onProfileSaved={handleProfileSaved} />
+                    </div>
+                  ) : (
+                    <div className="flex items-start justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-gray-900">
+                          {profile?.address}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          {profile?.postal_code} {profile?.city}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          {profile?.country || "Sweden"}
+                        </p>
+                      </div>
+                      <ProfileInfoModal
+                        onProfileSaved={handleProfileSaved}
+                        trigger={
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs"
+                            type="button"
+                          >
+                            Change
+                          </Button>
+                        }
+                      />
+                    </div>
+                  )}
+                </Card>
+              </div>
+            )}
+          </div>
+
+          {/* Right column */}
+          <div className={step === 1 ? "hidden" : "space-y-6"}>
+            <Card className="p-6 bg-white border border-gray-200 rounded-2xl">
+              <form
+                ref={formRef}
+                onSubmit={handleSubmit}
+                className="space-y-8"
+              >
+                {step === 2 && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      Delivery zones
+                    </h3>
+
+                  {zoneLoading && (
+                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900" />
+                        <span className="text-sm text-gray-600">
+                          Updating delivery zone...
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {!hasCompleteProfileAddress && !zoneLoading && (
+                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center">
                       <MapPin className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                       <p className="text-sm text-gray-600">
                         Add delivery address to continue.
                       </p>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Pickup Zone */}
-              {zoneInfo.pickupZone ? (
-                <ZoneDetails
-                  zoneId={zoneInfo.pickupZoneId || ""}
-                  zoneName={zoneInfo.pickupZone}
-                  zoneType="pickup"
-                />
-              ) : !zoneLoading && hasCompleteProfileAddress ? (
-                <Card className="border border-gray-200">
-                  <CardContent className="py-6 text-center">
-                    <AlertCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600 mb-1">
-                      No pickup zone found.
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Producer missing pickup zone. Contact support.
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : null}
-              
-              {/* Delivery Zone */}
-              {zoneInfo.deliveryZone ? (
-                <ZoneDetails
-                  zoneId={zoneInfo.selectedDeliveryZoneId || ""}
-                  zoneName={zoneInfo.deliveryZone}
-                  zoneType="delivery"
-                  centerLat={
-                    zoneInfo.availableDeliveryZones?.find(
-                      (z) => z.id === zoneInfo.selectedDeliveryZoneId,
-                    )?.centerLat
-                  }
-                  centerLon={
-                    zoneInfo.availableDeliveryZones?.find(
-                      (z) => z.id === zoneInfo.selectedDeliveryZoneId,
-                    )?.centerLon
-                  }
-                  radiusKm={
-                    zoneInfo.availableDeliveryZones?.find(
-                      (z) => z.id === zoneInfo.selectedDeliveryZoneId,
-                    )?.radiusKm
-                  }
-                />
-              ) : !zoneLoading &&
-                !zoneInfo.usingFallbackAddress &&
-                profile?.address &&
-                profile?.city &&
-                profile?.postal_code ? (
-                <Card className="border border-gray-200">
-                  <CardContent className="py-6 text-center">
-                    <AlertCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600 mb-1">
-                      No delivery zone found for your address.
-                    </p>
-                    <p className="text-xs text-gray-500 mb-4">
-                      Contact support for help.
-                    </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        clearZoneCache();
-                        updateZoneInfo();
-                      }}
-                      disabled={zoneLoading}
-                      className="text-xs"
-                    >
-                      {zoneLoading ? "Updating..." : "Try Again"}
-                    </Button>
-                  </CardContent>
-                </Card>
-              ) : null}
-            </div>
-
-          {/* Pallet Information */}
-            {(() => {
-              console.log("🚚 Pallet visibility check:", {
-                hasPallets: zoneInfo.pallets && zoneInfo.pallets.length > 0,
-                palletsCount: zoneInfo.pallets?.length || 0,
-                pallets: zoneInfo.pallets,
-                zoneLoading,
-                hasPickupZone: !!zoneInfo.pickupZone,
-                hasDeliveryZone: !!zoneInfo.deliveryZone,
-                shouldShow:
-                  (zoneInfo.pallets && zoneInfo.pallets.length > 0) ||
-                  zoneLoading,
-              });
-              return null;
-            })()}
-
-            {/* Show pallet if we have pallets or loading */}
-            {zoneLoading ? (
-              <Card className="border border-gray-200">
-                <CardContent className="py-6">
-                  <div className="flex items-center gap-3">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
-                    <span className="text-sm text-gray-600">
-                      Söker efter pall...
-                    </span>
-                      </div>
-                </CardContent>
-              </Card>
-            ) : zoneInfo.pallets && zoneInfo.pallets.length > 0 ? (
-              <Card className="border border-gray-200">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-base font-semibold text-gray-900 flex items-center gap-2">
-                    <Package className="w-4 h-4 text-gray-600" />
-                    Selected Pallet
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {selectedPallet ? (
-                    <PalletDetails pallet={selectedPallet} />
-                  ) : (
-                    <p className="text-sm text-gray-600">No pallet selected</p>
                   )}
-                </CardContent>
-              </Card>
-            ) : !zoneLoading &&
-              hasCompleteProfileAddress &&
-              zoneInfo.pickupZone &&
-              zoneInfo.deliveryZone ? (
-              <Card className="border border-gray-200">
-                <CardContent className="py-6 text-center">
-                  <Package className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-600 mb-1">
-                    No pallet found for this route.
-                  </p>
-                  <p className="text-xs text-gray-500 mb-2">
-                    Route: {zoneInfo.pickupZone} → {zoneInfo.deliveryZone}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    A new pallet should have been created automatically. Contact
-                    support if the issue persists.
-                  </p>
-                </CardContent>
-              </Card>
-            ) : null}
-        </div>
 
-        {/* Right Column - Checkout Form */}
-        <div className="space-y-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Profile Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="w-5 h-5" />
-                  Customer Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {!hasProfileInfo ? (
-                  <div className="text-center py-4">
-                    <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
-                      <p className="text-gray-600 mb-4">
-                        Profile information missing
+                  {zoneInfo.pickupZone ? (
+                    <ZoneDetails
+                      zoneId={zoneInfo.pickupZoneId || ""}
+                      zoneName={zoneInfo.pickupZone}
+                      zoneType="pickup"
+                    />
+                  ) : !zoneLoading && hasCompleteProfileAddress ? (
+                    <div className="rounded-xl border border-gray-200 bg-white p-4 text-center">
+                      <AlertCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-600 mb-1">
+                        No pickup zone found.
                       </p>
-                    <ProfileInfoModal onProfileSaved={handleProfileSaved} />
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-gray-500" />
-                      <span className="font-medium">{profile.full_name}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-4 h-4"></span>
-                      <span className="text-gray-600">{profile.email}</span>
-                    </div>
-                    {profile.phone && (
-                      <div className="flex items-center gap-2">
-                        <span className="w-4 h-4"></span>
-                        <span className="text-gray-600">{profile.phone}</span>
-                      </div>
-                    )}
-                    <ProfileInfoModal 
-                      onProfileSaved={handleProfileSaved}
-                      trigger={
-                        <Button variant="outline" size="sm" className="mt-2">
-                          Edit Profile
+                      <p className="text-xs text-gray-500">
+                        Producer missing pickup zone. Contact support.
+                      </p>
+                      <div className="mt-4 flex justify-center">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          type="button"
+                          onClick={() => {
+                            clearZoneCache();
+                            updateZoneInfo();
+                          }}
+                          disabled={zoneLoading}
+                          className="text-xs"
+                        >
+                          Try Again
                         </Button>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {zoneInfo.deliveryZone ? (
+                    <ZoneDetails
+                      zoneId={zoneInfo.selectedDeliveryZoneId || ""}
+                      zoneName={zoneInfo.deliveryZone}
+                      zoneType="delivery"
+                      centerLat={
+                        zoneInfo.availableDeliveryZones?.find(
+                          (z) => z.id === zoneInfo.selectedDeliveryZoneId,
+                        )?.centerLat
+                      }
+                      centerLon={
+                        zoneInfo.availableDeliveryZones?.find(
+                          (z) => z.id === zoneInfo.selectedDeliveryZoneId,
+                        )?.centerLon
+                      }
+                      radiusKm={
+                        zoneInfo.availableDeliveryZones?.find(
+                          (z) => z.id === zoneInfo.selectedDeliveryZoneId,
+                        )?.radiusKm
                       }
                     />
+                  ) : !zoneLoading &&
+                    !zoneInfo.usingFallbackAddress &&
+                    profile?.address &&
+                    profile?.city &&
+                    profile?.postal_code ? (
+                    <div className="rounded-xl border border-gray-200 bg-white p-4 text-center">
+                      <AlertCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-600 mb-1">
+                        No delivery zone found for your address.
+                      </p>
+                      <p className="text-xs text-gray-500 mb-4">
+                        Contact support for help.
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          clearZoneCache();
+                          updateZoneInfo();
+                        }}
+                        disabled={zoneLoading}
+                        className="text-xs"
+                        type="button"
+                      >
+                        {zoneLoading ? "Updating..." : "Try Again"}
+                      </Button>
+                    </div>
+                  ) : null}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+
+                {step === 2 && <div className="border-t border-gray-200" />}
+
+                {step === 2 && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      Selected pallet
+                    </h3>
+
+                  {zoneLoading ? (
+                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900" />
+                        <span className="text-sm text-gray-600">
+                          Looking for a pallet...
+                        </span>
+                      </div>
+                    </div>
+                  ) : zoneInfo.pallets && zoneInfo.pallets.length > 0 ? (
+                    <div className="rounded-xl border border-gray-200 bg-white p-4">
+                      {selectedPallet ? (
+                        <PalletDetails pallet={selectedPallet} />
+                      ) : (
+                        <p className="text-sm text-gray-600">
+                          No pallet selected
+                        </p>
+                      )}
+                    </div>
+                  ) : !zoneLoading &&
+                    hasCompleteProfileAddress &&
+                    zoneInfo.pickupZone &&
+                    zoneInfo.deliveryZone ? (
+                    <div className="rounded-xl border border-gray-200 bg-white p-4 text-center">
+                      <Package className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-600 mb-1">
+                        No pallet found for this route.
+                      </p>
+                      <p className="text-xs text-gray-500 mb-2">
+                        Route: {zoneInfo.pickupZone} → {zoneInfo.deliveryZone}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        A new pallet should have been created automatically.
+                        Contact support if the issue persists.
+                      </p>
+                    </div>
+                  ) : null}
+                  </div>
+                )}
+
+                {step === 2 && (
+                  <div className="pt-2">
+                    <div className="flex justify-end">
+                      <Button
+                        type="button"
+                        size="lg"
+                        className="bg-black hover:bg-black/90 text-white rounded-full px-10"
+                        disabled={zoneLoading}
+                        onClick={() => goToStep(3)}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
               {/* Rewards Toggle */}
               {availableRewards.length > 0 && (
@@ -1167,16 +1482,14 @@ function CheckoutContent() {
             </Card>
               )}
 
-              {/* Payment Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="w-5 h-5" />
-                    Payment Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                  <div className="text-center py-6">
+                {step === 3 && <div className="border-t border-gray-200" />}
+
+                {step === 3 && (
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">
+                      Payment
+                    </h3>
+                  <div className="text-center py-6 bg-gray-50 rounded-xl border border-gray-200">
                     <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <Check className="w-8 h-8 text-green-600" />
                     </div>
@@ -1200,11 +1513,11 @@ function CheckoutContent() {
                       </p>
                     </div>
                   </div>
-              </CardContent>
-            </Card>
+                  </div>
+                )}
 
               {/* Submit Button or Validation Warning */}
-              {!isValidCart ? (
+              {step === 3 && !isValidCart ? (
                 <div className="space-y-4">
                   {/* Header - Clear blocked state */}
                   <div className="flex items-center gap-2 pb-2 border-b border-red-200">
@@ -1258,10 +1571,10 @@ function CheckoutContent() {
                       })}
                   </div>
                 </div>
-              ) : (
+              ) : step === 3 ? (
             <Button
               type="submit"
-                  className="w-full bg-black hover:bg-black/90 text-white border-black rounded-md"
+                  className="w-full bg-black hover:bg-black/90 text-white border-black rounded-full"
               size="lg"
                   disabled={zoneLoading}
                 >
@@ -1274,11 +1587,36 @@ function CheckoutContent() {
                     "Place Reservation"
                   )}
             </Button>
-              )}
-          </form>
+              ) : null}
+              </form>
+            </Card>
+          </div>
         </div>
       </div>
-    </div>
+    </main>
+
+    <AppleStickyPriceFooter
+      totalLabel="Total"
+      totalValue={`${Math.round(total)} ${currencyCode}`}
+      lines={stickyLines}
+      ctaLabel={
+        step === 1
+          ? "Continue"
+          : step === 2
+            ? "Continue to payment"
+            : !isValidCart
+              ? "Fix order"
+              : "Place reservation"
+      }
+      disabled={
+        zoneLoading || (step === 3 && !isValidCart) || (step === 2 && zoneLoading)
+      }
+      onCheckout={() => {
+        if (step === 1) return goToStep(2);
+        if (step === 2) return goToStep(3);
+        return formRef.current?.requestSubmit();
+      }}
+    />
     </>
   );
 }
