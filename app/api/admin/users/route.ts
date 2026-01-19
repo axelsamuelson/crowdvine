@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     // Get all profiles with membership data
     const { data: profiles, error: profilesError } = await adminSupabase
       .from("profiles")
-      .select("id, email, role, created_at, full_name");
+      .select("id, email, role, producer_id, created_at, full_name");
 
     if (profilesError) {
       console.error("Error fetching profiles:", profilesError);
@@ -69,6 +69,7 @@ export async function GET(request: NextRequest) {
           last_sign_in_at: authUser.last_sign_in_at,
           email_confirmed_at: authUser.email_confirmed_at,
           role: profile?.role || "user",
+          producer_id: profile?.producer_id || null,
           // Membership data
           membership_level: membership?.level || "requester",
           impact_points: membership?.impact_points || 0,
@@ -411,21 +412,37 @@ export async function PATCH(request: NextRequest) {
 
     const adminSupabase = getSupabaseAdmin();
 
-    // Update profile role if provided
-    if (updates.role) {
+    // Update profile fields if provided
+    if (updates.role !== undefined || updates.producer_id !== undefined) {
+      const profileUpdate: Record<string, any> = {};
+      if (updates.role !== undefined) profileUpdate.role = updates.role;
+      if (updates.producer_id !== undefined) {
+        profileUpdate.producer_id = updates.producer_id || null;
+      }
+
       const { error: profileError } = await adminSupabase
         .from("profiles")
-        .update({
-          role: updates.role,
-        })
+        .update(profileUpdate)
         .eq("id", userId);
 
       if (profileError) {
         console.error("Error updating profile:", profileError);
         return NextResponse.json(
-          { error: "Failed to update user role" },
+          { error: "Failed to update user profile" },
           { status: 500 },
         );
+      }
+    }
+
+    // If we linked a producer, also set producer.owner_id to this user (optional but useful)
+    if (updates.producer_id && updates.role === "producer") {
+      const { error: ownerError } = await adminSupabase
+        .from("producers")
+        .update({ owner_id: userId })
+        .eq("id", updates.producer_id);
+
+      if (ownerError) {
+        console.warn("Warning: Failed to set producer owner_id:", ownerError);
       }
     }
 

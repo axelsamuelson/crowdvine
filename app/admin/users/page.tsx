@@ -50,6 +50,7 @@ import {
   Trash2,
   UserPlus,
   Shield,
+  Factory,
   Mail,
   Key,
 } from "lucide-react";
@@ -60,6 +61,7 @@ interface User {
   email: string;
   full_name?: string;
   role: string;
+  producer_id?: string | null;
   membership_level: string;
   impact_points: number;
   invite_quota: number;
@@ -73,6 +75,13 @@ interface User {
 interface EditForm {
   role: string;
   membership_level: string;
+  producer_id?: string | null;
+}
+
+interface Producer {
+  id: string;
+  name: string;
+  region?: string;
 }
 
 export default function UsersAdmin() {
@@ -86,10 +95,13 @@ export default function UsersAdmin() {
   const [editForm, setEditForm] = useState<EditForm>({
     role: "",
     membership_level: "",
+    producer_id: null,
   });
+  const [producers, setProducers] = useState<Producer[]>([]);
 
   useEffect(() => {
     fetchUsers();
+    fetchProducers();
   }, []);
 
   const fetchUsers = async () => {
@@ -119,6 +131,7 @@ export default function UsersAdmin() {
           userId,
           updates: {
             role: updates.role,
+            producer_id: updates.producer_id,
             membership_level: updates.membership_level,
           },
         }),
@@ -174,11 +187,26 @@ export default function UsersAdmin() {
     }
   };
 
+  const fetchProducers = async () => {
+    try {
+      const response = await fetch("/api/admin/producers");
+      if (!response.ok) {
+        // Don't block Users UI if producers fetch fails
+        return;
+      }
+      const data = await response.json();
+      setProducers(data?.producers || []);
+    } catch {
+      // ignore
+    }
+  };
+
   const openEditDialog = (user: User) => {
     setSelectedUser(user);
     setEditForm({
       role: user.role,
       membership_level: user.membership_level || "basic",
+      producer_id: user.producer_id || null,
     });
     setIsEditDialogOpen(true);
   };
@@ -195,6 +223,13 @@ export default function UsersAdmin() {
           <Badge variant="default" className="bg-red-600">
             <Shield className="w-3 h-3 mr-1" />
             Admin
+          </Badge>
+        );
+      case "producer":
+        return (
+          <Badge variant="default" className="bg-emerald-600">
+            <Factory className="w-3 h-3 mr-1" />
+            Producer
           </Badge>
         );
       case "user":
@@ -292,6 +327,7 @@ export default function UsersAdmin() {
                 <SelectContent>
                   <SelectItem value="all">All Roles</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="producer">Producer</SelectItem>
                   <SelectItem value="user">User</SelectItem>
                 </SelectContent>
               </Select>
@@ -430,7 +466,11 @@ export default function UsersAdmin() {
               <Select
                 value={editForm.role}
                 onValueChange={(value) =>
-                  setEditForm({ ...editForm, role: value })
+                  setEditForm({
+                    ...editForm,
+                    role: value,
+                    producer_id: value === "producer" ? editForm.producer_id : null,
+                  })
                 }
               >
                 <SelectTrigger>
@@ -439,9 +479,40 @@ export default function UsersAdmin() {
                 <SelectContent>
                   <SelectItem value="user">User</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="producer">Producer</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+            {editForm.role === "producer" && (
+              <div className="space-y-2">
+                <Label htmlFor="producer_id">Linked Producer</Label>
+                <Select
+                  value={editForm.producer_id || "__none__"}
+                  onValueChange={(value) =>
+                    setEditForm({
+                      ...editForm,
+                      producer_id: value === "__none__" ? null : value,
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select producer" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">No producer linked</SelectItem>
+                    {producers.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500">
+                  Producer accounts must be linked to a producer to manage wines
+                  and producer information.
+                </p>
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="membership_level">Membership Level</Label>
               <Select

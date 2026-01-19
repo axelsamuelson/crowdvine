@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -64,7 +64,12 @@ interface IPEvent {
   metadata: any;
 }
 
-export default function UserDetailPage({ params }: { params: { id: string } }) {
+export default function UserDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id: userId } = React.use(params);
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -74,10 +79,11 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
   const [ipEvents, setIpEvents] = useState<IPEvent[]>([]);
 
   useEffect(() => {
-    fetchUserData();
-  }, [params.id]);
+    fetchUserData(userId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
-  const fetchUserData = async () => {
+  const fetchUserData = async (id: string) => {
     try {
       setLoading(true);
 
@@ -89,11 +95,11 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
         invitationsRes,
         ipEventsRes,
       ] = await Promise.all([
-        fetch(`/api/admin/users/${params.id}/profile`),
-        fetch(`/api/admin/users/${params.id}/membership`),
-        fetch(`/api/admin/users/${params.id}/reservations`),
-        fetch(`/api/admin/users/${params.id}/invitations`),
-        fetch(`/api/admin/users/${params.id}/ip-events`),
+        fetch(`/api/admin/users/${id}/profile`),
+        fetch(`/api/admin/users/${id}/membership`),
+        fetch(`/api/admin/users/${id}/reservations`),
+        fetch(`/api/admin/users/${id}/invitations`),
+        fetch(`/api/admin/users/${id}/ip-events`),
       ]);
 
       if (profileRes.ok) {

@@ -1,11 +1,17 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 /**
  * Get all producers
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Check admin cookie
+    const adminAuth = request.cookies.get("admin-auth")?.value;
+    if (!adminAuth) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const supabase = getSupabaseAdmin();
 
     const { data: producers, error } = await supabase
@@ -31,8 +37,14 @@ export async function GET() {
 /**
  * Create a new producer
  */
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // Check admin cookie
+    const adminAuth = request.cookies.get("admin-auth")?.value;
+    if (!adminAuth) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
     const supabase = getSupabaseAdmin();
 

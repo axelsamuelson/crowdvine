@@ -27,6 +27,15 @@ interface MobileFiltersProps {
 export function MobileFilters({ collections, className }: MobileFiltersProps) {
   const filterCount = useFilterCount();
   const { products, originalProducts } = useProducts();
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Avoid hydration mismatch: products/filter state may update before this component hydrates.
+  const safeResultsCount = isMounted ? products.length : 0;
+  const safeFilterCount = isMounted ? filterCount : 0;
 
   return (
     <div className="bg-transparent md:hidden overflow-x-clip">
@@ -41,14 +50,14 @@ export function MobileFilters({ collections, className }: MobileFiltersProps) {
               className="justify-self-start text-sm font-semibold text-foreground"
             >
               Filters{" "}
-              {filterCount > 0 && (
-                <span className="text-foreground/50">({filterCount})</span>
+              {safeFilterCount > 0 && (
+                <span className="text-foreground/50">({safeFilterCount})</span>
               )}
             </Button>
           </DrawerTrigger>
 
           {/* Results count */}
-          <ResultsCount count={products.length} />
+          <ResultsCount count={safeResultsCount} />
 
           {/* Sort by */}
           <SortDropdown className="justify-self-end" />
@@ -59,8 +68,8 @@ export function MobileFilters({ collections, className }: MobileFiltersProps) {
           <DrawerHeader className="flex justify-between items-center">
             <DrawerTitle>
               Filters{" "}
-              {filterCount > 0 && (
-                <span className="text-muted-foreground">({filterCount})</span>
+              {safeFilterCount > 0 && (
+                <span className="text-muted-foreground">({safeFilterCount})</span>
               )}
             </DrawerTitle>
             <Button
@@ -68,10 +77,10 @@ export function MobileFilters({ collections, className }: MobileFiltersProps) {
               variant="ghost"
               className={cn(
                 "font-medium text-foreground/50 hover:text-foreground/60 transition-opacity",
-                filterCount === 0 && "opacity-0 pointer-events-none",
+                safeFilterCount === 0 && "opacity-0 pointer-events-none",
               )}
-              disabled={filterCount === 0}
-              asChild={filterCount > 0}
+              disabled={safeFilterCount === 0}
+              asChild={safeFilterCount > 0}
             >
               <Link href="/shop" prefetch>
                 Clear

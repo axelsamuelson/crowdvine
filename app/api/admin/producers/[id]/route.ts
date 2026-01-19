@@ -1,14 +1,20 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 /**
  * Update a producer
  */
 export async function PUT(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } },
 ) {
   try {
+    // Check admin cookie
+    const adminAuth = request.cookies.get("admin-auth")?.value;
+    if (!adminAuth) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
     const supabase = getSupabaseAdmin();
     const producerId = params.id;
@@ -72,10 +78,16 @@ export async function PUT(
  * Delete a producer
  */
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } },
 ) {
   try {
+    // Check admin cookie
+    const adminAuth = request.cookies.get("admin-auth")?.value;
+    if (!adminAuth) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const supabase = getSupabaseAdmin();
     const producerId = params.id;
 
