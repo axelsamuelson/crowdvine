@@ -46,6 +46,20 @@ interface ReservationDetails {
     customer_email?: string;
     customer_name?: string;
   }>;
+  shared?: Array<{
+    to_user: { id: string; full_name?: string; avatar_image_path?: string };
+    total_cents: number;
+    items: Array<{
+      wine_id: string;
+      wine_name: string;
+      vintage: string;
+      producer_name?: string;
+      product_handle?: string;
+      image_url?: string;
+      quantity: number;
+      price_cents: number;
+    }>;
+  }>;
 }
 
 function CheckoutConfirmationContent() {
@@ -208,329 +222,326 @@ function CheckoutConfirmationContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 pt-top-spacing">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Success Header */}
-        <div className="text-center mb-8">
-          <div className="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-green-100 mb-6">
-            <CheckCircle className="h-10 w-10 text-green-600" />
+    <main className="min-h-screen bg-gray-50">
+      <div className="max-w-5xl mx-auto p-6 pt-top-spacing space-y-8">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-6">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-medium text-gray-900 mb-2">
+              Reservation confirmed
+            </h1>
+            <p className="text-gray-500">
+              Your bottles are reserved. We’ll notify you when your pallet is
+              ready for payment and shipment.
+            </p>
+            {reservation && (
+              <div className="flex items-center gap-2 text-sm text-gray-500 mt-3">
+                <Calendar className="w-4 h-4" />
+                <span>{formatDate(reservation.created_at)}</span>
+              </div>
+            )}
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-3">
-            🍷 Wine Reservation Confirmed!
-          </h1>
-          <p className="text-xl text-gray-600 mb-2">
-            Your premium wine collection has been successfully reserved
-          </p>
-          {reservation && (
-            <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
-              <Calendar className="w-4 h-4" />
-              <span>Reserved on {formatDate(reservation.created_at)}</span>
-            </div>
-          )}
+
+          <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+            <CheckCircle className="h-6 w-6 text-green-700" />
+          </div>
         </div>
 
-        {/* Reservation Details */}
-        {reservation && (
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="w-5 h-5" />
-                Reservation Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Status and ID */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500">Reservation ID</p>
-                  <p className="font-mono text-lg font-semibold">
-                    {reservation.id}
-                  </p>
+        {!reservation ? (
+          <Card className="p-6 bg-white border border-gray-200 rounded-2xl">
+            <CardContent className="p-0">
+              <p className="text-gray-600">
+                We couldn’t load reservation details. Please try again.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 mt-6">
+                <Button
+                  onClick={() => router.push("/profile/reservations")}
+                  className="bg-black hover:bg-black/90 text-white rounded-full"
+                >
+                  View reservations
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => router.push("/shop")}
+                  className="rounded-full"
+                >
+                  Continue shopping
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Left: Summary */}
+            <Card className="p-6 bg-white border border-gray-200 rounded-2xl">
+              <CardContent className="p-0 space-y-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="text-sm text-gray-500">Reservation ID</div>
+                    <div className="font-mono text-sm text-gray-900 break-all mt-1">
+                      {reservation.id}
+                    </div>
+                  </div>
+                  <Badge className={getStatusColor(reservation.status)}>
+                    {reservation.status.charAt(0).toUpperCase() +
+                      reservation.status.slice(1)}
+                  </Badge>
                 </div>
-                <Badge className={getStatusColor(reservation.status)}>
-                  {reservation.status.charAt(0).toUpperCase() +
-                    reservation.status.slice(1)}
-                </Badge>
-              </div>
 
-              {/* Date */}
-              <div className="flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-gray-500" />
-                <div>
-                  <p className="text-sm text-gray-500">Placed on</p>
-                  <p className="font-medium">
-                    {formatDate(reservation.created_at)}
-                  </p>
-                </div>
-              </div>
-
-              {/* Zones and Pallet */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {reservation.pickup_zone && (
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-5 h-5 text-blue-500" />
-                    <div>
-                      <p className="text-sm text-gray-500">Pickup Zone</p>
-                      <p className="font-medium">{reservation.pickup_zone}</p>
-                    </div>
-                  </div>
-                )}
-
-                {reservation.delivery_zone && (
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-5 h-5 text-green-500" />
-                    <div>
-                      <p className="text-sm text-gray-500">Delivery Zone</p>
-                      <p className="font-medium">{reservation.delivery_zone}</p>
-                    </div>
-                  </div>
-                )}
-
-                {reservation.pallet_name && (
-                  <div className="flex items-center gap-2">
-                    <Package className="w-5 h-5 text-purple-500" />
-                    <div>
-                      <p className="text-sm text-gray-500">Pallet</p>
-                      <p className="font-medium">{reservation.pallet_name}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Items */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Package className="w-5 h-5" />
-                  Reserved Wines
-                </h3>
-                <div className="grid gap-4">
-                  {reservation.items.map((item, index) => (
-                    <div
-                      key={index}
-                      className="flex gap-4 p-4 bg-gray-50 rounded-lg border"
-                    >
-                      {/* Wine Image */}
-                      <div className="relative w-20 h-20 shrink-0 overflow-hidden rounded-md">
-                        {item.image_url ? (
-                          <Image
-                            src={item.image_url}
-                            alt={`${item.wine_name} ${item.vintage}`}
-                            fill
-                            className="object-cover"
-                            sizes="80px"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                            <Package className="w-6 h-6 text-gray-400" />
-                          </div>
-                        )}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {reservation.pickup_zone && (
+                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                      <div className="text-xs text-gray-500 mb-1">
+                        Pickup zone
                       </div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {reservation.pickup_zone}
+                      </div>
+                    </div>
+                  )}
+                  {reservation.delivery_zone && (
+                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                      <div className="text-xs text-gray-500 mb-1">
+                        Delivery zone
+                      </div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {reservation.delivery_zone}
+                      </div>
+                    </div>
+                  )}
+                  {reservation.pallet_name && (
+                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                      <div className="text-xs text-gray-500 mb-1">Pallet</div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {reservation.pallet_name}
+                      </div>
+                    </div>
+                  )}
+                </div>
 
-                      {/* Wine Details */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold text-gray-900 truncate">
-                              {item.wine_name}
-                            </h4>
-                            {item.producer_name && (
-                              <p className="text-sm text-gray-600 truncate">
-                                by {item.producer_name}
-                              </p>
-                            )}
-                            <p className="text-sm text-gray-500">
-                              Vintage {item.vintage}
-                            </p>
-                            <div className="flex items-center gap-4 mt-2">
-                              <span className="text-sm text-gray-600">
-                                {item.quantity}{" "}
-                                {item.quantity === 1 ? "bottle" : "bottles"}
-                              </span>
-                              <span className="text-sm font-medium text-gray-900">
-                                {formatPrice(item.price_cents * item.quantity)}
-                              </span>
+                {reservation.delivery_address && (
+                  <div className="rounded-2xl border border-gray-200 bg-white p-4">
+                    <div className="flex items-center gap-2 text-sm font-medium text-gray-900 mb-2">
+                      <Home className="h-4 w-4 text-gray-600" />
+                      Delivery address
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {reservation.delivery_address}
+                    </div>
+                  </div>
+                )}
+
+                {reservation.shared && reservation.shared.length > 0 && (
+                  <div className="rounded-2xl border border-gray-200 bg-white p-4">
+                    <div className="flex items-center justify-between gap-4 mb-3">
+                      <div className="text-sm font-medium text-gray-900">
+                        Shared bottles
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {reservation.shared.length}{" "}
+                        {reservation.shared.length === 1 ? "person" : "people"}
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {reservation.shared.map((share) => (
+                        <div
+                          key={share.to_user.id}
+                          className="rounded-xl border border-gray-200 bg-gray-50 p-3"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="text-sm font-medium text-gray-900 truncate">
+                                {share.to_user.full_name || "Friend"}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {share.items.reduce(
+                                  (sum, i) => sum + (i.quantity || 0),
+                                  0,
+                                )}{" "}
+                                bottles
+                              </div>
+                            </div>
+                            <div className="text-sm font-medium text-gray-900 whitespace-nowrap">
+                              {formatPrice(share.total_cents || 0)}
                             </div>
                           </div>
 
-                          {/* View Product Link */}
+                          <div className="mt-3 space-y-2">
+                            {share.items.map((i) => (
+                              <div
+                                key={`${share.to_user.id}-${i.wine_id}`}
+                                className="flex items-center justify-between gap-3 text-sm"
+                              >
+                                <div className="min-w-0">
+                                  <div className="text-gray-900 truncate">
+                                    {i.wine_name} {i.vintage}
+                                  </div>
+                                  {i.producer_name ? (
+                                    <div className="text-xs text-gray-500 truncate">
+                                      {i.producer_name}
+                                    </div>
+                                  ) : null}
+                                </div>
+                                <div className="text-gray-700 whitespace-nowrap">
+                                  × {i.quantity}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="text-[11px] text-gray-500 mt-3">
+                      Split reflects bottle prices only. Shipping is not split.
+                    </div>
+                  </div>
+                )}
+
+                <div className="rounded-2xl border border-gray-200 bg-white p-4">
+                  <div className="flex items-center gap-2 text-sm font-medium text-gray-900 mb-3">
+                    <DollarSign className="h-4 w-4 text-gray-600" />
+                    Total
+                  </div>
+                  <div className="flex items-baseline justify-between">
+                    <div className="text-sm text-gray-500">Amount</div>
+                    <div className="text-xl font-medium text-gray-900">
+                      {formatPrice(reservation.total_amount_cents || 0)}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Right: Items + next steps */}
+            <div className="space-y-6">
+              <Card className="p-6 bg-white border border-gray-200 rounded-2xl">
+                <CardContent className="p-0">
+                  <div className="flex items-center justify-between gap-4 mb-4">
+                    <div className="text-lg font-medium text-gray-900">
+                      Reserved bottles
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {reservation.items.map((item, index) => (
+                      <div
+                        key={index}
+                        className="flex gap-4 rounded-2xl border border-gray-200 bg-gray-50 p-4"
+                      >
+                        <div className="relative w-16 h-16 shrink-0 overflow-hidden rounded-xl bg-gray-100 border border-gray-200">
+                          {item.image_url ? (
+                            <Image
+                              src={item.image_url}
+                              alt={`${item.wine_name} ${item.vintage}`}
+                              fill
+                              className="object-cover"
+                              sizes="64px"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Package className="w-5 h-5 text-gray-400" />
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="text-sm font-medium text-gray-900 truncate">
+                                {item.wine_name} {item.vintage}
+                              </div>
+                              {item.producer_name && (
+                                <div className="text-sm text-gray-500 truncate">
+                                  {item.producer_name}
+                                </div>
+                              )}
+                              <div className="text-xs text-gray-500 mt-1">
+                                {item.quantity}{" "}
+                                {item.quantity === 1 ? "bottle" : "bottles"}
+                              </div>
+                            </div>
+
+                            <div className="text-sm font-medium text-gray-900 whitespace-nowrap">
+                              {formatPrice(item.price_cents * item.quantity)}
+                            </div>
+                          </div>
+
                           {item.product_handle && (
-                            <Link
-                              href={`/product/${item.product_handle}`}
-                              className="shrink-0 text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
-                            >
-                              <Eye className="w-4 h-4" />
-                              View
-                            </Link>
+                            <div className="mt-3">
+                              <Link
+                                href={`/product/${item.product_handle}`}
+                                className="text-sm font-medium text-gray-900 underline underline-offset-4 hover:opacity-80"
+                              >
+                                View product
+                              </Link>
+                            </div>
                           )}
                         </div>
                       </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="p-6 bg-white border border-gray-200 rounded-2xl">
+                <CardContent className="p-0 space-y-4">
+                  <div className="text-lg font-medium text-gray-900">
+                    What happens next
+                  </div>
+                  <div className="space-y-3 text-sm text-gray-600">
+                    <div className="flex gap-3">
+                      <div className="h-6 w-6 rounded-full bg-gray-900 text-white flex items-center justify-center text-xs font-medium shrink-0">
+                        1
+                      </div>
+                      <div>
+                        You’ll get updates as the pallet fills up with other
+                        orders.
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Cost Breakdown */}
-              <div className="border-t pt-4">
-                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                  <DollarSign className="w-5 h-5" />
-                  Cost Breakdown
-                </h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Wine Subtotal:</span>
-                    <span className="font-medium">
-                      {formatPrice(
-                        reservation.items.reduce(
-                          (sum, item) => sum + item.price_cents * item.quantity,
-                          0,
-                        ),
-                      )}
-                    </span>
-                  </div>
-                  {reservation.shipping_cost_cents &&
-                    reservation.shipping_cost_cents > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Shipping:</span>
-                        <span className="font-medium">
-                          {formatPrice(reservation.shipping_cost_cents)}
-                        </span>
+                    <div className="flex gap-3">
+                      <div className="h-6 w-6 rounded-full bg-gray-900 text-white flex items-center justify-center text-xs font-medium shrink-0">
+                        2
                       </div>
-                    )}
-                  <div className="flex justify-between text-lg font-semibold border-t pt-2">
-                    <span>Total:</span>
-                    <span>
-                      {formatPrice(reservation.total_amount_cents || 0)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Delivery Address */}
-              {reservation.delivery_address && (
-                <div className="border-t pt-4">
-                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                    <Home className="w-5 h-5" />
-                    Delivery Address
-                  </h3>
-                  <div className="p-4 bg-gray-50 rounded-lg">
-                    <p className="text-gray-900">
-                      {reservation.delivery_address}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Pallet Information */}
-              {reservation.pallet_name && (
-                <div className="border-t pt-4">
-                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                    <Truck className="w-5 h-5" />
-                    Pallet Information
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="p-4 bg-blue-50 rounded-lg">
-                      <p className="text-sm text-blue-600 font-medium">
-                        Pallet Name
-                      </p>
-                      <p className="text-blue-900 font-semibold">
-                        {reservation.pallet_name}
-                      </p>
+                      <div>
+                        When it reaches 100%, we’ll email you a secure payment
+                        link.
+                      </div>
                     </div>
-                    {reservation.pallet_cost_cents && (
-                      <div className="p-4 bg-green-50 rounded-lg">
-                        <p className="text-sm text-green-600 font-medium">
-                          Pallet Cost
-                        </p>
-                        <p className="text-green-900 font-semibold">
-                          {formatPrice(reservation.pallet_cost_cents)}
-                        </p>
+                    <div className="flex gap-3">
+                      <div className="h-6 w-6 rounded-full bg-gray-900 text-white flex items-center justify-center text-xs font-medium shrink-0">
+                        3
                       </div>
-                    )}
-                    {reservation.pallet_capacity && (
-                      <div className="p-4 bg-purple-50 rounded-lg">
-                        <p className="text-sm text-purple-600 font-medium">
-                          Capacity
-                        </p>
-                        <p className="text-purple-900 font-semibold">
-                          {reservation.pallet_capacity} bottles
-                        </p>
+                      <div>
+                        After payment, your wines ship to your pickup location.
                       </div>
-                    )}
+                    </div>
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button
+                  onClick={() => router.push("/profile/reservations")}
+                  className="bg-black hover:bg-black/90 text-white rounded-full flex-1"
+                >
+                  View reservations
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => router.push("/shop")}
+                  className="rounded-full flex-1"
+                >
+                  Continue shopping
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
-
-        {/* Next Steps */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>What's Next?</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-blue-600 font-semibold text-sm">1</span>
-              </div>
-              <div>
-                <p className="font-medium">Confirmation Email</p>
-                <p className="text-sm text-gray-600">
-                  You'll receive a confirmation email with your reservation
-                  details and tracking information.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-green-600 font-semibold text-sm">2</span>
-              </div>
-              <div>
-                <p className="font-medium">Preparation</p>
-                <p className="text-sm text-gray-600">
-                  Your wines will be prepared and loaded onto the assigned
-                  pallet for delivery.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                <span className="text-purple-600 font-semibold text-sm">3</span>
-              </div>
-              <div>
-                <p className="font-medium">Delivery</p>
-                <p className="text-sm text-gray-600">
-                  Your wines will be delivered to your specified address within
-                  the delivery zone.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button
-            onClick={() => router.push("/profile/reservations")}
-            className="flex items-center gap-2"
-          >
-            <Eye className="w-4 h-4" />
-            View All Reservations
-          </Button>
-
-          <Button
-            variant="outline"
-            onClick={() => router.push("/")}
-            className="flex items-center gap-2"
-          >
-            Continue Shopping
-            <ArrowRight className="w-4 h-4" />
-          </Button>
-        </div>
       </div>
-    </div>
+    </main>
   );
 }
 

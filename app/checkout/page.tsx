@@ -43,6 +43,10 @@ import {
 import type { PalletInfo } from "@/lib/zone-matching";
 import { AppleStickyPriceFooter } from "@/components/checkout/apple/sticky-price-footer";
 import { AppleImageCarousel } from "@/components/checkout/apple/image-carousel";
+import {
+  ShareBottlesDialog,
+  type ShareAllocation,
+} from "@/components/checkout/share-bottles-dialog";
 
 interface UserProfile {
   id: string;
@@ -90,6 +94,11 @@ function CheckoutContent() {
   const [selectedRewards, setSelectedRewards] = useState<UserReward[]>([]);
   const [useRewards, setUseRewards] = useState(false);
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareAllocation, setShareAllocation] = useState<ShareAllocation | null>(
+    null,
+  );
+  const [shareFriendIds, setShareFriendIds] = useState<string[] | null>(null);
 
   // v2: Progression buffs state
   const [progressionBuffs, setProgressionBuffs] = useState<any[]>([]);
@@ -537,6 +546,17 @@ function CheckoutContent() {
       });
     }
 
+    // Optional: share allocations
+    if (shareAllocation && shareFriendIds && shareFriendIds.length > 0) {
+      formData.append(
+        "shareBottles",
+        JSON.stringify({
+          friendIds: shareFriendIds,
+          allocations: shareAllocation,
+        }),
+      );
+    }
+
     try {
       const response = await fetch("/api/checkout/confirm", {
         method: "POST",
@@ -544,9 +564,16 @@ function CheckoutContent() {
       });
 
       if (response.ok) {
-        // Keep modal open during redirect
+        // Successful API call returns JSON with redirectUrl (do not rely on fetch redirects)
+        const contentType = response.headers.get("content-type") || "";
+        let redirectUrl: string | null = null;
+        if (contentType.includes("application/json")) {
+          const data = await response.json().catch(() => null);
+          redirectUrl = data?.redirectUrl || null;
+        }
+
         toast.success("Reservation placed successfully!");
-        window.location.href = "/checkout/success";
+        window.location.href = redirectUrl || "/checkout/success";
       } else {
         setIsPlacingOrder(false); // Hide modal on error
         const contentType = response.headers.get("content-type") || "";
@@ -556,6 +583,9 @@ function CheckoutContent() {
           try {
             const errorData = await response.json();
             errorMessage = errorData?.error || errorMessage;
+            if (errorData?.debug) {
+              console.error("❌ [Checkout] /api/checkout/confirm debug:", errorData.debug);
+            }
           } catch {
             // fall through to generic message
           }
@@ -563,12 +593,9 @@ function CheckoutContent() {
           // In dev, Next.js can return an HTML error page for 500s (or an access page).
           const text = await response.text();
           console.error(
-            "❌ [Checkout] /api/checkout/confirm returned non-JSON error:",
-            {
-              status: response.status,
-              contentType,
-              bodyStart: text.slice(0, 200),
-            },
+            `❌ [Checkout] /api/checkout/confirm returned non-JSON error: status=${response.status} content-type=${contentType} bodyStart=${JSON.stringify(
+              text.slice(0, 200),
+            )}`,
           );
         }
 
@@ -776,6 +803,29 @@ function CheckoutContent() {
   return (
     <>
       <ReservationLoadingModal open={isPlacingOrder} />
+      <ShareBottlesDialog
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+        userId={profile?.id || null}
+        currencyCode={currencyCode}
+        discountRate={
+          bottleCost > 0
+            ? Math.max(0, Math.min(1, discountAmount / bottleCost))
+            : 0
+        }
+        cartLines={(cart?.lines || []).map((l) => ({
+          id: l.id,
+          title: l.merchandise.title,
+          quantity: l.quantity,
+          unitPrice: parseFloat(
+            l.merchandise.product.priceRange.minVariantPrice.amount,
+          ),
+        }))}
+        onConfirm={({ selectedFriends, allocations }) => {
+          setShareFriendIds(selectedFriends.map((f) => f.id));
+          setShareAllocation(allocations);
+        }}
+      />
 
     <main className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto p-6 pt-top-spacing space-y-8">
@@ -977,7 +1027,17 @@ function CheckoutContent() {
 
                       {step === 1 && (
                         <div className="pt-6">
-                          <div className="flex justify-end">
+                          <div className="flex justify-end gap-3">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="lg"
+                              className="rounded-full px-8"
+                              disabled={zoneLoading}
+                              onClick={() => setShareDialogOpen(true)}
+                            >
+                              Share bottles
+                            </Button>
                             <Button
                               type="button"
                               size="lg"
@@ -988,6 +1048,14 @@ function CheckoutContent() {
                               Next
                             </Button>
                           </div>
+                          {shareFriendIds && shareFriendIds.length > 0 && (
+                            <p className="text-xs text-gray-500 mt-3 text-right">
+                              Sharing set up with {shareFriendIds.length}{" "}
+                              {shareFriendIds.length === 1
+                                ? "friend"
+                                : "friends"}
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>

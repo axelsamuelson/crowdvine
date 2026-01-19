@@ -6,6 +6,7 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
 
     // Validate required fields
+    // NOTE: allow numeric 0 (e.g. tax: 0) by checking undefined/null instead of falsy.
     const requiredFields = [
       "customerEmail",
       "customerName",
@@ -17,15 +18,20 @@ export async function POST(request: NextRequest) {
       "shipping",
       "total",
       "shippingAddress",
-    ];
+    ] as const;
 
     for (const field of requiredFields) {
-      if (!data[field]) {
+      const value = data?.[field];
+      if (value === undefined || value === null) {
         return NextResponse.json(
           { error: `${field} is required` },
           { status: 400 },
         );
       }
+    }
+
+    if (!Array.isArray(data.items) || data.items.length === 0) {
+      return NextResponse.json({ error: "items is required" }, { status: 400 });
     }
 
     const success = await sendGridService.sendOrderConfirmation({

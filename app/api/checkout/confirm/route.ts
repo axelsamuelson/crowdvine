@@ -39,6 +39,7 @@ export async function POST(request: Request) {
         },
         selectedDeliveryZoneId: formData.get("selectedDeliveryZoneId"),
         selectedPalletId: formData.get("selectedPalletId"),
+        shareBottles: formData.get("shareBottles"),
         // paymentMethodId removed - using new payment flow
       };
     }
@@ -75,6 +76,31 @@ export async function POST(request: Request) {
     }
 
     console.log("Processing cart:", cart);
+
+    // Optional: share bottles payload (friends + allocations per cart line)
+    let sharePayload: null | {
+      friendIds: string[];
+      allocations: Record<string, Record<string, number>>;
+    } = null;
+
+    if (body?.shareBottles) {
+      try {
+        const raw =
+          typeof body.shareBottles === "string"
+            ? body.shareBottles
+            : String(body.shareBottles);
+        const parsed = JSON.parse(raw);
+        if (parsed && Array.isArray(parsed.friendIds) && parsed.allocations) {
+          sharePayload = {
+            friendIds: parsed.friendIds,
+            allocations: parsed.allocations,
+          };
+        }
+      } catch (e) {
+        console.warn("[Checkout API] Ignoring invalid shareBottles payload");
+        sharePayload = null;
+      }
+    }
 
     // SERVER-SIDE VALIDATION: 6-bottle rule
     console.log("🔍 [Checkout API] Validating 6-bottle rule...");
@@ -215,6 +241,132 @@ export async function POST(request: Request) {
     }
 
     console.log("Reservation items created");
+
+    // Optional: persist share allocations (assign bottles to friends you follow)
+    if (sharePayload && currentUser?.id) {
+      const uuidRe =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+      const friendIds = (sharePayload.friendIds || [])
+        .map((id) => String(id))
+        .filter((id) => uuidRe.test(id) && id !== currentUser.id);
+
+      if (friendIds.length > 0) {
+        // Verify these are actually people the user follows
+        const { data: followingRows, error: followingError } = await sbAdmin
+          .from("followers")
+          .select("following_id")
+          .eq("follower_id", currentUser.id)
+          .in("following_id", friendIds);
+
+        if (followingError) {
+          console.error("[Checkout API] Failed to verify following list:", followingError);
+          return NextResponse.json(
+            { error: "Failed to validate share recipients" },
+            { status: 500 },
+          );
+        }
+
+        const allowedFriendIds = new Set(
+          (followingRows || []).map((r: any) => r.following_id),
+        );
+        const finalFriendIds = friendIds.filter((id) => allowedFriendIds.has(id));
+
+        if (finalFriendIds.length > 0) {
+          // Map cartLineId -> { wineId, quantity }
+          const cartLineById = new Map<
+            string,
+            { wineId: string; quantity: number }
+          >();
+          for (const line of cart.lines || []) {
+            cartLineById.set(String(line.id), {
+              wineId: String(line.merchandise.id),
+              quantity: Number(line.quantity) || 0,
+            });
+          }
+
+          // Validate totals per cart line
+          const totalsPerLine: Record<string, number> = {};
+          for (const friendId of finalFriendIds) {
+            const perLine = sharePayload.allocations?.[friendId] || {};
+            for (const [lineIdRaw, qtyRaw] of Object.entries(perLine)) {
+              const lineId = String(lineIdRaw);
+              const qty = Math.floor(Number(qtyRaw) || 0);
+              if (qty <= 0) continue;
+              if (!cartLineById.has(lineId)) {
+                return NextResponse.json(
+                  { error: "Invalid share allocation" },
+                  { status: 400 },
+                );
+              }
+              totalsPerLine[lineId] = (totalsPerLine[lineId] || 0) + qty;
+            }
+          }
+
+          for (const [lineId, totalQty] of Object.entries(totalsPerLine)) {
+            const line = cartLineById.get(lineId);
+            if (!line || totalQty > line.quantity) {
+              return NextResponse.json(
+                { error: "Share allocation exceeds reserved quantity" },
+                { status: 400 },
+              );
+            }
+          }
+
+          // Build rows
+          const shareRows: Array<{
+            reservation_id: string;
+            from_user_id: string;
+            to_user_id: string;
+            wine_id: string;
+            quantity: number;
+          }> = [];
+
+          for (const friendId of finalFriendIds) {
+            const perLine = sharePayload.allocations?.[friendId] || {};
+            for (const [lineIdRaw, qtyRaw] of Object.entries(perLine)) {
+              const lineId = String(lineIdRaw);
+              const qty = Math.floor(Number(qtyRaw) || 0);
+              if (qty <= 0) continue;
+              const line = cartLineById.get(lineId);
+              if (!line) continue;
+              shareRows.push({
+                reservation_id: reservation.id,
+                from_user_id: currentUser.id,
+                to_user_id: friendId,
+                wine_id: line.wineId,
+                quantity: qty,
+              });
+            }
+          }
+
+          if (shareRows.length > 0) {
+            const { error: shareError } = await sbAdmin
+              .from("reservation_shared_items")
+              .insert(shareRows);
+            if (shareError) {
+              console.error("[Checkout API] Failed to save share allocations:", shareError);
+              return NextResponse.json(
+                {
+                  error: "Failed to save share allocations",
+                  ...(process.env.NODE_ENV !== "production"
+                    ? {
+                        debug: {
+                          message: shareError.message,
+                          code: (shareError as any).code,
+                          details: (shareError as any).details,
+                          hint: (shareError as any).hint,
+                        },
+                      }
+                    : {}),
+                },
+                { status: 500 },
+              );
+            }
+          }
+        }
+      }
+    }
 
     // Convert cart items to bookings (reuse palletId from above)
     console.log("Converting cart items to bookings with pallet:", palletId);
@@ -487,10 +639,18 @@ export async function POST(request: Request) {
 
     console.log("=== CHECKOUT CONFIRM END ===");
 
-    // Redirect to success page with reservation details
-    const successUrl = `/checkout/success?success=true&reservationId=${reservation.id}&message=${encodeURIComponent("Reservation placed successfully")}`;
+    // IMPORTANT:
+    // Do NOT redirect from an API route. `fetch()` will follow a 307 as a POST to the new URL,
+    // which can break (and in dev may surface as HTML error pages). Return JSON and let the client navigate.
+    const successUrl = `/checkout/success?success=true&reservationId=${reservation.id}&message=${encodeURIComponent(
+      "Reservation placed successfully",
+    )}`;
 
-    return NextResponse.redirect(new URL(successUrl, request.url));
+    return NextResponse.json({
+      success: true,
+      reservationId: reservation.id,
+      redirectUrl: successUrl,
+    });
   } catch (error) {
     console.error("=== CHECKOUT CONFIRM ERROR ===");
     console.error("Checkout confirm error:", error);
