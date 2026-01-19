@@ -10,6 +10,7 @@ import { ProfileIcon } from "./profile-icon";
 import { PalletIcon } from "./pallet-icon";
 import { NavItem } from "@/lib/types";
 import { Collection } from "@/lib/shopify/types";
+import { CompleteOrderRail } from "@/components/cart/complete-order-rail";
 
 export const navItems: NavItem[] = [
   {
@@ -42,24 +43,28 @@ export function Header({ collections }: HeaderProps) {
         <LogoSvg className="h-8 md:h-12 w-auto" />
       </Link>
       <nav className="flex gap-2 justify-end items-center md:col-span-9 xl:col-span-10">
-        <ul className="items-center gap-5 py-0.5 px-3 bg-background/10 rounded-sm backdrop-blur-md hidden md:flex">
-          {navItems.map((item) => (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                className={cn(
-                  "font-semibold text-base transition-colors duration-200 uppercase",
-                  pathname === item.href
-                    ? "text-foreground"
-                    : "text-foreground/50",
-                )}
-                prefetch
-              >
-                {item.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <div className="items-center gap-5 py-0.5 pr-3 bg-transparent hidden md:flex min-w-0">
+          {/* Complete order rail should stretch to the left edge of the content column */}
+          <CompleteOrderRail />
+          <ul className="flex items-center gap-5 pl-3 shrink-0">
+            {navItems.map((item) => (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  className={cn(
+                    "font-semibold text-base transition-colors duration-200 uppercase",
+                    pathname === item.href
+                      ? "text-foreground"
+                      : "text-foreground/50",
+                  )}
+                  prefetch
+                >
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
         <PalletIcon />
         <ProfileIcon className="hidden md:block" />
         <CartModal />

@@ -4,6 +4,7 @@ import { getCollections } from "@/lib/shopify";
 import { PageLayout } from "@/components/layout/page-layout";
 import { MobileFilters } from "./components/mobile-filters";
 import { ProductsProvider } from "./providers/products-provider";
+import { CompleteOrderRail } from "@/components/cart/complete-order-rail";
 
 // Enable ISR with 1 minute revalidation for the layout
 export const revalidate = 60;
@@ -22,19 +23,26 @@ export default async function ShopLayout({
   }
 
   return (
-    <PageLayout noPadding={true}>
+    <PageLayout>
       <ProductsProvider>
-        <div className="flex flex-col md:grid grid-cols-12 md:gap-sides">
+        <div className="flex flex-col md:grid grid-cols-12 md:gap-4">
           <Suspense fallback={null}>
             <DesktopFilters
               collections={collections}
               className="col-span-3 max-md:hidden"
             />
           </Suspense>
-          <Suspense fallback={null}>
-            <MobileFilters collections={collections} />
-          </Suspense>
-          <div className="col-span-9 flex flex-col h-full pt-top-spacing">
+          {/* Mobile: sticky controls under the fixed header */}
+          <div className="md:hidden sticky top-top-spacing z-40 bg-transparent">
+            <div className="px-sides pt-1">
+              <CompleteOrderRail showMobile />
+            </div>
+            <Suspense fallback={null}>
+              <MobileFilters collections={collections} />
+            </Suspense>
+          </div>
+
+          <div className="col-span-9 flex flex-col h-full">
             <Suspense fallback={null}>{children}</Suspense>
           </div>
         </div>
