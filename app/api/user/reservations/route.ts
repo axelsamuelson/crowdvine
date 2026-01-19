@@ -46,12 +46,31 @@ export async function GET() {
       reservations.map(async (reservation) => {
         // Get pallet name and capacity based on zones
         let palletName = "Unassigned Pallet";
-        let palletId = null;
+        let palletId = reservation.pallet_id ?? null;
         let palletCapacity = null;
         let palletIsComplete = false;
         let palletStatus = null;
 
-        if (reservation.pickup_zone_id && reservation.delivery_zone_id) {
+        // Prefer explicit pallet_id if present; fallback to deriving by zones.
+        if (palletId) {
+          const { data: pallet } = await supabase
+            .from("pallets")
+            .select("id, name, bottle_capacity, is_complete, status")
+            .eq("id", palletId)
+            .single();
+
+          if (pallet) {
+            palletName = pallet.name;
+            palletCapacity = pallet.bottle_capacity;
+            palletIsComplete = pallet.is_complete || false;
+            palletStatus = pallet.status;
+          } else {
+            // If pallet_id is stale, treat as unassigned
+            palletId = null;
+          }
+        }
+
+        if (!palletId && reservation.pickup_zone_id && reservation.delivery_zone_id) {
           const { data: pallet } = await supabase
             .from("pallets")
             .select("id, name, bottle_capacity, is_complete, status")
