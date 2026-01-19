@@ -4,6 +4,7 @@ import { getCollections } from "@/lib/shopify";
 import { PageLayout } from "@/components/layout/page-layout";
 import { MobileFilters } from "./components/mobile-filters";
 import { ProductsProvider } from "./providers/products-provider";
+import { OrderCompletionRail } from "./components/order-completion-rail";
 
 // Enable ISR with 1 minute revalidation for the layout
 export const revalidate = 60;
@@ -35,6 +36,7 @@ export default async function ShopLayout({
             <MobileFilters collections={collections} />
           </Suspense>
           <div className="col-span-9 flex flex-col h-full pt-top-spacing">
+            <OrderCompletionRail collections={collections} />
             <Suspense fallback={null}>{children}</Suspense>
           </div>
         </div>

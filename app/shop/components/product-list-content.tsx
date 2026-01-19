@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { Product, Collection } from "@/lib/shopify/types";
 import { ProductCard } from "./product-card";
 import ResultsControls from "./results-controls";
@@ -8,11 +8,7 @@ import { useProducts } from "../providers/products-provider";
 import { useQueryState, parseAsArrayOf, parseAsString } from "nuqs";
 import { ProductGrid } from "./product-grid";
 import { Card } from "../../../components/ui/card";
-import { useCart } from "@/components/cart/cart-context";
-import { ProducerValidation } from "@/lib/checkout-validation";
-import { X } from "lucide-react";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
-import Link from "next/link";
 
 interface ProductListContentProps {
   products: Product[];
@@ -95,84 +91,12 @@ export function ProductListContent({
   collectionHandle,
 }: ProductListContentProps & { collectionHandle?: string }) {
   const { setProducts, setOriginalProducts } = useProducts();
-  const { cart } = useCart();
-  const [validations, setValidations] = useState<ProducerValidation[]>([]);
-  const [isHidden, setIsHidden] = useState(false);
 
   // Get current color filters from URL
   const [colorFilters] = useQueryState(
     "fcolor",
     parseAsArrayOf(parseAsString).withDefault([]),
   );
-
-  // Fetch validation data for cart producers
-  useEffect(() => {
-    const fetchValidations = async () => {
-      if (!cart || cart.lines.length === 0) {
-        setValidations([]);
-        return;
-      }
-
-      try {
-        const response = await fetch("/api/cart/validate", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ cart }),
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          console.log("Validation result:", result); // Debug log
-          console.log("All producerValidations:", result.producerValidations); // Debug log
-          console.log("Selected producers:", selectedProducers); // Debug log
-
-          // If we have selectedProducers (from URL), filter to only those
-          // Otherwise, show all producers with validation errors
-          const relevantValidations =
-            selectedProducers.length > 0
-              ? result.producerValidations?.filter((v: ProducerValidation) =>
-                  selectedProducers.includes(v.producerHandle || ""),
-                ) || []
-              : result.producerValidations?.filter(
-                  (v: ProducerValidation) => !v.isValid,
-                ) || [];
-
-          console.log("Relevant validations:", relevantValidations); // Debug log
-
-          // Debug: Check if filtering is working
-          result.producerValidations?.forEach(
-            (v: ProducerValidation, index: number) => {
-              console.log(`All validation ${index}:`, {
-                producerHandle: v.producerHandle,
-                current: v.current,
-                required: v.required,
-                groupId: v.groupId,
-                isSelected: selectedProducers.includes(v.producerHandle || ""),
-                isValid: v.isValid,
-              });
-            },
-          );
-
-          relevantValidations.forEach((v, index) => {
-            console.log(`Relevant validation ${index}:`, {
-              producerHandle: v.producerHandle,
-              current: v.current,
-              required: v.required,
-              groupId: v.groupId,
-            });
-          });
-          setValidations(relevantValidations);
-        }
-      } catch (error) {
-        console.error("Failed to fetch validations:", error);
-        setValidations([]);
-      }
-    };
-
-    fetchValidations();
-  }, [cart, selectedProducers]);
 
   // Apply client-side filtering whenever products or color filters change
   const filteredProducts = useMemo(() => {
@@ -208,96 +132,6 @@ export function ProductListContent({
 
   return (
     <>
-      {validations.length > 0 && !isHidden && (
-        <>
-          {/* Order completion rail (slim, next to filters/menu on desktop) */}
-          <div className="md:sticky md:top-16 z-40 pr-sides pl-2 max-md:fixed max-md:bottom-4 max-md:left-4 max-md:right-4 max-md:z-50">
-            <div className="bg-white border border-gray-200 rounded-full shadow-sm px-4 py-2.5">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <div className="text-xs font-medium text-gray-900 tracking-wide whitespace-nowrap">
-                    Complete order
-                  </div>
-                  <div className="h-4 w-px bg-gray-200" />
-
-                  <div className="min-w-0 flex-1 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
-                    {validations.slice(0, 2).map((validation) => {
-                      const collection = collections.find(
-                        (c) => c.handle === validation.producerHandle,
-                      );
-                      const current = validation?.quantity || 0;
-                      const required =
-                        (validation?.quantity || 0) + (validation?.needed || 0);
-                      const progress =
-                        required > 0
-                          ? Math.min((current / required) * 100, 100)
-                          : 0;
-
-                      return (
-                        <div key={validation.producerHandle} className="min-w-0">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-xs text-gray-700 truncate">
-                              {collection?.title || validation.producerHandle}
-                            </span>
-                            <span className="text-[11px] text-gray-500 tabular-nums shrink-0">
-                              {current}/{required}
-                            </span>
-                          </div>
-                          <div className="mt-1 relative h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                            <div
-                              className="absolute inset-y-0 left-0 bg-black rounded-full transition-all duration-500 ease-out"
-                              style={{ width: `${progress}%` }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {validations.length > 2 && (
-                      <div className="text-[11px] text-gray-500">
-                        +{validations.length - 2} more producers
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <Link
-                    href="/checkout"
-                    className="inline-flex items-center justify-center rounded-full bg-black text-white px-4 py-2 text-xs font-medium hover:bg-black/90 transition-colors"
-                  >
-                    Checkout
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => setIsHidden(true)}
-                    className="h-9 w-9 inline-flex items-center justify-center rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-                    aria-label="Hide order progress"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Show button when hidden */}
-      {validations.length > 0 && isHidden && (
-        <div className="md:sticky md:top-16 z-40 pr-sides pl-2 max-md:fixed max-md:bottom-4 max-md:right-4 max-md:z-50">
-          <button
-            onClick={() => setIsHidden(false)}
-            className="h-10 px-4 bg-white border border-gray-200 rounded-full shadow-sm text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-colors inline-flex items-center gap-2"
-            title="Show order progress"
-          >
-            <span className="text-xs font-medium">Complete order</span>
-            <span className="text-[11px] text-gray-500 tabular-nums">
-              {validations.length}
-            </span>
-          </button>
-        </div>
-      )}
-
       <ResultsControls
         className="max-md:hidden"
         collections={collections}
