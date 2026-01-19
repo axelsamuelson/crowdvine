@@ -1,0 +1,68 @@
+/* Opus onboarding theme + small utilities (scoped via .opus-theme wrapper) */
+
+.opus-theme {
+  /* Opus Lilac & Ink Theme (converted to HSL for Tailwind v3 hsl(var(--...))) */
+  --background: 280 42.86% 98.63%;
+  --foreground: 271.58 65.52% 5.69%;
+  --card: 262.5 40% 96.08%;
+  --card-foreground: 271.58 65.52% 5.69%;
+  --popover: 280 42.86% 98.63%;
+  --popover-foreground: 271.58 65.52% 5.69%;
+  --primary: 263.36 69.3% 42.16%;
+  --primary-foreground: 280 42.86% 98.63%;
+  --secondary: 262.5 40% 96.08%;
+  --secondary-foreground: 271.58 65.52% 5.69%;
+  --muted: 262.5 40% 96.08%;
+  --muted-foreground: 270 7.27% 43.14%;
+  --accent: 269.19 97.37% 85.1%;
+  --accent-foreground: 271.58 65.52% 5.69%;
+  --border: 265 28.57% 91.76%;
+  --input: 265 28.57% 91.76%;
+  --ring: 263.36 69.3% 42.16%;
+  --radius: 0.75rem;
+
+  /* Extra Opus colors used by the landing */
+  --surface: 262.5 40% 96.08%;
+  --ink: 271.58 65.52% 5.69%;
+  --iris: 263.36 69.3% 42.16%;
+  --lilac: 269.19 97.37% 85.1%;
+  --lime: 80.87 88.46% 79.61%;
+}
+
+/* Custom cursor styles */
+.opus-theme.custom-cursor {
+  cursor: none;
+}
+
+/* Serrated ticket edge */
+.ticket-edge {
+  mask-image: radial-gradient(circle at 0 50%, transparent 8px, black 8px),
+    radial-gradient(circle at 100% 50%, transparent 8px, black 8px);
+  mask-size: 51% 100%;
+  mask-position: left, right;
+  mask-repeat: no-repeat;
+}
+
+/* Smooth scrolling with Lenis */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
+
+

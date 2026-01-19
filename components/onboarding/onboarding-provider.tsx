@@ -1,8 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect } from "react";
-import { WelcomeModal } from "./welcome-modal";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 interface OnboardingContextType {
   showWelcome: () => void;
@@ -26,9 +25,9 @@ export function OnboardingProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const [isWelcomeOpen, setIsWelcomeOpen] = useState(false);
   const [hasChecked, setHasChecked] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
     // Only check once when component mounts
@@ -43,7 +42,8 @@ export function OnboardingProvider({
       pathname?.startsWith("/i/") ||
       pathname?.startsWith("/c/") ||
       pathname?.startsWith("/invite-signup") ||
-      pathname?.startsWith("/code-signup");
+      pathname?.startsWith("/code-signup") ||
+      pathname?.startsWith("/onboarding");
 
     if (isAuthPage) {
       setHasChecked(true);
@@ -63,16 +63,16 @@ export function OnboardingProvider({
 
           if (!data.onboardingSeen) {
             console.log(
-              "🎓 [Onboarding] User has NOT seen onboarding, showing modal in 200ms",
+              "🎓 [Onboarding] User has NOT seen onboarding, redirecting in 200ms",
             );
             // Small delay to ensure page is loaded
             setTimeout(() => {
-              console.log("🎓 [Onboarding] Opening modal now");
-              setIsWelcomeOpen(true);
+              console.log("🎓 [Onboarding] Redirecting now");
+              router.push("/onboarding");
             }, 200);
           } else {
             console.log(
-              "🎓 [Onboarding] User has already seen onboarding, skipping modal",
+              "🎓 [Onboarding] User has already seen onboarding, skipping",
             );
           }
         } else {
@@ -96,15 +96,13 @@ export function OnboardingProvider({
     };
 
     checkOnboardingStatus();
-  }, [pathname, hasChecked]);
+  }, [pathname, hasChecked, router]);
 
   const showWelcome = () => {
-    setIsWelcomeOpen(true);
+    router.push("/onboarding");
   };
 
   const hideWelcome = async () => {
-    setIsWelcomeOpen(false);
-
     // Mark as seen in database
     try {
       await fetch("/api/user/onboarding-seen", {
@@ -118,7 +116,6 @@ export function OnboardingProvider({
   return (
     <OnboardingContext.Provider value={{ showWelcome, hideWelcome }}>
       {children}
-      <WelcomeModal isOpen={isWelcomeOpen} onClose={hideWelcome} />
     </OnboardingContext.Provider>
   );
 }

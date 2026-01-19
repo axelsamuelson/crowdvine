@@ -18,10 +18,16 @@ const config = {
       fontFamily: {
         sans: ["var(--font-geist-sans)", "sans-serif"],
         mono: ["var(--font-geist-mono)", "monospace"],
+        serif: ["var(--font-instrument-serif)", "serif"],
       },
       colors: {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        surface: "hsl(var(--surface))",
+        ink: "hsl(var(--ink))",
+        iris: "hsl(var(--iris))",
+        lilac: "hsl(var(--lilac))",
+        lime: "hsl(var(--lime))",
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",

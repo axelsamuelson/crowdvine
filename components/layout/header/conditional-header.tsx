@@ -17,6 +17,7 @@ export function ConditionalHeader({ collections }: ConditionalHeaderProps) {
   const isInvitationRoute =
     pathname.startsWith("/i/") || pathname.startsWith("/c/");
   const isSignupRoute = pathname === "/signup";
+  const isOnboardingRoute = pathname === "/onboarding";
 
   if (
     isAdminRoute ||
@@ -24,7 +25,8 @@ export function ConditionalHeader({ collections }: ConditionalHeaderProps) {
     isCheckoutSuccessRoute ||
     isLogInRoute ||
     isInvitationRoute || // Hide header on invitation signup pages
-    isSignupRoute // Hide header on access token signup page
+    isSignupRoute || // Hide header on access token signup page
+    isOnboardingRoute // Fullscreen onboarding landing
   ) {
     return null;
   }
