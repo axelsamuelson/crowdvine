@@ -4,7 +4,7 @@ import { Minus, Plus } from "lucide-react";
 import clsx from "clsx";
 import { CartItem } from "@/lib/shopify/types";
 import { useCart } from "./cart-context";
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useEffect } from "react";
 
 function SubmitButton({
   type,
@@ -46,6 +46,16 @@ export function EditItemQuantityButton({
   const { updateItem } = useCart();
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const pendingQuantityRef = useRef(item.quantity);
+
+  // Keep each button's ref in sync with the actual item quantity.
+  // (Plus and minus are separate components, so they must both stay up to date.)
+  useEffect(() => {
+    pendingQuantityRef.current = item.quantity;
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+  }, [item.quantity]);
 
   const handleClick = useCallback(() => {
     // Calculate next quantity
