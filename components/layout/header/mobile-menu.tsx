@@ -97,7 +97,7 @@ export function MobileMenu({ collections }: { collections: any[] }) {
                   {/* Scrollable content area */}
                   <div className="flex-1 overflow-y-auto -mx-3 px-3 md:-mx-4 md:px-4">
                     <nav className="grid grid-cols-2 gap-y-4 gap-x-6 mb-10">
-                      {(role === "producer" || role === "admin") && (
+                      {role === "producer" && (
                         <Button
                           key="/producer"
                           size="sm"

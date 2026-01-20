@@ -106,6 +106,8 @@ export function ProductViewTracker({ product }: ProductViewTrackerProps) {
         productName: product.title,
         productHandle: product.handle,
         productType: product.productType,
+        producerId: (product as any).producerId,
+        producerName: (product as any).producerName,
       },
     });
 

@@ -116,6 +116,18 @@ export function ProductListContent({
   useEffect(() => {
     // Check if viewing a collection (producer filter)
     const isCollectionPage = !!collectionHandle && collectionHandle !== 'joyco-root' && collectionHandle !== 'all-wines';
+
+    // For PLP/PDP analytics by dimension (wine/producer), we attach the products shown in this list view.
+    // Keep payload bounded to avoid huge JSON in `event_metadata`.
+    const shownProducts = filteredProducts.slice(0, 200);
+    const productIds = shownProducts.map((p) => p.id);
+    const producerIds = Array.from(
+      new Set(
+        shownProducts
+          .map((p: any) => p.producerId as string | undefined)
+          .filter(Boolean),
+      ),
+    );
     
     AnalyticsTracker.trackEvent({
       eventType: "product_list_viewed",
@@ -125,7 +137,9 @@ export function ProductListContent({
         totalProducts: products.length,
         hasFilters: colorFilters.length > 0 || selectedProducers.length > 0 || isCollectionPage,
         collectionHandle: collectionHandle,
-        isCollectionPage: isCollectionPage
+        isCollectionPage: isCollectionPage,
+        productIds,
+        producerIds,
       }
     });
   }, [filteredProducts.length, products.length, colorFilters.length, selectedProducers.length, collectionHandle]);

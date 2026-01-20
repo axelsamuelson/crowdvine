@@ -70,6 +70,7 @@ interface User {
   membership_created_at?: string;
   last_sign_in_at?: string;
   email_confirmed_at?: string;
+  last_active_at?: string | null;
 }
 
 interface EditForm {
@@ -351,6 +352,7 @@ export default function UsersAdmin() {
                 <TableHead>Impact Points</TableHead>
                 <TableHead>Invites</TableHead>
                 <TableHead>Joined</TableHead>
+                <TableHead>Last Active</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -393,6 +395,15 @@ export default function UsersAdmin() {
                         Last login:{" "}
                         {new Date(user.last_sign_in_at).toLocaleDateString()}
                       </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {user.last_active_at ? (
+                      <div className="text-sm">
+                        {new Date(user.last_active_at).toLocaleString()}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-gray-400">—</div>
                     )}
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>

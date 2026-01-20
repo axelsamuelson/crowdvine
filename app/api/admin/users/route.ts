@@ -5,7 +5,7 @@ export async function GET(request: NextRequest) {
   try {
     // Check admin cookie
     const adminAuth = request.cookies.get("admin-auth")?.value;
-    if (!adminAuth) {
+    if (adminAuth !== "true") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -52,11 +52,39 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Combine auth users with profiles and membership data
-    const usersWithData = (authUsers.users || [])
+    const baseUsers = (authUsers.users || [])
       .filter((authUser) =>
         profiles?.some((profile) => profile.id === authUser.id),
-      )
+      );
+
+    // Build a map of last activity timestamps from analytics events.
+    // We only need the latest created_at per user_id; ordering desc + "first seen wins".
+    const userIds = baseUsers.map((u) => u.id);
+    const lastActiveMap = new Map<string, string>();
+
+    if (userIds.length > 0) {
+      const { data: lastEvents, error: lastEventsError } = await adminSupabase
+        .from("user_events")
+        .select("user_id, created_at")
+        .in("user_id", userIds)
+        .order("created_at", { ascending: false })
+        // bounded: enough to cover "latest per user" in normal admin usage
+        .limit(20000);
+
+      if (lastEventsError) {
+        console.warn("Warning fetching last active from user_events:", lastEventsError);
+      } else {
+        for (const ev of lastEvents || []) {
+          if (!ev?.user_id || !ev?.created_at) continue;
+          if (!lastActiveMap.has(ev.user_id)) {
+            lastActiveMap.set(ev.user_id, ev.created_at);
+          }
+        }
+      }
+    }
+
+    // Combine auth users with profiles, membership, and last_active_at
+    const usersWithData = baseUsers
       .map((authUser) => {
         const profile = profiles?.find((p) => p.id === authUser.id);
         const membership = memberships?.find((m) => m.user_id === authUser.id);
@@ -70,6 +98,7 @@ export async function GET(request: NextRequest) {
           email_confirmed_at: authUser.email_confirmed_at,
           role: profile?.role || "user",
           producer_id: profile?.producer_id || null,
+          last_active_at: lastActiveMap.get(authUser.id) || null,
           // Membership data
           membership_level: membership?.level || "requester",
           impact_points: membership?.impact_points || 0,

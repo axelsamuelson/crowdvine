@@ -65,7 +65,7 @@ export function Header({ collections }: HeaderProps) {
                 </Link>
               </li>
             ))}
-            {(role === "producer" || role === "admin") && (
+            {role === "producer" && (
               <li>
                 <Link
                   href="/producer"

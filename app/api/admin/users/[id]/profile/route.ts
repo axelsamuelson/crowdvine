@@ -3,9 +3,11 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params;
+
     // Check admin cookie (API routes are skipped by middleware)
     const adminAuth = req.cookies.get("admin-auth")?.value;
     if (adminAuth !== "true") {
@@ -17,7 +19,7 @@ export async function GET(
     const { data: profile, error } = await supabase
       .from("profiles")
       .select("*")
-      .eq("id", params.id)
+      .eq("id", id)
       .maybeSingle();
 
     if (error) {

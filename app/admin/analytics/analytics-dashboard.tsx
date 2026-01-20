@@ -8,6 +8,7 @@ import { EventTimeline } from "./components/event-timeline";
 import { CohortAnalysis } from "./components/cohort-analysis";
 import { UserJourneyTable } from "./components/user-journey-table";
 import { MetricsCards } from "./components/metrics-cards";
+import { ViewsTable } from "./components/views-table";
 
 export function AnalyticsDashboard() {
   const [funnelData, setFunnelData] = useState(null);
@@ -54,6 +55,7 @@ export function AnalyticsDashboard() {
           <TabsTrigger value="timeline">Event Timeline</TabsTrigger>
           <TabsTrigger value="cohorts">Cohort Analysis</TabsTrigger>
           <TabsTrigger value="users">User Journeys</TabsTrigger>
+          <TabsTrigger value="views">Views</TabsTrigger>
         </TabsList>
 
         <TabsContent value="funnel" className="space-y-4">
@@ -70,6 +72,10 @@ export function AnalyticsDashboard() {
 
         <TabsContent value="users">
           <UserJourneyTable users={funnelData?.users} />
+        </TabsContent>
+
+        <TabsContent value="views">
+          <ViewsTable />
         </TabsContent>
       </Tabs>
     </div>
