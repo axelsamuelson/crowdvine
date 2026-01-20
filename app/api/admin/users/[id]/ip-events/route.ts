@@ -6,6 +6,12 @@ export async function GET(
   { params }: { params: { id: string } },
 ) {
   try {
+    // Check admin cookie (API routes are skipped by middleware)
+    const adminAuth = req.cookies.get("admin-auth")?.value;
+    if (adminAuth !== "true") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const supabase = getSupabaseAdmin();
 
     const { data: events, error } = await supabase
