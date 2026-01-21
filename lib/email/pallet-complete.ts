@@ -28,7 +28,7 @@ export async function triggerPaymentNotifications(
       `,
       )
       .eq("pallet_id", palletId)
-      .in("status", ["placed", "pending_payment"]);
+      .in("status", ["placed", "approved", "partly_approved", "pending_payment"]);
 
     if (reservationsError) {
       console.error(

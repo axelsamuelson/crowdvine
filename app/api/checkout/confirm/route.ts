@@ -126,6 +126,45 @@ export async function POST(request: Request) {
     const sb = await supabaseServer();
     const sbAdmin = getSupabaseAdmin();
 
+    // Producer approval flow: this reservation must belong to a single producer.
+    // (If we later want multi-producer carts, we should split into multiple reservations.)
+    const cartWineIds = Array.from(
+      new Set(
+        (cart.lines || [])
+          .map((l: any) => String(l?.merchandise?.id))
+          .filter(Boolean),
+      ),
+    );
+
+    const { data: cartWines, error: cartWinesError } = await sbAdmin
+      .from("wines")
+      .select("id, producer_id")
+      .in("id", cartWineIds);
+
+    if (cartWinesError) {
+      console.error("[Checkout API] Failed to fetch wines for cart:", cartWinesError);
+      return NextResponse.json(
+        { error: "Failed to validate cart items" },
+        { status: 500 },
+      );
+    }
+
+    const uniqueProducerIds = Array.from(
+      new Set((cartWines || []).map((w: any) => w?.producer_id).filter(Boolean)),
+    );
+
+    if (uniqueProducerIds.length !== 1) {
+      return NextResponse.json(
+        {
+          error:
+            "This reservation must contain wines from a single producer (producer approval required).",
+        },
+        { status: 400 },
+      );
+    }
+
+    const producerIdForReservation = uniqueProducerIds[0] as string;
+
     // Get current user if authenticated
     const currentUser = await getCurrentUser();
     console.log("Current user:", currentUser?.id || "Anonymous");
@@ -204,7 +243,8 @@ export async function POST(request: Request) {
         pickup_zone_id: zones.pickupZoneId,
         delivery_zone_id: finalDeliveryZoneId,
         pallet_id: palletId,
-        status: "pending_payment",
+        producer_id: producerIdForReservation,
+        status: "pending_producer_approval",
       })
       .select()
       .single();
@@ -635,6 +675,30 @@ export async function POST(request: Request) {
     } catch (error) {
       console.error("Error checking pallet completion:", error);
       // Don't fail the reservation if pallet completion check fails
+    }
+
+    // Auto status: once a pallet has at least one reservation, mark it as consolidating (unless already beyond).
+    try {
+      if (palletId) {
+        const { data: palletRow } = await sbAdmin
+          .from("pallets")
+          .select("id, status, status_mode")
+          .eq("id", palletId)
+          .maybeSingle();
+        const mode = (palletRow as any)?.status_mode || "auto";
+        const status = String((palletRow as any)?.status || "open").toLowerCase();
+        if (
+          mode === "auto" &&
+          (status === "open" || status === "")
+        ) {
+          await sbAdmin
+            .from("pallets")
+            .update({ status: "consolidating", updated_at: new Date().toISOString() })
+            .eq("id", palletId);
+        }
+      }
+    } catch (e) {
+      console.warn("[Checkout API] Failed to auto-set pallet status to consolidating");
     }
 
     console.log("=== CHECKOUT CONFIRM END ===");

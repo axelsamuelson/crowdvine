@@ -14,6 +14,7 @@ const updatableProducerFields = [
   "short_description",
   "logo_image_path",
   "pickup_zone_id",
+  "moq_min_bottles",
 ] as const;
 
 export async function GET() {

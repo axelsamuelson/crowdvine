@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -13,6 +13,26 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
 import {
   Package,
   MapPin,
@@ -23,11 +43,21 @@ import {
   Calendar,
   DollarSign,
   Box,
+  Plus,
+  Trash2,
+  GripVertical,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import {
   getPercentFilled,
   shouldShowPercent,
 } from "@/lib/utils/pallet-progress";
+import {
+  type CompletionRules,
+  type CompletionGroup,
+  type CompletionCondition,
+  formatCompletionRules,
+} from "@/lib/pallet-completion-rules";
 
 // Format currency in SEK
 const formatCurrency = (amount: number) => {
@@ -49,11 +79,14 @@ interface Pallet {
   id: string;
   name: string;
   description?: string;
+  status?: string;
+  status_mode?: string;
   delivery_zone_id: string;
   pickup_zone_id: string;
   cost_cents: number;
   bottle_capacity: number;
   current_bottles?: number;
+  completion_rules?: CompletionRules | null;
   created_at: string;
   updated_at: string;
   delivery_zone?: PalletZone;
@@ -97,6 +130,38 @@ export default function AdminPalletDetails({
 }: AdminPalletDetailsProps) {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [stats, setStats] = useState<PalletStats | null>(null);
+  const [metrics, setMetrics] = useState<{
+    currentBottles: number;
+    profitSek: number;
+    isComplete: boolean;
+  } | null>(null);
+  const [rules, setRules] = useState<CompletionRules>(() => {
+    const existing = (pallet as any)?.completion_rules;
+    return (
+      existing || {
+        mode: "SEQUENTIAL",
+        groups: [
+          {
+            operator: "AND",
+            conditions: [{ metric: "bottles", op: ">=", value: 720 }],
+          },
+        ],
+      }
+    );
+  });
+  const [savingRules, setSavingRules] = useState(false);
+  const [savingStatus, setSavingStatus] = useState(false);
+  const [palletStatus, setPalletStatus] = useState<string>(
+    typeof (pallet as any)?.status === "string" ? (pallet as any).status : "open",
+  );
+  const [palletStatusMode, setPalletStatusMode] = useState<"auto" | "manual">(
+    (pallet as any)?.status_mode === "manual" ? "manual" : "auto",
+  );
+  const [deletingReservationId, setDeletingReservationId] = useState<string | null>(null);
+  const [resettingReservations, setResettingReservations] = useState(false);
+  const [draggingGroupIndex, setDraggingGroupIndex] = useState<number | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const router = useRouter();
@@ -122,6 +187,24 @@ export default function AdminPalletDetails({
       const resData = await resResponse.json();
       const reservationsList = Array.isArray(resData) ? resData : [];
       setReservations(reservationsList);
+
+      // Fetch pallet metrics (data-driven totals + profit) for rule preview
+      const metricRes = await fetch("/api/pallet-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ palletIds: [palletId] }),
+      });
+      if (metricRes.ok) {
+        const metricJson = await metricRes.json();
+        const p = metricJson?.pallets?.[0];
+        if (p) {
+          setMetrics({
+            currentBottles: Number(p.current_bottles) || 0,
+            profitSek: Number(p.profit_sek_ex_vat) || 0,
+            isComplete: Boolean(p.is_complete),
+          });
+        }
+      }
 
       // Calculate stats
       const uniqueUsers = new Set(
@@ -165,6 +248,184 @@ export default function AdminPalletDetails({
     } finally {
       setLoading(false);
     }
+  };
+
+  const saveRules = async () => {
+    setSavingRules(true);
+    try {
+      const resp = await fetch(`/api/admin/pallets/${palletId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completion_rules: rules }),
+      });
+      const data = await resp.json().catch(() => null);
+      if (!resp.ok) {
+        throw new Error(data?.error || "Failed to save rules");
+      }
+      toast.success("Completion rules saved");
+      // Refresh derived metrics
+      fetchPalletData();
+    } catch (e) {
+      toast.error("Failed to save completion rules", {
+        description: e instanceof Error ? e.message : "Unknown error",
+      });
+    } finally {
+      setSavingRules(false);
+    }
+  };
+
+  const savePalletStatus = async (nextStatus: string) => {
+    setSavingStatus(true);
+    try {
+      const resp = await fetch(`/api/admin/pallets/${palletId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      const data = await resp.json().catch(() => null);
+      if (!resp.ok) {
+        throw new Error(data?.error || "Failed to update pallet status");
+      }
+      toast.success("Pallet status updated");
+      setPalletStatus(nextStatus);
+      fetchPalletData();
+    } catch (e) {
+      toast.error("Failed to update pallet status", {
+        description: e instanceof Error ? e.message : "Unknown error",
+      });
+    } finally {
+      setSavingStatus(false);
+    }
+  };
+
+  const savePalletStatusMode = async (nextMode: "auto" | "manual") => {
+    setSavingStatus(true);
+    try {
+      const resp = await fetch(`/api/admin/pallets/${palletId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status_mode: nextMode }),
+      });
+      const data = await resp.json().catch(() => null);
+      if (!resp.ok) {
+        throw new Error(data?.error || "Failed to update status mode");
+      }
+      toast.success(`Status mode set to ${nextMode}`);
+      setPalletStatusMode(nextMode);
+      if (typeof data?.status === "string") {
+        setPalletStatus(data.status);
+      }
+      fetchPalletData();
+    } catch (e) {
+      toast.error("Failed to update status mode", {
+        description: e instanceof Error ? e.message : "Unknown error",
+      });
+    } finally {
+      setSavingStatus(false);
+    }
+  };
+
+  const deleteReservation = async (reservationId: string) => {
+    setDeletingReservationId(reservationId);
+    try {
+      const resp = await fetch(
+        `/api/admin/pallets/${palletId}/reservations/${reservationId}`,
+        { method: "DELETE" },
+      );
+      const data = await resp.json().catch(() => null);
+      if (!resp.ok) throw new Error(data?.error || "Failed to delete reservation");
+      toast.success("Reservation deleted");
+      fetchPalletData();
+    } catch (e) {
+      toast.error("Failed to delete reservation", {
+        description: e instanceof Error ? e.message : "Unknown error",
+      });
+    } finally {
+      setDeletingReservationId(null);
+    }
+  };
+
+  const resetAllReservations = async () => {
+    setResettingReservations(true);
+    try {
+      const resp = await fetch(`/api/admin/pallets/${palletId}/reservations/reset`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: "RESET" }),
+      });
+      const data = await resp.json().catch(() => null);
+      if (!resp.ok) throw new Error(data?.error || "Failed to reset reservations");
+      toast.success("Reservations cleared", {
+        description: `Deleted ${data?.deleted ?? 0} reservation(s).`,
+      });
+      fetchPalletData();
+    } catch (e) {
+      toast.error("Failed to reset reservations", {
+        description: e instanceof Error ? e.message : "Unknown error",
+      });
+    } finally {
+      setResettingReservations(false);
+    }
+  };
+
+  const addGroup = () => {
+    const next: CompletionGroup = { operator: "AND", conditions: [] };
+    setRules((r) => ({ ...r, groups: [...(r.groups || []), next] }));
+  };
+
+  const removeGroup = (idx: number) => {
+    setRules((r) => ({ ...r, groups: r.groups.filter((_, i) => i !== idx) }));
+  };
+
+  const moveGroup = (from: number, to: number) => {
+    setRules((r) => {
+      const next = [...r.groups];
+      const [item] = next.splice(from, 1);
+      next.splice(to, 0, item);
+      return { ...r, groups: next };
+    });
+  };
+
+  const stepLabel = useMemo(() => {
+    return (idx: number) => (idx === 0 ? "IF" : "ELSE IF");
+  }, []);
+
+  const addCondition = (groupIdx: number) => {
+    const next: CompletionCondition = { metric: "bottles", op: ">=", value: 0 };
+    setRules((r) => ({
+      ...r,
+      groups: r.groups.map((g, i) =>
+        i === groupIdx ? { ...g, conditions: [...(g.conditions || []), next] } : g,
+      ),
+    }));
+  };
+
+  const removeCondition = (groupIdx: number, condIdx: number) => {
+    setRules((r) => ({
+      ...r,
+      groups: r.groups.map((g, i) =>
+        i === groupIdx
+          ? { ...g, conditions: g.conditions.filter((_, j) => j !== condIdx) }
+          : g,
+      ),
+    }));
+  };
+
+  const updateCondition = (
+    groupIdx: number,
+    condIdx: number,
+    patch: Partial<CompletionCondition>,
+  ) => {
+    setRules((r) => ({
+      ...r,
+      groups: r.groups.map((g, i) => {
+        if (i !== groupIdx) return g;
+        return {
+          ...g,
+          conditions: g.conditions.map((c, j) => (j === condIdx ? { ...c, ...patch } : c)),
+        };
+      }),
+    }));
   };
 
   const getStatusBadge = (status: string) => {
@@ -218,12 +479,275 @@ export default function AdminPalletDetails({
           {pallet.description && (
             <p className="text-muted-foreground mt-2">{pallet.description}</p>
           )}
+          <div className="mt-3 flex items-center gap-3">
+            <div className="text-xs font-medium text-gray-500">Pallet status</div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500">Auto</span>
+              <Switch
+                checked={palletStatusMode === "manual"}
+                onCheckedChange={(checked) =>
+                  void savePalletStatusMode(checked ? "manual" : "auto")
+                }
+                disabled={savingStatus}
+              />
+              <span className="text-xs text-gray-500">Manual</span>
+            </div>
+            <Select
+              value={palletStatus}
+              onValueChange={(v) => void savePalletStatus(v)}
+              disabled={savingStatus || palletStatusMode !== "manual"}
+            >
+              <SelectTrigger className="h-9 w-[240px] rounded-full">
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="open">open</SelectItem>
+                <SelectItem value="consolidating">consolidating</SelectItem>
+                <SelectItem value="complete">complete</SelectItem>
+                <SelectItem value="awaiting_pickup">awaiting_pickup</SelectItem>
+                <SelectItem value="picked_up">picked_up</SelectItem>
+                <SelectItem value="in_transit">in_transit</SelectItem>
+                <SelectItem value="out_for_delivery">out_for_delivery</SelectItem>
+                <SelectItem value="delivered">delivered</SelectItem>
+                <SelectItem value="cancelled">cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+            {savingStatus ? (
+              <span className="text-xs text-gray-500">Saving…</span>
+            ) : null}
+          </div>
         </div>
         <Button onClick={() => router.push(`/admin/pallets/${palletId}/edit`)}>
           <Edit className="w-4 h-4 mr-2" />
           Edit Pallet
         </Button>
       </div>
+
+      {/* Completion Rules (Klaviyo-like segment builder) */}
+      <Card className="p-6 bg-white border border-gray-200 rounded-2xl">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="text-sm font-medium text-gray-900">
+              Completion rules
+            </div>
+            <div className="text-sm text-gray-500 mt-1">
+              {formatCompletionRules(rules)}
+            </div>
+            {metrics && (
+              <div className="text-xs text-gray-500 mt-2">
+                Live metrics: Bottles={metrics.currentBottles}, Profit (SEK ex VAT)={metrics.profitSek}, Complete={String(metrics.isComplete)}
+              </div>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full"
+              onClick={addGroup}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add ELSE IF step
+            </Button>
+            <Button
+              size="sm"
+              className="bg-black hover:bg-black/90 text-white rounded-full"
+              onClick={saveRules}
+              disabled={savingRules}
+            >
+              {savingRules ? "Saving..." : "Save rules"}
+            </Button>
+          </div>
+        </div>
+
+        <div className="mt-5 space-y-4">
+          <div className="text-xs font-medium text-gray-500">
+            Priority order matters: first matching step wins. ELSE = Incomplete.
+          </div>
+
+          {(rules.groups || []).map((group, gi) => (
+            <div
+              key={gi}
+              className={`rounded-2xl border border-gray-200 p-4 ${
+                gi === 0 ? "bg-white" : "bg-gray-50"
+              }`}
+              draggable
+              onDragStart={() => setDraggingGroupIndex(gi)}
+              onDragEnd={() => setDraggingGroupIndex(null)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => {
+                if (draggingGroupIndex === null) return;
+                if (draggingGroupIndex === gi) return;
+                moveGroup(draggingGroupIndex, gi);
+                setDraggingGroupIndex(null);
+              }}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className="text-xs font-semibold text-gray-900">
+                      Step {gi + 1}
+                    </div>
+                    <span className="text-[10px] uppercase tracking-wide text-gray-500">
+                      {stepLabel(gi)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 text-gray-400">
+                    <GripVertical className="w-4 h-4" />
+                    <span className="text-xs">Drag to reorder</span>
+                  </div>
+                  <Select
+                    value={group.operator}
+                    onValueChange={(v) =>
+                      setRules((r) => ({
+                        ...r,
+                        groups: r.groups.map((g, i) =>
+                          i === gi ? { ...g, operator: v as "AND" | "OR" } : g,
+                        ),
+                      }))
+                    }
+                  >
+                    <SelectTrigger className="w-28 bg-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="AND">AND</SelectItem>
+                      <SelectItem value="OR">OR</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <span className="text-xs text-gray-500">between conditions</span>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full"
+                    onClick={() => addCondition(gi)}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add condition
+                  </Button>
+                  {gi > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full"
+                      onClick={() => moveGroup(gi, gi - 1)}
+                      title="Move up"
+                    >
+                      ↑
+                    </Button>
+                  )}
+                  {gi < rules.groups.length - 1 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full"
+                      onClick={() => moveGroup(gi, gi + 1)}
+                      title="Move down"
+                    >
+                      ↓
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full"
+                    onClick={() => removeGroup(gi)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                {(group.conditions || []).length === 0 ? (
+                  <div className="text-sm text-gray-500">No conditions yet.</div>
+                ) : (
+                  group.conditions.map((c, ci) => (
+                    <div
+                      key={ci}
+                      className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end"
+                    >
+                      <div className="md:col-span-4 space-y-2">
+                        <div className="text-xs text-gray-500">Metric</div>
+                        <Select
+                          value={c.metric}
+                          onValueChange={(v) =>
+                            updateCondition(gi, ci, { metric: v as any })
+                          }
+                        >
+                          <SelectTrigger className="bg-white">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="bottles">Bottles</SelectItem>
+                            <SelectItem value="profit_sek">
+                              Profit (SEK ex VAT)
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="md:col-span-2 space-y-2">
+                        <div className="text-xs text-gray-500">Operator</div>
+                        <Select
+                          value={c.op}
+                          onValueChange={(v) =>
+                            updateCondition(gi, ci, { op: v as any })
+                          }
+                        >
+                          <SelectTrigger className="bg-white">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value=">=">&ge;</SelectItem>
+                            <SelectItem value=">">&gt;</SelectItem>
+                            <SelectItem value="<=">&le;</SelectItem>
+                            <SelectItem value="<">&lt;</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="md:col-span-4 space-y-2">
+                        <div className="text-xs text-gray-500">Value</div>
+                        <Input
+                          type="number"
+                          className="no-spinner bg-white"
+                          value={String(c.value ?? "")}
+                          onChange={(e) =>
+                            updateCondition(gi, ci, {
+                              value: Number(e.target.value || 0),
+                            })
+                          }
+                        />
+                      </div>
+
+                      <div className="md:col-span-2 flex justify-end">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-full"
+                          onClick={() => removeCondition(gi, ci)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          ))}
+
+          <div className="rounded-2xl border border-dashed border-gray-200 p-4 bg-white">
+            <div className="text-xs font-semibold text-gray-900">ELSE</div>
+            <div className="text-sm text-gray-600 mt-1">
+              Pallet is <span className="font-medium">Incomplete</span>
+            </div>
+          </div>
+        </div>
+      </Card>
 
       {/* Stats Grid */}
       {stats && (
@@ -376,10 +900,45 @@ export default function AdminPalletDetails({
       {/* Reservations Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Reservations ({reservations.length})</CardTitle>
-          <CardDescription>
-            All customer reservations for this pallet
-          </CardDescription>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <CardTitle>Reservations ({reservations.length})</CardTitle>
+              <CardDescription>
+                All customer reservations for this pallet
+              </CardDescription>
+            </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 rounded-full"
+                  disabled={resettingReservations || reservations.length === 0}
+                >
+                  {resettingReservations ? "Resetting..." : "Reset reservations"}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Reset all reservations?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete all reservations currently mapped
+                    to this pallet (including their line items and tracking rows).
+                    This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={resetAllReservations}
+                    className="bg-red-600 hover:bg-red-700"
+                    disabled={resettingReservations}
+                  >
+                    {resettingReservations ? "Resetting..." : "Reset"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </CardHeader>
         <CardContent>
           {reservations.length === 0 ? (
@@ -446,11 +1005,44 @@ export default function AdminPalletDetails({
                         {new Date(reservation.created_at).toLocaleDateString()}
                       </td>
                       <td className="py-3 px-4 text-sm">
-                        <Link href={`/admin/reservations/${reservation.id}`}>
-                          <Button variant="ghost" size="sm">
-                            View
-                          </Button>
-                        </Link>
+                        <div className="flex items-center gap-2">
+                          <Link href={`/admin/reservations/${reservation.id}`}>
+                            <Button variant="ghost" size="sm">
+                              View
+                            </Button>
+                          </Link>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                disabled={deletingReservationId === reservation.id}
+                              >
+                                {deletingReservationId === reservation.id ? "Deleting..." : "Delete"}
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete reservation?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will permanently delete this reservation and its line items.
+                                  This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteReservation(reservation.id)}
+                                  className="bg-red-600 hover:bg-red-700"
+                                  disabled={deletingReservationId === reservation.id}
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       </td>
                     </tr>
                   ))}

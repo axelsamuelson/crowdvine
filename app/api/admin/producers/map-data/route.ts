@@ -53,7 +53,7 @@ export async function GET() {
             )
           `
           )
-          .in("status", ["placed", "pending_payment", "confirmed"]);
+          .in("status", ["pending_producer_approval", "placed", "approved", "pending_payment", "confirmed"]);
 
         let totalBottles = 0;
         reservations?.forEach((reservation: any) => {

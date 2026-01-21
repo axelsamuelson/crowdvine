@@ -6,7 +6,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     // Check admin cookie
@@ -17,9 +17,16 @@ export async function PUT(
 
     const body = await request.json();
     const supabase = getSupabaseAdmin();
-    const producerId = params.id;
+    const producerId = (await params).id;
 
     console.log("Updating producer:", producerId, body);
+
+    // Read current pickup zone before update so we can migrate active reservations if needed
+    const { data: currentProducer } = await supabase
+      .from("producers")
+      .select("id, pickup_zone_id")
+      .eq("id", producerId)
+      .maybeSingle();
 
     const updateData: any = {};
 
@@ -64,6 +71,112 @@ export async function PUT(
 
     console.log("Producer updated:", producer.id);
 
+    // If pickup zone changed, update active reservations that include wines from this producer
+    const oldPickupZoneId = currentProducer?.pickup_zone_id || null;
+    const newPickupZoneId = producer.pickup_zone_id || null;
+
+    const pickupZoneChanged = oldPickupZoneId !== newPickupZoneId;
+    let reservationsUpdated = 0;
+    let reservationsSkipped = 0;
+
+    if (pickupZoneChanged) {
+      try {
+        // Active statuses (used elsewhere in the codebase)
+        const activeStatuses = ["placed", "approved", "partly_approved", "pending_payment", "confirmed"];
+
+        // 1) Get wine IDs for this producer
+        const { data: wineRows, error: wineErr } = await supabase
+          .from("wines")
+          .select("id")
+          .eq("producer_id", producerId);
+        if (wineErr) throw wineErr;
+
+        const wineIds = (wineRows || []).map((w: any) => w.id);
+        if (wineIds.length > 0) {
+          // 2) Find reservation_ids that contain these wines
+          const { data: itemRows, error: itemErr } = await supabase
+            .from("order_reservation_items")
+            .select("reservation_id")
+            .in("item_id", wineIds);
+          if (itemErr) throw itemErr;
+
+          const reservationIds = Array.from(
+            new Set((itemRows || []).map((r: any) => r.reservation_id)),
+          );
+
+          if (reservationIds.length > 0) {
+            // 3) Load active reservations (and only ones currently on the old pickup zone)
+            let reservationsQuery = supabase
+              .from("order_reservations")
+              .select("id, status, pickup_zone_id, delivery_zone_id")
+              .in("id", reservationIds)
+              .in("status", activeStatuses);
+
+            if (oldPickupZoneId) {
+              reservationsQuery = reservationsQuery.eq(
+                "pickup_zone_id",
+                oldPickupZoneId,
+              );
+            } else {
+              reservationsQuery = reservationsQuery.is("pickup_zone_id", null);
+            }
+
+            const { data: reservations, error: resErr } =
+              await reservationsQuery;
+            if (resErr) throw resErr;
+
+            const deliveryZoneIds = Array.from(
+              new Set(
+                (reservations || [])
+                  .map((r: any) => r.delivery_zone_id)
+                  .filter(Boolean),
+              ),
+            ) as string[];
+
+            // Map delivery_zone_id -> pallet_id for the new pickup zone
+            const palletIdByDeliveryZoneId = new Map<string, string>();
+            if (newPickupZoneId && deliveryZoneIds.length > 0) {
+              const { data: pallets, error: palletErr } = await supabase
+                .from("pallets")
+                .select("id, delivery_zone_id")
+                .eq("pickup_zone_id", newPickupZoneId)
+                .in("delivery_zone_id", deliveryZoneIds);
+              if (palletErr) throw palletErr;
+              (pallets || []).forEach((p: any) =>
+                palletIdByDeliveryZoneId.set(p.delivery_zone_id, p.id),
+              );
+            }
+
+            for (const r of reservations || []) {
+              const newPalletId = newPickupZoneId
+                ? palletIdByDeliveryZoneId.get(r.delivery_zone_id) || null
+                : null;
+
+              const { error: updErr } = await supabase
+                .from("order_reservations")
+                .update({
+                  pickup_zone_id: newPickupZoneId,
+                  pallet_id: newPalletId,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", r.id);
+
+              if (updErr) {
+                reservationsSkipped++;
+              } else {
+                reservationsUpdated++;
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error(
+          "[Producer update] Failed to migrate active reservations after pickup zone change:",
+          e,
+        );
+      }
+    }
+
     return NextResponse.json({ success: true, producer });
   } catch (error: any) {
     console.error("Producer update API error:", error);
@@ -79,7 +192,7 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     // Check admin cookie
@@ -89,7 +202,7 @@ export async function DELETE(
     }
 
     const supabase = getSupabaseAdmin();
-    const producerId = params.id;
+    const producerId = (await params).id;
 
     console.log("Deleting producer:", producerId);
 

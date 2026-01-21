@@ -8,11 +8,37 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { DeleteProducerButton } from "@/components/admin/delete-producer-button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export default async function ProducersPage() {
   const producers = await getProducers();
+  const sb = getSupabaseAdmin();
+
+  const pickupZoneIds = Array.from(
+    new Set(
+      producers
+        .map((p: any) => p.pickup_zone_id)
+        .filter((id: any) => typeof id === "string" && id.length > 0),
+    ),
+  ) as string[];
+
+  const pickupZoneNameById = new Map<string, string>();
+  if (pickupZoneIds.length > 0) {
+    const { data: zones } = await sb
+      .from("pallet_zones")
+      .select("id, name")
+      .in("id", pickupZoneIds);
+    (zones || []).forEach((z: any) => pickupZoneNameById.set(z.id, z.name));
+  }
 
   return (
     <div className="space-y-6">
@@ -31,50 +57,94 @@ export default async function ProducersPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {producers.map((producer) => (
-          <Card key={producer.id}>
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="text-lg">{producer.name}</CardTitle>
-                  <CardDescription>{producer.region}</CardDescription>
-                </div>
-                <Badge variant="secondary">{producer.country_code}</Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <p className="text-sm text-gray-600">
-                  {producer.short_description}
-                </p>
-                <div className="text-sm text-gray-500">
-                  <p>{producer.address_street}</p>
-                  <p>
-                    {producer.address_city}, {producer.address_postcode}
-                  </p>
-                </div>
-                <div className="flex justify-between items-center pt-2">
-                  <div className="text-xs text-gray-400">
-                    {producer.lat.toFixed(4)}, {producer.lon.toFixed(4)}
-                  </div>
-                  <div className="flex space-x-2">
-                    <Link href={`/admin/producers/${producer.id}`}>
-                      <Button variant="outline" size="sm">
-                        Edit
-                      </Button>
-                    </Link>
-                    <DeleteProducerButton
-                      producerId={producer.id}
-                      producerName={producer.name}
-                    />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {producers.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>All Producers</CardTitle>
+            <CardDescription>Complete list of all producers</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50 hover:bg-gray-50">
+                    <TableHead className="text-gray-600">Producer</TableHead>
+                    <TableHead className="text-gray-600">Region</TableHead>
+                    <TableHead className="hidden md:table-cell text-gray-600">
+                      Country
+                    </TableHead>
+                    <TableHead className="hidden lg:table-cell text-gray-600">
+                      Address
+                    </TableHead>
+                    <TableHead className="hidden xl:table-cell text-gray-600">
+                      Pall
+                    </TableHead>
+                    <TableHead className="text-right text-gray-600">
+                      Actions
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {producers.map((producer) => (
+                    <TableRow key={producer.id} className="hover:bg-gray-50">
+                      <TableCell className="min-w-[240px]">
+                        <div className="min-w-0">
+                          <div className="font-medium text-gray-900 truncate">
+                            {producer.name}
+                          </div>
+                          {producer.short_description ? (
+                            <div className="text-xs text-gray-500 truncate">
+                              {producer.short_description}
+                            </div>
+                          ) : null}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-gray-700">
+                        {producer.region || "—"}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-gray-700">
+                        {producer.country_code || "—"}
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell text-gray-700">
+                        <div className="min-w-0">
+                          <div className="truncate">
+                            {producer.address_street || "—"}
+                          </div>
+                          <div className="text-xs text-gray-500 truncate">
+                            {producer.address_city || "—"}
+                            {producer.address_postcode
+                              ? `, ${producer.address_postcode}`
+                              : ""}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden xl:table-cell text-gray-700">
+                        {producer.pickup_zone_id
+                          ? pickupZoneNameById.get(producer.pickup_zone_id) ||
+                            "—"
+                          : "—"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Link href={`/admin/producers/${producer.id}`}>
+                            <Button variant="outline" size="sm">
+                              Edit
+                            </Button>
+                          </Link>
+                          <DeleteProducerButton
+                            producerId={producer.id}
+                            producerName={producer.name}
+                          />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {producers.length === 0 && (
         <Card>

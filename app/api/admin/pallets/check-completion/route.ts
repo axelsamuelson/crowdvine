@@ -31,7 +31,7 @@ async function checkAllPallets(shouldFix = false) {
           .from("order_reservations")
           .select("id, status")
           .eq("pallet_id", pallet.id)
-          .in("status", ["placed", "pending_payment", "confirmed"]);
+          .in("status", ["placed", "approved", "partly_approved", "pending_payment", "confirmed"]);
 
         // Count bottles from order_reservation_items
         let totalBottles = 0;

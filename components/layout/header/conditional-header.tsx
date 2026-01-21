@@ -14,6 +14,7 @@ export function ConditionalHeader({ collections }: ConditionalHeaderProps) {
   const isAccessRequestRoute = pathname === "/access-request";
   const isCheckoutSuccessRoute = pathname === "/checkout/success";
   const isLogInRoute = pathname === "/log-in";
+  const isMapTopoRoute = pathname === "/map-topo";
   const isInvitationRoute =
     pathname.startsWith("/i/") || pathname.startsWith("/c/");
   const isSignupRoute = pathname === "/signup";
@@ -23,6 +24,7 @@ export function ConditionalHeader({ collections }: ConditionalHeaderProps) {
     isAccessRequestRoute ||
     isCheckoutSuccessRoute ||
     isLogInRoute ||
+    isMapTopoRoute ||
     isInvitationRoute || // Hide header on invitation signup pages
     isSignupRoute // Hide header on access token signup page
   ) {

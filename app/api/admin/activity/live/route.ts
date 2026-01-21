@@ -36,7 +36,7 @@ export async function GET() {
         )
       `
       )
-      .in("status", ["placed", "pending_payment", "confirmed"])
+      .in("status", ["pending_producer_approval", "placed", "approved", "pending_payment", "confirmed"])
       .gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
       .order("created_at", { ascending: false })
       .limit(50);
@@ -50,7 +50,7 @@ export async function GET() {
       .from("order_reservations")
       .select("user_id", { count: "exact" })
       .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-      .in("status", ["placed", "pending_payment", "confirmed"]);
+      .in("status", ["pending_producer_approval", "placed", "approved", "pending_payment", "confirmed"]);
 
     const uniqueActiveUsers = new Set(
       activeUsers?.map((r: any) => r.user_id) || []
@@ -69,7 +69,7 @@ export async function GET() {
       `
       )
       .gte("created_at", today.toISOString())
-      .in("status", ["placed", "pending_payment", "confirmed"]);
+      .in("status", ["pending_producer_approval", "placed", "approved", "pending_payment", "confirmed"]);
 
     let totalBottlesToday = 0;
     todayReservations?.forEach((reservation: any) => {

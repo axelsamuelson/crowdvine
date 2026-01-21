@@ -44,7 +44,7 @@ export async function checkPalletCompletion(
       .from("order_reservations")
       .select("id, status")
       .eq("pallet_id", palletId)
-      .in("status", ["placed", "pending_payment", "confirmed"]); // Include all active statuses
+      .in("status", ["placed", "approved", "partly_approved", "pending_payment", "confirmed"]); // Include all active statuses
 
     if (reservationsError) {
       console.error(
@@ -124,7 +124,7 @@ async function completePallet(palletId: string): Promise<void> {
         payment_deadline: paymentDeadline.toISOString(),
       })
       .eq("pallet_id", palletId)
-      .in("status", ["placed", "pending_payment"]);
+      .in("status", ["placed", "approved", "partly_approved", "pending_payment"]);
 
     if (reservationUpdateError) {
       console.error(

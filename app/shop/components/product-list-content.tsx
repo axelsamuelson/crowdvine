@@ -84,6 +84,43 @@ function filterProductsByColors(
   return filteredProducts;
 }
 
+function filterProductsByGrapes(products: Product[], grapes: string[]): Product[] {
+  if (!grapes || grapes.length === 0) return products;
+
+  const wanted = new Set(grapes.map((g) => g.toLowerCase()));
+  return products.filter((product) => {
+    // Prefer explicit "Grape Varieties" option if present
+    const opt = product.options?.find((o: any) =>
+      String(o?.name || "").toLowerCase().includes("grape"),
+    );
+    if (opt?.values?.length) {
+      return opt.values.some((v: any) => {
+        const name = typeof v === "string" ? v : v?.name;
+        return name && wanted.has(String(name).toLowerCase());
+      });
+    }
+
+    // Fallback: variant selected options
+    if (product.variants?.length) {
+      return product.variants.some((variant: any) => {
+        return (variant?.selectedOptions || []).some((so: any) => {
+          const n = String(so?.name || "").toLowerCase();
+          if (!n.includes("grape")) return false;
+          const value = String(so?.value || "").toLowerCase();
+          return wanted.has(value);
+        });
+      });
+    }
+
+    // Last fallback: tags
+    if (product.tags?.length) {
+      return product.tags.some((t) => wanted.has(String(t || "").toLowerCase()));
+    }
+
+    return false;
+  });
+}
+
 export function ProductListContent({
   products,
   collections,
@@ -98,13 +135,18 @@ export function ProductListContent({
     parseAsArrayOf(parseAsString).withDefault([]),
   );
 
-  // Apply client-side filtering whenever products or color filters change
+  const [grapeFilters] = useQueryState(
+    "fgrape",
+    parseAsArrayOf(parseAsString).withDefault([]),
+  );
+
+  // Apply client-side filtering whenever products or filters change
   const filteredProducts = useMemo(() => {
-    if (!colorFilters || colorFilters.length === 0) {
-      return products;
-    }
-    return filterProductsByColors(products, colorFilters);
-  }, [products, colorFilters]);
+    let out = products;
+    if (colorFilters?.length) out = filterProductsByColors(out, colorFilters);
+    if (grapeFilters?.length) out = filterProductsByGrapes(out, grapeFilters);
+    return out;
+  }, [products, colorFilters, grapeFilters]);
 
   // Set both original and filtered products in the provider whenever they change
   useEffect(() => {
@@ -135,14 +177,14 @@ export function ProductListContent({
       metadata: { 
         productCount: filteredProducts.length,
         totalProducts: products.length,
-        hasFilters: colorFilters.length > 0 || selectedProducers.length > 0 || isCollectionPage,
+        hasFilters: colorFilters.length > 0 || grapeFilters.length > 0 || selectedProducers.length > 0 || isCollectionPage,
         collectionHandle: collectionHandle,
         isCollectionPage: isCollectionPage,
         productIds,
         producerIds,
       }
     });
-  }, [filteredProducts.length, products.length, colorFilters.length, selectedProducers.length, collectionHandle]);
+  }, [filteredProducts.length, products.length, colorFilters.length, grapeFilters.length, selectedProducers.length, collectionHandle]);
 
   return (
     <>

@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { DeleteWineButton } from "@/components/admin/delete-wine-button";
 import { Upload } from "lucide-react";
+import { BulkMarginUpdater } from "./bulk-margin-updater";
 
 const colorColors = {
   red: "bg-red-100 text-red-800",
@@ -21,6 +22,21 @@ const colorColors = {
 
 export default async function WinesPage() {
   const wines = await getWines();
+
+  const margins = wines
+    .map((w) => (w as any).margin_percentage)
+    .map((v) => (typeof v === "number" ? v : Number(v)));
+  const numericMargins = margins.filter((m) => Number.isFinite(m)) as number[];
+  const hasMissing = margins.length > numericMargins.length;
+
+  const first = numericMargins[0];
+  const allSame =
+    numericMargins.length > 0 &&
+    numericMargins.every((m) => Math.abs(m - first) < 1e-9) &&
+    !hasMissing;
+
+  const isMixed = wines.length > 0 && !allSame;
+  const initialMargin = allSame ? first : null;
 
   return (
     <div className="space-y-6">
@@ -43,6 +59,8 @@ export default async function WinesPage() {
       </div>
 
       {/* Wines Table */}
+      <BulkMarginUpdater initialMargin={initialMargin} isMixed={isMixed} />
+
       <Card>
         <CardHeader>
           <CardTitle>All Wines</CardTitle>

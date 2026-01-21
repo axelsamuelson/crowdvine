@@ -16,6 +16,12 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
   Package,
   Wine,
   ArrowLeft,
@@ -41,6 +47,7 @@ interface Reservation {
   pallet_name?: string;
   pallet_capacity?: number;
   pallet_is_complete?: boolean;
+  pallet_status?: string | null;
   delivery_address?: string;
   total_cost_cents: number;
   payment_status?: string;
@@ -48,7 +55,10 @@ interface Reservation {
   payment_deadline?: string;
   items: Array<{
     wine_name: string;
+    producer_name?: string | null;
     quantity: number;
+    producer_decision_status?: string | null;
+    producer_approved_quantity?: number | null;
     vintage: string;
     image_path?: string;
     grape_varieties?: string;
@@ -60,12 +70,17 @@ interface Reservation {
 
 interface AddressPalletData {
   addressPalletKey: string;
+  palletId?: string | null;
   palletName: string;
+  palletStatus?: string | null;
   deliveryAddress: string;
   wines: Array<{
     wine_name: string;
+    producer_name?: string | null;
     vintage: string;
     totalQuantity: number;
+    approvedQuantity?: number;
+    hasPendingApproval?: boolean;
     image_path?: string;
     grape_varieties?: string;
     color?: string;
@@ -73,39 +88,145 @@ interface AddressPalletData {
     total_cost_cents: number;
   }>;
   totalBottles: number;
+  totalRequestedBottles?: number;
+  palletCurrentBottles?: number;
   totalCostCents: number;
   orderCount: number;
   latestOrderDate: string;
+  latestReservationStatus?: string;
   paymentStatus?: string;
   paymentLink?: string;
   paymentDeadline?: string;
   palletCapacity?: number;
   palletIsComplete?: boolean;
+  producerItems?: Array<{
+    wine_name: string;
+    vintage: string;
+    requested: number;
+    approved: number | null;
+    decision: string | null;
+  }>;
+}
+
+function getProducerOutcome(status: string | undefined) {
+  const s = String(status || "");
+  if (s === "declined" || s === "rejected") return "Declined";
+  if (s === "partly_approved") return "Partly approved";
+  if (s === "approved" || s === "placed" || s === "pending_payment" || s === "confirmed")
+    return "Approved";
+  if (s === "pending_producer_approval") return "Pending";
+  return "Pending";
+}
+
+function getSummaryStatus(group: AddressPalletData) {
+  const reservationStatus = String(group.latestReservationStatus || "");
+  const payment = String(group.paymentStatus || "");
+  const palletStatusRaw = String(group.palletStatus || "");
+  const palletStatus = palletStatusRaw.toLowerCase();
+  const palletComplete =
+    Boolean(group.palletIsComplete) ||
+    palletStatus === "complete" ||
+    palletStatus === "awaiting_pickup" ||
+    palletStatus === "picked_up" ||
+    palletStatus === "in_transit" ||
+    palletStatus === "out_for_delivery" ||
+    palletStatus === "shipped" ||
+    palletStatus === "delivered";
+
+  if (palletStatus === "delivered") return "Delivered";
+  if (palletStatus === "out_for_delivery") return "Out for delivery";
+  if (palletStatus === "in_transit" || palletStatus === "shipped") return "In transit";
+  if (palletStatus === "picked_up") return "Picked up";
+  if (palletStatus === "awaiting_pickup") return "Awaiting pickup";
+  if (payment === "paid" || reservationStatus === "confirmed") return "Paid";
+  if (reservationStatus === "pending_payment") return "Payment pending";
+  if (palletComplete) return "Pallet complete";
+
+  const producerOutcome = getProducerOutcome(reservationStatus);
+  if (producerOutcome === "Pending") return "Awaiting producer approval";
+  if (producerOutcome === "Declined") return "Declined";
+  if (producerOutcome === "Partly approved") return "Partly approved";
+  return "Pallet consolidating";
 }
 
 const timelineStatusConfig: Record<
   string,
   { icon: LucideIcon; containerClass: string; iconClass: string }
 > = {
-  Delivered: {
-    icon: CheckCircle2,
-    containerClass: "border border-success/40 bg-success/10",
-    iconClass: "text-success",
+  "Reservation placed": {
+    icon: Package,
+    containerClass: "border border-border bg-background",
+    iconClass: "text-muted-foreground",
   },
-  "Out for Delivery": {
+  "Awaiting producer approval": {
+    icon: Clock,
+    containerClass: "border border-amber-200 bg-amber-50",
+    iconClass: "text-amber-700",
+  },
+  "Partly approved": {
+    icon: CheckCircle2,
+    containerClass: "border border-amber-200 bg-amber-50",
+    iconClass: "text-amber-700",
+  },
+  Declined: {
+    icon: Clock,
+    containerClass: "border border-red-200 bg-red-50",
+    iconClass: "text-red-700",
+  },
+  "Producer review": {
+    icon: Clock,
+    containerClass: "border border-amber-200 bg-amber-50",
+    iconClass: "text-amber-700",
+  },
+  "Pallet consolidating": {
+    icon: Package,
+    containerClass: "border border-border bg-background",
+    iconClass: "text-muted-foreground",
+  },
+  "Pallet complete": {
+    icon: CheckCircle2,
+    containerClass: "border border-border bg-background",
+    iconClass: "text-muted-foreground",
+  },
+  "Awaiting pickup": {
+    icon: Package,
+    containerClass: "border border-border bg-background",
+    iconClass: "text-muted-foreground",
+  },
+  "Payment pending": {
+    icon: CreditCard,
+    containerClass: "border border-primary/30 bg-primary/5",
+    iconClass: "text-primary",
+  },
+  Paid: {
+    icon: CheckCircle2,
+    containerClass: "border border-border bg-background",
+    iconClass: "text-muted-foreground",
+  },
+  "In transit": {
     icon: Truck,
     containerClass: "border border-primary/40 bg-primary/10",
     iconClass: "text-primary",
   },
-  "In Transit": {
-    icon: Clock,
-    containerClass: "border border-muted-foreground/30 bg-muted",
-    iconClass: "text-muted-foreground",
+  "Out for delivery": {
+    icon: Truck,
+    containerClass: "border border-primary/40 bg-primary/10",
+    iconClass: "text-primary",
   },
-  "Order Placed": {
+  "Picked up": {
     icon: Package,
     containerClass: "border border-border bg-background",
     iconClass: "text-muted-foreground",
+  },
+  Shipped: {
+    icon: Truck,
+    containerClass: "border border-primary/40 bg-primary/10",
+    iconClass: "text-primary",
+  },
+  Delivered: {
+    icon: CheckCircle2,
+    containerClass: "border border-success/40 bg-success/10",
+    iconClass: "text-success",
   },
 };
 
@@ -115,6 +236,7 @@ const timelineDefaultStatus = {
   iconClass: "text-muted-foreground",
 };
 
+// (legacy) completed status style for timeline icons – kept for reuse if needed
 const timelineCompletedStatus = {
   icon: CheckCircle2,
   containerClass: "border border-success/40 bg-success/10",
@@ -162,104 +284,82 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
     navigator.clipboard.writeText(group.addressPalletKey);
   };
 
-  const latestStatus =
-    group.paymentStatus === "paid"
-      ? "Delivered"
-      : group.paymentStatus === "pending" ||
-          group.paymentStatus === "pending_payment"
-        ? "Out for Delivery"
-        : "Order Placed";
-
-  const trackingEvents = [
-    {
-      status: latestStatus,
-      location: group.deliveryAddress,
-      date: formatDate(group.latestOrderDate),
-      time: "",
-      description:
-        group.paymentStatus === "paid"
-          ? "Reservation secured and processed"
-          : group.paymentStatus === "pending" ||
-              group.paymentStatus === "pending_payment"
-            ? "Payment required to secure your reservation"
-            : "Reservation confirmed and processed",
-      completed: true,
-    },
-    {
-      status: "Order Placed",
-      location: "CrowdVine",
-      date: formatDate(group.latestOrderDate),
-      time: "",
-      description: "Order confirmed and processed",
-      completed: true,
-    },
-  ];
-
-  const statusConfig =
-    timelineStatusConfig[latestStatus] ?? timelineDefaultStatus;
+  const summaryStatus = getSummaryStatus(group);
+  const statusConfig = timelineStatusConfig[summaryStatus] ?? timelineDefaultStatus;
   const StatusIcon = statusConfig.icon;
+  const progressBottles =
+    group.palletCurrentBottles ?? group.totalBottles;
+  const progressPercent =
+    group.palletCapacity && group.palletCapacity > 0
+      ? (progressBottles / group.palletCapacity) * 100
+      : 0;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <div className="relative rounded-xl overflow-hidden bg-muted ring-1 ring-border/10 shadow-button hover:shadow-button-hover transition-shadow cursor-pointer group/card">
-          <div className="block w-full aspect-square">
+        <Card className="p-0 bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-sm transition-shadow cursor-pointer">
+          <div className="relative w-full aspect-[16/10] bg-gray-100">
             <Image
               src={primaryImage}
               alt={group.palletName}
-              width={1000}
-              height={100}
-              className="object-cover size-full"
+              fill
+              className="object-cover"
             />
           </div>
-
-          {/* Overlay (homepage-card style) */}
-          <div className="absolute flex p-sides inset-0 items-end justify-end pointer-events-none">
-            <div className="pointer-events-auto max-w-full flex items-stretch gap-2 w-full">
-              {/* Procenten i utrymmet mellan vänsterkant och vit box */}
-              {group.palletCapacity && group.palletCapacity > 0 && (
-                <div className="flex items-center justify-center flex-1 min-w-0 group/percentage">
-                  <div className="relative">
-                    <span className="text-3xl font-semibold text-foreground whitespace-nowrap transition-all duration-300 group-hover/percentage:opacity-0 group-hover/percentage:scale-95">
-                      {Math.round((group.totalBottles / group.palletCapacity) * 100)}%
-                    </span>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover/percentage:opacity-100 transition-all duration-300 scale-95 group-hover/percentage:scale-100">
-                      <span className="text-2xl font-semibold text-foreground whitespace-nowrap">
-                        {group.totalBottles} / {group.palletCapacity}
-                      </span>
-                      <span className="text-sm text-muted-foreground whitespace-nowrap mt-0.5">
-                        bottles
-                      </span>
-                    </div>
-                  </div>
+          <div className="p-5 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-base font-medium text-gray-900 truncate">
+                  {group.palletName}
                 </div>
-              )}
-              <div className="flex gap-3 items-center p-2.5 pl-4 bg-white/95 backdrop-blur-sm rounded-lg max-w-full shadow-button ring-1 ring-border/10 transition-transform duration-300 ease-out group-hover/card:-translate-y-0.5 group-hover/card:shadow-button-hover">
-                <div className="pr-4 leading-4 overflow-hidden">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="inline-block w-full truncate text-sm md:text-base font-semibold text-foreground/90 mb-1">
-                      {group.palletName}
-                    </p>
-                    <Badge variant="outline" className="text-[10px] mb-1 shrink-0">
-                      {group.paymentStatus || "placed"}
-                    </Badge>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground font-normal mb-1 truncate">
-                    {group.totalBottles} bottles • {group.wines.length} wines
-                  </p>
-                  <div className="flex gap-2 items-center text-sm md:text-base font-semibold">
-                    <span className="text-sm md:text-base font-semibold">{formatPrice(group.totalCostCents)}</span>
-                  </div>
+                <div className="text-sm text-gray-500 truncate">
+                  {group.deliveryAddress}
                 </div>
               </div>
+              <Badge variant="outline" className="shrink-0">
+                {summaryStatus}
+              </Badge>
+            </div>
+
+            {group.palletCapacity && group.palletCapacity > 0 ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <span>
+                    {progressBottles} / {group.palletCapacity} bottles
+                  </span>
+                  <span className="tabular-nums">{Math.round(progressPercent)}%</span>
+                </div>
+                <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                  <div
+                    className="h-2 bg-gray-900"
+                    style={{ width: `${Math.min(100, progressPercent)}%` }}
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            <div className="text-sm text-gray-500">
+              Your approved bottles:{" "}
+              <span className="font-medium text-gray-900">{group.totalBottles}</span>
+              {typeof group.totalRequestedBottles === "number" &&
+              group.totalRequestedBottles !== group.totalBottles
+                ? ` (requested ${group.totalRequestedBottles})`
+                : ""}
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium text-gray-900">
+                {formatPrice(group.totalCostCents)}
+              </div>
+              <div className="text-xs text-gray-500">{group.wines.length} wines</div>
             </div>
           </div>
-        </div>
+        </Card>
       </DialogTrigger>
 
-      <DialogContent className="max-h-[90vh] max-w-3xl p-0 overflow-hidden">
-        <DialogHeader className="gap-4 px-6 pt-6 pb-5 text-center border-b border-border/50 bg-white/60 backdrop-blur-sm">
-          <div className="relative h-16 w-16 overflow-hidden rounded-xl ring-1 ring-border/20 bg-muted shadow-button mx-auto">
+      <DialogContent className="max-h-[90vh] max-w-3xl p-0 overflow-hidden bg-white border border-gray-200 rounded-2xl">
+        <DialogHeader className="gap-4 px-6 pt-6 pb-5 text-center border-b border-gray-200 bg-white">
+          <div className="relative h-16 w-16 overflow-hidden rounded-xl ring-1 ring-gray-200 bg-gray-100 mx-auto">
             <Image
               src={primaryImage}
               alt="Reserved product"
@@ -274,17 +374,17 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
           </div>
         </DialogHeader>
 
-        <div className="mx-5 rounded-2xl border border-border/50 bg-white/70 backdrop-blur-sm px-6 py-4 shadow-button">
+        <div className="mx-5 rounded-2xl border border-gray-200 bg-white px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-success/10 p-2 ring-1 ring-success/20">
+            <div className="rounded-xl bg-gray-50 p-2 ring-1 ring-gray-200">
               <StatusIcon className={`h-5 w-5 ${statusConfig.iconClass}`} />
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-foreground">{latestStatus}</h3>
+                <h3 className="font-semibold text-foreground">{summaryStatus}</h3>
                 <Badge
                   variant="outline"
-                  className="border-success/30 bg-success/10 text-success text-xs"
+                  className="text-xs"
                 >
                   Active
                 </Badge>
@@ -298,7 +398,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
 
         <div className="mx-5 flex flex-col" style={{ height: "calc(90vh - 240px)" }}>
           <Tabs defaultValue="pallet" className="flex h-full flex-col overflow-hidden">
-            <TabsList className="w-full justify-start rounded-xl bg-white/70 backdrop-blur-sm border border-border/50 shadow-button">
+            <TabsList className="w-full justify-start rounded-full bg-white border border-gray-200">
               <TabsTrigger value="pallet" className="gap-2">
                 <Package className="h-4 w-4" />
                 Pallet
@@ -326,7 +426,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
               className="mt-0 flex-1 overflow-y-auto pb-6 scrollbar-hide"
             >
               <div className="space-y-4 pt-4">
-                <Card className="p-4 bg-white/70 backdrop-blur-sm border-border/50 shadow-button">
+                <Card className="p-4 bg-white border border-gray-200 rounded-2xl">
                   <h4 className="mb-4 flex items-center gap-2 text-sm font-semibold">
                     <Package className="h-4 w-4 text-muted-foreground" />
                     Pallet Information
@@ -350,6 +450,12 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                             <div className="flex justify-between text-sm">
                               <span className="text-muted-foreground">Reserved</span>
                               <span className="font-medium">
+                                {progressBottles} bottles
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Your bottles</span>
+                              <span className="font-medium">
                                 {group.totalBottles} bottles
                               </span>
                             </div>
@@ -358,7 +464,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                                 <span>Progress</span>
                                 <span>
                                   {Math.round(
-                                    (group.totalBottles / group.palletCapacity) * 100
+                                    (progressBottles / group.palletCapacity) * 100
                                   )}
                                   %
                                 </span>
@@ -368,13 +474,13 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                                   className={`h-full rounded-full transition-all ${
                                     group.palletIsComplete
                                       ? "bg-success"
-                                      : (group.totalBottles / group.palletCapacity) * 100 >= 90
+                                      : (progressBottles / group.palletCapacity) * 100 >= 90
                                         ? "bg-amber-500"
                                         : "bg-primary"
                                   }`}
                                   style={{
                                     width: `${Math.min(
-                                      (group.totalBottles / group.palletCapacity) * 100,
+                                      (progressBottles / group.palletCapacity) * 100,
                                       100
                                     )}%`,
                                   }}
@@ -396,7 +502,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                               </div>
                             )}
                             {!group.palletIsComplete &&
-                              (group.totalBottles / group.palletCapacity) * 100 >= 90 && (
+                              (progressBottles / group.palletCapacity) * 100 >= 90 && (
                                 <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">
                                   <div className="flex items-center gap-2 text-amber-800">
                                     <Clock className="h-4 w-4" />
@@ -424,7 +530,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                   </div>
                 </Card>
 
-                <Card className="p-4 bg-white/70 backdrop-blur-sm border-border/50 shadow-button">
+                <Card className="p-4 bg-white border border-gray-200 rounded-2xl">
                   <h4 className="mb-4 flex items-center gap-2 text-sm font-semibold">
                     <Package className="h-4 w-4 text-muted-foreground" />
                     Summary
@@ -437,9 +543,16 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Total Bottles</span>
+                      <span className="text-muted-foreground">Your bottles (approved)</span>
                       <span className="font-medium">{group.totalBottles} bottles</span>
                     </div>
+                    {typeof group.totalRequestedBottles === "number" &&
+                    group.totalRequestedBottles !== group.totalBottles ? (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Your bottles (requested)</span>
+                        <span className="font-medium">{group.totalRequestedBottles} bottles</span>
+                      </div>
+                    ) : null}
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Orders</span>
                       <span className="font-medium">
@@ -463,7 +576,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
               className="mt-0 flex-1 overflow-y-auto pb-6 scrollbar-hide"
             >
               <div className="space-y-5 pt-2">
-                <Card className="p-4 bg-white/70 backdrop-blur-sm border-border/50 shadow-button">
+                <Card className="p-4 bg-white border border-gray-200 rounded-2xl">
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-2">
                       <p className="text-xs text-muted-foreground">Pallet</p>
@@ -495,55 +608,179 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                 </Card>
 
                 <div className="space-y-4">
-                  <div className="space-y-4">
-                    {trackingEvents.map((event, index) => {
-                      const isLatest = index === 0;
-                      const cfg = isLatest
-                        ? timelineStatusConfig[event.status] ?? timelineDefaultStatus
-                        : timelineCompletedStatus;
-                      const Icon = cfg.icon;
-
-                      return (
-                        <div key={index} className="relative flex gap-3">
-                          {index !== trackingEvents.length - 1 && (
-                            <div className="absolute left-[13px] top-6 h-full w-px bg-border" />
-                          )}
-                          <div className="relative flex-shrink-0">
-                            <div
-                              className={`flex h-7 w-7 border-none items-center justify-center rounded-full ${cfg.containerClass}`}
-                            >
-                              <Icon className={`h-4 w-4 ${cfg.iconClass}`} />
-                            </div>
+                  <Accordion type="single" collapsible className="w-full rounded-2xl border border-gray-200 bg-white overflow-hidden">
+                    <AccordionItem value="placed" className="border-b border-gray-200">
+                      <AccordionTrigger className="px-4 hover:no-underline">
+                        <div className="flex items-center justify-between w-full pr-3">
+                          <div className="flex items-center gap-2">
+                            <Package className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-semibold">Reservation placed</span>
                           </div>
-                          <div className="flex justify-between gap-4 pb-4 w-full">
-                            <div className="flex-1 space-y-1">
-                              <p className="text-sm font-semibold leading-none">
-                                {event.status}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {event.description}
-                              </p>
-                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <MapPin className="h-3 w-3" />
-                                <span>{event.location}</span>
+                          <Badge variant="outline" className="text-xs">Complete</Badge>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-4 text-sm text-muted-foreground">
+                        We received your reservation on {formatDate(group.latestOrderDate)}.
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    <AccordionItem value="producer" className="border-b border-gray-200">
+                      <AccordionTrigger className="px-4 hover:no-underline">
+                        <div className="flex items-center justify-between w-full pr-3">
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-semibold">Producer review</span>
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {getProducerOutcome(group.latestReservationStatus)}
+                          </Badge>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-4">
+                        <div className="space-y-2 text-sm text-muted-foreground">
+                          <div>
+                            The producer confirms stock for each wine. This may be approved partially
+                            if inventory is limited.
+                          </div>
+                          {Array.isArray(group.producerItems) && group.producerItems.length > 0 ? (
+                            <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+                              <div className="divide-y divide-border/60">
+                                {group.producerItems.map((it, idx) => (
+                                  <div key={idx} className="flex items-center justify-between gap-3 px-3 py-2">
+                                    <div className="min-w-0">
+                                      <div className="truncate text-sm font-medium text-foreground">
+                                        {it.wine_name} {it.vintage ? `(${it.vintage})` : ""}
+                                      </div>
+                                      <div className="text-xs text-muted-foreground">
+                                        Decision: {it.decision || "pending"}
+                                      </div>
+                                    </div>
+                                    <div className="text-xs text-muted-foreground text-right tabular-nums">
+                                      {it.approved === null ? "—" : it.approved} / {it.requested}
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
                             </div>
-                            <div className="text-right text-xs text-muted-foreground shrink-0">
-                              <p>{event.date}</p>
-                              {event.time ? <p>{event.time}</p> : null}
+                          ) : (
+                            <div className="text-xs text-muted-foreground">
+                              Item-level approvals will appear here once the producer decides.
+                            </div>
+                          )}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    <AccordionItem value="pallet" className="border-b border-gray-200">
+                      <AccordionTrigger className="px-4 hover:no-underline">
+                        <div className="flex items-center justify-between w-full pr-3">
+                          <div className="flex items-center gap-2">
+                            <Package className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-semibold">Pallet consolidating</span>
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {group.palletStatus || (group.palletIsComplete ? "complete" : "open")}
+                          </Badge>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-4 text-sm text-muted-foreground">
+                        {group.palletCapacity && group.palletCapacity > 0 ? (
+                          <div className="space-y-2">
+                            <div>
+                              {progressBottles} / {group.palletCapacity} bottles
+                            </div>
+                            <div className="h-2 rounded-full bg-muted overflow-hidden">
+                              <div
+                                className="h-2 bg-foreground/80"
+                                style={{ width: `${Math.min(100, Math.round(progressPercent))}%` }}
+                              />
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              When the pallet is complete, payment becomes available and pickup can be scheduled.
                             </div>
                           </div>
+                        ) : (
+                          <div>Capacity information not available.</div>
+                        )}
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    <AccordionItem value="payment" className="border-b border-gray-200">
+                      <AccordionTrigger className="px-4 hover:no-underline">
+                        <div className="flex items-center justify-between w-full pr-3">
+                          <div className="flex items-center gap-2">
+                            <CreditCard className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-semibold">Payment</span>
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {group.paymentStatus || "—"}
+                          </Badge>
                         </div>
-                      );
-                    })}
-                  </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-4 text-sm text-muted-foreground">
+                        <div className="space-y-2">
+                          <div>
+                            Payment opens when the pallet is complete. You’ll get a link and a deadline.
+                          </div>
+                          {group.paymentDeadline ? (
+                            <div className="text-xs">
+                              Deadline:{" "}
+                              <span className="font-medium">
+                                {new Date(group.paymentDeadline).toLocaleDateString("sv-SE")}
+                              </span>
+                            </div>
+                          ) : null}
+                          {(String(group.latestReservationStatus) === "pending_payment" ||
+                            group.paymentStatus === "pending_payment") &&
+                          group.paymentLink ? (
+                            <Button
+                              className="w-full"
+                              onClick={() => window.open(group.paymentLink, "_blank")}
+                            >
+                              <CreditCard className="mr-2 h-4 w-4" />
+                              Pay now
+                            </Button>
+                          ) : null}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    <AccordionItem value="delivery" className="border-b-0">
+                      <AccordionTrigger className="px-4 hover:no-underline">
+                        <div className="flex items-center justify-between w-full pr-3">
+                          <div className="flex items-center gap-2">
+                            <Truck className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-semibold">Delivery</span>
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {group.palletStatus === "delivered"
+                              ? "Delivered"
+                              : group.palletStatus === "shipped"
+                                ? "In transit"
+                                : "Not started"}
+                          </Badge>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-4 text-sm text-muted-foreground">
+                        <div className="space-y-2">
+                          <div>
+                            This updates when the pallet status moves to <span className="font-medium">shipped</span> or <span className="font-medium">delivered</span>.
+                          </div>
+                          <div className="text-xs">
+                            Current pallet status:{" "}
+                            <span className="font-medium">{group.palletStatus || "open"}</span>
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
                 </div>
               </div>
             </TabsContent>
 
             <TabsContent value="wines" className="mt-0 flex-1 overflow-y-auto pb-6">
               <div className="space-y-4 pt-4">
-                <Card className="p-4 bg-white/70 backdrop-blur-sm border-border/50 shadow-button">
+                <Card className="p-4 bg-white border border-gray-200 rounded-2xl">
                   <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold">
                     <Wine className="h-4 w-4 text-muted-foreground" />
                     Reserved Wines
@@ -554,46 +791,87 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                     </p>
                   ) : (
                     <div className="space-y-3">
-                      {group.wines.map((w, idx) => {
-                        const img = w.image_path || "/placeholder.jpg";
-                        return (
-                          <div key={`${w.wine_name}-${w.vintage}-${idx}`}>
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="flex items-center gap-3 min-w-0">
-                                <div className="relative h-10 w-10 overflow-hidden rounded-md border bg-muted">
-                                  <Image
-                                    src={img}
-                                    alt={w.wine_name}
-                                    fill
-                                    className="object-cover"
-                                    sizes="40px"
-                                  />
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="text-sm font-medium text-foreground truncate">
-                                    {w.wine_name}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground truncate">
-                                    {w.vintage}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-3 shrink-0">
-                                <Badge variant="secondary" className="text-xs">
-                                  {w.totalQuantity} bottle
-                                  {w.totalQuantity !== 1 ? "s" : ""}
-                                </Badge>
-                                <span className="text-sm font-semibold text-foreground">
-                                  {formatPrice(w.total_cost_cents)}
-                                </span>
-                              </div>
+                      {Object.entries(
+                        group.wines.reduce((acc: Record<string, typeof group.wines>, w) => {
+                          const producer = w.producer_name || "Unknown Producer";
+                          acc[producer] = acc[producer] || [];
+                          acc[producer].push(w);
+                          return acc;
+                        }, {}),
+                      )
+                        .sort(([a], [b]) => a.localeCompare(b))
+                        .map(([producerName, wines]) => (
+                          <div key={producerName} className="space-y-3">
+                            <div className="text-xs font-medium text-gray-500">
+                              {producerName}
                             </div>
-                            {idx < group.wines.length - 1 && (
-                              <Separator className="my-3" />
-                            )}
+                            <div className="space-y-3">
+                              {wines.map((w, idx) => {
+                                const img = w.image_path || "/placeholder.jpg";
+                                const approved = Number(w.approvedQuantity || 0);
+                                const requested = Number(w.totalQuantity || 0);
+                                const pending = Boolean(w.hasPendingApproval);
+                                const statusLabel = pending
+                                  ? "Pending"
+                                  : approved === 0
+                                    ? "Declined"
+                                    : approved < requested
+                                      ? "Partially Approved"
+                                      : "Approved";
+
+                                const statusClass =
+                                  statusLabel === "Approved"
+                                    ? "bg-emerald-100 text-emerald-900 border-emerald-200"
+                                    : statusLabel === "Partially Approved"
+                                      ? "bg-amber-100 text-amber-900 border-amber-200"
+                                      : statusLabel === "Declined"
+                                        ? "bg-red-100 text-red-900 border-red-200"
+                                        : "bg-gray-100 text-gray-900 border-gray-200";
+
+                                return (
+                                  <div key={`${producerName}-${w.wine_name}-${w.vintage}-${idx}`}>
+                                    <div className="flex items-center justify-between gap-3">
+                                      <div className="flex items-center gap-3 min-w-0">
+                                        <div className="relative h-10 w-10 overflow-hidden rounded-md border bg-muted">
+                                          <Image
+                                            src={img}
+                                            alt={w.wine_name}
+                                            fill
+                                            className="object-cover"
+                                            sizes="40px"
+                                          />
+                                        </div>
+                                        <div className="min-w-0">
+                                          <p className="text-sm font-medium text-foreground truncate">
+                                            {w.wine_name}
+                                          </p>
+                                          <p className="text-xs text-muted-foreground truncate">
+                                            {w.vintage}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center gap-2 shrink-0">
+                                        <Badge className={`text-xs border ${statusClass}`}>
+                                          {statusLabel}
+                                        </Badge>
+                                        <Badge variant="secondary" className="text-xs tabular-nums">
+                                          {approved}/{requested}
+                                        </Badge>
+                                        <span className="text-sm font-semibold text-foreground">
+                                          {formatPrice(w.total_cost_cents)}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    {idx < wines.length - 1 && (
+                                      <Separator className="my-3" />
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            <Separator className="my-4" />
                           </div>
-                        );
-                      })}
+                        ))}
                     </div>
                   )}
                 </Card>
@@ -602,7 +880,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
 
             <TabsContent value="details" className="mt-0 flex-1 overflow-y-auto pb-6">
               <div className="space-y-4 pt-4">
-                <Card className="p-4 bg-white/70 backdrop-blur-sm border-border/50 shadow-button">
+                <Card className="p-4 bg-white border border-gray-200 rounded-2xl">
                   <h4 className="mb-5 flex items-center gap-2 text-sm font-semibold">
                     <Package className="h-4 w-4 text-muted-foreground" />
                     Reservation Information
@@ -628,7 +906,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                   </div>
                 </Card>
 
-                <Card className="p-4 bg-white/70 backdrop-blur-sm border-border/50 shadow-button">
+                <Card className="p-4 bg-white border border-gray-200 rounded-2xl">
                   <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold">
                     <Wine className="h-4 w-4 text-muted-foreground" />
                     Wines
@@ -649,7 +927,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
 
             <TabsContent value="delivery" className="mt-0 flex-1 overflow-y-auto pb-6">
               <div className="space-y-4 pt-4">
-                <Card className="p-4 bg-white/70 backdrop-blur-sm border-border/50 shadow-button">
+                <Card className="p-4 bg-white border border-gray-200 rounded-2xl">
                   <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
                     Delivery
@@ -661,6 +939,18 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                         {group.deliveryAddress}
                       </span>
                     </div>
+                    {group.latestReservationStatus && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Reservation</span>
+                        <span className="font-medium">{group.latestReservationStatus}</span>
+                      </div>
+                    )}
+                    {group.palletStatus && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Pallet</span>
+                        <span className="font-medium">{group.palletStatus}</span>
+                      </div>
+                    )}
                     {group.paymentStatus && (
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Payment</span>
@@ -678,8 +968,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                   </div>
                 </Card>
 
-                {(group.paymentStatus === "pending" ||
-                  group.paymentStatus === "pending_payment") &&
+                {(group.paymentStatus === "pending_payment") &&
                   (group.paymentLink ? (
                     <Button
                       className="w-full"
@@ -730,7 +1019,45 @@ export default function ReservationsPage() {
       if (Array.isArray(data)) {
         console.log("[Reservations] Processing", data.length, "reservations");
         setReservations(data);
-        const addressPalletGroups = processAddressPalletData(data);
+        // Fetch pallet totals (global) so progress matches admin/pallets (bookings-based)
+        const palletIds = Array.from(
+          new Set(
+            data
+              .map((r: any) => r.pallet_id)
+              .filter((id: any) => typeof id === "string" && id.length > 0),
+          ),
+        ) as string[];
+
+        const palletInfoById = new Map<
+          string,
+          { currentBottles: number; capacity: number; isComplete: boolean; status?: string | null }
+        >();
+
+        if (palletIds.length > 0) {
+          try {
+            const palletRes = await fetch("/api/pallet-data", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              cache: "no-store",
+              body: JSON.stringify({ palletIds }),
+            });
+            if (palletRes.ok) {
+              const palletJson = await palletRes.json();
+              (palletJson?.pallets || []).forEach((p: any) => {
+                palletInfoById.set(p.id, {
+                  currentBottles: Number(p.current_bottles) || 0,
+                  capacity: Number(p.bottle_capacity) || 0,
+                  isComplete: Boolean(p.is_complete),
+                  status: typeof p.status === "string" ? p.status : null,
+                });
+              });
+            }
+          } catch (e) {
+            console.warn("[Reservations] Failed to fetch pallet totals");
+          }
+        }
+
+        const addressPalletGroups = processAddressPalletData(data, palletInfoById);
         console.log(
           "[Reservations] Created",
           addressPalletGroups.length,
@@ -754,6 +1081,10 @@ export default function ReservationsPage() {
 
   const processAddressPalletData = (
     reservations: Reservation[],
+    palletInfoById: Map<
+      string,
+      { currentBottles: number; capacity: number; isComplete: boolean; status?: string | null }
+    >,
   ): AddressPalletData[] => {
     const addressPalletMap = new Map<string, AddressPalletData>();
 
@@ -762,39 +1093,122 @@ export default function ReservationsPage() {
       const addressPalletKey = `${reservation.delivery_address || "No Address"}|${reservation.pallet_name || "Unassigned Pallet"}`;
 
       if (!addressPalletMap.has(addressPalletKey)) {
+        const palletInfo = reservation.pallet_id
+          ? palletInfoById.get(reservation.pallet_id)
+          : undefined;
+        const producerItems =
+          reservation.items?.map((it) => ({
+            wine_name: it.wine_name,
+            vintage: it.vintage,
+            requested: Number(it.quantity) || 0,
+            approved:
+              it.producer_approved_quantity === null ||
+              it.producer_approved_quantity === undefined
+                ? null
+                : Number(it.producer_approved_quantity) || 0,
+            decision: it.producer_decision_status || null,
+          })) || [];
         addressPalletMap.set(addressPalletKey, {
           addressPalletKey,
+          palletId: reservation.pallet_id ?? null,
           palletName: reservation.pallet_name || "Unassigned Pallet",
+          palletStatus: palletInfo?.status ?? reservation.pallet_status ?? null,
           deliveryAddress:
             reservation.delivery_address || "No delivery address",
           wines: [],
           totalBottles: 0,
+          totalRequestedBottles: 0,
+          palletCurrentBottles: palletInfo?.currentBottles,
           totalCostCents: 0,
           orderCount: 0,
           latestOrderDate: reservation.created_at,
-          paymentStatus: reservation.payment_status || reservation.status,
+          latestReservationStatus: reservation.status,
+          paymentStatus: reservation.payment_status,
           paymentLink: reservation.payment_link,
           paymentDeadline: reservation.payment_deadline,
-          palletCapacity: reservation.pallet_capacity,
-          palletIsComplete: reservation.pallet_is_complete,
+          palletCapacity: palletInfo?.capacity || reservation.pallet_capacity,
+          palletIsComplete:
+            palletInfo?.isComplete ?? false,
+          producerItems,
         });
       }
 
       const group = addressPalletMap.get(addressPalletKey)!;
       group.orderCount++;
-      group.totalBottles += reservation.items.reduce(
-        (sum, item) => sum + item.quantity,
+      const countedStatuses = new Set([
+        "placed",
+        "approved",
+        "partly_approved",
+        "pending_payment",
+        "confirmed",
+      ]);
+
+      const reservationRequested = reservation.items.reduce(
+        (sum, item) => sum + (Number(item.quantity) || 0),
         0,
       );
+      group.totalRequestedBottles =
+        (group.totalRequestedBottles || 0) + reservationRequested;
+
+      // Only count bottles toward pallet fill once the reservation is approved/placed/etc.
+      const reservationCountsTowardPallet = countedStatuses.has(String(reservation.status || ""));
+      if (reservationCountsTowardPallet) {
+        const reservationApproved = reservation.items.reduce((sum, item) => {
+          const approved =
+            item.producer_approved_quantity === null ||
+            item.producer_approved_quantity === undefined
+              ? null
+              : Number(item.producer_approved_quantity) || 0;
+          return sum + (approved === null ? Number(item.quantity) || 0 : approved);
+        }, 0);
+        group.totalBottles += reservationApproved;
+      }
       group.totalCostCents += reservation.total_cost_cents;
 
-      // Update pallet capacity and completion status if not set or if we get a better value
-      // Only update if current value is null/undefined and new value is valid
-      if (
+      // Track latest reservation status + producer item approvals for the newest reservation in the group
+      try {
+        if (reservation.created_at && group.latestOrderDate) {
+          const reservationDate = new Date(reservation.created_at);
+          const groupDate = new Date(group.latestOrderDate);
+          if (!isNaN(reservationDate.getTime()) && !isNaN(groupDate.getTime())) {
+            if (reservationDate >= groupDate) {
+              group.latestReservationStatus = reservation.status;
+              group.paymentStatus = reservation.payment_status;
+              group.paymentLink = reservation.payment_link;
+              group.paymentDeadline = reservation.payment_deadline;
+              group.producerItems =
+                reservation.items?.map((it) => ({
+                  wine_name: it.wine_name,
+                  vintage: it.vintage,
+                  requested: Number(it.quantity) || 0,
+                  approved:
+                    it.producer_approved_quantity === null ||
+                    it.producer_approved_quantity === undefined
+                      ? null
+                      : Number(it.producer_approved_quantity) || 0,
+                  decision: it.producer_decision_status || null,
+                })) || [];
+            }
+          }
+        }
+      } catch {}
+
+      // Keep pallet status strictly data-driven from /api/pallet-data (never OR in stale flags)
+      const palletInfoForReservation = reservation.pallet_id
+        ? palletInfoById.get(reservation.pallet_id)
+        : undefined;
+      if (palletInfoForReservation) {
+        if (palletInfoForReservation.capacity > 0) {
+          group.palletCapacity = palletInfoForReservation.capacity;
+        }
+        group.palletIsComplete = palletInfoForReservation.isComplete;
+        group.palletStatus = palletInfoForReservation.status ?? group.palletStatus ?? reservation.pallet_status ?? null;
+      } else if (
         reservation.pallet_capacity !== undefined &&
         reservation.pallet_capacity !== null &&
         reservation.pallet_capacity > 0
       ) {
+        // Fallback only if pallet info couldn't be fetched
         if (
           group.palletCapacity === undefined ||
           group.palletCapacity === null ||
@@ -802,10 +1216,6 @@ export default function ReservationsPage() {
         ) {
           group.palletCapacity = reservation.pallet_capacity;
         }
-      }
-      if (reservation.pallet_is_complete !== undefined && reservation.pallet_is_complete !== null) {
-        // If any reservation says complete, mark as complete
-        group.palletIsComplete = group.palletIsComplete || reservation.pallet_is_complete;
       }
 
       // Update latest order date
@@ -831,19 +1241,42 @@ export default function ReservationsPage() {
 
       // Add wines with cost aggregation
       reservation.items.forEach((item) => {
+        const producerName = item.producer_name || "Unknown Producer";
+        const decision = String(item.producer_decision_status || "");
+        const isPending = decision === "" || decision === "pending";
+        const isDeclined = decision === "declined";
+        const approvedQty =
+          isPending
+            ? 0
+            : isDeclined
+              ? 0
+              : item.producer_approved_quantity === null ||
+                  item.producer_approved_quantity === undefined
+                ? Number(item.quantity) || 0
+                : Number(item.producer_approved_quantity) || 0;
+
         const existingWine = group.wines.find(
           (wine) =>
-            wine.wine_name === item.wine_name && wine.vintage === item.vintage,
+            wine.wine_name === item.wine_name &&
+            wine.vintage === item.vintage &&
+            (wine.producer_name || "Unknown Producer") === producerName,
         );
 
         if (existingWine) {
           existingWine.totalQuantity += item.quantity;
+          existingWine.approvedQuantity =
+            (existingWine.approvedQuantity || 0) + approvedQty;
+          existingWine.hasPendingApproval =
+            Boolean(existingWine.hasPendingApproval) || isPending;
           existingWine.total_cost_cents += item.total_cost_cents;
         } else {
           group.wines.push({
             wine_name: item.wine_name,
+            producer_name: producerName,
             vintage: item.vintage,
             totalQuantity: item.quantity,
+            approvedQuantity: approvedQty,
+            hasPendingApproval: isPending,
             image_path: item.image_path,
             grape_varieties: item.grape_varieties,
             color: item.color,
@@ -879,71 +1312,76 @@ export default function ReservationsPage() {
 
   if (loading) {
     return (
-      <PageLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-            <p className="mt-4 text-gray-600">Loading reservations...</p>
+      <PageLayout noPadding>
+        <main className="min-h-screen bg-gray-50">
+          <div className="max-w-5xl mx-auto p-6 pt-top-spacing">
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-900 mx-auto" />
+                <p className="mt-4 text-gray-600">Loading reservations...</p>
+              </div>
+            </div>
           </div>
-        </div>
+        </main>
       </PageLayout>
     );
   }
 
   return (
-    <PageLayout>
-      <div className="space-y-8 p-sides">
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          <Link href="/profile">
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Profile
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              My Reservations
-            </h1>
-            <p className="text-gray-600 mt-2">
-              Your wine reservations organized by delivery address and pallet
-            </p>
-          </div>
-        </div>
-
-        {addressPalletData.length === 0 ? (
-          <Card className="border-2 border-dashed border-gray-200">
-            <CardContent className="text-center py-16">
-              <Wine className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                No reservations yet
-              </h3>
-              <p className="text-gray-600 mb-8 max-w-md mx-auto">
-                You haven't made any wine reservations yet. Start exploring our
-                collection!
+    <PageLayout noPadding>
+      <main className="min-h-screen bg-gray-50">
+        <div className="max-w-5xl mx-auto p-6 pt-top-spacing space-y-8">
+          {/* Header */}
+          <div className="flex items-center gap-4">
+            <Link href="/profile">
+              <Button variant="outline" size="sm" className="rounded-full">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-2xl font-medium text-gray-900">
+                My Reservations
+              </h1>
+              <p className="text-gray-500 mt-1">
+                Your reservations by delivery address and pallet.
               </p>
-              <div className="flex gap-3 justify-center">
-                <Link href="/shop">
-                  <Button size="lg" className="px-8">
-                    Browse Wines
-                  </Button>
-                </Link>
-                <Link href="/">
-                  <Button variant="outline" size="lg" className="px-8">
-                    Go Home
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {addressPalletData.map((group) => (
-              <PalletDialog key={group.addressPalletKey} group={group} />
-            ))}
+            </div>
           </div>
-        )}
-      </div>
+
+          {addressPalletData.length === 0 ? (
+            <Card className="p-6 bg-white border border-gray-200 rounded-2xl">
+              <CardContent className="text-center py-10">
+                <Wine className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No reservations yet
+                </h3>
+                <p className="text-gray-500 mb-6 max-w-md mx-auto">
+                  You haven&apos;t made any reservations yet.
+                </p>
+                <div className="flex gap-3 justify-center">
+                  <Link href="/shop">
+                    <Button className="bg-black hover:bg-black/90 text-white rounded-full px-8">
+                      Browse wines
+                    </Button>
+                  </Link>
+                  <Link href="/">
+                    <Button variant="outline" className="rounded-full px-8">
+                      Go home
+                    </Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {addressPalletData.map((group) => (
+                <PalletDialog key={group.addressPalletKey} group={group} />
+              ))}
+            </div>
+          )}
+        </div>
+      </main>
     </PageLayout>
   );
 }

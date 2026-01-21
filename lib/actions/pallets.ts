@@ -1,4 +1,4 @@
-import { supabaseServer } from "@/lib/supabase-server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export interface PalletZone {
   id: string;
@@ -33,7 +33,7 @@ export interface CreatePalletData {
 }
 
 export async function getPallets(): Promise<Pallet[]> {
-  const sb = await supabaseServer();
+  const sb = getSupabaseAdmin();
   const { data, error } = await sb
     .from("pallets")
     .select(
@@ -50,7 +50,7 @@ export async function getPallets(): Promise<Pallet[]> {
 }
 
 export async function getPallet(id: string): Promise<Pallet | null> {
-  const sb = await supabaseServer();
+  const sb = getSupabaseAdmin();
   const { data, error } = await sb
     .from("pallets")
     .select(
@@ -61,14 +61,14 @@ export async function getPallet(id: string): Promise<Pallet | null> {
     `,
     )
     .eq("id", id)
-    .single();
+    .maybeSingle();
 
   if (error) throw new Error(`Failed to fetch pallet: ${error.message}`);
   return data;
 }
 
 export async function createPallet(data: CreatePalletData): Promise<Pallet> {
-  const sb = await supabaseServer();
+  const sb = getSupabaseAdmin();
   const { data: pallet, error } = await sb
     .from("pallets")
     .insert(data)
@@ -83,7 +83,7 @@ export async function updatePallet(
   id: string,
   data: Partial<CreatePalletData>,
 ): Promise<Pallet> {
-  const sb = await supabaseServer();
+  const sb = getSupabaseAdmin();
   const { data: pallet, error } = await sb
     .from("pallets")
     .update({ ...data, updated_at: new Date().toISOString() })
@@ -96,7 +96,7 @@ export async function updatePallet(
 }
 
 export async function deletePallet(id: string): Promise<void> {
-  const sb = await supabaseServer();
+  const sb = getSupabaseAdmin();
 
   // First check if there are any bookings/reservations for this pallet
   const { data: bookings, error: bookingsError } = await sb
