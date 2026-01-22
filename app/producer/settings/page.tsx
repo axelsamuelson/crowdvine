@@ -1,11 +1,15 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { requireAuth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { ProducerSettingsEditor } from "@/components/producer/producer-settings-editor";
 
 export default async function ProducerSettingsPage() {
-  await requireAuth("producer");
+  const user = await getCurrentUser();
+  if (!user) redirect("/access-request");
+  if (user.role !== "producer" && user.role !== "admin") redirect("/");
+  if (!user.producer_id) redirect("/producer");
 
   return (
     <main className="min-h-screen bg-gray-50">
