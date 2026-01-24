@@ -21,9 +21,13 @@ import { toast } from "sonner";
 export function BulkMarginUpdater({
   initialMargin,
   isMixed,
+  filteredWineIds,
+  hasActiveFilters,
 }: {
   initialMargin: number | null;
   isMixed: boolean;
+  filteredWineIds: string[];
+  hasActiveFilters: boolean;
 }) {
   const [margin, setMargin] = useState<string>(
     initialMargin === null ? "" : String(initialMargin),
@@ -46,7 +50,10 @@ export function BulkMarginUpdater({
       const res = await fetch("/api/admin/wines/bulk-margin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ margin_percentage: parsed }),
+        body: JSON.stringify({ 
+          margin_percentage: parsed,
+          wine_ids: hasActiveFilters ? filteredWineIds : undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Bulk update failed");
@@ -73,8 +80,13 @@ export function BulkMarginUpdater({
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-gray-600">
-          Sets <span className="font-medium">margin_percentage</span> for all
-          wines and recalculates price (base + calculated) for wines with a cost
+          Sets <span className="font-medium">margin_percentage</span> for{" "}
+          {hasActiveFilters ? (
+            <span className="font-medium">{filteredWineIds.length} filtered wine{filteredWineIds.length !== 1 ? "s" : ""}</span>
+          ) : (
+            "all wines"
+          )}{" "}
+          and recalculates price (base + calculated) for wines with a cost
           amount.
         </p>
 
@@ -98,14 +110,17 @@ export function BulkMarginUpdater({
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button disabled={loading || margin.trim() === ""}>
-                Apply to all wines
+                Apply to {hasActiveFilters ? `${filteredWineIds.length} filtered wine${filteredWineIds.length !== 1 ? "s" : ""}` : "all wines"}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Update margin for all wines?</AlertDialogTitle>
+                <AlertDialogTitle>
+                  Update margin for {hasActiveFilters ? `${filteredWineIds.length} filtered wine${filteredWineIds.length !== 1 ? "s" : ""}` : "all wines"}?
+                </AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will update margin and recalculate pricing for all wines
+                  This will update margin and recalculate pricing for{" "}
+                  {hasActiveFilters ? `${filteredWineIds.length} filtered wine${filteredWineIds.length !== 1 ? "s" : ""}` : "all wines"}{" "}
                   with a cost amount. This action cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>

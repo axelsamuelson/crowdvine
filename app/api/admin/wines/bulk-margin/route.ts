@@ -57,16 +57,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const wineIds = body?.wine_ids;
+    const hasFilteredIds = Array.isArray(wineIds) && wineIds.length > 0;
+
     const sb = getSupabaseAdmin();
     const origin =
       req.headers.get("origin") ||
       process.env.NEXT_PUBLIC_APP_URL ||
       "http://localhost:3000";
 
-    const { data: wines, error } = await sb
+    // Build query - filter by wine_ids if provided
+    let query = sb
       .from("wines")
       .select("id, cost_currency, cost_amount, price_includes_vat")
       .order("wine_name");
+    
+    if (hasFilteredIds) {
+      query = query.in("id", wineIds);
+    }
+
+    const { data: wines, error } = await query;
 
     if (error) throw error;
 
