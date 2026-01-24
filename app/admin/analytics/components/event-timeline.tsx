@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -23,15 +23,64 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
 
 interface EventTimelineProps {
   events: any[];
+}
+
+interface User {
+  id: string;
+  email: string;
+  full_name?: string;
 }
 
 export function EventTimeline({ events }: EventTimelineProps) {
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [userFilterOpen, setUserFilterOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch("/api/admin/users");
+        if (response.ok) {
+          const data = await response.json();
+          setUsers(data || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch users:", error);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  const toggleUser = (userId: string) => {
+    setSelectedUserIds(prev =>
+      prev.includes(userId)
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
+  };
+
+  const toggleAllUsers = () => {
+    if (selectedUserIds.length === users.length) {
+      // Deselect all
+      setSelectedUserIds([]);
+    } else {
+      // Select all
+      setSelectedUserIds(users.map(u => u.id));
+    }
+  };
+
+  const clearUserFilter = () => {
+    setSelectedUserIds([]);
+  };
   const getEventColor = (category: string) => {
     const colors = {
       auth: "bg-blue-100 text-blue-800",
@@ -63,6 +112,18 @@ export function EventTimeline({ events }: EventTimelineProps) {
         return false;
       }
 
+      // User filter
+      if (selectedUserIds.length > 0) {
+        // If event has no user_id, exclude it when filtering by users
+        if (!event.user_id) {
+          return false;
+        }
+        // If event has user_id, check if it's in selected list
+        if (!selectedUserIds.includes(event.user_id)) {
+          return false;
+        }
+      }
+
       // Search query filter
       if (searchQuery && !event.event_type.toLowerCase().includes(searchQuery.toLowerCase()) &&
           !event.page_url?.toLowerCase().includes(searchQuery.toLowerCase())) {
@@ -71,7 +132,7 @@ export function EventTimeline({ events }: EventTimelineProps) {
 
       return true;
     });
-  }, [events, selectedCategory, searchQuery]);
+  }, [events, selectedCategory, searchQuery, selectedUserIds]);
 
   return (
     <>
@@ -84,7 +145,7 @@ export function EventTimeline({ events }: EventTimelineProps) {
         </div>
 
         {/* Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 pb-4 border-b">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 pb-4 border-b">
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Filter by Category</label>
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
@@ -100,6 +161,72 @@ export function EventTimeline({ events }: EventTimelineProps) {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Filter by Users</label>
+            <Popover open={userFilterOpen} onOpenChange={setUserFilterOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full justify-between">
+                  <span>
+                    {selectedUserIds.length === 0
+                      ? "All users"
+                      : `${selectedUserIds.length} user${selectedUserIds.length !== 1 ? "s" : ""} selected`}
+                  </span>
+                  <X className="h-4 w-4 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-2" align="start">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between px-2 pb-2 border-b">
+                    <Label className="text-sm font-medium">Select Users</Label>
+                    {selectedUserIds.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={clearUserFilter}
+                        className="h-6 text-xs"
+                      >
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                  <div className="px-2 py-1 border-b">
+                    <label
+                      className="flex items-center gap-2 cursor-pointer text-sm font-medium hover:bg-gray-50 rounded px-1 py-1 -mx-1"
+                    >
+                      <Checkbox
+                        checked={users.length > 0 && selectedUserIds.length === users.length}
+                        onCheckedChange={toggleAllUsers}
+                      />
+                      <span>Select All</span>
+                    </label>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto space-y-2">
+                    {users.map((user) => {
+                      const isSelected = selectedUserIds.includes(user.id);
+                      return (
+                        <label
+                          key={user.id}
+                          className="flex items-center gap-2 cursor-pointer text-sm px-2 py-1 hover:bg-gray-50 rounded"
+                        >
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => toggleUser(user.id)}
+                          />
+                          <span className="flex-1 truncate">
+                            {user.full_name || user.email}
+                          </span>
+                        </label>
+                      );
+                    })}
+                    {users.length === 0 && (
+                      <p className="text-xs text-gray-500 px-2 py-2">No users found</p>
+                    )}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="space-y-2">
@@ -135,6 +262,7 @@ export function EventTimeline({ events }: EventTimelineProps) {
               onClick={() => {
                 setSelectedCategory("all");
                 setSearchQuery("");
+                setSelectedUserIds([]);
               }}
             >
               Clear Filters
