@@ -110,13 +110,97 @@ export async function GET(request: Request) {
       (r) => r.plpViews > 0 || r.pdpViews > 0,
     );
 
-    // If we have PDP names, use them to backfill "Unknown ..." rows.
-    // (Keeps UI cleaner until we fetch names from DB.)
-    for (const r of out) {
-      if (r.name.startsWith("Unknown ")) {
-        // try to find any row with same key but better name (unlikely, but safe)
-        const better = rows.get(r.key);
-        if (better && !better.name.startsWith("Unknown ")) r.name = better.name;
+    // Fetch actual names from database for wines
+    if (dimension === "wine") {
+      const wineKeys = out.map(r => r.key).filter(id => id && !id.startsWith("Unknown"));
+      if (wineKeys.length > 0) {
+        try {
+          // Try to fetch by ID first (UUIDs)
+          const uuidKeys = wineKeys.filter(k => k.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i));
+          const handleKeys = wineKeys.filter(k => !k.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i));
+          
+          const winesMap = new Map<string, { wineName: string; vintage: string; producerName: string }>();
+          
+          // Fetch wines by ID
+          if (uuidKeys.length > 0) {
+            const { data: winesById, error: winesError } = await sb
+              .from("wines")
+              .select("id, wine_name, vintage, producer_id, producers(name)")
+              .in("id", uuidKeys);
+            
+            if (!winesError && winesById) {
+              winesById.forEach((w: any) => {
+                winesMap.set(w.id, {
+                  wineName: w.wine_name,
+                  vintage: w.vintage,
+                  producerName: w.producers?.name || "Unknown producer"
+                });
+              });
+            }
+          }
+          
+          // Fetch wines by handle
+          if (handleKeys.length > 0) {
+            const { data: winesByHandle, error: handlesError } = await sb
+              .from("wines")
+              .select("id, handle, wine_name, vintage, producer_id, producers(name)")
+              .in("handle", handleKeys);
+            
+            if (!handlesError && winesByHandle) {
+              winesByHandle.forEach((w: any) => {
+                winesMap.set(w.handle, {
+                  wineName: w.wine_name,
+                  vintage: w.vintage,
+                  producerName: w.producers?.name || "Unknown producer"
+                });
+                // Also map by ID in case the key was stored as handle but we need ID lookup
+                winesMap.set(w.id, {
+                  wineName: w.wine_name,
+                  vintage: w.vintage,
+                  producerName: w.producers?.name || "Unknown producer"
+                });
+              });
+            }
+          }
+
+          // Update row names with actual wine and producer names
+          for (const r of out) {
+            const wineInfo = winesMap.get(r.key);
+            if (wineInfo) {
+              r.name = `${wineInfo.wineName} ${wineInfo.vintage} (${wineInfo.producerName})`;
+            } else if (r.name.startsWith("Unknown ")) {
+              // Keep unknown if we couldn't find it in DB
+              r.name = r.name;
+            }
+          }
+        } catch (err) {
+          console.error("Error fetching wine names:", err);
+        }
+      }
+    } else if (dimension === "producer") {
+      // Fetch producer names from database
+      const producerIds = out.map(r => r.key).filter(id => id && !id.startsWith("Unknown"));
+      if (producerIds.length > 0) {
+        try {
+          const { data: producers, error: producersError } = await sb
+            .from("producers")
+            .select("id, name")
+            .in("id", producerIds);
+          
+          if (!producersError && producers) {
+            const producersMap = new Map(producers.map((p: any) => [p.id, p.name]));
+
+            // Update row names with actual producer names
+            for (const r of out) {
+              const producerName = producersMap.get(r.key);
+              if (producerName) {
+                r.name = producerName;
+              }
+            }
+          }
+        } catch (err) {
+          console.error("Error fetching producer names:", err);
+        }
       }
     }
 
