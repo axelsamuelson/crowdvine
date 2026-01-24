@@ -53,6 +53,9 @@ import {
   Factory,
   Mail,
   Key,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -99,11 +102,33 @@ export default function UsersAdmin() {
     producer_id: null,
   });
   const [producers, setProducers] = useState<Producer[]>([]);
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
   useEffect(() => {
     fetchUsers();
     fetchProducers();
   }, []);
+
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+
+  const getSortIcon = (column: string) => {
+    if (sortColumn !== column) {
+      return <ArrowUpDown className="w-4 h-4 ml-1 opacity-50" />;
+    }
+    return sortDirection === "asc" ? (
+      <ArrowUp className="w-4 h-4 ml-1" />
+    ) : (
+      <ArrowDown className="w-4 h-4 ml-1" />
+    );
+  };
 
   const fetchUsers = async () => {
     try {
@@ -271,13 +296,62 @@ export default function UsersAdmin() {
     );
   };
 
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch = user.email
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === "all" || user.role === roleFilter;
-    return matchesSearch && matchesRole;
-  });
+  const filteredUsers = users
+    .filter((user) => {
+      const matchesSearch =
+        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (user.full_name &&
+          user.full_name.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesRole = roleFilter === "all" || user.role === roleFilter;
+      return matchesSearch && matchesRole;
+    })
+    .sort((a, b) => {
+      if (!sortColumn) return 0;
+
+      let aValue: any;
+      let bValue: any;
+
+      switch (sortColumn) {
+        case "email":
+          aValue = a.email.toLowerCase();
+          bValue = b.email.toLowerCase();
+          break;
+        case "role":
+          aValue = a.role.toLowerCase();
+          bValue = b.role.toLowerCase();
+          break;
+        case "membership":
+          aValue = a.membership_level.toLowerCase();
+          bValue = b.membership_level.toLowerCase();
+          break;
+        case "impact_points":
+          aValue = a.impact_points;
+          bValue = b.impact_points;
+          break;
+        case "invites":
+          aValue = a.invites_used;
+          bValue = b.invites_used;
+          break;
+        case "joined":
+          aValue = new Date(a.created_at).getTime();
+          bValue = new Date(b.created_at).getTime();
+          break;
+        case "last_active":
+          aValue = a.last_active_at
+            ? new Date(a.last_active_at).getTime()
+            : 0;
+          bValue = b.last_active_at
+            ? new Date(b.last_active_at).getTime()
+            : 0;
+          break;
+        default:
+          return 0;
+      }
+
+      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
 
   if (loading) {
     return (
@@ -346,13 +420,69 @@ export default function UsersAdmin() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Membership</TableHead>
-                <TableHead>Impact Points</TableHead>
-                <TableHead>Invites</TableHead>
-                <TableHead>Joined</TableHead>
-                <TableHead>Last Active</TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort("email")}
+                    className="flex items-center hover:text-gray-900 transition-colors"
+                  >
+                    User
+                    {getSortIcon("email")}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort("role")}
+                    className="flex items-center hover:text-gray-900 transition-colors"
+                  >
+                    Role
+                    {getSortIcon("role")}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort("membership")}
+                    className="flex items-center hover:text-gray-900 transition-colors"
+                  >
+                    Membership
+                    {getSortIcon("membership")}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort("impact_points")}
+                    className="flex items-center hover:text-gray-900 transition-colors"
+                  >
+                    Impact Points
+                    {getSortIcon("impact_points")}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort("invites")}
+                    className="flex items-center hover:text-gray-900 transition-colors"
+                  >
+                    Invites
+                    {getSortIcon("invites")}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort("joined")}
+                    className="flex items-center hover:text-gray-900 transition-colors"
+                  >
+                    Joined
+                    {getSortIcon("joined")}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort("last_active")}
+                    className="flex items-center hover:text-gray-900 transition-colors"
+                  >
+                    Last Active
+                    {getSortIcon("last_active")}
+                  </button>
+                </TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
