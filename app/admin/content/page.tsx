@@ -97,8 +97,12 @@ export default function ContentPage() {
       // Rensa cache för att visa nya loggan direkt
       if (key === "header_logo") {
         clearLogoCache();
+        // Force reload av alla LogoSvg komponenter genom att trigga event
+        window.dispatchEvent(new CustomEvent("logoCacheCleared"));
       } else if (key === "footer_logo") {
         clearFooterLogoCache();
+        // Force reload av alla FooterLogoSvg komponenter genom att trigga event
+        window.dispatchEvent(new CustomEvent("footerLogoCacheCleared"));
       }
 
       // Clear the image upload

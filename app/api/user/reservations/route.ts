@@ -202,7 +202,7 @@ export async function GET() {
         }
 
         // Get reservation items with wine details and costs
-        const { data: items } = await supabase
+        const { data: items, error: itemsError } = await supabase
           .from("order_reservation_items")
           .select(
             `
@@ -217,34 +217,59 @@ export async function GET() {
             label_image_path,
             grape_varieties,
             color,
-            base_price_cents
-            ,
+            base_price_cents,
+            handle,
             producers(name)
           )
         `,
           )
           .eq("reservation_id", reservation.id);
 
-        // Calculate costs
+        if (itemsError) {
+          console.error(`Error fetching items for reservation ${reservation.id}:`, itemsError);
+          // Continue with empty items array if there's an error
+        }
+
+        // Calculate costs - handle gracefully if items is null or wines relation failed
         const itemsWithCosts =
-          items?.map((item) => ({
-            wine_name: item.wines?.wine_name || "Unknown Wine",
-            quantity: item.quantity,
-            producer_decision_status: item.producer_decision_status || null,
-            producer_approved_quantity:
-              item.producer_approved_quantity === null ||
-              item.producer_approved_quantity === undefined
-                ? null
-                : Number(item.producer_approved_quantity) || 0,
-            vintage: item.wines?.vintage || "N/A",
-            image_path: item.wines?.label_image_path || null,
-            grape_varieties: item.wines?.grape_varieties || null,
-            color: item.wines?.color || null,
-            price_per_bottle_cents: item.wines?.base_price_cents || 0,
-            producer_name: item.wines?.producers?.name || null,
-            total_cost_cents:
-              (item.wines?.base_price_cents || 0) * item.quantity,
-          })) || [];
+          items?.map((item) => {
+            // Handle case where wines relation might be null
+            if (!item.wines) {
+              return {
+                wine_name: "Unknown Wine",
+                quantity: item.quantity,
+                producer_decision_status: item.producer_decision_status || null,
+                producer_approved_quantity: null,
+                vintage: "N/A",
+                image_path: null,
+                grape_varieties: null,
+                color: null,
+                handle: null,
+                price_per_bottle_cents: 0,
+                producer_name: null,
+                total_cost_cents: 0,
+              };
+            }
+            return {
+              wine_name: item.wines?.wine_name || "Unknown Wine",
+              quantity: item.quantity,
+              producer_decision_status: item.producer_decision_status || null,
+              producer_approved_quantity:
+                item.producer_approved_quantity === null ||
+                item.producer_approved_quantity === undefined
+                  ? null
+                  : Number(item.producer_approved_quantity) || 0,
+              vintage: item.wines?.vintage || "N/A",
+              image_path: item.wines?.label_image_path || null,
+              grape_varieties: item.wines?.grape_varieties || null,
+              color: item.wines?.color || null,
+              handle: item.wines?.handle || null,
+              price_per_bottle_cents: item.wines?.base_price_cents || 0,
+              producer_name: item.wines?.producers?.name || null,
+              total_cost_cents:
+                (item.wines?.base_price_cents || 0) * item.quantity,
+            };
+          }) || [];
 
         const totalCostCents = itemsWithCosts.reduce(
           (sum, item) => sum + item.total_cost_cents,

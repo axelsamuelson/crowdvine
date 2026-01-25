@@ -57,10 +57,10 @@ export function FooterLogoSvg({ className }: { className?: string }) {
           // Uppdatera cache
           footerLogoCache = { value: logoUrl, timestamp: Date.now() };
 
-          // Preload bilden för första gången
+          // Preload bilden för första gången med cache-busting
           if (!hasPreloadedFooter) {
             const img = new Image();
-            img.src = logoUrl;
+            img.src = `${logoUrl}${logoUrl.includes('?') ? '&' : '?'}v=${Date.now()}`;
             hasPreloadedFooter = true;
           }
         } else {
@@ -117,19 +117,25 @@ export function FooterLogoSvg({ className }: { className?: string }) {
 
   // Om vi har en footer logo, visa den
   if (footerLogo) {
+    // Lägg till cache-busting query parameter baserat på timestamp från cache
+    const logoUrlWithCacheBust = footerLogoCache 
+      ? `${footerLogo}${footerLogo.includes('?') ? '&' : '?'}v=${footerLogoCache.timestamp}`
+      : `${footerLogo}${footerLogo.includes('?') ? '&' : '?'}v=${Date.now()}`;
+    
     return (
       <img
-        src={footerLogo}
+        src={logoUrlWithCacheBust}
         alt="Footer Logo"
         className={className}
         style={{ objectFit: "contain" }}
         loading="eager"
         fetchPriority="high"
+        key={logoUrlWithCacheBust} // Force re-render när URL ändras
         onLoad={() => {
           // Preload för framtida användning
           if (!hasPreloadedFooter) {
             const img = new Image();
-            img.src = footerLogo;
+            img.src = logoUrlWithCacheBust;
             hasPreloadedFooter = true;
           }
         }}

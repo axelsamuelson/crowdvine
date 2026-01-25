@@ -60,11 +60,19 @@ export async function GET(
     }
 
     // Return the image with proper headers
+    // För logo-bilder, använd no-cache för att säkerställa att nya loggor visas direkt
+    const isLogo = cleanPath.toLowerCase().includes('logo');
+    const cacheControl = isLogo 
+      ? "no-cache, no-store, must-revalidate"
+      : "public, max-age=31536000, immutable";
+    
     return new NextResponse(buffer, {
       status: 200,
       headers: {
         "Content-Type": contentType,
-        "Cache-Control": "public, max-age=31536000, immutable",
+        "Cache-Control": cacheControl,
+        "Pragma": isLogo ? "no-cache" : undefined,
+        "Expires": isLogo ? "0" : undefined,
         "Access-Control-Allow-Origin": "*",
       },
     });
