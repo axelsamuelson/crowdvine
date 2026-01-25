@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { PageLayout } from "@/components/layout/page-layout";
 import { InviteQuotaDisplay } from "@/components/membership/invite-quota-display";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { getTimeUntilReset } from "@/lib/membership/invite-quota";
-import { ArrowLeft, Copy, Link as LinkIcon, Trash2, Users } from "lucide-react";
+import { ArrowLeft, Link as LinkIcon, Trash2, Users } from "lucide-react";
 
 type Invitation = {
   id: string;
@@ -16,8 +18,14 @@ type Invitation = {
   max_uses?: number | null;
   initial_level?: string | null;
   created_at?: string | null;
+  used_at?: string | null;
   signupUrl?: string;
   codeSignupUrl?: string;
+  profiles?: {
+    id: string;
+    email: string;
+    full_name: string | null;
+  } | null;
 };
 
 type MembershipData = {
@@ -38,9 +46,32 @@ export default function ProfileInvitePage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const [membership, setMembership] = useState<MembershipData | null>(null);
-  const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [activeInvitations, setActiveInvitations] = useState<Invitation[]>([]);
+  const [usedInvitations, setUsedInvitations] = useState<Invitation[]>([]);
 
   const resetsIn = useMemo(() => getTimeUntilReset(), []);
+
+  // Check if invitation is new (created within 24 hours)
+  const isNewInvitation = (createdAt: string | null | undefined): boolean => {
+    if (!createdAt) return false;
+    const created = new Date(createdAt);
+    const now = new Date();
+    const hoursDiff = (now.getTime() - created.getTime()) / (1000 * 60 * 60);
+    return hoursDiff < 24;
+  };
+
+  // Format date for display
+  const formatDate = (dateString: string | null | undefined): string => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("sv-SE", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   const enrichInvites = (list: Invitation[]) => {
     const baseUrl = window.location.origin;
@@ -73,7 +104,8 @@ export default function ProfileInvitePage() {
 
       if (iRes.ok) {
         const data = await iRes.json();
-        setInvitations(enrichInvites(Array.isArray(data.invitations) ? data.invitations : []));
+        setActiveInvitations(enrichInvites(data.active || []));
+        setUsedInvitations(enrichInvites(data.used || []));
       }
     } finally {
       setLoading(false);
@@ -109,8 +141,9 @@ export default function ProfileInvitePage() {
           expires_at: data.invitation.expiresAt,
           max_uses: data.invitation.maxUses,
           initial_level: data.invitation.initialLevel,
+          created_at: data.invitation.createdAt || new Date().toISOString(),
         };
-        setInvitations((prev) => enrichInvites([inv, ...prev]));
+        setActiveInvitations((prev) => enrichInvites([inv, ...prev]));
         toast.success("Invitation generated");
         // Refresh membership quota
         const mRes = await fetch("/api/user/membership");
@@ -141,7 +174,7 @@ export default function ProfileInvitePage() {
         toast.error(err.error || "Failed to delete invite");
         return;
       }
-      setInvitations((prev) => prev.filter((i) => i.id !== id));
+      setActiveInvitations((prev) => prev.filter((i) => i.id !== id));
       toast.success("Invitation deleted");
       // Refresh quota
       const mRes = await fetch("/api/user/membership");
@@ -230,71 +263,112 @@ export default function ProfileInvitePage() {
         </div>
 
         <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">Active invites</h2>
-              <p className="text-xs text-muted-foreground">
-                These are unused, active codes.
-              </p>
-            </div>
-          </div>
+          <Tabs defaultValue="active" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="active">Aktiva</TabsTrigger>
+              <TabsTrigger value="used">Använda</TabsTrigger>
+            </TabsList>
 
-          {invitations.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No active invites yet.</p>
-          ) : (
-            <div className="space-y-3">
-              {invitations.map((inv) => (
-                <div
-                  key={inv.id}
-                  className="rounded-xl border border-border bg-white p-4 shadow-sm"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-foreground tracking-wide">
-                        {inv.code}
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground truncate">
-                        {inv.signupUrl || ""}
-                      </p>
-                    </div>
+            <TabsContent value="active" className="mt-4">
+              {activeInvitations.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No active invites yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {activeInvitations.map((inv) => (
+                    <div
+                      key={inv.id}
+                      className="rounded-xl border border-border bg-white p-4 shadow-sm"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="text-sm font-semibold text-foreground tracking-wide">
+                              {inv.code}
+                            </p>
+                            {isNewInvitation(inv.created_at) && (
+                              <Badge variant="default" className="text-xs">
+                                NEW
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate mb-1">
+                            {inv.signupUrl || ""}
+                          </p>
+                          {inv.created_at && (
+                            <p className="text-xs text-muted-foreground">
+                              Skapad: {formatDate(inv.created_at)}
+                            </p>
+                          )}
+                        </div>
 
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-9 w-9 rounded-full"
-                        onClick={() => copyText(inv.code, "Code")}
-                        aria-label="Copy code"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      {inv.signupUrl ? (
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-9 w-9 rounded-full"
-                          onClick={() => copyText(inv.signupUrl!, "Link")}
-                          aria-label="Copy link"
-                        >
-                          <LinkIcon className="h-4 w-4" />
-                        </Button>
-                      ) : null}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-9 w-9 rounded-full text-muted-foreground hover:text-red-600"
-                        onClick={() => deleteInvite(inv.id)}
-                        disabled={deletingId === inv.id}
-                        aria-label="Delete invite"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {inv.signupUrl ? (
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-9 w-9 rounded-full"
+                              onClick={() => copyText(inv.signupUrl!, "Link")}
+                              aria-label="Copy link"
+                            >
+                              <LinkIcon className="h-4 w-4" />
+                            </Button>
+                          ) : null}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 rounded-full text-muted-foreground hover:text-red-600"
+                            onClick={() => deleteInvite(inv.id)}
+                            disabled={deletingId === inv.id}
+                            aria-label="Delete invite"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
+              )}
+            </TabsContent>
+
+            <TabsContent value="used" className="mt-4">
+              {usedInvitations.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No used invites yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {usedInvitations.map((inv) => (
+                    <div
+                      key={inv.id}
+                      className="rounded-xl border border-border bg-white p-4 shadow-sm"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-foreground tracking-wide mb-1">
+                            {inv.code}
+                          </p>
+                          {inv.profiles && (
+                            <p className="text-xs text-muted-foreground mb-1">
+                              Använd av: {inv.profiles.full_name || inv.profiles.email}
+                            </p>
+                          )}
+                          {inv.created_at && (
+                            <p className="text-xs text-muted-foreground mb-1">
+                              Skapad: {formatDate(inv.created_at)}
+                            </p>
+                          )}
+                          {inv.used_at && (
+                            <p className="text-xs text-muted-foreground">
+                              Använd: {formatDate(inv.used_at)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </PageLayout>
