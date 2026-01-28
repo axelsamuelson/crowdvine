@@ -48,6 +48,8 @@ import {
   ShareBottlesDialog,
   type ShareAllocation,
 } from "@/components/checkout/share-bottles-dialog";
+import { useB2B } from "@/lib/context/b2b-context";
+import { formatPriceForB2B } from "@/lib/utils/b2b-pricing";
 
 interface UserProfile {
   id: string;
@@ -84,6 +86,7 @@ interface UserReward {
 }
 
 function CheckoutContent() {
+  const { isB2BMode } = useB2B();
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(true);
   const [zoneLoading, setZoneLoading] = useState(false);
@@ -831,9 +834,13 @@ function CheckoutContent() {
     <main className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto p-6 pt-top-spacing space-y-8">
         <div>
-          <h1 className="text-2xl font-medium text-gray-900 mb-2">Checkout</h1>
+          <h1 className="text-2xl font-medium text-gray-900 mb-2">
+            {isB2BMode ? "B2B Checkout" : "Checkout"}
+          </h1>
           <p className="text-gray-500">
-            Review your reservation and confirm delivery details.
+            {isB2BMode
+              ? "Review your order. Prices are shown excluding VAT."
+              : "Review your reservation and confirm delivery details."}
           </p>
         </div>
 

@@ -12,6 +12,7 @@ import { NavItem } from "@/lib/types";
 import { Collection } from "@/lib/shopify/types";
 import { CompleteOrderRail } from "@/components/cart/complete-order-rail";
 import { useUserRole } from "@/lib/hooks/use-user-role";
+import { B2BToggle } from "./b2b-toggle";
 
 export const navItems: NavItem[] = [
   {
@@ -37,13 +38,12 @@ export function Header({ collections }: HeaderProps) {
       <div className="block flex-none md:hidden">
         <MobileMenu collections={collections} />
       </div>
-      <Link
-        href="/"
-        className="md:col-span-3 xl:col-span-2 flex justify-center md:justify-start"
-        prefetch
-      >
-        <LogoSvg className="h-8 md:h-12 w-auto" />
-      </Link>
+      <div className="md:col-span-3 xl:col-span-2 flex items-center gap-3 justify-center md:justify-start">
+        <Link href="/" prefetch>
+          <LogoSvg className="h-8 md:h-12 w-auto" />
+        </Link>
+        <B2BToggle />
+      </div>
       <nav className="flex gap-2 justify-end items-center md:col-span-9 xl:col-span-10">
         <div className="items-center gap-5 py-0.5 pr-3 bg-transparent hidden md:flex min-w-0">
           {/* Complete order rail should stretch to the left edge of the content column */}

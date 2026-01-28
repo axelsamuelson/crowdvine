@@ -10,6 +10,8 @@ import { Button } from "../ui/button";
 import { Loader } from "../ui/loader";
 import { CartItemCard } from "./cart-item";
 import { formatPrice } from "@/lib/shopify/utils";
+import { useB2B } from "@/lib/context/b2b-context";
+import { formatPriceForB2B } from "@/lib/utils/b2b-pricing";
 import { useBodyScrollLock } from "@/lib/hooks/use-body-scroll-lock";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -38,6 +40,7 @@ const CartItems = ({
   isValidating: boolean;
 }) => {
   const { cart } = useCart();
+  const { isB2BMode } = useB2B();
 
   if (!cart) return <></>;
 
@@ -85,10 +88,16 @@ const CartItems = ({
           <div className="flex justify-between items-center pt-1 pb-1 mb-1.5 text-lg font-semibold">
             <p>Total</p>
             <p className="text-base text-right text-foreground">
-              {formatPrice(
-                cart.cost.totalAmount.amount,
-                cart.cost.totalAmount.currencyCode,
-              )}
+              {isB2BMode
+                ? formatPriceForB2B(
+                    cart.cost.totalAmount.amount,
+                    cart.cost.totalAmount.currencyCode,
+                    true,
+                  ) + " exkl. moms"
+                : formatPrice(
+                    cart.cost.totalAmount.amount,
+                    cart.cost.totalAmount.currencyCode,
+                  )}
             </p>
           </div>
         </div>

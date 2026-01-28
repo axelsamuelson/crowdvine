@@ -2,6 +2,8 @@
 
 import { useMembership } from "@/lib/context/membership-context";
 import { formatPrice } from "@/lib/shopify/utils";
+import { useB2B } from "@/lib/context/b2b-context";
+import { formatPriceForB2B } from "@/lib/utils/b2b-pricing";
 
 interface MemberPriceProps {
   amount: string | number;
@@ -17,6 +19,7 @@ export function MemberPrice({
   showBadge = false,
 }: MemberPriceProps) {
   const { discountPercentage, level, loading } = useMembership();
+  const { isB2BMode } = useB2B();
 
   if (loading) {
     // Show skeleton while loading
@@ -30,9 +33,18 @@ export function MemberPrice({
     ? originalPrice * (1 - discountPercentage / 100)
     : originalPrice;
 
+  // Use B2B pricing if in B2B mode
+  const formatPriceFunc = isB2BMode ? formatPriceForB2B : formatPrice;
+  const formatPriceOptions = isB2BMode ? { excludeVat: true } : {};
+
   if (!hasDiscount) {
     return (
-      <span className={className}>{formatPrice(amount, currencyCode)}</span>
+      <span className={className}>
+        {formatPriceFunc(amount, currencyCode, isB2BMode)}
+        {isB2BMode && (
+          <span className="text-xs text-muted-foreground ml-1">exkl. moms</span>
+        )}
+      </span>
     );
   }
 
@@ -50,12 +62,15 @@ export function MemberPrice({
     <div className="flex items-center gap-2 flex-wrap">
       {/* Discounted Price (prominent) */}
       <span className={className}>
-        {formatPrice(discountedPrice.toFixed(2), currencyCode)}
+        {formatPriceFunc(discountedPrice.toFixed(2), currencyCode, isB2BMode)}
+        {isB2BMode && (
+          <span className="text-xs text-muted-foreground ml-1">exkl. moms</span>
+        )}
       </span>
 
       {/* Original Price (strikethrough) */}
       <span className="text-xs line-through opacity-40">
-        {formatPrice(amount, currencyCode)}
+        {formatPriceFunc(amount, currencyCode, isB2BMode)}
       </span>
 
       {/* Member Badge (optional, small) */}

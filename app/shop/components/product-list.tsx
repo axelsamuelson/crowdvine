@@ -86,7 +86,13 @@ export default async function ProductList({
     products = [];
   }
 
-  const collections = await getCollections();
+  let collections: Collection[] = [];
+  try {
+    collections = await getCollections();
+  } catch (error) {
+    console.error("Error fetching collections:", error);
+    collections = [];
+  }
 
   return (
     <ProductListContent
