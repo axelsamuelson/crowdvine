@@ -1,6 +1,6 @@
 "use client";
 
-import { QRCode } from "react-qr-code";
+import QRCode from "react-qr-code";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
@@ -9,12 +9,16 @@ interface QRCodeDisplayProps {
   value: string;
   size?: number;
   title?: string;
+  showTitle?: boolean;
+  showDownload?: boolean;
 }
 
 export function QRCodeDisplay({
   value,
   size = 256,
   title = "QR Code",
+  showTitle = true,
+  showDownload = true,
 }: QRCodeDisplayProps) {
   const downloadQRCode = () => {
     const svg = document.getElementById("qr-code-svg");
@@ -42,7 +46,7 @@ export function QRCodeDisplay({
 
   return (
     <div className="flex flex-col items-center space-y-4">
-      {title && <h3 className="text-lg font-semibold">{title}</h3>}
+      {showTitle && title && <h3 className="text-lg font-semibold">{title}</h3>}
       <div className="p-4 bg-white rounded-lg border-2 border-gray-200">
         <QRCode
           id="qr-code-svg"
@@ -51,10 +55,12 @@ export function QRCodeDisplay({
           level="H"
         />
       </div>
-      <Button onClick={downloadQRCode} variant="outline">
-        <Download className="w-4 h-4 mr-2" />
-        Download QR Code
-      </Button>
+      {showDownload && (
+        <Button onClick={downloadQRCode} variant="outline">
+          <Download className="w-4 h-4 mr-2" />
+          Download QR Code
+        </Button>
+      )}
     </div>
   );
 }
