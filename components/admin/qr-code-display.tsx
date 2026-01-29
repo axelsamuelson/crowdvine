@@ -42,12 +42,6 @@ export function QRCodeDisplay({
 
   return (
     <div className="flex flex-col items-center space-y-4">
-      {/* #region agent log */}
-      {(() => {
-        fetch('http://127.0.0.1:7243/ingest/9687b495-87d8-473b-8abd-6efc8f9371e3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'components/admin/qr-code-display.tsx:43',message:'QRCodeDisplay render start',data:{hasButton:true,buttonLine:54},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'B'})}).catch(()=>{});
-        return null;
-      })()}
-      {/* #endregion */}
       {title && <h3 className="text-lg font-semibold">{title}</h3>}
       <div className="p-4 bg-white rounded-lg border-2 border-gray-200">
         <QRCode
@@ -57,12 +51,6 @@ export function QRCodeDisplay({
           level="H"
         />
       </div>
-      {/* #region agent log */}
-      {(() => {
-        fetch('http://127.0.0.1:7243/ingest/9687b495-87d8-473b-8abd-6efc8f9371e3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'components/admin/qr-code-display.tsx:54',message:'Button component render inside QRCodeDisplay',data:{componentType:'Button',willRenderAs:'button'},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'B'})}).catch(()=>{});
-        return null;
-      })()}
-      {/* #endregion */}
       <Button onClick={downloadQRCode} variant="outline">
         <Download className="w-4 h-4 mr-2" />
         Download QR Code
