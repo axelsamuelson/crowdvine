@@ -87,11 +87,6 @@ const navigation = [
     href: "/admin/access-control",
     icon: Shield,
   },
-  {
-    name: "Wine Tastings",
-    href: "/admin/wine-tastings",
-    icon: Wine,
-  },
 ];
 
 export function Sidebar({ userEmail, onSignOut }: SidebarProps) {

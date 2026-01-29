@@ -3,40 +3,13 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 // Auth roles
-export type UserRole = "admin" | "producer" | "user" | "business";
+export type UserRole = "admin" | "producer" | "user";
 
 export interface User {
   id: string;
   email: string;
-  role: UserRole; // Primary role (for backward compatibility)
-  roles: UserRole[]; // Array of all roles
+  role: UserRole;
   producer_id?: string;
-}
-
-// Helper function to check if user has a specific role
-export function hasRole(user: User | null, role: UserRole): boolean {
-  if (!user) return false;
-  return user.roles?.includes(role) || user.role === role;
-}
-
-// Helper function to check if user has any of the specified roles
-export function hasAnyRole(user: User | null, roles: UserRole[]): boolean {
-  if (!user) return false;
-  return roles.some((role) => hasRole(user, role));
-}
-
-// Helper function to get the highest role from hierarchy
-export function getHighestRole(roles: UserRole[]): UserRole {
-  const roleHierarchy: Record<UserRole, number> = {
-    user: 0,
-    business: 1,
-    producer: 2,
-    admin: 3,
-  };
-
-  return roles.reduce((highest, role) => {
-    return roleHierarchy[role] > roleHierarchy[highest] ? role : highest;
-  }, "user" as UserRole);
 }
 
 // Supabase client för auth (lazy-init to avoid build-time env errors)
@@ -85,10 +58,10 @@ export async function getCurrentUser(): Promise<User | null> {
 
     console.log("User found in auth:", user.id);
 
-    // Hämta user profile med roles
+    // Hämta user profile med role
     const { data: profile, error: profileError } = await supabaseServer
       .from("profiles")
-      .select("role, roles, producer_id")
+      .select("role, producer_id")
       .eq("id", user.id)
       .single();
 
@@ -99,21 +72,10 @@ export async function getCurrentUser(): Promise<User | null> {
 
     console.log("Profile found:", profile);
 
-    // Use roles array if available, otherwise fallback to single role
-    const roles: UserRole[] = profile?.roles && Array.isArray(profile.roles) 
-      ? (profile.roles as UserRole[])
-      : profile?.role 
-        ? [profile.role as UserRole]
-        : ["user"];
-
-    // Get primary role (highest in hierarchy) for backward compatibility
-    const primaryRole = getHighestRole(roles);
-
     return {
       id: user.id,
       email: user.email!,
-      role: primaryRole,
-      roles,
+      role: profile?.role || "user",
       producer_id: profile?.producer_id,
     };
   } catch (error) {
@@ -130,22 +92,16 @@ export async function requireAuth(
     throw new Error("Authentication required");
   }
 
-  // Check if user has the required role
-  if (!hasRole(user, requiredRole)) {
-    const roleHierarchy: Record<UserRole, number> = {
-      user: 0,
-      business: 1,
-      producer: 2,
-      admin: 3,
-    };
+  const roleHierarchy: Record<UserRole, number> = {
+    user: 0,
+    producer: 1,
+    admin: 2,
+  };
 
-    // Also check hierarchy (admin can access everything, etc.)
-    const userHighestRole = getHighestRole(user.roles);
-    if (roleHierarchy[userHighestRole] < roleHierarchy[requiredRole]) {
-      throw new Error(
-        `Insufficient permissions. Required: ${requiredRole}, Current roles: ${user.roles.join(", ")}`,
-      );
-    }
+  if (roleHierarchy[user.role] < roleHierarchy[requiredRole]) {
+    throw new Error(
+      `Insufficient permissions. Required: ${requiredRole}, Current: ${user.role}`,
+    );
   }
 
   return user;
@@ -163,24 +119,23 @@ export async function signIn(email: string, password: string) {
 export async function signUp(
   email: string,
   password: string,
-  roles: UserRole[] = ["user"],
+  role: UserRole = "user",
 ) {
   const { data, error } = await getSupabaseClient().auth.signUp({
     email,
     password,
     options: {
       data: {
-        roles,
+        role,
       },
     },
   });
 
   if (data.user && !error) {
-    // Skapa profile med roles
+    // Skapa profile med role
     await getSupabaseClient().from("profiles").insert({
       id: data.user.id,
-      role: getHighestRole(roles), // Set primary role for backward compatibility
-      roles,
+      role,
       email,
     });
   }

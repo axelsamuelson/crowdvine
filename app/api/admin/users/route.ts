@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     // Get all profiles with membership data
     const { data: profiles, error: profilesError } = await adminSupabase
       .from("profiles")
-      .select("id, email, role, roles, producer_id, created_at, full_name");
+      .select("id, email, role, producer_id, created_at, full_name");
 
     if (profilesError) {
       console.error("Error fetching profiles:", profilesError);
@@ -97,7 +97,6 @@ export async function GET(request: NextRequest) {
           last_sign_in_at: authUser.last_sign_in_at,
           email_confirmed_at: authUser.email_confirmed_at,
           role: profile?.role || "user",
-          roles: profile?.roles && Array.isArray(profile.roles) ? profile.roles : profile?.role ? [profile.role] : ["user"],
           producer_id: profile?.producer_id || null,
           last_active_at: lastActiveMap.get(authUser.id) || null,
           // Membership data
@@ -431,24 +430,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    let userId: string;
-    let updates: any;
-    
-    try {
-      const body = await request.json();
-      userId = body.userId;
-      updates = body.updates;
-    } catch (jsonError) {
-      console.error("=== JSON PARSING ERROR ===");
-      console.error("Error:", jsonError);
-      return NextResponse.json(
-        { 
-          error: "Invalid JSON in request body", 
-          details: jsonError instanceof Error ? jsonError.message : String(jsonError)
-        },
-        { status: 400 },
-      );
-    }
+    const { userId, updates } = await request.json();
 
     if (!userId || !updates) {
       return NextResponse.json(
@@ -457,130 +439,32 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    console.log("=== PATCH USER UPDATE ===");
-    console.log("User ID:", userId);
-    console.log("Updates:", JSON.stringify(updates, null, 2));
-
     const adminSupabase = getSupabaseAdmin();
 
     // Update profile fields if provided
-    if (updates.roles !== undefined || updates.producer_id !== undefined) {
+    if (updates.role !== undefined || updates.producer_id !== undefined) {
       const profileUpdate: Record<string, any> = {};
-      
-      if (updates.roles !== undefined) {
-        // Ensure roles is an array and not empty (must have at least one role)
-        const rolesArray = Array.isArray(updates.roles) && updates.roles.length > 0
-          ? updates.roles
-          : ["user"]; // Default to user if empty or invalid
-        
-        // Validate that all roles are valid
-        const validRoles = ['user', 'business', 'producer', 'admin'];
-        const invalidRoles = rolesArray.filter(r => !validRoles.includes(r));
-        if (invalidRoles.length > 0) {
-          return NextResponse.json(
-            { 
-              error: "Invalid roles provided", 
-              details: `Invalid roles: ${invalidRoles.join(', ')}. Valid roles are: ${validRoles.join(', ')}`
-            },
-            { status: 400 },
-          );
-        }
-        
-        // Set roles array (will fail gracefully if column doesn't exist)
-        profileUpdate.roles = rolesArray;
-        
-        // Also update primary role for backward compatibility (highest role)
-        const roleHierarchy: Record<string, number> = {
-          user: 0,
-          business: 1,
-          producer: 2,
-          admin: 3,
-        };
-        const highestRole = rolesArray.reduce((highest: string, role: string) => {
-          return roleHierarchy[role] > roleHierarchy[highest] ? role : highest;
-        }, "user");
-        profileUpdate.role = highestRole;
-      }
-      
+      if (updates.role !== undefined) profileUpdate.role = updates.role;
       if (updates.producer_id !== undefined) {
         profileUpdate.producer_id = updates.producer_id || null;
       }
 
-      console.log("=== PROFILE UPDATE DATA ===");
-      console.log("Profile update object:", JSON.stringify(profileUpdate, null, 2));
-      console.log("User ID:", userId);
-      console.log("===========================");
-
-      const { error: profileError, data } = await adminSupabase
+      const { error: profileError } = await adminSupabase
         .from("profiles")
         .update(profileUpdate)
-        .eq("id", userId)
-        .select();
+        .eq("id", userId);
 
       if (profileError) {
-        console.error("=== PROFILE UPDATE ERROR ===");
-        console.error("Error:", profileError);
-        console.error("Error code:", profileError.code);
-        console.error("Error message:", profileError.message);
-        console.error("Error details:", profileError.details);
-        console.error("Error hint:", profileError.hint);
-        console.error("Profile update data:", JSON.stringify(profileUpdate, null, 2));
-        console.error("User ID:", userId);
-        console.error("===========================");
-        
-        // Check if roles column exists - if not, try updating only role
-        if (
-          profileError.message?.includes("column") && 
-          (profileError.message?.includes("roles") || profileError.code === "42703")
-        ) {
-          console.warn("Roles column does not exist, falling back to single role update");
-          const fallbackUpdate: Record<string, any> = {
-            role: profileUpdate.role,
-          };
-          if (updates.producer_id !== undefined) {
-            fallbackUpdate.producer_id = updates.producer_id || null;
-          }
-          
-          const { error: fallbackError } = await adminSupabase
-            .from("profiles")
-            .update(fallbackUpdate)
-            .eq("id", userId);
-          
-          if (fallbackError) {
-            console.error("Fallback update also failed:", fallbackError);
-            return NextResponse.json(
-              { 
-                error: "Failed to update user profile", 
-                details: fallbackError.message,
-                code: fallbackError.code,
-                note: "Please run migration 065_add_multiple_roles.sql to enable multiple roles."
-              },
-              { status: 500 },
-            );
-          }
-          
-          return NextResponse.json({ 
-            message: "User updated successfully (single role only - run migration for multiple roles)",
-            warning: "Roles column does not exist. Only primary role was updated."
-          });
-        }
-        
+        console.error("Error updating profile:", profileError);
         return NextResponse.json(
-          { 
-            error: "Failed to update user profile", 
-            details: profileError.message,
-            code: profileError.code,
-            hint: profileError.hint
-          },
+          { error: "Failed to update user profile" },
           { status: 500 },
         );
       }
-      
-      console.log("Successfully updated profile:", data);
     }
 
     // If we linked a producer, also set producer.owner_id to this user (optional but useful)
-    if (updates.producer_id && updates.roles?.includes("producer")) {
+    if (updates.producer_id && updates.role === "producer") {
       const { error: ownerError } = await adminSupabase
         .from("producers")
         .update({ owner_id: userId })
@@ -611,20 +495,9 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ message: "User updated successfully" });
   } catch (error) {
-    console.error("=== PATCH USER UPDATE ERROR ===");
-    console.error("Error:", error);
-    console.error("Error type:", error instanceof Error ? error.constructor.name : typeof error);
-    console.error("Error message:", error instanceof Error ? error.message : String(error));
-    if (error instanceof Error && error.stack) {
-      console.error("Error stack:", error.stack);
-    }
-    console.error("==============================");
-    
+    console.error("Update user API error:", error);
     return NextResponse.json(
-      { 
-        error: "Internal server error", 
-        details: error instanceof Error ? error.message : String(error)
-      },
+      { error: "Internal server error" },
       { status: 500 },
     );
   }

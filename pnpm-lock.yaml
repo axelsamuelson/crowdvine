@@ -221,9 +221,6 @@ importers:
       react-hook-form:
         specifier: latest
         version: 7.71.1(react@19.2.3)
-      react-qr-code:
-        specifier: ^2.0.18
-        version: 2.0.18(react@19.2.3)
       react-resizable-panels:
         specifier: ^2.1.7
         version: 2.1.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -4288,9 +4285,6 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
-  qr.js@0.0.0:
-    resolution: {integrity: sha512-c4iYnWb+k2E+vYpRimHqSu575b1/wKl4XFeJGpFmrJQz5I88v9aY2czh7s0w36srfCM1sXgC/xpoJz5dJfq+OQ==}
-
   qs@6.14.1:
     resolution: {integrity: sha512-4EK3+xJl8Ts67nLYNwqw/dsFVnCf+qR7RgXSK9jEEm9unao3njwMDdmsdvoKBKHzxd7tCYz5e5M+SnMjdtXGQQ==}
     engines: {node: '>=0.6'}
@@ -4323,11 +4317,6 @@ packages:
 
   react-is@18.3.1:
     resolution: {integrity: sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==}
-
-  react-qr-code@2.0.18:
-    resolution: {integrity: sha512-v1Jqz7urLMhkO6jkgJuBYhnqvXagzceg3qJUWayuCK/c6LTIonpWbwxR1f1APGd4xrW/QcQEovNrAojbUz65Tg==}
-    peerDependencies:
-      react: '*'
 
   react-remove-scroll-bar@2.3.8:
     resolution: {integrity: sha512-9r+yi9+mgU33AKcj6IbT9oRCO78WriSj6t/cF8DWBZJ9aOGPOTEDvdUDz1FwKim7QXWwmHqtdHnRJfhAxEG46Q==}
@@ -9510,8 +9499,6 @@ snapshots:
       - typescript
       - utf-8-validate
 
-  qr.js@0.0.0: {}
-
   qs@6.14.1:
     dependencies:
       side-channel: 1.1.0
@@ -9539,12 +9526,6 @@ snapshots:
   react-is@16.13.1: {}
 
   react-is@18.3.1: {}
-
-  react-qr-code@2.0.18(react@19.2.3):
-    dependencies:
-      prop-types: 15.8.1
-      qr.js: 0.0.0
-      react: 19.2.3
 
   react-remove-scroll-bar@2.3.8(@types/react@19.2.8)(react@19.2.3):
     dependencies:

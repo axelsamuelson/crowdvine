@@ -15,7 +15,6 @@ import { V0Provider } from "@/lib/context";
 import { MobileMenuProvider } from "../components/layout/header/mobile-menu-context";
 import { MembershipProvider } from "@/lib/context/membership-context";
 import { OnboardingProvider } from "@/components/onboarding/onboarding-provider";
-import { B2BProvider } from "@/lib/context/b2b-context";
 import { cn } from "../lib/utils";
 
 const V0Setup = dynamic(() => import("@/components/v0-setup"));
@@ -108,18 +107,16 @@ export default async function RootLayout({
           <MobileMenuProvider>
             <CartProvider>
               <MembershipProvider>
-                <B2BProvider>
-                  <OnboardingProvider>
-                    <NuqsAdapter>
-                      <main data-vaul-drawer-wrapper="true">
-                        <ConditionalHeader collections={collections} />
-                        {children}
-                      </main>
-                      {isDevelopment && <DebugGrid />}
-                      <Toaster closeButton position="bottom-right" />
-                    </NuqsAdapter>
-                  </OnboardingProvider>
-                </B2BProvider>
+                <OnboardingProvider>
+                  <NuqsAdapter>
+                    <main data-vaul-drawer-wrapper="true">
+                      <ConditionalHeader collections={collections} />
+                      {children}
+                    </main>
+                    {isDevelopment && <DebugGrid />}
+                    <Toaster closeButton position="bottom-right" />
+                  </NuqsAdapter>
+                </OnboardingProvider>
               </MembershipProvider>
             </CartProvider>
           </MobileMenuProvider>

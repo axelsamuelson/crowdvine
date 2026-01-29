@@ -8,8 +8,6 @@ import Link from "next/link";
 import { DeleteItemButton } from "./delete-item-button";
 import { EditItemQuantityButton } from "./edit-item-quantity-button";
 import { formatPrice } from "@/lib/shopify/utils";
-import { useB2B } from "@/lib/context/b2b-context";
-import { formatPriceForB2B } from "@/lib/utils/b2b-pricing";
 import { ColorSwatch } from "@/components/ui/color-picker";
 import { useProductImages } from "../products/variant-selector";
 
@@ -23,7 +21,6 @@ interface CartItemProps {
 }
 
 export function CartItemCard({ item, onCloseCart }: CartItemProps) {
-  const { isB2BMode } = useB2B();
   const merchandiseSearchParams = {} as MerchandiseSearchParams;
 
   item.merchandise.selectedOptions.forEach(({ name, value }) => {
@@ -112,16 +109,10 @@ export function CartItemCard({ item, onCloseCart }: CartItemProps) {
             )}
           </Link>
           <p className="2xl:text-lg font-semibold">
-            {isB2BMode
-              ? formatPriceForB2B(
-                  item.cost.totalAmount.amount,
-                  item.cost.totalAmount.currencyCode,
-                  true,
-                ) + " exkl. moms"
-              : formatPrice(
-                  item.cost.totalAmount.amount,
-                  item.cost.totalAmount.currencyCode,
-                )}
+            {formatPrice(
+              item.cost.totalAmount.amount,
+              item.cost.totalAmount.currencyCode,
+            )}
           </p>
           <div className="flex justify-between items-end mt-auto">
             <div className="flex h-8 flex-row items-center rounded-md border border-neutral-200">

@@ -3,52 +3,36 @@ import type { Product, Collection, Cart } from "./types";
 
 // Vår API-bas (Next API routes som läser Supabase)
 const getApiBase = () => {
-  // On server-side, use relative URLs to avoid port issues
-  if (typeof window === "undefined") {
-    // Use relative URLs on server-side - Next.js will handle routing internally
-    return "";
-  }
-  
-  // On client-side, use the public URL or current origin
   const base =
     process.env.NEXT_PUBLIC_APP_URL ||
     process.env.APP_URL ||
-    (typeof window !== "undefined" ? window.location.origin : "http://localhost:3000");
-  
+    "http://localhost:3000";
   // Ensure protocol is included
   if (base.startsWith("http://") || base.startsWith("https://")) {
-    return base.trim();
+    return base;
   }
   // Default to https for production, http for localhost
-  return base.includes("localhost") ? `http://${base.trim()}` : `https://${base.trim()}`;
+  return base.includes("localhost") ? `http://${base}` : `https://${base}`;
 };
 
-const getApiUrl = (path: string) => {
-  const base = getApiBase();
-  return base ? `${base}${path}` : path;
-};
-
+const API_BASE = getApiBase();
+console.log("API_BASE:", API_BASE); // Debug log
 const API = {
-  products: () => getApiUrl("/api/crowdvine/products"),
-  product: (handle: string) => getApiUrl(`/api/crowdvine/products/${handle}`),
-  collections: () => getApiUrl("/api/crowdvine/collections"), // mappar zoner/kampanjer
+  products: `${API_BASE}/api/crowdvine/products`,
+  product: (handle: string) => `${API_BASE}/api/crowdvine/products/${handle}`,
+  collections: `${API_BASE}/api/crowdvine/collections`, // mappar zoner/kampanjer
   collectionProducts: (id: string) =>
-    getApiUrl(`/api/crowdvine/collections/${id}/products`),
-  cartCreate: () => getApiUrl("/api/crowdvine/cart"),
-  cartAdd: (id: string) => getApiUrl(`/api/crowdvine/cart/${id}/lines/add`),
+    `${API_BASE}/api/crowdvine/collections/${id}/products`,
+  cartCreate: `${API_BASE}/api/crowdvine/cart`,
+  cartAdd: (id: string) => `${API_BASE}/api/crowdvine/cart/${id}/lines/add`,
   cartUpdate: (id: string) =>
-    getApiUrl(`/api/crowdvine/cart/${id}/lines/update`),
+    `${API_BASE}/api/crowdvine/cart/${id}/lines/update`,
   cartRemove: (id: string) =>
-    getApiUrl(`/api/crowdvine/cart/${id}/lines/remove`),
+    `${API_BASE}/api/crowdvine/cart/${id}/lines/remove`,
 };
 
 async function j<T>(res: Response): Promise<T> {
-  if (!res.ok) {
-    const url = res.url || "unknown";
-    const statusText = res.statusText || "Unknown error";
-    console.error(`API Error ${res.status} ${statusText} for ${url}`);
-    throw new Error(`API ${res.status}: ${statusText} - ${url}`);
-  }
+  if (!res.ok) throw new Error(`API ${res.status}`);
   return res.json() as Promise<T>;
 }
 
@@ -58,8 +42,7 @@ export async function getProducts(params?: {
   reverse?: boolean;
   query?: string;
 }): Promise<Product[]> {
-  const baseUrl = API.products();
-  const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : "http://localhost:3000");
+  const url = new URL(API.products);
   if (params?.limit) url.searchParams.set("limit", params.limit.toString());
   if (params?.query) url.searchParams.set("query", params.query);
   if (params?.sortKey) url.searchParams.set("sortKey", params.sortKey);
@@ -71,39 +54,16 @@ export async function getProducts(params?: {
 
 export async function getProduct(handle: string): Promise<Product | null> {
   try {
-    const url = API.product(handle);
-    const fullUrl = typeof window !== "undefined" 
-      ? url 
-      : url.startsWith("http") 
-        ? url 
-        : `http://localhost:${process.env.PORT || "3000"}${url}`;
-    return await j(await fetch(fullUrl));
+    return await j(await fetch(API.product(handle)));
   } catch {
     return null;
   }
 }
 
 export async function getCollections(): Promise<Collection[]> {
-  try {
-    const url = API.collections();
-    // On server-side, use absolute URL with current port
-    const fullUrl = typeof window !== "undefined" 
-      ? url 
-      : url.startsWith("http") 
-        ? url 
-        : `http://localhost:${process.env.PORT || "3000"}${url}`;
-    console.log("Fetching collections from:", fullUrl);
-    const response = await fetch(fullUrl, { 
-      next: { tags: [TAGS.collections] },
-      cache: "no-store" // Temporary: force fresh fetch to debug
-    });
-    console.log("Collections response status:", response.status);
-    return j(response);
-  } catch (error) {
-    console.error("Error in getCollections:", error);
-    // Return empty array instead of throwing to prevent page crash
-    return [];
-  }
+  return j(
+    await fetch(API.collections, { next: { tags: [TAGS.collections] } }),
+  );
 }
 
 export async function getCollection(
@@ -112,8 +72,7 @@ export async function getCollection(
   try {
     const collections = await getCollections();
     return collections.find((c) => c.handle === handle) || null;
-  } catch (error) {
-    console.error("Error in getCollection:", error);
+  } catch {
     return null;
   }
 }
@@ -132,8 +91,7 @@ export async function getCollectionProducts(params: {
     return [];
   }
 
-  const baseUrl = API.collectionProducts((collection as any).id);
-  const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : "http://localhost:3000");
+  const url = new URL(API.collectionProducts((collection as any).id));
   if (params?.limit) url.searchParams.set("limit", params.limit.toString());
   if (params?.query) url.searchParams.set("query", params.query);
   if (params?.sortKey) url.searchParams.set("sortKey", params.sortKey);
@@ -145,13 +103,7 @@ export async function getCollectionProducts(params: {
 
 /** Cart-funktioner shimmar till bookings; vi returnerar en ShopifyCart-kompatibel form */
 export async function createCart(): Promise<Cart> {
-  const url = API.cartCreate();
-  const fullUrl = typeof window !== "undefined" 
-    ? url 
-    : url.startsWith("http") 
-      ? url 
-      : `http://localhost:${process.env.PORT || "3000"}${url}`;
-  return j(await fetch(fullUrl, { method: "POST" }));
+  return j(await fetch(API.cartCreate, { method: "POST" }));
 }
 interface CartLine {
   merchandiseId: string;
@@ -165,14 +117,8 @@ export async function addCartLines({
   cartId: string;
   lines: CartLine[];
 }): Promise<Cart> {
-  const url = API.cartAdd(cartId);
-  const fullUrl = typeof window !== "undefined" 
-    ? url 
-    : url.startsWith("http") 
-      ? url 
-      : `http://localhost:${process.env.PORT || "3000"}${url}`;
   return j(
-    await fetch(fullUrl, {
+    await fetch(API.cartAdd(cartId), {
       method: "POST",
       body: JSON.stringify({ lines }),
     }),
@@ -185,14 +131,8 @@ export async function updateCartLines({
   cartId: string;
   lines: CartLine[];
 }): Promise<Cart> {
-  const url = API.cartUpdate(cartId);
-  const fullUrl = typeof window !== "undefined" 
-    ? url 
-    : url.startsWith("http") 
-      ? url 
-      : `http://localhost:${process.env.PORT || "3000"}${url}`;
   return j(
-    await fetch(fullUrl, {
+    await fetch(API.cartUpdate(cartId), {
       method: "POST",
       body: JSON.stringify({ lines }),
     }),
@@ -205,14 +145,8 @@ export async function removeCartLines({
   cartId: string;
   lineIds: string[];
 }): Promise<Cart> {
-  const url = API.cartRemove(cartId);
-  const fullUrl = typeof window !== "undefined" 
-    ? url 
-    : url.startsWith("http") 
-      ? url 
-      : `http://localhost:${process.env.PORT || "3000"}${url}`;
   return j(
-    await fetch(fullUrl, {
+    await fetch(API.cartRemove(cartId), {
       method: "POST",
       body: JSON.stringify({ lineIds }),
     }),

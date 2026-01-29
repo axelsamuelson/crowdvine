@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -64,7 +64,6 @@ interface User {
   email: string;
   full_name?: string;
   role: string;
-  roles?: string[];
   producer_id?: string | null;
   membership_level: string;
   impact_points: number;
@@ -78,7 +77,7 @@ interface User {
 }
 
 interface EditForm {
-  roles: string[];
+  role: string;
   membership_level: string;
   producer_id?: string | null;
 }
@@ -98,7 +97,7 @@ export default function UsersAdmin() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editForm, setEditForm] = useState<EditForm>({
-    roles: [],
+    role: "",
     membership_level: "",
     producer_id: null,
   });
@@ -157,7 +156,7 @@ export default function UsersAdmin() {
         body: JSON.stringify({
           userId,
           updates: {
-            roles: updates.roles,
+            role: updates.role,
             producer_id: updates.producer_id,
             membership_level: updates.membership_level,
           },
@@ -165,24 +164,8 @@ export default function UsersAdmin() {
       });
 
       if (!response.ok) {
-        let errorData: any = {};
-        try {
-          const text = await response.text();
-          if (text) {
-            errorData = JSON.parse(text);
-          }
-        } catch (e) {
-          console.error("Failed to parse error response:", e);
-        }
-        
-        console.error("Update user error:", {
-          status: response.status,
-          statusText: response.statusText,
-          errorData,
-        });
-        
-        const errorMessage = errorData.error || errorData.details || `Server error: ${response.status} ${response.statusText}`;
-        throw new Error(errorMessage);
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update user");
       }
 
       toast.success("User updated successfully");
@@ -192,14 +175,7 @@ export default function UsersAdmin() {
       console.error("Error updating user:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Failed to update user";
-      
-      // Show detailed error in toast
-      toast.error(`Failed to update user: ${errorMessage}`, {
-        description: error instanceof Error && error.message.includes("details") 
-          ? "Check console for more details" 
-          : undefined,
-        duration: 5000,
-      });
+      toast.error(`Failed to update user: ${errorMessage}`);
     }
   };
 
@@ -254,7 +230,7 @@ export default function UsersAdmin() {
   const openEditDialog = (user: User) => {
     setSelectedUser(user);
     setEditForm({
-      roles: user.roles && Array.isArray(user.roles) ? user.roles : user.role ? [user.role] : ["user"],
+      role: user.role,
       membership_level: user.membership_level || "basic",
       producer_id: user.producer_id || null,
     });
@@ -263,96 +239,35 @@ export default function UsersAdmin() {
 
   const handleEditSubmit = () => {
     if (!selectedUser) return;
-    
-    // Ensure at least one role is selected
-    if (!editForm.roles || editForm.roles.length === 0) {
-      toast.error("At least one role must be selected");
-      return;
-    }
-    
     updateUser(selectedUser.id, editForm);
   };
 
-  const getRoleBadge = (user: User) => {
-    const roles = user.roles && Array.isArray(user.roles) ? user.roles : user.role ? [user.role] : ["user"];
-    
-    if (roles.length === 0) {
-      return <Badge variant="outline">No role</Badge>;
+  const getRoleBadge = (role: string) => {
+    switch (role) {
+      case "admin":
+        return (
+          <Badge variant="default" className="bg-red-600">
+            <Shield className="w-3 h-3 mr-1" />
+            Admin
+          </Badge>
+        );
+      case "producer":
+        return (
+          <Badge variant="default" className="bg-emerald-600">
+            <Factory className="w-3 h-3 mr-1" />
+            Producer
+          </Badge>
+        );
+      case "user":
+        return (
+          <Badge variant="secondary">
+            <UserPlus className="w-3 h-3 mr-1" />
+            User
+          </Badge>
+        );
+      default:
+        return <Badge variant="outline">{role}</Badge>;
     }
-
-    if (roles.length === 1) {
-      const role = roles[0];
-      switch (role) {
-        case "admin":
-          return (
-            <Badge variant="default" className="bg-red-600">
-              <Shield className="w-3 h-3 mr-1" />
-              Admin
-            </Badge>
-          );
-        case "producer":
-          return (
-            <Badge variant="default" className="bg-emerald-600">
-              <Factory className="w-3 h-3 mr-1" />
-              Producer
-            </Badge>
-          );
-        case "business":
-          return (
-            <Badge variant="default" className="bg-blue-600">
-              <UserPlus className="w-3 h-3 mr-1" />
-              Business
-            </Badge>
-          );
-        case "user":
-          return (
-            <Badge variant="secondary">
-              <UserPlus className="w-3 h-3 mr-1" />
-              User
-            </Badge>
-          );
-        default:
-          return <Badge variant="outline">{role}</Badge>;
-      }
-    }
-
-    // Multiple roles - show badges for each
-    return (
-      <div className="flex flex-wrap gap-1">
-        {roles.map((role) => {
-          switch (role) {
-            case "admin":
-              return (
-                <Badge key={role} variant="default" className="bg-red-600">
-                  <Shield className="w-3 h-3 mr-1" />
-                  Admin
-                </Badge>
-              );
-            case "producer":
-              return (
-                <Badge key={role} variant="default" className="bg-emerald-600">
-                  <Factory className="w-3 h-3 mr-1" />
-                  Producer
-                </Badge>
-              );
-            case "business":
-              return (
-                <Badge key={role} variant="default" className="bg-blue-600">
-                  Business
-                </Badge>
-              );
-            case "user":
-              return (
-                <Badge key={role} variant="secondary">
-                  User
-                </Badge>
-              );
-            default:
-              return <Badge key={role} variant="outline">{role}</Badge>;
-          }
-        })}
-      </div>
-    );
   };
 
   const getMembershipBadge = (level: string) => {
@@ -387,10 +302,7 @@ export default function UsersAdmin() {
         user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (user.full_name &&
           user.full_name.toLowerCase().includes(searchTerm.toLowerCase()));
-      const matchesRole =
-        roleFilter === "all" ||
-        (user.roles && user.roles.includes(roleFilter)) ||
-        (!user.roles && user.role === roleFilter);
+      const matchesRole = roleFilter === "all" || user.role === roleFilter;
       return matchesSearch && matchesRole;
     })
     .sort((a, b) => {
@@ -405,19 +317,8 @@ export default function UsersAdmin() {
           bValue = b.email.toLowerCase();
           break;
         case "role":
-          const aRoles = a.roles && Array.isArray(a.roles) ? a.roles : a.role ? [a.role] : ["user"];
-          const bRoles = b.roles && Array.isArray(b.roles) ? b.roles : b.role ? [b.role] : ["user"];
-          // Sort by highest role
-          const roleHierarchy: Record<string, number> = {
-            user: 0,
-            business: 1,
-            producer: 2,
-            admin: 3,
-          };
-          const aHighest = aRoles.reduce((highest, r) => roleHierarchy[r] > roleHierarchy[highest] ? r : highest, "user");
-          const bHighest = bRoles.reduce((highest, r) => roleHierarchy[r] > roleHierarchy[highest] ? r : highest, "user");
-          aValue = aHighest.toLowerCase();
-          bValue = bHighest.toLowerCase();
+          aValue = a.role.toLowerCase();
+          bValue = b.role.toLowerCase();
           break;
         case "membership":
           aValue = a.membership_level.toLowerCase();
@@ -600,7 +501,7 @@ export default function UsersAdmin() {
                         : "Email not confirmed"}
                     </div>
                   </TableCell>
-                  <TableCell>{getRoleBadge(user)}</TableCell>
+                  <TableCell>{getRoleBadge(user.role)}</TableCell>
                   <TableCell>
                     {getMembershipBadge(user.membership_level)}
                   </TableCell>
@@ -702,45 +603,28 @@ export default function UsersAdmin() {
               />
             </div>
             <div>
-              <Label>Roles</Label>
-              <div className="space-y-2 mt-2">
-                {["user", "business", "producer", "admin"].map((role) => (
-                  <div key={role} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`role-${role}`}
-                      checked={editForm.roles.includes(role)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setEditForm({
-                            ...editForm,
-                            roles: [...editForm.roles, role],
-                            producer_id: role === "producer" ? editForm.producer_id : editForm.producer_id,
-                          });
-                        } else {
-                          // Prevent removing the last role
-                          if (editForm.roles.length <= 1) {
-                            toast.error("At least one role must be selected");
-                            return;
-                          }
-                          setEditForm({
-                            ...editForm,
-                            roles: editForm.roles.filter((r) => r !== role),
-                            producer_id: role === "producer" ? null : editForm.producer_id,
-                          });
-                        }
-                      }}
-                    />
-                    <Label
-                      htmlFor={`role-${role}`}
-                      className="text-sm font-normal cursor-pointer capitalize"
-                    >
-                      {role}
-                    </Label>
-                  </div>
-                ))}
-              </div>
+              <Label htmlFor="role">Role</Label>
+              <Select
+                value={editForm.role}
+                onValueChange={(value) =>
+                  setEditForm({
+                    ...editForm,
+                    role: value,
+                    producer_id: value === "producer" ? editForm.producer_id : null,
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="producer">Producer</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            {editForm.roles.includes("producer") && (
+            {editForm.role === "producer" && (
               <div className="space-y-2">
                 <Label htmlFor="producer_id">Linked Producer</Label>
                 <Select

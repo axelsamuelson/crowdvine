@@ -3,12 +3,11 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 
-export type UserRole = "user" | "producer" | "admin" | "business";
+export type UserRole = "user" | "producer" | "admin";
 
 interface UserRoleState {
   loading: boolean;
   role: UserRole | null;
-  roles: UserRole[];
   producerId: string | null;
 }
 
@@ -16,7 +15,6 @@ export function useUserRole(): UserRoleState {
   const [state, setState] = useState<UserRoleState>({
     loading: true,
     role: null,
-    roles: [],
     producerId: null,
   });
 
@@ -31,47 +29,29 @@ export function useUserRole(): UserRoleState {
         } = await supabase.auth.getUser();
 
         if (!user) {
-          setState({ loading: false, role: null, roles: [], producerId: null });
+          setState({ loading: false, role: null, producerId: null });
           return;
         }
 
         const { data: profile, error } = await supabase
           .from("profiles")
-          .select("role, roles, producer_id")
+          .select("role, producer_id")
           .eq("id", user.id)
           .maybeSingle();
 
         if (error) {
-          setState({ loading: false, role: null, roles: [], producerId: null });
+          setState({ loading: false, role: null, producerId: null });
           return;
         }
 
-        // Use roles array if available, otherwise fallback to single role
-        const roles: UserRole[] = profile?.roles && Array.isArray(profile.roles)
-          ? (profile.roles as UserRole[])
-          : profile?.role
-            ? [profile.role as UserRole]
-            : ["user"];
-
-        // Get primary role (highest in hierarchy) for backward compatibility
-        const roleHierarchy: Record<UserRole, number> = {
-          user: 0,
-          business: 1,
-          producer: 2,
-          admin: 3,
-        };
-        const primaryRole = roles.reduce((highest, r) => {
-          return roleHierarchy[r] > roleHierarchy[highest] ? r : highest;
-        }, "user" as UserRole);
-
+        const role = (profile?.role || "user") as UserRole;
         setState({
           loading: false,
-          role: primaryRole,
-          roles,
+          role,
           producerId: profile?.producer_id || null,
         });
       } catch {
-        setState({ loading: false, role: null, roles: [], producerId: null });
+        setState({ loading: false, role: null, producerId: null });
       }
     };
 
