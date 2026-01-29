@@ -1,6 +1,6 @@
 "use client";
 
-import QRCode from "react-qr-code";
+import { QRCode } from "react-qr-code";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
