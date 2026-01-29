@@ -144,6 +144,12 @@ export async function PATCH(
     }
 
     const { id } = await params;
+    
+    // Handle special case: "new" is not a valid session ID
+    if (id === "new") {
+      return NextResponse.json({ error: "Invalid session ID" }, { status: 404 });
+    }
+    
     const sb = getSupabaseAdmin();
 
     // Check if user is admin
