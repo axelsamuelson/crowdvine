@@ -19,15 +19,11 @@ import {
   Award,
   LogOut,
   BarChart3,
-  Menu,
-  X,
 } from "lucide-react";
 
 interface SidebarProps {
   userEmail: string;
   onSignOut: () => void;
-  mobileOpen?: boolean;
-  onMobileClose?: () => void;
 }
 
 const navigation = [
@@ -98,29 +94,19 @@ const navigation = [
   },
 ];
 
-export function Sidebar({ userEmail, onSignOut, mobileOpen, onMobileClose }: SidebarProps) {
+export function Sidebar({ userEmail, onSignOut }: SidebarProps) {
   const pathname = usePathname();
 
-  const sidebarContent = (
+  return (
     <div className="flex h-full w-64 flex-col bg-white border-r border-gray-200">
       {/* Logo */}
-      <div className="flex h-16 items-center justify-between px-6 border-b border-gray-200">
-        <Link href="/admin" className="flex items-center space-x-2" onClick={onMobileClose}>
+      <div className="flex h-16 items-center px-6 border-b border-gray-200">
+        <Link href="/admin" className="flex items-center space-x-2">
           <div className="h-8 w-8 bg-gray-900 rounded-lg flex items-center justify-center">
             <span className="text-white font-bold text-sm">C</span>
           </div>
           <span className="text-xl font-bold text-gray-900">CrowdVine</span>
         </Link>
-        {onMobileClose && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onMobileClose}
-            className="md:hidden"
-          >
-            <X className="h-5 w-5" />
-          </Button>
-        )}
       </div>
 
       {/* Navigation */}
@@ -132,7 +118,6 @@ export function Sidebar({ userEmail, onSignOut, mobileOpen, onMobileClose }: Sid
               <Link
                 key={item.name}
                 href={item.href}
-                onClick={onMobileClose}
                 className={cn(
                   "flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors",
                   isActive
@@ -174,34 +159,5 @@ export function Sidebar({ userEmail, onSignOut, mobileOpen, onMobileClose }: Sid
         </Button>
       </div>
     </div>
-  );
-
-  return (
-    <>
-      {/* Desktop Sidebar */}
-      <aside className="hidden md:flex h-full w-64 flex-col bg-white border-r border-gray-200">
-        {sidebarContent}
-      </aside>
-
-      {/* Mobile Sidebar - Drawer */}
-      {mobileOpen !== undefined && onMobileClose && (
-        <div
-          className={cn(
-            "fixed inset-0 z-50 md:hidden",
-            mobileOpen ? "block" : "hidden"
-          )}
-        >
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/50"
-            onClick={onMobileClose}
-          />
-          {/* Sidebar */}
-          <div className="fixed inset-y-0 left-0 w-64 bg-white shadow-lg">
-            {sidebarContent}
-          </div>
-        </div>
-      )}
-    </>
   );
 }

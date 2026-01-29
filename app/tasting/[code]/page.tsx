@@ -18,7 +18,6 @@ import { toast } from "sonner";
 import Image from "next/image";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { MemberPrice } from "@/components/ui/member-price";
-import { cn } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -381,36 +380,36 @@ export default function TastingPage() {
   }
 
   return (
-    <main className="min-h-screen bg-white">
-      <div className="max-w-5xl mx-auto p-3 md:p-6 pt-top-spacing space-y-4 md:space-y-8">
-        {/* Header - Compact on mobile */}
-        <div className="text-center md:text-left">
-          <h1 className="text-lg md:text-2xl font-medium text-gray-900 mb-0.5 md:mb-2">
+    <main className="min-h-screen bg-gray-50">
+      <div className="max-w-5xl mx-auto p-4 md:p-6 pt-top-spacing space-y-6 md:space-y-8">
+        {/* Header */}
+        <div>
+          <h1 className="text-xl md:text-2xl font-medium text-gray-900 mb-1 md:mb-2">
             {session.name}
           </h1>
-          <p className="text-xs md:text-base text-gray-500">
+          <p className="text-sm md:text-base text-gray-500">
             Wine {currentWineIndex + 1} of {session.wines?.length || 0}
           </p>
         </div>
 
-        {/* Wine Card - Premium Design - Compact on mobile */}
-        <Card className="p-3 md:p-6 bg-white border-0 md:border border-gray-200 rounded-xl md:rounded-2xl shadow-sm md:shadow-none">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6 items-start">
-            {/* Left: Image - Smaller on mobile */}
+        {/* Wine Card - Premium Design */}
+        <Card className="p-4 md:p-6 bg-white border border-gray-200 rounded-2xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 items-start">
+            {/* Left: Image */}
             <div className="md:sticky md:top-6">
               {(() => {
                 const imageUrl = getImageUrl(currentWine.label_image_path);
                 if (!imageUrl) {
                   return (
-                    <div className="relative w-full aspect-[2/3] md:aspect-[3/4] bg-gray-50 rounded-xl md:rounded-2xl border border-gray-100 flex items-center justify-center">
-                      <p className="text-xs md:text-sm text-gray-400">No image</p>
+                    <div className="relative w-full aspect-[3/4] bg-gray-100 rounded-2xl border border-gray-200 flex items-center justify-center">
+                      <p className="text-gray-400">No image available</p>
                     </div>
                   );
                 }
                 
                 return (
-                  <div className="relative w-full aspect-[2/3] md:aspect-[3/4] bg-white rounded-xl md:rounded-2xl overflow-hidden border border-gray-100">
-                    <div className="absolute inset-0 flex items-center justify-center p-1.5 md:p-2">
+                  <div className="relative w-full aspect-[3/4] bg-white rounded-2xl overflow-hidden border border-gray-200">
+                    <div className="absolute inset-0 flex items-center justify-center p-2">
                       <Image
                         src={imageUrl}
                         alt={`${currentWine.wine_name} ${currentWine.vintage}`}
@@ -431,15 +430,15 @@ export default function TastingPage() {
               })()}
             </div>
 
-            {/* Right: Wine Info - Compact on mobile */}
-            <div className="min-w-0 space-y-3 md:space-y-6">
+            {/* Right: Wine Info */}
+            <div className="min-w-0 space-y-4 md:space-y-6">
               <div>
-                <h2 className="text-lg md:text-2xl font-medium text-gray-900 mb-1.5 md:mb-2">
+                <h2 className="text-xl md:text-2xl font-medium text-gray-900 mb-2">
                   {currentWine.wine_name} {currentWine.vintage}
                 </h2>
-                <div className="flex flex-wrap items-center gap-1.5 md:gap-3 text-xs md:text-sm text-gray-500 mb-2 md:mb-4">
+                <div className="flex flex-wrap items-center gap-2 md:gap-3 text-xs md:text-sm text-gray-600 mb-3 md:mb-4">
                   {currentWine.producers?.name && (
-                    <span className="font-medium text-gray-700">{currentWine.producers.name}</span>
+                    <span className="font-medium">{currentWine.producers.name}</span>
                   )}
                   {currentWine.grape_varieties && (
                     <span>• {currentWine.grape_varieties}</span>
@@ -449,31 +448,31 @@ export default function TastingPage() {
                   )}
                 </div>
                 {currentWine.base_price_cents && (
-                  <div className="mb-2 md:mb-4">
+                  <div className="mb-3 md:mb-4">
                     <MemberPrice
                       amount={currentWine.base_price_cents / 100}
                       currencyCode="SEK"
-                      className="text-base md:text-xl font-medium text-gray-900"
+                      className="text-lg md:text-xl font-medium text-gray-900"
                     />
                   </div>
                 )}
               </div>
 
               {currentWine.description && (
-                <div className="hidden md:block prose prose-sm max-w-none">
-                  <p className="text-sm md:text-base text-gray-600 leading-relaxed">{currentWine.description}</p>
+                <div className="prose prose-sm max-w-none">
+                  <p className="text-sm md:text-base text-gray-700 leading-relaxed">{currentWine.description}</p>
                 </div>
               )}
 
-              {/* Rating Section - Compact on mobile */}
-              <div className="border-t border-gray-100 md:border-gray-200 pt-3 md:pt-6 space-y-3 md:space-y-6">
+              {/* Rating Section */}
+              <div className="border-t border-gray-200 pt-4 md:pt-6 space-y-4 md:space-y-6">
                 <div>
-                  <div className="flex items-center justify-between mb-2 md:mb-4">
-                    <Label htmlFor="rating" className="text-xs md:text-base font-medium text-gray-900">
-                      Rating
+                  <div className="flex items-center justify-between mb-3 md:mb-4">
+                    <Label htmlFor="rating" className="text-sm md:text-base font-medium text-gray-900">
+                      Rating (0-100)
                     </Label>
                     <span
-                      className={`text-xl md:text-3xl font-bold ${
+                      className={`text-2xl md:text-3xl font-bold ${
                         rating >= 71
                           ? "text-green-600"
                           : rating >= 41
@@ -496,7 +495,7 @@ export default function TastingPage() {
                     }}
                     className="w-full"
                   />
-                  <div className="flex justify-between text-[10px] md:text-xs text-gray-400 mt-1 md:mt-2">
+                  <div className="flex justify-between text-xs text-gray-500 mt-2">
                     <span>0</span>
                     <span>50</span>
                     <span>100</span>
@@ -504,8 +503,8 @@ export default function TastingPage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="comment" className="text-xs md:text-base font-medium text-gray-900">
-                    Comment
+                  <Label htmlFor="comment" className="text-base font-medium text-gray-900">
+                    Comment (optional)
                   </Label>
                   <Textarea
                     id="comment"
@@ -514,28 +513,28 @@ export default function TastingPage() {
                       setComment(e.target.value);
                       setSaved(false);
                     }}
-                    placeholder="Your thoughts..."
-                    rows={3}
-                    className="mt-1.5 md:mt-2 rounded-lg md:rounded-xl border-gray-200 text-sm"
+                    placeholder="Your thoughts on this wine..."
+                    rows={4}
+                    className="mt-2 rounded-xl border-gray-200"
                   />
                 </div>
 
                 <Button
                   onClick={saveRating}
                   disabled={saving}
-                  className="w-full bg-black hover:bg-black/90 text-white rounded-full text-sm md:text-base"
-                  size="default"
+                  className="w-full bg-black hover:bg-black/90 text-white rounded-full"
+                  size="lg"
                 >
                   {saving ? (
                     "Saving..."
                   ) : saved ? (
                     <>
-                      <CheckCircle className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1.5 md:mr-2" />
+                      <CheckCircle className="w-4 h-4 mr-2" />
                       Saved
                     </>
                   ) : (
                     <>
-                      <Save className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1.5 md:mr-2" />
+                      <Save className="w-4 h-4 mr-2" />
                       Save Rating
                     </>
                   )}
@@ -545,227 +544,147 @@ export default function TastingPage() {
           </div>
         </Card>
 
-        {/* Navigation - Compact on mobile */}
-        <div className="flex items-center justify-between gap-2">
+        {/* Navigation - Above Table */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3">
           <Button
             onClick={() => navigateWine("prev")}
             disabled={currentWineIndex === 0}
             variant="outline"
-            className="rounded-full flex-1 md:flex-initial text-xs md:text-sm"
-            size="default"
+            className="rounded-full flex-1 sm:flex-initial"
+            size="lg"
           >
-            <ArrowLeft className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1 md:mr-2" />
-            <span className="hidden sm:inline">Previous</span>
-            <span className="sm:hidden">Prev</span>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Previous
           </Button>
           <Button
             onClick={goToSummary}
             variant="outline"
-            className="rounded-full flex-1 md:flex-initial text-xs md:text-sm"
-            size="default"
+            className="rounded-full flex-1 sm:flex-initial"
+            size="lg"
           >
-            Summary
+            View Summary
           </Button>
           <Button
             onClick={() => navigateWine("next")}
             disabled={currentWineIndex === (session.wines?.length || 0) - 1}
             variant="outline"
-            className="rounded-full flex-1 md:flex-initial text-xs md:text-sm"
-            size="default"
+            className="rounded-full flex-1 sm:flex-initial"
+            size="lg"
           >
-            <span className="hidden sm:inline">Next</span>
-            <ArrowRight className="w-3.5 h-3.5 md:w-4 md:h-4 sm:ml-2" />
+            Next
+            <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
         </div>
 
-        {/* Wine List - Card view on mobile, Table on desktop */}
+        {/* Wine List Table */}
         {session.wines && session.wines.length > 0 && (
-          <Card className="p-3 md:p-6 bg-white border-0 md:border border-gray-200 rounded-xl md:rounded-2xl shadow-sm md:shadow-none">
-            <CardHeader className="px-0 md:px-0 pb-2 md:pb-4">
-              <CardTitle className="text-base md:text-xl font-medium text-gray-900">
+          <Card className="p-4 md:p-6 bg-white border border-gray-200 rounded-2xl">
+            <CardHeader className="px-0 md:px-0">
+              <CardTitle className="text-lg md:text-xl font-medium text-gray-900">
                 All Wines
               </CardTitle>
-              <CardDescription className="text-xs md:text-sm text-gray-500">
-                Tap to view details
+              <CardDescription className="text-sm">
+                Current ratings for all wines in this session
               </CardDescription>
             </CardHeader>
             <CardContent className="px-0 md:px-0">
-              {/* Mobile: Card view */}
-              <div className="md:hidden space-y-2">
-                {session.wines.map((wine, index) => {
-                  const stats = wineStats.get(wine.id);
-                  const isCurrentWine = index === currentWineIndex;
-                  const imageUrl = getImageUrl(wine.label_image_path);
-                  const getRatingColor = (rating: number | null) => {
-                    if (rating === null) return "text-gray-400";
-                    if (rating >= 71) return "text-green-600";
-                    if (rating >= 41) return "text-yellow-600";
-                    return "text-red-600";
-                  };
-                  
-                  return (
-                    <div
-                      key={wine.id}
-                      onClick={() => setCurrentWineIndex(index)}
-                      className={cn(
-                        "flex items-center gap-3 p-2.5 rounded-lg border transition-colors",
-                        isCurrentWine
-                          ? "bg-gray-50 border-gray-200"
-                          : "bg-white border-gray-100 hover:bg-gray-50"
-                      )}
-                      style={{ cursor: "pointer" }}
-                    >
-                      {/* Image */}
-                      <div className="flex-shrink-0">
-                        {imageUrl ? (
-                          <div className="relative w-12 h-16 bg-white rounded overflow-hidden border border-gray-200">
-                            <Image
-                              src={imageUrl}
-                              alt={`${wine.wine_name} ${wine.vintage}`}
-                              fill
-                              className="object-contain p-0.5"
-                              unoptimized
-                              sizes="48px"
-                            />
-                          </div>
-                        ) : (
-                          <div className="w-12 h-16 bg-gray-50 rounded border border-gray-200 flex items-center justify-center">
-                            <span className="text-[8px] text-gray-300">No img</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm text-gray-900 truncate">
-                              {wine.wine_name} {wine.vintage}
-                            </div>
-                            <div className="text-xs text-gray-500 truncate">
-                              {wine.producers?.name || "—"}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3 flex-shrink-0">
-                            {wine.base_price_cents && (
-                              <div className="text-right">
-                                <MemberPrice
-                                  amount={wine.base_price_cents / 100}
-                                  currencyCode="SEK"
-                                  className="text-xs font-medium text-gray-900"
-                                />
-                              </div>
-                            )}
-                            <span
-                              className={cn(
-                                "text-sm font-bold w-10 text-right",
-                                getRatingColor(stats?.averageRating ?? null)
-                              )}
-                            >
-                              {stats?.averageRating?.toFixed(1) || "—"}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Desktop: Table view */}
-              <div className="hidden md:block">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12">#</TableHead>
-                      <TableHead className="w-20">Image</TableHead>
-                      <TableHead>Wine</TableHead>
-                      <TableHead>Producer</TableHead>
-                      <TableHead className="text-right">Price</TableHead>
-                      <TableHead className="text-right">Rating</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {session.wines.map((wine, index) => {
-                      const stats = wineStats.get(wine.id);
-                      const isCurrentWine = index === currentWineIndex;
-                      const imageUrl = getImageUrl(wine.label_image_path);
-                      const getRatingColor = (rating: number | null) => {
-                        if (rating === null) return "text-gray-400";
-                        if (rating >= 71) return "text-green-600";
-                        if (rating >= 41) return "text-yellow-600";
-                        return "text-red-600";
-                      };
-                      
-                      return (
-                        <TableRow
-                          key={wine.id}
-                          className={isCurrentWine ? "bg-gray-50 font-medium" : ""}
-                          onClick={() => setCurrentWineIndex(index)}
-                          style={{ cursor: "pointer" }}
-                        >
-                          <TableCell className="font-medium">
-                            {index + 1}
-                          </TableCell>
-                          <TableCell>
-                            {imageUrl ? (
-                              <div className="relative w-16 h-20 bg-white rounded overflow-hidden border border-gray-200">
-                                <Image
-                                  src={imageUrl}
-                                  alt={`${wine.wine_name} ${wine.vintage}`}
-                                  fill
-                                  className="object-contain p-1"
-                                  unoptimized
-                                  sizes="64px"
-                                />
-                              </div>
-                            ) : (
-                              <div className="w-16 h-20 bg-gray-100 rounded border border-gray-200 flex items-center justify-center">
-                                <span className="text-xs text-gray-400">No image</span>
-                              </div>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">
-                                {wine.wine_name} {wine.vintage}
-                              </div>
-                              {wine.grape_varieties && (
-                                <div className="text-sm text-gray-500">
-                                  {wine.grape_varieties}
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {wine.producers?.name || "—"}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {wine.base_price_cents ? (
-                              <MemberPrice
-                                amount={wine.base_price_cents / 100}
-                                currencyCode="SEK"
-                                className="text-sm font-medium text-gray-900"
-                              />
-                            ) : (
-                              <span className="text-gray-400 text-sm">—</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <span
-                              className={cn(
-                                "text-lg font-bold",
-                                getRatingColor(stats?.averageRating ?? null)
-                              )}
-                            >
-                              {stats?.averageRating?.toFixed(1) || "—"}
-                            </span>
-                          </TableCell>
+              <div className="overflow-x-auto -mx-4 md:mx-0">
+                <div className="inline-block min-w-full align-middle px-4 md:px-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-10 md:w-12">#</TableHead>
+                          <TableHead className="w-16 md:w-20">Image</TableHead>
+                          <TableHead className="min-w-[150px]">Wine</TableHead>
+                          <TableHead className="hidden sm:table-cell">Producer</TableHead>
+                          <TableHead className="text-right whitespace-nowrap">Price</TableHead>
+                          <TableHead className="text-right whitespace-nowrap">Rating</TableHead>
                         </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {session.wines.map((wine, index) => {
+                          const stats = wineStats.get(wine.id);
+                          const isCurrentWine = index === currentWineIndex;
+                          const imageUrl = getImageUrl(wine.label_image_path);
+                          const getRatingColor = (rating: number | null) => {
+                            if (rating === null) return "text-gray-400";
+                            if (rating >= 71) return "text-green-600";
+                            if (rating >= 41) return "text-yellow-600";
+                            return "text-red-600";
+                          };
+                          
+                          return (
+                            <TableRow
+                              key={wine.id}
+                              className={isCurrentWine ? "bg-gray-50 font-medium" : ""}
+                              onClick={() => setCurrentWineIndex(index)}
+                              style={{ cursor: "pointer" }}
+                            >
+                              <TableCell className="font-medium">
+                                {index + 1}
+                              </TableCell>
+                              <TableCell>
+                                {imageUrl ? (
+                                  <div className="relative w-12 h-16 md:w-16 md:h-20 bg-white rounded overflow-hidden border border-gray-200">
+                                    <Image
+                                      src={imageUrl}
+                                      alt={`${wine.wine_name} ${wine.vintage}`}
+                                      fill
+                                      className="object-contain p-0.5 md:p-1"
+                                      unoptimized
+                                      sizes="(max-width: 640px) 48px, 64px"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="w-12 h-16 md:w-16 md:h-20 bg-gray-100 rounded border border-gray-200 flex items-center justify-center">
+                                    <span className="text-[10px] md:text-xs text-gray-400">No image</span>
+                                  </div>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <div>
+                                  <div className="font-medium text-sm md:text-base">
+                                    {wine.wine_name} {wine.vintage}
+                                  </div>
+                                  {wine.grape_varieties && (
+                                    <div className="text-xs md:text-sm text-gray-500">
+                                      {wine.grape_varieties}
+                                    </div>
+                                  )}
+                                  <div className="text-xs md:text-sm text-gray-500 sm:hidden mt-1">
+                                    {wine.producers?.name || "—"}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="hidden sm:table-cell">
+                                {wine.producers?.name || "—"}
+                              </TableCell>
+                              <TableCell className="text-right whitespace-nowrap">
+                                {wine.base_price_cents ? (
+                                  <MemberPrice
+                                    amount={wine.base_price_cents / 100}
+                                    currencyCode="SEK"
+                                    className="text-xs md:text-sm font-medium text-gray-900"
+                                  />
+                                ) : (
+                                  <span className="text-gray-400 text-xs md:text-sm">—</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right whitespace-nowrap">
+                                <span
+                                  className={`text-base md:text-lg font-bold ${getRatingColor(
+                                    stats?.averageRating ?? null,
+                                  )}`}
+                                >
+                                  {stats?.averageRating?.toFixed(1) || "—"}
+                                </span>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                </div>
               </div>
             </CardContent>
           </Card>
