@@ -27,7 +27,9 @@ export function QRCodeDisplay({
     // Dynamic import to avoid build-time module resolution issues
     import("react-qr-code")
       .then((module) => {
-        setQRCode(() => module.default || module.QRCode);
+        // Handle both default and named exports with proper type casting
+        const QRCodeComponent = (module as any).default || (module as any).QRCode || module;
+        setQRCode(() => QRCodeComponent);
         setLoading(false);
       })
       .catch((error) => {
