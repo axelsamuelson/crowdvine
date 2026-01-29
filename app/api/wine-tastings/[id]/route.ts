@@ -12,6 +12,13 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    
+    // Handle special case: "new" is not a valid session ID
+    // This prevents routing conflicts when Next.js prefetches /admin/wine-tastings/new
+    if (id === "new") {
+      return NextResponse.json({ error: "Invalid session ID" }, { status: 404 });
+    }
+    
     const sb = getSupabaseAdmin();
     const user = await getCurrentUser();
 
@@ -227,6 +234,12 @@ export async function DELETE(
     }
 
     const { id } = await params;
+    
+    // Handle special case: "new" is not a valid session ID
+    if (id === "new") {
+      return NextResponse.json({ error: "Invalid session ID" }, { status: 404 });
+    }
+    
     const sb = getSupabaseAdmin();
 
     // Check if user is admin
