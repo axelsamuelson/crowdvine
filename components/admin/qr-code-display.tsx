@@ -1,9 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
+
+// Dynamic import with SSR disabled to avoid Turbopack build issues
+const QRCode = dynamic(
+  () => import("react-qr-code").then((mod) => mod.default || mod),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center" style={{ width: 256, height: 256 }}>
+        <div className="text-sm text-gray-500">Loading QR code...</div>
+      </div>
+    )
+  }
+);
 
 interface QRCodeDisplayProps {
   value: string;
@@ -20,23 +33,6 @@ export function QRCodeDisplay({
   showTitle = true,
   showDownload = true,
 }: QRCodeDisplayProps) {
-  const [QRCode, setQRCode] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Dynamic import to avoid build-time module resolution issues
-    import("react-qr-code")
-      .then((module) => {
-        // Handle both default and named exports with proper type casting
-        const QRCodeComponent = (module as any).default || (module as any).QRCode || module;
-        setQRCode(() => QRCodeComponent);
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error("Failed to load react-qr-code:", error);
-        setLoading(false);
-      });
-  }, []);
   const downloadQRCode = () => {
     const svg = document.getElementById("qr-code-svg");
     if (!svg) return;
@@ -60,28 +56,6 @@ export function QRCodeDisplay({
 
     img.src = "data:image/svg+xml;base64," + btoa(svgData);
   };
-
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center space-y-4">
-        {showTitle && title && <h3 className="text-lg font-semibold">{title}</h3>}
-        <div className="p-4 bg-white rounded-lg border-2 border-gray-200 flex items-center justify-center" style={{ width: size, height: size }}>
-          <div className="text-sm text-gray-500">Loading QR code...</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!QRCode) {
-    return (
-      <div className="flex flex-col items-center space-y-4">
-        {showTitle && title && <h3 className="text-lg font-semibold">{title}</h3>}
-        <div className="p-4 bg-white rounded-lg border-2 border-gray-200 flex items-center justify-center" style={{ width: size, height: size }}>
-          <div className="text-sm text-red-500">Failed to load QR code</div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col items-center space-y-4">
