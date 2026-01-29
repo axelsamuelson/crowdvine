@@ -23,7 +23,6 @@ import { CheckCircle, ArrowLeft, Save, ArrowUpDown } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
 import { createClient } from "@/utils/supabase/client";
-import { SummaryModal } from "@/components/wine-tasting/summary-modal";
 import {
   Dialog,
   DialogContent,
@@ -103,9 +102,6 @@ export default function TastingSummaryPage() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
-  const [showSaveModal, setShowSaveModal] = useState(false);
-  const [participantId, setParticipantId] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<"highest" | "lowest">("highest");
   const [isGuest, setIsGuest] = useState(false);
   const [showSignupPrompt, setShowSignupPrompt] = useState(false);
@@ -175,7 +171,6 @@ export default function TastingSummaryPage() {
       }
 
       const { participant } = await sessionResponse.json();
-      setParticipantId(participant.id);
 
       // Then get summary
       const summaryResponse = await fetch(
@@ -457,19 +452,6 @@ export default function TastingSummaryPage() {
           })()}
         </div>
       </div>
-
-      {participantId && summary && (
-        <SummaryModal
-          open={showSaveModal}
-          onOpenChange={setShowSaveModal}
-          participantId={participantId}
-          sessionId={summary.session.id}
-          onSaved={() => {
-            setIsSaved(true);
-            setIsLoggedIn(true);
-          }}
-        />
-      )}
 
       {/* Signup Prompt Modal for Guests */}
       <Dialog open={showSignupPrompt} onOpenChange={setShowSignupPrompt}>

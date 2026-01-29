@@ -23,7 +23,6 @@ import { ArrowLeft, Settings, Users, Eye, Download, Trash2 } from "lucide-react"
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { QRCodeDisplay } from "@/components/admin/qr-code-display";
-import { QRCode } from "react-qr-code";
 
 interface Session {
   id: string;
@@ -285,14 +284,12 @@ export default function WineTastingDetailPage() {
                 >
                   <DialogTitle className="sr-only">QR Code - Full Size</DialogTitle>
                   <div className="flex flex-col items-center justify-center space-y-6">
-                    <div className="p-8 bg-white rounded-lg border-2 border-gray-200">
-                      <QRCode
-                        id="qr-code-popup"
-                        value={getTastingUrl()}
-                        size={Math.min(600, typeof window !== "undefined" ? window.innerWidth * 0.7 : 600)}
-                        level="H"
-                      />
-                    </div>
+                    <QRCodeDisplay 
+                      value={getTastingUrl()} 
+                      size={Math.min(600, typeof window !== "undefined" ? window.innerWidth * 0.7 : 600)}
+                      showTitle={false}
+                      showDownload={false}
+                    />
                     <p className="text-sm text-gray-500 text-center">
                       Click anywhere to close
                     </p>
