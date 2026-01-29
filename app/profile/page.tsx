@@ -180,6 +180,19 @@ export default function ProfilePage() {
   const { showCelebration, checkAndShowCelebration, closeCelebration } =
     useGoldCelebration();
 
+  // Tastings count - must be before any conditional returns
+  const [tastingsCount, setTastingsCount] = useState(0);
+
+  useEffect(() => {
+    // Fetch tastings count
+    fetch("/api/user/tastings")
+      .then((res) => res.json())
+      .then((data) => {
+        setTastingsCount(data.tastings?.length || 0);
+      })
+      .catch(() => {});
+  }, []);
+
   // Fetch all data
   useEffect(() => {
     Promise.all([

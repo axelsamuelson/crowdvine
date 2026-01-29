@@ -20,6 +20,7 @@ export async function middleware(req: NextRequest) {
     "/auth/callback",
     "/auth/auth-code-error",
     "/forgot-password",
+    "/tasting", // Allow tasting pages for guests
   ];
   const isPublic = PUBLIC.some(
     (p) => pathname === p || pathname.startsWith(`${p}/`),
