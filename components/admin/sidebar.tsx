@@ -7,6 +7,11 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
   LayoutDashboard,
   Users,
   Wine,
@@ -24,6 +29,8 @@ import {
 interface SidebarProps {
   userEmail: string;
   onSignOut: () => void;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
 const navigation = [
@@ -94,14 +101,14 @@ const navigation = [
   },
 ];
 
-export function Sidebar({ userEmail, onSignOut }: SidebarProps) {
+export function Sidebar({ userEmail, onSignOut, mobileOpen, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
 
-  return (
-    <div className="flex h-full w-64 flex-col bg-white border-r border-gray-200">
+  const SidebarContent = (
+    <>
       {/* Logo */}
       <div className="flex h-16 items-center px-6 border-b border-gray-200">
-        <Link href="/admin" className="flex items-center space-x-2">
+        <Link href="/admin" onClick={onMobileClose} className="flex items-center space-x-2">
           <div className="h-8 w-8 bg-gray-900 rounded-lg flex items-center justify-center">
             <span className="text-white font-bold text-sm">C</span>
           </div>
@@ -118,6 +125,7 @@ export function Sidebar({ userEmail, onSignOut }: SidebarProps) {
               <Link
                 key={item.name}
                 href={item.href}
+                onClick={onMobileClose}
                 className={cn(
                   "flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors",
                   isActive
@@ -158,6 +166,25 @@ export function Sidebar({ userEmail, onSignOut }: SidebarProps) {
           Sign Out
         </Button>
       </div>
-    </div>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:flex h-full w-64 flex-col bg-white border-r border-gray-200">
+        {SidebarContent}
+      </aside>
+
+      {/* Mobile Sheet */}
+      <Sheet open={mobileOpen} onOpenChange={(open) => !open && onMobileClose?.()}>
+        <SheetContent side="left" className="w-64 p-0">
+          <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+          <div className="flex h-full flex-col bg-white">
+            {SidebarContent}
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }

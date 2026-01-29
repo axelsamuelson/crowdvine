@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -18,6 +19,7 @@ import { toast } from "sonner";
 import Image from "next/image";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { MemberPrice } from "@/components/ui/member-price";
+import { Settings } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -85,6 +87,71 @@ export default function TastingPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [wineStats, setWineStats] = useState<Map<string, { averageRating: number | null; totalRatings: number }>>(new Map());
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isGuest, setIsGuest] = useState(false);
+
+  // Check admin status from API (checks both profile role and admin cookie)
+  useEffect(() => {
+    const checkAdmin = async () => {
+      try {
+        const response = await fetch("/api/me/admin");
+        if (response.ok) {
+          const data = await response.json();
+          setIsAdmin(data.isAdmin || false);
+          console.log("[Tasting] Admin check:", data);
+        } else {
+          setIsAdmin(false);
+        }
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+        setIsAdmin(false);
+      }
+    };
+    
+    checkAdmin();
+  }, []);
+
+  // Check if user is a guest (not logged in)
+  useEffect(() => {
+    const checkGuestStatus = async () => {
+      try {
+        const response = await fetch("/api/me");
+        if (response.ok) {
+          const data = await response.json();
+          setIsGuest(data.isGuest || false);
+        } else {
+          setIsGuest(true);
+        }
+      } catch (error) {
+        console.error("Error checking guest status:", error);
+        setIsGuest(true);
+      }
+    };
+    checkGuestStatus();
+  }, []);
+
+  // Prevent navigation away from tasting pages for guests
+  useEffect(() => {
+    if (isGuest) {
+      // Store original push function
+      const originalPush = router.push.bind(router);
+      
+      // Override router.push to prevent navigation away from tasting pages
+      (router as any).push = (url: string | { pathname: string }) => {
+        const path = typeof url === "string" ? url : url.pathname;
+        if (!path.startsWith("/tasting/")) {
+          toast.error("Please log in to access other pages");
+          return Promise.resolve(false);
+        }
+        return originalPush(url);
+      };
+
+      return () => {
+        // Restore original push function
+        router.push = originalPush;
+      };
+    }
+  }, [isGuest, code, router]);
 
   useEffect(() => {
     if (code) {
@@ -137,7 +204,10 @@ export default function TastingPage() {
         } else {
           toast.error("Failed to join session");
         }
-        router.push("/");
+        // Don't redirect guests away from tasting pages
+        if (!isGuest) {
+          router.push("/");
+        }
         return;
       }
 
@@ -383,13 +453,27 @@ export default function TastingPage() {
     <main className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto p-4 md:p-6 pt-top-spacing space-y-6 md:space-y-8">
         {/* Header */}
-        <div>
-          <h1 className="text-xl md:text-2xl font-medium text-gray-900 mb-1 md:mb-2">
-            {session.name}
-          </h1>
-          <p className="text-sm md:text-base text-gray-500">
-            Wine {currentWineIndex + 1} of {session.wines?.length || 0}
-          </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-xl md:text-2xl font-medium text-gray-900 mb-1 md:mb-2">
+              {session.name}
+            </h1>
+            <p className="text-sm md:text-base text-gray-500">
+              Wine {currentWineIndex + 1} of {session.wines?.length || 0}
+            </p>
+          </div>
+          {isAdmin && session && (
+            <Link href={`/admin/wine-tastings/${session.id}/control`}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-full shrink-0"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Admin
+              </Button>
+            </Link>
+          )}
         </div>
 
         {/* Wine Card - Premium Design */}
@@ -545,34 +629,38 @@ export default function TastingPage() {
         </Card>
 
         {/* Navigation - Above Table */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3">
-          <Button
-            onClick={() => navigateWine("prev")}
-            disabled={currentWineIndex === 0}
-            variant="outline"
-            className="rounded-full flex-1 sm:flex-initial"
-            size="lg"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Previous
-          </Button>
+        <div className="space-y-2 sm:space-y-0 sm:flex sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+          {/* Previous and Next buttons - side by side on mobile */}
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-3 sm:flex-1">
+            <Button
+              onClick={() => navigateWine("prev")}
+              disabled={currentWineIndex === 0}
+              variant="outline"
+              className="rounded-full h-12 sm:h-10"
+              size="lg"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Previous
+            </Button>
+            <Button
+              onClick={() => navigateWine("next")}
+              disabled={currentWineIndex === (session.wines?.length || 0) - 1}
+              variant="outline"
+              className="rounded-full h-12 sm:h-10"
+              size="lg"
+            >
+              Next
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
+          {/* Summary button - below on mobile, to the right on desktop */}
           <Button
             onClick={goToSummary}
             variant="outline"
-            className="rounded-full flex-1 sm:flex-initial"
+            className="rounded-full w-full sm:w-auto h-12 sm:h-10"
             size="lg"
           >
             View Summary
-          </Button>
-          <Button
-            onClick={() => navigateWine("next")}
-            disabled={currentWineIndex === (session.wines?.length || 0) - 1}
-            variant="outline"
-            className="rounded-full flex-1 sm:flex-initial"
-            size="lg"
-          >
-            Next
-            <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
         </div>
 
