@@ -1,22 +1,9 @@
 "use client";
 
-import dynamic from "next/dynamic";
+import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
-
-// Dynamic import with SSR disabled to avoid Turbopack build issues
-const QRCode = dynamic(
-  () => import("react-qr-code").then((mod) => mod.default || mod),
-  { 
-    ssr: false,
-    loading: () => (
-      <div className="flex items-center justify-center" style={{ width: 256, height: 256 }}>
-        <div className="text-sm text-gray-500">Loading QR code...</div>
-      </div>
-    )
-  }
-);
 
 interface QRCodeDisplayProps {
   value: string;
@@ -61,7 +48,7 @@ export function QRCodeDisplay({
     <div className="flex flex-col items-center space-y-4">
       {showTitle && title && <h3 className="text-lg font-semibold">{title}</h3>}
       <div className="p-4 bg-white rounded-lg border-2 border-gray-200">
-        <QRCode
+        <QRCodeSVG
           id="qr-code-svg"
           value={value}
           size={size}
