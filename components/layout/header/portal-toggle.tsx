@@ -26,10 +26,20 @@ export function PortalToggle({ showPortalToggle, className }: PortalToggleProps)
     const path = pathname ?? window.location.pathname;
     const search = window.location.search ?? "";
     const isB2B = window.location.hostname.toLowerCase().includes("dirtywine.se");
+    const origin = window.location.origin;
+    const pathEnc = encodeURIComponent(path);
+    const searchEnc = encodeURIComponent(search);
+    if (isB2B) {
+      return {
+        currentPortal: "b2b" as const,
+        b2cUrl: `${origin}/api/auth/cross-domain?path=${pathEnc}&search=${searchEnc}&target=${encodeURIComponent(B2C_ORIGIN)}`,
+        b2bUrl: `${B2B_ORIGIN}${path}${search}`,
+      };
+    }
     return {
-      currentPortal: isB2B ? ("b2b" as const) : ("b2c" as const),
+      currentPortal: "b2c" as const,
       b2cUrl: `${B2C_ORIGIN}${path}${search}`,
-      b2bUrl: `${B2B_ORIGIN}${path}${search}`,
+      b2bUrl: `${origin}/api/auth/cross-domain?path=${pathEnc}&search=${searchEnc}&target=${encodeURIComponent(B2B_ORIGIN)}`,
     };
   }, [pathname, isClient]);
 
