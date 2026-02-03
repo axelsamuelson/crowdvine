@@ -117,7 +117,7 @@ export default function WineTastingsPage() {
               Create and manage digital wine tasting sessions
             </p>
           </div>
-          <Link href="/admin/wine-tastings/new">
+          <Link href="/admin/wine-tastings/new" prefetch={false}>
             <Button className="rounded-full bg-black hover:bg-black/90 text-white w-full sm:w-auto">
               <Plus className="w-4 h-4 mr-2" />
               New Session
@@ -173,7 +173,7 @@ export default function WineTastingsPage() {
             <CardContent className="py-12 text-center">
               <Wine className="w-12 h-12 mx-auto text-gray-400 mb-4" />
               <p className="text-gray-500 mb-4">No sessions found</p>
-              <Link href="/admin/wine-tastings/new">
+              <Link href="/admin/wine-tastings/new" prefetch={false}>
                 <Button className="rounded-full bg-black hover:bg-black/90 text-white">
                   Create Your First Session
                 </Button>
