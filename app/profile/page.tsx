@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { PageLayout } from "@/components/layout/page-layout";
 import { SocialProfileHeader } from "@/components/profile/social-profile-header";
 import { SocialProfileTabs } from "@/components/profile/social-profile-tabs";
@@ -109,7 +109,7 @@ interface PaymentMethod {
   expiry_year?: number;
 }
 
-export default function ProfilePage() {
+function ProfilePageContent() {
   const router = useRouter();
 
   type SearchResultUser = { id: string; full_name?: string; description?: string; avatar_image_path?: string | null };
@@ -1402,5 +1402,21 @@ export default function ProfilePage() {
         userName={profile?.full_name}
       />
     </PageLayout>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense
+      fallback={
+        <PageLayout>
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900" />
+          </div>
+        </PageLayout>
+      }
+    >
+      <ProfilePageContent />
+    </Suspense>
   );
 }
