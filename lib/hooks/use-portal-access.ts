@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { usePortalContext } from "@/lib/context/portal-context";
 
 export interface PortalAccessState {
   loading: boolean;
@@ -18,31 +18,11 @@ const initial: PortalAccessState = {
   isB2BOnly: false,
 };
 
+/**
+ * Returns portal access state from PortalContext (single shared fetch).
+ * Use only inside PortalProvider (e.g. root layout).
+ */
 export function usePortalAccess(): PortalAccessState {
-  const [state, setState] = useState<PortalAccessState>(initial);
-
-  useEffect(() => {
-    let cancelled = false;
-    setState((s) => ({ ...s, loading: true }));
-    fetch("/api/me/portal", { credentials: "include" })
-      .then((res) => (res.ok ? res.json() : initial))
-      .then((data) => {
-        if (cancelled) return;
-        setState({
-          loading: false,
-          canAccessB2C: !!data.canAccessB2C,
-          canAccessB2B: !!data.canAccessB2B,
-          showPortalToggle: !!data.showPortalToggle,
-          isB2BOnly: !!data.isB2BOnly,
-        });
-      })
-      .catch(() => {
-        if (!cancelled) setState({ ...initial, loading: false });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return state;
+  const context = usePortalContext();
+  return context ?? initial;
 }

@@ -14,6 +14,7 @@ import dynamic from "next/dynamic";
 import { V0Provider } from "@/lib/context";
 import { MobileMenuProvider } from "../components/layout/header/mobile-menu-context";
 import { MembershipProvider } from "@/lib/context/membership-context";
+import { PortalProvider } from "@/lib/context/portal-context";
 import { OnboardingProvider } from "@/components/onboarding/onboarding-provider";
 import { cn } from "../lib/utils";
 
@@ -106,18 +107,20 @@ export default async function RootLayout({
         <V0Provider isV0={isV0}>
           <MobileMenuProvider>
             <CartProvider>
-              <MembershipProvider>
-                <OnboardingProvider>
-                  <NuqsAdapter>
-                    <main data-vaul-drawer-wrapper="true">
-                      <ConditionalHeader collections={collections} />
-                      {children}
-                    </main>
-                    {isDevelopment && <DebugGrid />}
-                    <Toaster closeButton position="bottom-right" />
-                  </NuqsAdapter>
-                </OnboardingProvider>
-              </MembershipProvider>
+              <PortalProvider>
+                <MembershipProvider>
+                  <OnboardingProvider>
+                    <NuqsAdapter>
+                      <main data-vaul-drawer-wrapper="true">
+                        <ConditionalHeader collections={collections} />
+                        {children}
+                      </main>
+                      {isDevelopment && <DebugGrid />}
+                      <Toaster closeButton position="bottom-right" />
+                    </NuqsAdapter>
+                  </OnboardingProvider>
+                </MembershipProvider>
+              </PortalProvider>
             </CartProvider>
           </MobileMenuProvider>
           {isV0 && <V0Setup />}

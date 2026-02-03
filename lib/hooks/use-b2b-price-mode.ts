@@ -1,43 +1,32 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { usePortalContext } from "@/lib/context/portal-context";
 
 /**
- * True when the user is Business and we're on the B2B domain (dirtywine.se),
- * so prices should be shown exkl. moms.
+ * True when we're on the B2B domain (dirtywine.se or localhost without ?b2c=1)
+ * and the user has Business access, so prices should be shown exkl. moms.
+ * Reads from PortalContext so /api/me/portal is only fetched once for the whole app.
  */
 export function useB2BPriceMode(): boolean {
-  const [showExclVat, setShowExclVat] = useState(false);
+  const portal = usePortalContext();
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const host = window.location.hostname.toLowerCase();
-    const onB2BProduction = host.includes("dirtywine.se");
-    const onLocalhost = host === "localhost" || host === "127.0.0.1";
-    const forceB2C = new URLSearchParams(window.location.search).get("b2c") === "1";
-    const isB2BDomain = onB2BProduction || (onLocalhost && !forceB2C);
+  if (!portal) {
+    return false;
+  }
 
-    let cancelled = false;
-    setShowExclVat(false);
+  if (portal.loading) {
+    return false;
+  }
 
-    if (!isB2BDomain) {
-      return;
-    }
+  if (typeof window === "undefined") {
+    return false;
+  }
 
-    fetch("/api/me/portal", { credentials: "include" })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (cancelled) return;
-        setShowExclVat(!!data?.canAccessB2B);
-      })
-      .catch(() => {
-        if (!cancelled) setShowExclVat(false);
-      });
+  const host = window.location.hostname.toLowerCase();
+  const onB2BProduction = host.includes("dirtywine.se");
+  const onLocalhost = host === "localhost" || host === "127.0.0.1";
+  const forceB2C = new URLSearchParams(window.location.search).get("b2c") === "1";
+  const isB2BDomain = onB2BProduction || (onLocalhost && !forceB2C);
 
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return showExclVat;
+  return isB2BDomain && portal.canAccessB2B;
 }
