@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -22,14 +22,6 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbSeparator,
-  BreadcrumbPage,
-} from "@/components/ui/breadcrumb";
 import { PageLayout } from "@/components/layout/page-layout";
 import Prose from "@/components/prose";
 import { SidebarLinks } from "@/components/layout/sidebar/product-sidebar-links";
@@ -99,6 +91,10 @@ export default function TastingPage() {
   const [isGuest, setIsGuest] = useState(false);
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
   const [scoreDrawerOpen, setScoreDrawerOpen] = useState(false);
+
+  // When guest selects a wine in the table, we ignore server updates until admin changes wine again
+  const guestHasOverriddenWineRef = useRef(false);
+  const lastServerWineIndexRef = useRef(0);
 
   useEffect(() => {
     setImageDimensions(null);
@@ -174,16 +170,9 @@ export default function TastingPage() {
   }, [code]);
 
   useEffect(() => {
-    if (session && participant) {
-      setupRealtimeSubscription();
-    }
-  }, [session, participant]);
-
-  useEffect(() => {
-    if (session) {
-      setCurrentWineIndex(session.current_wine_index || 0);
-    }
-  }, [session]);
+    if (!session || !participant) return;
+    return setupRealtimeSubscription();
+  }, [session?.id, participant?.id]);
 
   useEffect(() => {
     if (session && participant && currentWineIndex >= 0) {
@@ -201,6 +190,32 @@ export default function TastingPage() {
       return () => clearInterval(interval);
     }
   }, [session]);
+
+  // Poll current_wine_index so guest sees admin changes even if Realtime is unavailable
+  useEffect(() => {
+    if (!session || !participant) return;
+    const pollCurrentWine = async () => {
+      try {
+        const res = await fetch(`/api/wine-tastings/${session.id}`);
+        if (!res.ok) return;
+        const { session: sessionData } = await res.json();
+        const serverIndex = sessionData?.current_wine_index ?? 0;
+        const shouldFollow = !guestHasOverriddenWineRef.current;
+        const adminChangedWine = guestHasOverriddenWineRef.current && serverIndex !== lastServerWineIndexRef.current;
+        if (shouldFollow || adminChangedWine) {
+          if (adminChangedWine) guestHasOverriddenWineRef.current = false;
+          lastServerWineIndexRef.current = serverIndex;
+          setSession((prev) => {
+            if (!prev || prev.current_wine_index === serverIndex) return prev;
+            return { ...prev, current_wine_index: serverIndex };
+          });
+          setCurrentWineIndex(serverIndex);
+        }
+      } catch (_) {}
+    };
+    const interval = setInterval(pollCurrentWine, 2500);
+    return () => clearInterval(interval);
+  }, [session?.id, participant?.id]);
 
   const joinSession = async () => {
     try {
@@ -234,8 +249,11 @@ export default function TastingPage() {
       );
       if (sessionResponse.ok) {
         const { session: sessionData } = await sessionResponse.json();
+        const serverIndex = sessionData.current_wine_index ?? 0;
         setSession(sessionData);
-        setCurrentWineIndex(sessionData.current_wine_index || 0);
+        setCurrentWineIndex(serverIndex);
+        lastServerWineIndexRef.current = serverIndex;
+        guestHasOverriddenWineRef.current = false;
       }
     } catch (error) {
       console.error("Error joining session:", error);
@@ -299,12 +317,16 @@ export default function TastingPage() {
         },
         (payload) => {
           const updatedSession = payload.new as any;
-          setSession((prev) => ({
-            ...prev!,
-            current_wine_index: updatedSession.current_wine_index,
-          }));
-          setCurrentWineIndex(updatedSession.current_wine_index);
-          loadCurrentRating();
+          const serverIndex = updatedSession?.current_wine_index ?? 0;
+          const shouldFollow = !guestHasOverriddenWineRef.current;
+          const adminChangedWine = guestHasOverriddenWineRef.current && serverIndex !== lastServerWineIndexRef.current;
+          if (shouldFollow || adminChangedWine) {
+            if (adminChangedWine) guestHasOverriddenWineRef.current = false;
+            lastServerWineIndexRef.current = serverIndex;
+            setSession((prev) => (prev ? { ...prev, current_wine_index: serverIndex } : null));
+            setCurrentWineIndex(serverIndex);
+            loadCurrentRating();
+          }
         },
       )
       .on(
@@ -401,19 +423,6 @@ export default function TastingPage() {
     } finally {
       setSaving(false);
     }
-  };
-
-  const navigateWine = (direction: "prev" | "next") => {
-    if (!session || !session.wines) return;
-
-    const newIndex =
-      direction === "next"
-        ? Math.min(currentWineIndex + 1, session.wines.length - 1)
-        : Math.max(currentWineIndex - 1, 0);
-
-    setCurrentWineIndex(newIndex);
-    setSaved(false);
-    loadCurrentRating();
   };
 
   const goToSummary = () => {
@@ -517,30 +526,19 @@ export default function TastingPage() {
             )}
           </div>
 
-          {/* Left column: breadcrumb + white box */}
+          {/* Left column: white box */}
           <div className="flex sticky top-0 flex-col col-span-5 2xl:col-span-4 max-md:col-span-full md:h-screen min-h-max max-md:p-sides md:pl-sides md:pt-top-spacing max-md:static">
             <div className="col-span-full">
-              <div className="flex items-start justify-between gap-4 mb-4 md:mb-8">
-                <Breadcrumb className="col-span-full shrink min-w-0">
-                  <BreadcrumbList>
-                    <BreadcrumbItem>
-                      <BreadcrumbLink asChild><Link href="/" prefetch>Home</Link></BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                      <BreadcrumbPage>{session.name}</BreadcrumbPage>
-                    </BreadcrumbItem>
-                  </BreadcrumbList>
-                </Breadcrumb>
-                {isAdmin && (
+              {isAdmin && (
+                <div className="flex justify-end mb-4 md:mb-6">
                   <Button variant="outline" size="sm" className="shrink-0 rounded-md" asChild>
                     <Link href={`/admin/wine-tastings/${session.id}/control`} prefetch={false}>
                       <Settings className="h-4 w-4 mr-2" />
                       Admin
                     </Link>
                   </Button>
-                )}
-              </div>
+                </div>
+              )}
 
               <div className="flex flex-col col-span-full gap-4 md:mb-10 max-md:order-2">
                 <div className="flex flex-col grid-cols-2 px-3 py-2 rounded-md bg-popover md:grid md:gap-x-4 md:gap-y-10 place-items-baseline">
@@ -576,14 +574,19 @@ export default function TastingPage() {
                   </div>
 
                   <div className="col-span-full w-full mt-4 space-y-3">
-                    <Button
-                      type="button"
-                      size="lg"
-                      className="w-full bg-black hover:bg-black/90 text-white border-black rounded-md"
-                      onClick={() => setScoreDrawerOpen(true)}
-                    >
-                      Score — {rating}
-                    </Button>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <Button
+                        type="button"
+                        size="lg"
+                        className="bg-black hover:bg-black/90 text-white border-black rounded-md"
+                        onClick={() => setScoreDrawerOpen(true)}
+                      >
+                        Score Wine
+                      </Button>
+                      <span className="inline-flex items-center justify-center min-w-[3rem] h-10 px-3 rounded-md bg-muted border border-border text-lg font-semibold tabular-nums">
+                        {rating}
+                      </span>
+                    </div>
                     <ScorePickerDrawer
                       open={scoreDrawerOpen}
                       onOpenChange={setScoreDrawerOpen}
@@ -615,12 +618,6 @@ export default function TastingPage() {
                       </Button>
                     )}
                     <div className="flex gap-2 pt-2">
-                      <Button variant="outline" size="sm" onClick={() => navigateWine("prev")} disabled={currentWineIndex <= 0}>
-                        Previous
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => navigateWine("next")} disabled={currentWineIndex >= totalWines - 1}>
-                        Next
-                      </Button>
                       <Button variant="secondary" size="sm" onClick={goToSummary}>Summary</Button>
                     </div>
                   </div>
@@ -688,30 +685,51 @@ export default function TastingPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-14"> </TableHead>
                     <TableHead className="w-12">#</TableHead>
                     <TableHead>Wine</TableHead>
                     <TableHead>Vintage</TableHead>
                     <TableHead>Producer</TableHead>
                     <TableHead className="text-right">Your rating</TableHead>
-                    <TableHead className="text-right">Avg</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {session.wines?.map((wine, index) => {
-                    const stats = wineStats.get(wine.id);
                     const isCurrent = index === currentWineIndex;
+                    const wineImageUrl = getImageUrl(wine.label_image_path);
                     return (
                       <TableRow
                         key={wine.id}
                         className={isCurrent ? "bg-muted/50" : "cursor-pointer hover:bg-muted/30"}
-                        onClick={() => { if (!isCurrent) { setCurrentWineIndex(index); setSaved(false); } }}
+                        onClick={() => {
+                          if (!isCurrent) {
+                            guestHasOverriddenWineRef.current = true;
+                            setCurrentWineIndex(index);
+                            setSaved(false);
+                          }
+                        }}
                       >
+                        <TableCell className="w-14 p-2">
+                          <div className="relative w-10 h-14 rounded overflow-hidden bg-muted border border-border flex-shrink-0">
+                            {wineImageUrl ? (
+                              <Image
+                                src={wineImageUrl}
+                                alt=""
+                                fill
+                                className="object-contain"
+                                sizes="40px"
+                                unoptimized
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">—</div>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell className="font-medium">{index + 1}</TableCell>
                         <TableCell>{wine.wine_name}</TableCell>
                         <TableCell>{wine.vintage || "—"}</TableCell>
                         <TableCell>{wine.producers?.name ?? "—"}</TableCell>
                         <TableCell className="text-right">{isCurrent ? rating : "—"}</TableCell>
-                        <TableCell className="text-right">{stats?.averageRating != null ? stats.averageRating : "—"}</TableCell>
                       </TableRow>
                     );
                   })}

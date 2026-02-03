@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentUser } from "@/lib/auth";
+import { getCurrentAdmin } from "@/lib/admin-auth-server";
 
 /**
  * GET /api/wine-tastings/[id]
@@ -20,14 +21,14 @@ export async function GET(
     }
     
     const sb = getSupabaseAdmin();
+    const admin = await getCurrentAdmin();
     const user = await getCurrentUser();
 
     // Check if user is admin OR a participant in this session
-    let isAdmin = false;
+    let isAdmin = !!admin;
     let isParticipant = false;
 
-    if (user) {
-      // Check if user is admin
+    if (!isAdmin && user) {
       const { data: profile, error: profileError } = await sb
         .from("profiles")
         .select("roles, role")
@@ -40,10 +41,9 @@ export async function GET(
         isAdmin =
           profile?.roles?.includes("admin") ||
           profile?.role === "admin" ||
-          user.roles?.includes("admin") ||
-          user.role === "admin";
+          (user as { roles?: string[]; role?: string }).roles?.includes("admin") ||
+          (user as { role?: string }).role === "admin";
 
-        // Check if user is a participant in this session
         const { data: participant } = await sb
           .from("wine_tasting_participants")
           .select("id")
@@ -138,28 +138,35 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const admin = await getCurrentAdmin();
     const user = await getCurrentUser();
-    if (!user) {
+
+    let isAdmin = !!admin;
+    if (!isAdmin && user) {
+      const sb = getSupabaseAdmin();
+      const { data: profile } = await sb
+        .from("profiles")
+        .select("roles, role")
+        .eq("id", user.id)
+        .single();
+      isAdmin =
+        profile?.roles?.includes("admin") ||
+        profile?.role === "admin" ||
+        (user as { roles?: string[]; role?: string }).roles?.includes("admin") ||
+        (user as { role?: string }).role === "admin";
+    }
+
+    if (!isAdmin) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await params;
     
-    // Handle special case: "new" is not a valid session ID
     if (id === "new") {
       return NextResponse.json({ error: "Invalid session ID" }, { status: 404 });
     }
     
     const sb = getSupabaseAdmin();
-
-    // Check if user is admin
-    const { data: profile } = await sb
-      .from("profiles")
-      .select("roles")
-      .eq("id", user.id)
-      .single();
-
-    const isAdmin = profile?.roles?.includes("admin") || profile?.role === "admin";
 
     const body = await request.json();
     const { current_wine_index, status, notes } = body;
@@ -234,36 +241,35 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const admin = await getCurrentAdmin();
     const user = await getCurrentUser();
-    if (!user) {
+
+    let isAdmin = !!admin;
+    if (!isAdmin && user) {
+      const sb = getSupabaseAdmin();
+      const { data: profile } = await sb
+        .from("profiles")
+        .select("roles, role")
+        .eq("id", user.id)
+        .single();
+      isAdmin =
+        profile?.roles?.includes("admin") ||
+        profile?.role === "admin" ||
+        (user as { roles?: string[]; role?: string }).roles?.includes("admin") ||
+        (user as { role?: string }).role === "admin";
+    }
+
+    if (!isAdmin) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await params;
     
-    // Handle special case: "new" is not a valid session ID
     if (id === "new") {
       return NextResponse.json({ error: "Invalid session ID" }, { status: 404 });
     }
     
     const sb = getSupabaseAdmin();
-
-    // Check if user is admin
-    const { data: profile } = await sb
-      .from("profiles")
-      .select("roles, role")
-      .eq("id", user.id)
-      .single();
-
-    const isAdmin =
-      profile?.roles?.includes("admin") ||
-      profile?.role === "admin" ||
-      user.roles?.includes("admin") ||
-      user.role === "admin";
-
-    if (!isAdmin) {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
-    }
 
     // Delete session (cascade will delete ratings and participants)
     const { error } = await sb

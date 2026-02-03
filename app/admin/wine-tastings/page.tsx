@@ -11,7 +11,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Wine, Users, Calendar, Eye, Settings, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Plus, Wine, Users, Calendar, Eye, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -34,6 +43,12 @@ export default function WineTastingsPage() {
   const [sessions, setSessions] = useState<WineTastingSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; sessionId: string | null; sessionName: string }>({
+    open: false,
+    sessionId: null,
+    sessionName: "",
+  });
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchSessions();
@@ -71,22 +86,25 @@ export default function WineTastingsPage() {
     }
   };
 
-  const handleDeleteSession = async (sessionId: string, sessionName: string) => {
-    if (
-      !confirm(
-        `Are you sure you want to delete "${sessionName}"? This action cannot be undone and will delete all ratings and participant data.`,
-      )
-    ) {
-      return;
-    }
+  const openDeleteDialog = (sessionId: string, sessionName: string) => {
+    setDeleteDialog({ open: true, sessionId, sessionName });
+  };
 
+  const closeDeleteDialog = () => {
+    if (!deleting) setDeleteDialog({ open: false, sessionId: null, sessionName: "" });
+  };
+
+  const handleConfirmDelete = async () => {
+    const { sessionId, sessionName } = deleteDialog;
+    if (!sessionId) return;
+
+    setDeleting(true);
     try {
       const response = await fetch(`/api/wine-tastings/${sessionId}`, {
         method: "DELETE",
       });
 
       if (!response.ok) {
-        // Check if response is JSON
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.includes("application/json")) {
           const errorData = await response.json();
@@ -98,14 +116,18 @@ export default function WineTastingsPage() {
 
       const result = await response.json();
       toast.success(result.message || "Session deleted successfully");
-      fetchSessions(); // Refresh the list
-    } catch (error: any) {
+      setDeleteDialog({ open: false, sessionId: null, sessionName: "" });
+      fetchSessions();
+    } catch (error: unknown) {
       console.error("Error deleting session:", error);
-      toast.error(error.message || "Failed to delete session");
+      toast.error(error instanceof Error ? error.message : "Failed to delete session");
+    } finally {
+      setDeleting(false);
     }
   };
 
   return (
+    <>
     <main className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto p-4 md:p-6 pt-top-spacing space-y-6 md:space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -217,24 +239,13 @@ export default function WineTastingsPage() {
                     >
                       <Button variant="outline" className="w-full rounded-full">
                         <Eye className="w-4 h-4 mr-2" />
-                        View
+                        Öppna
                       </Button>
                     </Link>
-                    {session.status === "active" && (
-                      <Link
-                        href={`/admin/wine-tastings/${session.id}/control`}
-                        className="flex-1"
-                      >
-                        <Button className="w-full rounded-full bg-black hover:bg-black/90 text-white">
-                          <Settings className="w-4 h-4 mr-2" />
-                          Control
-                        </Button>
-                      </Link>
-                    )}
                     <Button
                       variant="destructive"
                       size="icon"
-                      onClick={() => handleDeleteSession(session.id, session.name)}
+                      onClick={() => openDeleteDialog(session.id, session.name)}
                       className="shrink-0 rounded-full"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -247,5 +258,32 @@ export default function WineTastingsPage() {
         )}
       </div>
     </main>
+
+    <AlertDialog open={deleteDialog.open} onOpenChange={(open) => !open && closeDeleteDialog()}>
+      <AlertDialogContent className="max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-lg">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="text-lg font-medium text-gray-900">
+            Ta bort session?
+          </AlertDialogTitle>
+          <AlertDialogDescription className="text-sm text-gray-600">
+            Vill du verkligen ta bort &quot;{deleteDialog.sessionName}&quot;? Detta går inte att ångra och alla betyg samt deltagardata raderas.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter className="mt-6 flex flex-row justify-end gap-2 sm:justify-end">
+          <AlertDialogCancel className="rounded-full" disabled={deleting}>
+            Avbryt
+          </AlertDialogCancel>
+          <Button
+            variant="destructive"
+            className="rounded-full"
+            disabled={deleting}
+            onClick={handleConfirmDelete}
+          >
+            {deleting ? "Raderar…" : "Ta bort"}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
