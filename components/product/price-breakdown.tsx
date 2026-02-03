@@ -20,6 +20,115 @@ export interface PriceBreakdownProps {
   originalMarginPercentage: number; // Original margin %
   hasMemberDiscount: boolean; // If user is member
   memberDiscountPercent?: number; // Member discount on margin
+  /** When "inline", render breakdown content only (no popover), for use in product page white box */
+  variant?: "popover" | "inline";
+}
+
+/** Distinct shades; Flaskkostnad always black; Marginal always rightmost */
+const SEGMENT_COLORS = {
+  cost: "bg-foreground",
+  alcoholTax: "bg-muted-foreground/35",
+  margin: "bg-muted-foreground/50",
+  marginDiscounted: "bg-foreground/70",
+  vat: "bg-muted-foreground/20",
+} as const;
+
+/** When margin is 0, give it a small visible share; rest of bar reflects true value proportions */
+const MARGIN_ZERO_DISPLAY_PCT = 2;
+
+function getDisplayPercentages(
+  components: Array<{ label: string; amount: number; percentage: number }>
+): number[] {
+  const marginIdx = components.findIndex((c) => c.label === "Margin");
+  const margin = marginIdx >= 0 ? components[marginIdx] : null;
+  const marginIsZero = margin && margin.amount <= 0;
+
+  if (marginIsZero && margin) {
+    const otherSum = components
+      .filter((c) => c.label !== "Margin")
+      .reduce((s, c) => s + Math.max(0, c.percentage), 0);
+    const scale = otherSum > 0 ? (100 - MARGIN_ZERO_DISPLAY_PCT) / otherSum : 1;
+    return components.map((c) =>
+      c.label === "Margin"
+        ? MARGIN_ZERO_DISPLAY_PCT
+        : Math.max(0, c.percentage) * scale
+    );
+  }
+  return components.map((c) => Math.max(0, c.percentage));
+}
+
+function PriceBreakdownContent({
+  totalPrice,
+  hasMemberDiscount,
+  memberDiscountPercent = 0,
+  components,
+}: PriceBreakdownProps & { components: Array<{ label: string; amount: number; percentage: number; color: string; isDiscounted?: boolean }> }) {
+  const displayPcts = getDisplayPercentages(components);
+  const total = displayPcts.reduce((s, p) => s + p, 0);
+  const widthPcts = total > 0 ? displayPcts.map((p) => (p / total) * 100) : displayPcts.map(() => 25);
+
+  return (
+    <div className="space-y-3 min-w-0 overflow-hidden">
+      <p className="text-sm text-muted-foreground">
+        This is how the price is made up: bottle cost, alcohol tax, margin and VAT. Member discount is applied to the margin.
+      </p>
+
+      {/* Stacked bar: widths reflect value proportions; margin when 0 gets a small visible sliver */}
+      <div className="w-full rounded-full h-3 overflow-hidden flex bg-muted/50">
+        {components.map((component, index) => {
+          const isMargin = component.label === "Margin";
+          const segmentBg = isMargin && hasMemberDiscount
+            ? SEGMENT_COLORS.marginDiscounted
+            : isMargin
+              ? SEGMENT_COLORS.margin
+              : component.label === "Bottle cost"
+                ? SEGMENT_COLORS.cost
+                : component.label === "Alcohol tax"
+                  ? SEGMENT_COLORS.alcoholTax
+                  : SEGMENT_COLORS.vat;
+          const widthPct = widthPcts[index];
+          return (
+            <div
+              key={index}
+              className={`h-full transition-all duration-300 min-w-[2px] ${segmentBg}`}
+              style={{ width: `${widthPct}%` }}
+              title={`${component.label}: ${formatCurrency(component.amount)}`}
+            />
+          );
+        })}
+      </div>
+
+      {/* Labels under the bar: same proportions as bar */}
+      <div className="w-full min-w-0 overflow-hidden flex gap-0.5 sm:gap-1 pt-1">
+        {components.map((component, index) => {
+          const widthPct = widthPcts[index];
+          return (
+            <div
+              key={index}
+              className="flex flex-col items-center justify-start min-w-0 overflow-hidden flex-1 pt-0"
+              style={{ flexBasis: `${widthPct}%`, minWidth: 0 }}
+            >
+              <span className="text-muted-foreground text-[10px] sm:text-xs text-center truncate block w-full" title={component.label}>
+                {component.label}
+                {component.isDiscounted && memberDiscountPercent > 0 && (
+                  <span className="text-muted-foreground"> -{memberDiscountPercent}%</span>
+                )}
+              </span>
+              <span className="text-foreground font-semibold text-[10px] sm:text-xs tabular-nums mt-0.5 truncate block w-full text-center" title={formatCurrency(component.amount)}>
+                {formatCurrency(component.amount)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {hasMemberDiscount && (
+        <p className="text-xs text-muted-foreground">
+          Member discount applied to the margin.
+        </p>
+      )}
+    </div>
+  );
 }
 
 export function PriceBreakdown({
@@ -32,6 +141,7 @@ export function PriceBreakdown({
   originalMarginPercentage,
   hasMemberDiscount,
   memberDiscountPercent = 0,
+  variant = "popover",
 }: PriceBreakdownProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -46,49 +156,60 @@ export function PriceBreakdown({
     originalMarginPercentage,
   });
 
-  // Color scheme for premium look
-  const colorScheme = {
-    cost: "bg-gray-200 text-gray-700",
-    alcoholTax: "bg-amber-200 text-amber-800",
-    margin: hasMemberDiscount
-      ? "bg-green-200 text-green-800"
-      : "bg-slate-200 text-slate-700",
-    vat: "bg-blue-200 text-blue-800",
-  };
-
+  /* Order: Bottle cost, Alcohol tax, VAT, Margin (Margin always rightmost) */
   const components = [
     {
       label: "Bottle cost",
       amount: costAmount,
       percentage: percentages.cost,
-      color: colorScheme.cost,
+      color: "",
+      isDiscounted: false,
     },
     {
       label: "Alcohol tax",
       amount: alcoholTax,
       percentage: percentages.alcoholTax,
-      color: colorScheme.alcoholTax,
-    },
-    {
-      label: "Margin",
-      amount: margin,
-      percentage: percentages.margin,
-      color: colorScheme.margin,
-      isDiscounted: hasMemberDiscount,
+      color: "",
+      isDiscounted: false,
     },
     {
       label: "VAT",
       amount: vat,
       percentage: percentages.vat,
-      color: colorScheme.vat,
+      color: "",
+      isDiscounted: false,
+    },
+    {
+      label: "Margin",
+      amount: margin,
+      percentage: percentages.margin,
+      color: "",
+      isDiscounted: hasMemberDiscount,
     },
   ];
+
+  if (variant === "inline") {
+    return (
+      <PriceBreakdownContent
+        costAmount={costAmount}
+        alcoholTax={alcoholTax}
+        margin={margin}
+        vat={vat}
+        totalPrice={totalPrice}
+        hasMemberDiscount={hasMemberDiscount}
+        memberDiscountPercent={memberDiscountPercent}
+        marginPercentage={marginPercentage}
+        originalMarginPercentage={originalMarginPercentage}
+        components={components}
+      />
+    );
+  }
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <button
-          className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs text-foreground/70 hover:bg-foreground/5 transition-colors"
+          className="inline-flex items-center gap-1.5 rounded-full border border-foreground/20 px-2.5 py-1 text-xs text-foreground/70 hover:bg-foreground/5 transition-colors"
           aria-label="Show price information"
         >
           <CircleHelp className="size-3.5 text-foreground/70" />
@@ -101,87 +222,18 @@ export function PriceBreakdown({
         side="bottom"
         sideOffset={8}
       >
-        <div className="space-y-4">
-          {/* Header */}
-          <div className="flex items-start gap-3">
-            <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-              <CircleHelp className="size-4" />
-            </div>
-            <div className="min-w-0">
-              <h3 className="text-sm font-semibold text-foreground">How this price is composed</h3>
-              <p className="text-xs text-muted-foreground">
-                The price includes bottle cost, alcohol tax, VAT, and our margin.
-                Member discount is applied on the margin.
-              </p>
-            </div>
-          </div>
-
-          {/* Visual breakdown bars */}
-          <div className="space-y-3">
-            {components.map((component, index) => (
-              <div key={index} className="space-y-1.5">
-                <div className="flex justify-between items-center text-xs">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span
-                      className="inline-block size-2.5 rounded-full"
-                      style={{
-                        backgroundColor:
-                          component.color.includes("amber")
-                            ? "#f59e0b33"
-                            : component.color.includes("green")
-                              ? "#10b98133"
-                              : component.color.includes("blue")
-                                ? "#3b82f633"
-                                : "#e5e7eb",
-                        outline: "1px solid rgba(0,0,0,0.05)",
-                      }}
-                    />
-                    <span className="text-foreground/70 truncate">{component.label}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {component.isDiscounted && (
-                      <span className="text-xs text-green-600 font-medium">
-                        -{memberDiscountPercent}%
-                      </span>
-                    )}
-                    <span className="font-medium">{formatCurrency(component.amount)}</span>
-                  </div>
-                </div>
-                <div className="w-full bg-muted rounded-full h-2">
-                  <div
-                    className="h-2 rounded-full transition-all duration-300"
-                    style={{
-                      width: `${component.percentage}%`,
-                      background:
-                        component.color.includes("amber")
-                          ? "linear-gradient(90deg,#fde68a,#f59e0b)"
-                          : component.color.includes("green")
-                            ? "linear-gradient(90deg,#bbf7d0,#10b981)"
-                            : component.color.includes("blue")
-                              ? "linear-gradient(90deg,#bfdbfe,#3b82f6)"
-                              : "linear-gradient(90deg,#e5e7eb,#9ca3af)",
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Total */}
-          <div className="pt-2 border-t">
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-semibold">Total</span>
-              <span className="text-sm font-bold">{formatCurrency(totalPrice)}</span>
-            </div>
-          </div>
-
-          {/* Member discount info */}
-          {hasMemberDiscount && (
-            <div className="text-xs text-green-700 bg-green-50 px-2 py-1.5 rounded-md">
-              ✨ Member discount applied on margin
-            </div>
-          )}
-        </div>
+        <PriceBreakdownContent
+          costAmount={costAmount}
+          alcoholTax={alcoholTax}
+          margin={margin}
+          vat={vat}
+          totalPrice={totalPrice}
+          hasMemberDiscount={hasMemberDiscount}
+          memberDiscountPercent={memberDiscountPercent}
+          marginPercentage={marginPercentage}
+          originalMarginPercentage={originalMarginPercentage}
+          components={components}
+        />
       </PopoverContent>
     </Popover>
   );

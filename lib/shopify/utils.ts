@@ -21,6 +21,11 @@ export const formatPrice = (
   }).format(roundedAmount);
 };
 
+/** Swedish VAT 25%. Convert price inkl moms → exkl moms. */
+export function priceExclVat(amountInclVat: number): number {
+  return amountInclVat / 1.25;
+}
+
 // Helper for returning the expected error state to actions instead of throwing.
 export const handleFormActionError = (
   error: unknown,

@@ -26,7 +26,8 @@ import { formatPrice } from "@/lib/shopify/utils";
 import { Suspense } from "react";
 import { cn } from "@/lib/utils";
 import { PageLayout } from "@/components/layout/page-layout";
-import { PriceWithBreakdown } from "@/components/product/price-with-breakdown";
+import { MemberPrice } from "@/components/ui/member-price";
+import { ProductPriceInfoBox } from "@/components/product/product-price-info-box";
 import { VariantSelectorSlots } from "./components/variant-selector-slots";
 import { MobileGallerySlider } from "./components/mobile-gallery-slider";
 import { DesktopGallery } from "./components/desktop-gallery";
@@ -195,9 +196,14 @@ export default async function ProductPage(props: {
                   {product.description}
                 </p>
 
-                {/* Row 2, Col 1: Price + Price Info */}
+                {/* Row 2, Col 1: Price only; breakdown is in separate box below */}
                 <div className="flex gap-3 items-center text-lg font-semibold lg:text-xl 2xl:text-2xl max-md:mt-4 md:col-start-1 md:row-start-2">
-                  <PriceWithBreakdown product={product} />
+                  <MemberPrice
+                    amount={product.priceRange.minVariantPrice.amount}
+                    currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                    className="text-lg font-semibold lg:text-xl 2xl:text-2xl"
+                    showBadge={true}
+                  />
                   {product.compareAtPrice && (
                     <span className="line-through opacity-30">
                       {formatPrice(
@@ -222,6 +228,8 @@ export default async function ProductPage(props: {
                   <VariantSelectorSlots product={product} />
                 </Suspense>
               </div>
+              {/* Price info in its own white box under grape varieties / color */}
+              <ProductPriceInfoBox product={product} />
             </div>
           </div>
 

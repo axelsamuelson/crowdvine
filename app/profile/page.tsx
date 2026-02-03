@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { PageLayout } from "@/components/layout/page-layout";
 import { SocialProfileHeader } from "@/components/profile/social-profile-header";
 import { SocialProfileTabs } from "@/components/profile/social-profile-tabs";
+import { B2BProfileLayout } from "@/components/profile/b2b-profile-layout";
 import { LevelBadge } from "@/components/membership/level-badge";
 import { PerksGrid, LockedPerks } from "@/components/membership/perks-grid";
 import { IPTimeline } from "@/components/membership/ip-timeline";
@@ -46,7 +47,7 @@ import {
   Search,
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
 // PaymentMethodCard removed - using new payment flow
@@ -182,6 +183,18 @@ export default function ProfilePage() {
 
   // Tastings count - must be before any conditional returns
   const [tastingsCount, setTastingsCount] = useState(0);
+
+  // B2B: dirtywine.se in production; localhost = dirtywine.se by default (use ?b2c=1 to view as PACT)
+  const searchParams = useSearchParams();
+  const [isB2B, setIsB2B] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const host = window.location.hostname.toLowerCase();
+    const onProductionB2B = host.includes("dirtywine.se");
+    const onLocalhost = host === "localhost" || host === "127.0.0.1";
+    const forceB2C = searchParams.get("b2c") === "1";
+    setIsB2B(onProductionB2B || (onLocalhost && !forceB2C));
+  }, [searchParams]);
 
   useEffect(() => {
     // Fetch tastings count
@@ -782,6 +795,18 @@ export default function ProfilePage() {
           <p className="text-gray-500">Unable to load profile data</p>
         </div>
       </PageLayout>
+    );
+  }
+
+  // B2B: business profile layout on dirtywine.se
+  if (isB2B) {
+    return (
+      <B2BProfileLayout
+        profile={profile}
+        membershipData={membershipData}
+        reservations={reservations}
+        ipEvents={ipEvents}
+      />
     );
   }
 
