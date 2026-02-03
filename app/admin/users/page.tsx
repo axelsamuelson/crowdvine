@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -64,6 +65,8 @@ interface User {
   email: string;
   full_name?: string;
   role: string;
+  roles?: string[];
+  portal_access?: string[];
   producer_id?: string | null;
   membership_level: string;
   impact_points: number;
@@ -77,7 +80,8 @@ interface User {
 }
 
 interface EditForm {
-  role: string;
+  roles: string[];
+  portal_access: string[];
   membership_level: string;
   producer_id?: string | null;
 }
@@ -97,7 +101,8 @@ export default function UsersAdmin() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editForm, setEditForm] = useState<EditForm>({
-    role: "",
+    roles: ["user"],
+    portal_access: ["user"],
     membership_level: "",
     producer_id: null,
   });
@@ -156,7 +161,8 @@ export default function UsersAdmin() {
         body: JSON.stringify({
           userId,
           updates: {
-            role: updates.role,
+            roles: updates.roles,
+            portal_access: updates.portal_access,
             producer_id: updates.producer_id,
             membership_level: updates.membership_level,
           },
@@ -229,8 +235,11 @@ export default function UsersAdmin() {
 
   const openEditDialog = (user: User) => {
     setSelectedUser(user);
+    const roles = user.roles?.length ? user.roles : [user.role || "user"];
+    const portalAccess = user.portal_access?.length ? user.portal_access : ["user"];
     setEditForm({
-      role: user.role,
+      roles: [...roles],
+      portal_access: [...portalAccess],
       membership_level: user.membership_level || "basic",
       producer_id: user.producer_id || null,
     });
@@ -242,32 +251,16 @@ export default function UsersAdmin() {
     updateUser(selectedUser.id, editForm);
   };
 
-  const getRoleBadge = (role: string) => {
-    switch (role) {
-      case "admin":
-        return (
-          <Badge variant="default" className="bg-red-600">
-            <Shield className="w-3 h-3 mr-1" />
-            Admin
-          </Badge>
-        );
-      case "producer":
-        return (
-          <Badge variant="default" className="bg-emerald-600">
-            <Factory className="w-3 h-3 mr-1" />
-            Producer
-          </Badge>
-        );
-      case "user":
-        return (
-          <Badge variant="secondary">
-            <UserPlus className="w-3 h-3 mr-1" />
-            User
-          </Badge>
-        );
-      default:
-        return <Badge variant="outline">{role}</Badge>;
-    }
+  const getRoleBadges = (user: User) => {
+    const roles = user.roles?.length ? user.roles : [user.role || "user"];
+    const portalAccess = user.portal_access || ["user"];
+    const badges: React.ReactNode[] = [];
+    if (roles.includes("user")) badges.push(<Badge key="user" variant="secondary" className="mr-1"><UserPlus className="w-3 h-3 mr-1" />User</Badge>);
+    if (roles.includes("admin")) badges.push(<Badge key="admin" variant="default" className="bg-red-600 mr-1"><Shield className="w-3 h-3 mr-1" />Admin</Badge>);
+    if (roles.includes("producer")) badges.push(<Badge key="producer" variant="default" className="bg-emerald-600 mr-1"><Factory className="w-3 h-3 mr-1" />Producer</Badge>);
+    if (portalAccess.includes("business")) badges.push(<Badge key="business" variant="outline" className="mr-1">Business</Badge>);
+    if (badges.length === 0) badges.push(<Badge key="none" variant="outline">User</Badge>);
+    return <span className="flex flex-wrap gap-1">{badges}</span>;
   };
 
   const getMembershipBadge = (level: string) => {
@@ -302,7 +295,9 @@ export default function UsersAdmin() {
         user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (user.full_name &&
           user.full_name.toLowerCase().includes(searchTerm.toLowerCase()));
-      const matchesRole = roleFilter === "all" || user.role === roleFilter;
+      const roles = user.roles?.length ? user.roles : [user.role || "user"];
+      const portalAccess = user.portal_access || ["user"];
+      const matchesRole = roleFilter === "all" || roles.includes(roleFilter) || (roleFilter === "business" && portalAccess.includes("business"));
       return matchesSearch && matchesRole;
     })
     .sort((a, b) => {
@@ -316,10 +311,13 @@ export default function UsersAdmin() {
           aValue = a.email.toLowerCase();
           bValue = b.email.toLowerCase();
           break;
-        case "role":
-          aValue = a.role.toLowerCase();
-          bValue = b.role.toLowerCase();
+        case "role": {
+          const aRoles = a.roles?.length ? a.roles : [a.role || "user"];
+          const bRoles = b.roles?.length ? b.roles : [b.role || "user"];
+          aValue = aRoles.join(",").toLowerCase();
+          bValue = bRoles.join(",").toLowerCase();
           break;
+        }
         case "membership":
           aValue = a.membership_level.toLowerCase();
           bValue = b.membership_level.toLowerCase();
@@ -401,9 +399,10 @@ export default function UsersAdmin() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Roles</SelectItem>
+                  <SelectItem value="user">User</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="producer">Producer</SelectItem>
-                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="business">Business</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -501,7 +500,7 @@ export default function UsersAdmin() {
                         : "Email not confirmed"}
                     </div>
                   </TableCell>
-                  <TableCell>{getRoleBadge(user.role)}</TableCell>
+                  <TableCell>{getRoleBadges(user)}</TableCell>
                   <TableCell>
                     {getMembershipBadge(user.membership_level)}
                   </TableCell>
@@ -602,29 +601,54 @@ export default function UsersAdmin() {
                 className="bg-gray-50"
               />
             </div>
-            <div>
-              <Label htmlFor="role">Role</Label>
-              <Select
-                value={editForm.role}
-                onValueChange={(value) =>
-                  setEditForm({
-                    ...editForm,
-                    role: value,
-                    producer_id: value === "producer" ? editForm.producer_id : null,
-                  })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="producer">Producer</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="space-y-3">
+              <Label>User types</Label>
+              <div className="flex flex-wrap gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={editForm.roles.includes("user")}
+                    onCheckedChange={(checked) => {
+                      const nextRoles = checked ? [...new Set([...editForm.roles, "user"])] : editForm.roles.filter((r) => r !== "user");
+                      const nextPortal = checked ? [...new Set([...editForm.portal_access, "user"])] : editForm.portal_access.filter((p) => p !== "user");
+                      setEditForm({ ...editForm, roles: nextRoles.length ? nextRoles : ["user"], portal_access: nextPortal.length ? nextPortal : ["user"] });
+                    }}
+                  />
+                  <span>User</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={editForm.roles.includes("admin")}
+                    onCheckedChange={(checked) => {
+                      const next = checked ? [...new Set([...editForm.roles, "admin"])] : editForm.roles.filter((r) => r !== "admin");
+                      setEditForm({ ...editForm, roles: next.length ? next : ["user"] });
+                    }}
+                  />
+                  <span>Admin</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={editForm.roles.includes("producer")}
+                    onCheckedChange={(checked) => {
+                      const next = checked ? [...new Set([...editForm.roles, "producer"])] : editForm.roles.filter((r) => r !== "producer");
+                      setEditForm({ ...editForm, roles: next.length ? next : ["user"], producer_id: checked ? editForm.producer_id : null });
+                    }}
+                  />
+                  <span>Producer</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={editForm.portal_access.includes("business")}
+                    onCheckedChange={(checked) => {
+                      const next = checked ? [...new Set([...editForm.portal_access, "business"])] : editForm.portal_access.filter((p) => p !== "business");
+                      setEditForm({ ...editForm, portal_access: next.length ? next : ["user"] });
+                    }}
+                  />
+                  <span>Business</span>
+                </label>
+              </div>
+              <p className="text-xs text-gray-500">User = B2C (pactwines.com). Business = B2B (dirtywine.se).</p>
             </div>
-            {editForm.role === "producer" && (
+            {editForm.roles.includes("producer") && (
               <div className="space-y-2">
                 <Label htmlFor="producer_id">Linked Producer</Label>
                 <Select

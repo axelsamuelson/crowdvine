@@ -24,10 +24,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get all profiles with membership data
+    // Get all profiles with membership data (roles + portal_access for multi-type edit)
     const { data: profiles, error: profilesError } = await adminSupabase
       .from("profiles")
-      .select("id, email, role, producer_id, created_at, full_name");
+      .select("id, email, role, roles, portal_access, producer_id, created_at, full_name");
 
     if (profilesError) {
       console.error("Error fetching profiles:", profilesError);
@@ -89,6 +89,9 @@ export async function GET(request: NextRequest) {
         const profile = profiles?.find((p) => p.id === authUser.id);
         const membership = memberships?.find((m) => m.user_id === authUser.id);
 
+        const roles = profile?.roles && Array.isArray(profile.roles) ? profile.roles : [profile?.role || "user"];
+        const portalAccess = profile?.portal_access && Array.isArray(profile.portal_access) ? profile.portal_access : ["user"];
+        const primaryRole = roles.includes("admin") ? "admin" : roles.includes("producer") ? "producer" : "user";
         return {
           id: authUser.id,
           email: authUser.email,
@@ -96,7 +99,9 @@ export async function GET(request: NextRequest) {
           created_at: authUser.created_at,
           last_sign_in_at: authUser.last_sign_in_at,
           email_confirmed_at: authUser.email_confirmed_at,
-          role: profile?.role || "user",
+          role: primaryRole,
+          roles,
+          portal_access: portalAccess,
           producer_id: profile?.producer_id || null,
           last_active_at: lastActiveMap.get(authUser.id) || null,
           // Membership data
@@ -441,14 +446,20 @@ export async function PATCH(request: NextRequest) {
 
     const adminSupabase = getSupabaseAdmin();
 
-    // Update profile fields if provided
-    if (updates.role !== undefined || updates.producer_id !== undefined) {
-      const profileUpdate: Record<string, any> = {};
-      if (updates.role !== undefined) profileUpdate.role = updates.role;
-      if (updates.producer_id !== undefined) {
-        profileUpdate.producer_id = updates.producer_id || null;
-      }
+    // Update profile fields if provided (roles, portal_access, producer_id; keep role for backward compat)
+    const profileUpdate: Record<string, any> = {};
+    if (updates.roles !== undefined && Array.isArray(updates.roles)) {
+      profileUpdate.roles = updates.roles.length ? updates.roles : ["user"];
+      profileUpdate.role = updates.roles.includes("admin") ? "admin" : updates.roles.includes("producer") ? "producer" : "user";
+    }
+    if (updates.portal_access !== undefined && Array.isArray(updates.portal_access)) {
+      profileUpdate.portal_access = updates.portal_access.length ? updates.portal_access : ["user"];
+    }
+    if (updates.producer_id !== undefined) {
+      profileUpdate.producer_id = updates.producer_id || null;
+    }
 
+    if (Object.keys(profileUpdate).length > 0) {
       const { error: profileError } = await adminSupabase
         .from("profiles")
         .update(profileUpdate)
@@ -464,7 +475,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // If we linked a producer, also set producer.owner_id to this user (optional but useful)
-    if (updates.producer_id && updates.role === "producer") {
+    if (updates.producer_id && updates.roles?.includes("producer")) {
       const { error: ownerError } = await adminSupabase
         .from("producers")
         .update({ owner_id: userId })

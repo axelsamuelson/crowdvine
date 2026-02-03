@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { MobileMenu } from "./mobile-menu";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -8,10 +9,12 @@ import { LogoSvg } from "./logo-svg";
 import CartModal from "@/components/cart/modal";
 import { ProfileIcon } from "./profile-icon";
 import { PalletIcon } from "./pallet-icon";
+import { PortalToggle } from "./portal-toggle";
 import { NavItem } from "@/lib/types";
 import { Collection } from "@/lib/shopify/types";
 import { CompleteOrderRail } from "@/components/cart/complete-order-rail";
 import { useUserRole } from "@/lib/hooks/use-user-role";
+import { usePortalAccess } from "@/lib/hooks/use-portal-access";
 
 export const navItems: NavItem[] = [
   {
@@ -31,6 +34,17 @@ interface HeaderProps {
 export function Header({ collections }: HeaderProps) {
   const pathname = usePathname();
   const { role } = useUserRole();
+  const { showPortalToggle, isB2BOnly, loading } = usePortalAccess();
+
+  // B2B-only users: redirect from pactwines.com to dirtywine.se
+  useEffect(() => {
+    if (loading || !isB2BOnly || typeof window === "undefined") return;
+    const host = window.location.hostname.toLowerCase();
+    if (host.includes("pactwines.com")) {
+      const target = `https://dirtywine.se${pathname ?? window.location.pathname}${window.location.search}`;
+      window.location.href = target;
+    }
+  }, [loading, isB2BOnly, pathname]);
 
   return (
     <header className="grid fixed top-0 left-0 z-50 grid-cols-3 items-start w-full p-sides md:grid-cols-12 md:gap-sides">
@@ -82,6 +96,9 @@ export function Header({ collections }: HeaderProps) {
               </li>
             )}
           </ul>
+          {showPortalToggle && (
+            <PortalToggle showPortalToggle={true} className="shrink-0 ml-2" />
+          )}
         </div>
         <PalletIcon />
         <ProfileIcon className="hidden md:block" />

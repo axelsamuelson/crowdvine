@@ -40,8 +40,10 @@ export default function ContentPage() {
   const [success, setSuccess] = useState("");
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [logoImages, setLogoImages] = useState<Record<string, File[]>>({
-    header_logo: [],
-    footer_logo: [],
+    header_logo_pact: [],
+    footer_logo_pact: [],
+    header_logo_dirtywine: [],
+    footer_logo_dirtywine: [],
   });
 
   useEffect(() => {
@@ -83,32 +85,36 @@ export default function ContentPage() {
         body: formDataUpload,
       });
 
-      if (!uploadResponse.ok) {
-        throw new Error("Failed to upload image");
-      }
-
       const uploadResult = await uploadResponse.json();
-      const imagePath = uploadResult.files[0];
+
+      if (!uploadResponse.ok) {
+        const msg = uploadResult?.error || uploadResult?.errors?.join?.("; ") || "Failed to upload image";
+        throw new Error(msg);
+      }
+      const imagePath = uploadResult.files?.[0];
+      if (!imagePath) {
+        throw new Error("No file URL returned from upload");
+      }
 
       await updateSiteContent(key, imagePath);
       setFormData((prev) => ({ ...prev, [key]: imagePath }));
       setSuccess(`${key.replace("_", " ")} updated successfully!`);
 
-      // Rensa cache för att visa nya loggan direkt
-      if (key === "header_logo") {
+      // Rensa cache för att visa nya loggan direkt (alla domäner)
+      if (key.startsWith("header_logo")) {
         clearLogoCache();
-        // Force reload av alla LogoSvg komponenter genom att trigga event
         window.dispatchEvent(new CustomEvent("logoCacheCleared"));
-      } else if (key === "footer_logo") {
+      }
+      if (key.startsWith("footer_logo")) {
         clearFooterLogoCache();
-        // Force reload av alla FooterLogoSvg komponenter genom att trigga event
         window.dispatchEvent(new CustomEvent("footerLogoCacheCleared"));
       }
 
       // Clear the image upload
       setLogoImages((prev) => ({ ...prev, [key]: [] }));
     } catch (err) {
-      setError(`Failed to upload ${key.replace("_", " ")}`);
+      const message = err instanceof Error ? err.message : `Failed to upload ${key.replace("_", " ")}`;
+      setError(message);
     } finally {
       setSaving(false);
     }
@@ -194,79 +200,159 @@ export default function ContentPage() {
         </TabsList>
 
         <TabsContent value="logos" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Header Logo */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Image className="h-5 w-5" />
-                  Header Logo
-                </CardTitle>
-                <CardDescription>
-                  Logo displayed in the site header
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {formData.header_logo && (
-                  <div className="relative w-32 h-16 bg-gray-100 rounded-lg overflow-hidden">
-                    <img
-                      src={formData.header_logo}
-                      alt="Header logo"
-                      className="w-full h-full object-contain"
+          <p className="text-sm text-muted-foreground">
+            Välj varumärke (domän). pactwines.com använder PACT-logor, dirtywine.se använder DIRTYWINE-logor.
+          </p>
+          <Tabs defaultValue="pact" className="space-y-6">
+            <TabsList className="grid w-full max-w-xs grid-cols-2">
+              <TabsTrigger value="pact">PACT</TabsTrigger>
+              <TabsTrigger value="dirtywine">DIRTYWINE</TabsTrigger>
+            </TabsList>
+            <TabsContent value="pact" className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Image className="h-5 w-5" />
+                      Header Logo (PACT)
+                    </CardTitle>
+                    <CardDescription>
+                      Logo i headern på pactwines.com
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {formData.header_logo_pact && (
+                      <div className="relative w-32 h-16 bg-gray-100 rounded-lg overflow-hidden">
+                        <img
+                          src={formData.header_logo_pact}
+                          alt="Header logo PACT"
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                    )}
+                    <ImageUpload
+                      images={logoImages.header_logo_pact}
+                      onImagesChange={(images) =>
+                        setLogoImages((prev) => ({ ...prev, header_logo_pact: images }))
+                      }
                     />
-                  </div>
-                )}
-                <ImageUpload
-                  images={logoImages.header_logo}
-                  onImagesChange={(images) =>
-                    setLogoImages((prev) => ({ ...prev, header_logo: images }))
-                  }
-                />
-                <Button
-                  onClick={() => handleLogoUpload("header_logo")}
-                  disabled={saving || logoImages.header_logo.length === 0}
-                >
-                  {saving ? "Uploading..." : "Upload Header Logo"}
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Footer Logo */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Image className="h-5 w-5" />
-                  Footer Logo
-                </CardTitle>
-                <CardDescription>
-                  Logo displayed in the site footer
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {formData.footer_logo && (
-                  <div className="relative w-32 h-16 bg-gray-100 rounded-lg overflow-hidden">
-                    <img
-                      src={formData.footer_logo}
-                      alt="Footer logo"
-                      className="w-full h-full object-contain"
+                    <Button
+                      onClick={() => handleLogoUpload("header_logo_pact")}
+                      disabled={saving || logoImages.header_logo_pact.length === 0}
+                    >
+                      {saving ? "Laddar upp..." : "Ladda upp header-logga"}
+                    </Button>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Image className="h-5 w-5" />
+                      Footer Logo (PACT)
+                    </CardTitle>
+                    <CardDescription>
+                      Logo i footern på pactwines.com
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {formData.footer_logo_pact && (
+                      <div className="relative w-32 h-16 bg-gray-100 rounded-lg overflow-hidden">
+                        <img
+                          src={formData.footer_logo_pact}
+                          alt="Footer logo PACT"
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                    )}
+                    <ImageUpload
+                      images={logoImages.footer_logo_pact}
+                      onImagesChange={(images) =>
+                        setLogoImages((prev) => ({ ...prev, footer_logo_pact: images }))
+                      }
                     />
-                  </div>
-                )}
-                <ImageUpload
-                  images={logoImages.footer_logo}
-                  onImagesChange={(images) =>
-                    setLogoImages((prev) => ({ ...prev, footer_logo: images }))
-                  }
-                />
-                <Button
-                  onClick={() => handleLogoUpload("footer_logo")}
-                  disabled={saving || logoImages.footer_logo.length === 0}
-                >
-                  {saving ? "Uploading..." : "Upload Footer Logo"}
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+                    <Button
+                      onClick={() => handleLogoUpload("footer_logo_pact")}
+                      disabled={saving || logoImages.footer_logo_pact.length === 0}
+                    >
+                      {saving ? "Laddar upp..." : "Ladda upp footer-logga"}
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+            <TabsContent value="dirtywine" className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Image className="h-5 w-5" />
+                      Header Logo (DIRTYWINE)
+                    </CardTitle>
+                    <CardDescription>
+                      Logo i headern på dirtywine.se
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {formData.header_logo_dirtywine && (
+                      <div className="relative w-32 h-16 bg-gray-100 rounded-lg overflow-hidden">
+                        <img
+                          src={formData.header_logo_dirtywine}
+                          alt="Header logo DIRTYWINE"
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                    )}
+                    <ImageUpload
+                      images={logoImages.header_logo_dirtywine}
+                      onImagesChange={(images) =>
+                        setLogoImages((prev) => ({ ...prev, header_logo_dirtywine: images }))
+                      }
+                    />
+                    <Button
+                      onClick={() => handleLogoUpload("header_logo_dirtywine")}
+                      disabled={saving || logoImages.header_logo_dirtywine.length === 0}
+                    >
+                      {saving ? "Laddar upp..." : "Ladda upp header-logga"}
+                    </Button>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Image className="h-5 w-5" />
+                      Footer Logo (DIRTYWINE)
+                    </CardTitle>
+                    <CardDescription>
+                      Logo i footern på dirtywine.se
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {formData.footer_logo_dirtywine && (
+                      <div className="relative w-32 h-16 bg-gray-100 rounded-lg overflow-hidden">
+                        <img
+                          src={formData.footer_logo_dirtywine}
+                          alt="Footer logo DIRTYWINE"
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                    )}
+                    <ImageUpload
+                      images={logoImages.footer_logo_dirtywine}
+                      onImagesChange={(images) =>
+                        setLogoImages((prev) => ({ ...prev, footer_logo_dirtywine: images }))
+                      }
+                    />
+                    <Button
+                      onClick={() => handleLogoUpload("footer_logo_dirtywine")}
+                      disabled={saving || logoImages.footer_logo_dirtywine.length === 0}
+                    >
+                      {saving ? "Laddar upp..." : "Ladda upp footer-logga"}
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
         <TabsContent value="homepage" className="space-y-6">

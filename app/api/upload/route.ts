@@ -101,7 +101,14 @@ export async function POST(request: NextRequest) {
     }
 
     if (uploadedFiles.length === 0) {
-      return NextResponse.json(response, { status: 400 });
+      const errorMessage =
+        uploadErrors.length > 0
+          ? uploadErrors.join("; ")
+          : "No files could be uploaded";
+      return NextResponse.json(
+        { ...response, error: errorMessage },
+        { status: 400 },
+      );
     }
 
     return NextResponse.json(response);

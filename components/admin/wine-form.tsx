@@ -61,9 +61,11 @@ export default function WineForm({ wine, producers }: WineFormProps) {
     base_price_cents: wine?.base_price_cents ?? 0,
     // Set the existing label_image_path if editing
     label_image_path: wine?.label_image_path || "",
-    // Description fields
+    // Description
     description: wine?.description || "",
-    description_html: wine?.description_html || "",
+    // B2B
+    b2b_price_cents: wine?.b2b_price_cents ?? null,
+    b2b_stock: wine?.b2b_stock ?? null,
   });
 
   const [images, setImages] = useState<File[]>([]);
@@ -97,7 +99,8 @@ export default function WineForm({ wine, producers }: WineFormProps) {
       base_price_cents: wine.base_price_cents ?? 0,
       label_image_path: wine.label_image_path || "",
       description: wine.description || "",
-      description_html: wine.description_html || "",
+      b2b_price_cents: wine.b2b_price_cents ?? null,
+      b2b_stock: wine.b2b_stock ?? null,
     }));
   }, [wine?.id]);
 
@@ -294,7 +297,7 @@ export default function WineForm({ wine, producers }: WineFormProps) {
 
   const handleChange = (
     field: keyof CreateWineData,
-    value: string | number,
+    value: string | number | null,
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
@@ -402,74 +405,116 @@ export default function WineForm({ wine, producers }: WineFormProps) {
             disabled={loading}
           />
 
-          {/* Two-column layout on desktop to reduce page height */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-            <div className="space-y-6">
-              {/* Pricing Calculator */}
-              <PricingCalculator
-                pricingData={{
-                  cost_currency: formData.cost_currency,
-                  cost_amount: formData.cost_amount,
-                  price_includes_vat: formData.price_includes_vat,
-                  margin_percentage: formData.margin_percentage,
-                  calculated_price_cents: formData.base_price_cents ?? 0,
-                }}
-                onPricingChange={(pricingData) => {
-                  setFormData((prev) => ({
-                    ...prev,
-                    cost_currency: pricingData.cost_currency,
-                    cost_amount: pricingData.cost_amount,
-                    price_includes_vat: pricingData.price_includes_vat,
-                    margin_percentage: pricingData.margin_percentage,
-                    base_price_cents: pricingData.calculated_price_cents,
-                  }));
-                }}
-              />
-
-              <WineImageUpload
-                wineId={wine?.id}
-                existingImages={existingImages}
-                images={images}
-                onImagesChange={setImages}
-                onExistingImagesChange={setExistingImages}
-              />
-            </div>
-
-            {/* Description Fields */}
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => handleChange("description", e.target.value)}
-                  placeholder="Enter a custom description for this wine..."
-                  rows={6}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Leave empty to use auto-generated description based on wine
-                  properties.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description_html">Description HTML</Label>
-                <Textarea
-                  id="description_html"
-                  value={formData.description_html}
-                  onChange={(e) =>
-                    handleChange("description_html", e.target.value)
-                  }
-                  placeholder="Enter custom HTML description (optional)..."
-                  rows={8}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Custom HTML for rich formatting. Leave empty to use
-                  auto-generated HTML from description.
-                </p>
-              </div>
-            </div>
+          {/* Description (above Pricing) */}
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => handleChange("description", e.target.value)}
+              placeholder="Enter a custom description for this wine..."
+              rows={6}
+            />
+            <p className="text-sm text-muted-foreground">
+              Leave empty to use auto-generated description based on wine
+              properties.
+            </p>
           </div>
+
+          {/* Pricing */}
+          <PricingCalculator
+            pricingData={{
+              cost_currency: formData.cost_currency,
+              cost_amount: formData.cost_amount,
+              price_includes_vat: formData.price_includes_vat,
+              margin_percentage: formData.margin_percentage,
+              calculated_price_cents: formData.base_price_cents ?? 0,
+            }}
+            onPricingChange={(pricingData) => {
+              setFormData((prev) => ({
+                ...prev,
+                cost_currency: pricingData.cost_currency,
+                cost_amount: pricingData.cost_amount,
+                price_includes_vat: pricingData.price_includes_vat,
+                margin_percentage: pricingData.margin_percentage,
+                base_price_cents: pricingData.calculated_price_cents,
+              }));
+            }}
+          />
+
+          {/* B2B: price and stock for B2B customers */}
+          <Card className="p-4 bg-muted/30 border border-gray-200 rounded-xl">
+            <CardHeader className="p-0 pb-3">
+              <CardTitle className="text-base font-medium">B2B</CardTitle>
+              <CardDescription className="text-sm">
+                Pris och lager för B2B-kunder (valfritt)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="b2b_price_cents">B2B-pris (SEK)</Label>
+                  <Input
+                    id="b2b_price_cents"
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    placeholder="t.ex. 199"
+                    value={
+                      formData.b2b_price_cents != null
+                        ? (formData.b2b_price_cents / 100).toFixed(2)
+                        : ""
+                    }
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === "") {
+                        handleChange("b2b_price_cents", null);
+                        return;
+                      }
+                      const num = parseFloat(v);
+                      if (!Number.isNaN(num))
+                        handleChange("b2b_price_cents", Math.round(num * 100));
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Pris i kronor för B2B (sparas som öre)
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="b2b_stock">B2B-lager (antal)</Label>
+                  <Input
+                    id="b2b_stock"
+                    type="number"
+                    min={0}
+                    placeholder="t.ex. 24"
+                    value={formData.b2b_stock ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === "") {
+                        handleChange("b2b_stock", null);
+                        return;
+                      }
+                      const n = parseInt(v, 10);
+                      if (!Number.isNaN(n) && n >= 0)
+                        handleChange("b2b_stock", n);
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Tillgängligt antal för B2B
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Images */}
+          <WineImageUpload
+            wineId={wine?.id}
+            existingImages={existingImages}
+            images={images}
+            onImagesChange={setImages}
+            onExistingImagesChange={setExistingImages}
+          />
 
           <div className="flex justify-end space-x-4">
             <Button

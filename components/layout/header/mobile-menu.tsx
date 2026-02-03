@@ -10,6 +10,8 @@ import { SidebarLinks } from "@/components/layout/sidebar/product-sidebar-links"
 import { useMobileMenu } from "@/components/layout/header/mobile-menu-context";
 import { Factory, User } from "lucide-react";
 import { useUserRole } from "@/lib/hooks/use-user-role";
+import { usePortalAccess } from "@/lib/hooks/use-portal-access";
+import { PortalToggle } from "./portal-toggle";
 
 const navItems = [
   { href: "/shop", label: "Shop" },
@@ -22,6 +24,7 @@ export function MobileMenu({ collections }: { collections: any[] }) {
   const { isOpen, openMobileMenu, closeMobileMenu } = useMobileMenu();
   const pathname = usePathname();
   const { role } = useUserRole();
+  const { showPortalToggle } = usePortalAccess();
   const [isClient, setIsClient] = useState(false);
 
   // Ensure animations only run on client
@@ -93,6 +96,12 @@ export function MobileMenu({ collections }: { collections: any[] }) {
                       Close
                     </Button>
                   </div>
+
+                  {showPortalToggle && (
+                    <div className="pl-2 mb-4">
+                      <PortalToggle showPortalToggle={true} />
+                    </div>
+                  )}
 
                   {/* Scrollable content area */}
                   <div className="flex-1 overflow-y-auto -mx-3 px-3 md:-mx-4 md:px-4">

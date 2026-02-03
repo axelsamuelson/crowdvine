@@ -20,13 +20,13 @@ export async function validateImage(
   const errors: string[] = [];
   const warnings: string[] = [];
   const maxSize = 10 * 1024 * 1024; // 10MB
-  const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"];
   const minDimensions = { width: 200, height: 200 };
   const maxDimensions = { width: 4000, height: 4000 };
 
   // Check file type
   if (!allowedTypes.includes(file.type)) {
-    errors.push(`Invalid file type. Allowed types: ${allowedTypes.join(", ")}`);
+    errors.push(`Invalid file type. Allowed: ${allowedTypes.join(", ")}`);
   }
 
   // Check file size
@@ -34,9 +34,8 @@ export async function validateImage(
     errors.push(`File too large. Maximum size: ${maxSize / (1024 * 1024)}MB`);
   }
 
-  // Check minimum size
-  if (file.size < 1024) {
-    // 1KB minimum
+  // Check minimum size (skip for SVG as they can be very small)
+  if (file.type !== "image/svg+xml" && file.size < 1024) {
     errors.push("File too small. Minimum size: 1KB");
   }
 
