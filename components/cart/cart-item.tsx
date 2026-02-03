@@ -7,7 +7,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { DeleteItemButton } from "./delete-item-button";
 import { EditItemQuantityButton } from "./edit-item-quantity-button";
-import { formatPrice } from "@/lib/shopify/utils";
+import { formatPrice, priceExclVat } from "@/lib/shopify/utils";
+import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { ColorSwatch } from "@/components/ui/color-picker";
 import { useProductImages } from "../products/variant-selector";
 
@@ -21,7 +22,10 @@ interface CartItemProps {
 }
 
 export function CartItemCard({ item, onCloseCart }: CartItemProps) {
+  const showExclVat = useB2BPriceMode();
   const merchandiseSearchParams = {} as MerchandiseSearchParams;
+  const amount = parseFloat(item.cost.totalAmount.amount);
+  const displayAmount = showExclVat ? priceExclVat(amount) : amount;
 
   item.merchandise.selectedOptions.forEach(({ name, value }) => {
     if (value !== DEFAULT_OPTION) {
@@ -108,12 +112,16 @@ export function CartItemCard({ item, onCloseCart }: CartItemProps) {
               </span>
             )}
           </Link>
-          <p className="2xl:text-lg font-semibold">
-            {formatPrice(
-              item.cost.totalAmount.amount,
-              item.cost.totalAmount.currencyCode,
+          <div className="flex flex-col">
+            <span className="2xl:text-lg font-semibold">
+              {formatPrice(displayAmount, item.cost.totalAmount.currencyCode)}
+            </span>
+            {showExclVat && (
+              <span className="text-[10px] font-normal text-muted-foreground">
+                exkl. moms
+              </span>
             )}
-          </p>
+          </div>
           <div className="flex justify-between items-end mt-auto">
             <div className="flex h-8 flex-row items-center rounded-md border border-neutral-200">
               <EditItemQuantityButton item={item} type="minus" />

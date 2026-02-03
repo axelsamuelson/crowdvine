@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import {
@@ -11,15 +11,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calculator, TrendingUp, Store } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calculator, ChevronDown } from "lucide-react";
 import { calculateSystembolagetPrice } from "@/lib/systembolaget-pricing";
 
 interface PricingData {
@@ -40,7 +41,8 @@ export function PricingCalculator({
   onPricingChange,
 }: PricingCalculatorProps) {
   const [currentRate, setCurrentRate] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loadingRate, setLoadingRate] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
 
   const currencies = [
     { code: "EUR", name: "Euro (EUR)" },
@@ -59,7 +61,7 @@ export function PricingCalculator({
   const fetchCurrentRate = async (currency: string) => {
     if (currency === "SEK") return;
 
-    setLoading(true);
+    setLoadingRate(true);
     try {
       const response = await fetch(
         `/api/exchange-rates?from=${currency}&to=SEK`,
@@ -69,7 +71,7 @@ export function PricingCalculator({
     } catch (error) {
       console.error("Failed to fetch exchange rate:", error);
     } finally {
-      setLoading(false);
+      setLoadingRate(false);
     }
   };
 
@@ -79,77 +81,76 @@ export function PricingCalculator({
     }
   }, [pricingData.cost_currency]);
 
-  const calculatePriceBreakdown = () => {
+  const breakdown = useMemo(() => {
     const exchangeRate =
       pricingData.cost_currency === "SEK" ? 1 : currentRate || 1;
+    const alcoholTaxInSek = 22.19;
+    const costAmountInSek = (pricingData.cost_amount || 0) * exchangeRate;
+    const costInSek = costAmountInSek + alcoholTaxInSek;
 
-    // Calculate inclusive cost (C): cost_amount + alcohol_tax converted to SEK
-    const costAmountInSek = pricingData.cost_amount * exchangeRate;
-    const alcoholTaxInSek = 22.19; // Fixed SEK 22.19 per bottle
-    const costInSek = costAmountInSek + alcoholTaxInSek; // C = Cost including alcohol tax, ex VAT
+    const marginDecimal = (pricingData.margin_percentage || 0) / 100;
+    const denom = 1 - marginDecimal;
+    const vatRate = pricingData.price_includes_vat ? 0.25 : 0;
 
-    // Gross margin as decimal (e.g., 10% = 0.10)
-    const marginDecimal = pricingData.margin_percentage / 100; // M
+    const isValid = denom > 0;
+    const priceExVat = isValid ? costInSek / denom : 0;
+    const finalPrice = isValid ? priceExVat * (1 + vatRate) : 0;
+    const finalPriceCents = Math.round(finalPrice * 100);
+    // Profit should be calculated ex VAT (otherwise VAT looks like profit).
+    const netProfitSek = Math.max(0, priceExVat - costInSek);
+    const vatAmountSek = Math.max(0, finalPrice - priceExVat);
 
-    // VAT rate as decimal (Sweden = 25% = 0.25)
-    const vatRate = pricingData.price_includes_vat ? 0.25 : 0; // V
-
-    // Step 1: Price ex VAT using gross margin formula: P = C / (1 - M)
-    const priceExVat = costInSek / (1 - marginDecimal); // P
-
-    // Step 2: Final price incl VAT: F = P × (1 + V)
-    const finalPrice = priceExVat * (1 + vatRate); // F
-
-    // Calculate our margin in SEK
-    const ourMarginSek = finalPrice - costInSek;
-
-    // Calculate Systembolaget price using same gross margin formula (they use ~14.7% margin)
-    const sbMarginDecimal = 0.147;
-    const sbPriceExVat = costInSek / (1 - sbMarginDecimal);
-    const sbPrice = sbPriceExVat * 1.25; // Systembolaget includes VAT
-
-    // Calculate what margin percentage this becomes of our final price
-    const effectiveMarginPercent =
-      ((finalPrice - costInSek) / finalPrice) * 100;
+    const sbPrice = calculateSystembolagetPrice(
+      pricingData.cost_amount || 0,
+      exchangeRate,
+      2219,
+    );
 
     return {
-      costInSek: costInSek.toFixed(2),
-      costAmountInSek: costAmountInSek.toFixed(2),
-      alcoholTaxInSek: alcoholTaxInSek.toFixed(2),
-      priceExVat: priceExVat.toFixed(2),
-      finalPrice: finalPrice.toFixed(2),
-      finalPriceCents: Math.round(finalPrice * 100), // Round to nearest whole number
-      sbPrice: sbPrice.toFixed(2),
-      ourMarginSek: ourMarginSek.toFixed(2),
-      effectiveMarginPercent: effectiveMarginPercent.toFixed(1),
-      priceDifference: (sbPrice - finalPrice).toFixed(2),
-      priceDifferencePercent: (
-        ((sbPrice - finalPrice) / finalPrice) *
-        100
-      ).toFixed(1),
-      exchangeRateUsed: exchangeRate.toFixed(4),
+      isValid,
+      exchangeRate,
+      alcoholTaxInSek,
+      costAmountInSek,
+      costInSek,
+      priceExVat,
+      finalPrice,
+      finalPriceCents,
+      netProfitSek,
+      vatAmountSek,
+      sbPrice,
     };
-  };
+  }, [
+    pricingData.cost_amount,
+    pricingData.cost_currency,
+    pricingData.margin_percentage,
+    pricingData.price_includes_vat,
+    currentRate,
+  ]);
 
-  const breakdown = calculatePriceBreakdown();
+  // Keep parent in sync with computed final price (avoid infinite loops)
+  useEffect(() => {
+    if (!breakdown.isValid) return;
+    if (pricingData.calculated_price_cents === breakdown.finalPriceCents) return;
+    onPricingChange({
+      ...pricingData,
+      calculated_price_cents: breakdown.finalPriceCents,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [breakdown.finalPriceCents, breakdown.isValid]);
 
   return (
-    <Card>
+    <Card className="p-0 bg-white border border-gray-200 rounded-2xl">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Calculator className="h-5 w-5" />
-          Pricing Calculator
+        <CardTitle className="flex items-center gap-2 text-xl font-medium text-gray-900">
+          <Calculator className="h-5 w-5 text-gray-500" />
+          Pricing
         </CardTitle>
-        <CardDescription>
-          Simple pricing with automatic exchange rates and transparent
-          calculations
-        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Cost Configuration */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="cost_currency">Cost Currency</Label>
+        {/* Inputs */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="space-y-2 md:col-span-1">
+            <Label htmlFor="cost_currency">Cost currency</Label>
             <Select
               value={pricingData.cost_currency}
               onValueChange={(value) => {
@@ -157,25 +158,26 @@ export function PricingCalculator({
                 fetchCurrentRate(value);
               }}
             >
-              <SelectTrigger>
+              <SelectTrigger className="bg-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {currencies.map((currency) => (
                   <SelectItem key={currency.code} value={currency.code}>
-                    {currency.name}
+                    {currency.code}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="cost_amount">Cost Amount</Label>
+          <div className="space-y-2 md:col-span-1">
+            <Label htmlFor="cost_amount">Cost amount</Label>
             <Input
               id="cost_amount"
               type="number"
               step="0.01"
+              className="no-spinner bg-white"
               value={pricingData.cost_amount}
               onChange={(e) =>
                 updatePricingData(
@@ -186,169 +188,148 @@ export function PricingCalculator({
               placeholder="7.00"
             />
           </div>
-        </div>
 
-        {/* Exchange Rate Info */}
-        {pricingData.cost_currency !== "SEK" && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-blue-600" />
-              <Label>Current Exchange Rate</Label>
-            </div>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-blue-800">
-                  1 {pricingData.cost_currency} = {breakdown.exchangeRateUsed}{" "}
-                  SEK
-                </span>
-                {loading && (
-                  <div className="text-xs text-blue-600">Updating...</div>
-                )}
-              </div>
-              <p className="text-xs text-blue-600 mt-1">
-                Automatically fetched from live currency API
-              </p>
+          <div className="space-y-2 md:col-span-1">
+            <Label htmlFor="margin_percentage">Margin %</Label>
+            <Input
+              id="margin_percentage"
+              type="number"
+              step="0.1"
+              className="no-spinner bg-white"
+              value={pricingData.margin_percentage}
+              onChange={(e) =>
+                updatePricingData(
+                  "margin_percentage",
+                  parseFloat(e.target.value) || 0,
+                )
+              }
+              placeholder="10.0"
+            />
+          </div>
+
+          <div className="flex items-end gap-2 md:col-span-1">
+            <div className="flex items-center gap-2 h-10">
+              <Switch
+                id="price_includes_vat"
+                checked={pricingData.price_includes_vat}
+                onCheckedChange={(checked) =>
+                  updatePricingData("price_includes_vat", checked)
+                }
+              />
+              <Label htmlFor="price_includes_vat" className="text-sm">
+                VAT (25%)
+              </Label>
             </div>
           </div>
-        )}
-
-        {/* Margin Configuration */}
-        <div className="space-y-2">
-          <Label htmlFor="margin_percentage">Margin Percentage (%) </Label>
-          <Input
-            id="margin_percentage"
-            type="number"
-            step="0.1"
-            value={pricingData.margin_percentage}
-            onChange={(e) =>
-              updatePricingData(
-                "margin_percentage",
-                parseFloat(e.target.value) || 0,
-              )
-            }
-            placeholder="10.0"
-          />
-          <p className="text-xs text-gray-500">
-            Alcohol tax (22.19 SEK per bottle) is automatically added
-          </p>
         </div>
 
-        {/* VAT Configuration */}
-        <div className="flex items-center space-x-2">
-          <Switch
-            id="price_includes_vat"
-            checked={pricingData.price_includes_vat}
-            onCheckedChange={(checked) =>
-              updatePricingData("price_includes_vat", checked)
-            }
-          />
-          <Label htmlFor="price_includes_vat">Price includes VAT (25%)</Label>
-        </div>
-
-        {/* Price Breakdown */}
-        <div className="bg-gray-50 rounded-lg p-4 space-y-4">
-          <h4 className="font-semibold text-gray-900 flex items-center gap-2">
-            <Store />
-            Gross Margin Price Breakdown
-          </h4>
-
-          {/* Cost Structure */}
-          <div className="bg-white rounded-lg p-3 border border-gray-200">
-            <h5 className="font-medium text-gray-900 mb-3">
-              Cost Structure (ex VAT)
-            </h5>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">
-                  Wine cost ({pricingData.cost_currency}):
-                </span>
-                <span className="font-medium">
-                  {breakdown.costAmountInSek} SEK
-                </span>
+        {/* Summary */}
+        <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <div className="text-sm text-gray-500">Final price</div>
+              <div className="text-2xl font-semibold text-gray-900">
+                {(breakdown.finalPriceCents / 100).toFixed(2)} SEK
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Alcohol tax:</span>
-                <span className="font-medium">
-                  {breakdown.alcoholTaxInSek} SEK
-                </span>
+              {!breakdown.isValid && (
+                <div className="text-sm text-red-600 mt-1">
+                  Margin must be less than 100%.
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+              <div className="text-gray-500">Total cost</div>
+              <div className="text-right font-medium text-gray-900">
+                {breakdown.costInSek.toFixed(2)} SEK
               </div>
-              <div className="flex justify-between border-t pt-2">
-                <span className="text-gray-800 font-medium">
-                  Total cost (C):
-                </span>
-                <span className="font-semibold">{breakdown.costInSek} SEK</span>
+              <div className="text-gray-500">VAT amount</div>
+              <div className="text-right font-medium text-gray-900">
+                {pricingData.price_includes_vat
+                  ? `${breakdown.vatAmountSek.toFixed(2)} SEK`
+                  : "—"}
+              </div>
+              <div className="text-gray-500">Net profit (ex VAT)</div>
+              <div className="text-right font-medium text-gray-900">
+                {breakdown.netProfitSek.toFixed(2)} SEK
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Results */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Price ex VAT (P):</span>
-                <span className="font-semibold">
-                  {breakdown.priceExVat} SEK
-                </span>
-              </div>
-              {pricingData.price_includes_vat && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600">
-                    Final price inc VAT (F):
-                  </span>
-                  <span className="font-bold text-lg">
-                    {breakdown.finalPrice} SEK
+        <Separator className="bg-gray-200" />
+
+        {/* Details */}
+        <Collapsible open={showDetails} onOpenChange={setShowDetails}>
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-500">
+              Exchange rates, taxes & reference pricing
+            </div>
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" className="rounded-full">
+                Details
+                <ChevronDown
+                  className={`ml-2 h-4 w-4 transition-transform ${
+                    showDetails ? "rotate-180" : ""
+                  }`}
+                />
+              </Button>
+            </CollapsibleTrigger>
+          </div>
+
+          <CollapsibleContent className="mt-4">
+            <div className="rounded-2xl border border-gray-200 bg-white p-4 space-y-3 text-sm">
+              {pricingData.cost_currency !== "SEK" && (
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-500">Exchange rate</span>
+                  <span className="font-medium text-gray-900">
+                    1 {pricingData.cost_currency} ={" "}
+                    {breakdown.exchangeRate.toFixed(4)} SEK{" "}
+                    {loadingRate ? (
+                      <span className="text-gray-400">(updating)</span>
+                    ) : null}
                   </span>
                 </div>
               )}
-              <div className="flex justify-between">
-                <span className="text-gray-600">Effective margin:</span>
-                <span className="font-medium text-green-600">
-                  {breakdown.effectiveMarginPercent}%
-                </span>
-              </div>
-            </div>
 
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Systembolaget price:</span>
-                <span className="font-medium">{breakdown.sbPrice} SEK</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Our margin (SEK):</span>
-                <span className="font-medium text-green-600">
-                  {breakdown.ourMarginSek} SEK
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">Wine cost (SEK)</span>
+                <span className="font-medium text-gray-900">
+                  {breakdown.costAmountInSek.toFixed(2)} SEK
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Price difference:</span>
-                <span
-                  className={`font-medium ${
-                    parseFloat(breakdown.priceDifference) < 0
-                      ? "text-red-600"
-                      : "text-green-600"
-                  }`}
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">Alcohol tax</span>
+                <span className="font-medium text-gray-900">
+                  {breakdown.alcoholTaxInSek.toFixed(2)} SEK
+                </span>
+              </div>
+
+              <Separator className="bg-gray-200" />
+
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">Price ex VAT</span>
+                <span className="font-medium text-gray-900">
+                  {breakdown.priceExVat.toFixed(2)} SEK
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">Net profit (ex VAT)</span>
+                <span className="font-medium text-gray-900">
+                  {breakdown.netProfitSek.toFixed(2)} SEK
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">Systembolaget (reference)</span>
+                <Badge
+                  variant="secondary"
+                  className="bg-gray-100 text-gray-900"
                 >
-                  {breakdown.priceDifference} SEK (
-                  {breakdown.priceDifferencePercent}%)
-                </span>
+                  {Number(breakdown.sbPrice).toFixed(2)} SEK
+                </Badge>
               </div>
             </div>
-          </div>
-
-          <div className="pt-2 border-t border-gray-200">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-700">
-                Final Price (rounded):
-              </span>
-              <Badge
-                variant="secondary"
-                className="bg-gray-100 text-gray-900 font-semibold"
-              >
-                {breakdown.finalPriceCents / 100} SEK
-              </Badge>
-            </div>
-          </div>
-        </div>
+          </CollapsibleContent>
+        </Collapsible>
       </CardContent>
     </Card>
   );

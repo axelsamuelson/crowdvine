@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { Product, Collection } from "@/lib/shopify/types";
 import { ProductCard } from "./product-card";
 import ResultsControls from "./results-controls";
@@ -8,9 +8,6 @@ import { useProducts } from "../providers/products-provider";
 import { useQueryState, parseAsArrayOf, parseAsString } from "nuqs";
 import { ProductGrid } from "./product-grid";
 import { Card } from "../../../components/ui/card";
-import { useCart } from "@/components/cart/cart-context";
-import { ProducerValidation } from "@/lib/checkout-validation";
-import { X } from "lucide-react";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 
 interface ProductListContentProps {
@@ -87,6 +84,43 @@ function filterProductsByColors(
   return filteredProducts;
 }
 
+function filterProductsByGrapes(products: Product[], grapes: string[]): Product[] {
+  if (!grapes || grapes.length === 0) return products;
+
+  const wanted = new Set(grapes.map((g) => g.toLowerCase()));
+  return products.filter((product) => {
+    // Prefer explicit "Grape Varieties" option if present
+    const opt = product.options?.find((o: any) =>
+      String(o?.name || "").toLowerCase().includes("grape"),
+    );
+    if (opt?.values?.length) {
+      return opt.values.some((v: any) => {
+        const name = typeof v === "string" ? v : v?.name;
+        return name && wanted.has(String(name).toLowerCase());
+      });
+    }
+
+    // Fallback: variant selected options
+    if (product.variants?.length) {
+      return product.variants.some((variant: any) => {
+        return (variant?.selectedOptions || []).some((so: any) => {
+          const n = String(so?.name || "").toLowerCase();
+          if (!n.includes("grape")) return false;
+          const value = String(so?.value || "").toLowerCase();
+          return wanted.has(value);
+        });
+      });
+    }
+
+    // Last fallback: tags
+    if (product.tags?.length) {
+      return product.tags.some((t) => wanted.has(String(t || "").toLowerCase()));
+    }
+
+    return false;
+  });
+}
+
 export function ProductListContent({
   products,
   collections,
@@ -94,9 +128,6 @@ export function ProductListContent({
   collectionHandle,
 }: ProductListContentProps & { collectionHandle?: string }) {
   const { setProducts, setOriginalProducts } = useProducts();
-  const { cart } = useCart();
-  const [validations, setValidations] = useState<ProducerValidation[]>([]);
-  const [isHidden, setIsHidden] = useState(false);
 
   // Get current color filters from URL
   const [colorFilters] = useQueryState(
@@ -104,82 +135,18 @@ export function ProductListContent({
     parseAsArrayOf(parseAsString).withDefault([]),
   );
 
-  // Fetch validation data for cart producers
-  useEffect(() => {
-    const fetchValidations = async () => {
-      if (!cart || cart.lines.length === 0) {
-        setValidations([]);
-        return;
-      }
+  const [grapeFilters] = useQueryState(
+    "fgrape",
+    parseAsArrayOf(parseAsString).withDefault([]),
+  );
 
-      try {
-        const response = await fetch("/api/cart/validate", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ cart }),
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          console.log("Validation result:", result); // Debug log
-          console.log("All producerValidations:", result.producerValidations); // Debug log
-          console.log("Selected producers:", selectedProducers); // Debug log
-
-          // If we have selectedProducers (from URL), filter to only those
-          // Otherwise, show all producers with validation errors
-          const relevantValidations =
-            selectedProducers.length > 0
-              ? result.producerValidations?.filter((v: ProducerValidation) =>
-                  selectedProducers.includes(v.producerHandle || ""),
-                ) || []
-              : result.producerValidations?.filter(
-                  (v: ProducerValidation) => !v.isValid,
-                ) || [];
-
-          console.log("Relevant validations:", relevantValidations); // Debug log
-
-          // Debug: Check if filtering is working
-          result.producerValidations?.forEach(
-            (v: ProducerValidation, index: number) => {
-              console.log(`All validation ${index}:`, {
-                producerHandle: v.producerHandle,
-                current: v.current,
-                required: v.required,
-                groupId: v.groupId,
-                isSelected: selectedProducers.includes(v.producerHandle || ""),
-                isValid: v.isValid,
-              });
-            },
-          );
-
-          relevantValidations.forEach((v, index) => {
-            console.log(`Relevant validation ${index}:`, {
-              producerHandle: v.producerHandle,
-              current: v.current,
-              required: v.required,
-              groupId: v.groupId,
-            });
-          });
-          setValidations(relevantValidations);
-        }
-      } catch (error) {
-        console.error("Failed to fetch validations:", error);
-        setValidations([]);
-      }
-    };
-
-    fetchValidations();
-  }, [cart, selectedProducers]);
-
-  // Apply client-side filtering whenever products or color filters change
+  // Apply client-side filtering whenever products or filters change
   const filteredProducts = useMemo(() => {
-    if (!colorFilters || colorFilters.length === 0) {
-      return products;
-    }
-    return filterProductsByColors(products, colorFilters);
-  }, [products, colorFilters]);
+    let out = products;
+    if (colorFilters?.length) out = filterProductsByColors(out, colorFilters);
+    if (grapeFilters?.length) out = filterProductsByGrapes(out, grapeFilters);
+    return out;
+  }, [products, colorFilters, grapeFilters]);
 
   // Set both original and filtered products in the provider whenever they change
   useEffect(() => {
@@ -191,6 +158,18 @@ export function ProductListContent({
   useEffect(() => {
     // Check if viewing a collection (producer filter)
     const isCollectionPage = !!collectionHandle && collectionHandle !== 'joyco-root' && collectionHandle !== 'all-wines';
+
+    // For PLP/PDP analytics by dimension (wine/producer), we attach the products shown in this list view.
+    // Keep payload bounded to avoid huge JSON in `event_metadata`.
+    const shownProducts = filteredProducts.slice(0, 200);
+    const productIds = shownProducts.map((p) => p.id);
+    const producerIds = Array.from(
+      new Set(
+        shownProducts
+          .map((p: any) => p.producerId as string | undefined)
+          .filter(Boolean),
+      ),
+    );
     
     AnalyticsTracker.trackEvent({
       eventType: "product_list_viewed",
@@ -198,118 +177,17 @@ export function ProductListContent({
       metadata: { 
         productCount: filteredProducts.length,
         totalProducts: products.length,
-        hasFilters: colorFilters.length > 0 || selectedProducers.length > 0 || isCollectionPage,
+        hasFilters: colorFilters.length > 0 || grapeFilters.length > 0 || selectedProducers.length > 0 || isCollectionPage,
         collectionHandle: collectionHandle,
-        isCollectionPage: isCollectionPage
+        isCollectionPage: isCollectionPage,
+        productIds,
+        producerIds,
       }
     });
-  }, [filteredProducts.length, products.length, colorFilters.length, selectedProducers.length, collectionHandle]);
+  }, [filteredProducts.length, products.length, colorFilters.length, grapeFilters.length, selectedProducers.length, collectionHandle]);
 
   return (
     <>
-      {validations.length > 0 && !isHidden && (
-        <>
-          {/* Sticky compact progress indicator */}
-          <div className="fixed top-16 right-4 z-50 max-w-xs">
-            <div className="p-3 bg-background/95 backdrop-blur-md border border-foreground/[0.08] rounded-xl shadow-lg">
-              <div className="space-y-2">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-medium text-foreground/80 tracking-wide">
-                    Complete Order
-                  </h4>
-                  <button
-                    onClick={() => setIsHidden(true)}
-                    className="p-2 text-muted-foreground/50 hover:text-muted-foreground/70 hover:bg-muted-foreground/10 transition-colors pointer-events-auto rounded relative z-50"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {/* Compact progress bars */}
-                <div className="space-y-1.5">
-                  {validations.slice(0, 2).map((validation) => {
-                    const collection = collections.find(
-                      (c) => c.handle === validation.producerHandle,
-                    );
-                    const current = validation?.quantity || 0;
-                    const required =
-                      (validation?.quantity || 0) + (validation?.needed || 0);
-                    const progress =
-                      required > 0
-                        ? Math.min((current / required) * 100, 100)
-                        : 0;
-                    const remaining = validation?.needed || 0;
-
-                    // Debug log for progress bar rendering
-                    console.log(
-                      `Progress bar for ${validation.producerHandle}:`,
-                      {
-                        validation,
-                        current,
-                        required,
-                        progress,
-                        remaining,
-                        quantity: validation?.quantity,
-                        needed: validation?.needed,
-                      },
-                    );
-
-                    return (
-                      <div
-                        key={validation.producerHandle}
-                        className="space-y-1"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-foreground/70 truncate max-w-[120px]">
-                            {collection?.title || validation.producerHandle}
-                          </span>
-                          <span className="text-xs text-muted-foreground/60">
-                            {current}/{required}
-                          </span>
-                        </div>
-                        <div className="relative h-1 bg-foreground/[0.06] rounded-full overflow-hidden">
-                          <div
-                            className="absolute inset-y-0 left-0 bg-gradient-to-r from-foreground/30 to-foreground/40 rounded-full transition-all duration-500 ease-out"
-                            style={{ width: `${progress}%` }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {/* Show "and X more" if there are more than 2 producers */}
-                  {validations.length > 2 && (
-                    <div className="text-xs text-muted-foreground/50 text-center pt-1">
-                      +{validations.length - 2} more
-                    </div>
-                  )}
-                </div>
-
-                {/* Status summary */}
-                <div className="pt-1 border-t border-foreground/[0.04]">
-                </div>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Show button when hidden */}
-      {validations.length > 0 && isHidden && (
-        <div className="fixed top-16 right-4 z-50">
-          <button
-            onClick={() => setIsHidden(false)}
-            className="p-2.5 bg-background/95 backdrop-blur-md border border-foreground/[0.08] rounded-lg shadow-lg text-muted-foreground/60 hover:text-muted-foreground/80 transition-colors relative z-50"
-            title="Show order progress"
-          >
-            <div className="w-4 h-4 border border-current rounded-full flex items-center justify-center">
-              <span className="text-xs font-medium">!</span>
-            </div>
-          </button>
-        </div>
-      )}
-
       <ResultsControls
         className="max-md:hidden"
         collections={collections}

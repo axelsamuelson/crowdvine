@@ -48,7 +48,7 @@ export async function GET(request: Request) {
         `
         )
         .eq("pallet_id", palletId)
-        .in("status", ["placed", "pending_payment", "confirmed"]);
+        .in("status", ["placed", "approved", "partly_approved", "pending_payment", "confirmed"]);
 
       if (reservationsError) {
         console.error("Error fetching reservations:", reservationsError);
@@ -148,7 +148,7 @@ export async function GET(request: Request) {
             `
             )
             .eq("pallet_id", pallet.id)
-            .in("status", ["placed", "pending_payment", "confirmed"]);
+            .in("status", ["placed", "approved", "partly_approved", "pending_payment", "confirmed"]);
 
           const producerBottles: Record<string, number> = {};
           let totalBottles = 0;

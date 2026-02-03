@@ -9,6 +9,10 @@ export function useFilterCount() {
     "fcolor",
     parseAsArrayOf(parseAsString).withDefault([]),
   );
+  const [grapes] = useQueryState(
+    "fgrape",
+    parseAsArrayOf(parseAsString).withDefault([]),
+  );
 
   // Count active filters
   let count = 0;
@@ -16,6 +20,11 @@ export function useFilterCount() {
   // Count color filters
   if (color.length > 0) {
     count += color.length;
+  }
+
+  // Count grape filters
+  if (grapes.length > 0) {
+    count += grapes.length;
   }
 
   // Count collection filter (if not on "all" products)
@@ -41,4 +50,12 @@ export function useColorFilterCount() {
 
   // Return the number of selected color filters
   return color.length;
+}
+
+export function useGrapeFilterCount() {
+  const [grapes] = useQueryState(
+    "fgrape",
+    parseAsArrayOf(parseAsString).withDefault([]),
+  );
+  return grapes.length;
 }

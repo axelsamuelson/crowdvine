@@ -56,10 +56,10 @@ export function LogoSvg({ className }: { className?: string }) {
         setHeaderLogo(logoValue);
         setLoading(false);
 
-        // Preload bilden för nästa gång
+        // Preload bilden för nästa gång med cache-busting
         if (logoValue && !hasPreloaded) {
           const img = new Image();
-          img.src = logoValue;
+          img.src = `${logoValue}${logoValue.includes('?') ? '&' : '?'}v=${Date.now()}`;
           hasPreloaded = true;
         }
       })
@@ -109,14 +109,20 @@ export function LogoSvg({ className }: { className?: string }) {
 
   // Om det finns en uppladdad logga, visa den
   if (headerLogo) {
+    // Lägg till cache-busting query parameter baserat på timestamp från cache
+    const logoUrlWithCacheBust = logoCache 
+      ? `${headerLogo}${headerLogo.includes('?') ? '&' : '?'}v=${logoCache.timestamp}`
+      : `${headerLogo}${headerLogo.includes('?') ? '&' : '?'}v=${Date.now()}`;
+    
     return (
       <img
-        src={headerLogo}
+        src={logoUrlWithCacheBust}
         alt="CrowdVine Logo"
         className={className}
         style={{ objectFit: "contain" }}
         loading="eager" // Ladda direkt
         fetchPriority="high" // Hög prioritet
+        key={logoUrlWithCacheBust} // Force re-render när URL ändras
       />
     );
   }

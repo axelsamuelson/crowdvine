@@ -9,7 +9,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { Button } from "../ui/button";
 import { Loader } from "../ui/loader";
 import { CartItemCard } from "./cart-item";
-import { formatPrice } from "@/lib/shopify/utils";
+import { formatPrice, priceExclVat } from "@/lib/shopify/utils";
+import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { useBodyScrollLock } from "@/lib/hooks/use-body-scroll-lock";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -38,6 +39,9 @@ const CartItems = ({
   isValidating: boolean;
 }) => {
   const { cart } = useCart();
+  const showExclVat = useB2BPriceMode();
+  const totalAmount = cart ? parseFloat(cart.cost.totalAmount.amount) : 0;
+  const displayTotal = showExclVat ? priceExclVat(totalAmount) : totalAmount;
 
   if (!cart) return <></>;
 
@@ -84,12 +88,16 @@ const CartItems = ({
           </div>
           <div className="flex justify-between items-center pt-1 pb-1 mb-1.5 text-lg font-semibold">
             <p>Total</p>
-            <p className="text-base text-right text-foreground">
-              {formatPrice(
-                cart.cost.totalAmount.amount,
-                cart.cost.totalAmount.currencyCode,
+            <div className="text-right">
+              <span className="text-base text-foreground block">
+                {formatPrice(displayTotal, cart.cost.totalAmount.currencyCode)}
+              </span>
+              {showExclVat && (
+                <span className="text-[10px] font-normal text-muted-foreground">
+                  exkl. moms
+                </span>
               )}
-            </p>
+            </div>
           </div>
         </div>
         <CheckoutButton

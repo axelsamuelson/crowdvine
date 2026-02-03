@@ -38,6 +38,9 @@ export interface Wine {
   // Description fields
   description?: string;
   description_html?: string;
+  // B2B
+  b2b_price_cents?: number | null;
+  b2b_stock?: number | null;
 }
 
 export interface CreateWineData {
@@ -62,46 +65,94 @@ export interface CreateWineData {
   // Description fields
   description?: string;
   description_html?: string;
+  // B2B
+  b2b_price_cents?: number | null;
+  b2b_stock?: number | null;
+}
+
+const WINES_SELECT_FULL = `
+  id,
+  handle,
+  wine_name,
+  vintage,
+  grape_varieties,
+  color,
+  label_image_path,
+  base_price_cents,
+  producer_id,
+  cost_currency,
+  cost_amount,
+  alcohol_tax_cents,
+  price_includes_vat,
+  margin_percentage,
+  calculated_price_cents,
+  supplier_price,
+  sb_price,
+  volume_liters,
+  description,
+  description_html,
+  b2b_price_cents,
+  b2b_stock,
+  created_at,
+  updated_at
+`;
+
+const WINES_SELECT_WITHOUT_B2B = `
+  id,
+  handle,
+  wine_name,
+  vintage,
+  grape_varieties,
+  color,
+  label_image_path,
+  base_price_cents,
+  producer_id,
+  cost_currency,
+  cost_amount,
+  alcohol_tax_cents,
+  price_includes_vat,
+  margin_percentage,
+  calculated_price_cents,
+  supplier_price,
+  sb_price,
+  volume_liters,
+  description,
+  description_html,
+  created_at,
+  updated_at
+`;
+
+function isB2BColumnMissingError(error: { message?: string } | null): boolean {
+  const msg = error?.message ?? "";
+  return /b2b_price_cents|b2b_stock|column.*does not exist/i.test(msg);
 }
 
 export async function getWines() {
   const sb = await supabaseServer();
 
-  // Get all wines
-  const { data: wines, error } = await sb
+  let { data: wines, error } = await sb
     .from("wines")
-    .select(
-      `
-      id,
-      handle,
-      wine_name,
-      vintage,
-      grape_varieties,
-      color,
-      label_image_path,
-      base_price_cents,
-      producer_id,
-      cost_currency,
-      cost_amount,
-      alcohol_tax_cents,
-      price_includes_vat,
-      margin_percentage,
-      calculated_price_cents,
-      supplier_price,
-      sb_price,
-      volume_liters,
-      description,
-      description_html,
-      created_at,
-      updated_at
-    `,
-    )
+    .select(WINES_SELECT_FULL)
     .order("wine_name");
 
-  if (error) throw new Error(error.message);
+  if (error && isB2BColumnMissingError(error)) {
+    const fallback = await sb
+      .from("wines")
+      .select(WINES_SELECT_WITHOUT_B2B)
+      .order("wine_name");
+    if (fallback.error) throw new Error(fallback.error.message);
+    wines = (fallback.data ?? []).map((w: any) => ({
+      ...w,
+      b2b_price_cents: null,
+      b2b_stock: null,
+    }));
+  } else if (error) {
+    throw new Error(error.message);
+  }
 
+  const wineList = wines ?? [];
   // Get all producers for the wines
-  const producerIds = [...new Set(wines.map((wine) => wine.producer_id))];
+  const producerIds = [...new Set(wineList.map((wine) => wine.producer_id))];
   const { data: producers } = await sb
     .from("producers")
     .select("id, name")
@@ -111,7 +162,7 @@ export async function getWines() {
   const producerMap = new Map(producers?.map((p) => [p.id, p]) || []);
 
   // Combine wines with their producers
-  const winesWithProducers = wines.map((wine) => ({
+  const winesWithProducers = wineList.map((wine) => ({
     ...wine,
     producer: producerMap.get(wine.producer_id),
   }));
@@ -122,39 +173,25 @@ export async function getWines() {
 export async function getWine(id: string) {
   const sb = await supabaseServer();
 
-  // First get the wine
-  const { data: wine, error } = await sb
+  let { data: wine, error } = await sb
     .from("wines")
-    .select(
-      `
-      id,
-      handle,
-      wine_name,
-      vintage,
-      grape_varieties,
-      color,
-      label_image_path,
-      base_price_cents,
-      producer_id,
-      cost_currency,
-      cost_amount,
-      alcohol_tax_cents,
-      price_includes_vat,
-      margin_percentage,
-      calculated_price_cents,
-      supplier_price,
-      sb_price,
-      volume_liters,
-      description,
-      description_html,
-      created_at,
-      updated_at
-    `,
-    )
+    .select(WINES_SELECT_FULL)
     .eq("id", id)
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error && isB2BColumnMissingError(error)) {
+    const fallback = await sb
+      .from("wines")
+      .select(WINES_SELECT_WITHOUT_B2B)
+      .eq("id", id)
+      .single();
+    if (fallback.error) throw new Error(fallback.error.message);
+    wine = fallback.data ? { ...fallback.data, b2b_price_cents: null, b2b_stock: null } : null;
+  } else if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!wine) throw new Error("Wine not found");
 
   // Then get the producer information separately
   const { data: producer } = await sb
@@ -231,7 +268,7 @@ export async function createWine(data: CreateWineData) {
   }
 
   // Prepare insert data - only include simplified pricing fields
-  const insertData = {
+  const insertData: Record<string, unknown> = {
     handle: data.handle,
     wine_name: data.wine_name,
     vintage: data.vintage,
@@ -240,55 +277,35 @@ export async function createWine(data: CreateWineData) {
     label_image_path: data.label_image_path,
     base_price_cents: finalPriceCents,
     producer_id: data.producer_id,
-    // Simplified pricing fields
     cost_currency: data.cost_currency,
     cost_amount: data.cost_amount,
-    alcohol_tax_cents: 2219, // Fixed 22.19 SEK = 2219 cents
+    alcohol_tax_cents: 2219,
     price_includes_vat: data.price_includes_vat,
     margin_percentage: data.margin_percentage,
-    // Systembolaget fields
     calculated_price_cents: finalPriceCents,
     supplier_price: data.supplier_price,
     sb_price: calculatedSbPrice,
     volume_liters: data.volume_liters,
-    // Description fields
     description: data.description,
     description_html: data.description_html,
+    b2b_price_cents: data.b2b_price_cents ?? null,
+    b2b_stock: data.b2b_stock ?? null,
   };
 
-  // First create the wine
-  const { data: wine, error } = await sb
-    .from("wines")
-    .insert(insertData)
-    .select(
-      `
-      id,
-      handle,
-      wine_name,
-      vintage,
-      grape_varieties,
-      color,
-      label_image_path,
-      base_price_cents,
-      producer_id,
-      cost_currency,
-      cost_amount,
-      alcohol_tax_cents,
-      price_includes_vat,
-      margin_percentage,
-      calculated_price_cents,
-      supplier_price,
-      sb_price,
-      volume_liters,
-      description,
-      description_html,
-      created_at,
-      updated_at
-    `,
-    )
-    .single();
+  let result = await sb.from("wines").insert(insertData).select(WINES_SELECT_FULL).single();
 
-  if (error) throw new Error(error.message);
+  if (result.error && isB2BColumnMissingError(result.error)) {
+    const { b2b_price_cents: _b2bP, b2b_stock: _b2bS, ...insertWithoutB2B } = insertData;
+    result = await sb.from("wines").insert(insertWithoutB2B).select(WINES_SELECT_WITHOUT_B2B).single();
+    if (result.error) throw new Error(result.error.message);
+    if (result.data)
+      result.data = { ...result.data, b2b_price_cents: null, b2b_stock: null } as typeof result.data;
+  } else if (result.error) {
+    throw new Error(result.error.message);
+  }
+
+  const wine = result.data;
+  if (!wine) throw new Error("Failed to create wine");
 
   // Then get the producer information separately
   const { data: producer } = await sb
@@ -303,6 +320,8 @@ export async function createWine(data: CreateWineData) {
   };
 
   revalidatePath("/admin/wines");
+  revalidatePath("/producer/wines");
+  revalidatePath("/producer");
   return wineWithProducer;
 }
 
@@ -333,6 +352,10 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
   if (data.description !== undefined) updateData.description = data.description;
   if (data.description_html !== undefined)
     updateData.description_html = data.description_html;
+  if (data.b2b_price_cents !== undefined)
+    updateData.b2b_price_cents = data.b2b_price_cents;
+  if (data.b2b_stock !== undefined)
+    updateData.b2b_stock = data.b2b_stock;
   if (data.supplier_price !== undefined)
     updateData.supplier_price = data.supplier_price;
   if (data.volume_liters !== undefined)
@@ -439,40 +462,34 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
   }
 
   // Update wine
-  const { data: wine, error } = await sb
+  let updateResult = await sb
     .from("wines")
     .update(updateData)
     .eq("id", id)
-    .select(
-      `
-      id,
-      handle,
-      wine_name,
-      vintage,
-      grape_varieties,
-      color,
-      label_image_path,
-      base_price_cents,
-      producer_id,
-      cost_currency,
-      cost_amount,
-      alcohol_tax_cents,
-      price_includes_vat,
-      margin_percentage,
-      calculated_price_cents,
-      supplier_price,
-      sb_price,
-      volume_liters,
-      created_at,
-      updated_at
-    `,
-    )
+    .select(WINES_SELECT_FULL)
     .single();
 
-  if (error) {
-    console.error("Update wine error:", error);
-    throw new Error(error.message);
+  if (updateResult.error && isB2BColumnMissingError(updateResult.error)) {
+    const { b2b_price_cents: _p, b2b_stock: _s, ...updateWithoutB2B } = updateData;
+    updateResult = await sb
+      .from("wines")
+      .update(updateWithoutB2B)
+      .eq("id", id)
+      .select(WINES_SELECT_WITHOUT_B2B)
+      .single();
+    if (updateResult.error) {
+      console.error("Update wine error:", updateResult.error);
+      throw new Error(updateResult.error.message);
+    }
+    if (updateResult.data)
+      updateResult.data = { ...updateResult.data, b2b_price_cents: null, b2b_stock: null } as typeof updateResult.data;
+  } else if (updateResult.error) {
+    console.error("Update wine error:", updateResult.error);
+    throw new Error(updateResult.error.message);
   }
+
+  const wine = updateResult.data;
+  if (!wine) throw new Error("Failed to update wine");
 
   // Get producer separately
   const { data: producer } = await sb
@@ -488,6 +505,8 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
 
   revalidatePath("/admin/wines");
   revalidatePath(`/admin/wines/${id}`);
+  revalidatePath("/producer/wines");
+  revalidatePath("/producer");
   return wineWithProducer;
 }
 
@@ -499,4 +518,6 @@ export async function deleteWine(id: string) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/admin/wines");
+  revalidatePath("/producer/wines");
+  revalidatePath("/producer");
 }

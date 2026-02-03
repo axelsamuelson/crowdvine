@@ -33,6 +33,7 @@ import {
   AlertCircle,
   Gift,
   Check,
+  ArrowLeft,
   ArrowRight,
 } from "lucide-react";
 import { clearZoneCache } from "@/lib/zone-matching";
@@ -837,7 +838,7 @@ function CheckoutContent() {
         </div>
 
         {/* Stepper */}
-        <div className="flex items-center justify-between gap-3">
+        <div className="grid grid-cols-3 gap-2 md:flex md:items-center md:justify-between md:gap-3">
           {[
             { n: 1 as const, title: "Bottles" },
             { n: 2 as const, title: "Delivery" },
@@ -851,7 +852,7 @@ function CheckoutContent() {
                 type="button"
                 onClick={() => goToStep(s.n)}
                 className={[
-                  "flex-1 rounded-2xl border px-4 py-3 text-left transition-colors",
+                  "w-full min-w-0 rounded-2xl border px-3 py-2 text-left transition-colors md:flex-1 md:px-4 md:py-3",
                   isActive
                     ? "border-gray-900 bg-white"
                     : "border-gray-200 bg-white/60 hover:bg-white",
@@ -861,7 +862,7 @@ function CheckoutContent() {
                 <div className="flex items-center gap-2">
                   <div
                     className={[
-                      "h-7 w-7 rounded-full flex items-center justify-center text-sm font-medium",
+                      "h-7 w-7 rounded-full flex items-center justify-center text-sm font-medium shrink-0",
                       isComplete
                         ? "bg-gray-900 text-white"
                         : isActive
@@ -875,7 +876,7 @@ function CheckoutContent() {
                     <div className="text-sm font-medium text-gray-900">
                       {s.title}
                     </div>
-                    <div className="text-xs text-gray-500 truncate">
+                    <div className="hidden md:block text-xs text-gray-500 truncate">
                       {s.n === 1
                         ? "Review items"
                         : s.n === 2
@@ -890,7 +891,7 @@ function CheckoutContent() {
         </div>
 
         {step > 1 && (
-          <div className="flex items-center justify-start">
+          <div className="hidden lg:flex items-center justify-start">
             <Button
               variant="ghost"
               size="sm"
@@ -898,6 +899,7 @@ function CheckoutContent() {
               onClick={() => goToStep((step - 1) as 1 | 2 | 3)}
               className="px-0"
             >
+              <ArrowLeft className="h-4 w-4 mr-2" />
               Back
             </Button>
           </div>
@@ -1041,7 +1043,7 @@ function CheckoutContent() {
                             <Button
                               type="button"
                               size="lg"
-                              className="bg-black hover:bg-black/90 text-white rounded-full px-10"
+                              className="hidden lg:inline-flex bg-black hover:bg-black/90 text-white rounded-full px-10"
                               disabled={zoneLoading}
                               onClick={() => goToStep(2)}
                             >
@@ -1335,7 +1337,7 @@ function CheckoutContent() {
                       <Button
                         type="button"
                         size="lg"
-                        className="bg-black hover:bg-black/90 text-white rounded-full px-10"
+                        className="hidden lg:inline-flex bg-black hover:bg-black/90 text-white rounded-full px-10"
                         disabled={zoneLoading}
                         onClick={() => goToStep(3)}
                       >
@@ -1608,6 +1610,9 @@ function CheckoutContent() {
               ? "Fix order"
               : "Place reservation"
       }
+      showPrevious={step > 1}
+      previousLabel="Previous"
+      onPrevious={() => goToStep((step - 1) as 1 | 2 | 3)}
       disabled={
         zoneLoading || (step === 3 && !isValidCart) || (step === 2 && zoneLoading)
       }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -11,9 +11,14 @@ import {
   Package,
   CreditCard,
   TrendingUp,
+  Eye,
+  LayoutGrid,
+  Sparkles,
+  Link as LinkIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
+import { UserEventsCard } from "./user-events-card";
 
 interface UserProfile {
   id: string;
@@ -64,7 +69,37 @@ interface IPEvent {
   metadata: any;
 }
 
-export default function UserDetailPage({ params }: { params: { id: string } }) {
+interface ViewStats {
+  plpViews: number;
+  pdpViews: number;
+}
+
+type AccountSourceType =
+  | "invitation"
+  | "access_token"
+  | "access_request"
+  | "direct_signup"
+  | "unknown";
+
+interface AccountSourcePayload {
+  source: AccountSourceType;
+  invitation?: {
+    code?: string;
+    initial_level?: string | null;
+    used_at?: string | null;
+    inviter_profile?: { id: string; email: string; full_name: string | null } | null;
+  };
+  access_request?: { status: string; requested_at?: string | null } | null;
+  access_token?: { used_at?: string | null; initial_level?: string | null } | null;
+  profile?: { invite_code_used?: string | null } | null;
+}
+
+export default function UserDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id: userId } = React.use(params);
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -72,12 +107,17 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [ipEvents, setIpEvents] = useState<IPEvent[]>([]);
+  const [views, setViews] = useState<ViewStats>({ plpViews: 0, pdpViews: 0 });
+  const [accountSource, setAccountSource] = useState<AccountSourcePayload | null>(
+    null,
+  );
 
   useEffect(() => {
-    fetchUserData();
-  }, [params.id]);
+    fetchUserData(userId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
-  const fetchUserData = async () => {
+  const fetchUserData = async (id: string) => {
     try {
       setLoading(true);
 
@@ -88,12 +128,16 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
         reservationsRes,
         invitationsRes,
         ipEventsRes,
+        viewsRes,
+        accountSourceRes,
       ] = await Promise.all([
-        fetch(`/api/admin/users/${params.id}/profile`),
-        fetch(`/api/admin/users/${params.id}/membership`),
-        fetch(`/api/admin/users/${params.id}/reservations`),
-        fetch(`/api/admin/users/${params.id}/invitations`),
-        fetch(`/api/admin/users/${params.id}/ip-events`),
+        fetch(`/api/admin/users/${id}/profile`),
+        fetch(`/api/admin/users/${id}/membership`),
+        fetch(`/api/admin/users/${id}/reservations`),
+        fetch(`/api/admin/users/${id}/invitations`),
+        fetch(`/api/admin/users/${id}/ip-events`),
+        fetch(`/api/admin/users/${id}/views`),
+        fetch(`/api/admin/users/${id}/account-source`),
       ]);
 
       if (profileRes.ok) {
@@ -119,6 +163,19 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
       if (ipEventsRes.ok) {
         const data = await ipEventsRes.json();
         setIpEvents(data);
+      }
+
+      if (viewsRes.ok) {
+        const data = await viewsRes.json();
+        setViews({
+          plpViews: typeof data?.plpViews === "number" ? data.plpViews : 0,
+          pdpViews: typeof data?.pdpViews === "number" ? data.pdpViews : 0,
+        });
+      }
+
+      if (accountSourceRes.ok) {
+        const data = await accountSourceRes.json();
+        setAccountSource(data);
       }
     } catch (error) {
       console.error("Error fetching user data:", error);
@@ -176,6 +233,57 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
     ? getLevelColor(membership.level)
     : getLevelColor("basic");
 
+  const renderAccountSource = () => {
+    if (!accountSource) return null;
+    if (accountSource.source === "invitation") {
+      const inviter = accountSource.invitation?.inviter_profile;
+      return (
+        <div className="mt-3 text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
+          <Sparkles className="w-4 h-4" />
+          <span>
+            Invited by{" "}
+            <span className="text-foreground">
+              {inviter?.full_name || inviter?.email || "Unknown"}
+            </span>
+            {accountSource.invitation?.code
+              ? ` (code: ${accountSource.invitation.code})`
+              : ""}
+          </span>
+        </div>
+      );
+    }
+    if (accountSource.source === "access_token") {
+      return (
+        <div className="mt-3 text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
+          <LinkIcon className="w-4 h-4" />
+          <span>Created via approved access link</span>
+        </div>
+      );
+    }
+    if (accountSource.source === "access_request") {
+      return (
+        <div className="mt-3 text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
+          <LinkIcon className="w-4 h-4" />
+          <span>
+            Access request:{" "}
+            <span className="text-foreground">
+              {accountSource.access_request?.status || "unknown"}
+            </span>
+          </span>
+        </div>
+      );
+    }
+    if (accountSource.source === "direct_signup") {
+      return (
+        <div className="mt-3 text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
+          <LinkIcon className="w-4 h-4" />
+          <span>Created via direct signup</span>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="p-8 max-w-7xl mx-auto">
       {/* Header */}
@@ -206,6 +314,8 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
                 </span>
               </div>
             </div>
+
+            {renderAccountSource()}
           </div>
 
           {membership && (
@@ -219,7 +329,7 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-8">
         <div className="bg-background border border-border rounded-xl p-6">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center">
@@ -274,6 +384,30 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
                   : "0/0"}
               </p>
               <p className="text-xs text-muted-foreground">Quota This Month</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-background border border-border rounded-xl p-6">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center">
+              <LayoutGrid className="w-5 h-5 text-foreground" />
+            </div>
+            <div>
+              <p className="text-2xl font-light text-foreground">{views.plpViews}</p>
+              <p className="text-xs text-muted-foreground">PLP Views</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-background border border-border rounded-xl p-6">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center">
+              <Eye className="w-5 h-5 text-foreground" />
+            </div>
+            <div>
+              <p className="text-2xl font-light text-foreground">{views.pdpViews}</p>
+              <p className="text-xs text-muted-foreground">PDP Views</p>
             </div>
           </div>
         </div>
@@ -377,6 +511,9 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
               </div>
             )}
           </div>
+
+          {/* User Events */}
+          <UserEventsCard userId={userId} />
         </div>
 
         {/* Right Column - Invitations & Info */}

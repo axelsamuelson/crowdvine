@@ -52,17 +52,20 @@ export default function WineForm({ wine, producers }: WineFormProps) {
     producer_id: wine?.producer_id || "",
     // Simplified pricing fields
     cost_currency: wine?.cost_currency || "EUR",
-    cost_amount: wine?.cost_amount || 0,
+    cost_amount: wine?.cost_amount ?? 0,
     alcohol_tax_cents: 2219, // Fixed 22.19 SEK = 2219 cents
     price_includes_vat: wine?.price_includes_vat ?? true,
-    margin_percentage: wine?.margin_percentage || 10.0,
+    // IMPORTANT: use nullish coalescing so we don't overwrite stored 0 with the default
+    margin_percentage: wine?.margin_percentage ?? 10.0,
     // Keep base_price_cents for backward compatibility
-    base_price_cents: wine?.base_price_cents || 0,
+    base_price_cents: wine?.base_price_cents ?? 0,
     // Set the existing label_image_path if editing
     label_image_path: wine?.label_image_path || "",
-    // Description fields
+    // Description
     description: wine?.description || "",
-    description_html: wine?.description_html || "",
+    // B2B
+    b2b_price_cents: wine?.b2b_price_cents ?? null,
+    b2b_stock: wine?.b2b_stock ?? null,
   });
 
   const [images, setImages] = useState<File[]>([]);
@@ -76,6 +79,30 @@ export default function WineForm({ wine, producers }: WineFormProps) {
     string[]
   >([]);
   const router = useRouter();
+
+  // Keep form in sync with the latest server value when reopening / navigating
+  useEffect(() => {
+    if (!wine) return;
+    setFormData((prev) => ({
+      ...prev,
+      handle: wine.handle || "",
+      wine_name: wine.wine_name === "" ? "" : wine.wine_name,
+      vintage: wine.vintage || "",
+      grape_varieties: wine.grape_varieties || "",
+      color: wine.color || "Red",
+      producer_id: wine.producer_id || "",
+      cost_currency: wine.cost_currency || "EUR",
+      cost_amount: wine.cost_amount ?? 0,
+      alcohol_tax_cents: 2219,
+      price_includes_vat: wine.price_includes_vat ?? true,
+      margin_percentage: wine.margin_percentage ?? 10.0,
+      base_price_cents: wine.base_price_cents ?? 0,
+      label_image_path: wine.label_image_path || "",
+      description: wine.description || "",
+      b2b_price_cents: wine.b2b_price_cents ?? null,
+      b2b_stock: wine.b2b_stock ?? null,
+    }));
+  }, [wine?.id]);
 
   // Load grape varieties on component mount
   useEffect(() => {
@@ -270,27 +297,30 @@ export default function WineForm({ wine, producers }: WineFormProps) {
 
   const handleChange = (
     field: keyof CreateWineData,
-    value: string | number,
+    value: string | number | null,
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   return (
-    <Card>
+    <Card className="p-0 bg-white border border-gray-200 rounded-2xl">
       <CardHeader>
-        <CardTitle>{wine ? "Edit Wine" : "Add Wine"}</CardTitle>
-        <CardDescription>
+        <CardTitle className="text-xl font-medium text-gray-900">
+          {wine ? "Edit Wine" : "Add Wine"}
+        </CardTitle>
+        <CardDescription className="text-gray-500">
           {wine ? "Update wine information" : "Create a new wine product"}
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-8">
           {error && (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
 
+          {/* Basics */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="wine_name">Wine Name *</Label>
@@ -315,6 +345,26 @@ export default function WineForm({ wine, producers }: WineFormProps) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="producer_id">Producer *</Label>
+              <Select
+                value={formData.producer_id}
+                onValueChange={(value) => handleChange("producer_id", value)}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a producer" />
+                </SelectTrigger>
+                <SelectContent>
+                  {producers.map((producer) => (
+                    <SelectItem key={producer.id} value={producer.id}>
+                      {producer.name} ({producer.region})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="color">Color *</Label>
               <Select
@@ -355,71 +405,30 @@ export default function WineForm({ wine, producers }: WineFormProps) {
             disabled={loading}
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="producer_id">Producer *</Label>
-              <Select
-                value={formData.producer_id}
-                onValueChange={(value) => handleChange("producer_id", value)}
-                required
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a producer" />
-                </SelectTrigger>
-                <SelectContent>
-                  {producers.map((producer) => (
-                    <SelectItem key={producer.id} value={producer.id}>
-                      {producer.name} ({producer.region})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Description (above Pricing) */}
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => handleChange("description", e.target.value)}
+              placeholder="Enter a custom description for this wine..."
+              rows={6}
+            />
+            <p className="text-sm text-muted-foreground">
+              Leave empty to use auto-generated description based on wine
+              properties.
+            </p>
           </div>
 
-          {/* Description Fields */}
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => handleChange("description", e.target.value)}
-                placeholder="Enter a custom description for this wine..."
-                rows={3}
-              />
-              <p className="text-sm text-muted-foreground">
-                Leave empty to use auto-generated description based on wine
-                properties.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description_html">Description HTML</Label>
-              <Textarea
-                id="description_html"
-                value={formData.description_html}
-                onChange={(e) =>
-                  handleChange("description_html", e.target.value)
-                }
-                placeholder="Enter custom HTML description (optional)..."
-                rows={4}
-              />
-              <p className="text-sm text-muted-foreground">
-                Custom HTML for rich formatting. Leave empty to use
-                auto-generated HTML from description.
-              </p>
-            </div>
-          </div>
-
-          {/* Pricing Calculator */}
+          {/* Pricing */}
           <PricingCalculator
             pricingData={{
               cost_currency: formData.cost_currency,
               cost_amount: formData.cost_amount,
               price_includes_vat: formData.price_includes_vat,
               margin_percentage: formData.margin_percentage,
-              calculated_price_cents: 0,
+              calculated_price_cents: formData.base_price_cents ?? 0,
             }}
             onPricingChange={(pricingData) => {
               setFormData((prev) => ({
@@ -428,11 +437,77 @@ export default function WineForm({ wine, producers }: WineFormProps) {
                 cost_amount: pricingData.cost_amount,
                 price_includes_vat: pricingData.price_includes_vat,
                 margin_percentage: pricingData.margin_percentage,
-                base_price_cents: pricingData.finalPriceCents,
+                base_price_cents: pricingData.calculated_price_cents,
               }));
             }}
           />
 
+          {/* B2B: price and stock for B2B customers */}
+          <Card className="p-4 bg-muted/30 border border-gray-200 rounded-xl">
+            <CardHeader className="p-0 pb-3">
+              <CardTitle className="text-base font-medium">B2B</CardTitle>
+              <CardDescription className="text-sm">
+                Pris och lager för B2B-kunder (valfritt)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="b2b_price_cents">B2B-pris (SEK)</Label>
+                  <Input
+                    id="b2b_price_cents"
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    placeholder="t.ex. 199"
+                    value={
+                      formData.b2b_price_cents != null
+                        ? (formData.b2b_price_cents / 100).toFixed(2)
+                        : ""
+                    }
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === "") {
+                        handleChange("b2b_price_cents", null);
+                        return;
+                      }
+                      const num = parseFloat(v);
+                      if (!Number.isNaN(num))
+                        handleChange("b2b_price_cents", Math.round(num * 100));
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Pris i kronor för B2B (sparas som öre)
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="b2b_stock">B2B-lager (antal)</Label>
+                  <Input
+                    id="b2b_stock"
+                    type="number"
+                    min={0}
+                    placeholder="t.ex. 24"
+                    value={formData.b2b_stock ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === "") {
+                        handleChange("b2b_stock", null);
+                        return;
+                      }
+                      const n = parseInt(v, 10);
+                      if (!Number.isNaN(n) && n >= 0)
+                        handleChange("b2b_stock", n);
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Tillgängligt antal för B2B
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Images */}
           <WineImageUpload
             wineId={wine?.id}
             existingImages={existingImages}
@@ -446,10 +521,15 @@ export default function WineForm({ wine, producers }: WineFormProps) {
               type="button"
               variant="outline"
               onClick={() => router.back()}
+              className="rounded-full"
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="bg-black hover:bg-black/90 text-white rounded-full"
+            >
               {loading ? "Saving..." : wine ? "Update Wine" : "Create Wine"}
             </Button>
           </div>

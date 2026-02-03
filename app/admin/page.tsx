@@ -91,23 +91,23 @@ export default async function AdminDashboard() {
     totalCapacity > 0 ? (totalBookedBottles / totalCapacity) * 100 : 0;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 md:space-y-8">
       {/* Header */}
-      <div className="flex justify-between items-start">
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
         <div>
-          <h1 className="text-4xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-600 mt-2">
+          <h1 className="text-2xl font-medium text-gray-900">Admin Dashboard</h1>
+          <p className="text-gray-500 mt-1">
             Monitor and manage your Crowdvine platform
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button asChild variant="outline">
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" size="sm" className="rounded-full">
             <Link href="/admin/producers/new">
               <Plus className="h-4 w-4 mr-2" />
               Add Producer
             </Link>
           </Button>
-          <Button asChild>
+          <Button asChild size="sm" className="rounded-full">
             <Link href="/admin/wines/new">
               <Plus className="h-4 w-4 mr-2" />
               Add Wine
@@ -117,103 +117,103 @@ export default async function AdminDashboard() {
       </div>
 
       {/* Main Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
-        <Card className="col-span-2">
-          <CardContent className="p-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+        <Card className="border border-gray-200 rounded-2xl">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
                   Total Producers
                 </p>
-                <p className="text-3xl font-bold text-blue-600">
+                <p className="text-2xl md:text-3xl font-bold text-blue-600">
                   {producersCount || 0}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Wine producers in system
                 </p>
               </div>
-              <Users className="h-12 w-12 text-blue-600" />
+              <Users className="h-10 w-10 md:h-12 md:w-12 text-blue-600" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="col-span-2">
-          <CardContent className="p-6">
+        <Card className="border border-gray-200 rounded-2xl">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
                   Total Wines
                 </p>
-                <p className="text-3xl font-bold text-purple-600">
+                <p className="text-2xl md:text-3xl font-bold text-purple-600">
                   {winesCount || 0}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Available wines
                 </p>
               </div>
-              <Wine className="h-12 w-12 text-purple-600" />
+              <Wine className="h-10 w-10 md:h-12 md:w-12 text-purple-600" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="col-span-2">
-          <CardContent className="p-6">
+        <Card className="border border-gray-200 rounded-2xl">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
                   Total Bookings
                 </p>
-                <p className="text-3xl font-bold text-green-600">
+                <p className="text-2xl md:text-3xl font-bold text-green-600">
                   {bookingsCount || 0}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Bottles reserved
                 </p>
               </div>
-              <Calendar className="h-12 w-12 text-green-600" />
+              <Calendar className="h-10 w-10 md:h-12 md:w-12 text-green-600" />
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Secondary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardContent className="p-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+        <Card className="border border-gray-200 rounded-2xl">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
                   Zones
                 </p>
-                <p className="text-2xl font-bold">{zonesCount || 0}</p>
+                <p className="text-xl md:text-2xl font-bold">{zonesCount || 0}</p>
               </div>
               <MapPin className="h-8 w-8 text-orange-600" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
+        <Card className="border border-gray-200 rounded-2xl">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
                   Pallets
                 </p>
-                <p className="text-2xl font-bold">{palletsCount || 0}</p>
+                <p className="text-xl md:text-2xl font-bold">{palletsCount || 0}</p>
               </div>
               <Package className="h-8 w-8 text-indigo-600" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
+        <Card className="border border-gray-200 rounded-2xl">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
                   Completion
                 </p>
-                <p className="text-2xl font-bold">
+                <p className="text-xl md:text-2xl font-bold">
                   {overallCompletion.toFixed(1)}%
                 </p>
               </div>
@@ -225,9 +225,9 @@ export default async function AdminDashboard() {
 
       {/* Pallet Progress */}
       {palletStats.length > 0 && (
-        <Card>
+        <Card className="border border-gray-200 rounded-2xl">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
               <Package className="h-5 w-5" />
               Pallet Status Overview
             </CardTitle>
@@ -262,11 +262,11 @@ export default async function AdminDashboard() {
       )}
 
       {/* Recent Activity & Quick Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         {/* Recent Bookings */}
-        <Card>
+        <Card className="border border-gray-200 rounded-2xl">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
               <Activity className="h-5 w-5" />
               Recent Bookings
             </CardTitle>
@@ -278,7 +278,7 @@ export default async function AdminDashboard() {
                 {recentBookings.map((booking) => (
                   <div
                     key={booking.id}
-                    className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
                   >
                     <div>
                       <p className="font-medium text-sm">
@@ -309,9 +309,9 @@ export default async function AdminDashboard() {
         </Card>
 
         {/* System Status */}
-        <Card>
+        <Card className="border border-gray-200 rounded-2xl">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
               <Shield className="h-5 w-5" />
               System Status
             </CardTitle>
@@ -319,7 +319,7 @@ export default async function AdminDashboard() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
                 <div className="flex items-center gap-3">
                   <Database className="h-5 w-5 text-green-600" />
                   <span className="font-medium">Database</span>
@@ -330,7 +330,7 @@ export default async function AdminDashboard() {
                 </Badge>
               </div>
 
-              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
                 <div className="flex items-center gap-3">
                   <CreditCard className="h-5 w-5 text-green-600" />
                   <span className="font-medium">Stripe</span>
@@ -341,7 +341,7 @@ export default async function AdminDashboard() {
                 </Badge>
               </div>
 
-              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
                 <div className="flex items-center gap-3">
                   <Shield className="h-5 w-5 text-green-600" />
                   <span className="font-medium">Authentication</span>
@@ -357,45 +357,45 @@ export default async function AdminDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <Card>
+      <Card className="border border-gray-200 rounded-2xl">
         <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
+          <CardTitle className="text-lg md:text-xl">Quick Actions</CardTitle>
           <CardDescription>Common administrative tasks</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <Button asChild variant="outline" className="h-auto p-4 flex-col">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
+            <Button asChild variant="outline" className="h-auto p-3 md:p-4 flex-col rounded-xl">
               <Link href="/admin/producers">
-                <Users className="h-6 w-6 mb-2" />
-                <span>Manage Producers</span>
+                <Users className="h-5 w-5 md:h-6 md:w-6 mb-2" />
+                <span className="text-xs md:text-sm">Manage Producers</span>
               </Link>
             </Button>
 
-            <Button asChild variant="outline" className="h-auto p-4 flex-col">
+            <Button asChild variant="outline" className="h-auto p-3 md:p-4 flex-col rounded-xl">
               <Link href="/admin/wines">
-                <Wine className="h-6 w-6 mb-2" />
-                <span>Manage Wines</span>
+                <Wine className="h-5 w-5 md:h-6 md:w-6 mb-2" />
+                <span className="text-xs md:text-sm">Manage Wines</span>
               </Link>
             </Button>
 
-            <Button asChild variant="outline" className="h-auto p-4 flex-col">
+            <Button asChild variant="outline" className="h-auto p-3 md:p-4 flex-col rounded-xl">
               <Link href="/admin/pallets">
-                <Package className="h-6 w-6 mb-2" />
-                <span>Manage Pallets</span>
+                <Package className="h-5 w-5 md:h-6 md:w-6 mb-2" />
+                <span className="text-xs md:text-sm">Manage Pallets</span>
               </Link>
             </Button>
 
-            <Button asChild variant="outline" className="h-auto p-4 flex-col">
+            <Button asChild variant="outline" className="h-auto p-3 md:p-4 flex-col rounded-xl">
               <Link href="/admin/bookings">
-                <Calendar className="h-6 w-6 mb-2" />
-                <span>View Bookings</span>
+                <Calendar className="h-5 w-5 md:h-6 md:w-6 mb-2" />
+                <span className="text-xs md:text-sm">View Bookings</span>
               </Link>
             </Button>
 
-            <Button asChild variant="outline" className="h-auto p-4 flex-col">
+            <Button asChild variant="outline" className="h-auto p-3 md:p-4 flex-col rounded-xl">
               <Link href="/admin/content">
-                <FileText className="h-6 w-6 mb-2" />
-                <span>Content</span>
+                <FileText className="h-5 w-5 md:h-6 md:w-6 mb-2" />
+                <span className="text-xs md:text-sm">Content</span>
               </Link>
             </Button>
           </div>

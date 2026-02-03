@@ -72,6 +72,50 @@ export async function POST(request: NextRequest) {
             `✅ [Stripe Webhook] Reservation ${session.metadata.reservation_id} marked as paid`,
           );
 
+          // Auto pallet status: if all reservations in this pallet are paid, move pallet to awaiting_pickup (auto mode only)
+          try {
+            const { data: resRow } = await supabase
+              .from("order_reservations")
+              .select("id, pallet_id")
+              .eq("id", session.metadata.reservation_id)
+              .maybeSingle();
+
+            const palletId = (resRow as any)?.pallet_id as string | null;
+            if (palletId) {
+              const { data: palletRow } = await supabase
+                .from("pallets")
+                .select("id, status, status_mode")
+                .eq("id", palletId)
+                .maybeSingle();
+
+              const mode = (palletRow as any)?.status_mode || "auto";
+              const currentStatus = String((palletRow as any)?.status || "open").toLowerCase();
+
+              if (mode === "auto" && currentStatus !== "delivered" && currentStatus !== "cancelled") {
+                const { data: allRes } = await supabase
+                  .from("order_reservations")
+                  .select("id, payment_status, status")
+                  .eq("pallet_id", palletId)
+                  .in("status", ["placed", "approved", "partly_approved", "pending_payment", "confirmed"]);
+
+                const allPaid =
+                  (allRes || []).length > 0 &&
+                  (allRes || []).every(
+                    (r: any) => String(r.payment_status || "") === "paid" || String(r.status || "") === "confirmed",
+                  );
+
+                if (allPaid) {
+                  await supabase
+                    .from("pallets")
+                    .update({ status: "awaiting_pickup" })
+                    .eq("id", palletId);
+                }
+              }
+            }
+          } catch (e) {
+            console.warn("[Stripe Webhook] Failed to auto-update pallet status");
+          }
+
           // TODO: Send confirmation email to customer
           // TODO: Update pallet status if all reservations are paid
         }

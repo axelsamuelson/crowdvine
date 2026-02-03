@@ -150,14 +150,19 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
         setHasNinetyPercentWarning(ninetyPercentPallets.length > 0);
 
         // Calculate max percent among active pallets
-        const activePallets = reservationsData.filter(
-          (res: any) =>
-            res.status === "placed" ||
-            res.status === "pending" ||
-            res.status === "confirmed" ||
-            res.status === "OPEN" ||
-            res.status === "CONSOLIDATING",
-        );
+        const activePallets = reservationsData.filter((res: any) => {
+          const s = String(res?.status || "");
+          return (
+            s === "pending_producer_approval" ||
+            s === "approved" ||
+            s === "partly_approved" ||
+            s === "placed" ||
+            s === "pending_payment" ||
+            s === "confirmed" ||
+            s === "OPEN" ||
+            s === "CONSOLIDATING"
+          );
+        });
 
         console.log(`📦 Active pallets after filter:`, activePallets.length);
 
@@ -540,7 +545,7 @@ export function PalletIcon({ className = "", size = "md" }: PalletIconProps) {
                 );
 
                 return (
-                  <Link key={pallet.id} href={`/pallet/${pallet.id}`}>
+                  <Link key={pallet.id} href="/profile/reservations">
                     <div className="px-4 py-4 hover:bg-gray-50/50 cursor-pointer transition-all hover:scale-[0.99] group">
                       {/* Row 1: Pallet name + status tag */}
                       <div className="flex items-center justify-between mb-3">

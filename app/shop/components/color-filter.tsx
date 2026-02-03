@@ -38,15 +38,7 @@ export function ColorFilter({ products = [], className }: ColorFilterProps) {
             <span className="text-foreground/50">({colorCount})</span>
           )}
         </h3>
-        {isLoading ? (
-          <ColorSwatchSkeleton count={4} />
-        ) : (
-          <ColorPicker
-            colors={availableColors}
-            selectedColors={selectedColors}
-            onColorChange={toggleColor}
-          />
-        )}
+        <ColorSwatchSkeleton count={4} />
       </div>
     );
   }

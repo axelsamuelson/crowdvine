@@ -17,6 +17,9 @@ interface AppleStickyPriceFooterProps {
   lines?: StickyLine[];
   ctaLabel: string;
   onCheckout: () => void;
+  previousLabel?: string;
+  onPrevious?: () => void;
+  showPrevious?: boolean;
   disabled?: boolean;
 }
 
@@ -26,6 +29,9 @@ export function AppleStickyPriceFooter({
   lines = [],
   ctaLabel,
   onCheckout,
+  previousLabel = "Previous",
+  onPrevious,
+  showPrevious = false,
   disabled,
 }: AppleStickyPriceFooterProps) {
   const [showDetails, setShowDetails] = useState(false);
@@ -85,15 +91,30 @@ export function AppleStickyPriceFooter({
             )}
           </button>
 
-          <Button
-            onClick={onCheckout}
-            size="lg"
-            className="px-8 rounded-full"
-            disabled={disabled}
-            type="button"
-          >
-            {ctaLabel}
-          </Button>
+          <div className="flex items-center gap-2">
+            {showPrevious && onPrevious && (
+              <Button
+                onClick={onPrevious}
+                size="lg"
+                variant="outline"
+                className="px-6 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-900 border-gray-200"
+                disabled={disabled}
+                type="button"
+              >
+                {previousLabel}
+              </Button>
+            )}
+
+            <Button
+              onClick={onCheckout}
+              size="lg"
+              className="px-8 rounded-full bg-black hover:bg-black/90 text-white border-black"
+              disabled={disabled}
+              type="button"
+            >
+              {ctaLabel}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

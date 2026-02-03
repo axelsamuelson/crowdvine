@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 /**
  * GET /api/user/invitations
  *
- * Returns current user's invitation codes
+ * Returns current user's invitation codes (both active and used)
  */
 export async function GET() {
   try {
@@ -16,8 +16,8 @@ export async function GET() {
 
     const sb = getSupabaseAdmin();
 
-    // Get only ACTIVE and UNUSED invitations created by this user
-    const { data: invitations, error } = await sb
+    // Get ACTIVE and UNUSED invitations created by this user
+    const { data: activeInvitations, error: activeError } = await sb
       .from("invitation_codes")
       .select("*")
       .eq("created_by", user.id)
@@ -25,10 +25,36 @@ export async function GET() {
       .is("used_at", null)
       .order("created_at", { ascending: false });
 
-    if (error) throw error;
+    if (activeError) throw activeError;
+
+    // Get USED invitations created by this user
+    const { data: usedInvitations, error: usedError } = await sb
+      .from("invitation_codes")
+      .select(
+        `
+        *,
+        profiles!invitation_codes_used_by_fkey(
+          id,
+          email,
+          full_name
+        )
+      `,
+      )
+      .eq("created_by", user.id)
+      .not("used_at", "is", null)
+      .order("used_at", { ascending: false });
+
+    if (usedError) throw usedError;
+
+    // Filter out invitations where the referenced user no longer exists
+    const validUsedInvitations =
+      usedInvitations?.filter(
+        (invitation) => invitation.profiles?.email,
+      ) || [];
 
     return NextResponse.json({
-      invitations: invitations || [],
+      active: activeInvitations || [],
+      used: validUsedInvitations || [],
     });
   } catch (error) {
     console.error("Error fetching invitations:", error);

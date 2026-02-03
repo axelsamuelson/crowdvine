@@ -82,6 +82,7 @@
     "nodemailer": "^7.0.6",
     "nuqs": "latest",
     "prettier": "latest",
+    "qrcode.react": "^4.2.0",
     "react": "19.2.3",
     "react-day-picker": "9.8.0",
     "react-dom": "19.2.3",
@@ -92,7 +93,9 @@
     "stripe": "^18.5.0",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
+    "three": "^0.160.0",
     "thumbhash": "latest",
+    "topojson-client": "^3.1.0",
     "url": "latest",
     "vaul": "latest",
     "zod": "^3.24.1"

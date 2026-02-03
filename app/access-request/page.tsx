@@ -5,10 +5,10 @@ import { AccessRequestClient } from "./access-request-client";
 export default async function AccessRequestPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; redirectedFrom?: string }>;
 }) {
   const params = await searchParams;
-  const next = params?.next || "/";
+  const next = params?.next || params?.redirectedFrom || "/";
   const sb = await supabaseServer();
   const {
     data: { user },

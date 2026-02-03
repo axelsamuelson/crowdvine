@@ -33,7 +33,7 @@ export function OnboardingProvider({
     // Only check once when component mounts
     if (hasChecked) return;
 
-    // Don't show on auth pages or invite pages
+    // Don't show on auth pages, invite pages, or tasting pages (guests can access)
     const isAuthPage =
       pathname?.startsWith("/log-in") ||
       pathname?.startsWith("/signup") ||
@@ -43,7 +43,8 @@ export function OnboardingProvider({
       pathname?.startsWith("/c/") ||
       pathname?.startsWith("/invite-signup") ||
       pathname?.startsWith("/code-signup") ||
-      pathname?.startsWith("/onboarding");
+      pathname?.startsWith("/onboarding") ||
+      pathname?.startsWith("/tasting/");
 
     if (isAuthPage) {
       setHasChecked(true);
@@ -76,6 +77,11 @@ export function OnboardingProvider({
             );
           }
         } else {
+          // If 401 (Unauthorized), user is a guest - silently skip onboarding
+          if (response.status === 401) {
+            console.log("🎓 [Onboarding] User is a guest (401), skipping onboarding check");
+            return;
+          }
           console.error("🎓 [Onboarding] Response not OK:", response.status);
           // Try to get error details
           try {

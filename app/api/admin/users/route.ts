@@ -5,7 +5,7 @@ export async function GET(request: NextRequest) {
   try {
     // Check admin cookie
     const adminAuth = request.cookies.get("admin-auth")?.value;
-    if (!adminAuth) {
+    if (adminAuth !== "true") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -24,10 +24,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get all profiles with membership data
+    // Get all profiles with membership data (roles + portal_access for multi-type edit)
     const { data: profiles, error: profilesError } = await adminSupabase
       .from("profiles")
-      .select("id, email, role, created_at, full_name");
+      .select("id, email, role, roles, portal_access, producer_id, created_at, full_name");
 
     if (profilesError) {
       console.error("Error fetching profiles:", profilesError);
@@ -52,15 +52,46 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Combine auth users with profiles and membership data
-    const usersWithData = (authUsers.users || [])
+    const baseUsers = (authUsers.users || [])
       .filter((authUser) =>
         profiles?.some((profile) => profile.id === authUser.id),
-      )
+      );
+
+    // Build a map of last activity timestamps from analytics events.
+    // We only need the latest created_at per user_id; ordering desc + "first seen wins".
+    const userIds = baseUsers.map((u) => u.id);
+    const lastActiveMap = new Map<string, string>();
+
+    if (userIds.length > 0) {
+      const { data: lastEvents, error: lastEventsError } = await adminSupabase
+        .from("user_events")
+        .select("user_id, created_at")
+        .in("user_id", userIds)
+        .order("created_at", { ascending: false })
+        // bounded: enough to cover "latest per user" in normal admin usage
+        .limit(20000);
+
+      if (lastEventsError) {
+        console.warn("Warning fetching last active from user_events:", lastEventsError);
+      } else {
+        for (const ev of lastEvents || []) {
+          if (!ev?.user_id || !ev?.created_at) continue;
+          if (!lastActiveMap.has(ev.user_id)) {
+            lastActiveMap.set(ev.user_id, ev.created_at);
+          }
+        }
+      }
+    }
+
+    // Combine auth users with profiles, membership, and last_active_at
+    const usersWithData = baseUsers
       .map((authUser) => {
         const profile = profiles?.find((p) => p.id === authUser.id);
         const membership = memberships?.find((m) => m.user_id === authUser.id);
 
+        const roles = profile?.roles && Array.isArray(profile.roles) ? profile.roles : [profile?.role || "user"];
+        const portalAccess = profile?.portal_access && Array.isArray(profile.portal_access) ? profile.portal_access : ["user"];
+        const primaryRole = roles.includes("admin") ? "admin" : roles.includes("producer") ? "producer" : "user";
         return {
           id: authUser.id,
           email: authUser.email,
@@ -68,7 +99,11 @@ export async function GET(request: NextRequest) {
           created_at: authUser.created_at,
           last_sign_in_at: authUser.last_sign_in_at,
           email_confirmed_at: authUser.email_confirmed_at,
-          role: profile?.role || "user",
+          role: primaryRole,
+          roles,
+          portal_access: portalAccess,
+          producer_id: profile?.producer_id || null,
+          last_active_at: lastActiveMap.get(authUser.id) || null,
           // Membership data
           membership_level: membership?.level || "requester",
           impact_points: membership?.impact_points || 0,
@@ -411,21 +446,43 @@ export async function PATCH(request: NextRequest) {
 
     const adminSupabase = getSupabaseAdmin();
 
-    // Update profile role if provided
-    if (updates.role) {
+    // Update profile fields if provided (roles, portal_access, producer_id; keep role for backward compat)
+    const profileUpdate: Record<string, any> = {};
+    if (updates.roles !== undefined && Array.isArray(updates.roles)) {
+      profileUpdate.roles = updates.roles.length ? updates.roles : ["user"];
+      profileUpdate.role = updates.roles.includes("admin") ? "admin" : updates.roles.includes("producer") ? "producer" : "user";
+    }
+    if (updates.portal_access !== undefined && Array.isArray(updates.portal_access)) {
+      profileUpdate.portal_access = updates.portal_access.length ? updates.portal_access : ["user"];
+    }
+    if (updates.producer_id !== undefined) {
+      profileUpdate.producer_id = updates.producer_id || null;
+    }
+
+    if (Object.keys(profileUpdate).length > 0) {
       const { error: profileError } = await adminSupabase
         .from("profiles")
-        .update({
-          role: updates.role,
-        })
+        .update(profileUpdate)
         .eq("id", userId);
 
       if (profileError) {
         console.error("Error updating profile:", profileError);
         return NextResponse.json(
-          { error: "Failed to update user role" },
+          { error: "Failed to update user profile" },
           { status: 500 },
         );
+      }
+    }
+
+    // If we linked a producer, also set producer.owner_id to this user (optional but useful)
+    if (updates.producer_id && updates.roles?.includes("producer")) {
+      const { error: ownerError } = await adminSupabase
+        .from("producers")
+        .update({ owner_id: userId })
+        .eq("id", updates.producer_id);
+
+      if (ownerError) {
+        console.warn("Warning: Failed to set producer owner_id:", ownerError);
       }
     }
 

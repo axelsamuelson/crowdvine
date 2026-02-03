@@ -108,6 +108,7 @@ export async function POST(request: Request) {
         expiresAt: invitation.expires_at,
         maxUses: invitation.max_uses,
         initialLevel: invitation.initial_level,
+        createdAt: invitation.created_at,
       },
     });
   } catch (error) {

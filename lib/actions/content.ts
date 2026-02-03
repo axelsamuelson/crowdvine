@@ -89,6 +89,22 @@ export async function updateSiteContent(
     if (insertError) throw new Error(insertError.message);
   }
 
+  // Revalidate relevant paths
   revalidatePath("/admin/content");
   revalidatePath("/"); // Revalidate homepage
+  
+  // För logo-nycklar, revalidate alla paths som kan visa loggan
+  const logoKeys = ["header_logo", "footer_logo", "header_logo_pact", "footer_logo_pact", "header_logo_dirtywine", "footer_logo_dirtywine"];
+  if (logoKeys.includes(key)) {
+    revalidatePath("/", "layout"); // Revalidate root layout
+    // Force revalidation av API-routes
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/site-content/${key}`, {
+        method: 'GET',
+        headers: { 'Cache-Control': 'no-cache' },
+      });
+    } catch (e) {
+      // Ignore errors in revalidation fetch
+    }
+  }
 }

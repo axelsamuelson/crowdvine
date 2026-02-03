@@ -4,7 +4,8 @@ import React, { Suspense, memo, useEffect, useState } from "react";
 import Link from "next/link";
 import { Product } from "@/lib/shopify/types";
 import { AddToCart, AddToCartButton } from "@/components/cart/add-to-cart";
-import { formatPrice } from "@/lib/shopify/utils";
+import { formatPrice, priceExclVat } from "@/lib/shopify/utils";
+import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { VariantSelector } from "../variant-selector";
 import { ProductImage } from "./product-image";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
   const discountInfo = (product as any).discountInfo;
 
   const { addItem } = useCart();
+  const showExclVat = useB2BPriceMode();
   const [isTouched, setIsTouched] = useState(false);
 
   // Keep overlay visible until another product card is activated
@@ -193,7 +195,9 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
             {isWineBox && discountInfo && (
               <span className="line-through opacity-30 text-[10px] md:text-xs">
                 {formatPrice(
-                  Math.round(discountInfo.totalWinePrice).toString(),
+                  showExclVat
+                    ? priceExclVat(discountInfo.totalWinePrice)
+                    : Math.round(discountInfo.totalWinePrice).toString(),
                   product.priceRange.minVariantPrice.currencyCode,
                 )}
               </span>
@@ -320,7 +324,9 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
               {isWineBox && discountInfo && (
                 <span className="text-base line-through opacity-30">
                   {formatPrice(
-                    Math.round(discountInfo.totalWinePrice).toString(),
+                    showExclVat
+                      ? priceExclVat(discountInfo.totalWinePrice)
+                      : Math.round(discountInfo.totalWinePrice).toString(),
                     product.priceRange.minVariantPrice.currencyCode,
                   )}
                 </span>

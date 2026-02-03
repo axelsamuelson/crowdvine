@@ -13,7 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, LogOut } from "lucide-react";
 
 interface EditForm {
   full_name: string;
@@ -156,6 +156,20 @@ export default function EditProfilePage() {
       );
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      const res = await fetch("/api/auth/logout", { method: "POST" });
+      if (res.ok) {
+        router.push("/");
+        router.refresh();
+      } else {
+        toast.error("Failed to sign out");
+      }
+    } catch {
+      toast.error("Failed to sign out");
     }
   };
 
@@ -405,6 +419,17 @@ export default function EditProfilePage() {
               {saving ? "Saving..." : "Save"}
             </Button>
           </div>
+        </div>
+
+        <div className="flex justify-center pt-6 pb-2">
+          <Button
+            variant="ghost"
+            className="text-muted-foreground hover:text-foreground"
+            onClick={handleLogout}
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Log out
+          </Button>
         </div>
       </div>
     </PageLayout>
