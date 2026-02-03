@@ -4,17 +4,9 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Slider } from "@/components/ui/slider";
-import { ArrowLeft, ArrowRight, Save, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -28,6 +20,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbSeparator,
+  BreadcrumbPage,
+} from "@/components/ui/breadcrumb";
+import { PageLayout } from "@/components/layout/page-layout";
+import Prose from "@/components/prose";
+import { SidebarLinks } from "@/components/layout/sidebar/product-sidebar-links";
+import { getColorHex } from "@/lib/utils";
+import { ScorePickerDrawer } from "@/components/wine-tasting/score-picker-drawer";
 
 interface Wine {
   id: string;
@@ -40,6 +47,7 @@ interface Wine {
   base_price_cents?: number;
   producers?: {
     name: string;
+    logo_image_path?: string | null;
   };
 }
 
@@ -89,6 +97,12 @@ export default function TastingPage() {
   const [wineStats, setWineStats] = useState<Map<string, { averageRating: number | null; totalRatings: number }>>(new Map());
   const [isAdmin, setIsAdmin] = useState(false);
   const [isGuest, setIsGuest] = useState(false);
+  const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
+  const [scoreDrawerOpen, setScoreDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    setImageDimensions(null);
+  }, [currentWineIndex]);
 
   // Check admin status from API (checks both profile role and admin cookie)
   useEffect(() => {
@@ -345,8 +359,9 @@ export default function TastingPage() {
     }
   };
 
-  const saveRating = async () => {
+  const saveRating = async (overrideRating?: number) => {
     if (!session || !participant || !currentWine) return;
+    const valueToSave = overrideRating ?? rating;
 
     try {
       setSaving(true);
@@ -356,15 +371,15 @@ export default function TastingPage() {
         body: JSON.stringify({
           participant_id: participant.id,
           wine_id: currentWine.id,
-          rating,
+          rating: Math.round(valueToSave),
           comment: comment.trim() || null,
         }),
       });
 
       if (response.ok) {
+        if (overrideRating != null) setRating(overrideRating);
         setSaved(true);
         toast.success("Rating saved!");
-        // Refresh wine stats after saving
         await fetchWineStats();
       } else {
         // Check if response is JSON before parsing
@@ -407,12 +422,23 @@ export default function TastingPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
-          <p className="text-gray-600">Joining session...</p>
+      <PageLayout className="bg-muted" noPadding={true}>
+        <div className="flex flex-col md:grid md:grid-cols-12 md:gap-sides min-h-max p-sides md:pl-sides md:pt-top-spacing">
+          <div className="col-span-5 2xl:col-span-4 space-y-4">
+            <Skeleton className="h-4 w-32 rounded-md" />
+            <Skeleton className="h-8 w-48 rounded-md" />
+            <div className="rounded-md bg-popover p-4 space-y-3">
+              <Skeleton className="h-4 w-full rounded-md" />
+              <Skeleton className="h-4 w-3/4 rounded-md" />
+              <Skeleton className="h-10 w-full rounded-md" />
+            </div>
+          </div>
+          <div className="hidden md:block col-span-7 col-start-6">
+            <Skeleton className="aspect-[3/4] w-full rounded-md" />
+          </div>
         </div>
-      </div>
+        <p className="text-center text-sm text-muted-foreground py-8">Joining session...</p>
+      </PageLayout>
     );
   }
 
@@ -431,11 +457,6 @@ export default function TastingPage() {
   }
 
   const currentWine = session.wines?.[currentWineIndex];
-  const allWinesRated =
-    session.wines?.every((wine) => {
-      // Check if this wine has been rated (simplified check)
-      return saved && currentWineIndex === session.wines!.length - 1;
-    }) || false;
 
   if (!currentWine) {
     return (
@@ -449,335 +470,257 @@ export default function TastingPage() {
     );
   }
 
-  return (
-    <main className="min-h-screen bg-gray-50">
-      <div className="max-w-5xl mx-auto p-4 md:p-6 pt-top-spacing space-y-6 md:space-y-8">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-xl md:text-2xl font-medium text-gray-900 mb-1 md:mb-2">
-              {session.name}
-            </h1>
-            <p className="text-sm md:text-base text-gray-500">
-              Wine {currentWineIndex + 1} of {session.wines?.length || 0}
-            </p>
-          </div>
-          {isAdmin && session && (
-            <Link href={`/admin/wine-tastings/${session.id}/control`}>
-              <Button
-                variant="outline"
-                size="sm"
-                className="rounded-full shrink-0"
-              >
-                <Settings className="w-4 h-4 mr-2" />
-                Admin
-              </Button>
-            </Link>
-          )}
-        </div>
+  const totalWines = session.wines?.length || 0;
+  const imageUrl = getImageUrl(currentWine.label_image_path);
+  const producerLogoUrl = currentWine.producers?.logo_image_path
+    ? getImageUrl(currentWine.producers.logo_image_path)
+    : null;
+  const descriptionHtml = currentWine.description
+    ? `<p>${currentWine.description.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")}</p>`
+    : "";
 
-        {/* Wine Card - Premium Design */}
-        <Card className="p-4 md:p-6 bg-white border border-gray-200 rounded-2xl">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 items-start">
-            {/* Left: Image */}
-            <div className="md:sticky md:top-6">
-              {(() => {
-                const imageUrl = getImageUrl(currentWine.label_image_path);
-                if (!imageUrl) {
-                  return (
-                    <div className="relative w-full aspect-[3/4] bg-gray-100 rounded-2xl border border-gray-200 flex items-center justify-center">
-                      <p className="text-gray-400">No image available</p>
-                    </div>
-                  );
-                }
-                
-                return (
-                  <div className="relative w-full aspect-[3/4] bg-white rounded-2xl overflow-hidden border border-gray-200">
-                    <div className="absolute inset-0 flex items-center justify-center p-2">
+  return (
+    <PageLayout className="bg-muted" noPadding={true}>
+      <TooltipProvider>
+        <div className="flex flex-col md:grid md:grid-cols-12 md:gap-sides min-h-max pt-[var(--top-spacing)]">
+          {/* Mobile gallery */}
+          <div className="md:hidden col-span-full h-[60vh] min-h-[400px]">
+            {imageUrl ? (
+              <div className="relative w-full h-full">
+                <div className="overflow-hidden h-full">
+                  <div className="flex h-full">
+                    <div className="flex-shrink-0 w-full h-full relative">
                       <Image
                         src={imageUrl}
                         alt={`${currentWine.wine_name} ${currentWine.vintage}`}
-                        width={600}
-                        height={800}
-                        className="object-contain w-full h-full"
+                        width={imageDimensions?.width ?? 600}
+                        height={imageDimensions?.height ?? 800}
+                        style={{ aspectRatio: imageDimensions ? `${imageDimensions.width} / ${imageDimensions.height}` : "3/4" }}
+                        className="w-full h-full object-cover"
                         priority
                         unoptimized
-                        sizes="(max-width: 768px) 100vw, 50vw"
-                        onError={(e) => {
-                          console.error("Image failed to load:", imageUrl, currentWine.label_image_path);
-                          e.currentTarget.style.display = "none";
+                        sizes="100vw"
+                        onLoad={(e) => {
+                          const img = e.currentTarget;
+                          if (img.naturalWidth && img.naturalHeight) {
+                            setImageDimensions({ width: img.naturalWidth, height: img.naturalHeight });
+                          }
                         }}
+                        onError={(e) => { e.currentTarget.style.display = "none"; }}
                       />
                     </div>
                   </div>
-                );
-              })()}
-            </div>
-
-            {/* Right: Wine Info */}
-            <div className="min-w-0 space-y-4 md:space-y-6">
-              <div>
-                <h2 className="text-xl md:text-2xl font-medium text-gray-900 mb-2">
-                  {currentWine.wine_name} {currentWine.vintage}
-                </h2>
-                <div className="flex flex-wrap items-center gap-2 md:gap-3 text-xs md:text-sm text-gray-600 mb-3 md:mb-4">
-                  {currentWine.producers?.name && (
-                    <span className="font-medium">{currentWine.producers.name}</span>
-                  )}
-                  {currentWine.grape_varieties && (
-                    <span>• {currentWine.grape_varieties}</span>
-                  )}
-                  {currentWine.color && (
-                    <span>• {currentWine.color}</span>
-                  )}
                 </div>
-                {currentWine.base_price_cents && (
-                  <div className="mb-3 md:mb-4">
-                    <MemberPrice
-                      amount={currentWine.base_price_cents / 100}
-                      currencyCode="SEK"
-                      className="text-lg md:text-xl font-medium text-gray-900"
-                    />
-                  </div>
+              </div>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-muted/30">No image</div>
+            )}
+          </div>
+
+          {/* Left column: breadcrumb + white box */}
+          <div className="flex sticky top-0 flex-col col-span-5 2xl:col-span-4 max-md:col-span-full md:h-screen min-h-max max-md:p-sides md:pl-sides md:pt-top-spacing max-md:static">
+            <div className="col-span-full">
+              <div className="flex items-start justify-between gap-4 mb-4 md:mb-8">
+                <Breadcrumb className="col-span-full shrink min-w-0">
+                  <BreadcrumbList>
+                    <BreadcrumbItem>
+                      <BreadcrumbLink asChild><Link href="/" prefetch>Home</Link></BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      <BreadcrumbPage>{session.name}</BreadcrumbPage>
+                    </BreadcrumbItem>
+                  </BreadcrumbList>
+                </Breadcrumb>
+                {isAdmin && (
+                  <Button variant="outline" size="sm" className="shrink-0 rounded-md" asChild>
+                    <Link href={`/admin/wine-tastings/${session.id}/control`} prefetch={false}>
+                      <Settings className="h-4 w-4 mr-2" />
+                      Admin
+                    </Link>
+                  </Button>
                 )}
               </div>
 
-              {currentWine.description && (
-                <div className="prose prose-sm max-w-none">
-                  <p className="text-sm md:text-base text-gray-700 leading-relaxed">{currentWine.description}</p>
-                </div>
-              )}
+              <div className="flex flex-col col-span-full gap-4 md:mb-10 max-md:order-2">
+                <div className="flex flex-col grid-cols-2 px-3 py-2 rounded-md bg-popover md:grid md:gap-x-4 md:gap-y-10 place-items-baseline">
+                  <div className="md:col-start-1 md:row-start-1">
+                    <h1 className="text-lg font-semibold lg:text-xl 2xl:text-2xl text-balance max-md:mb-1">
+                      {currentWine.wine_name} {currentWine.vintage}
+                    </h1>
+                    {currentWine.producers?.name && (
+                      <div className="flex items-center gap-2 mb-2">
+                        {producerLogoUrl && (
+                          <div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded">
+                            <Image src={producerLogoUrl} alt="" width={32} height={32} className="h-8 w-8 object-contain" unoptimized />
+                          </div>
+                        )}
+                        <p className="text-sm text-muted-foreground">{currentWine.producers.name}</p>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-sm font-medium md:col-start-2 md:row-start-1">
+                    {currentWine.description?.trim() || "—"}
+                  </p>
+                  <div className="flex gap-3 items-center text-lg font-semibold lg:text-xl 2xl:text-2xl max-md:mt-4 md:col-start-1 md:row-start-2">
+                    {currentWine.base_price_cents ? (
+                      <MemberPrice
+                        amount={currentWine.base_price_cents / 100}
+                        currencyCode="SEK"
+                        className="text-lg font-semibold lg:text-xl 2xl:text-2xl"
+                        showBadge={true}
+                      />
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </div>
 
-              {/* Rating Section */}
-              <div className="border-t border-gray-200 pt-4 md:pt-6 space-y-4 md:space-y-6">
-                <div>
-                  <div className="flex items-center justify-between mb-3 md:mb-4">
-                    <Label htmlFor="rating" className="text-sm md:text-base font-medium text-gray-900">
-                      Rating (0-100)
-                    </Label>
-                    <span
-                      className={`text-2xl md:text-3xl font-bold ${
-                        rating >= 71
-                          ? "text-green-600"
-                          : rating >= 41
-                            ? "text-yellow-600"
-                            : "text-red-600"
-                      }`}
+                  <div className="col-span-full w-full mt-4 space-y-3">
+                    <Button
+                      type="button"
+                      size="lg"
+                      className="w-full bg-black hover:bg-black/90 text-white border-black rounded-md"
+                      onClick={() => setScoreDrawerOpen(true)}
                     >
-                      {rating}
-                    </span>
-                  </div>
-                  <Slider
-                    id="rating"
-                    min={0}
-                    max={100}
-                    step={1}
-                    value={[rating]}
-                    onValueChange={(value) => {
-                      setRating(value[0]);
-                      setSaved(false);
-                    }}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-gray-500 mt-2">
-                    <span>0</span>
-                    <span>50</span>
-                    <span>100</span>
+                      Score — {rating}
+                    </Button>
+                    <ScorePickerDrawer
+                      open={scoreDrawerOpen}
+                      onOpenChange={setScoreDrawerOpen}
+                      value={rating}
+                      onConfirm={(newValue) => {
+                        setRating(newValue);
+                        saveRating(newValue);
+                      }}
+                    />
+                    <div className="space-y-2">
+                      <Label htmlFor="comment">Comment</Label>
+                      <Textarea
+                        id="comment"
+                        placeholder="Your notes..."
+                        value={comment}
+                        onChange={(e) => { setComment(e.target.value); setSaved(false); }}
+                        rows={3}
+                        className="resize-none"
+                      />
+                    </div>
+                    <Button onClick={() => saveRating()} disabled={saving} className="w-full rounded-md" variant="outline">
+                      {saving ? "Saving..." : "Save comment"}
+                    </Button>
+                    {isAdmin && (
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link href={`/admin/wine-tastings/${session.id}/control`} prefetch={false}>
+                          <Settings className="h-4 w-4 mr-2" /> Admin
+                        </Link>
+                      </Button>
+                    )}
+                    <div className="flex gap-2 pt-2">
+                      <Button variant="outline" size="sm" onClick={() => navigateWine("prev")} disabled={currentWineIndex <= 0}>
+                        Previous
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => navigateWine("next")} disabled={currentWineIndex >= totalWines - 1}>
+                        Next
+                      </Button>
+                      <Button variant="secondary" size="sm" onClick={goToSummary}>Summary</Button>
+                    </div>
                   </div>
                 </div>
-
-                <div>
-                  <Label htmlFor="comment" className="text-base font-medium text-gray-900">
-                    Comment (optional)
-                  </Label>
-                  <Textarea
-                    id="comment"
-                    value={comment}
-                    onChange={(e) => {
-                      setComment(e.target.value);
-                      setSaved(false);
-                    }}
-                    placeholder="Your thoughts on this wine..."
-                    rows={4}
-                    className="mt-2 rounded-xl border-gray-200"
-                  />
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <dl className="flex items-center gap-4 rounded-lg bg-popover py-2.5 px-3 justify-between">
+                    <dt className="text-base font-semibold leading-7">Grapes</dt>
+                    <dd className="text-sm text-gray-700">{currentWine.grape_varieties || "—"}</dd>
+                  </dl>
+                  <dl className="flex items-center gap-4 rounded-lg bg-popover py-2.5 px-3 justify-between">
+                    <dt className="text-base font-semibold leading-7">Color</dt>
+                    <dd className="flex flex-wrap gap-2 items-center">
+                      {currentWine.color ? (
+                        <>
+                          <div
+                            className="w-6 h-6 rounded-full border border-gray-300"
+                            style={{ backgroundColor: (() => { const hex = getColorHex(currentWine.color); return Array.isArray(hex) ? hex[0] : hex; })() }}
+                            title={currentWine.color}
+                          />
+                          <span className="text-sm text-gray-700">{currentWine.color}</span>
+                        </>
+                      ) : (
+                        <span className="text-sm text-gray-700">—</span>
+                      )}
+                    </dd>
+                  </dl>
                 </div>
-
-                <Button
-                  onClick={saveRating}
-                  disabled={saving}
-                  className="w-full bg-black hover:bg-black/90 text-white rounded-full"
-                  size="lg"
-                >
-                  {saving ? (
-                    "Saving..."
-                  ) : saved ? (
-                    <>
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Saved
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4 mr-2" />
-                      Save Rating
-                    </>
-                  )}
-                </Button>
               </div>
             </div>
-          </div>
-        </Card>
 
-        {/* Navigation - Above Table */}
-        <div className="space-y-2 sm:space-y-0 sm:flex sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-          {/* Previous and Next buttons - side by side on mobile */}
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-3 sm:flex-1">
-            <Button
-              onClick={() => navigateWine("prev")}
-              disabled={currentWineIndex === 0}
-              variant="outline"
-              className="rounded-full h-12 sm:h-10"
-              size="lg"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Previous
-            </Button>
-            <Button
-              onClick={() => navigateWine("next")}
-              disabled={currentWineIndex === (session.wines?.length || 0) - 1}
-              variant="outline"
-              className="rounded-full h-12 sm:h-10"
-              size="lg"
-            >
-              Next
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+            <Prose className="col-span-full mb-auto opacity-70 max-md:order-3 max-md:my-6" html={descriptionHtml || ""} />
+            <SidebarLinks className="flex-col-reverse max-md:hidden py-sides w-full max-w-[408px] pr-sides max-md:pr-0 max-md:py-0" />
           </div>
-          {/* Summary button - below on mobile, to the right on desktop */}
-          <Button
-            onClick={goToSummary}
-            variant="outline"
-            className="rounded-full w-full sm:w-auto h-12 sm:h-10"
-            size="lg"
-          >
-            View Summary
-          </Button>
+
+          {/* Desktop gallery */}
+          <div className="hidden overflow-y-auto relative col-span-7 col-start-6 w-full md:block">
+            {imageUrl ? (
+              <Image
+                src={imageUrl}
+                alt={`${currentWine.wine_name} ${currentWine.vintage}`}
+                width={imageDimensions?.width ?? 600}
+                height={imageDimensions?.height ?? 800}
+                style={{ aspectRatio: imageDimensions ? `${imageDimensions.width} / ${imageDimensions.height}` : "3/4" }}
+                className="w-full object-cover"
+                priority
+                unoptimized
+                sizes="(min-width: 768px) 58vw, 100vw"
+                onLoad={(e) => {
+                  const img = e.currentTarget;
+                  if (img.naturalWidth && img.naturalHeight) {
+                    setImageDimensions({ width: img.naturalWidth, height: img.naturalHeight });
+                  }
+                }}
+                onError={(e) => { e.currentTarget.style.display = "none"; }}
+              />
+            ) : (
+              <div className="flex items-center justify-center min-h-[60vh] text-muted-foreground bg-muted/50">No image</div>
+            )}
+          </div>
+
+          {/* All Wines table */}
+          <div className="col-span-full p-sides md:pl-sides md:pb-sides pt-8 border-t border-border/50">
+            <h2 className="text-base font-semibold leading-7 mb-4">All wines</h2>
+            <div className="rounded-md border bg-popover overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12">#</TableHead>
+                    <TableHead>Wine</TableHead>
+                    <TableHead>Vintage</TableHead>
+                    <TableHead>Producer</TableHead>
+                    <TableHead className="text-right">Your rating</TableHead>
+                    <TableHead className="text-right">Avg</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {session.wines?.map((wine, index) => {
+                    const stats = wineStats.get(wine.id);
+                    const isCurrent = index === currentWineIndex;
+                    return (
+                      <TableRow
+                        key={wine.id}
+                        className={isCurrent ? "bg-muted/50" : "cursor-pointer hover:bg-muted/30"}
+                        onClick={() => { if (!isCurrent) { setCurrentWineIndex(index); setSaved(false); } }}
+                      >
+                        <TableCell className="font-medium">{index + 1}</TableCell>
+                        <TableCell>{wine.wine_name}</TableCell>
+                        <TableCell>{wine.vintage || "—"}</TableCell>
+                        <TableCell>{wine.producers?.name ?? "—"}</TableCell>
+                        <TableCell className="text-right">{isCurrent ? rating : "—"}</TableCell>
+                        <TableCell className="text-right">{stats?.averageRating != null ? stats.averageRating : "—"}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
         </div>
-
-        {/* Wine List Table */}
-        {session.wines && session.wines.length > 0 && (
-          <Card className="p-4 md:p-6 bg-white border border-gray-200 rounded-2xl">
-            <CardHeader className="px-0 md:px-0">
-              <CardTitle className="text-lg md:text-xl font-medium text-gray-900">
-                All Wines
-              </CardTitle>
-              <CardDescription className="text-sm">
-                Current ratings for all wines in this session
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="px-0 md:px-0">
-              <div className="overflow-x-auto -mx-4 md:mx-0">
-                <div className="inline-block min-w-full align-middle px-4 md:px-0">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-10 md:w-12">#</TableHead>
-                          <TableHead className="w-16 md:w-20">Image</TableHead>
-                          <TableHead className="min-w-[150px]">Wine</TableHead>
-                          <TableHead className="hidden sm:table-cell">Producer</TableHead>
-                          <TableHead className="text-right whitespace-nowrap">Price</TableHead>
-                          <TableHead className="text-right whitespace-nowrap">Rating</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {session.wines.map((wine, index) => {
-                          const stats = wineStats.get(wine.id);
-                          const isCurrentWine = index === currentWineIndex;
-                          const imageUrl = getImageUrl(wine.label_image_path);
-                          const getRatingColor = (rating: number | null) => {
-                            if (rating === null) return "text-gray-400";
-                            if (rating >= 71) return "text-green-600";
-                            if (rating >= 41) return "text-yellow-600";
-                            return "text-red-600";
-                          };
-                          
-                          return (
-                            <TableRow
-                              key={wine.id}
-                              className={isCurrentWine ? "bg-gray-50 font-medium" : ""}
-                              onClick={() => setCurrentWineIndex(index)}
-                              style={{ cursor: "pointer" }}
-                            >
-                              <TableCell className="font-medium">
-                                {index + 1}
-                              </TableCell>
-                              <TableCell>
-                                {imageUrl ? (
-                                  <div className="relative w-12 h-16 md:w-16 md:h-20 bg-white rounded overflow-hidden border border-gray-200">
-                                    <Image
-                                      src={imageUrl}
-                                      alt={`${wine.wine_name} ${wine.vintage}`}
-                                      fill
-                                      className="object-contain p-0.5 md:p-1"
-                                      unoptimized
-                                      sizes="(max-width: 640px) 48px, 64px"
-                                    />
-                                  </div>
-                                ) : (
-                                  <div className="w-12 h-16 md:w-16 md:h-20 bg-gray-100 rounded border border-gray-200 flex items-center justify-center">
-                                    <span className="text-[10px] md:text-xs text-gray-400">No image</span>
-                                  </div>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <div>
-                                  <div className="font-medium text-sm md:text-base">
-                                    {wine.wine_name} {wine.vintage}
-                                  </div>
-                                  {wine.grape_varieties && (
-                                    <div className="text-xs md:text-sm text-gray-500">
-                                      {wine.grape_varieties}
-                                    </div>
-                                  )}
-                                  <div className="text-xs md:text-sm text-gray-500 sm:hidden mt-1">
-                                    {wine.producers?.name || "—"}
-                                  </div>
-                                </div>
-                              </TableCell>
-                              <TableCell className="hidden sm:table-cell">
-                                {wine.producers?.name || "—"}
-                              </TableCell>
-                              <TableCell className="text-right whitespace-nowrap">
-                                {wine.base_price_cents ? (
-                                  <MemberPrice
-                                    amount={wine.base_price_cents / 100}
-                                    currencyCode="SEK"
-                                    className="text-xs md:text-sm font-medium text-gray-900"
-                                  />
-                                ) : (
-                                  <span className="text-gray-400 text-xs md:text-sm">—</span>
-                                )}
-                              </TableCell>
-                              <TableCell className="text-right whitespace-nowrap">
-                                <span
-                                  className={`text-base md:text-lg font-bold ${getRatingColor(
-                                    stats?.averageRating ?? null,
-                                  )}`}
-                                >
-                                  {stats?.averageRating?.toFixed(1) || "—"}
-                                </span>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-    </main>
+      </TooltipProvider>
+    </PageLayout>
   );
 }
