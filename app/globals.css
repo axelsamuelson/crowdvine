@@ -133,6 +133,30 @@
 }
 
 /* ---------------------------
+   Dirty Wine (B2B) dark mode
+   Applied when data-b2b="true" on html (dirtywine.se or localhost)
+---------------------------- */
+html[data-b2b="true"] {
+  --background: 0 0% 6%;
+  --foreground: 0 0% 96%;
+  --card: 0 0% 9%;
+  --card-foreground: 0 0% 96%;
+  --popover: 0 0% 9%;
+  --popover-foreground: 0 0% 96%;
+  --primary: 0 0% 98%;
+  --primary-foreground: 0 0% 6%;
+  --secondary: 0 0% 12%;
+  --secondary-foreground: 0 0% 96%;
+  --muted: 0 0% 14%;
+  --muted-foreground: 0 0% 60%;
+  --accent: 0 0% 14%;
+  --accent-foreground: 0 0% 96%;
+  --border: 0 0% 20%;
+  --input: 0 0% 14%;
+  --ring: 0 0% 40%;
+}
+
+/* ---------------------------
    /map-topo scoped theme (demo-like)
    This overrides design tokens ONLY within the map topo page wrapper.
 ---------------------------- */

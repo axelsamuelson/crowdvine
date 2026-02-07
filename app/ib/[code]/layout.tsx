@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Instrument_Serif } from "next/font/google";
-import "./invite-opus.css";
+import "../../i/[code]/invite-opus.css";
 
 const instrumentSerif = Instrument_Serif({
   subsets: ["latin"],
@@ -12,8 +12,6 @@ const instrumentSerif = Instrument_Serif({
 export async function generateMetadata(props: {
   params: Promise<{ code: string }>;
 }): Promise<Metadata> {
-  const params = await props.params;
-
   return {
     title: "You're Invited to PACT!",
     description:
@@ -43,7 +41,7 @@ export async function generateMetadata(props: {
   };
 }
 
-export default function InvitationLayout({
+export default function InvitationBothLayout({
   children,
 }: {
   children: React.ReactNode;

@@ -18,6 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CheckCircle, XCircle, Clock, Plus, Copy, Trash2, Link2 } from "lucide-react";
 import { toast } from "sonner";
+import { getInviteUrl } from "@/lib/invitation-path";
 
 interface AccessRequest {
   id: string;
@@ -643,7 +644,11 @@ export default function AccessControlAdmin() {
                                 variant="outline"
                                 onClick={() =>
                                   copyToClipboard(
-                                    `${typeof window !== "undefined" ? window.location.origin : ""}/i/${code.code}`,
+                                    getInviteUrl(
+                                      typeof window !== "undefined" ? window.location.origin : "",
+                                      code.code.trim().replace(/\s+/g, ""),
+                                      code.allowed_types ?? (code.invitation_type ? [code.invitation_type] : ["consumer"]),
+                                    ),
                                     "Länk kopierad",
                                   )
                                 }

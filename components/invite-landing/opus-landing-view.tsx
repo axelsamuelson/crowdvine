@@ -4,6 +4,7 @@ import { LenisProvider } from "./lenis-provider";
 import { CustomCursor } from "./custom-cursor";
 import { HeroSection } from "./sections/hero-section";
 import { ManifestoSection } from "./sections/manifesto-section";
+import { InviteWinesSection } from "./sections/invite-wines-section";
 import {
   InvitationTypeSection,
   type InvitationFormData,
@@ -27,6 +28,8 @@ export interface OpusLandingViewProps {
   submitting: boolean;
   /** When set, the invitation section is replaced by "Welcome {name}" and user stays on the page. */
   welcomeName?: string | null;
+  /** Optional extra content (e.g. links) rendered below the form. */
+  extraContent?: React.ReactNode;
 }
 
 /**
@@ -43,14 +46,19 @@ export function OpusLandingView({
   onSubmit,
   submitting,
   welcomeName,
+  extraContent,
 }: OpusLandingViewProps) {
+  const isBusinessOnly =
+    allowedTypes.length === 1 && allowedTypes[0] === "business";
+
   return (
     <div className="invite-opus-page custom-cursor bg-background min-h-screen">
       <CustomCursor />
       <LenisProvider>
         <main className="bg-background">
-          <HeroSection />
-          <ManifestoSection />
+          <HeroSection showDirtyWineLogo={isBusinessOnly} />
+          <ManifestoSection isBusinessOnly={isBusinessOnly} />
+          {isBusinessOnly && <InviteWinesSection />}
           <InvitationTypeSection
             allowedTypes={allowedTypes}
             defaultType={defaultType}
@@ -62,7 +70,9 @@ export function OpusLandingView({
             onFormChange={onFormChange}
             onSubmit={onSubmit}
             submitting={submitting}
+            showDirtyWineLogo={isBusinessOnly}
           />
+          {extraContent}
         </main>
       </LenisProvider>
     </div>

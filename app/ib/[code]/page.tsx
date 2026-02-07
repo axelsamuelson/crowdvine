@@ -27,7 +27,7 @@ interface Invitation {
   };
 }
 
-export default function InviteSignupPage() {
+export default function InviteBothSignupPage() {
   const params = useParams();
   const router = useRouter();
   const [invitation, setInvitation] = useState<Invitation | null>(null);
@@ -68,15 +68,7 @@ export default function InviteSignupPage() {
       const data = await response.json();
 
       if (data.success) {
-        const inv = data.invitation;
-        const allowed = inv?.allowed_types ?? inv?.invitation_type ? [inv.invitation_type] : ["consumer"];
-        const hasBusiness = allowed.includes("business");
-        const hasUser = allowed.some((t: string) => ["consumer", "producer"].includes(t));
-        if (hasBusiness && hasUser) {
-          router.replace(`/ib/${code}`);
-          return;
-        }
-        setInvitation(inv);
+        setInvitation(data.invitation);
       } else {
         toast.error(data.error || "Invalid invitation code");
         router.push("/access-request");
@@ -180,22 +172,22 @@ export default function InviteSignupPage() {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center p-4">
         <div className="w-full max-w-md text-center">
-          <X className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h1 className="text-xl font-light text-gray-900 mb-2">
-            {isExpired ? "Invitation Expired" : "Invitation Already Used"}
-          </h1>
-          <p className="text-sm text-gray-600 mb-6">
-            {isExpired
-              ? "This invitation has expired. Please request a new one."
-              : "This invitation has already been used."}
-          </p>
-          <Button
-            onClick={() => router.push("/access-request")}
-            className="bg-black hover:bg-black/90 text-white"
-          >
-            Request Access
-          </Button>
-        </div>
+            <X className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h1 className="text-xl font-light text-gray-900 mb-2">
+              {isExpired ? "Invitation Expired" : "Invitation Already Used"}
+            </h1>
+            <p className="text-sm text-gray-600 mb-6">
+              {isExpired
+                ? "This invitation has expired. Please request a new one."
+                : "This invitation has already been used."}
+            </p>
+            <Button
+              onClick={() => router.push("/access-request")}
+              className="bg-black hover:bg-black/90 text-white"
+            >
+              Request Access
+            </Button>
+          </div>
       </div>
     );
   }
@@ -210,7 +202,6 @@ export default function InviteSignupPage() {
   const defaultType: InvitationPageType = allowedTypes[0];
   const canChangeAccountType = !!invitation.can_change_account_type;
 
-  // Initialize selected_type when can change and not yet set
   const effectiveFormData =
     canChangeAccountType && formData.selected_type == null
       ? { ...formData, selected_type: defaultType }

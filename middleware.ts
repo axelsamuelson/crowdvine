@@ -29,6 +29,8 @@ async function runMiddleware(req: NextRequest) {
     "/access-request",
     "/access-pending",
     "/i",
+    "/ib",
+    "/b",
     "/c",
     "/profile",
     "/pallet",

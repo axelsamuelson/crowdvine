@@ -2,12 +2,17 @@
 
 import { useRef, useState, useEffect } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
+import { DirtyWineLogo } from "../dirty-wine-logo";
 
 const FALLBACK_WINE_IMAGE = "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=800&fit=crop";
 
 type HeroImage = { url: string; altText: string };
 
-export function HeroSection() {
+export function HeroSection({
+  showDirtyWineLogo = false,
+}: {
+  showDirtyWineLogo?: boolean;
+} = {}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [images, setImages] = useState<HeroImage[] | null>(null);
 
@@ -116,9 +121,13 @@ export function HeroSection() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1, delay: 0.8 }}
       >
-        <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif text-center text-foreground mix-blend-difference">
-          You are <em className="italic">invited</em>.
-        </h1>
+        {showDirtyWineLogo ? (
+          <DirtyWineLogo className="max-w-[280px] md:max-w-[360px] w-full h-auto" />
+        ) : (
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif text-center text-foreground mix-blend-difference">
+            Sign up to claim membership.
+          </h1>
+        )}
       </motion.div>
 
       <motion.div

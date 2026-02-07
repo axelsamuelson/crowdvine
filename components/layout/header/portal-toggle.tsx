@@ -1,107 +1,45 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-const B2C_ORIGIN = "https://pactwines.com";
+const PACT_ORIGIN = "https://pactwines.com";
 const B2B_ORIGIN = "https://dirtywine.se";
 
 interface PortalToggleProps {
-  showPortalToggle: boolean;
+  showPortalToggle?: boolean;
   className?: string;
 }
 
 export function PortalToggle({ showPortalToggle, className }: PortalToggleProps) {
   const pathname = usePathname();
-  const [isClient, setIsClient] = useState(false);
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  if (!showPortalToggle) return null;
 
-  const { currentPortal, b2cUrl, b2bUrl } = useMemo(() => {
-    if (!isClient || typeof window === "undefined")
-      return { currentPortal: "b2c" as const, b2cUrl: "#", b2bUrl: "#" };
-    const path = pathname ?? window.location.pathname;
-    const rawSearch = window.location.search ?? "";
-    const host = window.location.hostname.toLowerCase();
-    const isLocalhost = host === "localhost" || host === "127.0.0.1";
-    const isB2BProduction = host.includes("dirtywine.se");
-    const origin = window.location.origin;
-    const pathEnc = encodeURIComponent(path);
-    const searchEnc = encodeURIComponent(rawSearch);
+  const host =
+    typeof window !== "undefined" ? window.location.hostname.toLowerCase() : "";
+  const forceB2B =
+    typeof window !== "undefined" ? window.location.search.includes("b2b=1") : false;
+  const onLocalhost = host === "localhost" || host === "127.0.0.1";
+  // dirtywine.se = B2B. localhost + ?b2b=1 = B2B. localhost (default) = PACT
+  const onB2B = host.includes("dirtywine.se") || (onLocalhost && forceB2B);
 
-    const params = new URLSearchParams(rawSearch);
-    const forceB2B = params.get("b2b") === "1";
-    const currentPortalLocal = isB2BProduction || (isLocalhost && forceB2B) ? "b2b" : "b2c";
-
-    if (isLocalhost) {
-      const searchForB2C = new URLSearchParams(params);
-      searchForB2C.delete("b2b");
-      const b2cSearch = searchForB2C.toString() ? `?${searchForB2C.toString()}` : "";
-      const searchForB2B = new URLSearchParams(params);
-      searchForB2B.set("b2b", "1");
-      const b2bSearch = `?${searchForB2B.toString()}`;
-      return {
-        currentPortal: currentPortalLocal,
-        b2cUrl: `${origin}${path}${b2cSearch}`,
-        b2bUrl: `${origin}${path}${b2bSearch}`,
-      };
-    }
-
-    if (isB2BProduction) {
-      return {
-        currentPortal: "b2b" as const,
-        b2cUrl: `${origin}/api/auth/cross-domain?path=${pathEnc}&search=${searchEnc}&target=${encodeURIComponent(B2C_ORIGIN)}`,
-        b2bUrl: `${B2B_ORIGIN}${path}${rawSearch}`,
-      };
-    }
-    return {
-      currentPortal: "b2c" as const,
-      b2cUrl: `${B2C_ORIGIN}${path}${rawSearch}`,
-      b2bUrl: `${origin}/api/auth/cross-domain?path=${pathEnc}&search=${searchEnc}&target=${encodeURIComponent(B2B_ORIGIN)}`,
-    };
-  }, [pathname, isClient]);
-
-  if (!showPortalToggle || !isClient) return null;
+  const handleSwitch = () => {
+    const targetOrigin = onB2B ? PACT_ORIGIN : B2B_ORIGIN;
+    const target = `${targetOrigin}${pathname ?? ""}${window.location.search}`;
+    window.location.href = target;
+  };
 
   return (
-    <div
+    <button
+      type="button"
+      onClick={handleSwitch}
       className={cn(
-        "inline-flex items-center rounded-md border border-border bg-muted/50 p-0.5 text-xs font-medium uppercase tracking-wide",
+        "text-xs font-medium uppercase text-foreground/70 hover:text-foreground transition-colors px-2 py-1 rounded border border-border hover:border-foreground/30",
         className,
       )}
-      role="group"
-      aria-label="Växla portal (B2C / B2B)"
     >
-      <a
-        href={b2cUrl}
-        className={cn(
-          "rounded px-2 py-1 transition-colors",
-          currentPortal === "b2c"
-            ? "bg-background text-foreground shadow-sm"
-            : "text-muted-foreground hover:text-foreground",
-        )}
-        aria-current={currentPortal === "b2c" ? "true" : undefined}
-      >
-        PACT
-      </a>
-      <span className="text-muted-foreground/60 px-0.5" aria-hidden>
-        |
-      </span>
-      <a
-        href={b2bUrl}
-        className={cn(
-          "rounded px-2 py-1 transition-colors",
-          currentPortal === "b2b"
-            ? "bg-background text-foreground shadow-sm"
-            : "text-muted-foreground hover:text-foreground",
-        )}
-        aria-current={currentPortal === "b2b" ? "true" : undefined}
-      >
-        DIRTY WINE
-      </a>
-    </div>
+      {onB2B ? "PACT" : "Dirty Wine"}
+    </button>
   );
 }

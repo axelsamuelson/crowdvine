@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { PageLayout } from "@/components/layout/page-layout";
 import { Button } from "@/components/ui/button";
 import { X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { OpusLandingView } from "@/components/invite-landing/opus-landing-view";
 
-export type InvitationPageType = "consumer" | "producer" | "business";
+type InvitationPageType = "consumer" | "producer" | "business";
 
 interface Invitation {
   id: string;
@@ -27,9 +28,10 @@ interface Invitation {
   };
 }
 
-export default function InviteSignupPage() {
+export default function BusinessInvitePage() {
   const params = useParams();
   const router = useRouter();
+  const code = params.code as string;
   const [invitation, setInvitation] = useState<Invitation | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -43,52 +45,36 @@ export default function InviteSignupPage() {
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [registeredName, setRegisteredName] = useState<string | null>(null);
 
-  const code = params.code as string;
-
   useEffect(() => {
-    if (code) {
-      validateInvitation();
-    }
-  }, [code]);
-
-  useEffect(() => {
-    if (!loading && invitation) {
-      window.scrollTo(0, 0);
-    }
-  }, [loading, invitation]);
-
-  const validateInvitation = async () => {
-    try {
-      const response = await fetch("/api/invitations/validate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
+    if (!code) return;
+    fetch("/api/invitations/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.success) {
+          router.push("/access-request");
+          return;
+        }
         const inv = data.invitation;
-        const allowed = inv?.allowed_types ?? inv?.invitation_type ? [inv.invitation_type] : ["consumer"];
+        const allowed = inv?.allowed_types ?? (inv?.invitation_type ? [inv.invitation_type] : []);
         const hasBusiness = allowed.includes("business");
         const hasUser = allowed.some((t: string) => ["consumer", "producer"].includes(t));
+        if (inv?.used_at || !hasBusiness) {
+          router.push("/access-request");
+          return;
+        }
         if (hasBusiness && hasUser) {
           router.replace(`/ib/${code}`);
           return;
         }
         setInvitation(inv);
-      } else {
-        toast.error(data.error || "Invalid invitation code");
-        router.push("/access-request");
-      }
-    } catch (error) {
-      console.error("Error validating invitation:", error);
-      toast.error("Failed to validate invitation");
-      router.push("/access-request");
-    } finally {
-      setLoading(false);
-    }
-  };
+      })
+      .catch(() => router.push("/access-request"))
+      .finally(() => setLoading(false));
+  }, [code, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,7 +94,7 @@ export default function InviteSignupPage() {
           password: formData.password,
           full_name: formData.full_name,
           ...(invitation?.can_change_account_type && {
-            selected_type: formData.selected_type ?? allowedTypes[0],
+            selected_type: formData.selected_type ?? ["business"][0],
           }),
         }),
       });
@@ -145,72 +131,48 @@ export default function InviteSignupPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-      </div>
+      <PageLayout>
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
+        </div>
+      </PageLayout>
     );
   }
 
-  if (!invitation) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center p-4">
-        <div className="w-full max-w-md text-center">
-          <X className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h1 className="text-xl font-light text-gray-900 mb-2">
-            Invalid Invitation
-          </h1>
-          <p className="text-sm text-gray-600 mb-6">
-            This invitation code is not valid or has expired.
-          </p>
-          <Button
-            onClick={() => router.push("/access-request")}
-            className="bg-black hover:bg-black/90 text-white"
-          >
-            Request Access
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  if (!invitation) return null;
 
   const isExpired = new Date(invitation.expires_at) < new Date();
   const isUsed = !!invitation.used_at;
 
   if (isExpired || isUsed) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center p-4">
-        <div className="w-full max-w-md text-center">
-          <X className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h1 className="text-xl font-light text-gray-900 mb-2">
-            {isExpired ? "Invitation Expired" : "Invitation Already Used"}
-          </h1>
-          <p className="text-sm text-gray-600 mb-6">
-            {isExpired
-              ? "This invitation has expired. Please request a new one."
-              : "This invitation has already been used."}
-          </p>
-          <Button
-            onClick={() => router.push("/access-request")}
-            className="bg-black hover:bg-black/90 text-white"
-          >
-            Request Access
-          </Button>
+      <PageLayout>
+        <div className="flex items-center justify-center py-24 p-4">
+          <div className="w-full max-w-md text-center">
+            <X className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h1 className="text-xl font-light text-foreground mb-2">
+              {isExpired ? "Invitation Expired" : "Invitation Already Used"}
+            </h1>
+            <p className="text-sm text-muted-foreground mb-6">
+              {isExpired
+                ? "This invitation has expired. Please request a new one."
+                : "This invitation has already been used."}
+            </p>
+            <Button
+              onClick={() => router.push("/access-request")}
+              className="bg-black hover:bg-black/90 text-white"
+            >
+              Request Access
+            </Button>
+          </div>
         </div>
-      </div>
+      </PageLayout>
     );
   }
 
-  const allowedTypes: InvitationPageType[] =
-    invitation.allowed_types && invitation.allowed_types.length > 0
-      ? invitation.allowed_types
-      : invitation.invitation_type === "producer" ||
-          invitation.invitation_type === "business"
-        ? [invitation.invitation_type]
-        : ["consumer"];
-  const defaultType: InvitationPageType = allowedTypes[0];
+  const allowedTypes: InvitationPageType[] = ["business"];
+  const defaultType: InvitationPageType = "business";
   const canChangeAccountType = !!invitation.can_change_account_type;
-
-  // Initialize selected_type when can change and not yet set
   const effectiveFormData =
     canChangeAccountType && formData.selected_type == null
       ? { ...formData, selected_type: defaultType }

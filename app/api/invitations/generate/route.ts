@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentUser } from "@/lib/auth";
 import { getAppUrl } from "@/lib/app-url";
+import { getInviteUrl } from "@/lib/invitation-path";
 
 function generateInvitationCode(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -30,6 +31,7 @@ export async function POST(request: Request) {
       body?.invitation_type === "producer" || body?.invitation_type === "business"
         ? body.invitation_type
         : "consumer";
+    const allowedTypes = [invitationType];
 
     const sb = getSupabaseAdmin();
 
@@ -81,6 +83,7 @@ export async function POST(request: Request) {
         is_active: true,
         initial_level: "basic",
         invitation_type: invitationType,
+        allowed_types: allowedTypes,
       })
       .select()
       .single();
@@ -101,7 +104,7 @@ export async function POST(request: Request) {
       .eq("user_id", user.id);
 
     const baseUrl = getAppUrl();
-    const signupUrl = `${baseUrl}/i/${code}`;
+    const signupUrl = getInviteUrl(baseUrl, code, allowedTypes);
     const codeSignupUrl = `${baseUrl}/c/${code}`;
 
     return NextResponse.json({

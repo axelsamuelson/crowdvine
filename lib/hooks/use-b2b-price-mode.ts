@@ -1,32 +1,30 @@
 "use client";
 
-import { usePortalContext } from "@/lib/context/portal-context";
+import { useSearchParams, usePathname } from "next/navigation";
 
 /**
- * True when we're on the B2B domain (dirtywine.se or localhost with ?b2b=1)
- * and the user has Business access, so prices should be shown exkl. moms.
- * Localhost defaults to B2C (pactwines.com); use ?b2b=1 to view as Dirty Wine.
+ * Returns true when we should show prices excluding VAT (B2B mode).
+ * - dirtywine.se: always B2B
+ * - localhost with ?b2b=1: B2B
+ * - Business invite pages (/b/, /ib/): B2B (business inbjudan = priser exkl. moms)
+ * - pactwines.com / localhost without b2b: B2C (incl. VAT)
  */
 export function useB2BPriceMode(): boolean {
-  const portal = usePortalContext();
-
-  if (!portal) {
-    return false;
-  }
-
-  if (portal.loading) {
-    return false;
-  }
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const forceB2B = searchParams.get("b2b") === "1";
 
   if (typeof window === "undefined") {
     return false;
   }
-
   const host = window.location.hostname.toLowerCase();
   const onB2BProduction = host.includes("dirtywine.se");
   const onLocalhost = host === "localhost" || host === "127.0.0.1";
-  const forceB2B = new URLSearchParams(window.location.search).get("b2b") === "1";
-  const isB2BDomain = onB2BProduction || (onLocalhost && forceB2B);
+  const onBusinessInvite = pathname?.startsWith("/b/") || pathname?.startsWith("/ib/");
 
-  return isB2BDomain && portal.canAccessB2B;
+  return (
+    onB2BProduction ||
+    (onLocalhost && forceB2B) ||
+    !!onBusinessInvite
+  );
 }

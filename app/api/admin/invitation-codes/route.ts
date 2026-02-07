@@ -1,36 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentAdmin } from "@/lib/admin-auth-server";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await supabaseServer();
-
-    // Check if user is admin
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
+    // Check admin cookie (admin-auth login)
+    const adminAuth = request.cookies.get("admin-auth")?.value;
+    if (adminAuth !== "true") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (!profile || profile.role !== "admin") {
-      return NextResponse.json(
-        { error: "Admin access required" },
-        { status: 403 },
-      );
-    }
+    const sb = getSupabaseAdmin();
 
     // Fetch invitation codes
-    const { data: invitationCodes, error } = await supabase
+    const { data: invitationCodes, error } = await sb
       .from("invitation_codes")
       .select("*")
       .order("created_at", { ascending: false });
@@ -43,7 +26,7 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json(invitationCodes || []);
+    return NextResponse.json(invitationCodes ?? []);
   } catch (error) {
     console.error("Invitation codes API error:", error);
     return NextResponse.json(
@@ -71,24 +54,12 @@ export async function POST(request: NextRequest) {
     const allowedTypesArr = types.length > 0 ? types : ["consumer"];
     const invitationType = allowedTypesArr[0];
 
-    const user = await getCurrentUser();
-    if (!user) {
+    const admin = await getCurrentAdmin();
+    if (!admin) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const sb = getSupabaseAdmin();
-    const { data: profile } = await sb
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (!profile || profile.role !== "admin") {
-      return NextResponse.json(
-        { error: "Admin access required" },
-        { status: 403 },
-      );
-    }
 
     // Generate invitation code (try RPC first, fallback to JS)
     let code: string;
@@ -119,7 +90,7 @@ export async function POST(request: NextRequest) {
     // Note: invitation_codes table may not have email column depending on migration
     const insertData: Record<string, unknown> = {
         code,
-        created_by: user.id,
+        created_by: admin.id,
         expires_at: expiresAt.toISOString(),
         is_active: true,
         invitation_type: invitationType,

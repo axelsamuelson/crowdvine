@@ -1,0 +1,70 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
+import type { Product } from "@/lib/shopify/types";
+import { BrowseProductCard } from "@/components/invite-shop/browse-product-card";
+import { InviteProductModal } from "@/components/invite-shop/invite-product-modal";
+import { ProductGrid } from "@/app/shop/components/product-grid";
+import { Loader2 } from "lucide-react";
+
+/**
+ * Shows the wine product grid inline on the business invite page.
+ * Fetches products and displays them in the same style as the shop page.
+ * Clicking a wine opens an animated modal instead of navigating.
+ */
+export function InviteWinesSection() {
+  const params = useParams();
+  const code = params.code as string;
+  const inviteBasePath = `/b/${code}`;
+
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedHandle, setSelectedHandle] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!code) return;
+    fetch(`/api/crowdvine/products?limit=100`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((list: Product[]) => setProducts(Array.isArray(list) ? list : []))
+      .catch(() => setProducts([]))
+      .finally(() => setLoading(false));
+  }, [code]);
+
+  if (loading) {
+    return (
+      <section className="py-16 px-6">
+        <div className="max-w-6xl mx-auto flex justify-center py-24">
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
+        </div>
+      </section>
+    );
+  }
+
+  if (products.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="py-16 px-6">
+      <div className="max-w-6xl mx-auto">
+        <ProductGrid>
+          {products.map((product) => (
+            <BrowseProductCard
+              key={product.id}
+              product={product}
+              inviteBasePath={inviteBasePath}
+              onProductClick={(handle) => setSelectedHandle(handle)}
+            />
+          ))}
+        </ProductGrid>
+      </div>
+
+      <InviteProductModal
+        handle={selectedHandle}
+        inviteBasePath={inviteBasePath}
+        onClose={() => setSelectedHandle(null)}
+      />
+    </section>
+  );
+}

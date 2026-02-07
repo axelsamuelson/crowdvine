@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentUser } from "@/lib/auth";
 import { MembershipLevel } from "@/lib/membership/points-engine";
 import { getAppUrl } from "@/lib/app-url";
+import { getInviteUrl } from "@/lib/invitation-path";
 
 /**
  * POST /api/admin/invitations/generate
@@ -42,6 +43,7 @@ export async function POST(request: NextRequest) {
 
     const invitationType =
       bodyType === "producer" || bodyType === "business" ? bodyType : "consumer";
+    const allowedTypes = [invitationType];
 
     // Validate initial level
     const validLevels: MembershipLevel[] = ["basic", "brons", "silver", "guld", "privilege"];
@@ -71,6 +73,7 @@ export async function POST(request: NextRequest) {
         is_active: true,
         initial_level: initialLevel,
         invitation_type: invitationType,
+        allowed_types: allowedTypes,
       })
       .select()
       .single();
@@ -102,7 +105,7 @@ export async function POST(request: NextRequest) {
 
     // Generate signup URLs
     const baseUrl = getAppUrl();
-    const signupUrl = `${baseUrl}/i/${code}`;
+    const signupUrl = getInviteUrl(baseUrl, code, allowedTypes);
     const codeSignupUrl = `${baseUrl}/c/${code}`;
 
     console.log("[ADMIN-INVITE-GEN] Generated URLs:", {

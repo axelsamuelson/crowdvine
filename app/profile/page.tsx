@@ -48,6 +48,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { getInviteUrl } from "@/lib/invitation-path";
 import Image from "next/image";
 import { toast } from "sonner";
 // PaymentMethodCard removed - using new payment flow
@@ -496,14 +497,15 @@ function ProfilePageContent() {
       const res = await fetch("/api/user/invitations");
       if (res.ok) {
         const data = await res.json();
-        if (data.invitations) {
+        const all = [...(data.active || []), ...(data.used || [])];
+        if (all.length > 0) {
           // Build signupUrl for each invitation if not present
-          const enrichedInvitations = data.invitations.map((inv: any) => {
+          const enrichedInvitations = all.map((inv: any) => {
             if (inv.code && !inv.signupUrl) {
               const baseUrl = window.location.origin;
-              // Remove any whitespace from code and ensure no spaces in URL
               const cleanCode = inv.code.trim().replace(/\s+/g, "");
-              inv.signupUrl = `${baseUrl}/i/${cleanCode}`;
+              const allowed = inv.allowed_types ?? (inv.invitation_type ? [inv.invitation_type] : ["consumer"]);
+              inv.signupUrl = getInviteUrl(baseUrl, cleanCode, allowed);
               inv.codeSignupUrl = `${baseUrl}/c/${cleanCode}`;
 
               console.log("🔗 Built signup URL:", {

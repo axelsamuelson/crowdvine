@@ -17,6 +17,7 @@ import { MembershipProvider } from "@/lib/context/membership-context";
 import { PortalProvider } from "@/lib/context/portal-context";
 import { OnboardingProvider } from "@/components/onboarding/onboarding-provider";
 import { cn } from "../lib/utils";
+import { B2BThemeEffect } from "../components/layout/b2b-theme-effect";
 
 const V0Setup = dynamic(() => import("@/components/v0-setup"));
 

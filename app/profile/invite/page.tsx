@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { getTimeUntilReset } from "@/lib/membership/invite-quota";
+import { getInviteUrl } from "@/lib/invitation-path";
 import { ArrowLeft, Link as LinkIcon, Trash2, Users } from "lucide-react";
 
 type Invitation = {
@@ -21,6 +22,8 @@ type Invitation = {
   used_at?: string | null;
   signupUrl?: string;
   codeSignupUrl?: string;
+  allowed_types?: string[];
+  invitation_type?: string;
   profiles?: {
     id: string;
     email: string;
@@ -78,7 +81,8 @@ export default function ProfileInvitePage() {
     return list.map((inv) => {
       if (inv.code && !inv.signupUrl) {
         const cleanCode = inv.code.trim().replace(/\s+/g, "");
-        inv.signupUrl = `${baseUrl}/i/${cleanCode}`;
+        const allowed = inv.allowed_types ?? (inv.invitation_type ? [inv.invitation_type] : ["consumer"]);
+        inv.signupUrl = getInviteUrl(baseUrl, cleanCode, allowed);
         inv.codeSignupUrl = `${baseUrl}/c/${cleanCode}`;
       }
       return inv;

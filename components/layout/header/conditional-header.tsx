@@ -18,7 +18,7 @@ export function ConditionalHeader({ collections }: ConditionalHeaderProps) {
   const isMapTopoRoute = pathname === "/map-topo";
   const isTastingRoute = pathname.startsWith("/tasting");
   const isInvitationRoute =
-    pathname.startsWith("/i/") || pathname.startsWith("/c/");
+    pathname.startsWith("/i/") || pathname.startsWith("/ib/") || pathname.startsWith("/b/") || pathname.startsWith("/c/");
   const isSignupRoute = pathname === "/signup";
   const isOnboardingRoute = pathname === "/onboarding";
   if (isTastingRoute) {
