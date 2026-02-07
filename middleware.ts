@@ -147,15 +147,27 @@ async function runMiddleware(req: NextRequest) {
       const canAccessB2B = portalAccess.includes("business");
 
       if (!canAccessB2B && !isAdmin) {
+        const hasSeenRedirect = req.cookies.get("dirtywine_redirect_shown")?.value === "1";
+
+        if (hasSeenRedirect && onB2BProduction) {
+          // Already shown the message once – show login page on dirtywine.se instead of popup
+          console.log(
+            "🚫 MIDDLEWARE: No business access, redirecting to access-request (message already shown)",
+          );
+          const accessRequest = new URL("/access-request", req.url);
+          accessRequest.searchParams.set("reason", "no_b2b");
+          return NextResponse.redirect(accessRequest);
+        }
+
+        // First time: redirect to API route that sets cookie, then shows portal-redirect
+        // (Setting cookie in middleware redirect to external domain often fails in browsers)
         console.log(
-          "🚫 MIDDLEWARE: No business access on dirtywine.se, redirecting to pactwines.com",
+          "🚫 MIDDLEWARE: No business access on dirtywine.se, redirecting to set-portal-cookie",
         );
-        const b2cOrigin = "https://pactwines.com";
         if (onB2BProduction) {
-          const portalRedirect = new URL("/portal-redirect", b2cOrigin);
-          portalRedirect.searchParams.set("from", "dirtywine");
-          portalRedirect.searchParams.set("next", pathname + req.nextUrl.search);
-          return NextResponse.redirect(portalRedirect);
+          const setCookieUrl = new URL("/api/set-portal-cookie", req.url);
+          setCookieUrl.searchParams.set("next", pathname + req.nextUrl.search);
+          return NextResponse.redirect(setCookieUrl);
         }
         // localhost: remove b2b param to show B2C
         const url = new URL(req.url);

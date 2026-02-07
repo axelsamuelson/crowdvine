@@ -6,17 +6,25 @@ import { FooterLogoSvg } from "@/components/layout/footer-logo-svg";
 import InfiniteGallery from "@/components/access-request/infinite-gallery";
 import { galleryImages } from "@/components/access-request/gallery-images";
 
-export function AccessRequestClient() {
-  // Smart access check: check authentication and access status
+const PACT_ORIGIN = "https://pactwines.com";
+
+interface AccessRequestClientProps {
+  reason?: string;
+}
+
+export function AccessRequestClient({ reason }: AccessRequestClientProps) {
+  const showNoB2BMessage = reason === "no_b2b";
+
+  // Smart access check: skip when showing no_b2b (user has PACT access but hit dirtywine.se)
   useEffect(() => {
+    if (showNoB2BMessage) return;
+
     const checkExistingAccess = async () => {
       try {
-        // Check if user is authenticated and has access
         const response = await fetch("/api/me/access");
         const data = await response.json();
 
         if (data.access) {
-          // User is authenticated and has access, redirect to destination
           const urlParams = new URLSearchParams(window.location.search);
           const next =
             urlParams.get("next") || urlParams.get("redirectedFrom") || "/";
@@ -24,13 +32,12 @@ export function AccessRequestClient() {
           return;
         }
       } catch (error) {
-        // Ignore errors, show access request form normally
         console.log("Access check failed, showing access request form");
       }
     };
 
     checkExistingAccess();
-  }, []);
+  }, [showNoB2BMessage]);
 
   return (
     <main className="min-h-screen">
@@ -49,18 +56,35 @@ export function AccessRequestClient() {
           <div className="flex justify-center">
             <FooterLogoSvg className="h-16 sm:h-20 lg:h-24 w-auto text-white" />
           </div>
-          <Button
-            onClick={() => {
-              const urlParams = new URLSearchParams(window.location.search);
-              const next =
-                urlParams.get("next") || urlParams.get("redirectedFrom") || "/";
-              window.location.href = `/log-in?next=${encodeURIComponent(next)}`;
-            }}
-            className="w-full bg-white/20 hover:bg-white/30 border-white/30 text-white font-semibold backdrop-blur-sm shadow-lg transition-all duration-300 ease-out"
-            size="lg"
-          >
-            Members only
-          </Button>
+          {showNoB2BMessage ? (
+            <>
+              <p className="text-sm text-white/90">
+                Your account is set up for PACT Wines.
+              </p>
+              <Button
+                onClick={() => {
+                  window.location.href = PACT_ORIGIN;
+                }}
+                className="w-full bg-white/20 hover:bg-white/30 border-white/30 text-white font-semibold backdrop-blur-sm shadow-lg transition-all duration-300 ease-out"
+                size="lg"
+              >
+                Go to pactwines.com
+              </Button>
+            </>
+          ) : (
+            <Button
+              onClick={() => {
+                const urlParams = new URLSearchParams(window.location.search);
+                const next =
+                  urlParams.get("next") || urlParams.get("redirectedFrom") || "/";
+                window.location.href = `/log-in?next=${encodeURIComponent(next)}`;
+              }}
+              className="w-full bg-white/20 hover:bg-white/30 border-white/30 text-white font-semibold backdrop-blur-sm shadow-lg transition-all duration-300 ease-out"
+              size="lg"
+            >
+              Members only
+            </Button>
+          )}
         </div>
       </div>
 

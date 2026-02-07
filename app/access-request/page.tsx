@@ -5,17 +5,19 @@ import { AccessRequestClient } from "./access-request-client";
 export default async function AccessRequestPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; redirectedFrom?: string }>;
+  searchParams: Promise<{ next?: string; redirectedFrom?: string; reason?: string }>;
 }) {
   const params = await searchParams;
   const next = params?.next || params?.redirectedFrom || "/";
+  const reason = params?.reason;
   const sb = await supabaseServer();
   const {
     data: { user },
   } = await sb.auth.getUser();
 
   // Smart redirect: if user is logged in and has access, redirect them
-  if (user) {
+  // Exception: reason=no_b2b = user on dirtywine.se without business access, already saw popup
+  if (user && reason !== "no_b2b") {
     const { data: membership } = await sb
       .from("user_memberships")
       .select("level")
@@ -29,5 +31,5 @@ export default async function AccessRequestPage({
   }
 
   // User doesn't have access or isn't logged in - show access request page
-  return <AccessRequestClient />;
+  return <AccessRequestClient reason={reason} />;
 }
