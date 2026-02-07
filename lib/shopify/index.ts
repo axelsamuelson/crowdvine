@@ -1,25 +1,22 @@
 import { TAGS } from "@/lib/constants";
-import { getAppUrl } from "@/lib/app-url";
+import { getAppUrl, getAppUrlForRequest } from "@/lib/app-url";
 import type { Product, Collection, Cart } from "./types";
 
-// Vår API-bas (Next API routes som läser Supabase)
-const getApiBase = () => getAppUrl();
-
-const API_BASE = getApiBase();
-console.log("API_BASE:", API_BASE); // Debug log
-const API = {
-  products: `${API_BASE}/api/crowdvine/products`,
-  product: (handle: string) => `${API_BASE}/api/crowdvine/products/${handle}`,
-  collections: `${API_BASE}/api/crowdvine/collections`, // mappar zoner/kampanjer
-  collectionProducts: (id: string) =>
-    `${API_BASE}/api/crowdvine/collections/${id}/products`,
-  cartCreate: `${API_BASE}/api/crowdvine/cart`,
-  cartAdd: (id: string) => `${API_BASE}/api/crowdvine/cart/${id}/lines/add`,
-  cartUpdate: (id: string) =>
-    `${API_BASE}/api/crowdvine/cart/${id}/lines/update`,
-  cartRemove: (id: string) =>
-    `${API_BASE}/api/crowdvine/cart/${id}/lines/remove`,
-};
+function apiUrls(base: string) {
+  return {
+    products: `${base}/api/crowdvine/products`,
+    product: (handle: string) => `${base}/api/crowdvine/products/${handle}`,
+    collections: `${base}/api/crowdvine/collections`,
+    collectionProducts: (id: string) =>
+      `${base}/api/crowdvine/collections/${id}/products`,
+    cartCreate: `${base}/api/crowdvine/cart`,
+    cartAdd: (id: string) => `${base}/api/crowdvine/cart/${id}/lines/add`,
+    cartUpdate: (id: string) =>
+      `${base}/api/crowdvine/cart/${id}/lines/update`,
+    cartRemove: (id: string) =>
+      `${base}/api/crowdvine/cart/${id}/lines/remove`,
+  };
+}
 
 async function j<T>(res: Response): Promise<T> {
   if (!res.ok) throw new Error(`API ${res.status}`);
@@ -32,7 +29,8 @@ export async function getProducts(params?: {
   reverse?: boolean;
   query?: string;
 }): Promise<Product[]> {
-  const url = new URL(API.products);
+  const base = await getAppUrlForRequest();
+  const url = new URL(apiUrls(base).products);
   if (params?.limit) url.searchParams.set("limit", params.limit.toString());
   if (params?.query) url.searchParams.set("query", params.query);
   if (params?.sortKey) url.searchParams.set("sortKey", params.sortKey);
@@ -44,15 +42,17 @@ export async function getProducts(params?: {
 
 export async function getProduct(handle: string): Promise<Product | null> {
   try {
-    return await j(await fetch(API.product(handle)));
+    const base = await getAppUrlForRequest();
+    return await j(await fetch(apiUrls(base).product(handle)));
   } catch {
     return null;
   }
 }
 
 export async function getCollections(): Promise<Collection[]> {
+  const base = await getAppUrlForRequest();
   return j(
-    await fetch(API.collections, { next: { tags: [TAGS.collections] } }),
+    await fetch(apiUrls(base).collections, { next: { tags: [TAGS.collections] } }),
   );
 }
 
@@ -81,7 +81,8 @@ export async function getCollectionProducts(params: {
     return [];
   }
 
-  const url = new URL(API.collectionProducts((collection as any).id));
+  const base = await getAppUrlForRequest();
+  const url = new URL(apiUrls(base).collectionProducts((collection as any).id));
   if (params?.limit) url.searchParams.set("limit", params.limit.toString());
   if (params?.query) url.searchParams.set("query", params.query);
   if (params?.sortKey) url.searchParams.set("sortKey", params.sortKey);
@@ -93,7 +94,8 @@ export async function getCollectionProducts(params: {
 
 /** Cart-funktioner shimmar till bookings; vi returnerar en ShopifyCart-kompatibel form */
 export async function createCart(): Promise<Cart> {
-  return j(await fetch(API.cartCreate, { method: "POST" }));
+  const base = await getAppUrlForRequest();
+  return j(await fetch(apiUrls(base).cartCreate, { method: "POST" }));
 }
 interface CartLine {
   merchandiseId: string;
@@ -107,8 +109,9 @@ export async function addCartLines({
   cartId: string;
   lines: CartLine[];
 }): Promise<Cart> {
+  const base = await getAppUrlForRequest();
   return j(
-    await fetch(API.cartAdd(cartId), {
+    await fetch(apiUrls(base).cartAdd(cartId), {
       method: "POST",
       body: JSON.stringify({ lines }),
     }),
@@ -121,8 +124,9 @@ export async function updateCartLines({
   cartId: string;
   lines: CartLine[];
 }): Promise<Cart> {
+  const base = await getAppUrlForRequest();
   return j(
-    await fetch(API.cartUpdate(cartId), {
+    await fetch(apiUrls(base).cartUpdate(cartId), {
       method: "POST",
       body: JSON.stringify({ lines }),
     }),
@@ -135,8 +139,9 @@ export async function removeCartLines({
   cartId: string;
   lineIds: string[];
 }): Promise<Cart> {
+  const base = await getAppUrlForRequest();
   return j(
-    await fetch(API.cartRemove(cartId), {
+    await fetch(apiUrls(base).cartRemove(cartId), {
       method: "POST",
       body: JSON.stringify({ lineIds }),
     }),
