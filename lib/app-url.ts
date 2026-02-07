@@ -39,3 +39,14 @@ export function getSiteUrl(): string {
   if (explicit) return explicit;
   return getAppUrl();
 }
+
+/**
+ * Headers for internal fetch to own API. When Vercel Deployment Protection
+ * is enabled, server-side fetches get 401 without the bypass header.
+ * See: https://vercel.com/docs/security/deployment-protection/methods-to-bypass-deployment-protection/protection-bypass-automation
+ */
+export function getInternalFetchHeaders(): Record<string, string> {
+  const secret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+  if (!secret) return {};
+  return { "x-vercel-protection-bypass": secret };
+}

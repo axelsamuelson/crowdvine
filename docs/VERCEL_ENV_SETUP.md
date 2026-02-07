@@ -34,6 +34,19 @@ Koden använder `getAppUrl()` som faller tillbaka på `VERCEL_URL` när `NEXT_PU
 - **anon public** = `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - **service_role** = `SUPABASE_SERVICE_ROLE_KEY` (hemlig – används på servern)
 
+## Vercel Deployment Protection (Preview)
+
+Om **Vercel Authentication** eller annan Deployment Protection är aktiverad på Preview: Server-side fetch till eget API (t.ex. produkter, collections) får 401.
+
+**Lösning:** Aktivera **Protection Bypass for Automation** i Vercel:
+
+1. Dashboard → Projekt → **Settings** → **Deployment Protection**
+2. Under "Protection Bypass for Automation" → **Enable** och generera en secret
+3. Vercel lägger automatiskt till `VERCEL_AUTOMATION_BYPASS_SECRET` som systemvariabel
+4. Koden skickar headern `x-vercel-protection-bypass` vid alla interna API-anrop
+
+Om du inte använder Deployment Protection behöver du inget göra.
+
 ## Utan dessa variabler
 
 - Loggor visas som "PACT"-text istället för uppladdad bild
