@@ -118,7 +118,7 @@ async function runMiddleware(req: NextRequest) {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role")
+      .select("role, portal_access")
       .eq("id", user.id)
       .maybeSingle();
 
@@ -129,6 +129,37 @@ async function runMiddleware(req: NextRequest) {
       membershipLevel: membership?.level,
       profileRole: profile?.role,
     });
+
+    // dirtywine.se: redirect users without business access to pactwines.com (admin bypasses)
+    const host = req.nextUrl.hostname.toLowerCase();
+    const onB2BProduction = host.includes("dirtywine.se");
+    const onLocalhost = host === "localhost" || host === "127.0.0.1";
+    const forceB2B = req.nextUrl.searchParams.get("b2b") === "1";
+    const isB2BDomain = onB2BProduction || (onLocalhost && forceB2B);
+
+    if (isB2BDomain) {
+      const isAdmin = profile?.role === "admin";
+      const portalAccess =
+        profile?.portal_access && Array.isArray(profile.portal_access)
+          ? profile.portal_access
+          : ["user"];
+      const canAccessB2B = portalAccess.includes("business");
+
+      if (!canAccessB2B && !isAdmin) {
+        console.log(
+          "🚫 MIDDLEWARE: No business access on dirtywine.se, redirecting to pactwines.com",
+        );
+        const b2cOrigin = "https://pactwines.com";
+        if (onB2BProduction) {
+          const target = new URL(pathname + req.nextUrl.search, b2cOrigin);
+          return NextResponse.redirect(target);
+        }
+        // localhost: remove b2b param to show B2C
+        const url = new URL(req.url);
+        url.searchParams.delete("b2b");
+        return NextResponse.redirect(url);
+      }
+    }
 
     // Redirect requesters to access-pending page (unless they're already there)
     // Producers/admins should not be blocked by membership gating.
