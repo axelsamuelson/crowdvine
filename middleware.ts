@@ -28,6 +28,7 @@ async function runMiddleware(req: NextRequest) {
     "/code-signup",
     "/access-request",
     "/access-pending",
+    "/portal-redirect",
     "/i",
     "/c",
     "/profile",
@@ -151,8 +152,10 @@ async function runMiddleware(req: NextRequest) {
         );
         const b2cOrigin = "https://pactwines.com";
         if (onB2BProduction) {
-          const target = new URL(pathname + req.nextUrl.search, b2cOrigin);
-          return NextResponse.redirect(target);
+          const portalRedirect = new URL("/portal-redirect", b2cOrigin);
+          portalRedirect.searchParams.set("from", "dirtywine");
+          portalRedirect.searchParams.set("next", pathname + req.nextUrl.search);
+          return NextResponse.redirect(portalRedirect);
         }
         // localhost: remove b2b param to show B2C
         const url = new URL(req.url);

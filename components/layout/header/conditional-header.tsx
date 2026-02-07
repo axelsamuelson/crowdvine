@@ -21,6 +21,7 @@ export function ConditionalHeader({ collections }: ConditionalHeaderProps) {
     pathname.startsWith("/i/") || pathname.startsWith("/c/");
   const isSignupRoute = pathname === "/signup";
   const isOnboardingRoute = pathname === "/onboarding";
+  const isPortalRedirectRoute = pathname === "/portal-redirect";
 
   if (isTastingRoute) {
     return <LogoOnlyHeader />;
@@ -34,7 +35,8 @@ export function ConditionalHeader({ collections }: ConditionalHeaderProps) {
     isMapTopoRoute ||
     isInvitationRoute ||
     isSignupRoute ||
-    isOnboardingRoute
+    isOnboardingRoute ||
+    isPortalRedirectRoute
   ) {
     return null;
   }
