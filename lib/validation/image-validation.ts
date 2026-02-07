@@ -1,5 +1,7 @@
 "use server";
 
+import { getAppUrl } from "@/lib/app-url";
+
 export interface ImageValidationResult {
   isValid: boolean;
   errors: string[];
@@ -129,7 +131,7 @@ export async function validateImagePath(imagePath: string): Promise<{
     }
 
     // For relative paths, test via our image proxy
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://pactwines.com";
+    const baseUrl = getAppUrl();
     const testUrl = cleanPath.startsWith("/uploads/")
       ? `${baseUrl}/api/images/${cleanPath.replace("/uploads/", "")}`
       : `${baseUrl}${cleanPath.startsWith("/") ? "" : "/"}${cleanPath}`;

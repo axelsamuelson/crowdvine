@@ -1,19 +1,9 @@
 import { TAGS } from "@/lib/constants";
+import { getAppUrl } from "@/lib/app-url";
 import type { Product, Collection, Cart } from "./types";
 
 // Vår API-bas (Next API routes som läser Supabase)
-const getApiBase = () => {
-  const base =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.APP_URL ||
-    "http://localhost:3000";
-  // Ensure protocol is included
-  if (base.startsWith("http://") || base.startsWith("https://")) {
-    return base;
-  }
-  // Default to https for production, http for localhost
-  return base.includes("localhost") ? `http://${base}` : `https://${base}`;
-};
+const getApiBase = () => getAppUrl();
 
 const API_BASE = getApiBase();
 console.log("API_BASE:", API_BASE); // Debug log

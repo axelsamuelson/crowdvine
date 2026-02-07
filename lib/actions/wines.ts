@@ -3,6 +3,7 @@
 import { supabaseServer } from "@/lib/supabase-server";
 import { revalidatePath } from "next/cache";
 import { calculateSystembolagetPrice } from "@/lib/systembolaget-pricing";
+import { getAppUrl } from "@/lib/app-url";
 
 export interface Wine {
   id: string;
@@ -222,7 +223,7 @@ export async function createWine(data: CreateWineData) {
       try {
         // Fetch current exchange rate
         const rateResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/exchange-rates?from=${data.cost_currency}&to=SEK`,
+          `${getAppUrl()}/api/exchange-rates?from=${data.cost_currency}&to=SEK`,
         );
 
         if (rateResponse.ok) {
@@ -400,7 +401,7 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
     if (costCurrency !== "SEK") {
       try {
         const rateResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/exchange-rates?from=${costCurrency}&to=SEK`,
+          `${getAppUrl()}/api/exchange-rates?from=${costCurrency}&to=SEK`,
         );
 
         if (rateResponse.ok) {
@@ -442,7 +443,7 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
     if (costCurrency !== "SEK") {
       try {
         const rateResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/exchange-rates?from=${costCurrency}&to=SEK`,
+          `${getAppUrl()}/api/exchange-rates?from=${costCurrency}&to=SEK`,
         );
 
         if (rateResponse.ok) {

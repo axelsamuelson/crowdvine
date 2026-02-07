@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { DeleteWineBoxButton } from "@/components/admin/delete-wine-box-button";
 import WineBoxForm from "./components/wine-box-form";
+import { getSiteUrl } from "@/lib/app-url";
 
 interface EditWineBoxPageProps {
   params: Promise<{ id: string }>;
@@ -8,7 +9,7 @@ interface EditWineBoxPageProps {
 
 async function getWineBox(id: string) {
   const response = await fetch(
-    `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/api/admin/wine-boxes/${id}`,
+    `${getSiteUrl()}/api/admin/wine-boxes/${id}`,
     {
       cache: "no-store",
     },
@@ -23,7 +24,7 @@ async function getWineBox(id: string) {
 
 async function getWineBoxItems(id: string) {
   const response = await fetch(
-    `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/api/admin/wine-boxes/${id}/items`,
+    `${getSiteUrl()}/api/admin/wine-boxes/${id}/items`,
     {
       cache: "no-store",
     },

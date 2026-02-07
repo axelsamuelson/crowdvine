@@ -4,6 +4,7 @@ import {
   getWelcomeEmailText,
 } from "./email-templates";
 import { getSiteContentByKey } from "./actions/content";
+import { getAppUrl } from "./app-url";
 
 // Cache for logo to avoid repeated database calls
 let logoCache: { value: string | null; timestamp: number } | null = null;
@@ -364,7 +365,7 @@ class SendGridService {
               </div>
 
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://pactwines.com"}/profile/reservations" class="button">
+                <a href="${getAppUrl()}/profile/reservations" class="button">
                   View Your Reservations
                 </a>
               </div>

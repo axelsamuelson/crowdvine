@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { evaluateCompletionRules } from "@/lib/pallet-completion-rules";
+import { getAppUrl } from "@/lib/app-url";
 
 async function fetchExchangeRate(origin: string, from: string) {
   if (!from || from === "SEK") return 1.0;
@@ -103,9 +104,7 @@ export async function POST(request: NextRequest) {
 
     const sb = getSupabaseAdmin();
     const origin =
-      request.headers.get("origin") ||
-      process.env.NEXT_PUBLIC_APP_URL ||
-      "http://localhost:3000";
+      request.headers.get("origin") || getAppUrl();
 
     // Get pallet information (with zone ids so we can compute totals data-driven)
     const { data: pallets, error: palletsError } = await sb

@@ -3,6 +3,7 @@
 import { supabaseServer } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { revalidatePath } from "next/cache";
+import { getSiteUrl } from "@/lib/app-url";
 
 export interface SiteContent {
   id: string;
@@ -99,7 +100,7 @@ export async function updateSiteContent(
     revalidatePath("/", "layout"); // Revalidate root layout
     // Force revalidation av API-routes
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/site-content/${key}`, {
+      await fetch(`${getSiteUrl()}/api/site-content/${key}`, {
         method: 'GET',
         headers: { 'Cache-Control': 'no-cache' },
       });

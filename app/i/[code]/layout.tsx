@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Instrument_Serif } from "next/font/google";
+import { LogoOnlyHeader } from "@/components/layout/header/logo-only-header";
 import "./invite-opus.css";
 
 const instrumentSerif = Instrument_Serif({
@@ -50,7 +51,8 @@ export default function InvitationLayout({
 }) {
   return (
     <div className={instrumentSerif.variable}>
-      {children}
+      <LogoOnlyHeader />
+      <div className="pt-16">{children}</div>
     </div>
   );
 }

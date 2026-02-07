@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getAllWineBoxCalculations } from "@/lib/wine-box-calculations";
+import { getAppUrl } from "@/lib/app-url";
 
 export async function GET(
   request: Request,
@@ -160,15 +161,11 @@ export async function GET(
 
       if (cleanPath.startsWith("http")) return cleanPath; // Already a full URL
       if (cleanPath.startsWith("/uploads/")) {
-        // Use our image proxy API to serve Supabase Storage files
-        const baseUrl =
-          process.env.NEXT_PUBLIC_APP_URL || "https://pactwines.com";
+        const baseUrl = getAppUrl();
         const fileName = cleanPath.replace("/uploads/", "");
         return `${baseUrl}/api/images/${fileName}`;
       }
-      // For other relative paths, construct full URL
-      const baseUrl =
-        process.env.NEXT_PUBLIC_APP_URL || "https://pactwines.com";
+      const baseUrl = getAppUrl();
       return `${baseUrl}${cleanPath.startsWith("/") ? "" : "/"}${cleanPath}`;
     };
 

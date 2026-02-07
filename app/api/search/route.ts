@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentUser } from "@/lib/auth";
+import { getAppUrl } from "@/lib/app-url";
 
 function toProducerHandle(name: string) {
   return name.toLowerCase().replace(/\s+/g, "-");
@@ -11,7 +12,7 @@ function convertToFullUrl(path: string | null | undefined): string | null {
   const cleanPath = String(path).trim().replace(/\n/g, "");
   if (cleanPath.startsWith("http")) return cleanPath;
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://pactwines.com";
+  const baseUrl = getAppUrl();
 
   if (cleanPath.startsWith("/uploads/")) {
     const fileName = cleanPath.replace("/uploads/", "");

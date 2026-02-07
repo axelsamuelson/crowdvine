@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { randomUUID } from "crypto";
+import { getAppUrl } from "@/lib/app-url";
 
 export async function POST(request: NextRequest) {
   try {
@@ -52,10 +53,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate signup URL with token
-    // IMPORTANT: Trim baseUrl to remove any whitespace/newlines from environment variable
-    const baseUrl = (
-      process.env.NEXT_PUBLIC_APP_URL || "https://pactwines.com"
-    ).trim();
+    const baseUrl = getAppUrl();
     const signupUrl = `${baseUrl}/signup?token=${accessToken}`;
 
     return NextResponse.json({

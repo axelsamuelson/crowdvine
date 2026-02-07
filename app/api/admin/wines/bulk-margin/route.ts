@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { getAppUrl } from "@/lib/app-url";
 
 function computeFinalPriceCents(opts: {
   costAmount: number;
@@ -62,9 +63,7 @@ export async function POST(req: NextRequest) {
 
     const sb = getSupabaseAdmin();
     const origin =
-      req.headers.get("origin") ||
-      process.env.NEXT_PUBLIC_APP_URL ||
-      "http://localhost:3000";
+      req.headers.get("origin") || getAppUrl();
 
     // Build query - filter by wine_ids if provided
     let query = sb

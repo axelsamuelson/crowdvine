@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAppUrl } from "@/lib/app-url";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { sendGridService } from "@/lib/sendgrid-service";
 import {
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
     // Generate signup URL
     console.log("DEBUG: Generating signup URL...");
     const signupResponse = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL || "https://pactwines.com"}/api/generate-signup-url`,
+      `${getAppUrl()}/api/generate-signup-url`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

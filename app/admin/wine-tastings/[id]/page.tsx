@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { getAppUrl } from "@/lib/app-url";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -240,7 +241,7 @@ export default function WineTastingDetailPage() {
     const baseUrl =
       typeof window !== "undefined"
         ? window.location.origin
-        : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+        : getAppUrl();
     return `${baseUrl}/tasting/${session.session_code}`;
   };
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentUser } from "@/lib/auth";
+import { getAppUrl } from "@/lib/app-url";
 
 function generateInvitationCode(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -99,7 +100,7 @@ export async function POST(request: Request) {
       })
       .eq("user_id", user.id);
 
-    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").trim();
+    const baseUrl = getAppUrl();
     const signupUrl = `${baseUrl}/i/${code}`;
     const codeSignupUrl = `${baseUrl}/c/${code}`;
 

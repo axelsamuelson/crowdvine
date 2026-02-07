@@ -1,5 +1,6 @@
 import { stripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { getAppUrl } from "@/lib/app-url";
 
 /**
  * Create a Stripe Checkout Session for a specific reservation
@@ -97,10 +98,7 @@ export async function createPaymentLinkForReservation(
     }
 
     // Get base URL for Stripe redirects
-    const baseUrl =
-      process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : "https://pactwines.com";
+    const baseUrl = getAppUrl();
 
     console.log(`🌐 [Payment Link] Using base URL: ${baseUrl}`);
 

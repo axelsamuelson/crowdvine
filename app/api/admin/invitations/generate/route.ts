@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentUser } from "@/lib/auth";
 import { MembershipLevel } from "@/lib/membership/points-engine";
+import { getAppUrl } from "@/lib/app-url";
 
 /**
  * POST /api/admin/invitations/generate
@@ -100,10 +101,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate signup URLs
-    // IMPORTANT: Always trim baseUrl to prevent accidental spaces in environment variable
-    const baseUrl = (
-      process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
-    ).trim();
+    const baseUrl = getAppUrl();
     const signupUrl = `${baseUrl}/i/${code}`;
     const codeSignupUrl = `${baseUrl}/c/${code}`;
 

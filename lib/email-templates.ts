@@ -2,6 +2,7 @@
 // Centralized location for all email templates to avoid duplication
 
 import { getSiteContentByKey } from "./actions/content";
+import { getAppUrl } from "./app-url";
 
 // Cache for logo to avoid repeated database calls
 let logoCache: { value: string | null; timestamp: number } | null = null;
@@ -358,7 +359,7 @@ export async function getWelcomeEmailTemplate(data: {
             </div>
 
             <div style="text-align: center;">
-              <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://pactwines.com"}/shop" class="button">
+              <a href="${getAppUrl()}/shop" class="button">
                 Start Exploring Wines
               </a>
             </div>
@@ -399,7 +400,7 @@ What You Can Explore:
 Getting Started:
 Start by browsing our current collections and discover wines that match your taste preferences. Our pallet-sharing system makes premium wines accessible while building connections with like-minded enthusiasts.
 
-Visit our shop: ${process.env.NEXT_PUBLIC_APP_URL || "https://pactwines.com"}/shop
+Visit our shop: ${getAppUrl()}/shop
 
 If you have any questions or need assistance, our support team is here to help. We're committed to making your wine journey exceptional.
 
