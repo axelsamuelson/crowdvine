@@ -2,7 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 export async function middleware(req: NextRequest) {
+  try {
+    return await runMiddleware(req);
+  } catch (error) {
+    console.error("🔴 MIDDLEWARE: Unhandled error:", error);
+    return NextResponse.next();
+  }
+}
+
+async function runMiddleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn("⚠️ MIDDLEWARE: Missing Supabase env vars, skipping auth");
+    return NextResponse.next();
+  }
 
   // Offentliga paths (UI oförändrad, bara backend-gate)
   const PUBLIC = [
@@ -36,8 +52,8 @@ export async function middleware(req: NextRequest) {
 
   const res = NextResponse.next();
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         get: (name) => req.cookies.get(name)?.value,
@@ -147,7 +163,7 @@ export async function middleware(req: NextRequest) {
 
     // Check admin-only routes
     if (pathname.startsWith("/admin")) {
-      if (membership.level !== "admin" && profile?.role !== "admin") {
+      if (membership?.level !== "admin" && profile?.role !== "admin") {
         return NextResponse.redirect(new URL("/", req.url));
       }
     }
