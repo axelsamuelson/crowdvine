@@ -159,15 +159,15 @@ async function runMiddleware(req: NextRequest) {
           return NextResponse.redirect(accessRequest);
         }
 
-        // First time: redirect to API route that sets cookie, then shows portal-redirect
-        // (Setting cookie in middleware redirect to external domain often fails in browsers)
+        // First time: redirect to portal-redirect; page sets cookie via img request to dirtywine.se
         console.log(
-          "🚫 MIDDLEWARE: No business access on dirtywine.se, redirecting to set-portal-cookie",
+          "🚫 MIDDLEWARE: No business access on dirtywine.se, redirecting to pactwines.com/portal-redirect",
         );
         if (onB2BProduction) {
-          const setCookieUrl = new URL("/api/set-portal-cookie", req.url);
-          setCookieUrl.searchParams.set("next", pathname + req.nextUrl.search);
-          return NextResponse.redirect(setCookieUrl);
+          const portalRedirect = new URL("/portal-redirect", "https://pactwines.com");
+          portalRedirect.searchParams.set("from", "dirtywine");
+          portalRedirect.searchParams.set("next", pathname + req.nextUrl.search);
+          return NextResponse.redirect(portalRedirect);
         }
         // localhost: remove b2b param to show B2C
         const url = new URL(req.url);

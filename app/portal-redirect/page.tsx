@@ -18,6 +18,16 @@ function PortalRedirectContent() {
   const rawNext = searchParams.get("next") || "/";
   const next = rawNext.startsWith("/") ? rawNext : `/${rawNext}`;
 
+  // Set cookie on dirtywine.se when viewing this page (cross-origin request)
+  // Uses img to trigger GET - cookie set by dirtywine.se response
+  useEffect(() => {
+    if (from === "dirtywine") {
+      const url = `https://dirtywine.se/api/set-portal-cookie?next=${encodeURIComponent(next)}&silent=1`;
+      const img = new Image();
+      img.src = url;
+    }
+  }, [from, next]);
+
   useEffect(() => {
     const timer = setInterval(() => {
       setCountdown((c) => {
