@@ -59,7 +59,7 @@ export function AccessRequestClient({ reason }: AccessRequestClientProps) {
           {showNoB2BMessage ? (
             <>
               <p className="text-sm text-white/90">
-                Your account is set up for PACT Wines.
+                Your account is not set up for Dirty Wine.
               </p>
               <Button
                 onClick={() => {
