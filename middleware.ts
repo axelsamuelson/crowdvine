@@ -28,7 +28,6 @@ async function runMiddleware(req: NextRequest) {
     "/code-signup",
     "/access-request",
     "/access-pending",
-    "/portal-redirect",
     "/i",
     "/c",
     "/profile",
@@ -147,27 +146,14 @@ async function runMiddleware(req: NextRequest) {
       const canAccessB2B = portalAccess.includes("business");
 
       if (!canAccessB2B && !isAdmin) {
-        const hasSeenRedirect = req.cookies.get("dirtywine_redirect_shown")?.value === "1";
-
-        if (hasSeenRedirect && onB2BProduction) {
-          // Already shown the message once – show login page on dirtywine.se instead of popup
-          console.log(
-            "🚫 MIDDLEWARE: No business access, redirecting to access-request (message already shown)",
-          );
-          const accessRequest = new URL("/access-request", req.url);
-          accessRequest.searchParams.set("reason", "no_b2b");
-          return NextResponse.redirect(accessRequest);
-        }
-
-        // First time: redirect to portal-redirect; page sets cookie via img request to dirtywine.se
         console.log(
-          "🚫 MIDDLEWARE: No business access on dirtywine.se, redirecting to pactwines.com/portal-redirect",
+          "🚫 MIDDLEWARE: No business access on dirtywine.se, redirecting to access-request",
         );
         if (onB2BProduction) {
-          const portalRedirect = new URL("/portal-redirect", "https://pactwines.com");
-          portalRedirect.searchParams.set("from", "dirtywine");
-          portalRedirect.searchParams.set("next", pathname + req.nextUrl.search);
-          return NextResponse.redirect(portalRedirect);
+          const accessRequest = new URL("/access-request", req.url);
+          accessRequest.searchParams.set("reason", "no_b2b");
+          accessRequest.searchParams.set("redirectedFrom", pathname);
+          return NextResponse.redirect(accessRequest);
         }
         // localhost: remove b2b param to show B2C
         const url = new URL(req.url);
