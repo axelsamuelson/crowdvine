@@ -14,7 +14,7 @@ export async function GET(
     }
 
     let value: string | null;
-    if (key === "header_logo" || key === "footer_logo") {
+    if (key === "header_logo" || key === "footer_logo" || key === "alternative_logo") {
       const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? null;
       const resolvedKey = resolveLogoKeyByHost(key, host);
       value = await getSiteContentByKey(resolvedKey);
@@ -29,7 +29,7 @@ export async function GET(
     const response = NextResponse.json({ key, value: value || "" });
 
     // För logo-nycklar, använd kortare cache eller no-cache för att säkerställa att nya loggor visas direkt
-    const logoKeys = ["header_logo", "footer_logo", "header_logo_pact", "footer_logo_pact", "header_logo_dirtywine", "footer_logo_dirtywine"];
+    const logoKeys = ["header_logo", "footer_logo", "alternative_logo", "header_logo_pact", "footer_logo_pact", "alternative_logo_pact", "header_logo_dirtywine", "footer_logo_dirtywine", "alternative_logo_dirtywine"];
     if (logoKeys.includes(key)) {
       response.headers.set(
         "Cache-Control",

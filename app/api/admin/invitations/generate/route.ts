@@ -32,15 +32,23 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { expiresInDays = 30, initialLevel = "basic", maxUses = 1 } = body;
+    const {
+      expiresInDays = 30,
+      initialLevel = "basic",
+      maxUses = 1,
+      invitationType: bodyType,
+    } = body;
+
+    const invitationType =
+      bodyType === "producer" || bodyType === "business" ? bodyType : "consumer";
 
     // Validate initial level
-    const validLevels: MembershipLevel[] = ["basic", "brons", "silver", "guld"];
+    const validLevels: MembershipLevel[] = ["basic", "brons", "silver", "guld", "privilege"];
     if (!validLevels.includes(initialLevel as MembershipLevel)) {
       return NextResponse.json(
         {
           error:
-            "Invalid initial level. Must be: basic, brons, silver, or guld",
+            "Invalid initial level. Must be: basic, brons, silver, guld, or privilege",
         },
         { status: 400 },
       );
@@ -51,7 +59,7 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + expiresInDays);
 
-    // Create invitation with initial_level
+    // Create invitation with initial_level and invitation_type
     const { data, error } = await sb
       .from("invitation_codes")
       .insert({
@@ -61,7 +69,7 @@ export async function POST(request: NextRequest) {
         max_uses: maxUses,
         is_active: true,
         initial_level: initialLevel,
-        // Note: 'email' column removed - not part of invitation_codes schema
+        invitation_type: invitationType,
       })
       .select()
       .single();
@@ -115,6 +123,7 @@ export async function POST(request: NextRequest) {
         expiresAt: data.expires_at,
         maxUses: data.max_uses,
         initialLevel: data.initial_level,
+        invitationType,
       },
     });
   } catch (error) {

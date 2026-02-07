@@ -3,21 +3,24 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import { LogoSvg } from "@/components/layout/header/logo-svg";
+import { OpusLandingView } from "@/components/invite-landing/opus-landing-view";
+
+export type InvitationPageType = "consumer" | "producer" | "business";
 
 interface Invitation {
   id: string;
   code: string;
   created_by: string;
-  current_uses: number;
   max_uses: number;
   expires_at: string;
   initial_level?: string;
+  invitation_type?: InvitationPageType;
+  allowed_types?: InvitationPageType[];
+  can_change_account_type?: boolean;
+  used_at?: string | null;
   profiles?: {
     email: string;
     full_name?: string;
@@ -33,8 +36,12 @@ export default function InviteSignupPage() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
+    password_confirm: "",
     full_name: "",
+    selected_type: null as InvitationPageType | null,
   });
+  const [signupSuccess, setSignupSuccess] = useState(false);
+  const [registeredName, setRegisteredName] = useState<string | null>(null);
 
   const code = params.code as string;
 
@@ -43,6 +50,12 @@ export default function InviteSignupPage() {
       validateInvitation();
     }
   }, [code]);
+
+  useEffect(() => {
+    if (!loading && invitation) {
+      window.scrollTo(0, 0);
+    }
+  }, [loading, invitation]);
 
   const validateInvitation = async () => {
     try {
@@ -71,6 +84,10 @@ export default function InviteSignupPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.password !== formData.password_confirm) {
+      toast.error("Passwords do not match.");
+      return;
+    }
     setSubmitting(true);
 
     try {
@@ -82,6 +99,9 @@ export default function InviteSignupPage() {
           email: formData.email.toLowerCase().trim(),
           password: formData.password,
           full_name: formData.full_name,
+          ...(invitation?.can_change_account_type && {
+            selected_type: formData.selected_type ?? allowedTypes[0],
+          }),
         }),
       });
 
@@ -89,26 +109,15 @@ export default function InviteSignupPage() {
 
       if (data.success) {
         if (data.autoSignedIn && data.session) {
-          // User was automatically signed in
           const supabase = getSupabaseBrowserClient();
           await supabase.auth.setSession({
             access_token: data.session.access_token,
             refresh_token: data.session.refresh_token,
           });
-
-          toast.success("Account created and signed in successfully!");
-
-          // Redirect to home page after a short delay
-          setTimeout(() => {
-            window.location.href = "/";
-          }, 1000);
-        } else {
-          // Auto sign-in failed, redirect to login
-          toast.success("Account created successfully! Please log in.");
-          router.push("/log-in");
         }
+        setRegisteredName((formData.full_name || "").trim() || "there");
+        setSignupSuccess(true);
       } else {
-        // Handle security validation errors
         if (data.error && data.error.includes("Security validation failed")) {
           toast.error(
             "Security validation failed. Please try signing in manually.",
@@ -157,7 +166,7 @@ export default function InviteSignupPage() {
   }
 
   const isExpired = new Date(invitation.expires_at) < new Date();
-  const isUsed = invitation.current_uses > 0;
+  const isUsed = !!invitation.used_at;
 
   if (isExpired || isUsed) {
     return (
@@ -183,200 +192,36 @@ export default function InviteSignupPage() {
     );
   }
 
-  // Get sender name from invitation data with safe access
-  const senderName = (() => {
-    try {
-      // Try full_name first, then email username, then fallback
-      if (invitation?.profiles?.full_name) {
-        return invitation.profiles.full_name;
-      }
-      if (invitation?.profiles?.email) {
-        return invitation.profiles.email.split("@")[0];
-      }
-      return "A friend";
-    } catch (error) {
-      console.error("Error getting sender name:", error);
-      return "A friend";
-    }
-  })();
+  const allowedTypes: InvitationPageType[] =
+    invitation.allowed_types && invitation.allowed_types.length > 0
+      ? invitation.allowed_types
+      : invitation.invitation_type === "producer" ||
+          invitation.invitation_type === "business"
+        ? [invitation.invitation_type]
+        : ["consumer"];
+  const defaultType: InvitationPageType = allowedTypes[0];
+  const canChangeAccountType = !!invitation.can_change_account_type;
 
-  // Map Swedish level names to English
-  const getLevelName = (level: string) => {
-    const levelMap: Record<string, string> = {
-      guld: "Gold",
-      silver: "Silver",
-      brons: "Bronze",
-      basic: "Basic",
-    };
-    return levelMap[level] || level.charAt(0).toUpperCase() + level.slice(1);
-  };
-
-  // Get premium colors for each level
-  const getLevelColors = (level: string) => {
-    const colorMap: Record<string, { bg: string; text: string }> = {
-      guld: {
-        bg: "bg-gradient-to-br from-amber-600 to-yellow-700",
-        text: "text-white",
-      },
-      silver: {
-        bg: "bg-gradient-to-br from-gray-400 to-gray-500",
-        text: "text-gray-900",
-      },
-      brons: {
-        bg: "bg-gradient-to-br from-orange-800 to-amber-900",
-        text: "text-white",
-      },
-      basic: {
-        bg: "bg-gradient-to-br from-slate-600 to-slate-700",
-        text: "text-white",
-      },
-    };
-    return colorMap[level] || { bg: "bg-gray-500", text: "text-white" };
-  };
+  // Initialize selected_type when can change and not yet set
+  const effectiveFormData =
+    canChangeAccountType && formData.selected_type == null
+      ? { ...formData, selected_type: defaultType }
+      : formData;
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-6">
-        {/* Logo */}
-        <div className="flex justify-center">
-          <LogoSvg className="h-8" />
-        </div>
-
-        {/* Hero */}
-        <div className="text-center">
-          <h2 className="text-2xl font-light text-gray-900 mb-2">
-            You've been invited to PACT
-          </h2>
-          <p className="text-sm text-gray-600">
-            Join the platform and start reserving wines
-          </p>
-        </div>
-
-        {/* Membership Level */}
-        {invitation.initial_level && (
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="text-center space-y-3">
-              {/* Level Badge - Premium Colors */}
-              <div
-                className={`inline-block px-6 py-2 rounded-md text-sm font-medium ${
-                  getLevelColors(invitation.initial_level).bg
-                } ${getLevelColors(invitation.initial_level).text}`}
-              >
-                {getLevelName(invitation.initial_level)} Membership
-              </div>
-
-              {/* Perks - Single line */}
-              <p className="text-sm text-gray-600">
-                {invitation.initial_level === "guld" &&
-                  "Maximum perks • 50 invites/month • Gold level discount"}
-                {invitation.initial_level === "silver" &&
-                  "Early access • 12 invites/month • Fee capped"}
-                {invitation.initial_level === "brons" &&
-                  "Queue priority • 5 invites/month"}
-                {invitation.initial_level === "basic" &&
-                  "Entry level • 2 invites/month"}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Signup Form */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label
-                htmlFor="full_name"
-                className="text-sm font-medium text-gray-700"
-              >
-                Full Name
-              </Label>
-              <Input
-                id="full_name"
-                type="text"
-                value={formData.full_name}
-                onChange={(e) =>
-                  setFormData({ ...formData, full_name: e.target.value })
-                }
-                placeholder="Enter your full name"
-                required
-              />
-            </div>
-
-            <div>
-              <Label
-                htmlFor="email"
-                className="text-sm font-medium text-gray-700"
-              >
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-                placeholder="Enter your email"
-                required
-              />
-            </div>
-
-            <div>
-              <Label
-                htmlFor="password"
-                className="text-sm font-medium text-gray-700"
-              >
-                Password
-              </Label>
-              <Input
-                id="password"
-                type="password"
-                value={formData.password}
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
-                }
-                placeholder="Create a password"
-                required
-                minLength={6}
-              />
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full bg-black hover:bg-black/90 text-white"
-              disabled={submitting}
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Creating Account...
-                </>
-              ) : (
-                "Create Account"
-              )}
-            </Button>
-          </form>
-
-          {/* Sign in link */}
-          <div className="mt-4 text-center">
-            <p className="text-xs text-gray-500">
-              Already have an account?{" "}
-              <button
-                onClick={() => router.push("/log-in")}
-                className="text-gray-900 underline hover:no-underline"
-                type="button"
-              >
-                Sign in
-              </button>
-            </p>
-          </div>
-        </div>
-
-        {/* Sender Attribution */}
-        <p className="text-center text-xs text-gray-500">
-          Invited by {senderName}
-        </p>
-      </div>
-    </div>
+    <OpusLandingView
+      allowedTypes={allowedTypes}
+      defaultType={defaultType}
+      canChangeAccountType={canChangeAccountType}
+      initialMembershipLevel={invitation.initial_level}
+      inviterName={invitation.profiles?.full_name}
+      formData={effectiveFormData}
+      onFormChange={(data) =>
+        setFormData((prev) => ({ ...prev, ...data }))
+      }
+      onSubmit={handleSubmit}
+      submitting={submitting}
+      welcomeName={signupSuccess ? registeredName : null}
+    />
   );
 }

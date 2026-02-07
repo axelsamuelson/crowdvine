@@ -266,18 +266,20 @@ export default function UsersAdmin() {
   const getMembershipBadge = (level: string) => {
     const colors = {
       admin: "bg-purple-600 text-white",
-      guld: "bg-yellow-600 text-white",
-      silver: "bg-gray-600 text-white",
-      brons: "bg-orange-600 text-white",
-      basic: "bg-blue-600 text-white",
+      privilege: "bg-[#2F0E15] text-white",
+      guld: "bg-[#E4CAA0] text-gray-900",
+      silver: "bg-emerald-800 text-white",
+      brons: "bg-indigo-700 text-white",
+      basic: "bg-slate-600 text-white",
       requester: "bg-gray-300 text-gray-700",
     };
 
     const labels = {
       admin: "Admin",
-      guld: "Gold",
-      silver: "Silver",
-      brons: "Bronze",
+      privilege: "Privilege",
+      guld: "Priority",
+      silver: "Premium",
+      brons: "Plus",
       basic: "Basic",
       requester: "Requester",
     };
@@ -694,13 +696,10 @@ export default function UsersAdmin() {
                     Requester (No Access)
                   </SelectItem>
                   <SelectItem value="basic">Basic (2 invites/month)</SelectItem>
-                  <SelectItem value="brons">
-                    Bronze (5 invites/month)
-                  </SelectItem>
-                  <SelectItem value="silver">
-                    Silver (12 invites/month)
-                  </SelectItem>
-                  <SelectItem value="guld">Gold (50 invites/month)</SelectItem>
+                  <SelectItem value="brons">Plus (5 invites/month)</SelectItem>
+                  <SelectItem value="silver">Premium (12 invites/month)</SelectItem>
+                  <SelectItem value="guld">Priority (50 invites/month)</SelectItem>
+                  <SelectItem value="privilege">Privilege (100 invites/month)</SelectItem>
                   <SelectItem value="admin">Admin (Unlimited)</SelectItem>
                 </SelectContent>
               </Select>

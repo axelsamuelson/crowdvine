@@ -186,11 +186,12 @@ export default function UserDetailPage({
 
   const getLevelColor = (level: string) => {
     const colors: Record<string, { bg: string; text: string }> = {
-      basic: { bg: "bg-gray-100", text: "text-gray-900" },
-      brons: { bg: "bg-orange-100", text: "text-orange-900" },
-      silver: { bg: "bg-gray-300", text: "text-gray-900" },
-      guld: { bg: "bg-yellow-100", text: "text-yellow-900" },
-      admin: { bg: "bg-purple-100", text: "text-purple-900" },
+      basic: { bg: "bg-slate-200", text: "text-slate-900" },
+      brons: { bg: "bg-indigo-200", text: "text-indigo-950" },
+      silver: { bg: "bg-emerald-200", text: "text-emerald-950" },
+      guld: { bg: "bg-[#E4CAA0]/30", text: "text-gray-900" },
+      privilege: { bg: "bg-rose-200", text: "text-rose-950" },
+      admin: { bg: "bg-purple-200", text: "text-purple-950" },
     };
     return colors[level] || colors.basic;
   };
@@ -198,9 +199,10 @@ export default function UserDetailPage({
   const getLevelDisplayName = (level: string) => {
     const names: Record<string, string> = {
       basic: "Basic",
-      brons: "Bronze",
-      silver: "Silver",
-      guld: "Gold",
+      brons: "Plus",
+      silver: "Premium",
+      guld: "Priority",
+      privilege: "Privilege",
       admin: "Admin",
     };
     return names[level] || level;

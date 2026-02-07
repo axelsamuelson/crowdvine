@@ -13,6 +13,7 @@ export type MembershipLevel =
   | "brons"
   | "silver"
   | "guld"
+  | "privilege"
   | "admin";
 export type IPEventType =
   | "invite_signup"
@@ -54,7 +55,8 @@ export const LEVEL_THRESHOLDS = {
   basic: { min: 0, max: 4 },
   brons: { min: 5, max: 14 },
   silver: { min: 15, max: 34 },
-  guld: { min: 35, max: Infinity },
+  guld: { min: 35, max: 69 },
+  privilege: { min: 70, max: Infinity },
 } as const;
 
 // Invite Quotas
@@ -64,6 +66,7 @@ export const INVITE_QUOTAS: Record<MembershipLevel, number> = {
   brons: 5,
   silver: 12,
   guld: 50,
+  privilege: 100,
   admin: 999999,
 };
 
@@ -280,9 +283,10 @@ function getLevelDisplayName(level: MembershipLevel): string {
   const levelNames: Record<MembershipLevel, string> = {
     requester: "Requester",
     basic: "Basic",
-    brons: "Bronze",
-    silver: "Silver",
-    guld: "Gold",
+    brons: "Plus",
+    silver: "Premium",
+    guld: "Priority",
+    privilege: "Privilege",
     admin: "Admin",
   };
 
@@ -316,7 +320,7 @@ export function getNextLevelInfo(
     return null; // Admin is max level
   }
 
-  const levels: MembershipLevel[] = ["basic", "brons", "silver", "guld"];
+  const levels: MembershipLevel[] = ["basic", "brons", "silver", "guld", "privilege"];
   const currentIndex = levels.indexOf(currentLevel);
 
   if (currentIndex === -1 || currentIndex === levels.length - 1) {

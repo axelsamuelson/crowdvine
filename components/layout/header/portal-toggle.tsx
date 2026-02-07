@@ -33,16 +33,16 @@ export function PortalToggle({ showPortalToggle, className }: PortalToggleProps)
     const searchEnc = encodeURIComponent(rawSearch);
 
     const params = new URLSearchParams(rawSearch);
-    const forceB2C = params.get("b2c") === "1";
-    const currentPortalLocal = isB2BProduction || (isLocalhost && !forceB2C) ? "b2b" : "b2c";
+    const forceB2B = params.get("b2b") === "1";
+    const currentPortalLocal = isB2BProduction || (isLocalhost && forceB2B) ? "b2b" : "b2c";
 
     if (isLocalhost) {
       const searchForB2C = new URLSearchParams(params);
-      searchForB2C.set("b2c", "1");
-      const b2cSearch = `?${searchForB2C.toString()}`;
+      searchForB2C.delete("b2b");
+      const b2cSearch = searchForB2C.toString() ? `?${searchForB2C.toString()}` : "";
       const searchForB2B = new URLSearchParams(params);
-      searchForB2B.delete("b2c");
-      const b2bSearch = searchForB2B.toString() ? `?${searchForB2B.toString()}` : "";
+      searchForB2B.set("b2b", "1");
+      const b2bSearch = `?${searchForB2B.toString()}`;
       return {
         currentPortal: currentPortalLocal,
         b2cUrl: `${origin}${path}${b2cSearch}`,

@@ -14,8 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle, XCircle, Clock, Plus, Copy, Trash2 } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Plus, Copy, Trash2, Link2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface AccessRequest {
@@ -38,6 +39,10 @@ interface InvitationCode {
   expires_at?: string;
   is_active: boolean;
   created_at: string;
+  invitation_type?: "consumer" | "producer" | "business";
+  allowed_types?: string[];
+  can_change_account_type?: boolean;
+  initial_level?: string;
 }
 
 export default function AccessControlAdmin() {
@@ -46,6 +51,9 @@ export default function AccessControlAdmin() {
   const [loading, setLoading] = useState(true);
   const [newCodeEmail, setNewCodeEmail] = useState("");
   const [newCodeExpiry, setNewCodeExpiry] = useState("30");
+  const [newCodeTypes, setNewCodeTypes] = useState<Set<"consumer" | "producer" | "business">>(new Set(["consumer"]));
+  const [newCodeCanChange, setNewCodeCanChange] = useState(false);
+  const [newCodeLevel, setNewCodeLevel] = useState("basic");
   const [selectedLevels, setSelectedLevels] = useState<{
     [key: string]: string;
   }>({});
@@ -250,6 +258,9 @@ export default function AccessControlAdmin() {
         body: JSON.stringify({
           email: newCodeEmail || null,
           expiryDays: parseInt(newCodeExpiry),
+          allowedTypes: Array.from(newCodeTypes),
+          canChangeAccountType: newCodeCanChange,
+          initialLevel: newCodeLevel,
         }),
       });
 
@@ -257,7 +268,10 @@ export default function AccessControlAdmin() {
         const errorData = await response
           .json()
           .catch(() => ({ error: "Network error" }));
-        throw new Error(errorData.error || "Failed to create invitation code");
+        const msg = errorData.details
+          ? `${errorData.error}: ${errorData.details}`
+          : errorData.error || "Failed to create invitation code";
+        throw new Error(msg);
       }
 
       const result = await response.json();
@@ -265,6 +279,9 @@ export default function AccessControlAdmin() {
         toast.success("Invitation code created successfully");
         setNewCodeEmail("");
         setNewCodeExpiry("30");
+        setNewCodeTypes(new Set(["consumer"]));
+        setNewCodeCanChange(false);
+        setNewCodeLevel("basic");
         // Refresh the list
         fetchInvitationCodes();
       } else {
@@ -278,9 +295,9 @@ export default function AccessControlAdmin() {
     }
   };
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = (text: string, message?: string) => {
     navigator.clipboard.writeText(text);
-    toast.success("Copied to clipboard");
+    toast.success(message ?? "Copied to clipboard");
   };
 
   const getStatusBadge = (status: string) => {
@@ -393,9 +410,10 @@ export default function AccessControlAdmin() {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="basic">Basic</SelectItem>
-                              <SelectItem value="brons">Bronze</SelectItem>
-                              <SelectItem value="silver">Silver</SelectItem>
-                              <SelectItem value="guld">Gold</SelectItem>
+                              <SelectItem value="brons">Plus</SelectItem>
+                              <SelectItem value="silver">Premium</SelectItem>
+                              <SelectItem value="guld">Priority</SelectItem>
+                              <SelectItem value="privilege">Privilege</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -516,13 +534,68 @@ export default function AccessControlAdmin() {
                       onChange={(e) => setNewCodeEmail(e.target.value)}
                     />
                   </div>
+                  <div className="space-y-3">
+                    <Label>Allowed User Types</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Välj en eller flera typer som den inbjudna kan registrera sig som.
+                    </p>
+                    <div className="flex flex-wrap gap-4">
+                      {(["consumer", "producer", "business"] as const).map((t) => (
+                        <label
+                          key={t}
+                          className="flex items-center gap-2 cursor-pointer"
+                        >
+                          <Checkbox
+                            checked={newCodeTypes.has(t)}
+                            onCheckedChange={(checked) => {
+                              const next = new Set(newCodeTypes);
+                              if (checked) next.add(t);
+                              else next.delete(t);
+                              if (next.size > 0) setNewCodeTypes(next);
+                            }}
+                          />
+                          <span className="capitalize">{t}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="canChange"
+                      checked={newCodeCanChange}
+                      onCheckedChange={(checked) =>
+                        setNewCodeCanChange(!!checked)
+                      }
+                    />
+                    <Label htmlFor="canChange" className="cursor-pointer font-normal">
+                      Tillåt att den inbjudna kan byta kontotyp på invite-sidan
+                    </Label>
+                  </div>
+                  <div>
+                    <Label htmlFor="initialLevel">Initial Membership Level</Label>
+                    <Select
+                      value={newCodeLevel}
+                      onValueChange={setNewCodeLevel}
+                    >
+                      <SelectTrigger id="initialLevel">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="basic">Basic</SelectItem>
+                        <SelectItem value="brons">Plus</SelectItem>
+                        <SelectItem value="silver">Premium</SelectItem>
+                        <SelectItem value="guld">Priority</SelectItem>
+                        <SelectItem value="privilege">Privilege</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div>
                     <Label htmlFor="expiry">Expiry (Days)</Label>
                     <Select
                       value={newCodeExpiry}
                       onValueChange={setNewCodeExpiry}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="expiry">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -560,14 +633,39 @@ export default function AccessControlAdmin() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => copyToClipboard(code.code)}
+                                onClick={() => copyToClipboard(code.code, "Kod kopierad")}
+                                title="Kopiera kod"
                               >
                                 <Copy className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() =>
+                                  copyToClipboard(
+                                    `${typeof window !== "undefined" ? window.location.origin : ""}/i/${code.code}`,
+                                    "Länk kopierad",
+                                  )
+                                }
+                                title="Kopiera länk"
+                              >
+                                <Link2 className="w-3 h-3" />
                               </Button>
                             </div>
                             <p className="text-sm text-gray-500 mt-1">
                               Created:{" "}
                               {new Date(code.created_at).toLocaleDateString()}
+                              {(code.allowed_types?.length ?? 0) > 0 ? (
+                                <> • Types: {code.allowed_types?.join(", ")}</>
+                              ) : code.invitation_type ? (
+                                <> • Type: {code.invitation_type}</>
+                              ) : null}
+                              {code.can_change_account_type && (
+                                <> • Can change type</>
+                              )}
+                              {code.initial_level && (
+                                <> • Level: {code.initial_level}</>
+                              )}
                               {code.email && <> • For: {code.email}</>}
                               {code.expires_at && (
                                 <>
@@ -580,11 +678,24 @@ export default function AccessControlAdmin() {
                               )}
                             </p>
                           </div>
-                          <Badge
-                            variant={code.is_active ? "default" : "secondary"}
-                          >
-                            {code.is_active ? "Active" : "Used"}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            {(code.allowed_types?.length ?? 0) > 0
+                              ? code.allowed_types?.map((t) => (
+                                  <Badge key={t} variant="outline">
+                                    {t}
+                                  </Badge>
+                                ))
+                              : code.invitation_type ? (
+                                  <Badge variant="outline">
+                                    {code.invitation_type}
+                                  </Badge>
+                                ) : null}
+                            <Badge
+                              variant={code.is_active ? "default" : "secondary"}
+                            >
+                              {code.is_active ? "Active" : "Used"}
+                            </Badge>
+                          </div>
                         </div>
                       </div>
                     ))}

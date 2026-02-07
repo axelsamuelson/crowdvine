@@ -1,0 +1,623 @@
+/* Opus theme for invite landing – HSL to match tailwind.config.js (hsl(var(--background))) */
+.invite-opus-page {
+  --background: 270 33% 99%;
+  --foreground: 270 66% 6%;
+  --card: 260 33% 96%;
+  --card-foreground: 270 66% 6%;
+  --popover: 270 33% 99%;
+  --popover-foreground: 270 66% 6%;
+  --primary: 263 69% 42%;
+  --primary-foreground: 270 33% 99%;
+  --secondary: 260 33% 96%;
+  --secondary-foreground: 270 66% 6%;
+  --muted: 260 33% 96%;
+  --muted-foreground: 270 10% 45%;
+  --accent: 270 95% 85%;
+  --accent-foreground: 270 66% 6%;
+  --border: 260 25% 92%;
+  --input: 260 25% 92%;
+  --ring: 263 69% 42%;
+  --lime: 84 91% 80%;
+}
+
+.invite-opus-page .font-serif {
+  font-family: var(--font-instrument-serif), "Instrument Serif", "Georgia", serif;
+}
+
+/* Serrated ticket edge (opus pricing cards) */
+.invite-opus-page .ticket-edge {
+  mask-image: radial-gradient(circle at 0 50%, transparent 8px, black 8px),
+    radial-gradient(circle at 100% 50%, transparent 8px, black 8px);
+  mask-size: 51% 100%;
+  mask-position: left, right;
+  mask-repeat: no-repeat;
+}
+
+.invite-opus-page .bg-lime {
+  background-color: hsl(var(--lime));
+}
+
+/* Your invitation section: use platform font and colors (match main app) */
+.invite-opus-page .invitation-section-platform {
+  --foreground: 223.81 0% 4%;
+  --muted-foreground: 223.81 0% 45%;
+  --background: 223.81 0% 94%;
+  --secondary: 223.81 0% 96%;
+  --secondary-foreground: 223.81 0% 9%;
+  --border: 223.81 0% 74%;
+  --input: 223.81 0% 90%;
+  --primary: 223.81 0% 9%;
+  --primary-foreground: 223.81 0% 98%;
+  --muted: 223.81 0% 88%;
+  --accent: 223.81 0% 90%;
+  --accent-foreground: 223.81 0% 9%;
+  --ring: 223.81 0% 63%;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Custom cursor on invite opus page */
+.invite-opus-page.custom-cursor {
+  cursor: none;
+}
+
+/* Lenis smooth scroll */
+.invite-opus-page html.lenis,
+.invite-opus-page html.lenis body {
+  height: auto;
+}
+
+.invite-opus-page .lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+/* Metallic silver border card – exakt kopia från design-inspiration/metallic-silver-border-card */
+.invite-opus-page .electric-card-wrapper {
+  --electric-border-color: #c0c0c0;
+  --electric-light-color: oklch(from var(--electric-border-color) l c h);
+  --gradient-color: oklch(from var(--electric-border-color) 0.3 calc(c / 2) h / 0.4);
+  --color-neutral-900: oklch(0.185 0 0);
+  --silver-bright: #e8e8e8;
+  --silver-medium: #a8a8a8;
+  --silver-dark: #808080;
+  width: fit-content;
+  padding: 48px;
+  overflow: visible;
+}
+
+.invite-opus-page .electric-card-wrapper .svg-container {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.invite-opus-page .electric-card-wrapper .card-container {
+  padding: 2px;
+  border-radius: 24px;
+  position: relative;
+  overflow: visible;
+  background: linear-gradient(-30deg, var(--gradient-color), transparent, var(--gradient-color)),
+    linear-gradient(to bottom, var(--color-neutral-900), var(--color-neutral-900));
+  box-shadow: 0 0 60px rgba(192, 192, 192, 0.35), 0 0 120px rgba(192, 192, 192, 0.15);
+}
+
+.invite-opus-page .electric-card-wrapper .inner-container {
+  position: relative;
+}
+
+.invite-opus-page .electric-card-wrapper .border-outer {
+  border: 2px solid rgba(192, 192, 192, 0.5);
+  border-radius: 24px;
+  padding-right: 4px;
+  padding-bottom: 4px;
+}
+
+.invite-opus-page .electric-card-wrapper .main-card {
+  width: 350px;
+  height: 500px;
+  border-radius: 24px;
+  border: 2px solid var(--electric-border-color);
+  margin-top: -4px;
+  margin-left: -4px;
+  filter: url(#turbulent-displace-invite);
+}
+
+.invite-opus-page .electric-card-wrapper .glow-layer-1 {
+  border: 2px solid rgba(192, 192, 192, 0.6);
+  border-radius: 24px;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  filter: blur(1px);
+}
+
+.invite-opus-page .electric-card-wrapper .glow-layer-2 {
+  border: 2px solid var(--electric-light-color);
+  border-radius: 24px;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  filter: blur(4px);
+}
+
+.invite-opus-page .electric-card-wrapper .overlay-1 {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 24px;
+  opacity: 1;
+  mix-blend-mode: overlay;
+  transform: scale(1.1);
+  filter: blur(16px);
+  background: linear-gradient(-30deg, white, transparent 30%, transparent 70%, white);
+}
+
+.invite-opus-page .electric-card-wrapper .overlay-2 {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 24px;
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+  transform: scale(1.1);
+  filter: blur(16px);
+  background: linear-gradient(-30deg, white, transparent 30%, transparent 70%, white);
+}
+
+.invite-opus-page .electric-card-wrapper .background-glow {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 24px;
+  filter: blur(48px);
+  transform: scale(1.15);
+  opacity: 0.5;
+  z-index: -1;
+  background: linear-gradient(-30deg, var(--silver-bright), transparent, var(--electric-border-color));
+}
+
+.invite-opus-page .electric-card-wrapper .content-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  color: oklch(0.985 0 0);
+}
+
+.invite-opus-page .electric-card-wrapper .content-top {
+  display: flex;
+  flex-direction: column;
+  padding: 48px;
+  padding-bottom: 16px;
+  height: 100%;
+}
+
+.invite-opus-page .electric-card-wrapper .content-bottom {
+  display: flex;
+  flex-direction: column;
+  padding: 48px;
+  padding-top: 16px;
+}
+
+.invite-opus-page .electric-card-wrapper .scrollbar-glass {
+  background: radial-gradient(47.2% 50% at 50.39% 88.37%, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 100%),
+    rgba(255, 255, 255, 0.04);
+  position: relative;
+  transition: background 0.3s ease;
+  border-radius: 14px;
+  width: fit-content;
+  height: fit-content;
+  padding: 8px 16px;
+  text-transform: uppercase;
+  font-weight: bold;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.invite-opus-page .electric-card-wrapper .scrollbar-glass:hover {
+  background: radial-gradient(47.2% 50% at 50.39% 88.37%, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 100%),
+    rgba(255, 255, 255, 0.08);
+}
+
+.invite-opus-page .electric-card-wrapper .scrollbar-glass::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 1px;
+  background: linear-gradient(
+    150deg,
+    rgba(255, 255, 255, 0.48) 16.73%,
+    rgba(255, 255, 255, 0.08) 30.2%,
+    rgba(255, 255, 255, 0.08) 68.2%,
+    rgba(255, 255, 255, 0.6) 81.89%
+  );
+  border-radius: inherit;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: xor;
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+}
+
+.invite-opus-page .electric-card-wrapper .title {
+  font-size: 36px;
+  font-weight: 500;
+  margin-top: auto;
+  color: oklch(0.985 0 0);
+}
+
+.invite-opus-page .electric-card-wrapper .description {
+  opacity: 0.5;
+  color: oklch(0.985 0 0);
+}
+
+.invite-opus-page .electric-card-wrapper .divider {
+  margin-top: auto;
+  border: none;
+  height: 1px;
+  background-color: currentColor;
+  opacity: 0.1;
+  mask-image: linear-gradient(to right, transparent, black, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black, transparent);
+}
+
+/* Invitation heading – membership level name in level color */
+.invite-opus-page .invitation-level-name.invitation-level-basic { color: #94a3b8; }
+.invite-opus-page .invitation-level-name.invitation-level-brons { color: #818cf8; }
+.invite-opus-page .invitation-level-name.invitation-level-silver { color: #34d399; }
+.invite-opus-page .invitation-level-name.invitation-level-guld { color: #f0dfc4; }
+.invite-opus-page .invitation-level-name.invitation-level-privilege { color: #c9a0a8; }
+
+/* Membership cards grid – metallic cards in different colors */
+.invite-opus-page .membership-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 32px;
+  width: 100%;
+}
+
+.invite-opus-page .membership-card-wrapper {
+  --electric-border-color: #c0c0c0;
+  --electric-light-color: oklch(from var(--electric-border-color) l c h);
+  --gradient-color: oklch(from var(--electric-border-color) 0.3 calc(c / 2) h / 0.4);
+  --color-neutral-900: oklch(0.185 0 0);
+  --metal-bright: #e8e8e8;
+  --metal-medium: #a8a8a8;
+  --glow-color: rgba(192, 192, 192, 0.35);
+  --glow-color-2: rgba(192, 192, 192, 0.15);
+  --border-outer-color: rgba(192, 192, 192, 0.5);
+  --border-glow-color: rgba(192, 192, 192, 0.6);
+  width: 100%;
+  max-width: 350px;
+  margin: 0 auto;
+  padding: 24px;
+  overflow: visible;
+}
+
+/* Basic – mörk slate */
+.invite-opus-page .membership-card-wrapper.variant-basic {
+  --electric-border-color: #475569;
+  --metal-bright: #64748b;
+  --metal-medium: #334155;
+  --glow-color: rgba(71, 85, 105, 0.5);
+  --glow-color-2: rgba(51, 65, 85, 0.3);
+  --border-outer-color: rgba(71, 85, 105, 0.6);
+  --border-glow-color: rgba(71, 85, 105, 0.7);
+}
+
+/* Plus – mörk indigo */
+.invite-opus-page .membership-card-wrapper.variant-brons {
+  --electric-border-color: #3730a3;
+  --metal-bright: #4f46e5;
+  --metal-medium: #1e1b4b;
+  --glow-color: rgba(55, 48, 163, 0.5);
+  --glow-color-2: rgba(30, 27, 75, 0.3);
+  --border-outer-color: rgba(55, 48, 163, 0.65);
+  --border-glow-color: rgba(55, 48, 163, 0.75);
+}
+
+/* Premium – mörk grön */
+.invite-opus-page .membership-card-wrapper.variant-silver {
+  --electric-border-color: #065f46;
+  --metal-bright: #047857;
+  --metal-medium: #022c22;
+  --glow-color: rgba(6, 95, 70, 0.55);
+  --glow-color-2: rgba(2, 44, 34, 0.3);
+  --border-outer-color: rgba(6, 95, 70, 0.65);
+  --border-glow-color: rgba(6, 95, 70, 0.75);
+}
+
+/* Priority – #E4CAA0 (mindre glow) */
+.invite-opus-page .membership-card-wrapper.variant-guld {
+  --electric-border-color: #E4CAA0;
+  --metal-bright: #f0dfc4;
+  --metal-medium: #c9a86c;
+  --glow-color: rgba(228, 202, 160, 0.28);
+  --glow-color-2: rgba(228, 202, 160, 0.12);
+  --border-outer-color: rgba(228, 202, 160, 0.65);
+  --border-glow-color: rgba(228, 202, 160, 0.75);
+}
+
+/* Privilege – #2F0E15 (större glow) */
+.invite-opus-page .membership-card-wrapper.variant-privilege {
+  --electric-border-color: #2F0E15;
+  --metal-bright: #481620;
+  --metal-medium: #1a080b;
+  --glow-color: rgba(47, 14, 21, 0.8);
+  --glow-color-2: rgba(47, 14, 21, 0.5);
+  --border-outer-color: rgba(47, 14, 21, 0.8);
+  --border-glow-color: rgba(47, 14, 21, 0.9);
+}
+
+.invite-opus-page .membership-card-wrapper.variant-privilege .membership-card-bg-glow {
+  opacity: 0.65;
+}
+
+.invite-opus-page .membership-card-wrapper.variant-guld .membership-card-bg-glow {
+  opacity: 0.3;
+}
+
+.invite-opus-page .membership-card-wrapper .membership-card-svg {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.invite-opus-page .membership-card-wrapper .membership-card-container {
+  padding: 2px;
+  border-radius: 24px;
+  position: relative;
+  overflow: visible;
+  background: linear-gradient(-30deg, var(--gradient-color), transparent, var(--gradient-color)),
+    linear-gradient(to bottom, var(--color-neutral-900), var(--color-neutral-900));
+  box-shadow: 0 0 60px var(--glow-color), 0 0 120px var(--glow-color-2);
+}
+
+.invite-opus-page .membership-card-wrapper .membership-card-inner {
+  position: relative;
+}
+
+.invite-opus-page .membership-card-wrapper .membership-card-border-outer {
+  border: 2px solid var(--border-outer-color);
+  border-radius: 24px;
+  padding-right: 4px;
+  padding-bottom: 4px;
+}
+
+.invite-opus-page .membership-card-wrapper .membership-card-main {
+  width: 100%;
+  aspect-ratio: 350 / 500;
+  min-height: 400px;
+  border-radius: 24px;
+  border: 2px solid var(--electric-border-color);
+  margin-top: -4px;
+  margin-left: -4px;
+}
+
+.invite-opus-page .membership-card-wrapper .membership-card-glow-1 {
+  border: 2px solid var(--border-glow-color);
+  border-radius: 24px;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  filter: blur(1px);
+}
+
+.invite-opus-page .membership-card-wrapper .membership-card-glow-2 {
+  border: 2px solid var(--electric-light-color);
+  border-radius: 24px;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  filter: blur(4px);
+}
+
+.invite-opus-page .membership-card-wrapper .membership-card-overlay-1 {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 24px;
+  opacity: 1;
+  mix-blend-mode: overlay;
+  transform: scale(1.1);
+  filter: blur(16px);
+  background: linear-gradient(-30deg, white, transparent 30%, transparent 70%, white);
+}
+
+.invite-opus-page .membership-card-wrapper .membership-card-overlay-2 {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 24px;
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+  transform: scale(1.1);
+  filter: blur(16px);
+  background: linear-gradient(-30deg, white, transparent 30%, transparent 70%, white);
+}
+
+.invite-opus-page .membership-card-wrapper .membership-card-bg-glow {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 24px;
+  filter: blur(48px);
+  transform: scale(1.15);
+  opacity: 0.5;
+  z-index: -1;
+  background: linear-gradient(-30deg, var(--metal-bright), transparent, var(--electric-border-color));
+}
+
+.invite-opus-page .membership-card-wrapper .membership-card-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  color: oklch(0.985 0 0);
+}
+
+.invite-opus-page .membership-card-wrapper .membership-card-logo-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+}
+
+.invite-opus-page .membership-card-wrapper .membership-card-logo {
+  max-height: 32px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+}
+
+.invite-opus-page .membership-card-wrapper .membership-card-content-top {
+  display: flex;
+  flex-direction: column;
+  padding: 32px;
+  padding-bottom: 12px;
+  height: 100%;
+}
+
+.invite-opus-page .membership-card-wrapper .membership-card-content-bottom {
+  display: flex;
+  flex-direction: column;
+  padding: 32px;
+  padding-top: 12px;
+}
+
+.invite-opus-page .membership-card-wrapper .membership-card-scrollbar-glass {
+  margin-top: auto;
+  background: radial-gradient(47.2% 50% at 50.39% 88.37%, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 100%),
+    rgba(255, 255, 255, 0.04);
+  position: relative;
+  transition: background 0.3s ease;
+  border-radius: 14px;
+  width: fit-content;
+  height: fit-content;
+  padding: 6px 12px;
+  text-transform: uppercase;
+  font-weight: bold;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.invite-opus-page .membership-card-wrapper .membership-card-scrollbar-glass:hover {
+  background: radial-gradient(47.2% 50% at 50.39% 88.37%, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 100%),
+    rgba(255, 255, 255, 0.08);
+}
+
+/* Engraved member name on card */
+.invite-opus-page .membership-card-wrapper .membership-card-member-name {
+  margin-top: 12px;
+  overflow: hidden;
+}
+
+.invite-opus-page .membership-card-wrapper .membership-card-engraved-name {
+  display: inline-block;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.5),
+    0 -1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.invite-opus-page .membership-card-wrapper .membership-card-scrollbar-glass::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 1px;
+  background: linear-gradient(
+    150deg,
+    rgba(255, 255, 255, 0.48) 16.73%,
+    rgba(255, 255, 255, 0.08) 30.2%,
+    rgba(255, 255, 255, 0.08) 68.2%,
+    rgba(255, 255, 255, 0.6) 81.89%
+  );
+  border-radius: inherit;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: xor;
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+}
+
+.invite-opus-page .membership-card-wrapper .membership-card-description {
+  opacity: 0.8;
+  color: oklch(0.985 0 0);
+  font-size: 14px;
+}
+
+.invite-opus-page .membership-card-wrapper .membership-card-quota {
+  opacity: 0.6;
+  color: oklch(0.985 0 0);
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.invite-opus-page .membership-card-wrapper .membership-card-divider {
+  margin-top: auto;
+  border: none;
+  height: 1px;
+  background-color: currentColor;
+  opacity: 0.1;
+  mask-image: linear-gradient(to right, transparent, black, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black, transparent);
+}

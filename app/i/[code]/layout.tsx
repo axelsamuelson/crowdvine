@@ -1,4 +1,13 @@
 import type { Metadata } from "next";
+import { Instrument_Serif } from "next/font/google";
+import "./invite-opus.css";
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: "400",
+  style: ["normal", "italic"],
+  variable: "--font-instrument-serif",
+});
 
 export async function generateMetadata(props: {
   params: Promise<{ code: string }>;
@@ -39,5 +48,9 @@ export default function InvitationLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return (
+    <div className={instrumentSerif.variable}>
+      {children}
+    </div>
+  );
 }

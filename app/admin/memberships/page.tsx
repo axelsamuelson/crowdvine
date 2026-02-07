@@ -24,6 +24,7 @@ export default async function MembershipsPage() {
     brons: perks?.filter((p) => p.level === "brons") || [],
     silver: perks?.filter((p) => p.level === "silver") || [],
     guld: perks?.filter((p) => p.level === "guld") || [],
+    privilege: perks?.filter((p) => p.level === "privilege") || [],
     admin: perks?.filter((p) => p.level === "admin") || [],
   };
 

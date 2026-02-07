@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
   try {
     console.log("[INVITE-REDEEM] Starting redemption process");
 
-    const { invitation_code, email, password, full_name } =
+    const { invitation_code, email, password, full_name, selected_type } =
       await request.json();
 
     if (!invitation_code || !email || !password || !full_name) {
@@ -131,14 +131,36 @@ export async function POST(request: NextRequest) {
     console.log("[INVITE-REDEEM] STEP-1 SUCCESS - User created:", userId);
 
     // Step 2: Manually create profile (triggers are disabled)
+    // Set roles and portal_access from invitation_type: consumer, producer, business
+    const allowedTypes =
+      invitation.allowed_types && invitation.allowed_types.length > 0
+        ? invitation.allowed_types
+        : invitation.invitation_type === "producer" ||
+            invitation.invitation_type === "business"
+          ? [invitation.invitation_type]
+          : ["consumer"];
+    const invitationType =
+      invitation.can_change_account_type && selected_type && allowedTypes.includes(selected_type)
+        ? selected_type
+        : allowedTypes[0] === "producer" || allowedTypes[0] === "business"
+          ? allowedTypes[0]
+          : "consumer";
+    const profileRoles =
+      invitationType === "producer" ? ["user", "producer"] : ["user"];
+    const portalAccess =
+      invitationType === "business" ? ["business"] : ["user"];
+
     console.log(
       "[INVITE-REDEEM] MANUAL CREATION FLOW - Step 2: Create profile",
+      { invitationType, profileRoles, portalAccess },
     );
     const { error: profileError } = await sb.from("profiles").insert({
       id: userId,
       email: email.toLowerCase().trim(),
       full_name: full_name,
       role: "user",
+      roles: profileRoles,
+      portal_access: portalAccess,
     });
 
     if (profileError) {
@@ -471,6 +493,7 @@ function getQuotaForLevel(level: string): number {
     brons: 5,
     silver: 12,
     guld: 50,
+    privilege: 100,
     admin: 999999,
   };
   return quotas[level] || 2;

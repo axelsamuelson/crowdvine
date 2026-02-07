@@ -23,7 +23,7 @@ interface WelcomeModalProps {
   onClose: () => void;
 }
 
-type MembershipLevel = "basic" | "brons" | "silver" | "guld" | "admin";
+type MembershipLevel = "basic" | "brons" | "silver" | "guld" | "privilege" | "admin";
 
 interface MembershipConfig {
   displayName: string;
@@ -37,35 +37,43 @@ interface MembershipConfig {
 const membershipLevels: Record<MembershipLevel, MembershipConfig> = {
   basic: {
     displayName: "Basic",
-    color: "text-gray-900",
-    bgColor: "bg-gray-100",
-    nextLevel: "Bronze",
+    color: "text-slate-900",
+    bgColor: "bg-slate-100",
+    nextLevel: "Plus",
     pointsToNext: 5,
     description: "Entry level access to all wines and basic community features",
   },
   brons: {
-    displayName: "Bronze",
-    color: "text-orange-900",
-    bgColor: "bg-orange-100",
-    nextLevel: "Silver",
+    displayName: "Plus",
+    color: "text-indigo-900",
+    bgColor: "bg-indigo-100",
+    nextLevel: "Premium",
     pointsToNext: 10,
     description: "Enhanced invite quota and queue priority for popular drops",
   },
   silver: {
-    displayName: "Silver",
-    color: "text-gray-900",
-    bgColor: "bg-gray-300",
-    nextLevel: "Gold",
+    displayName: "Premium",
+    color: "text-emerald-900",
+    bgColor: "bg-emerald-100",
+    nextLevel: "Priority",
     pointsToNext: 20,
     description: "Early access to new releases and reduced service fees",
   },
   guld: {
-    displayName: "Gold",
-    color: "text-yellow-900",
-    bgColor: "bg-yellow-100",
+    displayName: "Priority",
+    color: "text-amber-900",
+    bgColor: "bg-amber-100",
+    nextLevel: "Privilege",
+    pointsToNext: 35,
+    description: "High invite quota, priority access, and exclusive perks",
+  },
+  privilege: {
+    displayName: "Privilege",
+    color: "text-rose-900",
+    bgColor: "bg-rose-100",
     nextLevel: null,
     pointsToNext: null,
-    description: "Maximum invite quota, priority access, and exclusive perks",
+    description: "Maximum invite quota, top priority, and exclusive benefits",
   },
   admin: {
     displayName: "Admin",

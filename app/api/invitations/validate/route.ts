@@ -33,6 +33,9 @@ export async function POST(request: Request) {
         is_active,
         max_uses,
         initial_level,
+        invitation_type,
+        allowed_types,
+        can_change_account_type,
         created_at,
         profiles!created_by(email, full_name)
       `,
@@ -80,6 +83,19 @@ export async function POST(request: Request) {
       );
     }
 
+    const allowedTypes =
+      invitation.allowed_types && invitation.allowed_types.length > 0
+        ? invitation.allowed_types
+        : invitation.invitation_type === "producer" ||
+            invitation.invitation_type === "business"
+          ? [invitation.invitation_type]
+          : ["consumer"];
+    const invitationType =
+      allowedTypes[0] === "producer" || allowedTypes[0] === "business"
+        ? allowedTypes[0]
+        : "consumer";
+    const canChangeAccountType = !!invitation.can_change_account_type;
+
     return NextResponse.json({
       success: true,
       invitation: {
@@ -89,6 +105,10 @@ export async function POST(request: Request) {
         expires_at: invitation.expires_at,
         max_uses: invitation.max_uses,
         initial_level: invitation.initial_level,
+        invitation_type: invitationType,
+        allowed_types: allowedTypes,
+        can_change_account_type: canChangeAccountType,
+        used_at: invitation.used_at ?? undefined,
         profiles: invitation.profiles, // Contains { email, full_name }
       },
     });

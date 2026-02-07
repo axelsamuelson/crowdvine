@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { clearLogoCache } from "@/components/layout/header/logo-svg";
 import { clearFooterLogoCache } from "@/components/layout/footer-logo-svg";
+import { clearAlternativeLogoCache } from "@/components/layout/alternative-logo-svg";
 
 export default function ContentPage() {
   const [content, setContent] = useState<SiteContent[]>([]);
@@ -42,8 +43,10 @@ export default function ContentPage() {
   const [logoImages, setLogoImages] = useState<Record<string, File[]>>({
     header_logo_pact: [],
     footer_logo_pact: [],
+    alternative_logo_pact: [],
     header_logo_dirtywine: [],
     footer_logo_dirtywine: [],
+    alternative_logo_dirtywine: [],
   });
 
   useEffect(() => {
@@ -108,6 +111,9 @@ export default function ContentPage() {
       if (key.startsWith("footer_logo")) {
         clearFooterLogoCache();
         window.dispatchEvent(new CustomEvent("footerLogoCacheCleared"));
+      }
+      if (key.startsWith("alternative_logo")) {
+        clearAlternativeLogoCache();
       }
 
       // Clear the image upload
@@ -209,7 +215,7 @@ export default function ContentPage() {
               <TabsTrigger value="dirtywine">DIRTYWINE</TabsTrigger>
             </TabsList>
             <TabsContent value="pact" className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -278,10 +284,44 @@ export default function ContentPage() {
                     </Button>
                   </CardContent>
                 </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Image className="h-5 w-5" />
+                      Alternative Logo (PACT)
+                    </CardTitle>
+                    <CardDescription>
+                      Alternativ logo för t.ex. välkomstsidor på pactwines.com
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {formData.alternative_logo_pact && (
+                      <div className="relative w-32 h-16 bg-gray-100 rounded-lg overflow-hidden">
+                        <img
+                          src={formData.alternative_logo_pact}
+                          alt="Alternative logo PACT"
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                    )}
+                    <ImageUpload
+                      images={logoImages.alternative_logo_pact}
+                      onImagesChange={(images) =>
+                        setLogoImages((prev) => ({ ...prev, alternative_logo_pact: images }))
+                      }
+                    />
+                    <Button
+                      onClick={() => handleLogoUpload("alternative_logo_pact")}
+                      disabled={saving || logoImages.alternative_logo_pact.length === 0}
+                    >
+                      {saving ? "Laddar upp..." : "Ladda upp alternative logo"}
+                    </Button>
+                  </CardContent>
+                </Card>
               </div>
             </TabsContent>
             <TabsContent value="dirtywine" className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -347,6 +387,40 @@ export default function ContentPage() {
                       disabled={saving || logoImages.footer_logo_dirtywine.length === 0}
                     >
                       {saving ? "Laddar upp..." : "Ladda upp footer-logga"}
+                    </Button>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Image className="h-5 w-5" />
+                      Alternative Logo (DIRTYWINE)
+                    </CardTitle>
+                    <CardDescription>
+                      Alternativ logo för t.ex. välkomstsidor på dirtywine.se
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {formData.alternative_logo_dirtywine && (
+                      <div className="relative w-32 h-16 bg-gray-100 rounded-lg overflow-hidden">
+                        <img
+                          src={formData.alternative_logo_dirtywine}
+                          alt="Alternative logo DIRTYWINE"
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                    )}
+                    <ImageUpload
+                      images={logoImages.alternative_logo_dirtywine}
+                      onImagesChange={(images) =>
+                        setLogoImages((prev) => ({ ...prev, alternative_logo_dirtywine: images }))
+                      }
+                    />
+                    <Button
+                      onClick={() => handleLogoUpload("alternative_logo_dirtywine")}
+                      disabled={saving || logoImages.alternative_logo_dirtywine.length === 0}
+                    >
+                      {saving ? "Laddar upp..." : "Ladda upp alternative logo"}
                     </Button>
                   </CardContent>
                 </Card>

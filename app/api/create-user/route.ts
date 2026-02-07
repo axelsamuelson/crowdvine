@@ -11,6 +11,7 @@ function getQuotaForLevel(level: string): number {
     brons: 5,
     silver: 12,
     guld: 50,
+    privilege: 100,
     admin: 999,
   };
   return quotaMap[level] || 2;

@@ -44,8 +44,11 @@ export function getLevelSegment(
   if (currentLevel === "silver" && currentIP >= 15 && currentIP <= 34) {
     return "silver-gold";
   }
+  if (currentLevel === "guld" && currentIP >= 35 && currentIP <= 69) {
+    return "gold-privilege";
+  }
 
-  // Admin or Gold (max level) - no progression segment
+  // Admin or Privilege (max level) - no progression segment
   return null;
 }
 

@@ -61,21 +61,7 @@ export function OnboardingProvider({
         if (response.ok) {
           const data = await response.json();
           console.log("🎓 [Onboarding] Data:", data);
-
-          if (!data.onboardingSeen) {
-            console.log(
-              "🎓 [Onboarding] User has NOT seen onboarding, redirecting in 200ms",
-            );
-            // Small delay to ensure page is loaded
-            setTimeout(() => {
-              console.log("🎓 [Onboarding] Redirecting now");
-              router.push("/onboarding");
-            }, 200);
-          } else {
-            console.log(
-              "🎓 [Onboarding] User has already seen onboarding, skipping",
-            );
-          }
+          // No automatic redirect to /onboarding on first visit – user can open it via onboarding button if desired
         } else {
           // If 401 (Unauthorized), user is a guest - silently skip onboarding
           if (response.status === 401) {

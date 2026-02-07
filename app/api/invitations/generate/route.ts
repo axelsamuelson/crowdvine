@@ -25,6 +25,10 @@ export async function POST(request: Request) {
 
     const body = await request.json().catch(() => ({}));
     const expiresInDays = Number(body?.expiresInDays ?? 30);
+    const invitationType =
+      body?.invitation_type === "producer" || body?.invitation_type === "business"
+        ? body.invitation_type
+        : "consumer";
 
     const sb = getSupabaseAdmin();
 
@@ -75,6 +79,7 @@ export async function POST(request: Request) {
         max_uses: 1,
         is_active: true,
         initial_level: "basic",
+        invitation_type: invitationType,
       })
       .select()
       .single();

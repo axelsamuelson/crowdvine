@@ -94,7 +94,7 @@ export async function updateSiteContent(
   revalidatePath("/"); // Revalidate homepage
   
   // För logo-nycklar, revalidate alla paths som kan visa loggan
-  const logoKeys = ["header_logo", "footer_logo", "header_logo_pact", "footer_logo_pact", "header_logo_dirtywine", "footer_logo_dirtywine"];
+  const logoKeys = ["header_logo", "footer_logo", "alternative_logo", "header_logo_pact", "footer_logo_pact", "alternative_logo_pact", "header_logo_dirtywine", "footer_logo_dirtywine", "alternative_logo_dirtywine"];
   if (logoKeys.includes(key)) {
     revalidatePath("/", "layout"); // Revalidate root layout
     // Force revalidation av API-routes

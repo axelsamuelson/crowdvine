@@ -31,6 +31,7 @@ interface MembershipsClientProps {
     brons: Perk[];
     silver: Perk[];
     guld: Perk[];
+    privilege: Perk[];
     admin: Perk[];
   };
   levelThresholds: any;
@@ -40,9 +41,10 @@ interface MembershipsClientProps {
 // Helper functions matching invitation page
 const getLevelName = (level: string) => {
   const levelMap: Record<string, string> = {
-    guld: "Gold",
-    silver: "Silver",
-    brons: "Bronze",
+    privilege: "Privilege",
+    guld: "Priority",
+    silver: "Premium",
+    brons: "Plus",
     basic: "Basic",
     admin: "Admin",
   };
@@ -51,24 +53,28 @@ const getLevelName = (level: string) => {
 
 const getLevelColors = (level: string) => {
   const colorMap: Record<string, { badge: string; text: string }> = {
-    guld: {
-      badge: "bg-gradient-to-br from-amber-600 to-yellow-700",
+    privilege: {
+      badge: "bg-gradient-to-br from-[#2F0E15] to-[#1a080b]",
       text: "text-white",
     },
-    silver: {
-      badge: "bg-gradient-to-br from-gray-400 to-gray-500",
+    guld: {
+      badge: "bg-gradient-to-br from-[#E4CAA0] to-[#c9a86c]",
       text: "text-gray-900",
     },
+    silver: {
+      badge: "bg-gradient-to-br from-emerald-800 to-emerald-950",
+      text: "text-white",
+    },
     brons: {
-      badge: "bg-gradient-to-br from-orange-800 to-amber-900",
+      badge: "bg-gradient-to-br from-indigo-700 to-indigo-950",
       text: "text-white",
     },
     basic: {
-      badge: "bg-gradient-to-br from-slate-600 to-slate-700",
+      badge: "bg-gradient-to-br from-slate-600 to-slate-800",
       text: "text-white",
     },
     admin: {
-      badge: "bg-gradient-to-br from-purple-600 to-purple-700",
+      badge: "bg-gradient-to-br from-purple-700 to-purple-950",
       text: "text-white",
     },
   };
@@ -78,6 +84,7 @@ const getLevelColors = (level: string) => {
 // Default discount percentages
 const getDefaultDiscount = (level: string): number => {
   const discountMap: Record<string, number> = {
+    privilege: 15,
     guld: 10,
     silver: 5,
     brons: 3,
@@ -98,7 +105,7 @@ export function MembershipsClient({
   const [saving, setSaving] = useState(false);
   const [perksByLevel, setPerksByLevel] = useState(initialPerksByLevel);
 
-  const levels = ["basic", "brons", "silver", "guld", "admin"];
+  const levels = ["basic", "brons", "silver", "guld", "privilege", "admin"];
 
   const getCurrentDiscount = (level: string): number => {
     const perks = perksByLevel[level as keyof typeof perksByLevel] || [];

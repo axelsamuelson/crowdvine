@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase-server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { getCurrentUser } from "@/lib/auth";
 
 export async function GET() {
   try {
@@ -53,20 +55,29 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, expiryDays } = await request.json();
-
-    const supabase = await supabaseServer();
-
-    // Check if user is admin
+    const body = await request.json();
     const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
+      email,
+      expiryDays = 30,
+      allowedTypes = ["consumer"],
+      canChangeAccountType = false,
+      initialLevel = "basic",
+    } = body;
+
+    const validTypes = ["consumer", "producer", "business"];
+    const types = Array.isArray(allowedTypes)
+      ? allowedTypes.filter((t: string) => validTypes.includes(t))
+      : ["consumer"];
+    const allowedTypesArr = types.length > 0 ? types : ["consumer"];
+    const invitationType = allowedTypesArr[0];
+
+    const user = await getCurrentUser();
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data: profile } = await supabase
+    const sb = getSupabaseAdmin();
+    const { data: profile } = await sb
       .from("profiles")
       .select("role")
       .eq("id", user.id)
@@ -79,40 +90,57 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate invitation code using database function
-    const { data: code, error: codeError } = await supabase.rpc(
+    // Generate invitation code (try RPC first, fallback to JS)
+    let code: string;
+    const { data: rpcCode, error: codeError } = await sb.rpc(
       "generate_invitation_code",
     );
 
-    if (codeError) {
-      console.error("Error generating invitation code:", codeError);
-      return NextResponse.json(
-        { error: "Failed to generate invitation code" },
-        { status: 500 },
-      );
+    if (codeError || !rpcCode) {
+      console.warn("RPC generate_invitation_code failed, using fallback:", codeError?.message);
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+      code = "";
+      for (let i = 0; i < 12; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+    } else {
+      code = typeof rpcCode === "string" ? rpcCode : String(rpcCode);
     }
 
     // Calculate expiry date
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + (expiryDays || 30));
 
-    // Create invitation code
-    const { data, error } = await supabase
-      .from("invitation_codes")
-      .insert({
+    // Validate initial level
+    const validLevels = ["basic", "brons", "silver", "guld", "privilege"];
+    const level = validLevels.includes(initialLevel) ? initialLevel : "basic";
+
+    // Create invitation code (use admin client to bypass RLS)
+    // Note: invitation_codes table may not have email column depending on migration
+    const insertData: Record<string, unknown> = {
         code,
-        email: email || null,
         created_by: user.id,
         expires_at: expiresAt.toISOString(),
         is_active: true,
-      })
+        invitation_type: invitationType,
+        allowed_types: allowedTypesArr,
+        can_change_account_type: !!canChangeAccountType,
+        initial_level: level,
+    };
+    const { data, error } = await sb
+      .from("invitation_codes")
+      .insert(insertData)
       .select()
       .single();
 
     if (error) {
       console.error("Error creating invitation code:", error);
       return NextResponse.json(
-        { error: "Failed to create invitation code" },
+        {
+          error: "Failed to create invitation code",
+          details: error.message,
+          code: error.code,
+        },
         { status: 500 },
       );
     }
