@@ -75,7 +75,7 @@ export function MetallicMembershipCard({ variant, memberName }: MetallicMembersh
                   className="membership-card-engraved-name"
                   initial={{ clipPath: "inset(0 100% 0 0)" }}
                   animate={{ clipPath: "inset(0 0 0 0)" }}
-                  transition={{ duration: 3, ease: [0.16, 1, 0.3, 1] }}
+                  transition={{ duration: 4, ease: [0.16, 1, 0.3, 1] }}
                 >
                   {memberName}
                 </motion.span>
