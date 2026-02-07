@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentUser } from "@/lib/auth";
-import { getAppUrl } from "@/lib/app-url";
+import { getAppUrl, getB2BAppUrl } from "@/lib/app-url";
 import { getInviteUrl } from "@/lib/invitation-path";
 
 function generateInvitationCode(): string {
@@ -103,7 +103,8 @@ export async function POST(request: Request) {
       })
       .eq("user_id", user.id);
 
-    const baseUrl = getAppUrl();
+    const hasBusiness = allowedTypes.includes("business");
+    const baseUrl = hasBusiness ? getB2BAppUrl() : getAppUrl();
     const signupUrl = getInviteUrl(baseUrl, code, allowedTypes);
     const codeSignupUrl = `${baseUrl}/c/${code}`;
 

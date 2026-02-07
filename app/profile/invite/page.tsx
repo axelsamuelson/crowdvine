@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { getTimeUntilReset } from "@/lib/membership/invite-quota";
-import { getInviteUrl } from "@/lib/invitation-path";
+import { buildInviteUrl, getBaseUrlForInvite } from "@/lib/invitation-path";
 import { ArrowLeft, Link as LinkIcon, Trash2, Users } from "lucide-react";
 
 type Invitation = {
@@ -77,13 +77,12 @@ export default function ProfileInvitePage() {
   };
 
   const enrichInvites = (list: Invitation[]) => {
-    const baseUrl = window.location.origin;
     return list.map((inv) => {
       if (inv.code && !inv.signupUrl) {
-        const cleanCode = inv.code.trim().replace(/\s+/g, "");
         const allowed = inv.allowed_types ?? (inv.invitation_type ? [inv.invitation_type] : ["consumer"]);
-        inv.signupUrl = getInviteUrl(baseUrl, cleanCode, allowed);
-        inv.codeSignupUrl = `${baseUrl}/c/${cleanCode}`;
+        inv.signupUrl = buildInviteUrl(inv.code, allowed);
+        const baseUrl = getBaseUrlForInvite(allowed);
+        inv.codeSignupUrl = `${baseUrl}/c/${inv.code.trim().replace(/\s+/g, "")}`;
       }
       return inv;
     });

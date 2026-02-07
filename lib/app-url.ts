@@ -41,6 +41,17 @@ export function getSiteUrl(): string {
 }
 
 /**
+ * Base URL for B2B (Dirty Wine). Used for business invitation links.
+ * Production: https://dirtywine.se
+ */
+export function getB2BAppUrl(): string {
+  const explicit = process.env.NEXT_PUBLIC_B2B_APP_URL?.trim();
+  if (explicit) return explicit;
+  if (process.env.NODE_ENV === "production") return "https://dirtywine.se";
+  return "http://localhost:3000";
+}
+
+/**
  * Headers for internal fetch to own API. When Vercel Deployment Protection
  * is enabled, server-side fetches get 401 without the bypass header.
  * See: https://vercel.com/docs/security/deployment-protection/methods-to-bypass-deployment-protection/protection-bypass-automation

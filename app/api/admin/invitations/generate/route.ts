@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentUser } from "@/lib/auth";
 import { MembershipLevel } from "@/lib/membership/points-engine";
-import { getAppUrl } from "@/lib/app-url";
+import { getAppUrl, getB2BAppUrl } from "@/lib/app-url";
 import { getInviteUrl } from "@/lib/invitation-path";
 
 /**
@@ -103,8 +103,9 @@ export async function POST(request: NextRequest) {
         .eq("user_id", user.id);
     }
 
-    // Generate signup URLs
-    const baseUrl = getAppUrl();
+    // Generate signup URLs (business invites use dirtywine.se)
+    const hasBusiness = allowedTypes.includes("business");
+    const baseUrl = hasBusiness ? getB2BAppUrl() : getAppUrl();
     const signupUrl = getInviteUrl(baseUrl, code, allowedTypes);
     const codeSignupUrl = `${baseUrl}/c/${code}`;
 
