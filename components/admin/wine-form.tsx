@@ -36,6 +36,7 @@ import {
   getGrapeVarieties,
   createGrapeVariety,
 } from "@/lib/actions/grape-varieties";
+import { calculateB2BPriceExclVat } from "@/lib/price-breakdown";
 
 interface WineFormProps {
   wine?: Wine;
@@ -487,6 +488,17 @@ export default function WineForm({ wine, producers }: WineFormProps) {
                     Marginal i % för B2B-pris (samma formel som B2C: kostnad +
                     alkoholskatt ÷ (1 − marginal))
                   </p>
+                  {formData.b2b_margin_percentage != null &&
+                  formData.b2b_margin_percentage >= 0 &&
+                  formData.b2b_margin_percentage < 100 &&
+                  (formData.cost_amount ?? 0) > 0 && (
+                    <div className="pt-2 text-sm font-medium text-gray-900">
+                      <div>B2B-pris: {Math.round(calculateB2BPriceExclVat(formData.cost_amount ?? 0, (wine as any)?.exchange_rate ?? 1, 2219, formData.b2b_margin_percentage))} SEK exkl. moms</div>
+                      <div className="text-gray-500 font-normal">
+                        {Math.round(calculateB2BPriceExclVat(formData.cost_amount ?? 0, (wine as any)?.exchange_rate ?? 1, 2219, formData.b2b_margin_percentage) * 1.25)} SEK inkl. moms
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="b2b_stock">B2B-lager (antal)</Label>
