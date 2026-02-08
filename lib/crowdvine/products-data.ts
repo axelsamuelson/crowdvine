@@ -1,7 +1,32 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { getAppUrl } from "@/lib/app-url";
+import { getAppUrl, getInternalFetchHeaders } from "@/lib/app-url";
 import { getAllWineBoxCalculations } from "@/lib/wine-box-calculations";
 import { calculateB2BPriceExclVat } from "@/lib/price-breakdown";
+
+async function fetchExchangeRatesMap(
+  currencies: string[],
+): Promise<Record<string, number>> {
+  const map: Record<string, number> = { SEK: 1 };
+  const toFetch = [...new Set(currencies.filter((c) => c && c !== "SEK"))];
+  if (toFetch.length === 0) return map;
+  const base = getAppUrl();
+  const headers = getInternalFetchHeaders();
+  await Promise.all(
+    toFetch.map(async (c) => {
+      try {
+        const res = await fetch(
+          `${base}/api/exchange-rates?from=${c}&to=SEK`,
+          { cache: "no-store", headers },
+        );
+        const data = res.ok ? await res.json() : null;
+        if (data?.rate && Number.isFinite(data.rate)) map[c] = data.rate;
+      } catch {
+        /* ignore */
+      }
+    }),
+  );
+  return map;
+}
 
 function convertToFullUrl(path: string | null | undefined): string {
   if (!path)
@@ -77,6 +102,7 @@ export async function fetchProductsData(params?: {
       handle,
       base_price_cents,
       cost_amount,
+      cost_currency,
       exchange_rate,
       alcohol_tax_cents,
       b2b_margin_percentage,
@@ -104,7 +130,17 @@ export async function fetchProductsData(params?: {
   const { data, error } = await query.limit(limit);
   if (error) throw error;
 
-  const wineIds = data?.map((wine: any) => wine.id) || [];
+  const rawData = data ?? [];
+  const currencies = [
+    ...new Set(
+      rawData
+        .map((w: any) => w.cost_currency || "EUR")
+        .filter((c: string) => c),
+    ),
+  ] as string[];
+  const rateMap = await fetchExchangeRatesMap(currencies);
+
+  const wineIds = rawData.map((wine: any) => wine.id) || [];
   const wineImagesMap = new Map<string, any[]>();
 
   if (wineIds.length > 0) {
@@ -120,7 +156,7 @@ export async function fetchProductsData(params?: {
     });
   }
 
-  return (data ?? []).map((i: any) => {
+  return rawData.map((i: any) => {
     const grapeVarieties = Array.isArray(i.grape_varieties)
       ? i.grape_varieties
       : i.grape_varieties
@@ -223,7 +259,9 @@ export async function fetchProductsData(params?: {
               Math.round(
                 calculateB2BPriceExclVat(
                   i.cost_amount || 0,
-                  i.exchange_rate || 1,
+                  rateMap[(i.cost_currency || "EUR") as string] ??
+                    i.exchange_rate ??
+                    1,
                   i.alcohol_tax_cents || 0,
                   i.b2b_margin_percentage,
                 ) * 100,
@@ -311,6 +349,7 @@ export async function fetchCollectionProductsData(
       handle,
       base_price_cents,
       cost_amount,
+      cost_currency,
       exchange_rate,
       alcohol_tax_cents,
       b2b_margin_percentage,
@@ -324,6 +363,16 @@ export async function fetchCollectionProductsData(
 
   if (error) throw error;
 
+  const collData = data ?? [];
+  const collCurrencies = [
+    ...new Set(
+      collData
+        .map((w: any) => w.cost_currency || "EUR")
+        .filter((c: string) => c),
+    ),
+  ] as string[];
+  const collRateMap = await fetchExchangeRatesMap(collCurrencies);
+
   const { data: producerData } = await sb
     .from("producers")
     .select("name")
@@ -332,7 +381,7 @@ export async function fetchCollectionProductsData(
 
   const producerName = producerData?.name;
 
-  return (data ?? []).map((i: any) => {
+  return collData.map((i: any) => {
     const grapeVarieties = Array.isArray(i.grape_varieties)
       ? i.grape_varieties
       : i.grape_varieties
@@ -419,7 +468,9 @@ export async function fetchCollectionProductsData(
               Math.round(
                 calculateB2BPriceExclVat(
                   i.cost_amount || 0,
-                  i.exchange_rate || 1,
+                  collRateMap[(i.cost_currency || "EUR") as string] ??
+                    i.exchange_rate ??
+                    1,
                   i.alcohol_tax_cents || 0,
                   i.b2b_margin_percentage,
                 ) * 100,

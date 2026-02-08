@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { getAppUrl } from "@/lib/app-url";
+import { getAppUrl, getInternalFetchHeaders } from "@/lib/app-url";
 import { calculateB2BPriceExclVat } from "@/lib/price-breakdown";
 
 export async function GET(
@@ -168,6 +168,7 @@ export async function GET(
         handle,
         base_price_cents,
         cost_amount,
+        cost_currency,
         exchange_rate,
         alcohol_tax_cents,
         margin_percentage,
@@ -202,6 +203,26 @@ export async function GET(
     .order("sort_order", { ascending: true });
 
   const i = data;
+
+  // Fetch live exchange rate for B2B price when cost is not SEK
+  let exchangeRate = i.exchange_rate || 1;
+  const costCurrency = (i.cost_currency || "EUR") as string;
+  if (costCurrency !== "SEK") {
+    try {
+      const base = getAppUrl();
+      const headers = getInternalFetchHeaders();
+      const res = await fetch(
+        `${base}/api/exchange-rates?from=${costCurrency}&to=SEK`,
+        { cache: "no-store", headers },
+      );
+      const rateData = res.ok ? await res.json() : null;
+      if (rateData?.rate && Number.isFinite(rateData.rate)) {
+        exchangeRate = rateData.rate;
+      }
+    } catch {
+      /* keep DB rate */
+    }
+  }
 
   // Parse grape varieties from string or use array
   const grapeVarieties = Array.isArray(i.grape_varieties)
@@ -352,7 +373,7 @@ export async function GET(
     createdAt: new Date().toISOString(),
     priceBreakdown: {
       costAmount: i.cost_amount || 0,
-      exchangeRate: i.exchange_rate || 1,
+      exchangeRate,
       alcoholTaxCents: i.alcohol_tax_cents || 0,
       marginPercentage: i.margin_percentage || 0,
       b2bMarginPercentage: i.b2b_margin_percentage ?? undefined,
@@ -363,7 +384,7 @@ export async function GET(
           ? Math.round(
               calculateB2BPriceExclVat(
                 i.cost_amount || 0,
-                i.exchange_rate || 1,
+                exchangeRate,
                 i.alcohol_tax_cents || 0,
                 i.b2b_margin_percentage,
               ) * 100,
