@@ -421,7 +421,7 @@ export function AdminWinesContent({
                   <th className="text-left p-3 font-medium text-sm text-gray-600">Price</th>
                   <th className="text-left p-3 font-medium text-sm text-gray-600">B2C %</th>
                   <th className="text-left p-3 font-medium text-sm text-gray-600">B2B %</th>
-                  <th className="text-left p-3 font-medium text-sm text-gray-600">B2B pris (exkl. moms)</th>
+                  <th className="text-left p-3 font-medium text-sm text-gray-600">B2B pris</th>
                   <th className="text-left p-3 font-medium text-sm text-gray-600">Handle</th>
                   <th className="text-left p-3 font-medium text-sm text-gray-600">Actions</th>
                 </tr>
@@ -484,13 +484,21 @@ export function AdminWinesContent({
                         const b2b = (wine as any).b2b_margin_percentage;
                         if (b2b == null || b2b < 0 || b2b >= 100) return "—";
                         try {
-                          const price = calculateB2BPriceExclVat(
+                          const exkl = calculateB2BPriceExclVat(
                             wine.cost_amount || 0,
                             (wine as any).exchange_rate || 1,
                             wine.alcohol_tax_cents || 0,
                             Number(b2b),
                           );
-                          return `${Math.round(price)} SEK`;
+                          const inkl = exkl * 1.25;
+                          return (
+                            <span className="flex flex-col">
+                              <span>{Math.round(exkl)} SEK exkl.</span>
+                              <span className="text-gray-500 font-normal">
+                                {Math.round(inkl)} SEK inkl.
+                              </span>
+                            </span>
+                          );
                         } catch {
                           return "—";
                         }
