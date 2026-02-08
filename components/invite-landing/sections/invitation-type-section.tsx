@@ -103,30 +103,74 @@ export function InvitationTypeSection({
   const canProceedFrom1 = formData.full_name.trim().length > 0;
   const canProceedFrom2 = formData.email.trim().length > 0;
 
+  const isConsumerOnly =
+    allowedTypes.length === 1 && allowedTypes[0] === "consumer";
+
   if (isWelcome) {
     return (
       <section className="relative py-24 px-6">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
+          transition={{
+            duration: 1.2,
+            ease: [0.16, 1, 0.3, 1],
+          }}
           className="max-w-md mx-auto text-center"
         >
-          <div className="flex justify-center mb-6">
+          <motion.div
+            className="flex justify-center mb-6"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{
+              duration: 1,
+              delay: 0.2,
+              ease: [0.16, 1, 0.3, 1],
+            }}
+          >
             <MetallicMembershipCard
               variant={levelKey}
               memberName={displayName}
+              usePactLogo={isConsumerOnly}
             />
-          </div>
-          <h2 className="text-2xl font-semibold text-foreground mb-2">
+          </motion.div>
+          <motion.h2
+            className="text-2xl font-semibold text-foreground mb-2"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              duration: 0.8,
+              delay: 0.5,
+              ease: [0.16, 1, 0.3, 1],
+            }}
+          >
             Welcome, {displayName}
-          </h2>
-          <p className="text-muted-foreground">
+          </motion.h2>
+          <motion.p
+            className="text-muted-foreground"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{
+              duration: 0.8,
+              delay: 0.7,
+              ease: [0.16, 1, 0.3, 1],
+            }}
+          >
             You are now a member of PACT and can access the platform.
-          </p>
-          <Button asChild className="mt-6 bg-black text-white hover:bg-black/90 hover:text-white">
-            <a href="/">Go to platform</a>
-          </Button>
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{
+              duration: 0.6,
+              delay: 1,
+              ease: [0.16, 1, 0.3, 1],
+            }}
+          >
+            <Button asChild className="mt-6 bg-black text-white hover:bg-black/90 hover:text-white">
+              <a href="/">Go to platform</a>
+            </Button>
+          </motion.div>
         </motion.div>
       </section>
     );
@@ -142,17 +186,32 @@ export function InvitationTypeSection({
       >
         <div className="mb-8 text-center">
           {showDirtyWineLogo ? (
-            <div className="mb-4 flex justify-center">
-              <DirtyWineLogo className="max-w-[200px] w-full h-auto" />
-            </div>
+            <>
+              <div className="mb-4 flex justify-center">
+                <DirtyWineLogo className="max-w-[200px] w-full h-auto" />
+              </div>
+              <p className="text-muted-foreground text-sm">
+                {inviterDisplayName} invited you to join. Create your account
+                below.
+              </p>
+            </>
           ) : (
-            <h2 className="text-2xl font-semibold text-foreground mb-2">
-              Sign up to claim membership
-            </h2>
+            <>
+              <h2 className="text-2xl font-semibold text-foreground mb-2">
+                Welcome. You are invited by {inviterDisplayName} to join PACT
+                with a{" "}
+                <span
+                  className={`invitation-level-name invitation-level-${levelKey}`}
+                >
+                  {getLevelInfo(levelKey).name.toUpperCase()}
+                </span>{" "}
+                membership.
+              </h2>
+              <p className="text-muted-foreground text-sm">
+                Sign up to claim your membership
+              </p>
+            </>
           )}
-          <p className="text-muted-foreground text-sm">
-            {inviterDisplayName} invited you to join. Create your account below.
-          </p>
         </div>
 
         {canChangeAccountType && allowedTypes.length > 1 && (
@@ -269,7 +328,7 @@ export function InvitationTypeSection({
               </div>
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full bg-black text-white hover:bg-black/90 hover:text-white"
                 disabled={submitting}
               >
                 {submitting ? "Creating account..." : "Create account"}
