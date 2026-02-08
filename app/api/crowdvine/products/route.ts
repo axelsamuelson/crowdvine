@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { fetchProductsData } from "@/lib/crowdvine/products-data";
+import { isB2BHost } from "@/lib/b2b-site";
 
 export async function GET(request: Request) {
   try {
@@ -10,10 +11,14 @@ export async function GET(request: Request) {
     const sortKey = searchParams.get("sortKey") || "RELEVANCE";
     const reverse = searchParams.get("reverse") === "true";
 
+    const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+    const isB2BSite = isB2BHost(host);
+
     const products = await fetchProductsData({
       limit,
       sortKey: sortKey as "RELEVANCE" | "PRICE" | "CREATED_AT" | "CREATED",
       reverse,
+      isB2BSite,
     });
 
     return NextResponse.json(products);

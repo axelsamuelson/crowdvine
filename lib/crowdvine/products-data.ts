@@ -146,10 +146,13 @@ export async function fetchProductsData(params?: {
   limit?: number;
   sortKey?: string;
   reverse?: boolean;
+  /** When false (pactwines.com), all wines availableForSale. When true (dirtywine.se), B2B stock applies. */
+  isB2BSite?: boolean;
 }): Promise<ProductData[]> {
   const limit = params?.limit ?? 200;
   const sortKey = params?.sortKey || "RELEVANCE";
   const reverse = params?.reverse ?? false;
+  const isB2BSite = params?.isB2BSite ?? true;
 
   const sb = getSupabaseAdmin();
 
@@ -236,8 +239,9 @@ export async function fetchProductsData(params?: {
         : i.b2b_stock != null
           ? Number(i.b2b_stock)
           : null;
-    const availableForSale =
-      b2bStock != null && b2bStock > 0;
+    const availableForSale = isB2BSite
+      ? b2bStock != null && b2bStock > 0
+      : true;
     const images =
       wineImages.length > 0
         ? wineImages.map((img: any) => ({
@@ -352,9 +356,14 @@ export async function fetchProductsData(params?: {
  */
 export async function fetchCollectionProductsData(
   collectionId: string,
-  params?: { limit?: number },
+  params?: {
+    limit?: number;
+    /** When false (pactwines.com), all wines availableForSale. When true (dirtywine.se), B2B stock applies. */
+    isB2BSite?: boolean;
+  },
 ): Promise<ProductData[]> {
   const limit = params?.limit ?? 200;
+  const isB2BSite = params?.isB2BSite ?? true;
 
   if (collectionId === "wine-boxes-collection") {
     const calculations = await getAllWineBoxCalculations();
@@ -475,7 +484,9 @@ export async function fetchCollectionProductsData(
         : i.b2b_stock != null
           ? Number(i.b2b_stock)
           : null;
-    const availableForSale = b2bStock != null && b2bStock > 0;
+    const availableForSale = isB2BSite
+      ? b2bStock != null && b2bStock > 0
+      : true;
 
     return {
       id: i.id,

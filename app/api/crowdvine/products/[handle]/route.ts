@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getAppUrl, getInternalFetchHeaders } from "@/lib/app-url";
 import { calculateB2BPriceExclVat } from "@/lib/price-breakdown";
+import { isB2BHost } from "@/lib/b2b-site";
 
 export async function GET(
-  _: Request,
+  request: Request,
   { params }: { params: Promise<{ handle: string }> },
 ) {
   const sb = getSupabaseAdmin(); // Use admin client to bypass RLS
@@ -345,7 +346,11 @@ export async function GET(
   if (b2bStock == null && i.b2b_stock != null) {
     b2bStock = Number(i.b2b_stock);
   }
-  const availableForSale = b2bStock != null && b2bStock > 0;
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  const isB2BSite = isB2BHost(host);
+  const availableForSale = isB2BSite
+    ? b2bStock != null && b2bStock > 0
+    : true;
 
   const product = {
     id: i.id,

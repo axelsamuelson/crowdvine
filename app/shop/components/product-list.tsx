@@ -11,16 +11,7 @@ import type {
 import { ProductListContent } from "./product-list-content";
 import { mapSortKeys } from "@/lib/shopify/utils";
 import { headers } from "next/headers";
-
-function isB2BHost(host: string | null): boolean {
-  if (!host) return false;
-  const h = host.toLowerCase().split(":")[0];
-  return (
-    h.includes("dirtywine.se") ||
-    (process.env.NEXT_PUBLIC_LOCAL_AS_DIRTYWINE === "1" &&
-      (h === "localhost" || h === "127.0.0.1"))
-  );
-}
+import { isB2BHost } from "@/lib/b2b-site";
 
 function sortProductsByStock(products: Product[], inStockFirst: boolean): Product[] {
   return [...products].sort((a, b) => {
@@ -83,6 +74,7 @@ export default async function ProductList({
             query,
             sortKey: sortKey as ProductCollectionSortKey,
             reverse,
+            host,
           });
           allProducts.push(...producerProducts);
         } catch (error) {
@@ -99,6 +91,7 @@ export default async function ProductList({
         sortKey: sortKey as ProductSortKey,
         query,
         reverse,
+        host,
       });
     } else {
       products = await getCollectionProducts({
@@ -106,6 +99,7 @@ export default async function ProductList({
         query,
         sortKey: sortKey as ProductCollectionSortKey,
         reverse,
+        host,
       });
     }
   } catch (error) {

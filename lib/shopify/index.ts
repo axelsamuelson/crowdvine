@@ -40,12 +40,17 @@ export async function getProducts(params?: {
   sortKey?: string;
   reverse?: boolean;
   query?: string;
+  /** Host for B2B stock logic. When pactwines.com, all wines available. */
+  host?: string | null;
 }): Promise<Product[]> {
   const sortKey = params?.sortKey || "RELEVANCE";
+  const { isB2BHost } = await import("@/lib/b2b-site");
+  const isB2BSite = params?.host != null ? isB2BHost(params.host) : true;
   const data = await fetchProductsData({
     limit: params?.limit,
     sortKey: sortKey as "RELEVANCE" | "PRICE" | "CREATED_AT" | "CREATED",
     reverse: params?.reverse,
+    isB2BSite,
   });
   return data as Product[];
 }
@@ -83,6 +88,8 @@ export async function getCollectionProducts(params: {
   sortKey?: string;
   reverse?: boolean;
   query?: string;
+  /** Host for B2B stock logic. When pactwines.com, all wines available. */
+  host?: string | null;
 }): Promise<Product[]> {
   const collection = await getCollection(params.collection);
   if (!collection) {
@@ -90,8 +97,11 @@ export async function getCollectionProducts(params: {
     return [];
   }
 
+  const { isB2BHost } = await import("@/lib/b2b-site");
+  const isB2BSite = params?.host != null ? isB2BHost(params.host) : true;
   const data = await fetchCollectionProductsData((collection as any).id, {
     limit: params?.limit,
+    isB2BSite,
   });
   return data as Product[];
 }
