@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { COLOR_MAP } from "@/lib/constants";
+import { calculateB2BPriceExclVat } from "@/lib/price-breakdown";
 import { DeleteWineButton } from "@/components/admin/delete-wine-button";
 import type { Wine } from "@/lib/actions/wines";
 import { ChevronDown, X } from "lucide-react";
@@ -420,6 +421,7 @@ export function AdminWinesContent({
                   <th className="text-left p-3 font-medium text-sm text-gray-600">Price</th>
                   <th className="text-left p-3 font-medium text-sm text-gray-600">B2C %</th>
                   <th className="text-left p-3 font-medium text-sm text-gray-600">B2B %</th>
+                  <th className="text-left p-3 font-medium text-sm text-gray-600">B2B pris (exkl. moms)</th>
                   <th className="text-left p-3 font-medium text-sm text-gray-600">Handle</th>
                   <th className="text-left p-3 font-medium text-sm text-gray-600">Actions</th>
                 </tr>
@@ -476,6 +478,23 @@ export function AdminWinesContent({
                       {(wine as any).b2b_margin_percentage != null
                         ? `${Number((wine as any).b2b_margin_percentage).toFixed(1)}%`
                         : "—"}
+                    </td>
+                    <td className="p-3 text-sm font-medium text-gray-900">
+                      {(() => {
+                        const b2b = (wine as any).b2b_margin_percentage;
+                        if (b2b == null || b2b < 0 || b2b >= 100) return "—";
+                        try {
+                          const price = calculateB2BPriceExclVat(
+                            wine.cost_amount || 0,
+                            (wine as any).exchange_rate || 1,
+                            wine.alcohol_tax_cents || 0,
+                            Number(b2b),
+                          );
+                          return `${Math.round(price)} SEK`;
+                        } catch {
+                          return "—";
+                        }
+                      })()}
                     </td>
                     <td className="p-3 text-sm text-gray-500 font-mono">{wine.handle}</td>
                     <td className="p-3">

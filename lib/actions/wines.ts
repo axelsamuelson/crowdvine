@@ -83,6 +83,7 @@ const WINES_SELECT_FULL = `
   producer_id,
   cost_currency,
   cost_amount,
+  exchange_rate,
   alcohol_tax_cents,
   price_includes_vat,
   margin_percentage,
