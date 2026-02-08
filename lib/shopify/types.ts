@@ -164,6 +164,8 @@ export type Product = {
   };
   /** B2B price exkl moms when b2b_margin_percentage is set (from list API) */
   b2bPriceExclVat?: number;
+  /** B2B stock quantity (wines). Null/0 = out of stock. Used for stock badges. */
+  b2bStock?: number | null;
 };
 
 export type ProductSortKey =

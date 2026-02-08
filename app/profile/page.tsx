@@ -194,7 +194,10 @@ function ProfilePageContent() {
     const onProductionB2B = host.includes("dirtywine.se");
     const onLocalhost = host === "localhost" || host === "127.0.0.1";
     const forceB2B = searchParams.get("b2b") === "1";
-    setIsB2B(onProductionB2B || (onLocalhost && forceB2B));
+    const localAsDirtywine = process.env.NEXT_PUBLIC_LOCAL_AS_DIRTYWINE === "1";
+    setIsB2B(
+      onProductionB2B || (onLocalhost && (forceB2B || localAsDirtywine)),
+    );
   }, [searchParams]);
 
   useEffect(() => {

@@ -1,17 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSiteContentByKey } from "@/lib/actions/content";
-
-function resolveLogoKeyByHost(baseKey: string, host: string | null): string {
-  if (!host) return baseKey;
-  const h = host.toLowerCase().split(":")[0];
-  // dirtywine.se = B2B (Dirty Wine). pactwines.com + localhost = PACT (B2C). localhost + ?b2b=1 = Dirty Wine (handled elsewhere)
-  const isB2B = h.includes("dirtywine.se");
-  const isPACT = h.includes("pactwines.com") || h === "localhost" || h === "127.0.0.1";
-  const suffix = isB2B ? "_dirtywine" : isPACT ? "_pact" : null;
-  if (!suffix) return baseKey;
-  const suffixKeys = ["header_logo", "footer_logo", "alternative_logo"];
-  return suffixKeys.includes(baseKey) ? `${baseKey}${suffix}` : baseKey;
-}
+import { resolveLogoKeyByHost } from "@/lib/content-logo-utils";
 
 export async function GET(
   request: NextRequest,

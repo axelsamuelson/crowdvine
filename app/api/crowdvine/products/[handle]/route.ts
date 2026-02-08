@@ -173,6 +173,7 @@ export async function GET(
         alcohol_tax_cents,
         margin_percentage,
         b2b_margin_percentage,
+        b2b_stock,
         label_image_path,
         producer_id,
         description,
@@ -287,6 +288,9 @@ export async function GET(
 
   const wineDescriptionHtml = i.description_html || `<p>${wineDescription}</p>`;
 
+  const b2bStock = i.b2b_stock != null ? Number(i.b2b_stock) : null;
+  const availableForSale = b2bStock != null && b2bStock > 0;
+
   const product = {
     id: i.id,
     title: `${i.wine_name} ${i.vintage}`,
@@ -325,7 +329,7 @@ export async function GET(
       {
         id: `${i.id}-default`,
         title: "750 ml",
-        availableForSale: true,
+        availableForSale,
         price: {
           amount: Math.ceil(i.base_price_cents / 100).toString(),
           currencyCode: "SEK",
@@ -367,10 +371,11 @@ export async function GET(
       // Add color as tag
       ...(colorName ? [colorName] : []),
     ],
-    availableForSale: true,
+    availableForSale,
     currencyCode: "SEK",
     updatedAt: new Date().toISOString(),
     createdAt: new Date().toISOString(),
+    b2bStock: b2bStock ?? undefined,
     priceBreakdown: {
       costAmount: i.cost_amount || 0,
       exchangeRate,

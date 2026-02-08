@@ -11,7 +11,10 @@ export function resolveLogoKeyByHost(
   if (!host) return baseKey;
 
   const h = host.toLowerCase().split(":")[0];
-  const isB2B = h.includes("dirtywine.se");
+  const localAsDirtywine = process.env.NEXT_PUBLIC_LOCAL_AS_DIRTYWINE === "1";
+  const isB2B =
+    h.includes("dirtywine.se") ||
+    (localAsDirtywine && (h === "localhost" || h === "127.0.0.1"));
   const isPACT = h.includes("pactwines.com") || h === "localhost" || h === "127.0.0.1";
 
   const suffix = isB2B ? "_dirtywine" : isPACT ? "_pact" : null;

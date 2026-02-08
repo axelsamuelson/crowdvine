@@ -10,6 +10,28 @@ import type {
 } from "@/lib/shopify/types";
 import { ProductListContent } from "./product-list-content";
 import { mapSortKeys } from "@/lib/shopify/utils";
+import { headers } from "next/headers";
+
+function isB2BHost(host: string | null): boolean {
+  if (!host) return false;
+  const h = host.toLowerCase().split(":")[0];
+  return (
+    h.includes("dirtywine.se") ||
+    (process.env.NEXT_PUBLIC_LOCAL_AS_DIRTYWINE === "1" &&
+      (h === "localhost" || h === "127.0.0.1"))
+  );
+}
+
+function sortProductsByStock(products: Product[], inStockFirst: boolean): Product[] {
+  return [...products].sort((a, b) => {
+    const stockA = (a as any).b2bStock ?? null;
+    const stockB = (b as any).b2bStock ?? null;
+    const aInStock = stockA != null && stockA > 0;
+    const bInStock = stockB != null && stockB > 0;
+    if (aInStock === bInStock) return 0;
+    return inStockFirst ? (aInStock ? -1 : 1) : (bInStock ? -1 : 1);
+  });
+}
 
 interface ProductListProps {
   collection: string;
@@ -24,10 +46,13 @@ export default async function ProductList({
     typeof (await searchParams)?.q === "string"
       ? (await searchParams).q
       : undefined;
-  const sort =
+  let sort =
     typeof (await searchParams)?.sort === "string"
       ? (await searchParams).sort
       : undefined;
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  if (isB2BHost(host) && !sort) sort = "in-stock";
   const producers =
     typeof (await searchParams)?.producers === "string"
       ? (await searchParams).producers.split(",").filter(Boolean)
@@ -38,9 +63,11 @@ export default async function ProductList({
     collection === "frontpage" ||
     !collection;
 
+  const isStockSort = sort === "in-stock" || sort === "out-of-stock";
+  const effectiveSort = isStockSort ? undefined : sort;
   const { sortKey, reverse } = isRootCollection
-    ? mapSortKeys(sort, "product")
-    : mapSortKeys(sort, "collection");
+    ? mapSortKeys(effectiveSort, "product")
+    : mapSortKeys(effectiveSort, "collection");
 
   let products: Product[] = [];
 
@@ -84,6 +111,13 @@ export default async function ProductList({
   } catch (error) {
     console.error("Error fetching products:", error);
     products = [];
+  }
+
+  if (isStockSort) {
+    products = sortProductsByStock(
+      products,
+      sort === "in-stock",
+    );
   }
 
   let collections: Awaited<ReturnType<typeof getCollections>> = [];

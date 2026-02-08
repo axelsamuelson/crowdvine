@@ -76,6 +76,8 @@ export interface ProductData {
   createdAt: string;
   /** B2B price exkl moms when b2b_margin_percentage is set */
   b2bPriceExclVat?: number;
+  /** B2B stock quantity (wines only). Null/0 = out of stock. Used for stock badges. */
+  b2bStock?: number | null;
 }
 
 /**
@@ -106,6 +108,7 @@ export async function fetchProductsData(params?: {
       exchange_rate,
       alcohol_tax_cents,
       b2b_margin_percentage,
+      b2b_stock,
       label_image_path,
       producer_id,
       description,
@@ -165,6 +168,9 @@ export async function fetchProductsData(params?: {
     const colorName = i.color_name || i.color;
 
     const wineImages = wineImagesMap.get(i.id) || [];
+    const b2bStock = i.b2b_stock != null ? Number(i.b2b_stock) : null;
+    const availableForSale =
+      b2bStock != null && b2bStock > 0;
     const images =
       wineImages.length > 0
         ? wineImages.map((img: any) => ({
@@ -219,7 +225,7 @@ export async function fetchProductsData(params?: {
         {
           id: `${i.id}-default`,
           title: "750 ml",
-          availableForSale: true,
+          availableForSale,
           price: { amount: Math.ceil(i.base_price_cents / 100).toString(), currencyCode: "SEK" },
           selectedOptions: [
             ...grapeVarieties.map((g: string) => ({ name: "Grape Varieties", value: g })),
@@ -247,10 +253,11 @@ export async function fetchProductsData(params?: {
       images,
       seo: { title: i.wine_name, description: "" },
       tags: [...grapeVarieties, ...(colorName ? [colorName] : [])],
-      availableForSale: true,
+      availableForSale,
       currencyCode: "SEK",
       updatedAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
+      b2bStock: b2bStock ?? undefined,
       ...(i.b2b_margin_percentage != null &&
       i.b2b_margin_percentage >= 0 &&
       i.b2b_margin_percentage < 100
@@ -353,6 +360,7 @@ export async function fetchCollectionProductsData(
       exchange_rate,
       alcohol_tax_cents,
       b2b_margin_percentage,
+      b2b_stock,
       label_image_path,
       producer_id,
       producers(name)
@@ -388,6 +396,8 @@ export async function fetchCollectionProductsData(
         ? i.grape_varieties.split(",").map((g: string) => g.trim())
         : [];
     const colorName = i.color;
+    const b2bStock = i.b2b_stock != null ? Number(i.b2b_stock) : null;
+    const availableForSale = b2bStock != null && b2bStock > 0;
 
     return {
       id: i.id,
@@ -420,7 +430,7 @@ export async function fetchCollectionProductsData(
         {
           id: `${i.id}-default`,
           title: "750 ml",
-          availableForSale: true,
+          availableForSale,
           price: { amount: Math.ceil(i.base_price_cents / 100).toString(), currencyCode: "SEK" },
           selectedOptions: [
             ...grapeVarieties.map((g: string) => ({ name: "Grape Varieties", value: g })),
@@ -456,10 +466,11 @@ export async function fetchCollectionProductsData(
       ],
       seo: { title: i.wine_name, description: "" },
       tags: [...grapeVarieties, ...(colorName ? [colorName] : [])],
-      availableForSale: true,
+      availableForSale,
       currencyCode: "SEK",
       updatedAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
+      b2bStock: b2bStock ?? undefined,
       ...(i.b2b_margin_percentage != null &&
       i.b2b_margin_percentage >= 0 &&
       i.b2b_margin_percentage < 100

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getWines } from "@/lib/actions/wines";
 import { Button } from "@/components/ui/button";
-import { Upload } from "lucide-react";
+import { Upload, Settings } from "lucide-react";
 import { AdminWinesContent } from "./admin-wines-content";
 import { getAppUrl, getInternalFetchHeaders } from "@/lib/app-url";
 
@@ -81,6 +81,12 @@ export default async function WinesPage() {
           <p className="text-gray-600">Manage wine products</p>
         </div>
         <div className="flex gap-3">
+          <Link href="/admin/wines/settings">
+            <Button variant="outline" className="bg-gray-50 hover:bg-gray-100">
+              <Settings className="w-4 h-4 mr-2" />
+              Settings
+            </Button>
+          </Link>
           <Link href="/admin/bulk-upload">
             <Button variant="outline" className="bg-gray-50 hover:bg-gray-100">
               <Upload className="w-4 h-4 mr-2" />
@@ -99,7 +105,6 @@ export default async function WinesPage() {
         isMixed={isMixed}
         initialB2BMargin={initialB2BMargin}
         isB2BMixed={isB2BMixed}
-        exchangeRates={exchangeRates}
       />
     </div>
   );

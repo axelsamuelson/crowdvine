@@ -11,7 +11,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { COLOR_MAP } from "@/lib/constants";
-import { calculateB2BPriceExclVat } from "@/lib/price-breakdown";
 import { DeleteWineButton } from "@/components/admin/delete-wine-button";
 import type { Wine } from "@/lib/actions/wines";
 import { ChevronDown, X } from "lucide-react";
@@ -46,14 +45,12 @@ export function AdminWinesContent({
   isMixed,
   initialB2BMargin,
   isB2BMixed,
-  exchangeRates = {},
 }: {
   wines: Wine[];
   initialMargin: number | null;
   isMixed: boolean;
   initialB2BMargin: number | null;
   isB2BMixed: boolean;
-  exchangeRates?: Record<string, number>;
 }) {
   const [ap, setAp] = useQueryState("ap", parseAsArrayOf(parseAsString).withDefault([]));
   const [ac, setAc] = useQueryState("ac", parseAsArrayOf(parseAsString).withDefault([]));
@@ -421,10 +418,6 @@ export function AdminWinesContent({
                   <th className="text-left p-3 font-medium text-sm text-gray-600">Producer</th>
                   <th className="text-left p-3 font-medium text-sm text-gray-600">Color</th>
                   <th className="text-left p-3 font-medium text-sm text-gray-600">Price</th>
-                  <th className="text-left p-3 font-medium text-sm text-gray-600">B2C %</th>
-                  <th className="text-left p-3 font-medium text-sm text-gray-600">B2B %</th>
-                  <th className="text-left p-3 font-medium text-sm text-gray-600">B2B pris</th>
-                  <th className="text-left p-3 font-medium text-sm text-gray-600">Handle</th>
                   <th className="text-left p-3 font-medium text-sm text-gray-600">Actions</th>
                 </tr>
               </thead>
@@ -469,49 +462,6 @@ export function AdminWinesContent({
                     <td className="p-3 font-medium text-gray-900">
                       {Math.ceil(wine.base_price_cents / 100)} SEK
                     </td>
-                    <td className="p-3 text-sm text-gray-900">
-                      {typeof wine.margin_percentage === "number" 
-                        ? `${wine.margin_percentage.toFixed(1)}%`
-                        : wine.margin_percentage 
-                          ? `${Number(wine.margin_percentage).toFixed(1)}%`
-                          : "—"}
-                    </td>
-                    <td className="p-3 text-sm text-gray-500">
-                      {(wine as any).b2b_margin_percentage != null
-                        ? `${Number((wine as any).b2b_margin_percentage).toFixed(1)}%`
-                        : "—"}
-                    </td>
-                    <td className="p-3 text-sm font-medium text-gray-900">
-                      {(() => {
-                        const b2b = (wine as any).b2b_margin_percentage;
-                        if (b2b == null || b2b < 0 || b2b >= 100) return "—";
-                        try {
-                          const currency = (wine as any).cost_currency || "EUR";
-                          const rate =
-                            exchangeRates[currency] ??
-                            (wine as any).exchange_rate ??
-                            1;
-                          const exkl = calculateB2BPriceExclVat(
-                            wine.cost_amount || 0,
-                            rate,
-                            wine.alcohol_tax_cents || 0,
-                            Number(b2b),
-                          );
-                          const inkl = exkl * 1.25;
-                          return (
-                            <span className="flex flex-col">
-                              <span>{Math.round(exkl)} SEK exkl.</span>
-                              <span className="text-gray-500 font-normal">
-                                {Math.round(inkl)} SEK inkl.
-                              </span>
-                            </span>
-                          );
-                        } catch {
-                          return "—";
-                        }
-                      })()}
-                    </td>
-                    <td className="p-3 text-sm text-gray-500 font-mono">{wine.handle}</td>
                     <td className="p-3">
                       <div className="flex gap-2">
                         <Link href={`/admin/wines/${wine.id}`}>

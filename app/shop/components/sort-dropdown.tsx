@@ -13,20 +13,27 @@ import {
 import { Button } from "@/components/ui/button";
 import { useQueryState, parseAsString } from "nuqs";
 import { cn } from "@/lib/utils";
-import { sortOptions } from "@/lib/shopify/constants";
+import { sortOptions, stockSortOptions } from "@/lib/shopify/constants";
+import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 
 interface SortDropdownProps {
   className?: string;
 }
 
 export function SortDropdown({ className }: SortDropdownProps) {
+  const isB2B = useB2BPriceMode();
   const [sort, setSort] = useQueryState(
     "sort",
     parseAsString.withOptions({ shallow: false }),
   );
 
+  const displayValue = sort ?? (isB2B ? "in-stock" : undefined);
+  const allOptions = isB2B
+    ? [...stockSortOptions, ...sortOptions]
+    : sortOptions;
+
   return (
-    <Select value={sort ?? undefined} onValueChange={setSort}>
+    <Select value={displayValue ?? undefined} onValueChange={setSort}>
       <SelectTrigger
         size="sm"
         className={cn(
@@ -51,7 +58,7 @@ export function SortDropdown({ className }: SortDropdownProps) {
             </Button>
           </div>
           <SelectSeparator />
-          {sortOptions.map((option) => (
+          {allOptions.map((option) => (
             <SelectItem key={option.value} value={option.value}>
               {option.label}
             </SelectItem>

@@ -45,11 +45,6 @@ export const BrowseProductCard = memo(
           </div>
         )}
 
-        {/* Stock Badge - business invite only */}
-        <div className="absolute top-2 right-2 z-10">
-          <StockBadge availableForSale={product.availableForSale} />
-        </div>
-
         {onProductClick ? (
           <button
             type="button"
@@ -82,6 +77,11 @@ export const BrowseProductCard = memo(
                   {product.producerName}
                 </p>
               )}
+              <StockBadge
+                b2bStock={(product as any).b2bStock}
+                availableForSale={product.availableForSale}
+                className="mt-0.5"
+              />
             </div>
             <div className="flex gap-2 items-center text-xs md:text-sm uppercase 2xl:text-base">
               <MemberPrice

@@ -182,17 +182,19 @@ export default async function ProductPage(props: {
               <div className="flex flex-col grid-cols-2 px-3 py-2 rounded-md bg-popover md:grid md:gap-x-4 md:gap-y-10 place-items-baseline">
                 {/* Row 1, Col 1: Title + Producer */}
                 <div className="md:col-start-1 md:row-start-1">
-                  <div className="flex flex-wrap items-center gap-2 max-md:mb-1">
-                    <h1 className="text-lg font-semibold lg:text-xl 2xl:text-2xl text-balance">
-                      {product.title}
-                    </h1>
-                    <StockBadge availableForSale={product.availableForSale} />
-                  </div>
+                  <h1 className="text-lg font-semibold lg:text-xl 2xl:text-2xl text-balance max-md:mb-1">
+                    {product.title}
+                  </h1>
                   {product.producerName && (
                     <p className="text-sm text-muted-foreground mb-2">
                       {product.producerName}
                     </p>
                   )}
+                  <StockBadge
+                    b2bStock={product.b2bStock}
+                    availableForSale={product.availableForSale}
+                    className="mt-0.5"
+                  />
                 </div>
 
                 {/* Row 1, Col 2: Description */}
