@@ -26,7 +26,18 @@ export function InviteWinesSection() {
     if (!code) return;
     fetch(`/api/crowdvine/products?limit=100`)
       .then((res) => (res.ok ? res.json() : []))
-      .then((list: Product[]) => setProducts(Array.isArray(list) ? list : []))
+      .then((list: Product[]) => {
+        const arr = Array.isArray(list) ? list : [];
+        arr.sort((a, b) => {
+          const stockA = (a as any).b2bStock ?? null;
+          const stockB = (b as any).b2bStock ?? null;
+          const aInStock = stockA != null && stockA > 0;
+          const bInStock = stockB != null && stockB > 0;
+          if (aInStock === bInStock) return 0;
+          return aInStock ? -1 : 1;
+        });
+        setProducts(arr);
+      })
       .catch(() => setProducts([]))
       .finally(() => setLoading(false));
   }, [code]);
