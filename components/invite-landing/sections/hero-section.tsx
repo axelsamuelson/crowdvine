@@ -125,7 +125,7 @@ export function HeroSection({
           <DirtyWineLogo className="max-w-[280px] md:max-w-[360px] w-full h-auto" />
         ) : (
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif text-center text-foreground mix-blend-difference">
-            Sign up to claim membership.
+            You are invited.
           </h1>
         )}
       </motion.div>

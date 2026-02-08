@@ -176,7 +176,7 @@ export function InvitationTypeSection({
 
         {allowedTypes.length === 1 && allowedTypes[0] === "consumer" && (
           <div className="mb-6 flex justify-center">
-            <MetallicMembershipCard variant={levelKey} />
+            <MetallicMembershipCard variant={levelKey} usePactLogo />
           </div>
         )}
 

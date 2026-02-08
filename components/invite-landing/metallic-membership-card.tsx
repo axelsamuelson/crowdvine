@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import type { MembershipLevel } from "@/lib/membership/points-engine";
 import { INVITE_QUOTAS } from "@/lib/membership/points-engine";
 import { LogoSvg } from "@/components/layout/header/logo-svg";
+import { PactLogo } from "./pact-logo";
 
 const MEMBERSHIP_LEVELS: Exclude<MembershipLevel, "requester" | "admin">[] = [
   "basic",
@@ -43,9 +44,15 @@ interface MetallicMembershipCardProps {
   variant: Exclude<MembershipLevel, "requester" | "admin">;
   /** When set, shows member name with engraving animation. */
   memberName?: string | null;
+  /** When true, use PACT logo instead of host-based logo. For consumer invitations. */
+  usePactLogo?: boolean;
 }
 
-export function MetallicMembershipCard({ variant, memberName }: MetallicMembershipCardProps) {
+export function MetallicMembershipCard({
+  variant,
+  memberName,
+  usePactLogo = false,
+}: MetallicMembershipCardProps) {
   const config = MEMBERSHIP_CONFIG[variant];
   const quota = INVITE_QUOTAS[variant];
   const showEngravedName = !!memberName?.trim();
@@ -66,7 +73,11 @@ export function MetallicMembershipCard({ variant, memberName }: MetallicMembersh
         <div className="membership-card-content">
           <div className="membership-card-content-top">
             <div className="membership-card-logo-wrapper">
-              <LogoSvg className="membership-card-logo h-8 w-auto" />
+              {usePactLogo ? (
+                <PactLogo className="membership-card-logo h-8 w-auto" />
+              ) : (
+                <LogoSvg className="membership-card-logo h-8 w-auto" />
+              )}
             </div>
             <div className="membership-card-scrollbar-glass">{config.name}</div>
             {showEngravedName && (
