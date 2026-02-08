@@ -9,11 +9,15 @@ import {
 } from "@/lib/shopify";
 import { getLabelPosition } from "../lib/utils";
 import { Product } from "../lib/shopify/types";
+import { headers } from "next/headers";
 
 // Disable static generation for now - make it dynamic
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+
   let collections = [];
   try {
     collections = await getCollections();
@@ -31,16 +35,17 @@ export default async function Home() {
         limit: 5,
         sortKey: "CREATED_AT",
         reverse: true,
+        host,
       });
     } else {
-      const allProducts = await getProducts({});
+      const allProducts = await getProducts({ host });
       featuredProducts = allProducts.slice(0, 8);
     }
   } catch (error) {
     console.error("Error fetching featured products:", error);
     // Fallback to all products if collection products fail
     try {
-      const allProducts = await getProducts({});
+      const allProducts = await getProducts({ host });
       featuredProducts = allProducts.slice(0, 8);
     } catch (fallbackError) {
       console.error("Error fetching fallback products:", fallbackError);
