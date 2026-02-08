@@ -3,9 +3,44 @@ import { getWines } from "@/lib/actions/wines";
 import { Button } from "@/components/ui/button";
 import { Upload } from "lucide-react";
 import { AdminWinesContent } from "./admin-wines-content";
+import { getAppUrl, getInternalFetchHeaders } from "@/lib/app-url";
+
+async function fetchExchangeRates(
+  currencies: string[],
+): Promise<Record<string, number>> {
+  const map: Record<string, number> = { SEK: 1 };
+  const toFetch = currencies.filter((c) => c !== "SEK");
+  if (toFetch.length === 0) return map;
+  const base = getAppUrl();
+  const headers = getInternalFetchHeaders();
+  await Promise.all(
+    toFetch.map(async (c) => {
+      try {
+        const res = await fetch(
+          `${base}/api/exchange-rates?from=${c}&to=SEK`,
+          { cache: "no-store", headers },
+        );
+        const data = res.ok ? await res.json() : null;
+        if (data?.rate && Number.isFinite(data.rate)) map[c] = data.rate;
+      } catch {
+        /* ignore */
+      }
+    }),
+  );
+  return map;
+}
 
 export default async function WinesPage() {
   const wines = await getWines();
+
+  const currencies = [
+    ...new Set(
+      wines
+        .map((w: any) => w.cost_currency || "EUR")
+        .filter((c: string) => c),
+    ),
+  ] as string[];
+  const exchangeRates = await fetchExchangeRates(currencies);
 
   const margins = wines
     .map((w) => (w as any).margin_percentage)
@@ -64,6 +99,7 @@ export default async function WinesPage() {
         isMixed={isMixed}
         initialB2BMargin={initialB2BMargin}
         isB2BMixed={isB2BMixed}
+        exchangeRates={exchangeRates}
       />
     </div>
   );

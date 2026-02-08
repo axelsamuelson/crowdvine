@@ -46,12 +46,14 @@ export function AdminWinesContent({
   isMixed,
   initialB2BMargin,
   isB2BMixed,
+  exchangeRates = {},
 }: {
   wines: Wine[];
   initialMargin: number | null;
   isMixed: boolean;
   initialB2BMargin: number | null;
   isB2BMixed: boolean;
+  exchangeRates?: Record<string, number>;
 }) {
   const [ap, setAp] = useQueryState("ap", parseAsArrayOf(parseAsString).withDefault([]));
   const [ac, setAc] = useQueryState("ac", parseAsArrayOf(parseAsString).withDefault([]));
@@ -484,9 +486,14 @@ export function AdminWinesContent({
                         const b2b = (wine as any).b2b_margin_percentage;
                         if (b2b == null || b2b < 0 || b2b >= 100) return "—";
                         try {
+                          const currency = (wine as any).cost_currency || "EUR";
+                          const rate =
+                            exchangeRates[currency] ??
+                            (wine as any).exchange_rate ??
+                            1;
                           const exkl = calculateB2BPriceExclVat(
                             wine.cost_amount || 0,
-                            (wine as any).exchange_rate || 1,
+                            rate,
                             wine.alcohol_tax_cents || 0,
                             Number(b2b),
                           );

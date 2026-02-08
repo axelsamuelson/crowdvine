@@ -79,7 +79,29 @@ export default function WineForm({ wine, producers }: WineFormProps) {
   const [selectedGrapeVarietyIds, setSelectedGrapeVarietyIds] = useState<
     string[]
   >([]);
+  const [exchangeRate, setExchangeRate] = useState<number>(1);
   const router = useRouter();
+
+  // Fetch exchange rate for B2B price calculation when cost is not SEK
+  useEffect(() => {
+    const currency = formData.cost_currency || wine?.cost_currency || "EUR";
+    if (currency === "SEK") {
+      setExchangeRate(1);
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/exchange-rates?from=${currency}&to=SEK`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { rate?: number } | null) => {
+        if (!cancelled && data?.rate && Number.isFinite(data.rate)) {
+          setExchangeRate(data.rate);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [formData.cost_currency, wine?.cost_currency]);
 
   // Keep form in sync with the latest server value when reopening / navigating
   useEffect(() => {
@@ -493,9 +515,9 @@ export default function WineForm({ wine, producers }: WineFormProps) {
                   formData.b2b_margin_percentage < 100 &&
                   (formData.cost_amount ?? 0) > 0 && (
                     <div className="pt-2 text-sm font-medium text-gray-900">
-                      <div>B2B-pris: {Math.round(calculateB2BPriceExclVat(formData.cost_amount ?? 0, (wine as any)?.exchange_rate ?? 1, 2219, formData.b2b_margin_percentage))} SEK exkl. moms</div>
+                      <div>B2B-pris: {Math.round(calculateB2BPriceExclVat(formData.cost_amount ?? 0, exchangeRate, 2219, formData.b2b_margin_percentage))} SEK exkl. moms</div>
                       <div className="text-gray-500 font-normal">
-                        {Math.round(calculateB2BPriceExclVat(formData.cost_amount ?? 0, (wine as any)?.exchange_rate ?? 1, 2219, formData.b2b_margin_percentage) * 1.25)} SEK inkl. moms
+                        {Math.round(calculateB2BPriceExclVat(formData.cost_amount ?? 0, exchangeRate, 2219, formData.b2b_margin_percentage) * 1.25)} SEK inkl. moms
                       </div>
                     </div>
                   )}
