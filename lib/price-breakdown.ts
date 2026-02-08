@@ -6,14 +6,18 @@ export interface WinePricingData {
   base_price_cents: number;
 }
 
-/** B2B price exkl moms: costInSek / (1 - b2b_margin/100) */
+/** B2B price exkl moms: (costInSek + shippingPerBottleSek) / (1 - b2b_margin/100) */
 export function calculateB2BPriceExclVat(
   costAmount: number,
   exchangeRate: number,
   alcoholTaxCents: number,
   b2bMarginPercentage: number,
+  shippingPerBottleSek: number = 0,
 ): number {
-  const costInSek = costAmount * exchangeRate + alcoholTaxCents / 100;
+  const costInSek =
+    costAmount * exchangeRate +
+    alcoholTaxCents / 100 +
+    shippingPerBottleSek;
   return costInSek / (1 - b2bMarginPercentage / 100);
 }
 

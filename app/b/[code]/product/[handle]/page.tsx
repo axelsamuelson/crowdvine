@@ -104,7 +104,7 @@ export default function InviteProductPage() {
 
   return (
     <PageLayout>
-      <div className="max-w-4xl mx-auto px-sides py-8 md:py-12">
+      <div className="max-w-6xl mx-auto px-sides py-8 md:py-12">
         <Link
           href={inviteBasePath}
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
@@ -131,7 +131,7 @@ export default function InviteProductPage() {
               className="mb-4"
             />
 
-            <div className="flex items-baseline gap-3 mb-6">
+            <div className="flex items-baseline gap-3 mb-4">
               <MemberPrice
                 amount={product.priceRange.minVariantPrice.amount}
                 currencyCode={product.priceRange.minVariantPrice.currencyCode}
@@ -143,6 +143,24 @@ export default function InviteProductPage() {
                 }
               />
             </div>
+            {showExclVat &&
+              product.priceBreakdown?.b2bPriceExclVat != null &&
+              product.priceBreakdown && (
+                <div className="text-xs text-muted-foreground mb-6 space-y-1">
+                  <div>
+                    B2B-pris inkl. kostnad + alkoholskatt + frakt + marginal
+                  </div>
+                  {(product.priceBreakdown.b2bShippingPerBottleSek ?? 0) > 0 && (
+                    <div>
+                      Frakt per flaska:{" "}
+                      {(
+                        product.priceBreakdown.b2bShippingPerBottleSek ?? 0
+                      ).toFixed(2)}{" "}
+                      kr
+                    </div>
+                  )}
+                </div>
+              )}
 
             {(product.descriptionHtml || product.description) && (
               <div className="text-muted-foreground text-sm mb-8">

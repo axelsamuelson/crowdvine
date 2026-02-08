@@ -1,6 +1,7 @@
 "use server";
 
 import { supabaseServer } from "@/lib/supabase-server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { revalidatePath } from "next/cache";
 import { calculateSystembolagetPrice } from "@/lib/systembolaget-pricing";
 import { getAppUrl } from "@/lib/app-url";
@@ -328,7 +329,7 @@ export async function createWine(data: CreateWineData) {
 }
 
 export async function updateWine(id: string, data: Partial<CreateWineData>) {
-  const sb = await supabaseServer();
+  const sb = getSupabaseAdmin();
 
   // Build update data object, excluding undefined values
   const updateData: any = {};

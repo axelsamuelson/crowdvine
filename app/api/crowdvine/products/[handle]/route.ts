@@ -288,7 +288,63 @@ export async function GET(
 
   const wineDescriptionHtml = i.description_html || `<p>${wineDescription}</p>`;
 
-  const b2bStock = i.b2b_stock != null ? Number(i.b2b_stock) : null;
+  // B2B stock and shipping: from Dirty Wine pallets
+  let b2bStock: number | null = null;
+  let shippingPerBottleSek = 0;
+  try {
+    const { data: palletItems, error } = await sb
+      .from("b2b_pallet_shipment_items")
+      .select("quantity, quantity_sold, shipment_id, b2b_pallet_shipments!inner(cost_cents)")
+      .eq("wine_id", wineIdData.id);
+    if (error) throw error;
+    if (palletItems && palletItems.length > 0) {
+      const shipmentIds = [...new Set((palletItems as any[]).map((r: any) => r.shipment_id).filter(Boolean))];
+      let totalBottlesByShipment = new Map<string, number>();
+      if (shipmentIds.length > 0) {
+        const { data: allItems } = await sb
+          .from("b2b_pallet_shipment_items")
+          .select("shipment_id, quantity")
+          .in("shipment_id", shipmentIds);
+        (allItems || []).forEach((row: any) => {
+          const sid = row.shipment_id;
+          totalBottlesByShipment.set(sid, (totalBottlesByShipment.get(sid) ?? 0) + (row.quantity ?? 0));
+        });
+      }
+      let totalRemaining = 0;
+      let weightedShippingSum = 0;
+      (palletItems as any[]).forEach((row: any) => {
+        const remaining = Math.max(0, (row.quantity ?? 0) - (row.quantity_sold ?? 0));
+        totalRemaining += remaining;
+        b2bStock = (b2bStock ?? 0) + remaining;
+        const costCents = row.b2b_pallet_shipments?.cost_cents ?? 0;
+        const totalBottles = totalBottlesByShipment.get(row.shipment_id) ?? 1;
+        const shippingPerBottle = totalBottles > 0 ? costCents / 100 / totalBottles : 0;
+        weightedShippingSum += shippingPerBottle * remaining;
+      });
+      if (totalRemaining > 0) {
+        shippingPerBottleSek = weightedShippingSum / totalRemaining;
+      }
+    }
+  } catch {
+    /* cost_cents or b2b_pallet_shipments may not exist - fallback to stock only */
+    try {
+      const { data: fallback } = await sb
+        .from("b2b_pallet_shipment_items")
+        .select("quantity, quantity_sold")
+        .eq("wine_id", wineIdData.id);
+      if (fallback?.length) {
+        b2bStock = (fallback as any[]).reduce(
+          (s, r) => s + Math.max(0, (r.quantity ?? 0) - (r.quantity_sold ?? 0)),
+          0,
+        );
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  if (b2bStock == null && i.b2b_stock != null) {
+    b2bStock = Number(i.b2b_stock);
+  }
   const availableForSale = b2bStock != null && b2bStock > 0;
 
   const product = {
@@ -382,6 +438,7 @@ export async function GET(
       alcoholTaxCents: i.alcohol_tax_cents || 0,
       marginPercentage: i.margin_percentage || 0,
       b2bMarginPercentage: i.b2b_margin_percentage ?? undefined,
+      b2bShippingPerBottleSek: shippingPerBottleSek,
       b2bPriceExclVat:
         i.b2b_margin_percentage != null &&
         i.b2b_margin_percentage >= 0 &&
@@ -392,6 +449,7 @@ export async function GET(
                 exchangeRate,
                 i.alcohol_tax_cents || 0,
                 i.b2b_margin_percentage,
+                shippingPerBottleSek,
               ) * 100,
             ) / 100
           : undefined,

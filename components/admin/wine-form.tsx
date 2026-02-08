@@ -37,6 +37,7 @@ import {
   createGrapeVariety,
 } from "@/lib/actions/grape-varieties";
 import { calculateB2BPriceExclVat } from "@/lib/price-breakdown";
+import { WineB2BPalletStockTable } from "@/components/admin/wine-b2b-pallet-stock-table";
 
 interface WineFormProps {
   wine?: Wine;
@@ -80,6 +81,7 @@ export default function WineForm({ wine, producers }: WineFormProps) {
     string[]
   >([]);
   const [exchangeRate, setExchangeRate] = useState<number>(1);
+  const [shippingPerBottleSek, setShippingPerBottleSek] = useState<number>(0);
   const router = useRouter();
 
   // Fetch exchange rate for B2B price calculation when cost is not SEK
@@ -102,6 +104,41 @@ export default function WineForm({ wine, producers }: WineFormProps) {
       cancelled = true;
     };
   }, [formData.cost_currency, wine?.cost_currency]);
+
+  const fetchShippingFromPallets = () => {
+    if (!wine?.id) return;
+    fetch(`/api/admin/wines/${wine.id}/pallet-stock`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { shipping_per_bottle_sek_weighted_avg?: number } | null) => {
+        if (data?.shipping_per_bottle_sek_weighted_avg != null) {
+          setShippingPerBottleSek(data.shipping_per_bottle_sek_weighted_avg);
+        } else {
+          setShippingPerBottleSek(0);
+        }
+      })
+      .catch(() => setShippingPerBottleSek(0));
+  };
+
+  useEffect(() => {
+    if (!wine?.id) {
+      setShippingPerBottleSek(0);
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/admin/wines/${wine.id}/pallet-stock`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { shipping_per_bottle_sek_weighted_avg?: number } | null) => {
+        if (!cancelled && data?.shipping_per_bottle_sek_weighted_avg != null) {
+          setShippingPerBottleSek(data.shipping_per_bottle_sek_weighted_avg);
+        } else if (!cancelled) {
+          setShippingPerBottleSek(0);
+        }
+      })
+      .catch(() => cancelled || setShippingPerBottleSek(0));
+    return () => {
+      cancelled = true;
+    };
+  }, [wine?.id]);
 
   // Keep form in sync with the latest server value when reopening / navigating
   useEffect(() => {
@@ -507,44 +544,99 @@ export default function WineForm({ wine, producers }: WineFormProps) {
                     }}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Marginal i % för B2B-pris (samma formel som B2C: kostnad +
-                    alkoholskatt ÷ (1 − marginal))
+                    Marginal i % för B2B-pris: (kostnad + alkoholskatt + frakt) ÷
+                    (1 − marginal)
                   </p>
                   {formData.b2b_margin_percentage != null &&
                   formData.b2b_margin_percentage >= 0 &&
                   formData.b2b_margin_percentage < 100 &&
                   (formData.cost_amount ?? 0) > 0 && (
-                    <div className="pt-2 text-sm font-medium text-gray-900">
-                      <div>B2B-pris: {Math.round(calculateB2BPriceExclVat(formData.cost_amount ?? 0, exchangeRate, 2219, formData.b2b_margin_percentage))} SEK exkl. moms</div>
+                    <div className="pt-3 text-sm space-y-2">
+                      <div className="font-medium text-gray-900">
+                        B2B-pris:{" "}
+                        {Math.round(
+                          calculateB2BPriceExclVat(
+                            formData.cost_amount ?? 0,
+                            exchangeRate,
+                            2219,
+                            formData.b2b_margin_percentage,
+                            shippingPerBottleSek,
+                          ),
+                        )}{" "}
+                        SEK exkl. moms
+                      </div>
                       <div className="text-gray-500 font-normal">
-                        {Math.round(calculateB2BPriceExclVat(formData.cost_amount ?? 0, exchangeRate, 2219, formData.b2b_margin_percentage) * 1.25)} SEK inkl. moms
+                        {Math.round(
+                          calculateB2BPriceExclVat(
+                            formData.cost_amount ?? 0,
+                            exchangeRate,
+                            2219,
+                            formData.b2b_margin_percentage,
+                            shippingPerBottleSek,
+                          ) * 1.25,
+                        )}{" "}
+                        SEK inkl. moms
+                      </div>
+                      <div className="pt-2 border-t border-gray-200 text-xs text-muted-foreground space-y-1">
+                        <div>
+                          Kostnad (SEK):{" "}
+                          {((formData.cost_amount ?? 0) * exchangeRate).toFixed(
+                            2,
+                          )}{" "}
+                          kr
+                        </div>
+                        <div>
+                          Alkoholskatt: 22,19 kr
+                        </div>
+                        <div>
+                          Frakt/flaska:{" "}
+                          {shippingPerBottleSek > 0
+                            ? `${shippingPerBottleSek.toFixed(2)} kr`
+                            : "0 kr"}
+                        </div>
+                        <div className="font-medium text-gray-700">
+                          Summering:{" "}
+                          {(
+                            (formData.cost_amount ?? 0) * exchangeRate +
+                            22.19 +
+                            shippingPerBottleSek
+                          ).toFixed(2)}{" "}
+                          kr + marginal (
+                          {formData.b2b_margin_percentage}%) → B2B-pris
+                        </div>
+                        {(() => {
+                          const b2bPrice = calculateB2BPriceExclVat(
+                            formData.cost_amount ?? 0,
+                            exchangeRate,
+                            2219,
+                            formData.b2b_margin_percentage,
+                            shippingPerBottleSek,
+                          );
+                          const costBase =
+                            (formData.cost_amount ?? 0) * exchangeRate +
+                            22.19 +
+                            shippingPerBottleSek;
+                          const profitSek = b2bPrice - costBase;
+                          return (
+                            <div className="pt-1">
+                              <div>
+                                Vinst: {profitSek.toFixed(2)} kr (exkl. moms)
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="b2b_stock">B2B-lager (antal)</Label>
-                  <Input
-                    id="b2b_stock"
-                    type="number"
-                    min={0}
-                    placeholder="t.ex. 24"
-                    value={formData.b2b_stock ?? ""}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      if (v === "") {
-                        handleChange("b2b_stock", null);
-                        return;
-                      }
-                      const n = parseInt(v, 10);
-                      if (!Number.isNaN(n) && n >= 0)
-                        handleChange("b2b_stock", n);
-                    }}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Tillgängligt antal för B2B
-                  </p>
-                </div>
+                {wine?.id && (
+                  <div className="pt-4">
+                    <WineB2BPalletStockTable
+                      wineId={wine.id}
+                      onStockUpdated={fetchShippingFromPallets}
+                    />
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

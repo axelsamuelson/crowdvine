@@ -160,6 +160,7 @@ export type Product = {
     alcoholTaxCents: number;
     marginPercentage: number;
     b2bMarginPercentage?: number;
+    b2bShippingPerBottleSek?: number;
     b2bPriceExclVat?: number;
   };
   /** B2B price exkl moms when b2b_margin_percentage is set (from list API) */

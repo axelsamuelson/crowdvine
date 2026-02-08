@@ -18,7 +18,7 @@ export default async function EditWinePage({ params }: EditWinePageProps) {
 
     return (
       <main className="min-h-screen bg-gray-50">
-        <div className="max-w-5xl mx-auto p-6 pt-top-spacing space-y-8">
+        <div className="max-w-7xl mx-auto p-6 pt-top-spacing space-y-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div className="space-y-4">
               <Link href="/admin/wines">

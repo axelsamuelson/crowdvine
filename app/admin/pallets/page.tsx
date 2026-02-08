@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -11,11 +12,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Plus,
   Package,
   MapPin,
-  DollarSign,
   Wine,
   TrendingUp,
   AlertCircle,
@@ -23,9 +24,16 @@ import {
   Clock,
   Users,
   BarChart3,
+  Truck,
+  Calendar,
 } from "lucide-react";
 import Link from "next/link";
 import { DeletePalletButton } from "@/components/admin/delete-pallet-button";
+import { DeleteB2BPalletButton } from "@/components/admin/delete-b2b-pallet-button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { getWineCostCentsExVat } from "@/lib/b2b-wine-cost";
+import { format } from "date-fns";
+import { sv } from "date-fns/locale";
 
 interface PalletZone {
   id: string;
@@ -63,9 +71,39 @@ interface Pallet {
   needs_ordering: boolean;
 }
 
+interface B2BShipmentItem {
+  id: string;
+  wine_id: string;
+  quantity: number;
+  cost_cents_override: number | null;
+  wines?: {
+    id: string;
+    wine_name: string;
+    vintage: string;
+    cost_amount?: number;
+    exchange_rate?: number;
+    alcohol_tax_cents?: number;
+  };
+}
+
+interface B2BShipment {
+  id: string;
+  name: string;
+  shipped_at: string | null;
+  delivered_at: string | null;
+  cost_cents: number | null;
+  created_at: string;
+  b2b_pallet_shipment_items?: B2BShipmentItem[];
+}
+
 export default function PalletsPage() {
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab") === "b2b" ? "b2b" : "pact";
+
   const [pallets, setPallets] = useState<Pallet[]>([]);
+  const [b2bShipments, setB2bShipments] = useState<B2BShipment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [b2bLoading, setB2bLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -87,6 +125,25 @@ export default function PalletsPage() {
 
     fetchPallets();
   }, []);
+
+  useEffect(() => {
+    if (initialTab !== "b2b") return;
+    const fetchB2b = async () => {
+      setB2bLoading(true);
+      try {
+        const res = await fetch("/api/admin/b2b-pallet-shipments");
+        if (res.ok) {
+          const data = await res.json();
+          setB2bShipments(data);
+        }
+      } catch (err) {
+        console.error("Failed to load B2B shipments:", err);
+      } finally {
+        setB2bLoading(false);
+      }
+    };
+    fetchB2b();
+  }, [initialTab, searchParams.toString()]);
 
   const formatPrice = (priceCents: number) => {
     return new Intl.NumberFormat("sv-SE", {
@@ -186,6 +243,13 @@ export default function PalletsPage() {
     );
   }
 
+  const handleTabChange = (value: string) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", value);
+    url.searchParams.delete("_");
+    window.history.replaceState({}, "", url.toString());
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -196,16 +260,26 @@ export default function PalletsPage() {
             Monitor pallet status, bottle capacity, and wine allocations
           </p>
         </div>
-        <Button asChild>
-          <Link href="/admin/pallets/new">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Pallet
-          </Link>
-        </Button>
       </div>
 
-      {/* Summary Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <Tabs value={initialTab} onValueChange={handleTabChange}>
+        <TabsList>
+          <TabsTrigger value="pact">PACT</TabsTrigger>
+          <TabsTrigger value="b2b">Dirty Wine</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="pact" className="mt-6 space-y-6">
+          <div className="flex justify-end">
+            <Button asChild>
+              <Link href="/admin/pallets/new">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Pallet
+              </Link>
+            </Button>
+          </div>
+
+          {/* Summary Stats */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -267,10 +341,10 @@ export default function PalletsPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
+          </div>
 
-      {/* Pallets Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {/* Pallets Grid */}
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {pallets.map((pallet) => (
           <Card
             key={pallet.id}
@@ -381,10 +455,10 @@ export default function PalletsPage() {
             </CardContent>
           </Card>
         ))}
-      </div>
+          </div>
 
-      {/* Empty State */}
-      {pallets.length === 0 && (
+          {/* Empty State */}
+          {pallets.length === 0 && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Package className="h-12 w-12 text-muted-foreground mb-4" />
@@ -401,7 +475,168 @@ export default function PalletsPage() {
             </Button>
           </CardContent>
         </Card>
-      )}
+          )}
+        </TabsContent>
+
+        <TabsContent value="b2b" className="mt-6 space-y-6">
+          <div className="flex justify-end">
+            <Button asChild>
+              <Link href="/admin/pallets/b2b/new">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Pallet
+              </Link>
+            </Button>
+          </div>
+
+          {b2bLoading ? (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardHeader>
+                    <div className="h-6 bg-muted rounded w-3/4" />
+                    <div className="h-4 bg-muted rounded w-1/2" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="h-4 bg-muted rounded" />
+                      <div className="h-4 bg-muted rounded w-2/3" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {b2bShipments.map((shipment) => {
+                const items = shipment.b2b_pallet_shipment_items || [];
+                const totalBottles = items.reduce((s, i) => s + (i.quantity || 0), 0);
+                const wineCostCents = items.reduce((s, i) => {
+                  const cost =
+                    i.cost_cents_override != null
+                      ? i.cost_cents_override
+                      : i.wines
+                        ? getWineCostCentsExVat(i.wines)
+                        : 0;
+                  return s + cost * (i.quantity || 0);
+                }, 0);
+                const palletCostCents = shipment.cost_cents ?? 0;
+                const totalCostCents = wineCostCents + palletCostCents;
+
+                return (
+                  <Card
+                    key={shipment.id}
+                    className="overflow-hidden border-0 shadow-sm hover:shadow-md transition-shadow"
+                  >
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <CardTitle className="text-base font-medium truncate">
+                            {shipment.name}
+                          </CardTitle>
+                          <CardDescription className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs">
+                            {shipment.shipped_at && (
+                              <span>
+                                Skickad{" "}
+                                {format(
+                                  new Date(shipment.shipped_at),
+                                  "d MMM yyyy",
+                                  { locale: sv },
+                                )}
+                              </span>
+                            )}
+                            {shipment.delivered_at && (
+                              <span>
+                                Ankommen{" "}
+                                {format(
+                                  new Date(shipment.delivered_at),
+                                  "d MMM yyyy",
+                                  { locale: sv },
+                                )}
+                              </span>
+                            )}
+                          </CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4 pt-0">
+                      <div className="flex justify-between items-baseline text-sm">
+                        <span className="text-muted-foreground">
+                          {totalBottles} flaskor
+                          {palletCostCents > 0 && (
+                            <span className="ml-1">
+                              + {formatPrice(palletCostCents)} palkostnad
+                            </span>
+                          )}
+                        </span>
+                        <span className="font-medium tabular-nums">
+                          {formatPrice(totalCostCents)}
+                        </span>
+                      </div>
+                      {items.length > 0 && (
+                        <ScrollArea className="h-[min(120px,40vh)] -mx-1 rounded-md">
+                          <div className="space-y-1 pr-3">
+                            {items.map((item) => (
+                              <div
+                                key={item.id}
+                                className="flex justify-between items-center text-xs py-1.5 px-2 rounded-md hover:bg-muted/50"
+                              >
+                                <span className="truncate">
+                                  {item.wines?.wine_name} {item.wines?.vintage}
+                                </span>
+                                <span className="text-muted-foreground shrink-0 ml-2">
+                                  {item.quantity} st
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      )}
+                      <div className="flex gap-2 pt-2 border-t">
+                        <Button asChild variant="outline" size="sm" className="flex-1">
+                          <Link
+                            href={`/admin/pallets/b2b/${shipment.id}/edit`}
+                          >
+                            Redigera
+                          </Link>
+                        </Button>
+                        <DeleteB2BPalletButton
+                          shipmentId={shipment.id}
+                          shipmentName={shipment.name}
+                          onDeleted={() => {
+                            setB2bShipments((prev) =>
+                              prev.filter((s) => s.id !== shipment.id),
+                            );
+                          }}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+
+          {!b2bLoading && b2bShipments.length === 0 && (
+            <Card className="border border-dashed shadow-sm">
+              <CardContent className="flex flex-col items-center justify-center py-16">
+                <div className="rounded-full bg-muted/50 p-4 mb-4">
+                  <Truck className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <h3 className="text-base font-medium mb-1">Inga pallar</h3>
+                <p className="text-sm text-muted-foreground mb-6 text-center max-w-sm">
+                  Lägg till en pall för att hantera vinleveranser.
+                </p>
+                <Button asChild>
+                  <Link href="/admin/pallets/b2b/new">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Lägg till pall
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

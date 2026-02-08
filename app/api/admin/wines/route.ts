@@ -41,6 +41,10 @@ export async function GET(request: NextRequest) {
         grape_varieties,
         color,
         label_image_path,
+        cost_amount,
+        cost_currency,
+        exchange_rate,
+        alcohol_tax_cents,
         producers(name)
       `)
       .order("wine_name")

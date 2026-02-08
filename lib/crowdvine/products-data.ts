@@ -28,6 +28,65 @@ async function fetchExchangeRatesMap(
   return map;
 }
 
+async function fetchB2BStockAndShippingFromPallets(
+  sb: Awaited<ReturnType<typeof getSupabaseAdmin>>,
+  wineIds: string[],
+): Promise<{ stockMap: Map<string, number>; shippingMap: Map<string, number> }> {
+  const stockMap = new Map<string, number>();
+  const shippingMap = new Map<string, number>();
+  if (wineIds.length === 0) return { stockMap, shippingMap };
+  try {
+    const { data: palletItems, error } = await sb
+      .from("b2b_pallet_shipment_items")
+      .select("wine_id, quantity, quantity_sold, shipment_id, b2b_pallet_shipments!inner(cost_cents)")
+      .in("wine_id", wineIds);
+    if (error) {
+      const fallback = await sb
+        .from("b2b_pallet_shipment_items")
+        .select("wine_id, quantity")
+        .in("wine_id", wineIds);
+      (fallback.data || []).forEach((row: any) => {
+        stockMap.set(row.wine_id, (stockMap.get(row.wine_id) ?? 0) + (row.quantity ?? 0));
+      });
+      return { stockMap, shippingMap };
+    }
+    const items = (palletItems || []) as any[];
+    const shipmentIds = [...new Set(items.map((r: any) => r.shipment_id).filter(Boolean))];
+    let totalBottlesByShipment = new Map<string, number>();
+    if (shipmentIds.length > 0) {
+      const { data: allItems } = await sb
+        .from("b2b_pallet_shipment_items")
+        .select("shipment_id, quantity")
+        .in("shipment_id", shipmentIds);
+      (allItems || []).forEach((row: any) => {
+        const sid = row.shipment_id;
+        totalBottlesByShipment.set(sid, (totalBottlesByShipment.get(sid) ?? 0) + (row.quantity ?? 0));
+      });
+    }
+    const byWine = new Map<string, { remaining: number; shippingSum: number }>();
+    items.forEach((row: any) => {
+      const remaining = Math.max(0, (row.quantity ?? 0) - (row.quantity_sold ?? 0));
+      const costCents = row.b2b_pallet_shipments?.cost_cents ?? 0;
+      const totalBottles = totalBottlesByShipment.get(row.shipment_id) ?? 1;
+      const shippingPerBottle = totalBottles > 0 ? costCents / 100 / totalBottles : 0;
+      const wid = row.wine_id;
+      const curr = byWine.get(wid) ?? { remaining: 0, shippingSum: 0 };
+      curr.remaining += remaining;
+      curr.shippingSum += shippingPerBottle * remaining;
+      byWine.set(wid, curr);
+      stockMap.set(wid, (stockMap.get(wid) ?? 0) + remaining);
+    });
+    byWine.forEach((v, wid) => {
+      if (v.remaining > 0) {
+        shippingMap.set(wid, v.shippingSum / v.remaining);
+      }
+    });
+  } catch {
+    /* table may not exist */
+  }
+  return { stockMap, shippingMap };
+}
+
 function convertToFullUrl(path: string | null | undefined): string {
   if (!path)
     return "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop";
@@ -145,6 +204,8 @@ export async function fetchProductsData(params?: {
 
   const wineIds = rawData.map((wine: any) => wine.id) || [];
   const wineImagesMap = new Map<string, any[]>();
+  const { stockMap: b2bStockMap, shippingMap: b2bShippingMap } =
+    await fetchB2BStockAndShippingFromPallets(sb, wineIds);
 
   if (wineIds.length > 0) {
     const { data: wineImages } = await sb
@@ -168,7 +229,13 @@ export async function fetchProductsData(params?: {
     const colorName = i.color_name || i.color;
 
     const wineImages = wineImagesMap.get(i.id) || [];
-    const b2bStock = i.b2b_stock != null ? Number(i.b2b_stock) : null;
+    const b2bStockFromPallets = b2bStockMap.get(i.id);
+    const b2bStock =
+      b2bStockFromPallets != null
+        ? b2bStockFromPallets
+        : i.b2b_stock != null
+          ? Number(i.b2b_stock)
+          : null;
     const availableForSale =
       b2bStock != null && b2bStock > 0;
     const images =
@@ -271,6 +338,7 @@ export async function fetchProductsData(params?: {
                     1,
                   i.alcohol_tax_cents || 0,
                   i.b2b_margin_percentage,
+                  b2bShippingMap.get(i.id) ?? 0,
                 ) * 100,
               ) / 100,
           }
@@ -389,6 +457,10 @@ export async function fetchCollectionProductsData(
 
   const producerName = producerData?.name;
 
+  const collWineIds = collData.map((w: any) => w.id) || [];
+  const { stockMap: collB2bStockMap, shippingMap: collB2bShippingMap } =
+    await fetchB2BStockAndShippingFromPallets(sb, collWineIds);
+
   return collData.map((i: any) => {
     const grapeVarieties = Array.isArray(i.grape_varieties)
       ? i.grape_varieties
@@ -396,7 +468,13 @@ export async function fetchCollectionProductsData(
         ? i.grape_varieties.split(",").map((g: string) => g.trim())
         : [];
     const colorName = i.color;
-    const b2bStock = i.b2b_stock != null ? Number(i.b2b_stock) : null;
+    const b2bStockFromPallets = collB2bStockMap.get(i.id);
+    const b2bStock =
+      b2bStockFromPallets != null
+        ? b2bStockFromPallets
+        : i.b2b_stock != null
+          ? Number(i.b2b_stock)
+          : null;
     const availableForSale = b2bStock != null && b2bStock > 0;
 
     return {
@@ -484,6 +562,7 @@ export async function fetchCollectionProductsData(
                     1,
                   i.alcohol_tax_cents || 0,
                   i.b2b_margin_percentage,
+                  collB2bShippingMap.get(i.id) ?? 0,
                 ) * 100,
               ) / 100,
           }

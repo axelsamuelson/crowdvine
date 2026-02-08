@@ -45,7 +45,7 @@ export function AdminLayoutClient({
         </div>
 
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
-          <div className="max-w-5xl mx-auto">{children}</div>
+          <div className="max-w-7xl mx-auto">{children}</div>
         </main>
       </div>
     </div>
