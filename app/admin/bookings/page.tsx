@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -12,6 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Calendar,
   Wine,
@@ -31,6 +33,9 @@ import {
 
 export default function BookingsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab") === "dirty-wine" ? "dirty-wine" : "pact";
+
   const [bookings, setBookings] = useState<any[]>([]);
   const [reservations, setReservations] = useState<any[]>([]);
   const [bookingsWithReservationInfo, setBookingsWithReservationInfo] =
@@ -42,6 +47,12 @@ export default function BookingsPage() {
   useEffect(() => {
     fetchBookings();
   }, []);
+
+  useEffect(() => {
+    if (initialTab === "dirty-wine") {
+      router.replace("/admin/bookings/dirty-wine");
+    }
+  }, [initialTab, router]);
 
   const fetchBookings = async () => {
     try {
@@ -195,6 +206,13 @@ export default function BookingsPage() {
     }
   };
 
+  const handleTabChange = (value: string) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", value === "dirty-wine" ? "dirty-wine" : "pact");
+    url.searchParams.delete("_");
+    window.history.replaceState({}, "", url.toString());
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -222,6 +240,15 @@ export default function BookingsPage() {
         </div>
       </div>
 
+      <Tabs value={initialTab} onValueChange={handleTabChange}>
+        <TabsList>
+          <TabsTrigger value="pact">PACT</TabsTrigger>
+          <TabsTrigger value="dirty-wine" asChild>
+            <Link href="/admin/bookings/dirty-wine">Dirty Wine</Link>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="pact" className="mt-6 space-y-6">
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
@@ -479,6 +506,8 @@ export default function BookingsPage() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -5,7 +5,11 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Sheet,
   SheetContent,
@@ -24,6 +28,7 @@ import {
   Award,
   LogOut,
   BarChart3,
+  ChevronDown,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -33,76 +38,73 @@ interface SidebarProps {
   onMobileClose?: () => void;
 }
 
-const navigation = [
+interface NavItem {
+  name: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+interface NavGroup {
+  name: string;
+  icon: React.ComponentType<{ className?: string }>;
+  items: NavItem[];
+}
+
+const navigationGroups: NavGroup[] = [
   {
-    name: "Dashboard",
-    href: "/admin",
+    name: "Översikt",
     icon: LayoutDashboard,
+    items: [
+      { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
+      { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
+    ],
   },
   {
-    name: "Analytics",
-    href: "/admin/analytics",
-    icon: BarChart3,
-  },
-  {
-    name: "Users",
-    href: "/admin/users",
+    name: "Användare",
     icon: Users,
+    items: [
+      { name: "Users", href: "/admin/users", icon: Users },
+      { name: "Memberships", href: "/admin/memberships", icon: Award },
+      { name: "Access Control", href: "/admin/access-control", icon: Shield },
+    ],
   },
   {
-    name: "Memberships",
-    href: "/admin/memberships",
-    icon: Award,
-  },
-  {
-    name: "Producers",
-    href: "/admin/producers",
+    name: "Viner & Produkter",
     icon: Wine,
+    items: [
+      { name: "Producers", href: "/admin/producers", icon: Wine },
+      { name: "Wines", href: "/admin/wines", icon: Wine },
+      { name: "Wine Boxes", href: "/admin/wine-boxes", icon: Gift },
+      { name: "Wine Tastings", href: "/admin/wine-tastings", icon: Wine },
+    ],
   },
   {
-    name: "Wines",
-    href: "/admin/wines",
-    icon: Wine,
-  },
-  {
-    name: "Zones",
-    href: "/admin/zones",
-    icon: MapPin,
-  },
-  {
-    name: "Pallets",
-    href: "/admin/pallets",
+    name: "Lager & Frakt",
     icon: Package,
+    items: [
+      { name: "Pallets", href: "/admin/pallets", icon: Package },
+      { name: "Zones", href: "/admin/zones", icon: MapPin },
+    ],
   },
   {
-    name: "Bookings",
-    href: "/admin/bookings",
+    name: "Bokningar",
     icon: Calendar,
-  },
-  {
-    name: "Reservations",
-    href: "/admin/reservations",
-    icon: FileText,
-  },
-  {
-    name: "Wine Boxes",
-    href: "/admin/wine-boxes",
-    icon: Gift,
-  },
-  {
-    name: "Access Control",
-    href: "/admin/access-control",
-    icon: Shield,
-  },
-  {
-    name: "Wine Tastings",
-    href: "/admin/wine-tastings",
-    icon: Wine,
+    items: [
+      { name: "Bookings", href: "/admin/bookings", icon: Calendar },
+      { name: "Reservations", href: "/admin/reservations", icon: FileText },
+    ],
   },
 ];
 
 export function Sidebar({ userEmail, onSignOut, mobileOpen, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
+
+  const isItemActive = (item: NavItem) =>
+    pathname === item.href ||
+    (item.href !== "/admin" && pathname.startsWith(item.href + "/"));
+
+  const groupHasActiveItem = (group: NavGroup) =>
+    group.items.some(isItemActive);
 
   const SidebarContent = (
     <>
@@ -119,23 +121,50 @@ export function Sidebar({ userEmail, onSignOut, mobileOpen, onMobileClose }: Sid
       {/* Navigation */}
       <ScrollArea className="flex-1 px-3 py-4">
         <nav className="space-y-1">
-          {navigation.map((item) => {
-            const isActive = pathname === item.href;
+          {navigationGroups.map((group) => {
+            const isGroupOpen = groupHasActiveItem(group);
             return (
-              <Link
-                key={item.name}
-                href={item.href}
-                onClick={onMobileClose}
-                className={cn(
-                  "flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors",
-                  isActive
-                    ? "bg-gray-100 text-gray-900"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
-                )}
+              <Collapsible
+                key={group.name}
+                defaultOpen={isGroupOpen}
+                className="group/collapsible"
               >
-                <item.icon className="mr-3 h-5 w-5" />
-                {item.name}
-              </Link>
+                <CollapsibleTrigger
+                  className={cn(
+                    "flex w-full items-center justify-between px-3 py-2 text-sm font-medium rounded-lg transition-colors",
+                    "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
+                  )}
+                >
+                  <div className="flex items-center">
+                    <group.icon className="mr-3 h-5 w-5 shrink-0" />
+                    {group.name}
+                  </div>
+                  <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="ml-5 mt-1 space-y-0.5 border-l border-gray-200 pl-3">
+                    {group.items.map((item) => {
+                      const isActive = isItemActive(item);
+                      return (
+                        <Link
+                          key={item.name}
+                          href={item.href}
+                          onClick={onMobileClose}
+                          className={cn(
+                            "flex items-center py-2 text-sm rounded-md transition-colors pl-3",
+                            isActive
+                              ? "text-gray-900 font-medium bg-gray-100"
+                              : "text-gray-500 hover:text-gray-900 hover:bg-gray-50",
+                          )}
+                        >
+                          <item.icon className="mr-2 h-4 w-4 shrink-0 opacity-70" />
+                          {item.name}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             );
           })}
         </nav>
