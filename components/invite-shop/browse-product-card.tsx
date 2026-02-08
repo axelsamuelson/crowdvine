@@ -8,6 +8,7 @@ import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { SimpleProductImage } from "./simple-product-image";
 import { Badge } from "@/components/ui/badge";
 import { MemberPrice } from "@/components/ui/member-price";
+import { StockBadge } from "@/components/product/stock-badge";
 import { priceExclVat } from "@/lib/shopify/utils";
 import { ArrowRightIcon } from "lucide-react";
 
@@ -43,6 +44,11 @@ export const BrowseProductCard = memo(
             </Badge>
           </div>
         )}
+
+        {/* Stock Badge - business invite only */}
+        <div className="absolute top-2 right-2 z-10">
+          <StockBadge availableForSale={product.availableForSale} />
+        </div>
 
         {onProductClick ? (
           <button

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { MemberPrice } from "@/components/ui/member-price";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
+import { StockBadge } from "@/components/product/stock-badge";
 import Prose from "@/components/prose";
 import { SimpleProductImage } from "@/components/invite-shop/simple-product-image";
 import { PageLayout } from "@/components/layout/page-layout";
@@ -118,9 +119,12 @@ export default function InviteProductPage() {
           </div>
 
           <div className="flex flex-col">
-            <h1 className="text-2xl font-semibold text-foreground mb-2">
-              {product.title}
-            </h1>
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <h1 className="text-2xl font-semibold text-foreground">
+                {product.title}
+              </h1>
+              <StockBadge availableForSale={product.availableForSale} />
+            </div>
             {product.producerName && (
               <p className="text-muted-foreground mb-4">{product.producerName}</p>
             )}

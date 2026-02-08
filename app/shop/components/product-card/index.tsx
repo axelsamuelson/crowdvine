@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRightIcon, CirclePlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { MemberPrice } from "@/components/ui/member-price";
+import { StockBadge } from "@/components/product/stock-badge";
 import { useCart } from "@/components/cart/cart-context";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { ColorSwatch } from "@/components/ui/color-picker";
@@ -160,6 +161,11 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
           </Badge>
         </div>
       )}
+
+      {/* Stock Badge - dirtywine.se / business only */}
+      <div className="absolute top-2 right-2 z-10">
+        <StockBadge availableForSale={product.availableForSale} />
+      </div>
 
       <Link
         href={`/product/${product.handle}`}
