@@ -22,6 +22,22 @@ export default async function WinesPage() {
   const isMixed = wines.length > 0 && !allSame;
   const initialMargin = allSame ? first : null;
 
+  const b2bVals = wines.map((w) => {
+    const v = (w as any).b2b_margin_percentage;
+    if (v == null || v === "") return null;
+    return Number.isFinite(Number(v)) ? Number(v) : null;
+  });
+  const numericB2B = b2bVals.filter((m): m is number => m != null);
+  const allNullB2B = b2bVals.every((v) => v == null);
+  const b2bFirst = numericB2B[0];
+  const b2bAllSame =
+    numericB2B.length > 0 &&
+    numericB2B.every((m) => Math.abs(m - b2bFirst) < 1e-9) &&
+    numericB2B.length === wines.length;
+  const isB2BMixed = wines.length > 0 && !allNullB2B && !b2bAllSame;
+  const initialB2BMargin =
+    b2bAllSame && numericB2B.length > 0 ? b2bFirst : null;
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -42,7 +58,13 @@ export default async function WinesPage() {
         </div>
       </div>
 
-      <AdminWinesContent wines={wines} initialMargin={initialMargin} isMixed={isMixed} />
+      <AdminWinesContent
+        wines={wines}
+        initialMargin={initialMargin}
+        isMixed={isMixed}
+        initialB2BMargin={initialB2BMargin}
+        isB2BMixed={isB2BMixed}
+      />
     </div>
   );
 }

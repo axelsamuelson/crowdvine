@@ -45,7 +45,7 @@ interface WineFormProps {
 export default function WineForm({ wine, producers }: WineFormProps) {
   const [formData, setFormData] = useState<CreateWineData>({
     handle: wine?.handle || "",
-    wine_name: wine?.wine_name === "" ? "" : wine?.wine_name,
+    wine_name: wine?.wine_name === "" ? "" : (wine?.wine_name ?? ""),
     vintage: wine?.vintage || "",
     grape_varieties: wine?.grape_varieties || "",
     color: wine?.color || "Red",
@@ -64,7 +64,7 @@ export default function WineForm({ wine, producers }: WineFormProps) {
     // Description
     description: wine?.description || "",
     // B2B
-    b2b_price_cents: wine?.b2b_price_cents ?? null,
+    b2b_margin_percentage: wine?.b2b_margin_percentage ?? null,
     b2b_stock: wine?.b2b_stock ?? null,
   });
 
@@ -99,7 +99,7 @@ export default function WineForm({ wine, producers }: WineFormProps) {
       base_price_cents: wine.base_price_cents ?? 0,
       label_image_path: wine.label_image_path || "",
       description: wine.description || "",
-      b2b_price_cents: wine.b2b_price_cents ?? null,
+      b2b_margin_percentage: wine.b2b_margin_percentage ?? null,
       b2b_stock: wine.b2b_stock ?? null,
     }));
   }, [wine?.id]);
@@ -442,42 +442,50 @@ export default function WineForm({ wine, producers }: WineFormProps) {
             }}
           />
 
-          {/* B2B: price and stock for B2B customers */}
+          {/* B2B: margin and stock for B2B customers */}
           <Card className="p-4 bg-muted/30 border border-gray-200 rounded-xl">
             <CardHeader className="p-0 pb-3">
               <CardTitle className="text-base font-medium">B2B</CardTitle>
               <CardDescription className="text-sm">
-                Pris och lager för B2B-kunder (valfritt)
+                Marginal och lager för B2B-kunder (valfritt)
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="b2b_price_cents">B2B-pris (SEK)</Label>
+                  <Label htmlFor="b2b_margin_percentage">
+                    B2B-marginal (%)
+                  </Label>
                   <Input
-                    id="b2b_price_cents"
+                    id="b2b_margin_percentage"
                     type="number"
                     min={0}
-                    step={0.01}
-                    placeholder="t.ex. 199"
+                    max={100}
+                    step={0.5}
+                    placeholder="t.ex. 15"
                     value={
-                      formData.b2b_price_cents != null
-                        ? (formData.b2b_price_cents / 100).toFixed(2)
+                      formData.b2b_margin_percentage != null
+                        ? String(formData.b2b_margin_percentage)
                         : ""
                     }
                     onChange={(e) => {
                       const v = e.target.value;
                       if (v === "") {
-                        handleChange("b2b_price_cents", null);
+                        handleChange("b2b_margin_percentage", null);
                         return;
                       }
                       const num = parseFloat(v);
-                      if (!Number.isNaN(num))
-                        handleChange("b2b_price_cents", Math.round(num * 100));
+                      if (
+                        !Number.isNaN(num) &&
+                        num >= 0 &&
+                        num <= 100
+                      )
+                        handleChange("b2b_margin_percentage", num);
                     }}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Pris i kronor för B2B (sparas som öre)
+                    Marginal i % för B2B-pris (samma formel som B2C: kostnad +
+                    alkoholskatt ÷ (1 − marginal))
                   </p>
                 </div>
                 <div className="space-y-2">

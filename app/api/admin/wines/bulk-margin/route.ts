@@ -50,10 +50,32 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json().catch(() => null);
-    const margin = Number(body?.margin_percentage);
-    if (!Number.isFinite(margin) || margin < 0 || margin >= 100) {
+    const margin = body?.margin_percentage;
+    const b2bMargin = body?.b2b_margin_percentage;
+
+    const hasB2C =
+      margin !== undefined &&
+      margin !== null &&
+      Number.isFinite(Number(margin)) &&
+      Number(margin) >= 0 &&
+      Number(margin) < 100;
+    const hasB2B = b2bMargin !== undefined;
+    const b2bValue =
+      b2bMargin === null || b2bMargin === ""
+        ? null
+        : Number.isFinite(Number(b2bMargin)) && Number(b2bMargin) >= 0 && Number(b2bMargin) < 100
+          ? Number(b2bMargin)
+          : "invalid";
+
+    if (!hasB2C && !hasB2B) {
       return NextResponse.json(
-        { error: "margin_percentage must be a number between 0 and 99.9" },
+        { error: "Provide margin_percentage and/or b2b_margin_percentage" },
+        { status: 400 },
+      );
+    }
+    if (hasB2B && b2bValue === "invalid") {
+      return NextResponse.json(
+        { error: "b2b_margin_percentage must be null or 0–99.9" },
         { status: 400 },
       );
     }
@@ -62,15 +84,15 @@ export async function POST(req: NextRequest) {
     const hasFilteredIds = Array.isArray(wineIds) && wineIds.length > 0;
 
     const sb = getSupabaseAdmin();
-    const origin =
-      req.headers.get("origin") || getAppUrl();
+    const origin = req.headers.get("origin") || getAppUrl();
 
-    // Build query - filter by wine_ids if provided
+    const marginNum = hasB2C ? Number(margin) : 0;
+
     let query = sb
       .from("wines")
       .select("id, cost_currency, cost_amount, price_includes_vat")
       .order("wine_name");
-    
+
     if (hasFilteredIds) {
       query = query.in("id", wineIds);
     }
@@ -79,7 +101,6 @@ export async function POST(req: NextRequest) {
 
     if (error) throw error;
 
-    // Fetch exchange rates once per currency
     const currencies = Array.from(
       new Set((wines || []).map((w: any) => w.cost_currency).filter(Boolean)),
     ) as string[];
@@ -92,7 +113,6 @@ export async function POST(req: NextRequest) {
     let skipped = 0;
     const failures: Array<{ id: string; error: string }> = [];
 
-    // Throttle updates to avoid hammering Supabase
     const concurrency = 10;
     let idx = 0;
 
@@ -100,36 +120,48 @@ export async function POST(req: NextRequest) {
       while (idx < (wines || []).length) {
         const i = idx++;
         const w: any = (wines || [])[i];
-        const costAmount = Number(w.cost_amount || 0);
-        if (!Number.isFinite(costAmount) || costAmount <= 0) {
-          skipped++;
-          continue;
+
+        const updateData: Record<string, unknown> = {
+          updated_at: new Date().toISOString(),
+        };
+
+        if (hasB2C) {
+          const costAmount = Number(w.cost_amount || 0);
+          if (!Number.isFinite(costAmount) || costAmount <= 0) {
+            skipped++;
+            if (!hasB2B) continue;
+          } else {
+            const costCurrency = String(w.cost_currency || "SEK");
+            const exchangeRate = rateMap.get(costCurrency) ?? 1.0;
+            const priceIncludesVat = w.price_includes_vat !== false;
+
+            const finalPriceCents = computeFinalPriceCents({
+              costAmount,
+              exchangeRate,
+              priceIncludesVat,
+              marginPercentage: marginNum,
+            });
+
+            if (finalPriceCents === null) {
+              failures.push({ id: w.id, error: "invalid margin calculation" });
+              continue;
+            }
+
+            updateData.margin_percentage = marginNum;
+            updateData.calculated_price_cents = finalPriceCents;
+            updateData.base_price_cents = finalPriceCents;
+          }
         }
 
-        const costCurrency = String(w.cost_currency || "SEK");
-        const exchangeRate = rateMap.get(costCurrency) ?? 1.0;
-        const priceIncludesVat = w.price_includes_vat !== false;
-
-        const finalPriceCents = computeFinalPriceCents({
-          costAmount,
-          exchangeRate,
-          priceIncludesVat,
-          marginPercentage: margin,
-        });
-
-        if (finalPriceCents === null) {
-          failures.push({ id: w.id, error: "invalid margin calculation" });
-          continue;
+        if (hasB2B) {
+          updateData.b2b_margin_percentage = b2bValue;
         }
+
+        if (Object.keys(updateData).length <= 1) continue;
 
         const { error: updateError } = await sb
           .from("wines")
-          .update({
-            margin_percentage: margin,
-            calculated_price_cents: finalPriceCents,
-            base_price_cents: finalPriceCents,
-            updated_at: new Date().toISOString(),
-          })
+          .update(updateData)
           .eq("id", w.id);
 
         if (updateError) {
@@ -144,7 +176,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      margin_percentage: margin,
+      ...(hasB2C && { margin_percentage: marginNum }),
+      ...(hasB2B && { b2b_margin_percentage: b2bValue }),
       updated,
       skipped,
       failed: failures.length,

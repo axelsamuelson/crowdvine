@@ -131,6 +131,10 @@ export default function InviteProductPage() {
                 currencyCode={product.priceRange.minVariantPrice.currencyCode}
                 className="text-xl font-semibold"
                 showBadge={showExclVat}
+                priceExclVatOverride={
+                  product.priceBreakdown?.b2bPriceExclVat ??
+                  (product as any).b2bPriceExclVat
+                }
               />
             </div>
 

@@ -1,6 +1,7 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getAppUrl } from "@/lib/app-url";
 import { getAllWineBoxCalculations } from "@/lib/wine-box-calculations";
+import { calculateB2BPriceExclVat } from "@/lib/price-breakdown";
 
 function convertToFullUrl(path: string | null | undefined): string {
   if (!path)
@@ -48,6 +49,8 @@ export interface ProductData {
   currencyCode: string;
   updatedAt: string;
   createdAt: string;
+  /** B2B price exkl moms when b2b_margin_percentage is set */
+  b2bPriceExclVat?: number;
 }
 
 /**
@@ -73,6 +76,10 @@ export async function fetchProductsData(params?: {
       color,
       handle,
       base_price_cents,
+      cost_amount,
+      exchange_rate,
+      alcohol_tax_cents,
+      b2b_margin_percentage,
       label_image_path,
       producer_id,
       description,
@@ -208,6 +215,21 @@ export async function fetchProductsData(params?: {
       currencyCode: "SEK",
       updatedAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
+      ...(i.b2b_margin_percentage != null &&
+      i.b2b_margin_percentage >= 0 &&
+      i.b2b_margin_percentage < 100
+        ? {
+            b2bPriceExclVat:
+              Math.round(
+                calculateB2BPriceExclVat(
+                  i.cost_amount || 0,
+                  i.exchange_rate || 1,
+                  i.alcohol_tax_cents || 0,
+                  i.b2b_margin_percentage,
+                ) * 100,
+              ) / 100,
+          }
+        : {}),
     };
   });
 }
@@ -288,6 +310,10 @@ export async function fetchCollectionProductsData(
       color,
       handle,
       base_price_cents,
+      cost_amount,
+      exchange_rate,
+      alcohol_tax_cents,
+      b2b_margin_percentage,
       label_image_path,
       producer_id,
       producers(name)
@@ -385,6 +411,21 @@ export async function fetchCollectionProductsData(
       currencyCode: "SEK",
       updatedAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
+      ...(i.b2b_margin_percentage != null &&
+      i.b2b_margin_percentage >= 0 &&
+      i.b2b_margin_percentage < 100
+        ? {
+            b2bPriceExclVat:
+              Math.round(
+                calculateB2BPriceExclVat(
+                  i.cost_amount || 0,
+                  i.exchange_rate || 1,
+                  i.alcohol_tax_cents || 0,
+                  i.b2b_margin_percentage,
+                ) * 100,
+              ) / 100,
+          }
+        : {}),
     };
   });
 }

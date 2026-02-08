@@ -191,6 +191,10 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
               amount={product.priceRange.minVariantPrice.amount}
               currencyCode={product.priceRange.minVariantPrice.currencyCode}
               className="text-xs md:text-sm uppercase 2xl:text-base"
+              priceExclVatOverride={
+                (product as any).b2bPriceExclVat ??
+                product.priceBreakdown?.b2bPriceExclVat
+              }
             />
             {isWineBox && discountInfo && (
               <span className="line-through opacity-30 text-[10px] md:text-xs">
@@ -320,6 +324,10 @@ export const ProductCard = memo(({ product }: { product: Product }) => {
                 currencyCode={product.priceRange.minVariantPrice.currencyCode}
                 className="text-lg font-semibold"
                 showBadge={true}
+                priceExclVatOverride={
+                  (product as any).b2bPriceExclVat ??
+                  product.priceBreakdown?.b2bPriceExclVat
+                }
               />
               {isWineBox && discountInfo && (
                 <span className="text-base line-through opacity-30">

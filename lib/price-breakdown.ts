@@ -6,6 +6,17 @@ export interface WinePricingData {
   base_price_cents: number;
 }
 
+/** B2B price exkl moms: costInSek / (1 - b2b_margin/100) */
+export function calculateB2BPriceExclVat(
+  costAmount: number,
+  exchangeRate: number,
+  alcoholTaxCents: number,
+  b2bMarginPercentage: number,
+): number {
+  const costInSek = costAmount * exchangeRate + alcoholTaxCents / 100;
+  return costInSek / (1 - b2bMarginPercentage / 100);
+}
+
 export interface PriceBreakdownResult {
   cost: number;
   alcoholTax: number;

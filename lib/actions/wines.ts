@@ -40,7 +40,7 @@ export interface Wine {
   description?: string;
   description_html?: string;
   // B2B
-  b2b_price_cents?: number | null;
+  b2b_margin_percentage?: number | null;
   b2b_stock?: number | null;
 }
 
@@ -67,7 +67,7 @@ export interface CreateWineData {
   description?: string;
   description_html?: string;
   // B2B
-  b2b_price_cents?: number | null;
+  b2b_margin_percentage?: number | null;
   b2b_stock?: number | null;
 }
 
@@ -92,7 +92,7 @@ const WINES_SELECT_FULL = `
   volume_liters,
   description,
   description_html,
-  b2b_price_cents,
+  b2b_margin_percentage,
   b2b_stock,
   created_at,
   updated_at
@@ -125,7 +125,7 @@ const WINES_SELECT_WITHOUT_B2B = `
 
 function isB2BColumnMissingError(error: { message?: string } | null): boolean {
   const msg = error?.message ?? "";
-  return /b2b_price_cents|b2b_stock|column.*does not exist/i.test(msg);
+  return /b2b_price_cents|b2b_stock|b2b_margin_percentage|column.*does not exist/i.test(msg);
 }
 
 export async function getWines() {
@@ -144,7 +144,7 @@ export async function getWines() {
     if (fallback.error) throw new Error(fallback.error.message);
     wines = (fallback.data ?? []).map((w: any) => ({
       ...w,
-      b2b_price_cents: null,
+      b2b_margin_percentage: null,
       b2b_stock: null,
     }));
   } else if (error) {
@@ -187,7 +187,7 @@ export async function getWine(id: string) {
       .eq("id", id)
       .single();
     if (fallback.error) throw new Error(fallback.error.message);
-    wine = fallback.data ? { ...fallback.data, b2b_price_cents: null, b2b_stock: null } : null;
+    wine = fallback.data ? { ...fallback.data, b2b_margin_percentage: null, b2b_stock: null } : null;
   } else if (error) {
     throw new Error(error.message);
   }
@@ -289,18 +289,18 @@ export async function createWine(data: CreateWineData) {
     volume_liters: data.volume_liters,
     description: data.description,
     description_html: data.description_html,
-    b2b_price_cents: data.b2b_price_cents ?? null,
+    b2b_margin_percentage: data.b2b_margin_percentage ?? null,
     b2b_stock: data.b2b_stock ?? null,
   };
 
   let result = await sb.from("wines").insert(insertData).select(WINES_SELECT_FULL).single();
 
   if (result.error && isB2BColumnMissingError(result.error)) {
-    const { b2b_price_cents: _b2bP, b2b_stock: _b2bS, ...insertWithoutB2B } = insertData;
+    const { b2b_margin_percentage: _b2bM, b2b_stock: _b2bS, ...insertWithoutB2B } = insertData;
     result = await sb.from("wines").insert(insertWithoutB2B).select(WINES_SELECT_WITHOUT_B2B).single();
     if (result.error) throw new Error(result.error.message);
     if (result.data)
-      result.data = { ...result.data, b2b_price_cents: null, b2b_stock: null } as typeof result.data;
+      result.data = { ...result.data, b2b_margin_percentage: null, b2b_stock: null } as typeof result.data;
   } else if (result.error) {
     throw new Error(result.error.message);
   }
@@ -353,8 +353,8 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
   if (data.description !== undefined) updateData.description = data.description;
   if (data.description_html !== undefined)
     updateData.description_html = data.description_html;
-  if (data.b2b_price_cents !== undefined)
-    updateData.b2b_price_cents = data.b2b_price_cents;
+  if (data.b2b_margin_percentage !== undefined)
+    updateData.b2b_margin_percentage = data.b2b_margin_percentage;
   if (data.b2b_stock !== undefined)
     updateData.b2b_stock = data.b2b_stock;
   if (data.supplier_price !== undefined)
@@ -471,7 +471,7 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
     .single();
 
   if (updateResult.error && isB2BColumnMissingError(updateResult.error)) {
-    const { b2b_price_cents: _p, b2b_stock: _s, ...updateWithoutB2B } = updateData;
+    const { b2b_margin_percentage: _m, b2b_stock: _s, ...updateWithoutB2B } = updateData;
     updateResult = await sb
       .from("wines")
       .update(updateWithoutB2B)
@@ -483,7 +483,7 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
       throw new Error(updateResult.error.message);
     }
     if (updateResult.data)
-      updateResult.data = { ...updateResult.data, b2b_price_cents: null, b2b_stock: null } as typeof updateResult.data;
+      updateResult.data = { ...updateResult.data, b2b_margin_percentage: null, b2b_stock: null } as typeof updateResult.data;
   } else if (updateResult.error) {
     console.error("Update wine error:", updateResult.error);
     throw new Error(updateResult.error.message);

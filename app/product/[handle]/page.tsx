@@ -203,6 +203,10 @@ export default async function ProductPage(props: {
                     currencyCode={product.priceRange.minVariantPrice.currencyCode}
                     className="text-lg font-semibold lg:text-xl 2xl:text-2xl"
                     showBadge={true}
+                    priceExclVatOverride={
+                      product.priceBreakdown?.b2bPriceExclVat ??
+                      (product as any).b2bPriceExclVat
+                    }
                   />
                   {product.compareAtPrice && (
                     <span className="line-through opacity-30">

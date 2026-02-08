@@ -15,7 +15,7 @@ import { DeleteWineButton } from "@/components/admin/delete-wine-button";
 import type { Wine } from "@/lib/actions/wines";
 import { ChevronDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { BulkMarginUpdater } from "./bulk-margin-updater";
+import { BulkEditsModal } from "./bulk-edits-modal";
 
 const colorColors: Record<string, string> = {
   red: "bg-red-100 text-red-800",
@@ -39,14 +39,18 @@ function extractGrapes(wines: Wine[]): string[] {
   return Array.from(set).sort((a, b) => a.localeCompare(b));
 }
 
-export function AdminWinesContent({ 
-  wines, 
-  initialMargin, 
-  isMixed 
-}: { 
+export function AdminWinesContent({
+  wines,
+  initialMargin,
+  isMixed,
+  initialB2BMargin,
+  isB2BMixed,
+}: {
   wines: Wine[];
   initialMargin: number | null;
   isMixed: boolean;
+  initialB2BMargin: number | null;
+  isB2BMixed: boolean;
 }) {
   const [ap, setAp] = useQueryState("ap", parseAsArrayOf(parseAsString).withDefault([]));
   const [ac, setAc] = useQueryState("ac", parseAsArrayOf(parseAsString).withDefault([]));
@@ -206,13 +210,17 @@ export function AdminWinesContent({
 
   return (
     <div className="space-y-4">
-      {/* Bulk Margin Updater - only applies to filtered wines */}
-      <BulkMarginUpdater 
-        initialMargin={initialMargin} 
-        isMixed={isMixed}
-        filteredWineIds={filteredWines.map(w => w.id)}
-        hasActiveFilters={filterCount > 0}
-      />
+      {/* Bulk edits button - opens modal for B2C and B2B margin updates */}
+      <div className="flex justify-end">
+        <BulkEditsModal
+          initialMargin={initialMargin}
+          isMixed={isMixed}
+          initialB2BMargin={initialB2BMargin}
+          isB2BMixed={isB2BMixed}
+          filteredWineIds={filteredWines.map((w) => w.id)}
+          hasActiveFilters={filterCount > 0}
+        />
+      </div>
 
       {/* Filter bar - matching shop page design */}
       <div className="flex flex-wrap items-start gap-4">
@@ -410,7 +418,8 @@ export function AdminWinesContent({
                   <th className="text-left p-3 font-medium text-sm text-gray-600">Producer</th>
                   <th className="text-left p-3 font-medium text-sm text-gray-600">Color</th>
                   <th className="text-left p-3 font-medium text-sm text-gray-600">Price</th>
-                  <th className="text-left p-3 font-medium text-sm text-gray-600">Margin</th>
+                  <th className="text-left p-3 font-medium text-sm text-gray-600">B2C %</th>
+                  <th className="text-left p-3 font-medium text-sm text-gray-600">B2B %</th>
                   <th className="text-left p-3 font-medium text-sm text-gray-600">Handle</th>
                   <th className="text-left p-3 font-medium text-sm text-gray-600">Actions</th>
                 </tr>
@@ -462,6 +471,11 @@ export function AdminWinesContent({
                         : wine.margin_percentage 
                           ? `${Number(wine.margin_percentage).toFixed(1)}%`
                           : "—"}
+                    </td>
+                    <td className="p-3 text-sm text-gray-500">
+                      {(wine as any).b2b_margin_percentage != null
+                        ? `${Number((wine as any).b2b_margin_percentage).toFixed(1)}%`
+                        : "—"}
                     </td>
                     <td className="p-3 text-sm text-gray-500 font-mono">{wine.handle}</td>
                     <td className="p-3">

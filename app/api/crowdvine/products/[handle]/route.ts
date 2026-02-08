@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getAppUrl } from "@/lib/app-url";
+import { calculateB2BPriceExclVat } from "@/lib/price-breakdown";
 
 export async function GET(
   _: Request,
@@ -170,6 +171,7 @@ export async function GET(
         exchange_rate,
         alcohol_tax_cents,
         margin_percentage,
+        b2b_margin_percentage,
         label_image_path,
         producer_id,
         description,
@@ -353,6 +355,20 @@ export async function GET(
       exchangeRate: i.exchange_rate || 1,
       alcoholTaxCents: i.alcohol_tax_cents || 0,
       marginPercentage: i.margin_percentage || 0,
+      b2bMarginPercentage: i.b2b_margin_percentage ?? undefined,
+      b2bPriceExclVat:
+        i.b2b_margin_percentage != null &&
+        i.b2b_margin_percentage >= 0 &&
+        i.b2b_margin_percentage < 100
+          ? Math.round(
+              calculateB2BPriceExclVat(
+                i.cost_amount || 0,
+                i.exchange_rate || 1,
+                i.alcohol_tax_cents || 0,
+                i.b2b_margin_percentage,
+              ) * 100,
+            ) / 100
+          : undefined,
     },
   };
 

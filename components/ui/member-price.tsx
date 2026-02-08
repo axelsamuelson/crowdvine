@@ -9,6 +9,8 @@ interface MemberPriceProps {
   currencyCode: string;
   className?: string;
   showBadge?: boolean;
+  /** When set and in B2B mode, use this exkl moms price instead of deriving from amount */
+  priceExclVatOverride?: number;
 }
 
 export function MemberPrice({
@@ -16,6 +18,7 @@ export function MemberPrice({
   currencyCode,
   className = "",
   showBadge = false,
+  priceExclVatOverride,
 }: MemberPriceProps) {
   const { discountPercentage, level, loading } = useMembership();
   const showExclVat = useB2BPriceMode();
@@ -27,7 +30,10 @@ export function MemberPrice({
 
   const originalPrice =
     typeof amount === "string" ? parseFloat(amount) : amount;
-  const displayPrice = showExclVat ? priceExclVat(originalPrice) : originalPrice;
+  const displayPrice =
+    showExclVat
+      ? (priceExclVatOverride ?? priceExclVat(originalPrice))
+      : originalPrice;
   const hasDiscount = discountPercentage > 0;
   const discountedPrice = hasDiscount
     ? displayPrice * (1 - discountPercentage / 100)

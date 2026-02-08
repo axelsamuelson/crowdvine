@@ -159,7 +159,11 @@ export type Product = {
     exchangeRate: number;
     alcoholTaxCents: number;
     marginPercentage: number;
+    b2bMarginPercentage?: number;
+    b2bPriceExclVat?: number;
   };
+  /** B2B price exkl moms when b2b_margin_percentage is set (from list API) */
+  b2bPriceExclVat?: number;
 };
 
 export type ProductSortKey =

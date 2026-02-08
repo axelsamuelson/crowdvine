@@ -126,6 +126,10 @@ export function InviteProductModal({
                       }
                       className="text-xl font-semibold"
                       showBadge={showExclVat}
+                      priceExclVatOverride={
+                        product.priceBreakdown?.b2bPriceExclVat ??
+                        (product as any).b2bPriceExclVat
+                      }
                     />
                   </div>
 
@@ -194,15 +198,47 @@ export function InviteProductModal({
                       </h3>
                       {(() => {
                         try {
+                          const pb = product.priceBreakdown;
+                          const b2bPrice =
+                            pb.b2bPriceExclVat ??
+                            (product as any).b2bPriceExclVat;
+
+                          if (showExclVat && b2bPrice != null && pb.b2bMarginPercentage != null) {
+                            const costAmountInSek = pb.costAmount * pb.exchangeRate;
+                            const alcoholTaxInSek = (pb.alcoholTaxCents || 0) / 100;
+                            const costInSek = costAmountInSek + alcoholTaxInSek;
+                            const margin = b2bPrice - costInSek;
+                            const items = [
+                              { label: "Cost", val: costAmountInSek },
+                              { label: "Alcohol tax", val: alcoholTaxInSek },
+                              { label: "Margin", val: margin },
+                            ];
+                            return (
+                              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                                {items.map(({ label, val }) => (
+                                  <span key={label}>
+                                    {label}:{" "}
+                                    <span className="font-medium text-foreground">
+                                      {formatCurrency(val)}
+                                    </span>
+                                  </span>
+                                ))}
+                                <span>
+                                  Total exkl. moms:{" "}
+                                  <span className="font-medium text-foreground">
+                                    {formatCurrency(b2bPrice)}
+                                  </span>
+                                </span>
+                              </div>
+                            );
+                          }
+
                           const b = calculatePriceBreakdown(
                             {
-                              cost_amount: product.priceBreakdown.costAmount,
-                              exchange_rate:
-                                product.priceBreakdown.exchangeRate,
-                              alcohol_tax_cents:
-                                product.priceBreakdown.alcoholTaxCents,
-                              margin_percentage:
-                                product.priceBreakdown.marginPercentage,
+                              cost_amount: pb.costAmount,
+                              exchange_rate: pb.exchangeRate,
+                              alcohol_tax_cents: pb.alcoholTaxCents,
+                              margin_percentage: pb.marginPercentage,
                               base_price_cents:
                                 Number(
                                   product.priceRange.minVariantPrice.amount
