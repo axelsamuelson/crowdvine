@@ -11,6 +11,9 @@ import { MemberPrice } from "@/components/ui/member-price";
 import { StockBadge } from "@/components/product/stock-badge";
 import { ArrowRightIcon } from "lucide-react";
 import { useProductPrice } from "@/lib/hooks/use-product-price";
+import { calculatePriceBreakdown, calculateB2BPriceBreakdown } from "@/lib/price-breakdown";
+import { useMembership } from "@/lib/context/membership-context";
+import { useMemo } from "react";
 
 interface BrowseProductCardProps {
   product: Product;
@@ -28,10 +31,53 @@ export const BrowseProductCard = memo(
     const showExclVat = useB2BPriceMode();
     const isWineBox = product.productType === "wine-box";
     const discountInfo = (product as any).discountInfo;
+    const { discountPercentage, loading: membershipLoading } = useMembership();
     
     // Get both producer and warehouse prices for B2B sites
     const producerBreakdown = useProductPrice(product, "producer");
     const warehouseBreakdown = useProductPrice(product, "warehouse");
+    
+    // Fallback: Calculate prices directly if hooks return null but we have priceBreakdown
+    const fallbackProducerPrice = useMemo(() => {
+      if (producerBreakdown || !product.priceBreakdown || !product.priceRange?.minVariantPrice) {
+        return null;
+      }
+      try {
+        const breakdown = calculatePriceBreakdown(
+          {
+            cost_amount: product.priceBreakdown.costAmount,
+            exchange_rate: product.priceBreakdown.exchangeRate,
+            alcohol_tax_cents: product.priceBreakdown.alcoholTaxCents,
+            margin_percentage: product.priceBreakdown.marginPercentage,
+            base_price_cents: Number(product.priceRange.minVariantPrice.amount) * 100,
+          },
+          membershipLoading ? 0 : discountPercentage,
+        );
+        return breakdown.total / 1.25; // Convert to exkl. moms
+      } catch {
+        return null;
+      }
+    }, [producerBreakdown, product.priceBreakdown, product.priceRange?.minVariantPrice, discountPercentage, membershipLoading]);
+    
+    const fallbackWarehousePrice = useMemo(() => {
+      if (warehouseBreakdown || !product.priceBreakdown?.b2bPriceExclVat || !product.priceBreakdown?.b2bMarginPercentage) {
+        return null;
+      }
+      try {
+        const breakdown = calculateB2BPriceBreakdown(
+          product.priceBreakdown.b2bPriceExclVat,
+          product.priceBreakdown.costAmount,
+          product.priceBreakdown.exchangeRate,
+          product.priceBreakdown.alcoholTaxCents,
+          product.priceBreakdown.b2bMarginPercentage,
+          membershipLoading ? 0 : discountPercentage,
+          product.priceBreakdown.b2bShippingPerBottleSek ?? 0,
+        );
+        return breakdown.total;
+      } catch {
+        return null;
+      }
+    }, [warehouseBreakdown, product.priceBreakdown, discountPercentage, membershipLoading]);
 
     const content = (
       <>
@@ -92,7 +138,7 @@ export const BrowseProductCard = memo(
                 {showExclVat ? (
                   <>
                     {/* Always show producer price on B2B sites if available */}
-                    {producerBreakdown ? (
+                    {(producerBreakdown || fallbackProducerPrice) ? (
                       <div className="flex flex-col items-end">
                         <span className="text-[8px] md:text-[9px] text-muted-foreground font-normal leading-tight">
                           Shipped from producer
@@ -101,13 +147,17 @@ export const BrowseProductCard = memo(
                           amount={product.priceRange.minVariantPrice.amount}
                           currencyCode={product.priceRange.minVariantPrice.currencyCode}
                           className="text-xs md:text-sm uppercase 2xl:text-base"
-                          calculatedTotalPrice={producerBreakdown.total / 1.25}
+                          calculatedTotalPrice={
+                            producerBreakdown 
+                              ? producerBreakdown.total / 1.25 
+                              : fallbackProducerPrice!
+                          }
                           forceShowExclVat={true}
                         />
                       </div>
                     ) : null}
                     {/* Always show warehouse price on B2B sites if available */}
-                    {warehouseBreakdown ? (
+                    {(warehouseBreakdown || fallbackWarehousePrice) ? (
                       <div className="flex flex-col items-end">
                         <span className="text-[8px] md:text-[9px] text-muted-foreground font-normal leading-tight">
                           Shipped from warehouse
@@ -116,13 +166,17 @@ export const BrowseProductCard = memo(
                           amount={product.priceRange.minVariantPrice.amount}
                           currencyCode={product.priceRange.minVariantPrice.currencyCode}
                           className="text-xs md:text-sm uppercase 2xl:text-base"
-                          calculatedTotalPrice={warehouseBreakdown.total}
+                          calculatedTotalPrice={
+                            warehouseBreakdown 
+                              ? warehouseBreakdown.total 
+                              : fallbackWarehousePrice!
+                          }
                           forceShowExclVat={true}
                         />
                       </div>
                     ) : null}
-                    {/* Fallback if neither breakdown is available */}
-                    {!producerBreakdown && !warehouseBreakdown && (
+                    {/* Fallback if neither price is available */}
+                    {!producerBreakdown && !warehouseBreakdown && !fallbackProducerPrice && !fallbackWarehousePrice && (
                       <MemberPrice
                         amount={product.priceRange.minVariantPrice.amount}
                         currencyCode={product.priceRange.minVariantPrice.currencyCode}
