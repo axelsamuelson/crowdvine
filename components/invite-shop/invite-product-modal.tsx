@@ -6,6 +6,7 @@ import { X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MemberPrice } from "@/components/ui/member-price";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
+import { useProductPrice } from "@/lib/hooks/use-product-price";
 import Prose from "@/components/prose";
 import { SimpleProductImage } from "./simple-product-image";
 import { calculatePriceBreakdown, formatCurrency } from "@/lib/price-breakdown";
@@ -25,6 +26,10 @@ export function InviteProductModal({
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(false);
   const showExclVat = useB2BPriceMode();
+  
+  // Get both producer and warehouse prices for B2B sites
+  const producerBreakdown = product ? useProductPrice(product, "producer") : null;
+  const warehouseBreakdown = product ? useProductPrice(product, "warehouse") : null;
 
   useEffect(() => {
     const onEscape = (e: KeyboardEvent) => {
@@ -118,19 +123,52 @@ export function InviteProductModal({
                     </p>
                   )}
 
-                  <div className="flex items-baseline gap-3 mb-6">
-                    <MemberPrice
-                      amount={product.priceRange.minVariantPrice.amount}
-                      currencyCode={
-                        product.priceRange.minVariantPrice.currencyCode
-                      }
-                      className="text-xl font-semibold"
-                      showBadge={showExclVat}
-                      priceExclVatOverride={
-                        product.priceBreakdown?.b2bPriceExclVat ??
-                        (product as any).b2bPriceExclVat
-                      }
-                    />
+                  <div className="flex flex-col gap-2 mb-6">
+                    {showExclVat && producerBreakdown && warehouseBreakdown ? (
+                      <>
+                        <div className="flex flex-col">
+                          <span className="text-xs text-muted-foreground mb-1">
+                            Producer
+                          </span>
+                          <MemberPrice
+                            amount={product.priceRange.minVariantPrice.amount}
+                            currencyCode={
+                              product.priceRange.minVariantPrice.currencyCode
+                            }
+                            className="text-xl font-semibold"
+                            calculatedTotalPrice={producerBreakdown.total / 1.25}
+                            forceShowExclVat={true}
+                          />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-xs text-muted-foreground mb-1">
+                            Warehouse
+                          </span>
+                          <MemberPrice
+                            amount={product.priceRange.minVariantPrice.amount}
+                            currencyCode={
+                              product.priceRange.minVariantPrice.currencyCode
+                            }
+                            className="text-xl font-semibold"
+                            calculatedTotalPrice={warehouseBreakdown.total}
+                            forceShowExclVat={true}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <MemberPrice
+                        amount={product.priceRange.minVariantPrice.amount}
+                        currencyCode={
+                          product.priceRange.minVariantPrice.currencyCode
+                        }
+                        className="text-xl font-semibold"
+                        showBadge={showExclVat}
+                        priceExclVatOverride={
+                          product.priceBreakdown?.b2bPriceExclVat ??
+                          (product as any).b2bPriceExclVat
+                        }
+                      />
+                    )}
                   </div>
 
                   {/* Färg & Druvor */}

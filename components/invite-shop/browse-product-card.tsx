@@ -11,6 +11,8 @@ import { MemberPrice } from "@/components/ui/member-price";
 import { StockBadge } from "@/components/product/stock-badge";
 import { priceExclVat } from "@/lib/shopify/utils";
 import { ArrowRightIcon } from "lucide-react";
+import { useProductPrice } from "@/lib/hooks/use-product-price";
+import { formatPrice } from "@/lib/shopify/utils";
 
 interface BrowseProductCardProps {
   product: Product;
@@ -28,6 +30,10 @@ export const BrowseProductCard = memo(
     const showExclVat = useB2BPriceMode();
     const isWineBox = product.productType === "wine-box";
     const discountInfo = (product as any).discountInfo;
+    
+    // Get both producer and warehouse prices for B2B sites
+    const producerBreakdown = useProductPrice(product, "producer");
+    const warehouseBreakdown = useProductPrice(product, "warehouse");
 
     const content = (
       <>
@@ -83,16 +89,45 @@ export const BrowseProductCard = memo(
                 className="mt-0.5"
               />
             </div>
-            <div className="flex gap-2 items-center text-xs md:text-sm uppercase 2xl:text-base">
-              <MemberPrice
-                amount={product.priceRange.minVariantPrice.amount}
-                currencyCode={product.priceRange.minVariantPrice.currencyCode}
-                className="text-xs md:text-sm uppercase 2xl:text-base"
-                priceExclVatOverride={
-                  (product as any).b2bPriceExclVat ??
-                  (product as any).priceBreakdown?.b2bPriceExclVat
-                }
-              />
+            <div className="flex flex-col gap-1 items-end text-xs md:text-sm uppercase 2xl:text-base">
+              {showExclVat && producerBreakdown && warehouseBreakdown ? (
+                <>
+                  <div className="flex flex-col items-end">
+                    <span className="text-[9px] md:text-[10px] text-muted-foreground font-normal">
+                      Producer
+                    </span>
+                    <MemberPrice
+                      amount={product.priceRange.minVariantPrice.amount}
+                      currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                      className="text-xs md:text-sm uppercase 2xl:text-base"
+                      calculatedTotalPrice={producerBreakdown.total / 1.25}
+                      forceShowExclVat={true}
+                    />
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <span className="text-[9px] md:text-[10px] text-muted-foreground font-normal">
+                      Warehouse
+                    </span>
+                    <MemberPrice
+                      amount={product.priceRange.minVariantPrice.amount}
+                      currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                      className="text-xs md:text-sm uppercase 2xl:text-base"
+                      calculatedTotalPrice={warehouseBreakdown.total}
+                      forceShowExclVat={true}
+                    />
+                  </div>
+                </>
+              ) : (
+                <MemberPrice
+                  amount={product.priceRange.minVariantPrice.amount}
+                  currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                  className="text-xs md:text-sm uppercase 2xl:text-base"
+                  priceExclVatOverride={
+                    (product as any).b2bPriceExclVat ??
+                    (product as any).priceBreakdown?.b2bPriceExclVat
+                  }
+                />
+              )}
               {isWineBox && discountInfo && (
                 <span className="line-through opacity-30 text-[10px] md:text-xs text-muted-foreground">
                   {formatPrice(

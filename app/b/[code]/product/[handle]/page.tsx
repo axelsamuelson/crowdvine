@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { MemberPrice } from "@/components/ui/member-price";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
+import { useProductPrice } from "@/lib/hooks/use-product-price";
 import { StockBadge } from "@/components/product/stock-badge";
 import Prose from "@/components/prose";
 import { SimpleProductImage } from "@/components/invite-shop/simple-product-image";
@@ -25,6 +26,10 @@ export default function InviteProductPage() {
   const [error, setError] = useState<string | null>(null);
 
   const showExclVat = useB2BPriceMode();
+  
+  // Get both producer and warehouse prices for B2B sites
+  const producerBreakdown = product ? useProductPrice(product, "producer") : null;
+  const warehouseBreakdown = product ? useProductPrice(product, "warehouse") : null;
 
   useEffect(() => {
     let cancelled = false;
@@ -131,17 +136,46 @@ export default function InviteProductPage() {
               className="mb-4"
             />
 
-            <div className="flex items-baseline gap-3 mb-4">
-              <MemberPrice
-                amount={product.priceRange.minVariantPrice.amount}
-                currencyCode={product.priceRange.minVariantPrice.currencyCode}
-                className="text-xl font-semibold"
-                showBadge={showExclVat}
-                priceExclVatOverride={
-                  product.priceBreakdown?.b2bPriceExclVat ??
-                  (product as any).b2bPriceExclVat
-                }
-              />
+            <div className="flex flex-col gap-2 mb-4">
+              {showExclVat && producerBreakdown && warehouseBreakdown ? (
+                <>
+                  <div className="flex flex-col">
+                    <span className="text-xs text-muted-foreground mb-1">
+                      Producer
+                    </span>
+                    <MemberPrice
+                      amount={product.priceRange.minVariantPrice.amount}
+                      currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                      className="text-xl font-semibold"
+                      calculatedTotalPrice={producerBreakdown.total / 1.25}
+                      forceShowExclVat={true}
+                    />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs text-muted-foreground mb-1">
+                      Warehouse
+                    </span>
+                    <MemberPrice
+                      amount={product.priceRange.minVariantPrice.amount}
+                      currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                      className="text-xl font-semibold"
+                      calculatedTotalPrice={warehouseBreakdown.total}
+                      forceShowExclVat={true}
+                    />
+                  </div>
+                </>
+              ) : (
+                <MemberPrice
+                  amount={product.priceRange.minVariantPrice.amount}
+                  currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                  className="text-xl font-semibold"
+                  showBadge={showExclVat}
+                  priceExclVatOverride={
+                    product.priceBreakdown?.b2bPriceExclVat ??
+                    (product as any).b2bPriceExclVat
+                  }
+                />
+              )}
             </div>
             {showExclVat &&
               product.priceBreakdown?.b2bPriceExclVat != null &&
