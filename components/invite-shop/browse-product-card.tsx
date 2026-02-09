@@ -143,14 +143,41 @@ export const BrowseProductCard = memo(
               />
             </div>
             {product.priceRange && (
-              <div className="flex flex-col gap-1 items-end text-xs md:text-sm uppercase 2xl:text-base">
+              <div className="flex flex-col gap-0.5 items-end text-xs md:text-sm uppercase 2xl:text-base">
                 {showExclVat ? (
                   <>
-                    {/* Always show producer price on B2B sites if available */}
-                    {calculatedProducerPrice ? (
-                      <div className="flex flex-col items-end">
-                        <span className="text-[8px] md:text-[9px] text-muted-foreground font-normal leading-tight">
-                          Shipped from producer
+                    {/* Show both prices in a compact layout */}
+                    {calculatedProducerPrice && calculatedWarehousePrice ? (
+                      <div className="flex flex-col items-end gap-0.5">
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-[7px] md:text-[8px] text-muted-foreground/70 font-normal leading-none">
+                            Producer
+                          </span>
+                          <MemberPrice
+                            amount={product.priceRange.minVariantPrice.amount}
+                            currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                            className="text-xs md:text-sm uppercase 2xl:text-base"
+                            calculatedTotalPrice={calculatedProducerPrice}
+                            forceShowExclVat={true}
+                          />
+                        </div>
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-[7px] md:text-[8px] text-muted-foreground/70 font-normal leading-none">
+                            Warehouse
+                          </span>
+                          <MemberPrice
+                            amount={product.priceRange.minVariantPrice.amount}
+                            currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                            className="text-xs md:text-sm uppercase 2xl:text-base"
+                            calculatedTotalPrice={calculatedWarehousePrice}
+                            forceShowExclVat={true}
+                          />
+                        </div>
+                      </div>
+                    ) : calculatedProducerPrice ? (
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-[7px] md:text-[8px] text-muted-foreground/70 font-normal leading-none">
+                          Producer
                         </span>
                         <MemberPrice
                           amount={product.priceRange.minVariantPrice.amount}
@@ -160,12 +187,10 @@ export const BrowseProductCard = memo(
                           forceShowExclVat={true}
                         />
                       </div>
-                    ) : null}
-                    {/* Always show warehouse price on B2B sites if available */}
-                    {calculatedWarehousePrice ? (
-                      <div className="flex flex-col items-end">
-                        <span className="text-[8px] md:text-[9px] text-muted-foreground font-normal leading-tight">
-                          Shipped from warehouse
+                    ) : calculatedWarehousePrice ? (
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-[7px] md:text-[8px] text-muted-foreground/70 font-normal leading-none">
+                          Warehouse
                         </span>
                         <MemberPrice
                           amount={product.priceRange.minVariantPrice.amount}
@@ -175,9 +200,7 @@ export const BrowseProductCard = memo(
                           forceShowExclVat={true}
                         />
                       </div>
-                    ) : null}
-                    {/* Fallback if neither price is available */}
-                    {!calculatedProducerPrice && !calculatedWarehousePrice && (
+                    ) : (
                       <MemberPrice
                         amount={product.priceRange.minVariantPrice.amount}
                         currencyCode={product.priceRange.minVariantPrice.currencyCode}
