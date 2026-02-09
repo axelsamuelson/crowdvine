@@ -37,12 +37,17 @@ export const BrowseProductCard = memo(
     const producerBreakdown = useProductPrice(product, "producer");
     const warehouseBreakdown = useProductPrice(product, "warehouse");
     
-    // Fallback: Calculate prices directly if hooks return null but we have priceBreakdown
-    const fallbackProducerPrice = useMemo(() => {
-      if (producerBreakdown || !product.priceBreakdown || !product.priceRange?.minVariantPrice) {
+    // Calculate prices directly from priceBreakdown to ensure they're always available
+    // This ensures both prices show even if useProductPrice returns null (e.g., during hydration)
+    const calculatedProducerPrice = useMemo(() => {
+      if (!product.priceBreakdown || !product.priceRange?.minVariantPrice) {
         return null;
       }
       try {
+        // Use breakdown from hook if available, otherwise calculate directly
+        if (producerBreakdown) {
+          return producerBreakdown.total / 1.25; // Convert from inkl. moms to exkl. moms
+        }
         const breakdown = calculatePriceBreakdown(
           {
             cost_amount: product.priceBreakdown.costAmount,
@@ -59,11 +64,15 @@ export const BrowseProductCard = memo(
       }
     }, [producerBreakdown, product.priceBreakdown, product.priceRange?.minVariantPrice, discountPercentage, membershipLoading]);
     
-    const fallbackWarehousePrice = useMemo(() => {
-      if (warehouseBreakdown || !product.priceBreakdown?.b2bPriceExclVat || !product.priceBreakdown?.b2bMarginPercentage) {
+    const calculatedWarehousePrice = useMemo(() => {
+      if (!product.priceBreakdown?.b2bPriceExclVat || !product.priceBreakdown?.b2bMarginPercentage) {
         return null;
       }
       try {
+        // Use breakdown from hook if available, otherwise calculate directly
+        if (warehouseBreakdown) {
+          return warehouseBreakdown.total;
+        }
         const breakdown = calculateB2BPriceBreakdown(
           product.priceBreakdown.b2bPriceExclVat,
           product.priceBreakdown.costAmount,
@@ -138,7 +147,7 @@ export const BrowseProductCard = memo(
                 {showExclVat ? (
                   <>
                     {/* Always show producer price on B2B sites if available */}
-                    {(producerBreakdown || fallbackProducerPrice) ? (
+                    {calculatedProducerPrice ? (
                       <div className="flex flex-col items-end">
                         <span className="text-[8px] md:text-[9px] text-muted-foreground font-normal leading-tight">
                           Shipped from producer
@@ -147,17 +156,13 @@ export const BrowseProductCard = memo(
                           amount={product.priceRange.minVariantPrice.amount}
                           currencyCode={product.priceRange.minVariantPrice.currencyCode}
                           className="text-xs md:text-sm uppercase 2xl:text-base"
-                          calculatedTotalPrice={
-                            producerBreakdown 
-                              ? producerBreakdown.total / 1.25 
-                              : fallbackProducerPrice!
-                          }
+                          calculatedTotalPrice={calculatedProducerPrice}
                           forceShowExclVat={true}
                         />
                       </div>
                     ) : null}
                     {/* Always show warehouse price on B2B sites if available */}
-                    {(warehouseBreakdown || fallbackWarehousePrice) ? (
+                    {calculatedWarehousePrice ? (
                       <div className="flex flex-col items-end">
                         <span className="text-[8px] md:text-[9px] text-muted-foreground font-normal leading-tight">
                           Shipped from warehouse
@@ -166,17 +171,13 @@ export const BrowseProductCard = memo(
                           amount={product.priceRange.minVariantPrice.amount}
                           currencyCode={product.priceRange.minVariantPrice.currencyCode}
                           className="text-xs md:text-sm uppercase 2xl:text-base"
-                          calculatedTotalPrice={
-                            warehouseBreakdown 
-                              ? warehouseBreakdown.total 
-                              : fallbackWarehousePrice!
-                          }
+                          calculatedTotalPrice={calculatedWarehousePrice}
                           forceShowExclVat={true}
                         />
                       </div>
                     ) : null}
                     {/* Fallback if neither price is available */}
-                    {!producerBreakdown && !warehouseBreakdown && !fallbackProducerPrice && !fallbackWarehousePrice && (
+                    {!calculatedProducerPrice && !calculatedWarehousePrice && (
                       <MemberPrice
                         amount={product.priceRange.minVariantPrice.amount}
                         currencyCode={product.priceRange.minVariantPrice.currencyCode}

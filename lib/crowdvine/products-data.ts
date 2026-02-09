@@ -169,6 +169,7 @@ export async function fetchProductsData(params?: {
       cost_currency,
       exchange_rate,
       alcohol_tax_cents,
+      margin_percentage,
       b2b_margin_percentage,
       b2b_stock,
       label_image_path,
@@ -347,6 +348,31 @@ export async function fetchProductsData(params?: {
               ) / 100,
           }
         : {}),
+      // Add priceBreakdown for price calculations
+      priceBreakdown: {
+        costAmount: i.cost_amount || 0,
+        exchangeRate: rateMap[(i.cost_currency || "EUR") as string] ?? i.exchange_rate ?? 1,
+        alcoholTaxCents: i.alcohol_tax_cents || 0,
+        marginPercentage: i.margin_percentage || 0,
+        b2bMarginPercentage: i.b2b_margin_percentage ?? undefined,
+        b2bShippingPerBottleSek: b2bShippingMap.get(i.id) ?? undefined,
+        b2bPriceExclVat:
+          i.b2b_margin_percentage != null &&
+          i.b2b_margin_percentage >= 0 &&
+          i.b2b_margin_percentage < 100
+            ? Math.round(
+                calculateB2BPriceExclVat(
+                  i.cost_amount || 0,
+                  rateMap[(i.cost_currency || "EUR") as string] ??
+                    i.exchange_rate ??
+                    1,
+                  i.alcohol_tax_cents || 0,
+                  i.b2b_margin_percentage,
+                  b2bShippingMap.get(i.id) ?? 0,
+                ) * 100,
+              ) / 100
+            : undefined,
+      },
     };
   });
 }
