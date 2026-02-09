@@ -39,6 +39,7 @@ import {
   FileText,
 } from "lucide-react";
 import { clearZoneCache } from "@/lib/zone-matching";
+import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import {
   calculateCartShippingCost,
   formatShippingCost,
@@ -638,15 +639,19 @@ function CheckoutContent() {
         )
       : null;
 
-  // Separate producer and warehouse items
-  const producerItems = cart?.lines?.filter(
+  // Check if we're on B2B site (dirtywine.se)
+  const isB2BSite = useB2BPriceMode();
+
+  // Separate producer and warehouse items (only on B2B sites)
+  // On B2C sites (pactwines.com), all items are treated as producer items
+  const producerItems = isB2BSite ? (cart?.lines?.filter(
     (line) => line.source === "producer" || !line.source
-  ) || [];
-  const warehouseItems = cart?.lines?.filter(
+  ) || []) : (cart?.lines || []);
+  const warehouseItems = isB2BSite ? (cart?.lines?.filter(
     (line) => line.source === "warehouse"
-  ) || [];
-  const hasProducerItems = producerItems.length > 0;
-  const hasWarehouseItems = warehouseItems.length > 0;
+  ) || []) : [];
+  const hasProducerItems = isB2BSite ? producerItems.length > 0 : (cart?.lines?.length || 0) > 0;
+  const hasWarehouseItems = isB2BSite && warehouseItems.length > 0;
 
   // Calculate bottle cost and discount
   const bottleCost = cart?.lines

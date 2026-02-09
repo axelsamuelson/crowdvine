@@ -24,8 +24,13 @@ export function CartSourceProvider({ children }: { children: ReactNode }) {
 
 export function useCartSource() {
   const context = useContext(CartSourceContext);
+  // On B2C sites (pactwines.com), CartSourceProvider is not used
+  // Return default "producer" source to avoid errors
   if (!context) {
-    throw new Error("useCartSource must be used within CartSourceProvider");
+    return {
+      selectedSource: "producer" as CartSource,
+      setSelectedSource: () => {}, // No-op on B2C sites
+    };
   }
   return context;
 }

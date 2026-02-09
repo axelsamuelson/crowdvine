@@ -3,6 +3,8 @@ import { CartService } from "@/src/lib/cart-service";
 import { supabaseServer, getCurrentUser } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { determineZones } from "@/lib/zone-matching";
+import { isB2BHost } from "@/lib/b2b-site";
+import { headers } from "next/headers";
 import {
   awardPointsForOwnOrder,
   awardPointsForInviteSecondOrder,
@@ -126,18 +128,24 @@ export async function POST(request: Request) {
     const sb = await supabaseServer();
     const sbAdmin = getSupabaseAdmin();
 
-    // Separate producer and warehouse items
-    const producerItems = (cart.lines || []).filter(
-      (line: any) => line.source === "producer" || !line.source
-    );
-    const warehouseItems = (cart.lines || []).filter(
-      (line: any) => line.source === "warehouse"
-    );
-    const hasProducerItems = producerItems.length > 0;
-    const hasWarehouseItems = warehouseItems.length > 0;
+    // Check if we're on B2B site (dirtywine.se)
+    const h = await headers();
+    const host = h.get("x-forwarded-host") ?? h.get("host");
+    const isB2BSite = isB2BHost(host);
 
-    // Get payment method type (only for warehouse orders)
-    const paymentMethodType = (body.paymentMethodType as "card" | "invoice") || "card";
+    // Separate producer and warehouse items (only on B2B sites)
+    // On B2C sites (pactwines.com), all items are treated as producer items
+    const producerItems = isB2BSite ? (cart.lines || []).filter(
+      (line: any) => line.source === "producer" || !line.source
+    ) : (cart.lines || []);
+    const warehouseItems = isB2BSite ? (cart.lines || []).filter(
+      (line: any) => line.source === "warehouse"
+    ) : [];
+    const hasProducerItems = isB2BSite ? producerItems.length > 0 : cart.lines.length > 0;
+    const hasWarehouseItems = isB2BSite && warehouseItems.length > 0;
+
+    // Get payment method type (only for warehouse orders on B2B sites)
+    const paymentMethodType = isB2BSite ? ((body.paymentMethodType as "card" | "invoice") || "card") : "card";
 
     // Producer approval flow: this reservation must belong to a single producer.
     // (Only required for producer orders, not warehouse orders)

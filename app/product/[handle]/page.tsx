@@ -19,7 +19,7 @@ import {
 import Link from "next/link";
 import { SidebarLinks } from "@/components/layout/sidebar/product-sidebar-links";
 import { AddToCart, AddToCartButton } from "@/components/cart/add-to-cart";
-import { AddToCartWithSource } from "@/components/cart/add-to-cart-with-source";
+import { AddToCartConditional } from "@/components/cart/add-to-cart-conditional";
 import { storeCatalog } from "@/lib/shopify/constants";
 import Prose from "@/components/prose";
 import { formatPrice } from "@/lib/shopify/utils";
@@ -35,7 +35,7 @@ import { DesktopGalleryWrapper } from "./components/desktop-gallery-wrapper";
 import { WineBoxDiscountInfo } from "@/components/products/wine-box-discount-info";
 import { ProductViewTracker } from "./components/product-view-tracker";
 import { StockBadge } from "@/components/product/stock-badge";
-import { CartSourceProvider } from "@/components/cart/cart-source-context";
+import { CartSourceProviderConditional } from "@/components/cart/cart-source-provider-conditional";
 
 // Generate static params for all products at build time
 export async function generateStaticParams() {
@@ -121,7 +121,7 @@ export default async function ProductPage(props: {
   const hasEvenOptions = product.options.length % 2 === 0;
 
   return (
-    <CartSourceProvider>
+    <CartSourceProviderConditional>
       <PageLayout className="bg-muted" noPadding={true}>
       <script
         type="application/ld+json"
@@ -223,7 +223,7 @@ export default async function ProductPage(props: {
 
                 {/* Add to Cart placed under producer name inside the white box */}
                 <div className="col-span-full w-full mt-4">
-                  <AddToCartWithSource product={product} className="w-full" />
+                  <AddToCartConditional product={product} className="w-full" />
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -258,6 +258,6 @@ export default async function ProductPage(props: {
         </DesktopGalleryWrapper>
       </div>
     </PageLayout>
-    </CartSourceProvider>
+    </CartSourceProviderConditional>
   );
 }
