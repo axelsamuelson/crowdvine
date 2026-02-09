@@ -15,6 +15,7 @@ import { Collection } from "@/lib/shopify/types";
 import { CompleteOrderRail } from "@/components/cart/complete-order-rail";
 import { useUserRole } from "@/lib/hooks/use-user-role";
 import { usePortalAccess } from "@/lib/hooks/use-portal-access";
+import { useAdminStatus } from "@/lib/hooks/use-admin-status";
 
 export const navItems: NavItem[] = [
   {
@@ -35,6 +36,7 @@ export function Header({ collections }: HeaderProps) {
   const pathname = usePathname();
   const { role } = useUserRole();
   const { showPortalToggle, isB2BOnly, loading } = usePortalAccess();
+  const { isAdmin } = useAdminStatus();
 
   // B2B-only users: redirect from pactwines.com to dirtywine.se
   useEffect(() => {
@@ -92,6 +94,22 @@ export function Header({ collections }: HeaderProps) {
                   prefetch
                 >
                   producer
+                </Link>
+              </li>
+            )}
+            {isAdmin && (
+              <li>
+                <Link
+                  href="/admin"
+                  className={cn(
+                    "font-semibold text-base transition-colors duration-200 uppercase",
+                    pathname?.startsWith("/admin")
+                      ? "text-foreground"
+                      : "text-foreground/50",
+                  )}
+                  prefetch
+                >
+                  admin
                 </Link>
               </li>
             )}

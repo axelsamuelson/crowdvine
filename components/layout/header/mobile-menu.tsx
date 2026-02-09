@@ -11,7 +11,9 @@ import { useMobileMenu } from "@/components/layout/header/mobile-menu-context";
 import { Factory, User } from "lucide-react";
 import { useUserRole } from "@/lib/hooks/use-user-role";
 import { usePortalAccess } from "@/lib/hooks/use-portal-access";
+import { useAdminStatus } from "@/lib/hooks/use-admin-status";
 import { PortalToggle } from "./portal-toggle";
+import { Shield } from "lucide-react";
 
 const navItems = [
   { href: "/shop", label: "Shop" },
@@ -25,6 +27,7 @@ export function MobileMenu({ collections }: { collections: any[] }) {
   const pathname = usePathname();
   const { role } = useUserRole();
   const { showPortalToggle } = usePortalAccess();
+  const { isAdmin } = useAdminStatus();
   const [isClient, setIsClient] = useState(false);
 
   // Ensure animations only run on client
@@ -118,6 +121,21 @@ export function MobileMenu({ collections }: { collections: any[] }) {
                           <Link href="/producer" prefetch>
                             <Factory className="w-4 h-4 mr-2" />
                             Producer
+                          </Link>
+                        </Button>
+                      )}
+                      {isAdmin && (
+                        <Button
+                          key="/admin"
+                          size="sm"
+                          variant="secondary"
+                          onClick={closeMobileMenu}
+                          className="justify-start uppercase bg-background/50"
+                          asChild
+                        >
+                          <Link href="/admin" prefetch>
+                            <Shield className="w-4 h-4 mr-2" />
+                            Admin
                           </Link>
                         </Button>
                       )}
