@@ -57,9 +57,9 @@ export function InviteWinesSection() {
   }
 
   return (
-    <section className="py-16 px-6">
-      <div className="max-w-6xl mx-auto">
-        <ProductGrid>
+    <section className="py-16 px-3 md:px-6 w-full">
+      <div className="w-full">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4">
           {products.map((product) => (
             <BrowseProductCard
               key={product.id}
@@ -68,7 +68,7 @@ export function InviteWinesSection() {
               onProductClick={(handle) => setSelectedHandle(handle)}
             />
           ))}
-        </ProductGrid>
+        </div>
       </div>
 
       <InviteProductModal
