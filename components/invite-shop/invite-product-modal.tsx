@@ -28,8 +28,10 @@ export function InviteProductModal({
   const showExclVat = useB2BPriceMode();
   
   // Get both producer and warehouse prices for B2B sites
-  const producerBreakdown = product ? useProductPrice(product, "producer") : null;
-  const warehouseBreakdown = product ? useProductPrice(product, "warehouse") : null;
+  // Always call hooks in the same order (Rules of Hooks)
+  // useProductPrice handles null products by returning null
+  const producerBreakdown = useProductPrice(product || ({} as Product), "producer");
+  const warehouseBreakdown = useProductPrice(product || ({} as Product), "warehouse");
 
   useEffect(() => {
     const onEscape = (e: KeyboardEvent) => {
