@@ -89,9 +89,10 @@ export const BrowseProductCard = memo(
             </div>
             {product.priceRange && (
               <div className="flex flex-col gap-1 items-end text-xs md:text-sm uppercase 2xl:text-base">
-                {showExclVat && (producerBreakdown || warehouseBreakdown) ? (
+                {showExclVat ? (
                   <>
-                    {producerBreakdown && (
+                    {/* Always show producer price on B2B sites if available */}
+                    {producerBreakdown ? (
                       <div className="flex flex-col items-end">
                         <span className="text-[8px] md:text-[9px] text-muted-foreground font-normal leading-tight">
                           Shipped from producer
@@ -104,8 +105,9 @@ export const BrowseProductCard = memo(
                           forceShowExclVat={true}
                         />
                       </div>
-                    )}
-                    {warehouseBreakdown && (
+                    ) : null}
+                    {/* Always show warehouse price on B2B sites if available */}
+                    {warehouseBreakdown ? (
                       <div className="flex flex-col items-end">
                         <span className="text-[8px] md:text-[9px] text-muted-foreground font-normal leading-tight">
                           Shipped from warehouse
@@ -118,6 +120,18 @@ export const BrowseProductCard = memo(
                           forceShowExclVat={true}
                         />
                       </div>
+                    ) : null}
+                    {/* Fallback if neither breakdown is available */}
+                    {!producerBreakdown && !warehouseBreakdown && (
+                      <MemberPrice
+                        amount={product.priceRange.minVariantPrice.amount}
+                        currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                        className="text-xs md:text-sm uppercase 2xl:text-base"
+                        priceExclVatOverride={
+                          (product as any).b2bPriceExclVat ??
+                          (product as any).priceBreakdown?.b2bPriceExclVat
+                        }
+                      />
                     )}
                   </>
                 ) : (
