@@ -125,53 +125,55 @@ export function InviteProductModal({
                     </p>
                   )}
 
-                  <div className="flex flex-col gap-2 mb-6">
-                    {showExclVat && producerBreakdown && warehouseBreakdown ? (
-                      <>
-                        <div className="flex flex-col">
-                          <span className="text-xs text-muted-foreground mb-1">
-                            Producer
-                          </span>
-                          <MemberPrice
-                            amount={product.priceRange.minVariantPrice.amount}
-                            currencyCode={
-                              product.priceRange.minVariantPrice.currencyCode
-                            }
-                            className="text-xl font-semibold"
-                            calculatedTotalPrice={producerBreakdown.total / 1.25}
-                            forceShowExclVat={true}
-                          />
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-xs text-muted-foreground mb-1">
-                            Warehouse
-                          </span>
-                          <MemberPrice
-                            amount={product.priceRange.minVariantPrice.amount}
-                            currencyCode={
-                              product.priceRange.minVariantPrice.currencyCode
-                            }
-                            className="text-xl font-semibold"
-                            calculatedTotalPrice={warehouseBreakdown.total}
-                            forceShowExclVat={true}
-                          />
-                        </div>
-                      </>
-                    ) : (
-                      <MemberPrice
-                        amount={product.priceRange.minVariantPrice.amount}
-                        currencyCode={
-                          product.priceRange.minVariantPrice.currencyCode
-                        }
-                        className="text-xl font-semibold"
-                        showBadge={showExclVat}
-                        priceExclVatOverride={
-                          product.priceBreakdown?.b2bPriceExclVat ??
-                          (product as any).b2bPriceExclVat
-                        }
-                      />
-                    )}
-                  </div>
+                  {product.priceRange && (
+                    <div className="flex flex-col gap-2 mb-6">
+                      {showExclVat && producerBreakdown && warehouseBreakdown ? (
+                        <>
+                          <div className="flex flex-col">
+                            <span className="text-xs text-muted-foreground mb-1">
+                              Producer
+                            </span>
+                            <MemberPrice
+                              amount={product.priceRange.minVariantPrice.amount}
+                              currencyCode={
+                                product.priceRange.minVariantPrice.currencyCode
+                              }
+                              className="text-xl font-semibold"
+                              calculatedTotalPrice={producerBreakdown.total / 1.25}
+                              forceShowExclVat={true}
+                            />
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-xs text-muted-foreground mb-1">
+                              Warehouse
+                            </span>
+                            <MemberPrice
+                              amount={product.priceRange.minVariantPrice.amount}
+                              currencyCode={
+                                product.priceRange.minVariantPrice.currencyCode
+                              }
+                              className="text-xl font-semibold"
+                              calculatedTotalPrice={warehouseBreakdown.total}
+                              forceShowExclVat={true}
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <MemberPrice
+                          amount={product.priceRange.minVariantPrice.amount}
+                          currencyCode={
+                            product.priceRange.minVariantPrice.currencyCode
+                          }
+                          className="text-xl font-semibold"
+                          showBadge={showExclVat}
+                          priceExclVatOverride={
+                            product.priceBreakdown?.b2bPriceExclVat ??
+                            (product as any).b2bPriceExclVat
+                          }
+                        />
+                      )}
+                    </div>
+                  )}
 
                   {/* Färg & Druvor */}
                   <div className="flex flex-wrap gap-4 mb-6">
