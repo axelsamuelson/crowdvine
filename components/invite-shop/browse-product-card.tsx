@@ -89,32 +89,36 @@ export const BrowseProductCard = memo(
             </div>
             {product.priceRange && (
               <div className="flex flex-col gap-1 items-end text-xs md:text-sm uppercase 2xl:text-base">
-                {showExclVat && producerBreakdown && warehouseBreakdown ? (
+                {showExclVat && (producerBreakdown || warehouseBreakdown) ? (
                   <>
-                    <div className="flex flex-col items-end">
-                      <span className="text-[8px] md:text-[9px] text-muted-foreground font-normal leading-tight">
-                        Shipped from producer
-                      </span>
-                      <MemberPrice
-                        amount={product.priceRange.minVariantPrice.amount}
-                        currencyCode={product.priceRange.minVariantPrice.currencyCode}
-                        className="text-xs md:text-sm uppercase 2xl:text-base"
-                        calculatedTotalPrice={producerBreakdown.total / 1.25}
-                        forceShowExclVat={true}
-                      />
-                    </div>
-                    <div className="flex flex-col items-end">
-                      <span className="text-[8px] md:text-[9px] text-muted-foreground font-normal leading-tight">
-                        Shipped from warehouse
-                      </span>
-                      <MemberPrice
-                        amount={product.priceRange.minVariantPrice.amount}
-                        currencyCode={product.priceRange.minVariantPrice.currencyCode}
-                        className="text-xs md:text-sm uppercase 2xl:text-base"
-                        calculatedTotalPrice={warehouseBreakdown.total}
-                        forceShowExclVat={true}
-                      />
-                    </div>
+                    {producerBreakdown && (
+                      <div className="flex flex-col items-end">
+                        <span className="text-[8px] md:text-[9px] text-muted-foreground font-normal leading-tight">
+                          Shipped from producer
+                        </span>
+                        <MemberPrice
+                          amount={product.priceRange.minVariantPrice.amount}
+                          currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                          className="text-xs md:text-sm uppercase 2xl:text-base"
+                          calculatedTotalPrice={producerBreakdown.total / 1.25}
+                          forceShowExclVat={true}
+                        />
+                      </div>
+                    )}
+                    {warehouseBreakdown && (
+                      <div className="flex flex-col items-end">
+                        <span className="text-[8px] md:text-[9px] text-muted-foreground font-normal leading-tight">
+                          Shipped from warehouse
+                        </span>
+                        <MemberPrice
+                          amount={product.priceRange.minVariantPrice.amount}
+                          currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                          className="text-xs md:text-sm uppercase 2xl:text-base"
+                          calculatedTotalPrice={warehouseBreakdown.total}
+                          forceShowExclVat={true}
+                        />
+                      </div>
+                    )}
                   </>
                 ) : (
                   <MemberPrice
