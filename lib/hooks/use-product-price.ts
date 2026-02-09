@@ -28,7 +28,7 @@ export function useProductPrice(product: Product, source?: "producer" | "warehou
   }, []);
 
   const result = useMemo(() => {
-    if (!product.priceBreakdown || !isMounted) {
+    if (!product.priceBreakdown || !isMounted || !product.priceRange?.minVariantPrice) {
       return null;
     }
 
@@ -80,7 +80,7 @@ export function useProductPrice(product: Product, source?: "producer" | "warehou
     }
   }, [
     product.priceBreakdown,
-    product.priceRange.minVariantPrice.amount,
+    product.priceRange?.minVariantPrice?.amount,
     discountPercentage,
     loading,
     isB2B,
