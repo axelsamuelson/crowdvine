@@ -8,7 +8,7 @@ const LINE_2 = "Without middlemen and fully transparent.";
 const LINE_3 = "On producers and consumers terms, only.";
 
 const BUSINESS_LINE =
-  'The new generation of wine redefining the old "dirty" region of Languedoc.';
+  'We represent the new generation of wine redefining the old "dirty" region of Languedoc.';
 
 export function ManifestoSection({
   isBusinessOnly = false,
