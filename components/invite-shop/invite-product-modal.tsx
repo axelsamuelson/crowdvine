@@ -282,9 +282,9 @@ export function InviteProductModal({
                               alcohol_tax_cents: pb.alcoholTaxCents,
                               margin_percentage: pb.marginPercentage,
                               base_price_cents:
-                                Number(
-                                  product.priceRange.minVariantPrice.amount
-                                ) * 100,
+                                product.priceRange?.minVariantPrice?.amount
+                                  ? Number(product.priceRange.minVariantPrice.amount) * 100
+                                  : 0,
                             },
                             0
                           );
