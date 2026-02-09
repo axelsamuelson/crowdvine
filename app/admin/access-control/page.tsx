@@ -34,6 +34,7 @@ interface InvitationCode {
   id: string;
   code: string;
   email?: string;
+  name?: string;
   created_by: string;
   used_at?: string;
   used_by?: string;
@@ -51,6 +52,7 @@ export default function AccessControlAdmin() {
   const [invitationCodes, setInvitationCodes] = useState<InvitationCode[]>([]);
   const [loading, setLoading] = useState(true);
   const [newCodeEmail, setNewCodeEmail] = useState("");
+  const [newCodeName, setNewCodeName] = useState("");
   const [newCodeExpiry, setNewCodeExpiry] = useState("30");
   const [newCodeTypes, setNewCodeTypes] = useState<Set<"consumer" | "producer" | "business">>(new Set(["consumer"]));
   const [newCodeCanChange, setNewCodeCanChange] = useState(false);
@@ -258,6 +260,7 @@ export default function AccessControlAdmin() {
         },
         body: JSON.stringify({
           email: newCodeEmail || null,
+          name: newCodeName || null,
           expiryDays: parseInt(newCodeExpiry),
           allowedTypes: Array.from(newCodeTypes),
           canChangeAccountType: newCodeCanChange,
@@ -279,6 +282,7 @@ export default function AccessControlAdmin() {
       if (result.success) {
         toast.success("Invitation code created successfully");
         setNewCodeEmail("");
+        setNewCodeName("");
         setNewCodeExpiry("30");
         setNewCodeTypes(new Set(["consumer"]));
         setNewCodeCanChange(false);
@@ -344,53 +348,55 @@ export default function AccessControlAdmin() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-3 md:p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Access Control</h1>
-          <p className="text-gray-600 mt-2">
+        <div className="mb-4 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Access Control</h1>
+          <p className="text-sm md:text-base text-gray-600 mt-1 md:mt-2">
             Manage platform access requests and invitation codes
           </p>
         </div>
 
-        <Tabs defaultValue="requests" className="space-y-6">
+        <Tabs defaultValue="requests" className="space-y-4 md:space-y-6">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="requests">Access Requests</TabsTrigger>
-            <TabsTrigger value="codes">Invitation Codes</TabsTrigger>
+            <TabsTrigger value="requests" className="text-xs md:text-sm">Access Requests</TabsTrigger>
+            <TabsTrigger value="codes" className="text-xs md:text-sm">Invitation Codes</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="requests" className="space-y-6">
+          <TabsContent value="requests" className="space-y-4 md:space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Pending Access Requests</CardTitle>
+                <CardTitle className="text-lg md:text-xl">Pending Access Requests</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
+                <div className="space-y-3 md:space-y-4">
                   {accessRequests
                     .filter((req) => req.status === "pending")
                     .map((request) => (
                       <div
                         key={request.id}
-                        className="border rounded-lg p-4 space-y-3"
+                        className="border rounded-lg p-3 md:p-4 space-y-2 md:space-y-3"
                       >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">{request.email}</p>
-                            <p className="text-sm text-gray-500">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm md:text-base truncate">{request.email}</p>
+                            <p className="text-xs md:text-sm text-gray-500">
                               Requested:{" "}
                               {new Date(
                                 request.requested_at,
                               ).toLocaleDateString()}
                             </p>
                           </div>
-                          {getStatusBadge(request.status)}
+                          <div className="flex-shrink-0">
+                            {getStatusBadge(request.status)}
+                          </div>
                         </div>
 
                         {/* Membership Level Selector */}
-                        <div className="mt-3 space-y-2">
+                        <div className="mt-2 md:mt-3 space-y-2">
                           <Label
                             htmlFor={`level-${request.id}`}
-                            className="text-sm text-gray-600"
+                            className="text-xs md:text-sm text-gray-600"
                           >
                             Initial Membership Level
                           </Label>
@@ -405,7 +411,7 @@ export default function AccessControlAdmin() {
                           >
                             <SelectTrigger
                               id={`level-${request.id}`}
-                              className="w-full"
+                              className="w-full text-xs md:text-sm"
                             >
                               <SelectValue placeholder="Select level" />
                             </SelectTrigger>
@@ -419,7 +425,7 @@ export default function AccessControlAdmin() {
                           </Select>
                         </div>
 
-                        <div className="flex gap-2 mt-3">
+                        <div className="flex flex-wrap gap-2 mt-2 md:mt-3">
                           <Button
                             size="sm"
                             onClick={() =>
@@ -429,9 +435,9 @@ export default function AccessControlAdmin() {
                                 selectedLevels[request.id] || "basic",
                               )
                             }
-                            className="bg-green-600 hover:bg-green-700"
+                            className="bg-green-600 hover:bg-green-700 text-xs md:text-sm flex-1 sm:flex-initial"
                           >
-                            <CheckCircle className="w-4 h-4 mr-1" />
+                            <CheckCircle className="w-3 h-3 md:w-4 md:h-4 mr-1" />
                             Approve
                           </Button>
                           <Button
@@ -440,17 +446,18 @@ export default function AccessControlAdmin() {
                             onClick={() =>
                               updateAccessRequest(request.id, "rejected")
                             }
+                            className="text-xs md:text-sm flex-1 sm:flex-initial"
                           >
-                            <XCircle className="w-4 h-4 mr-1" />
+                            <XCircle className="w-3 h-3 md:w-4 md:h-4 mr-1" />
                             Reject
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => deleteAccessRequest(request.id)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 text-xs md:text-sm flex-1 sm:flex-initial"
                           >
-                            <Trash2 className="w-4 h-4 mr-1" />
+                            <Trash2 className="w-3 h-3 md:w-4 md:h-4 mr-1" />
                             Delete
                           </Button>
                         </div>
@@ -468,16 +475,16 @@ export default function AccessControlAdmin() {
 
             <Card>
               <CardHeader>
-                <CardTitle>All Access Requests</CardTitle>
+                <CardTitle className="text-lg md:text-xl">All Access Requests</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
+                <div className="space-y-3 md:space-y-4">
                   {accessRequests.map((request) => (
-                    <div key={request.id} className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{request.email}</p>
-                          <p className="text-sm text-gray-500">
+                    <div key={request.id} className="border rounded-lg p-3 md:p-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm md:text-base truncate">{request.email}</p>
+                          <p className="text-xs md:text-sm text-gray-500">
                             Requested:{" "}
                             {new Date(
                               request.requested_at,
@@ -493,21 +500,21 @@ export default function AccessControlAdmin() {
                             )}
                           </p>
                           {request.notes && (
-                            <p className="text-sm text-gray-600 mt-1">
+                            <p className="text-xs md:text-sm text-gray-600 mt-1">
                               {request.notes}
                             </p>
                           )}
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-shrink-0">
                           {getStatusBadge(request.status)}
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => deleteAccessRequest(request.id)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 text-xs md:text-sm"
                           >
-                            <Trash2 className="w-4 h-4 mr-1" />
-                            Delete
+                            <Trash2 className="w-3 h-3 md:w-4 md:h-4 mr-1" />
+                            <span className="hidden sm:inline">Delete</span>
                           </Button>
                         </div>
                       </div>
@@ -518,29 +525,41 @@ export default function AccessControlAdmin() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="codes" className="space-y-6">
+          <TabsContent value="codes" className="space-y-4 md:space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Create New Invitation Code</CardTitle>
+                <CardTitle className="text-lg md:text-xl">Create New Invitation Code</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
+                <div className="space-y-3 md:space-y-4">
                   <div>
-                    <Label htmlFor="email">Email (Optional)</Label>
+                    <Label htmlFor="name" className="text-xs md:text-sm">Name (Optional)</Label>
+                    <Input
+                      id="name"
+                      type="text"
+                      placeholder="Name for this invitation"
+                      value={newCodeName}
+                      onChange={(e) => setNewCodeName(e.target.value)}
+                      className="text-sm md:text-base"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="email" className="text-xs md:text-sm">Email (Optional)</Label>
                     <Input
                       id="email"
                       type="email"
                       placeholder="Leave empty for general use"
                       value={newCodeEmail}
                       onChange={(e) => setNewCodeEmail(e.target.value)}
+                      className="text-sm md:text-base"
                     />
                   </div>
-                  <div className="space-y-3">
-                    <Label>Allowed User Types</Label>
-                    <p className="text-sm text-muted-foreground">
+                  <div className="space-y-2 md:space-y-3">
+                    <Label className="text-xs md:text-sm">Allowed User Types</Label>
+                    <p className="text-xs md:text-sm text-muted-foreground">
                       Välj en eller flera typer som den inbjudna kan registrera sig som.
                     </p>
-                    <div className="flex flex-wrap gap-4">
+                    <div className="flex flex-wrap gap-3 md:gap-4">
                       {(["consumer", "producer", "business"] as const).map((t) => (
                         <label
                           key={t}
@@ -555,7 +574,7 @@ export default function AccessControlAdmin() {
                               if (next.size > 0) setNewCodeTypes(next);
                             }}
                           />
-                          <span className="capitalize">{t}</span>
+                          <span className="capitalize text-xs md:text-sm">{t}</span>
                         </label>
                       ))}
                     </div>
@@ -568,17 +587,17 @@ export default function AccessControlAdmin() {
                         setNewCodeCanChange(!!checked)
                       }
                     />
-                    <Label htmlFor="canChange" className="cursor-pointer font-normal">
+                    <Label htmlFor="canChange" className="cursor-pointer font-normal text-xs md:text-sm">
                       Tillåt att den inbjudna kan byta kontotyp på invite-sidan
                     </Label>
                   </div>
                   <div>
-                    <Label htmlFor="initialLevel">Initial Membership Level</Label>
+                    <Label htmlFor="initialLevel" className="text-xs md:text-sm">Initial Membership Level</Label>
                     <Select
                       value={newCodeLevel}
                       onValueChange={setNewCodeLevel}
                     >
-                      <SelectTrigger id="initialLevel">
+                      <SelectTrigger id="initialLevel" className="text-sm md:text-base">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -591,12 +610,12 @@ export default function AccessControlAdmin() {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="expiry">Expiry (Days)</Label>
+                    <Label htmlFor="expiry" className="text-xs md:text-sm">Expiry (Days)</Label>
                     <Select
                       value={newCodeExpiry}
                       onValueChange={setNewCodeExpiry}
                     >
-                      <SelectTrigger id="expiry">
+                      <SelectTrigger id="expiry" className="text-sm md:text-base">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -607,8 +626,8 @@ export default function AccessControlAdmin() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button onClick={createInvitationCode} className="w-full">
-                    <Plus className="w-4 h-4 mr-2" />
+                  <Button onClick={createInvitationCode} className="w-full text-sm md:text-base">
+                    <Plus className="w-3 h-3 md:w-4 md:h-4 mr-2" />
                     Create Invitation Code
                   </Button>
                 </div>
@@ -617,88 +636,96 @@ export default function AccessControlAdmin() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Active Invitation Codes</CardTitle>
+                <CardTitle className="text-lg md:text-xl">Active Invitation Codes</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
+                <div className="space-y-3 md:space-y-4">
                   {invitationCodes
                     .filter((code) => code.is_active)
                     .map((code) => (
-                      <div key={code.id} className="border rounded-lg p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono">
-                                {code.code}
-                              </code>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => copyToClipboard(code.code, "Kod kopierad")}
-                                title="Kopiera kod"
-                              >
-                                <Copy className="w-3 h-3" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() =>
-                                  copyToClipboard(
-                                    buildInviteUrl(
-                                      code.code.trim().replace(/\s+/g, ""),
-                                      code.allowed_types ?? (code.invitation_type ? [code.invitation_type] : ["consumer"]),
-                                    ),
-                                    "Länk kopierad",
-                                  )
-                                }
-                                title="Kopiera länk"
-                              >
-                                <Link2 className="w-3 h-3" />
-                              </Button>
-                            </div>
-                            <p className="text-sm text-gray-500 mt-1">
-                              Created:{" "}
-                              {new Date(code.created_at).toLocaleDateString()}
-                              {(code.allowed_types?.length ?? 0) > 0 ? (
-                                <> • Types: {code.allowed_types?.join(", ")}</>
-                              ) : code.invitation_type ? (
-                                <> • Type: {code.invitation_type}</>
-                              ) : null}
-                              {code.can_change_account_type && (
-                                <> • Can change type</>
+                      <div key={code.id} className="border rounded-lg p-3 md:p-4">
+                        <div className="flex flex-col gap-3">
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-wrap items-center gap-2 mb-1">
+                                <code className="bg-gray-100 px-2 py-1 rounded text-xs md:text-sm font-mono break-all">
+                                  {code.code}
+                                </code>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => copyToClipboard(code.code, "Kod kopierad")}
+                                  title="Kopiera kod"
+                                  className="h-7 md:h-8 text-xs"
+                                >
+                                  <Copy className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    copyToClipboard(
+                                      buildInviteUrl(
+                                        code.code.trim().replace(/\s+/g, ""),
+                                        code.allowed_types ?? (code.invitation_type ? [code.invitation_type] : ["consumer"]),
+                                      ),
+                                      "Länk kopierad",
+                                    )
+                                  }
+                                  title="Kopiera länk"
+                                  className="h-7 md:h-8 text-xs"
+                                >
+                                  <Link2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                              {code.name && (
+                                <p className="font-medium text-sm md:text-base mb-1">{code.name}</p>
                               )}
-                              {code.initial_level && (
-                                <> • Level: {code.initial_level}</>
-                              )}
-                              {code.email && <> • For: {code.email}</>}
-                              {code.expires_at && (
-                                <>
-                                  {" "}
-                                  • Expires:{" "}
-                                  {new Date(
-                                    code.expires_at,
-                                  ).toLocaleDateString()}
-                                </>
-                              )}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {(code.allowed_types?.length ?? 0) > 0
-                              ? code.allowed_types?.map((t) => (
-                                  <Badge key={t} variant="outline">
-                                    {t}
-                                  </Badge>
-                                ))
-                              : code.invitation_type ? (
-                                  <Badge variant="outline">
-                                    {code.invitation_type}
-                                  </Badge>
+                              <p className="text-xs md:text-sm text-gray-500">
+                                Created:{" "}
+                                {new Date(code.created_at).toLocaleDateString()}
+                                {(code.allowed_types?.length ?? 0) > 0 ? (
+                                  <> • Types: {code.allowed_types?.join(", ")}</>
+                                ) : code.invitation_type ? (
+                                  <> • Type: {code.invitation_type}</>
                                 ) : null}
-                            <Badge
-                              variant={code.is_active ? "default" : "secondary"}
-                            >
-                              {code.is_active ? "Active" : "Used"}
-                            </Badge>
+                                {code.can_change_account_type && (
+                                  <> • Can change type</>
+                                )}
+                                {code.initial_level && (
+                                  <> • Level: {code.initial_level}</>
+                                )}
+                                {code.email && <> • For: {code.email}</>}
+                                {code.expires_at && (
+                                  <>
+                                    {" "}
+                                    • Expires:{" "}
+                                    {new Date(
+                                      code.expires_at,
+                                    ).toLocaleDateString()}
+                                  </>
+                                )}
+                              </p>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
+                              {(code.allowed_types?.length ?? 0) > 0
+                                ? code.allowed_types?.map((t) => (
+                                    <Badge key={t} variant="outline" className="text-xs">
+                                      {t}
+                                    </Badge>
+                                  ))
+                                : code.invitation_type ? (
+                                    <Badge variant="outline" className="text-xs">
+                                      {code.invitation_type}
+                                    </Badge>
+                                  ) : null}
+                              <Badge
+                                variant={code.is_active ? "default" : "secondary"}
+                                className="text-xs"
+                              >
+                                {code.is_active ? "Active" : "Used"}
+                              </Badge>
+                            </div>
                           </div>
                         </div>
                       </div>

@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       email,
+      name,
       expiryDays = 30,
       allowedTypes = ["consumer"],
       canChangeAccountType = false,
@@ -87,7 +88,7 @@ export async function POST(request: NextRequest) {
     const level = validLevels.includes(initialLevel) ? initialLevel : "basic";
 
     // Create invitation code (use admin client to bypass RLS)
-    // Note: invitation_codes table may not have email column depending on migration
+    // Note: invitation_codes table may not have email or name column depending on migration
     const insertData: Record<string, unknown> = {
         code,
         created_by: admin.id,
@@ -98,6 +99,14 @@ export async function POST(request: NextRequest) {
         can_change_account_type: !!canChangeAccountType,
         initial_level: level,
     };
+    
+    // Add optional fields if provided
+    if (email) {
+      insertData.email = email;
+    }
+    if (name) {
+      insertData.name = name;
+    }
     const { data, error } = await sb
       .from("invitation_codes")
       .insert(insertData)
