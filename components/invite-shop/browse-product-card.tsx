@@ -143,16 +143,13 @@ export const BrowseProductCard = memo(
               />
             </div>
             {product.priceRange && (
-              <div className="flex flex-col gap-0.5 items-end text-xs md:text-sm uppercase 2xl:text-base">
+              <div className="flex flex-col items-end text-xs md:text-sm uppercase 2xl:text-base">
                 {showExclVat ? (
                   <>
-                    {/* Show both prices in a compact layout */}
+                    {/* Show both prices in a compact single-line layout */}
                     {calculatedProducerPrice && calculatedWarehousePrice ? (
-                      <div className="flex flex-col items-end gap-0.5">
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="text-[7px] md:text-[8px] text-muted-foreground/70 font-normal leading-none">
-                            Producer
-                          </span>
+                      <div className="flex flex-col items-end gap-0">
+                        <div className="flex items-baseline gap-1 text-[10px] md:text-xs leading-tight">
                           <MemberPrice
                             amount={product.priceRange.minVariantPrice.amount}
                             currencyCode={product.priceRange.minVariantPrice.currencyCode}
@@ -160,11 +157,7 @@ export const BrowseProductCard = memo(
                             calculatedTotalPrice={calculatedProducerPrice}
                             forceShowExclVat={true}
                           />
-                        </div>
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="text-[7px] md:text-[8px] text-muted-foreground/70 font-normal leading-none">
-                            Warehouse
-                          </span>
+                          <span className="text-muted-foreground/50 font-normal">/</span>
                           <MemberPrice
                             amount={product.priceRange.minVariantPrice.amount}
                             currencyCode={product.priceRange.minVariantPrice.currencyCode}
@@ -175,31 +168,21 @@ export const BrowseProductCard = memo(
                         </div>
                       </div>
                     ) : calculatedProducerPrice ? (
-                      <div className="flex items-baseline gap-1.5">
-                        <span className="text-[7px] md:text-[8px] text-muted-foreground/70 font-normal leading-none">
-                          Producer
-                        </span>
-                        <MemberPrice
-                          amount={product.priceRange.minVariantPrice.amount}
-                          currencyCode={product.priceRange.minVariantPrice.currencyCode}
-                          className="text-xs md:text-sm uppercase 2xl:text-base"
-                          calculatedTotalPrice={calculatedProducerPrice}
-                          forceShowExclVat={true}
-                        />
-                      </div>
+                      <MemberPrice
+                        amount={product.priceRange.minVariantPrice.amount}
+                        currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                        className="text-xs md:text-sm uppercase 2xl:text-base"
+                        calculatedTotalPrice={calculatedProducerPrice}
+                        forceShowExclVat={true}
+                      />
                     ) : calculatedWarehousePrice ? (
-                      <div className="flex items-baseline gap-1.5">
-                        <span className="text-[7px] md:text-[8px] text-muted-foreground/70 font-normal leading-none">
-                          Warehouse
-                        </span>
-                        <MemberPrice
-                          amount={product.priceRange.minVariantPrice.amount}
-                          currencyCode={product.priceRange.minVariantPrice.currencyCode}
-                          className="text-xs md:text-sm uppercase 2xl:text-base"
-                          calculatedTotalPrice={calculatedWarehousePrice}
-                          forceShowExclVat={true}
-                        />
-                      </div>
+                      <MemberPrice
+                        amount={product.priceRange.minVariantPrice.amount}
+                        currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                        className="text-xs md:text-sm uppercase 2xl:text-base"
+                        calculatedTotalPrice={calculatedWarehousePrice}
+                        forceShowExclVat={true}
+                      />
                     ) : (
                       <MemberPrice
                         amount={product.priceRange.minVariantPrice.amount}
@@ -224,7 +207,7 @@ export const BrowseProductCard = memo(
                   />
                 )}
                 {isWineBox && discountInfo && (
-                  <span className="line-through opacity-30 text-[10px] md:text-xs text-muted-foreground">
+                  <span className="line-through opacity-30 text-[10px] md:text-xs text-muted-foreground mt-0.5">
                     {formatPrice(
                       showExclVat
                         ? priceExclVat(discountInfo.totalWinePrice)
