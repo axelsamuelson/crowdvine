@@ -33,7 +33,10 @@ export function MemberPrice({
   const { discountPercentage, level, loading } = useMembership();
   const isB2BMode = useB2BPriceMode();
   // Use forceShowExclVat if provided, otherwise use B2B mode
+  // On B2C sites (pactwines.com), show inkl. moms
+  // On B2B sites (dirtywine.se), show exkl. moms
   const showExclVat = forceShowExclVat !== undefined ? forceShowExclVat : isB2BMode;
+  const vatLabel = showExclVat ? "exkl. moms" : "inkl. moms";
 
   if (loading) {
     // Show skeleton while loading
@@ -42,22 +45,21 @@ export function MemberPrice({
 
   // If calculatedTotalPrice is provided, use it directly (ensures consistency with breakdown)
   if (calculatedTotalPrice != null) {
+    // calculatedTotalPrice is already in the correct format:
+    // - On B2C sites: inkl. moms
+    // - On B2B sites: exkl. moms (already converted in ProductPriceDisplay if needed)
     const displayPrice = calculatedTotalPrice;
     const hasDiscount = discountPercentage > 0;
     
     if (!hasDiscount) {
       return (
         <span className={className}>
-          {showExclVat ? (
-            <span className="flex flex-col">
-              <span>{formatPrice(displayPrice, currencyCode)}</span>
-              <span className="text-[10px] font-normal text-muted-foreground">
-                exkl. moms
-              </span>
+          <span className="flex flex-col">
+            <span>{formatPrice(displayPrice, currencyCode)}</span>
+            <span className="text-[10px] font-normal text-muted-foreground">
+              {vatLabel}
             </span>
-          ) : (
-            formatPrice(displayPrice, currencyCode)
-          )}
+          </span>
         </span>
       );
     }
@@ -86,26 +88,27 @@ export function MemberPrice({
             <span className="flex flex-col">
               <span>{formatPrice(displayPrice.toFixed(2), currencyCode)}</span>
               <span className="text-[10px] font-normal text-muted-foreground">
-                exkl. moms
+                {vatLabel}
               </span>
             </span>
-          ) : (
-            formatPrice(displayPrice.toFixed(2), currencyCode)
-          )}
-        </span>
+        ) : (
+          <span className="flex flex-col">
+            <span>{formatPrice(displayPrice.toFixed(2), currencyCode)}</span>
+            <span className="text-[10px] font-normal text-muted-foreground">
+              {vatLabel}
+            </span>
+          </span>
+        )}
+      </span>
 
         {/* Original Price (strikethrough) */}
         <span className="text-xs line-through opacity-40">
-          {showExclVat ? (
-            <span className="flex flex-col">
-              <span>{formatPrice(originalPrice.toFixed(2), currencyCode)}</span>
-              <span className="text-[8px] font-normal text-muted-foreground">
-                exkl. moms
-              </span>
+          <span className="flex flex-col">
+            <span>{formatPrice(originalPrice.toFixed(2), currencyCode)}</span>
+            <span className="text-[8px] font-normal text-muted-foreground">
+              {vatLabel}
             </span>
-          ) : (
-            formatPrice(originalPrice, currencyCode)
-          )}
+          </span>
         </span>
 
         {/* Member Badge (optional, small) */}
@@ -148,7 +151,12 @@ export function MemberPrice({
             </span>
           </span>
         ) : (
-          formatPrice(displayPrice, currencyCode)
+          <span className="flex flex-col">
+            <span>{formatPrice(displayPrice, currencyCode)}</span>
+            <span className="text-[10px] font-normal text-muted-foreground">
+              {vatLabel}
+            </span>
+          </span>
         )}
       </span>
     );
@@ -172,26 +180,27 @@ export function MemberPrice({
           <span className="flex flex-col">
             <span>{formatPrice(discountedPrice.toFixed(2), currencyCode)}</span>
             <span className="text-[10px] font-normal text-muted-foreground">
-              exkl. moms
+              {vatLabel}
             </span>
           </span>
         ) : (
-          formatPrice(discountedPrice.toFixed(2), currencyCode)
+          <span className="flex flex-col">
+            <span>{formatPrice(discountedPrice.toFixed(2), currencyCode)}</span>
+            <span className="text-[10px] font-normal text-muted-foreground">
+              {vatLabel}
+            </span>
+          </span>
         )}
       </span>
 
-      {/* Original Price (strikethrough) - show exkl. moms in B2B mode, inkl. moms in B2C mode */}
+      {/* Original Price (strikethrough) */}
       <span className="text-xs line-through opacity-40">
-        {showExclVat ? (
-          <span className="flex flex-col">
-            <span>{formatPrice(displayPrice.toFixed(2), currencyCode)}</span>
-            <span className="text-[8px] font-normal text-muted-foreground">
-              exkl. moms
-            </span>
+        <span className="flex flex-col">
+          <span>{formatPrice(displayPrice.toFixed(2), currencyCode)}</span>
+          <span className="text-[8px] font-normal text-muted-foreground">
+            {vatLabel}
           </span>
-        ) : (
-          formatPrice(displayPrice, currencyCode)
-        )}
+        </span>
       </span>
 
       {/* Member Badge (optional, small) */}
