@@ -87,56 +87,58 @@ export const BrowseProductCard = memo(
                 className="mt-0.5"
               />
             </div>
-            <div className="flex flex-col gap-1 items-end text-xs md:text-sm uppercase 2xl:text-base">
-              {showExclVat && producerBreakdown && warehouseBreakdown ? (
-                <>
-                  <div className="flex flex-col items-end">
-                    <span className="text-[9px] md:text-[10px] text-muted-foreground font-normal">
-                      Producer
-                    </span>
-                    <MemberPrice
-                      amount={product.priceRange.minVariantPrice.amount}
-                      currencyCode={product.priceRange.minVariantPrice.currencyCode}
-                      className="text-xs md:text-sm uppercase 2xl:text-base"
-                      calculatedTotalPrice={producerBreakdown.total / 1.25}
-                      forceShowExclVat={true}
-                    />
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <span className="text-[9px] md:text-[10px] text-muted-foreground font-normal">
-                      Warehouse
-                    </span>
-                    <MemberPrice
-                      amount={product.priceRange.minVariantPrice.amount}
-                      currencyCode={product.priceRange.minVariantPrice.currencyCode}
-                      className="text-xs md:text-sm uppercase 2xl:text-base"
-                      calculatedTotalPrice={warehouseBreakdown.total}
-                      forceShowExclVat={true}
-                    />
-                  </div>
-                </>
-              ) : (
-                <MemberPrice
-                  amount={product.priceRange.minVariantPrice.amount}
-                  currencyCode={product.priceRange.minVariantPrice.currencyCode}
-                  className="text-xs md:text-sm uppercase 2xl:text-base"
-                  priceExclVatOverride={
-                    (product as any).b2bPriceExclVat ??
-                    (product as any).priceBreakdown?.b2bPriceExclVat
-                  }
-                />
-              )}
-              {isWineBox && discountInfo && (
-                <span className="line-through opacity-30 text-[10px] md:text-xs text-muted-foreground">
-                  {formatPrice(
-                    showExclVat
-                      ? priceExclVat(discountInfo.totalWinePrice)
-                      : Math.round(discountInfo.totalWinePrice).toString(),
-                    product.priceRange.minVariantPrice.currencyCode,
-                  )}
-                </span>
-              )}
-            </div>
+            {product.priceRange && (
+              <div className="flex flex-col gap-1 items-end text-xs md:text-sm uppercase 2xl:text-base">
+                {showExclVat && producerBreakdown && warehouseBreakdown ? (
+                  <>
+                    <div className="flex flex-col items-end">
+                      <span className="text-[9px] md:text-[10px] text-muted-foreground font-normal">
+                        Producer
+                      </span>
+                      <MemberPrice
+                        amount={product.priceRange.minVariantPrice.amount}
+                        currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                        className="text-xs md:text-sm uppercase 2xl:text-base"
+                        calculatedTotalPrice={producerBreakdown.total / 1.25}
+                        forceShowExclVat={true}
+                      />
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className="text-[9px] md:text-[10px] text-muted-foreground font-normal">
+                        Warehouse
+                      </span>
+                      <MemberPrice
+                        amount={product.priceRange.minVariantPrice.amount}
+                        currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                        className="text-xs md:text-sm uppercase 2xl:text-base"
+                        calculatedTotalPrice={warehouseBreakdown.total}
+                        forceShowExclVat={true}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <MemberPrice
+                    amount={product.priceRange.minVariantPrice.amount}
+                    currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                    className="text-xs md:text-sm uppercase 2xl:text-base"
+                    priceExclVatOverride={
+                      (product as any).b2bPriceExclVat ??
+                      (product as any).priceBreakdown?.b2bPriceExclVat
+                    }
+                  />
+                )}
+                {isWineBox && discountInfo && (
+                  <span className="line-through opacity-30 text-[10px] md:text-xs text-muted-foreground">
+                    {formatPrice(
+                      showExclVat
+                        ? priceExclVat(discountInfo.totalWinePrice)
+                        : Math.round(discountInfo.totalWinePrice).toString(),
+                      product.priceRange.minVariantPrice.currencyCode,
+                    )}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* View product hint - visible on hover */}
