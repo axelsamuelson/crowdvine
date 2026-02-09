@@ -3,16 +3,14 @@
 import React, { memo } from "react";
 import Link from "next/link";
 import { Product } from "@/lib/shopify/types";
-import { formatPrice } from "@/lib/shopify/utils";
+import { formatPrice, priceExclVat } from "@/lib/shopify/utils";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { SimpleProductImage } from "./simple-product-image";
 import { Badge } from "@/components/ui/badge";
 import { MemberPrice } from "@/components/ui/member-price";
 import { StockBadge } from "@/components/product/stock-badge";
-import { priceExclVat } from "@/lib/shopify/utils";
 import { ArrowRightIcon } from "lucide-react";
 import { useProductPrice } from "@/lib/hooks/use-product-price";
-import { formatPrice } from "@/lib/shopify/utils";
 
 interface BrowseProductCardProps {
   product: Product;
