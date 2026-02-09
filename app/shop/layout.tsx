@@ -42,7 +42,7 @@ export default async function ShopLayout({
             </Suspense>
           </div>
 
-          <div className="col-span-9 flex flex-col h-full">
+          <div className="col-span-9 flex flex-col">
             <Suspense fallback={null}>{children}</Suspense>
           </div>
         </div>

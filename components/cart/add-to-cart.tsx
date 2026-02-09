@@ -56,12 +56,13 @@ export function AddToCartButton({
   }, [selectedVariant, product]);
 
   const getButtonText = () => {
-    if (!product.availableForSale) return "Out Of Stock";
+    // Don't show "Out Of Stock" - producer items can always be added
     if (!resolvedVariant) return "Select one";
     return "Add To Cart";
   };
 
-  const isDisabled = !product.availableForSale || !resolvedVariant || isLoading;
+  // Producer items can always be added, so don't disable based on availableForSale
+  const isDisabled = !resolvedVariant || isLoading;
 
   const getLoaderSize = () => {
     const buttonSize = buttonProps.size;

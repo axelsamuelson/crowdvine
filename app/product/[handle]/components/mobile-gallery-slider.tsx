@@ -49,9 +49,9 @@ export function MobileGallerySlider({ product }: MobileGallerySliderProps) {
   if (totalImages === 0) return null;
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full" style={{ clipPath: 'inset(0)' }}>
       {/* Embla Carousel */}
-      <div className="overflow-hidden h-full" ref={emblaRef}>
+      <div className="h-full" ref={emblaRef} style={{ overflow: 'clip' }}>
         <div className="flex h-full">
           {validImages.map((image, index) => (
             <div

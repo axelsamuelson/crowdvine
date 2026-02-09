@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import {
   Select,
   SelectContent,
@@ -21,14 +22,21 @@ interface SortDropdownProps {
 }
 
 export function SortDropdown({ className }: SortDropdownProps) {
+  const [isMounted, setIsMounted] = React.useState(false);
   const isB2B = useB2BPriceMode();
   const [sort, setSort] = useQueryState(
     "sort",
     parseAsString.withOptions({ shallow: false }),
   );
 
-  const displayValue = sort ?? (isB2B ? "in-stock" : undefined);
-  const allOptions = isB2B
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Avoid hydration mismatch: isB2B may differ between server and client
+  const safeIsB2B = isMounted ? isB2B : false;
+  const displayValue = sort ?? (safeIsB2B ? "in-stock" : undefined);
+  const allOptions = safeIsB2B
     ? [...stockSortOptions, ...sortOptions]
     : sortOptions;
 

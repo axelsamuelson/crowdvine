@@ -11,6 +11,7 @@ import { formatPrice, priceExclVat } from "@/lib/shopify/utils";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { ColorSwatch } from "@/components/ui/color-picker";
 import { useProductImages } from "../products/variant-selector";
+import { Factory, Warehouse } from "lucide-react";
 
 type MerchandiseSearchParams = {
   [key: string]: string;
@@ -106,11 +107,28 @@ export function CartItemCard({ item, onCloseCart }: CartItemProps) {
             <span className="2xl:text-lg font-semibold">
               {item.merchandise.product.title}
             </span>
-            {item.merchandise.product.producerName && (
-              <span className="text-sm text-muted-foreground">
-                {item.merchandise.product.producerName}
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {item.merchandise.product.producerName && (
+                <span className="text-sm text-muted-foreground">
+                  {item.merchandise.product.producerName}
+                </span>
+              )}
+              {item.source && (
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md bg-muted text-muted-foreground">
+                  {item.source === "producer" ? (
+                    <>
+                      <Factory className="w-3 h-3" />
+                      <span>Producer</span>
+                    </>
+                  ) : (
+                    <>
+                      <Warehouse className="w-3 h-3" />
+                      <span>Warehouse</span>
+                    </>
+                  )}
+                </span>
+              )}
+            </div>
           </Link>
           <div className="flex flex-col">
             <span className="2xl:text-lg font-semibold">

@@ -23,8 +23,14 @@ export function StockBadge({
   availableForSale = true,
   className,
 }: StockBadgeProps) {
-  const showBadge = useB2BPriceMode();
+  const isB2B = useB2BPriceMode();
+  const [isMounted, setIsMounted] = useState(false);
   const [fewLeftThreshold, setFewLeftThreshold] = useState(5);
+
+  // Hydration safety: only show badge after client-side mount
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     fetch("/api/wine-settings")
@@ -34,6 +40,10 @@ export function StockBadge({
       })
       .catch(() => {});
   }, []);
+
+  // On server, always return null to avoid hydration mismatch
+  // On client, check isB2B after mount
+  const showBadge = isMounted && isB2B;
 
   if (!showBadge) return null;
 
@@ -62,17 +72,25 @@ export function StockBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-sm px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider",
+        "inline-flex items-center justify-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium",
         status === "out" &&
-          "bg-black/60 text-white/95 backdrop-blur-sm",
+          "bg-muted text-muted-foreground w-[80px]",
         status === "few" &&
-          "bg-amber-500/90 text-amber-950 backdrop-blur-sm",
+          "bg-amber-100 text-amber-700 w-[70px]",
         status === "in" &&
-          "bg-emerald-600/90 text-white backdrop-blur-sm",
+          "bg-emerald-100 text-emerald-700 w-[70px]",
         className,
       )}
     >
-      {label}
+      <span
+        className={cn(
+          "size-1.5 rounded-full shrink-0",
+          status === "out" && "bg-muted-foreground",
+          status === "few" && "bg-amber-600",
+          status === "in" && "bg-emerald-600",
+        )}
+      />
+      <span className="whitespace-nowrap">{label}</span>
     </span>
   );
 }

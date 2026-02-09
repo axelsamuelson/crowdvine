@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     console.log("🛒 [ADD-QUANTITY] API called");
 
     const body = await request.json();
-    const { variantId, quantity: requestedQuantity = 1 } = body;
+    const { variantId, quantity: requestedQuantity = 1, source = "producer" } = body;
 
     console.log("🛒 [ADD-QUANTITY] Variant ID:", variantId);
     console.log("🛒 [ADD-QUANTITY] Requested quantity:", requestedQuantity);
@@ -93,13 +93,46 @@ export async function POST(request: Request) {
       console.log("🛒 [ADD-QUANTITY] Using existing cart:", dbCartId);
     }
 
-    // Check if item already exists in cart
-    const { data: existingItem } = await supabase
-      .from("cart_items")
-      .select("id, quantity")
-      .eq("cart_id", dbCartId)
-      .eq("wine_id", baseId)
-      .maybeSingle(); // Use maybeSingle to avoid error if not found
+    // Check if item already exists in cart with same source
+    // First try with source column (new schema)
+    let existingItem = null;
+    let hasSourceColumn = true;
+    
+    try {
+      const { data, error } = await supabase
+        .from("cart_items")
+        .select("id, quantity, source")
+        .eq("cart_id", dbCartId)
+        .eq("wine_id", baseId)
+        .eq("source", source)
+        .maybeSingle();
+      
+      if (error && error.code === "42703") {
+        // Column "source" does not exist - fallback to old schema
+        hasSourceColumn = false;
+        console.log("🛒 [ADD-QUANTITY] Source column not found, using old schema");
+      } else if (data) {
+        existingItem = data;
+      }
+    } catch (err) {
+      // If source column doesn't exist, fallback to old schema
+      hasSourceColumn = false;
+      console.log("🛒 [ADD-QUANTITY] Source column not found, using old schema");
+    }
+
+    // If source column doesn't exist, check without source
+    if (!hasSourceColumn && !existingItem) {
+      const { data: oldItem } = await supabase
+        .from("cart_items")
+        .select("id, quantity")
+        .eq("cart_id", dbCartId)
+        .eq("wine_id", baseId)
+        .maybeSingle();
+      
+      if (oldItem) {
+        existingItem = oldItem;
+      }
+    }
 
     if (existingItem) {
       // Item exists - increment quantity by requested amount
@@ -122,7 +155,7 @@ export async function POST(request: Request) {
           updateError,
         );
         return NextResponse.json(
-          { error: "Failed to update quantity" },
+          { error: "Failed to update quantity", details: updateError.message },
           { status: 500 },
         );
       }
@@ -131,18 +164,29 @@ export async function POST(request: Request) {
       console.log(
         "🛒 [ADD-QUANTITY] Item not in cart, inserting with quantity",
         quantity,
+        "and source",
+        source,
       );
 
-      const { error: insertError } = await supabase.from("cart_items").insert({
+      const insertData: any = {
         cart_id: dbCartId,
         wine_id: baseId,
         quantity: quantity,
-      });
+      };
+
+      // Only include source if column exists
+      if (hasSourceColumn) {
+        insertData.source = source;
+      }
+
+      const { error: insertError } = await supabase
+        .from("cart_items")
+        .insert(insertData);
 
       if (insertError) {
         console.error("🛒 [ADD-QUANTITY] Error inserting item:", insertError);
         return NextResponse.json(
-          { error: "Failed to add item" },
+          { error: "Failed to add item", details: insertError.message },
           { status: 500 },
         );
       }
@@ -157,6 +201,7 @@ export async function POST(request: Request) {
         `
         id,
         quantity,
+        source,
         wines (
           id,
           handle,
@@ -188,6 +233,7 @@ export async function POST(request: Request) {
       return {
         id: item.id,
         quantity: item.quantity,
+        source: item.source || "producer", // Default to producer for backwards compatibility
         cost: {
           totalAmount: {
             amount: Math.round(

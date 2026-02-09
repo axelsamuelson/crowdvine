@@ -63,6 +63,7 @@ export class CartService {
           `
           id,
           quantity,
+          source,
           wines (
             id,
             handle,
@@ -122,6 +123,7 @@ export class CartService {
         return {
           id: item.id,
           quantity: item.quantity,
+          source: (item as any).source || "producer", // Default to producer for backwards compatibility
           cost: {
             totalAmount: {
               amount: (

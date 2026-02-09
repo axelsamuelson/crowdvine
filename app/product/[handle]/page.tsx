@@ -19,21 +19,23 @@ import {
 import Link from "next/link";
 import { SidebarLinks } from "@/components/layout/sidebar/product-sidebar-links";
 import { AddToCart, AddToCartButton } from "@/components/cart/add-to-cart";
-import { AddToCartWithQuantity } from "@/components/cart/add-to-cart-with-quantity";
+import { AddToCartWithSource } from "@/components/cart/add-to-cart-with-source";
 import { storeCatalog } from "@/lib/shopify/constants";
 import Prose from "@/components/prose";
 import { formatPrice } from "@/lib/shopify/utils";
 import { Suspense } from "react";
 import { cn } from "@/lib/utils";
 import { PageLayout } from "@/components/layout/page-layout";
-import { MemberPrice } from "@/components/ui/member-price";
+import { ProductPriceDisplay } from "./components/product-price-display";
 import { ProductPriceInfoBox } from "@/components/product/product-price-info-box";
 import { VariantSelectorSlots } from "./components/variant-selector-slots";
 import { MobileGallerySlider } from "./components/mobile-gallery-slider";
 import { DesktopGallery } from "./components/desktop-gallery";
+import { DesktopGalleryWrapper } from "./components/desktop-gallery-wrapper";
 import { WineBoxDiscountInfo } from "@/components/products/wine-box-discount-info";
 import { ProductViewTracker } from "./components/product-view-tracker";
 import { StockBadge } from "@/components/product/stock-badge";
+import { CartSourceProvider } from "@/components/cart/cart-source-context";
 
 // Generate static params for all products at build time
 export async function generateStaticParams() {
@@ -119,7 +121,8 @@ export default async function ProductPage(props: {
   const hasEvenOptions = product.options.length % 2 === 0;
 
   return (
-    <PageLayout className="bg-muted" noPadding={true}>
+    <CartSourceProvider>
+      <PageLayout className="bg-muted" noPadding={true}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -204,15 +207,9 @@ export default async function ProductPage(props: {
 
                 {/* Row 2, Col 1: Price only; breakdown is in separate box below */}
                 <div className="flex gap-3 items-center text-lg font-semibold lg:text-xl 2xl:text-2xl max-md:mt-4 md:col-start-1 md:row-start-2">
-                  <MemberPrice
-                    amount={product.priceRange.minVariantPrice.amount}
-                    currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                  <ProductPriceDisplay
+                    product={product}
                     className="text-lg font-semibold lg:text-xl 2xl:text-2xl"
-                    showBadge={true}
-                    priceExclVatOverride={
-                      product.priceBreakdown?.b2bPriceExclVat ??
-                      (product as any).b2bPriceExclVat
-                    }
                   />
                   {product.compareAtPrice && (
                     <span className="line-through opacity-30">
@@ -226,7 +223,7 @@ export default async function ProductPage(props: {
 
                 {/* Add to Cart placed under producer name inside the white box */}
                 <div className="col-span-full w-full mt-4">
-                  <AddToCartWithQuantity product={product} className="w-full" />
+                  <AddToCartWithSource product={product} className="w-full" />
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -254,12 +251,13 @@ export default async function ProductPage(props: {
         </div>
 
         {/* Desktop Gallery */}
-        <div className="hidden overflow-y-auto relative col-span-7 col-start-6 w-full md:block">
+        <DesktopGalleryWrapper>
           <Suspense fallback={null}>
             <DesktopGallery product={product} />
           </Suspense>
-        </div>
+        </DesktopGalleryWrapper>
       </div>
     </PageLayout>
+    </CartSourceProvider>
   );
 }

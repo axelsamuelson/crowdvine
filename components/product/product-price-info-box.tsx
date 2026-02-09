@@ -1,13 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { PriceBreakdown } from "./price-breakdown";
-import {
-  calculatePriceBreakdown,
-  PriceBreakdownResult,
-} from "@/lib/price-breakdown";
+import { useProductPrice } from "@/lib/hooks/use-product-price";
 import { useMembership } from "@/lib/context/membership-context";
 import { Product } from "@/lib/shopify/types";
+import { useCartSource } from "@/components/cart/cart-source-context";
 
 interface ProductPriceInfoBoxProps {
   product: Product;
@@ -19,32 +16,8 @@ interface ProductPriceInfoBoxProps {
  */
 export function ProductPriceInfoBox({ product }: ProductPriceInfoBoxProps) {
   const { discountPercentage, loading } = useMembership();
-  const [breakdown, setBreakdown] = useState<PriceBreakdownResult | null>(null);
-
-  useEffect(() => {
-    if (!product.priceBreakdown) return;
-    try {
-      const result = calculatePriceBreakdown(
-        {
-          cost_amount: product.priceBreakdown.costAmount,
-          exchange_rate: product.priceBreakdown.exchangeRate,
-          alcohol_tax_cents: product.priceBreakdown.alcoholTaxCents,
-          margin_percentage: product.priceBreakdown.marginPercentage,
-          base_price_cents:
-            Number(product.priceRange.minVariantPrice.amount) * 100,
-        },
-        loading ? 0 : discountPercentage,
-      );
-      setBreakdown(result);
-    } catch (e) {
-      console.error("Failed to calculate price breakdown:", e);
-    }
-  }, [
-    product.priceBreakdown,
-    product.priceRange.minVariantPrice.amount,
-    discountPercentage,
-    loading,
-  ]);
+  const { selectedSource } = useCartSource();
+  const breakdown = useProductPrice(product, selectedSource);
 
   const hasMemberDiscount = !loading && discountPercentage > 0;
 
@@ -53,17 +26,24 @@ export function ProductPriceInfoBox({ product }: ProductPriceInfoBoxProps) {
     return null;
   }
 
+  // For producer, breakdown.total includes VAT, so convert to exkl. moms for display
+  // For warehouse, breakdown.total is already exkl. moms
+  const displayTotal = selectedSource === "producer"
+    ? breakdown.total / 1.25 // Convert from inkl. moms to exkl. moms
+    : breakdown.total;
+
   return (
-    <div className="flex flex-col gap-4 overflow-hidden px-3 py-2 rounded-md bg-popover md:gap-x-4 md:gap-y-4">
+    <div className="flex flex-col gap-4 overflow-clip px-3 py-2 rounded-md bg-popover md:gap-x-4 md:gap-y-4">
       <h2 className="text-lg font-semibold text-foreground lg:text-xl 2xl:text-2xl shrink-0">
-        Price information
+        Price breakdown
       </h2>
       <PriceBreakdown
         costAmount={breakdown.cost}
         alcoholTax={breakdown.alcoholTax}
+        shipping={breakdown.shipping}
         margin={breakdown.margin}
         vat={breakdown.vat}
-        totalPrice={Number(product.priceRange.minVariantPrice.amount)}
+        totalPrice={displayTotal}
         marginPercentage={breakdown.marginPercentage}
         originalMarginPercentage={breakdown.originalMarginPercentage}
         hasMemberDiscount={hasMemberDiscount}

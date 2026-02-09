@@ -196,8 +196,8 @@ export function ProductListContent({
 
       {filteredProducts.length > 0 ? (
         <ProductGrid>
-          {filteredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
+          {filteredProducts.map((product, index) => (
+            <ProductCard key={product.id} product={product} index={index} />
           ))}
         </ProductGrid>
       ) : (

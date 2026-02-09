@@ -19,6 +19,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ProfileInfoModal } from "@/components/checkout/profile-info-modal";
 // PaymentMethodSelector removed - using new payment flow
+import { PaymentMethodSelectorB2B } from "@/components/checkout/payment-method-selector-b2b";
 import { ZoneDetails } from "@/components/checkout/zone-details";
 import { PalletDetails } from "@/components/checkout/pallet-details";
 import { ReservationLoadingModal } from "@/components/checkout/reservation-loading-modal";
@@ -35,6 +36,7 @@ import {
   Check,
   ArrowLeft,
   ArrowRight,
+  FileText,
 } from "lucide-react";
 import { clearZoneCache } from "@/lib/zone-matching";
 import {
@@ -100,6 +102,7 @@ function CheckoutContent() {
     null,
   );
   const [shareFriendIds, setShareFriendIds] = useState<string[] | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"card" | "invoice">("card");
 
   // v2: Progression buffs state
   const [progressionBuffs, setProgressionBuffs] = useState<any[]>([]);
@@ -499,6 +502,11 @@ function CheckoutContent() {
     formData.append("email", profile?.email || "");
     formData.append("phone", profile?.phone || "");
     
+    // Payment method (only for warehouse orders)
+    if (hasWarehouseItems) {
+      formData.append("paymentMethodType", paymentMethod);
+    }
+    
     // Delivery address (always from profile)
     if (profile) {
       formData.append("street", profile.address || "");
@@ -629,6 +637,16 @@ function CheckoutContent() {
           },
         )
       : null;
+
+  // Separate producer and warehouse items
+  const producerItems = cart?.lines?.filter(
+    (line) => line.source === "producer" || !line.source
+  ) || [];
+  const warehouseItems = cart?.lines?.filter(
+    (line) => line.source === "warehouse"
+  ) || [];
+  const hasProducerItems = producerItems.length > 0;
+  const hasWarehouseItems = warehouseItems.length > 0;
 
   // Calculate bottle cost and discount
   const bottleCost = cart?.lines
@@ -952,34 +970,86 @@ function CheckoutContent() {
                       </div>
                     </div>
 
-                    <div className="space-y-3">
-                      {cart?.lines?.map((line) => {
-                        const pricePerBottle = parseFloat(
-                          line.merchandise.product.priceRange.minVariantPrice
-                            .amount,
-                        );
-                        const totalForLine = pricePerBottle * line.quantity;
+                    {/* Producer Items */}
+                    {hasProducerItems && (
+                      <div className="space-y-3 mb-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge variant="outline" className="bg-blue-50 border-blue-200 text-blue-700">
+                            Producer Order
+                          </Badge>
+                          <span className="text-xs text-gray-500">
+                            Will be placed on a pallet
+                          </span>
+                        </div>
+                        {producerItems.map((line) => {
+                          const pricePerBottle = parseFloat(
+                            line.merchandise.product.priceRange.minVariantPrice
+                              .amount,
+                          );
+                          const totalForLine = pricePerBottle * line.quantity;
 
-                        return (
-                          <div
-                            key={line.id}
-                            className="flex justify-between text-sm gap-4"
-                          >
-                            <span className="text-gray-600 min-w-0 truncate">
-                              {line.merchandise.title} × {line.quantity}
-                            </span>
-                            <MemberPrice
-                              amount={totalForLine}
-                              currencyCode={
-                                line.merchandise.product.priceRange
-                                  .minVariantPrice.currencyCode
-                              }
-                              className="text-gray-900 font-medium text-sm whitespace-nowrap"
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
+                          return (
+                            <div
+                              key={line.id}
+                              className="flex justify-between text-sm gap-4 pl-2 border-l-2 border-blue-200"
+                            >
+                              <span className="text-gray-600 min-w-0 truncate">
+                                {line.merchandise.title} × {line.quantity}
+                              </span>
+                              <MemberPrice
+                                amount={totalForLine}
+                                currencyCode={
+                                  line.merchandise.product.priceRange
+                                    .minVariantPrice.currencyCode
+                                }
+                                className="text-gray-900 font-medium text-sm whitespace-nowrap"
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Warehouse Items */}
+                    {hasWarehouseItems && (
+                      <div className="space-y-3">
+                        {hasProducerItems && <div className="border-t border-gray-200 pt-3 mt-3" />}
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge variant="outline" className="bg-green-50 border-green-200 text-green-700">
+                            Warehouse Order
+                          </Badge>
+                          <span className="text-xs text-gray-500">
+                            Direct delivery from warehouse
+                          </span>
+                        </div>
+                        {warehouseItems.map((line) => {
+                          const pricePerBottle = parseFloat(
+                            line.merchandise.product.priceRange.minVariantPrice
+                              .amount,
+                          );
+                          const totalForLine = pricePerBottle * line.quantity;
+
+                          return (
+                            <div
+                              key={line.id}
+                              className="flex justify-between text-sm gap-4 pl-2 border-l-2 border-green-200"
+                            >
+                              <span className="text-gray-600 min-w-0 truncate">
+                                {line.merchandise.title} × {line.quantity}
+                              </span>
+                              <MemberPrice
+                                amount={totalForLine}
+                                currencyCode={
+                                  line.merchandise.product.priceRange
+                                    .minVariantPrice.currencyCode
+                                }
+                                className="text-gray-900 font-medium text-sm whitespace-nowrap"
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
 
                     <div className="border-t border-gray-200 pt-6 mt-6">
                       <div className="flex justify-between mb-2">
@@ -1287,9 +1357,33 @@ function CheckoutContent() {
 
                 {step === 2 && (
                   <div className="space-y-4">
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      Selected pallet
-                    </h3>
+                    {hasProducerItems && (
+                      <>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                          Selected pallet
+                        </h3>
+                        <div className="text-xs text-gray-500 mb-2">
+                          <Badge variant="outline" className="bg-blue-50 border-blue-200 text-blue-700 mr-2">
+                            Producer Order
+                          </Badge>
+                          Producer orders will be placed on a pallet
+                        </div>
+                      </>
+                    )}
+                    {hasWarehouseItems && !hasProducerItems && (
+                      <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge variant="outline" className="bg-green-100 border-green-300 text-green-700">
+                            Warehouse Order
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-green-800">
+                          This is a warehouse order. Items will be delivered directly from the warehouse, no pallet required.
+                        </p>
+                      </div>
+                    )}
+                    {hasProducerItems && (
+                      <>
 
                   {zoneLoading ? (
                     <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
@@ -1328,6 +1422,8 @@ function CheckoutContent() {
                       </p>
                     </div>
                   ) : null}
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -1491,30 +1587,70 @@ function CheckoutContent() {
                     <h3 className="text-lg font-medium text-gray-900 mb-4">
                       Payment
                     </h3>
-                  <div className="text-center py-6 bg-gray-50 rounded-xl border border-gray-200">
-                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Check className="w-8 h-8 text-green-600" />
-                    </div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      No Payment Required Yet
-                    </h3>
-                    <p className="text-gray-600 mb-4">
-                      You'll only pay when your pallet reaches 100% and is ready
-                      to ship.
-                    </p>
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <p className="text-sm text-blue-800">
-                        <strong>How it works:</strong>
-                        <br />
-                        • Reserve your bottles for free
-                        <br />
-                        • When the pallet fills up, you'll receive an email
-                        <br />
-                        • Complete payment via secure link
-                        <br />• Your wine ships to the pickup location
-                      </p>
-                    </div>
-                  </div>
+                    
+                    {hasWarehouseItems && (
+                      <div className="mb-6">
+                        <PaymentMethodSelectorB2B
+                          onPaymentMethodSelected={setPaymentMethod}
+                          selectedMethod={paymentMethod}
+                          hasWarehouseItems={hasWarehouseItems}
+                          hasProducerItems={hasProducerItems}
+                        />
+                      </div>
+                    )}
+
+                    {hasProducerItems && (
+                      <div className="text-center py-6 bg-gray-50 rounded-xl border border-gray-200">
+                        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <Check className="w-8 h-8 text-green-600" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                          No Payment Required Yet
+                        </h3>
+                        <p className="text-gray-600 mb-4">
+                          You'll only pay when your pallet reaches 100% and is ready
+                          to ship.
+                        </p>
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                          <p className="text-sm text-blue-800">
+                            <strong>How it works:</strong>
+                            <br />
+                            • Reserve your bottles for free
+                            <br />
+                            • When the pallet fills up, you'll receive an email
+                            <br />
+                            • Complete payment via secure link
+                            <br />• Your wine ships to the pickup location
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {hasWarehouseItems && paymentMethod === "invoice" && (
+                      <div className="mt-4 text-center py-6 bg-amber-50 rounded-xl border border-amber-200">
+                        <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <FileText className="w-8 h-8 text-amber-600" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                          Invoice Payment
+                        </h3>
+                        <p className="text-gray-600 mb-4">
+                          Your order will be processed and you'll receive an invoice
+                          within 30 days.
+                        </p>
+                        <div className="bg-white border border-amber-200 rounded-lg p-4">
+                          <p className="text-sm text-amber-800">
+                            <strong>Terms:</strong>
+                            <br />
+                            • Payment due within 30 days
+                            <br />
+                            • Direct delivery from warehouse
+                            <br />
+                            • No pallet required
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 

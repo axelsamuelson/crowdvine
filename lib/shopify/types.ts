@@ -248,6 +248,7 @@ export type Cart = {
 export type CartItem = {
   id: string;
   quantity: number;
+  source?: "producer" | "warehouse"; // Source of the item (producer or warehouse)
   cost: {
     totalAmount: Money;
   };

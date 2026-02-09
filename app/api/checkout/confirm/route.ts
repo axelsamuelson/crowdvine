@@ -126,44 +126,61 @@ export async function POST(request: Request) {
     const sb = await supabaseServer();
     const sbAdmin = getSupabaseAdmin();
 
+    // Separate producer and warehouse items
+    const producerItems = (cart.lines || []).filter(
+      (line: any) => line.source === "producer" || !line.source
+    );
+    const warehouseItems = (cart.lines || []).filter(
+      (line: any) => line.source === "warehouse"
+    );
+    const hasProducerItems = producerItems.length > 0;
+    const hasWarehouseItems = warehouseItems.length > 0;
+
+    // Get payment method type (only for warehouse orders)
+    const paymentMethodType = (body.paymentMethodType as "card" | "invoice") || "card";
+
     // Producer approval flow: this reservation must belong to a single producer.
-    // (If we later want multi-producer carts, we should split into multiple reservations.)
-    const cartWineIds = Array.from(
-      new Set(
-        (cart.lines || [])
-          .map((l: any) => String(l?.merchandise?.id))
-          .filter(Boolean),
-      ),
-    );
-
-    const { data: cartWines, error: cartWinesError } = await sbAdmin
-      .from("wines")
-      .select("id, producer_id")
-      .in("id", cartWineIds);
-
-    if (cartWinesError) {
-      console.error("[Checkout API] Failed to fetch wines for cart:", cartWinesError);
-      return NextResponse.json(
-        { error: "Failed to validate cart items" },
-        { status: 500 },
+    // (Only required for producer orders, not warehouse orders)
+    let producerIdForReservation: string | null = null;
+    
+    if (hasProducerItems) {
+      const producerWineIds = Array.from(
+        new Set(
+          producerItems
+            .map((l: any) => String(l?.merchandise?.id))
+            .filter(Boolean),
+        ),
       );
-    }
 
-    const uniqueProducerIds = Array.from(
-      new Set((cartWines || []).map((w: any) => w?.producer_id).filter(Boolean)),
-    );
+      const { data: cartWines, error: cartWinesError } = await sbAdmin
+        .from("wines")
+        .select("id, producer_id")
+        .in("id", producerWineIds);
 
-    if (uniqueProducerIds.length !== 1) {
-      return NextResponse.json(
-        {
-          error:
-            "This reservation must contain wines from a single producer (producer approval required).",
-        },
-        { status: 400 },
+      if (cartWinesError) {
+        console.error("[Checkout API] Failed to fetch wines for cart:", cartWinesError);
+        return NextResponse.json(
+          { error: "Failed to validate cart items" },
+          { status: 500 },
+        );
+      }
+
+      const uniqueProducerIds = Array.from(
+        new Set((cartWines || []).map((w: any) => w?.producer_id).filter(Boolean)),
       );
-    }
 
-    const producerIdForReservation = uniqueProducerIds[0] as string;
+      if (uniqueProducerIds.length !== 1) {
+        return NextResponse.json(
+          {
+            error:
+              "Producer orders must contain wines from a single producer (producer approval required).",
+          },
+          { status: 400 },
+        );
+      }
+
+      producerIdForReservation = uniqueProducerIds[0] as string;
+    }
 
     // Get current user if authenticated
     const currentUser = await getCurrentUser();
@@ -259,9 +276,15 @@ export async function POST(request: Request) {
 
     console.log("Reservation created:", reservation);
 
-    // Create reservation items
+    // Create reservation items (use all items, or filter by source if needed)
     console.log("Creating reservation items");
-    const reservationItems = cart.lines.map((line) => ({
+    const itemsToAdd = hasWarehouseItems && !hasProducerItems 
+      ? warehouseItems 
+      : hasProducerItems && !hasWarehouseItems
+        ? producerItems
+        : cart.lines; // Mixed order - add all items for now
+    
+    const reservationItems = itemsToAdd.map((line: any) => ({
       reservation_id: reservation.id,
       item_id: line.merchandise.id,
       quantity: line.quantity,

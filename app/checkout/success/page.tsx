@@ -35,6 +35,8 @@ interface ReservationDetails {
   shipping_cost_cents?: number;
   customer_email?: string;
   customer_name?: string;
+  order_type?: "producer" | "warehouse";
+  payment_method_type?: "card" | "invoice";
   items: Array<{
     wine_name: string;
     quantity: number;
@@ -45,6 +47,7 @@ interface ReservationDetails {
     producer_name?: string;
     customer_email?: string;
     customer_name?: string;
+    source?: "producer" | "warehouse";
   }>;
   shared?: Array<{
     to_user: { id: string; full_name?: string; avatar_image_path?: string };
@@ -422,13 +425,31 @@ function CheckoutConfirmationContent() {
                     <div className="text-lg font-medium text-gray-900">
                       Reserved bottles
                     </div>
+                    {reservation.order_type && (
+                      <Badge 
+                        variant="outline" 
+                        className={
+                          reservation.order_type === "warehouse"
+                            ? "bg-green-50 border-green-200 text-green-700"
+                            : "bg-blue-50 border-blue-200 text-blue-700"
+                        }
+                      >
+                        {reservation.order_type === "warehouse" 
+                          ? "Warehouse Order" 
+                          : "Producer Order"}
+                      </Badge>
+                    )}
                   </div>
 
                   <div className="space-y-3">
                     {reservation.items.map((item, index) => (
                       <div
                         key={index}
-                        className="flex gap-4 rounded-2xl border border-gray-200 bg-gray-50 p-4"
+                        className={`flex gap-4 rounded-2xl border p-4 ${
+                          item.source === "warehouse"
+                            ? "border-green-200 bg-green-50"
+                            : "border-gray-200 bg-gray-50"
+                        }`}
                       >
                         <div className="relative w-16 h-16 shrink-0 overflow-hidden rounded-xl bg-gray-100 border border-gray-200">
                           {item.image_url ? (
@@ -449,8 +470,22 @@ function CheckoutConfirmationContent() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <div className="text-sm font-medium text-gray-900 truncate">
-                                {item.wine_name} {item.vintage}
+                              <div className="flex items-center gap-2 mb-1">
+                                <div className="text-sm font-medium text-gray-900 truncate">
+                                  {item.wine_name} {item.vintage}
+                                </div>
+                                {item.source && (
+                                  <Badge 
+                                    variant="outline" 
+                                    className={
+                                      item.source === "warehouse"
+                                        ? "bg-green-100 border-green-300 text-green-700 text-[10px] px-1.5 py-0"
+                                        : "bg-blue-100 border-blue-300 text-blue-700 text-[10px] px-1.5 py-0"
+                                    }
+                                  >
+                                    {item.source === "warehouse" ? "Warehouse" : "Producer"}
+                                  </Badge>
+                                )}
                               </div>
                               {item.producer_name && (
                                 <div className="text-sm text-gray-500 truncate">
@@ -460,6 +495,16 @@ function CheckoutConfirmationContent() {
                               <div className="text-xs text-gray-500 mt-1">
                                 {item.quantity}{" "}
                                 {item.quantity === 1 ? "bottle" : "bottles"}
+                                {item.source === "warehouse" && (
+                                  <span className="ml-2 text-green-600">
+                                    • Direct delivery
+                                  </span>
+                                )}
+                                {item.source === "producer" && (
+                                  <span className="ml-2 text-blue-600">
+                                    • On pallet
+                                  </span>
+                                )}
                               </div>
                             </div>
 

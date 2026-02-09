@@ -81,12 +81,13 @@ export async function POST(request: Request) {
       console.log("🔧 Existing cart found:", dbCartId);
     }
 
-    // Check if item already exists
+    // Check if item already exists with producer source (default for backwards compatibility)
     const { data: existingItem } = await supabase
       .from("cart_items")
       .select("id, quantity")
       .eq("cart_id", dbCartId)
       .eq("wine_id", baseId)
+      .eq("source", "producer")
       .maybeSingle();
 
     if (existingItem) {
@@ -136,6 +137,7 @@ export async function POST(request: Request) {
         `
         id,
         quantity,
+        source,
         wines (
           id,
           handle,
@@ -178,6 +180,7 @@ export async function POST(request: Request) {
       return {
         id: item.id,
         quantity: item.quantity,
+        source: (item as any).source || "producer", // Default to producer for backwards compatibility
         cost: {
           totalAmount: {
             amount: Math.round(

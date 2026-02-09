@@ -508,7 +508,8 @@ function ProfilePageContent() {
               const allowed = inv.allowed_types ?? (inv.invitation_type ? [inv.invitation_type] : ["consumer"]);
               inv.signupUrl = buildInviteUrl(inv.code, allowed);
               const baseUrl = getBaseUrlForInvite(allowed);
-              inv.codeSignupUrl = `${baseUrl}/c/${inv.code.trim().replace(/\s+/g, "")}`;
+              const cleanCode = inv.code.trim().replace(/\s+/g, "");
+              inv.codeSignupUrl = `${baseUrl}/c/${cleanCode}`;
 
               console.log("🔗 Built signup URL:", {
                 code: inv.code,

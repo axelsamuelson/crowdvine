@@ -28,6 +28,8 @@ export async function GET(
         delivery_zone_id,
         address_id,
         user_id,
+        order_type,
+        payment_method_type,
         pallet:pallets(name, cost_cents, bottle_capacity),
         order_reservation_items(
           item_id,
@@ -130,6 +132,7 @@ export async function GET(
         producer_name: item.wines?.producers?.name || undefined,
         customer_email: profile?.email || user.email,
         customer_name: profile?.full_name || "Valued Customer",
+        source: reservation.order_type === "warehouse" ? "warehouse" : "producer",
       })) || [];
 
     // Fetch shared bottle allocations (optional)
@@ -275,6 +278,8 @@ export async function GET(
       shipping_cost_cents: shippingCostCents,
       customer_email: profile?.email || user.email,
       customer_name: profile?.full_name || "Valued Customer",
+      order_type: reservation.order_type || "producer",
+      payment_method_type: reservation.payment_method_type || "card",
       items,
       shared,
     };

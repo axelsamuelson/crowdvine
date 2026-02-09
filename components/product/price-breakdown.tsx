@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 export interface PriceBreakdownProps {
   costAmount: number; // Base cost in SEK (after exchange)
   alcoholTax: number; // Tax in SEK
+  shipping?: number; // Shipping per bottle in SEK (optional)
   margin: number; // Margin amount in SEK
   vat: number; // VAT in SEK
   totalPrice: number; // Final price in SEK
@@ -28,6 +29,7 @@ export interface PriceBreakdownProps {
 const SEGMENT_COLORS = {
   cost: "bg-foreground",
   alcoholTax: "bg-muted-foreground/35",
+  shipping: "bg-muted-foreground/30",
   margin: "bg-muted-foreground/50",
   marginDiscounted: "bg-foreground/70",
   vat: "bg-muted-foreground/20",
@@ -35,6 +37,11 @@ const SEGMENT_COLORS = {
 
 /** When margin is 0, give it a small visible share; rest of bar reflects true value proportions */
 const MARGIN_ZERO_DISPLAY_PCT = 2;
+
+function pct(part: number, total: number): number {
+  if (total <= 0) return 0;
+  return Math.round((part / total) * 100);
+}
 
 function getDisplayPercentages(
   components: Array<{ label: string; amount: number; percentage: number }>
@@ -67,14 +74,18 @@ function PriceBreakdownContent({
   const total = displayPcts.reduce((s, p) => s + p, 0);
   const widthPcts = total > 0 ? displayPcts.map((p) => (p / total) * 100) : displayPcts.map(() => 25);
 
+  // Check if shipping exists in components (hydration-safe - components are already calculated)
+  const hasShipping = components.some((c) => c.label === "Shipping");
+
   return (
-    <div className="space-y-3 min-w-0 overflow-hidden">
+    <div className="space-y-3 min-w-0 overflow-clip">
       <p className="text-sm text-muted-foreground">
-        This is how the price is made up: bottle cost, alcohol tax, margin and VAT. Member discount is applied to the margin.
+        This is how the price is made up: bottle cost, alcohol tax{hasShipping ? ", shipping" : ""}, margin and VAT. Member discount is applied to the margin.
       </p>
 
-      {/* Stacked bar: widths reflect value proportions; margin when 0 gets a small visible sliver */}
-      <div className="w-full rounded-full h-3 overflow-hidden flex bg-muted/50">
+      {/* Stacked bar with total price to the right */}
+      <div className="flex items-center gap-4">
+        <div className="flex-1 rounded-full h-3 overflow-hidden flex bg-muted/50">
         {components.map((component, index) => {
           const isMargin = component.label === "Margin";
           const segmentBg = isMargin && hasMemberDiscount
@@ -85,7 +96,9 @@ function PriceBreakdownContent({
                 ? SEGMENT_COLORS.cost
                 : component.label === "Alcohol tax"
                   ? SEGMENT_COLORS.alcoholTax
-                  : SEGMENT_COLORS.vat;
+                  : component.label === "Shipping"
+                    ? SEGMENT_COLORS.shipping
+                    : SEGMENT_COLORS.vat;
           const widthPct = widthPcts[index];
           return (
             <div
@@ -96,27 +109,37 @@ function PriceBreakdownContent({
             />
           );
         })}
+        </div>
+        <div className="text-lg font-semibold tabular-nums shrink-0">
+          {formatCurrency(totalPrice)}
+        </div>
       </div>
 
-      {/* Labels under the bar: same proportions as bar */}
-      <div className="w-full min-w-0 overflow-hidden flex gap-0.5 sm:gap-1 pt-1">
+      {/* Labels to the left - one per row */}
+      <div className="space-y-2">
         {components.map((component, index) => {
-          const widthPct = widthPcts[index];
+          const percentage = pct(component.amount, totalPrice);
           return (
             <div
               key={index}
-              className="flex flex-col items-center justify-start min-w-0 overflow-hidden flex-1 pt-0"
-              style={{ flexBasis: `${widthPct}%`, minWidth: 0 }}
+              className="flex items-center justify-between gap-4"
             >
-              <span className="text-muted-foreground text-[10px] sm:text-xs text-center truncate block w-full" title={component.label}>
-                {component.label}
-                {component.isDiscounted && memberDiscountPercent > 0 && (
-                  <span className="text-muted-foreground"> -{memberDiscountPercent}%</span>
-                )}
-              </span>
-              <span className="text-foreground font-semibold text-[10px] sm:text-xs tabular-nums mt-0.5 truncate block w-full text-center" title={formatCurrency(component.amount)}>
-                {formatCurrency(component.amount)}
-              </span>
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <span className="text-muted-foreground text-sm" title={component.label}>
+                  {component.label}
+                  {component.isDiscounted && memberDiscountPercent > 0 && (
+                    <span className="text-muted-foreground"> -{memberDiscountPercent}%</span>
+                  )}
+                </span>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <span className="text-foreground font-semibold text-sm tabular-nums" title={formatCurrency(component.amount)}>
+                  {formatCurrency(component.amount)}
+                </span>
+                <span className="text-muted-foreground text-xs tabular-nums">
+                  {percentage}%
+                </span>
+              </div>
             </div>
           );
         })}
@@ -134,6 +157,7 @@ function PriceBreakdownContent({
 export function PriceBreakdown({
   costAmount,
   alcoholTax,
+  shipping,
   margin,
   vat,
   totalPrice,
@@ -149,6 +173,7 @@ export function PriceBreakdown({
   const percentages = calculatePercentages({
     cost: costAmount,
     alcoholTax,
+    shipping: shipping ?? 0,
     margin,
     vat,
     total: totalPrice,
@@ -156,7 +181,7 @@ export function PriceBreakdown({
     originalMarginPercentage,
   });
 
-  /* Order: Bottle cost, Alcohol tax, VAT, Margin (Margin always rightmost) */
+  /* Order: Bottle cost, Alcohol tax, Shipping (if exists), VAT, Margin (Margin always rightmost) */
   const components = [
     {
       label: "Bottle cost",
@@ -172,6 +197,17 @@ export function PriceBreakdown({
       color: "",
       isDiscounted: false,
     },
+    ...(shipping && shipping > 0
+      ? [
+          {
+            label: "Shipping",
+            amount: shipping,
+            percentage: percentages.shipping ?? 0,
+            color: "",
+            isDiscounted: false,
+          },
+        ]
+      : []),
     {
       label: "VAT",
       amount: vat,
