@@ -131,7 +131,7 @@ export function InviteProductModal({
                         <>
                           <div className="flex flex-col">
                             <span className="text-xs text-muted-foreground mb-1">
-                              Producer
+                              Shipped from producer
                             </span>
                             <MemberPrice
                               amount={product.priceRange.minVariantPrice.amount}
@@ -145,7 +145,7 @@ export function InviteProductModal({
                           </div>
                           <div className="flex flex-col">
                             <span className="text-xs text-muted-foreground mb-1">
-                              Warehouse
+                              Shipped from warehouse
                             </span>
                             <MemberPrice
                               amount={product.priceRange.minVariantPrice.amount}

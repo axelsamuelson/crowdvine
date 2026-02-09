@@ -140,34 +140,34 @@ export default function InviteProductPage() {
 
             {product.priceRange && (
               <div className="flex flex-col gap-2 mb-4">
-                {showExclVat && producerBreakdown && warehouseBreakdown ? (
-                  <>
-                    <div className="flex flex-col">
-                      <span className="text-xs text-muted-foreground mb-1">
-                        Producer
-                      </span>
-                      <MemberPrice
-                        amount={product.priceRange.minVariantPrice.amount}
-                        currencyCode={product.priceRange.minVariantPrice.currencyCode}
-                        className="text-xl font-semibold"
-                        calculatedTotalPrice={producerBreakdown.total / 1.25}
-                        forceShowExclVat={true}
-                      />
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-xs text-muted-foreground mb-1">
-                        Warehouse
-                      </span>
-                      <MemberPrice
-                        amount={product.priceRange.minVariantPrice.amount}
-                        currencyCode={product.priceRange.minVariantPrice.currencyCode}
-                        className="text-xl font-semibold"
-                        calculatedTotalPrice={warehouseBreakdown.total}
-                        forceShowExclVat={true}
-                      />
-                    </div>
-                  </>
-                ) : (
+              {showExclVat && producerBreakdown && warehouseBreakdown ? (
+                <>
+                  <div className="flex flex-col">
+                    <span className="text-xs text-muted-foreground mb-1">
+                      Shipped from producer
+                    </span>
+                    <MemberPrice
+                      amount={product.priceRange.minVariantPrice.amount}
+                      currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                      className="text-xl font-semibold"
+                      calculatedTotalPrice={producerBreakdown.total / 1.25}
+                      forceShowExclVat={true}
+                    />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs text-muted-foreground mb-1">
+                      Shipped from warehouse
+                    </span>
+                    <MemberPrice
+                      amount={product.priceRange.minVariantPrice.amount}
+                      currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                      className="text-xl font-semibold"
+                      calculatedTotalPrice={warehouseBreakdown.total}
+                      forceShowExclVat={true}
+                    />
+                  </div>
+                </>
+              ) : (
                   <MemberPrice
                     amount={product.priceRange.minVariantPrice.amount}
                     currencyCode={product.priceRange.minVariantPrice.currencyCode}

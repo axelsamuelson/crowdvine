@@ -92,8 +92,8 @@ export const BrowseProductCard = memo(
                 {showExclVat && producerBreakdown && warehouseBreakdown ? (
                   <>
                     <div className="flex flex-col items-end">
-                      <span className="text-[9px] md:text-[10px] text-muted-foreground font-normal">
-                        Producer
+                      <span className="text-[8px] md:text-[9px] text-muted-foreground font-normal leading-tight">
+                        Shipped from producer
                       </span>
                       <MemberPrice
                         amount={product.priceRange.minVariantPrice.amount}
@@ -104,8 +104,8 @@ export const BrowseProductCard = memo(
                       />
                     </div>
                     <div className="flex flex-col items-end">
-                      <span className="text-[9px] md:text-[10px] text-muted-foreground font-normal">
-                        Warehouse
+                      <span className="text-[8px] md:text-[9px] text-muted-foreground font-normal leading-tight">
+                        Shipped from warehouse
                       </span>
                       <MemberPrice
                         amount={product.priceRange.minVariantPrice.amount}
