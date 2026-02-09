@@ -146,36 +146,8 @@ export const BrowseProductCard = memo(
               <div className="flex flex-col items-end text-xs md:text-sm uppercase 2xl:text-base">
                 {showExclVat ? (
                   <>
-                    {/* Show both prices in a compact single-line layout */}
-                    {calculatedProducerPrice && calculatedWarehousePrice ? (
-                      <div className="flex flex-col items-end gap-0">
-                        <div className="flex items-baseline gap-1 text-[10px] md:text-xs leading-tight">
-                          <MemberPrice
-                            amount={product.priceRange.minVariantPrice.amount}
-                            currencyCode={product.priceRange.minVariantPrice.currencyCode}
-                            className="text-xs md:text-sm uppercase 2xl:text-base"
-                            calculatedTotalPrice={calculatedProducerPrice}
-                            forceShowExclVat={true}
-                          />
-                          <span className="text-muted-foreground/50 font-normal">/</span>
-                          <MemberPrice
-                            amount={product.priceRange.minVariantPrice.amount}
-                            currencyCode={product.priceRange.minVariantPrice.currencyCode}
-                            className="text-xs md:text-sm uppercase 2xl:text-base"
-                            calculatedTotalPrice={calculatedWarehousePrice}
-                            forceShowExclVat={true}
-                          />
-                        </div>
-                      </div>
-                    ) : calculatedProducerPrice ? (
-                      <MemberPrice
-                        amount={product.priceRange.minVariantPrice.amount}
-                        currencyCode={product.priceRange.minVariantPrice.currencyCode}
-                        className="text-xs md:text-sm uppercase 2xl:text-base"
-                        calculatedTotalPrice={calculatedProducerPrice}
-                        forceShowExclVat={true}
-                      />
-                    ) : calculatedWarehousePrice ? (
+                    {/* Show only B2B price (warehouse price) exkl. moms for B2B invitation pages */}
+                    {calculatedWarehousePrice ? (
                       <MemberPrice
                         amount={product.priceRange.minVariantPrice.amount}
                         currencyCode={product.priceRange.minVariantPrice.currencyCode}
