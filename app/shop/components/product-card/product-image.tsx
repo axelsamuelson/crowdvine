@@ -87,14 +87,14 @@ export const ProductImage = memo(({ product, priority = false, index = 0 }: Prod
   }
 
   return (
-    <div ref={imgRef}>
+    <div ref={imgRef} className="block size-full overflow-clip [&_img]:block">
       <Image
         src={imageToShow.url}
         alt={imageToShow.altText || product.title}
         width={imageToShow.width || 600}
         height={imageToShow.height || 600}
         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-        className="object-cover size-full"
+        className="object-cover size-full block"
         quality={85}
         loading={priority || index < 6 ? "eager" : "lazy"}
         fetchPriority={priority || index < 3 ? "high" : "auto"}

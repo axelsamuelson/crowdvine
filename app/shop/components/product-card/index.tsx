@@ -646,8 +646,8 @@ export const ProductCard = memo(({ product, index = 0 }: { product: Product; ind
         onMouseEnter={() => setIsTouched(true)}
         onMouseLeave={() => setIsTouched(false)}
       >
-      {/* Content wrapper - no overflow needed, clipping handled by root clip-path */}
-      <div className="relative size-full">
+      {/* Content wrapper - overflow-clip so wheel scroll propagates to document */}
+      <div className="relative size-full overflow-clip">
         {/* Discount Badge for Wine Boxes */}
         {isWineBox && discountInfo && (
           <div className="absolute top-2 left-2 z-10">
