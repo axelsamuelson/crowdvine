@@ -31,6 +31,7 @@ async function runMiddleware(req: NextRequest) {
     "/i",
     "/ib",
     "/b",
+    "/p",
     "/c",
     "/profile",
     "/pallet",

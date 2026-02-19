@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
   try {
     console.log("[INVITE-REDEEM] Starting redemption process");
 
-    const { invitation_code, email, password, full_name, selected_type } =
+    const { invitation_code, email, password, full_name, selected_type, producer_data } =
       await request.json();
 
     if (!invitation_code || !email || !password || !full_name) {
@@ -255,6 +255,75 @@ export async function POST(request: NextRequest) {
       }
     } else {
       console.log("[INVITE-REDEEM] STEP-3 SUCCESS - Membership created");
+    }
+
+    // Step 3b: For producer invitations, create a producer and link to profile
+    if (invitationType === "producer") {
+      console.log(
+        "[INVITE-REDEEM] MANUAL CREATION FLOW - Step 3b: Create producer and link profile",
+      );
+      const pd = producer_data && typeof producer_data === "object" ? producer_data : {};
+      const { data: newProducer, error: producerError } = await sb
+        .from("producers")
+        .insert({
+          name: pd.name ?? full_name,
+          region: pd.region ?? "",
+          lat: pd.lat ?? 0,
+          lon: pd.lon ?? 0,
+          country_code: pd.country_code ?? "",
+          address_street: pd.address_street ?? "",
+          address_city: pd.address_city ?? "",
+          address_postcode: pd.address_postcode ?? "",
+          short_description: pd.short_description ?? "",
+          logo_image_path: pd.logo_image_path ?? "",
+          pickup_zone_id: null,
+          owner_id: userId,
+          status: "active",
+        })
+        .select("id")
+        .single();
+
+      if (producerError) {
+        console.error(
+          "[INVITE-REDEEM] STEP-3B FAILED - Producer creation error:",
+          producerError,
+        );
+        return NextResponse.json(
+          {
+            error: "Failed to create producer profile",
+            details: producerError.message,
+          },
+          { status: 500 },
+        );
+      }
+
+      if (newProducer?.id) {
+        const { error: profileUpdateError } = await sb
+          .from("profiles")
+          .update({
+            producer_id: newProducer.id,
+            role: "producer",
+          })
+          .eq("id", userId);
+
+        if (profileUpdateError) {
+          console.error(
+            "[INVITE-REDEEM] STEP-3B FAILED - Profile producer_id update:",
+            profileUpdateError,
+          );
+          return NextResponse.json(
+            {
+              error: "Failed to link producer to account",
+              details: profileUpdateError.message,
+            },
+            { status: 500 },
+          );
+        }
+        console.log(
+          "[INVITE-REDEEM] STEP-3B SUCCESS - Producer created and linked:",
+          newProducer.id,
+        );
+      }
     }
 
     const authData = createUserData;

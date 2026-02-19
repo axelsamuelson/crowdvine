@@ -270,25 +270,30 @@ export async function DELETE(request: NextRequest) {
       }
     }
 
-    // Handle invitation codes separately - update references to null instead of deleting
+    // Handle invitation codes: delete rows where user created them (created_by FK blocks profile delete)
+    // and null out used_by where user redeemed an invite
     console.log("Handling invitation codes references...");
     try {
-      // Update created_by references to null
-      const { error: createdByError } = await adminSupabase
-        .from("invitation_codes")
-        .update({ created_by: null })
-        .eq("created_by", userId);
+      // Delete invitation codes created by this user (created_by is often NOT NULL, so we must delete)
+      const { error: deleteCreatedError, count: deleteCreatedCount } =
+        await adminSupabase
+          .from("invitation_codes")
+          .delete()
+          .eq("created_by", userId)
+          .select("*", { count: "exact", head: true });
 
-      if (createdByError) {
+      if (deleteCreatedError) {
         console.warn(
-          "Warning: Could not update invitation_codes.created_by:",
-          createdByError.message,
+          "Warning: Could not delete invitation_codes (created_by):",
+          deleteCreatedError.message,
         );
       } else {
-        console.log("Updated invitation_codes.created_by references to null");
+        console.log(
+          `Deleted ${deleteCreatedCount ?? 0} invitation_codes where created_by = user`,
+        );
       }
 
-      // Update used_by references to null
+      // Update used_by to null where this user redeemed an invite (so FK doesn't block)
       const { error: usedByError } = await adminSupabase
         .from("invitation_codes")
         .update({ used_by: null })

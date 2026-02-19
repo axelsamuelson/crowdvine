@@ -2,14 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { PageLayout } from "@/components/layout/page-layout";
 import { Button } from "@/components/ui/button";
 import { X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { OpusLandingView } from "@/components/invite-landing/opus-landing-view";
 
-type InvitationPageType = "consumer" | "producer" | "business";
+export type InvitationPageType = "consumer" | "producer" | "business";
 
 interface Invitation {
   id: string;
@@ -28,10 +27,9 @@ interface Invitation {
   };
 }
 
-export default function BusinessInvitePage() {
+export default function ProducerInvitePage() {
   const params = useParams();
   const router = useRouter();
-  const code = params.code as string;
   const [invitation, setInvitation] = useState<Invitation | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -41,49 +39,70 @@ export default function BusinessInvitePage() {
     password_confirm: "",
     full_name: "",
     selected_type: null as InvitationPageType | null,
+    producer_name: "",
+    producer_country_code: "",
+    producer_region: "",
+    address_street: "",
+    address_city: "",
+    address_postcode: "",
   });
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [registeredName, setRegisteredName] = useState<string | null>(null);
 
+  const code = params.code as string;
+
   useEffect(() => {
-    if (!code) return;
-    fetch("/api/invitations/validate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code }),
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        if (!data.success) {
-          router.push("/access-request");
-          return;
-        }
+    if (code) {
+      validateInvitation();
+    }
+  }, [code]);
+
+  useEffect(() => {
+    if (!loading && invitation) {
+      window.scrollTo(0, 0);
+    }
+  }, [loading, invitation]);
+
+  const validateInvitation = async () => {
+    try {
+      const response = await fetch("/api/invitations/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
         const inv = data.invitation;
-        const allowed = inv?.allowed_types ?? (inv?.invitation_type ? [inv.invitation_type] : []);
-        const hasBusiness = allowed.includes("business");
+        const allowed = inv?.allowed_types ?? (inv?.invitation_type ? [inv.invitation_type] : ["producer"]);
         const hasProducer = allowed.includes("producer");
-        const hasUser = allowed.some((t: string) => ["consumer", "producer"].includes(t));
-        if (inv?.used_at) {
+        if (!hasProducer || inv?.used_at) {
           router.push("/access-request");
           return;
         }
-        if (!hasBusiness && hasProducer) {
-          router.replace(`/p/${code}`);
+        // If consumer-only, redirect to consumer invite URL
+        if (allowed.length === 1 && allowed[0] === "consumer") {
+          router.replace(`/i/${code}`);
           return;
         }
-        if (!hasBusiness) {
-          router.push("/access-request");
-          return;
-        }
-        if (hasBusiness && hasUser) {
-          router.replace(`/ib/${code}`);
+        if (allowed.includes("business")) {
+          router.replace(`/b/${code}`);
           return;
         }
         setInvitation(inv);
-      })
-      .catch(() => router.push("/access-request"))
-      .finally(() => setLoading(false));
-  }, [code, router]);
+      } else {
+        toast.error(data.error || "Invalid invitation code");
+        router.push("/access-request");
+      }
+    } catch (error) {
+      console.error("Error validating invitation:", error);
+      toast.error("Failed to validate invitation");
+      router.push("/access-request");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,8 +122,16 @@ export default function BusinessInvitePage() {
           password: formData.password,
           full_name: formData.full_name,
           ...(invitation?.can_change_account_type && {
-            selected_type: formData.selected_type ?? ["business"][0],
+            selected_type: formData.selected_type ?? "producer",
           }),
+          producer_data: {
+            name: formData.producer_name?.trim() || formData.full_name?.trim(),
+            country_code: formData.producer_country_code || "",
+            region: formData.producer_region || "",
+            address_street: formData.address_street || "",
+            address_city: formData.address_city || "",
+            address_postcode: formData.address_postcode || "",
+          },
         }),
       });
 
@@ -140,48 +167,68 @@ export default function BusinessInvitePage() {
 
   if (loading) {
     return (
-      <PageLayout>
-        <div className="flex items-center justify-center py-24">
-          <Loader2 className="size-8 animate-spin text-muted-foreground" />
-        </div>
-      </PageLayout>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      </div>
     );
   }
 
-  if (!invitation) return null;
+  if (!invitation) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
+        <div className="w-full max-w-md text-center">
+          <X className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h1 className="text-xl font-light text-gray-900 mb-2">
+            Invalid Invitation
+          </h1>
+          <p className="text-sm text-gray-600 mb-6">
+            This invitation code is not valid or has expired.
+          </p>
+          <Button
+            onClick={() => router.push("/access-request")}
+            className="bg-black hover:bg-black/90 text-white"
+          >
+            Request Access
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   const isExpired = new Date(invitation.expires_at) < new Date();
   const isUsed = !!invitation.used_at;
 
   if (isExpired || isUsed) {
     return (
-      <PageLayout>
-        <div className="flex items-center justify-center py-24 p-4">
-          <div className="w-full max-w-md text-center">
-            <X className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h1 className="text-xl font-light text-foreground mb-2">
-              {isExpired ? "Invitation Expired" : "Invitation Already Used"}
-            </h1>
-            <p className="text-sm text-muted-foreground mb-6">
-              {isExpired
-                ? "This invitation has expired. Please request a new one."
-                : "This invitation has already been used."}
-            </p>
-            <Button
-              onClick={() => router.push("/access-request")}
-              className="bg-black hover:bg-black/90 text-white"
-            >
-              Request Access
-            </Button>
-          </div>
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
+        <div className="w-full max-w-md text-center">
+          <X className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h1 className="text-xl font-light text-gray-900 mb-2">
+            {isExpired ? "Invitation Expired" : "Invitation Already Used"}
+          </h1>
+          <p className="text-sm text-gray-600 mb-6">
+            {isExpired
+              ? "This invitation has expired. Please request a new one."
+              : "This invitation has already been used."}
+          </p>
+          <Button
+            onClick={() => router.push("/access-request")}
+            className="bg-black hover:bg-black/90 text-white"
+          >
+            Request Access
+          </Button>
         </div>
-      </PageLayout>
+      </div>
     );
   }
 
-  const allowedTypes: InvitationPageType[] = ["business"];
-  const defaultType: InvitationPageType = "business";
+  const allowedTypes: InvitationPageType[] =
+    invitation.allowed_types && invitation.allowed_types.length > 0
+      ? invitation.allowed_types
+      : ["producer"];
+  const defaultType: InvitationPageType = "producer";
   const canChangeAccountType = !!invitation.can_change_account_type;
+
   const effectiveFormData =
     canChangeAccountType && formData.selected_type == null
       ? { ...formData, selected_type: defaultType }
@@ -201,6 +248,7 @@ export default function BusinessInvitePage() {
       onSubmit={handleSubmit}
       submitting={submitting}
       welcomeName={signupSuccess ? registeredName : null}
+      isProducerOnly={true}
     />
   );
 }

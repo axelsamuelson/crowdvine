@@ -55,7 +55,7 @@ export default async function ProducerEditWinePage({
           </div>
         </div>
 
-        <WineForm wine={wine} producers={producers} />
+        <WineForm wine={wine} producers={producers} isProducerView />
       </div>
     </main>
   );

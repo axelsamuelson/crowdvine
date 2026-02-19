@@ -34,11 +34,16 @@ interface PricingData {
 interface PricingCalculatorProps {
   pricingData: PricingData;
   onPricingChange: (data: PricingData) => void;
+  /** When false, hide margin input; producer only sets cost, margin is fixed by platform */
+  showMargin?: boolean;
 }
+
+const DEFAULT_PRODUCER_MARGIN = 10;
 
 export function PricingCalculator({
   pricingData,
   onPricingChange,
+  showMargin = true,
 }: PricingCalculatorProps) {
   const [currentRate, setCurrentRate] = useState<number | null>(null);
   const [loadingRate, setLoadingRate] = useState(false);
@@ -51,10 +56,16 @@ export function PricingCalculator({
     { code: "SEK", name: "Swedish Krona (SEK)" },
   ];
 
+  const effectiveMargin = showMargin
+    ? pricingData.margin_percentage
+    : DEFAULT_PRODUCER_MARGIN;
+
   const updatePricingData = (field: keyof PricingData, value: any) => {
+    if (!showMargin && field === "margin_percentage") return;
     onPricingChange({
       ...pricingData,
       [field]: value,
+      ...(!showMargin && { margin_percentage: DEFAULT_PRODUCER_MARGIN }),
     });
   };
 
@@ -88,7 +99,7 @@ export function PricingCalculator({
     const costAmountInSek = (pricingData.cost_amount || 0) * exchangeRate;
     const costInSek = costAmountInSek + alcoholTaxInSek;
 
-    const marginDecimal = (pricingData.margin_percentage || 0) / 100;
+    const marginDecimal = (effectiveMargin || 0) / 100;
     const denom = 1 - marginDecimal;
     const vatRate = pricingData.price_includes_vat ? 0.25 : 0;
 
@@ -122,7 +133,7 @@ export function PricingCalculator({
   }, [
     pricingData.cost_amount,
     pricingData.cost_currency,
-    pricingData.margin_percentage,
+    effectiveMargin,
     pricingData.price_includes_vat,
     currentRate,
   ]);
@@ -148,7 +159,7 @@ export function PricingCalculator({
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Inputs */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className={`grid grid-cols-1 gap-4 ${showMargin ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
           <div className="space-y-2 md:col-span-1">
             <Label htmlFor="cost_currency">Cost currency</Label>
             <Select
@@ -172,7 +183,7 @@ export function PricingCalculator({
           </div>
 
           <div className="space-y-2 md:col-span-1">
-            <Label htmlFor="cost_amount">Cost amount</Label>
+            <Label htmlFor="cost_amount">Cost per bottle</Label>
             <Input
               id="cost_amount"
               type="number"
@@ -189,23 +200,25 @@ export function PricingCalculator({
             />
           </div>
 
-          <div className="space-y-2 md:col-span-1">
-            <Label htmlFor="margin_percentage">Margin %</Label>
-            <Input
-              id="margin_percentage"
-              type="number"
-              step="0.1"
-              className="no-spinner bg-white"
-              value={pricingData.margin_percentage}
-              onChange={(e) =>
-                updatePricingData(
-                  "margin_percentage",
-                  parseFloat(e.target.value) || 0,
-                )
-              }
-              placeholder="10.0"
-            />
-          </div>
+          {showMargin && (
+            <div className="space-y-2 md:col-span-1">
+              <Label htmlFor="margin_percentage">Margin %</Label>
+              <Input
+                id="margin_percentage"
+                type="number"
+                step="0.1"
+                className="no-spinner bg-white"
+                value={pricingData.margin_percentage}
+                onChange={(e) =>
+                  updatePricingData(
+                    "margin_percentage",
+                    parseFloat(e.target.value) || 0,
+                  )
+                }
+                placeholder="10.0"
+              />
+            </div>
+          )}
 
           <div className="flex items-end gap-2 md:col-span-1">
             <div className="flex items-center gap-2 h-10">

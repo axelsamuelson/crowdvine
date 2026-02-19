@@ -28,6 +28,8 @@ export interface OpusLandingViewProps {
   submitting: boolean;
   /** When set, the invitation section is replaced by "Welcome {name}" and user stays on the page. */
   welcomeName?: string | null;
+  /** When true and welcomeName is set, show producer setup steps instead of "Go to platform". */
+  isProducerOnly?: boolean;
   /** Optional extra content (e.g. links) rendered below the form. */
   extraContent?: React.ReactNode;
 }
@@ -46,6 +48,7 @@ export function OpusLandingView({
   onSubmit,
   submitting,
   welcomeName,
+  isProducerOnly = false,
   extraContent,
 }: OpusLandingViewProps) {
   const isBusinessOnly =
@@ -57,7 +60,7 @@ export function OpusLandingView({
       <LenisProvider>
         <main className="bg-background">
           <HeroSection showDirtyWineLogo={isBusinessOnly} />
-          <ManifestoSection isBusinessOnly={isBusinessOnly} />
+          <ManifestoSection isBusinessOnly={isBusinessOnly} isProducerOnly={isProducerOnly} />
           {isBusinessOnly && <InviteWinesSection />}
           <InvitationTypeSection
             allowedTypes={allowedTypes}
@@ -66,6 +69,7 @@ export function OpusLandingView({
             initialMembershipLevel={initialMembershipLevel}
             inviterName={inviterName}
             welcomeName={welcomeName}
+            isProducerOnly={isProducerOnly}
             formData={formData}
             onFormChange={onFormChange}
             onSubmit={onSubmit}

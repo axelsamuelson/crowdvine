@@ -39,7 +39,7 @@ export function OnboardingProvider({
       pathname?.startsWith("/signup") ||
       pathname?.startsWith("/access-request") ||
       pathname?.startsWith("/access-pending") ||
-      pathname?.startsWith("/i/") || pathname?.startsWith("/ib/") || pathname?.startsWith("/b/") ||
+      pathname?.startsWith("/i/") || pathname?.startsWith("/ib/") || pathname?.startsWith("/b/") || pathname?.startsWith("/p/") ||
       pathname?.startsWith("/c/") ||
       pathname?.startsWith("/invite-signup") ||
       pathname?.startsWith("/code-signup") ||

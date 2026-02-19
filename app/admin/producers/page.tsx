@@ -23,6 +23,14 @@ export default async function ProducersPage() {
   const producers = await getProducers();
   const sb = getSupabaseAdmin();
 
+  const { data: countries } = await sb
+    .from("countries")
+    .select("code, name");
+  const countryNameByCode = new Map<string, string>();
+  (countries ?? []).forEach((c: { code: string; name: string }) => {
+    countryNameByCode.set(c.code, c.name);
+  });
+
   const pickupZoneIds = Array.from(
     new Set(
       producers
@@ -103,7 +111,9 @@ export default async function ProducersPage() {
                         {producer.region || "—"}
                       </TableCell>
                       <TableCell className="hidden md:table-cell text-gray-700">
-                        {producer.country_code || "—"}
+                        {producer.country_code
+                          ? countryNameByCode.get(producer.country_code) ?? producer.country_code
+                          : "—"}
                       </TableCell>
                       <TableCell className="hidden lg:table-cell text-gray-700">
                         <div className="min-w-0">

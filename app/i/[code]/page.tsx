@@ -71,9 +71,15 @@ export default function InviteSignupPage() {
         const inv = data.invitation;
         const allowed = inv?.allowed_types ?? inv?.invitation_type ? [inv.invitation_type] : ["consumer"];
         const hasBusiness = allowed.includes("business");
-        const hasUser = allowed.some((t: string) => ["consumer", "producer"].includes(t));
+        const hasConsumer = allowed.includes("consumer");
+        const hasProducer = allowed.includes("producer");
+        const hasUser = hasConsumer || hasProducer;
         if (hasBusiness && hasUser) {
           router.replace(`/ib/${code}`);
+          return;
+        }
+        if (hasProducer && !hasConsumer) {
+          router.replace(`/p/${code}`);
           return;
         }
         setInvitation(inv);

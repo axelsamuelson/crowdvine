@@ -20,18 +20,21 @@ export function getBaseUrlForInvite(allowedTypes: string[]): string {
 
 /**
  * Returns the invitation path prefix based on allowed types.
+ * - consumer only → /i
+ * - producer only → /p
  * - business only → /b
- * - user only (consumer, producer) → /i
- * - both user and business → /ib
+ * - consumer + producer → /i
+ * - business + any user type → /ib
  */
 export function getInvitePath(allowedTypes: string[]): string {
   const hasBusiness = allowedTypes.includes("business");
-  const hasUser = allowedTypes.some((t) =>
-    ["consumer", "producer"].includes(t),
-  );
+  const hasConsumer = allowedTypes.includes("consumer");
+  const hasProducer = allowedTypes.includes("producer");
+  const hasUser = hasConsumer || hasProducer;
 
   if (hasBusiness && hasUser) return "/ib";
   if (hasBusiness) return "/b";
+  if (hasProducer && !hasConsumer) return "/p";
   return "/i";
 }
 

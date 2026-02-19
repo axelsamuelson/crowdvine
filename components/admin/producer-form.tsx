@@ -7,6 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Card,
   CardContent,
   CardDescription,
@@ -21,6 +28,9 @@ import {
   updateProducer,
 } from "@/lib/actions/producers";
 import { getPickupZones, PalletZone } from "@/lib/actions/zones";
+
+type CountryOption = { code: string; name: string };
+type RegionOption = { value: string; label: string; country_code: string | null };
 
 interface ProducerFormProps {
   producer?: Producer;
@@ -44,6 +54,8 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [pickupZones, setPickupZones] = useState<PalletZone[]>([]);
+  const [countries, setCountries] = useState<CountryOption[]>([]);
+  const [regions, setRegions] = useState<RegionOption[]>([]);
   const [isPickupZone, setIsPickupZone] = useState(!!producer?.pickup_zone_id);
   const [geocoding, setGeocoding] = useState(false);
   const [geocodeSuccess, setGeocodeSuccess] = useState(false);
@@ -60,6 +72,39 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
     };
     loadPickupZones();
   }, []);
+
+  useEffect(() => {
+    const loadCountries = async () => {
+      try {
+        const res = await fetch("/api/countries");
+        if (res.ok) {
+          const data = await res.json();
+          setCountries(data.countries ?? []);
+        }
+      } catch (err) {
+        console.error("Failed to load countries:", err);
+      }
+    };
+    loadCountries();
+  }, []);
+
+  useEffect(() => {
+    const loadRegions = async () => {
+      try {
+        const url = formData.country_code
+          ? `/api/regions?country_code=${encodeURIComponent(formData.country_code)}`
+          : "/api/regions";
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          setRegions(data.regions ?? []);
+        }
+      } catch (err) {
+        console.error("Failed to load regions:", err);
+      }
+    };
+    loadRegions();
+  }, [formData.country_code]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -274,13 +319,26 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="region">Region *</Label>
-              <Input
-                id="region"
-                value={formData.region}
-                onChange={(e) => handleChange("region", e.target.value)}
+              <Label htmlFor="country">Country *</Label>
+              <Select
+                value={formData.country_code || undefined}
+                onValueChange={(v) => {
+                  handleChange("country_code", v);
+                  setFormData((prev) => ({ ...prev, region: "" }));
+                }}
                 required
-              />
+              >
+                <SelectTrigger id="country" className="w-full">
+                  <SelectValue placeholder="Select country" />
+                </SelectTrigger>
+                <SelectContent>
+                  {countries.map((c) => (
+                    <SelectItem key={c.code} value={c.code}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -321,14 +379,23 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="country_code">Country Code *</Label>
-                <Input
-                  id="country_code"
-                  value={formData.country_code}
-                  onChange={(e) => handleChange("country_code", e.target.value)}
-                  placeholder="FR"
+                <Label htmlFor="region">Region *</Label>
+                <Select
+                  value={formData.region || undefined}
+                  onValueChange={(v) => handleChange("region", v)}
                   required
-                />
+                >
+                  <SelectTrigger id="region" className="w-full">
+                    <SelectValue placeholder="Select region" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {regions.map((r) => (
+                      <SelectItem key={r.value} value={r.value}>
+                        {r.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 

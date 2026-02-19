@@ -39,12 +39,16 @@ import {
 import { calculateB2BPriceExclVat } from "@/lib/price-breakdown";
 import { WineB2BPalletStockTable } from "@/components/admin/wine-b2b-pallet-stock-table";
 
+const DEFAULT_PRODUCER_MARGIN = 10;
+
 interface WineFormProps {
   wine?: Wine;
   producers: Producer[];
+  /** When true, producer can only set cost; margin is fixed by platform (no margin/B2B inputs) */
+  isProducerView?: boolean;
 }
 
-export default function WineForm({ wine, producers }: WineFormProps) {
+export default function WineForm({ wine, producers, isProducerView = false }: WineFormProps) {
   const [formData, setFormData] = useState<CreateWineData>({
     handle: wine?.handle || "",
     wine_name: wine?.wine_name === "" ? "" : (wine?.wine_name ?? ""),
@@ -57,8 +61,8 @@ export default function WineForm({ wine, producers }: WineFormProps) {
     cost_amount: wine?.cost_amount ?? 0,
     alcohol_tax_cents: 2219, // Fixed 22.19 SEK = 2219 cents
     price_includes_vat: wine?.price_includes_vat ?? true,
-    // IMPORTANT: use nullish coalescing so we don't overwrite stored 0 with the default
-    margin_percentage: wine?.margin_percentage ?? 10.0,
+    // Producer view: fixed margin; admin can set margin
+    margin_percentage: isProducerView ? DEFAULT_PRODUCER_MARGIN : (wine?.margin_percentage ?? 10.0),
     // Keep base_price_cents for backward compatibility
     base_price_cents: wine?.base_price_cents ?? 0,
     // Set the existing label_image_path if editing
@@ -155,14 +159,14 @@ export default function WineForm({ wine, producers }: WineFormProps) {
       cost_amount: wine.cost_amount ?? 0,
       alcohol_tax_cents: 2219,
       price_includes_vat: wine.price_includes_vat ?? true,
-      margin_percentage: wine.margin_percentage ?? 10.0,
+      margin_percentage: isProducerView ? DEFAULT_PRODUCER_MARGIN : (wine.margin_percentage ?? 10.0),
       base_price_cents: wine.base_price_cents ?? 0,
       label_image_path: wine.label_image_path || "",
       description: wine.description || "",
       b2b_margin_percentage: wine.b2b_margin_percentage ?? null,
       b2b_stock: wine.b2b_stock ?? null,
     }));
-  }, [wine?.id]);
+  }, [wine?.id, isProducerView]);
 
   // Load grape varieties on component mount
   useEffect(() => {
@@ -481,13 +485,13 @@ export default function WineForm({ wine, producers }: WineFormProps) {
             </p>
           </div>
 
-          {/* Pricing */}
+          {/* Pricing: producer only sets cost; margin is fixed. Admin can set margin. */}
           <PricingCalculator
             pricingData={{
               cost_currency: formData.cost_currency,
               cost_amount: formData.cost_amount,
               price_includes_vat: formData.price_includes_vat,
-              margin_percentage: formData.margin_percentage,
+              margin_percentage: isProducerView ? DEFAULT_PRODUCER_MARGIN : formData.margin_percentage,
               calculated_price_cents: formData.base_price_cents ?? 0,
             }}
             onPricingChange={(pricingData) => {
@@ -496,13 +500,15 @@ export default function WineForm({ wine, producers }: WineFormProps) {
                 cost_currency: pricingData.cost_currency,
                 cost_amount: pricingData.cost_amount,
                 price_includes_vat: pricingData.price_includes_vat,
-                margin_percentage: pricingData.margin_percentage,
+                margin_percentage: isProducerView ? DEFAULT_PRODUCER_MARGIN : pricingData.margin_percentage,
                 base_price_cents: pricingData.calculated_price_cents,
               }));
             }}
+            showMargin={!isProducerView}
           />
 
-          {/* B2B: margin and stock for B2B customers */}
+          {/* B2B: margin and stock for B2B customers (admin only; producer cannot set margins) */}
+          {!isProducerView && (
           <Card className="p-4 bg-muted/30 border border-gray-200 rounded-xl">
             <CardHeader className="p-0 pb-3">
               <CardTitle className="text-base font-medium">B2B</CardTitle>
@@ -640,6 +646,7 @@ export default function WineForm({ wine, producers }: WineFormProps) {
               </div>
             </CardContent>
           </Card>
+          )}
 
           {/* Images */}
           <WineImageUpload
