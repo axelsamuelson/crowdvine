@@ -418,12 +418,12 @@ export function SocialProfileHeader({
             ) : (
               <div className="flex gap-3 overflow-x-auto pb-2 pr-1 scrollbar-hide snap-x snap-mandatory">
                 {visibleSuggestedUsers.map((u) => {
-                  const avatar =
+                  const avatarUrl =
                     u.avatar_image_path && u.avatar_image_path.startsWith("http")
                       ? u.avatar_image_path
                       : u.avatar_image_path
                         ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${u.avatar_image_path}`
-                        : "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f464.svg";
+                        : undefined;
 
                   return (
                     <div
@@ -455,7 +455,7 @@ export function SocialProfileHeader({
                       >
                         <div className="flex flex-col items-center text-center">
                           <Avatar className="h-11 w-11 border border-border">
-                            <AvatarImage src={avatar} alt={u.full_name || "User"} />
+                            <AvatarImage src={avatarUrl} alt={u.full_name || "User"} />
                             <AvatarFallback className="text-xs">
                               {(u.full_name || "U")
                                 .split(" ")
@@ -568,10 +568,7 @@ export function SocialProfileHeader({
                               >
                                 <Avatar className="h-9 w-9">
                                   <AvatarImage
-                                    src={
-                                      uAvatar ||
-                                      "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f464.svg"
-                                    }
+                                    src={uAvatar ?? undefined}
                                     alt={u.full_name || "User"}
                                   />
                                   <AvatarFallback className="text-xs">
@@ -634,10 +631,7 @@ export function SocialProfileHeader({
                               >
                                 <Avatar className="h-9 w-9">
                                   <AvatarImage
-                                    src={
-                                      uAvatar ||
-                                      "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f464.svg"
-                                    }
+                                    src={uAvatar ?? undefined}
                                     alt={u.full_name || "User"}
                                   />
                                   <AvatarFallback className="text-xs">

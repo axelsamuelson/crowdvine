@@ -134,11 +134,11 @@ export function MemberPrice({
       <div
         className={
           badgeRightOnMobile
-            ? "flex w-max min-w-full flex-row flex-wrap items-center gap-2 md:flex-col md:items-stretch md:gap-0"
+            ? "flex w-max min-w-0 max-w-full flex-row flex-nowrap items-center gap-1.5 sm:gap-2 md:flex-col md:flex-wrap md:items-stretch md:gap-0"
             : "flex w-max min-w-full flex-col gap-0"
         }
       >
-        {priceBlock}
+        {badgeRightOnMobile ? <div className="min-w-0 flex-1">{priceBlock}</div> : priceBlock}
         {badgeEl}
       </div>
     );
@@ -223,11 +223,11 @@ export function MemberPrice({
     <div
       className={
         badgeRightOnMobile
-          ? "flex w-max min-w-full flex-row flex-wrap items-center gap-2 md:flex-col md:items-stretch md:gap-0"
+          ? "flex w-max min-w-0 max-w-full flex-row flex-nowrap items-center gap-1.5 sm:gap-2 md:flex-col md:flex-wrap md:items-stretch md:gap-0"
           : "flex w-max min-w-full flex-col gap-0"
       }
     >
-      {priceBlock}
+      {badgeRightOnMobile ? <div className="min-w-0 flex-1">{priceBlock}</div> : priceBlock}
       {badgeEl}
     </div>
   );

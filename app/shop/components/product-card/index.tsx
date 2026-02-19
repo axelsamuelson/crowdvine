@@ -717,12 +717,12 @@ export const ProductCard = memo(({ product, index = 0 }: { product: Product; ind
         {/* Mobile: Premium bottom overlay with Add to Cart button (visible on touch/hover) */}
         {renderInCardAddToCart && (
           <div
-            className={`md:hidden absolute inset-x-2 bottom-2 px-3 py-2.5 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg transition-opacity duration-200 ${
+            className={`md:hidden absolute inset-x-2 bottom-2 px-2.5 py-2 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg transition-opacity duration-200 ${
               isTouched ? "opacity-100" : "opacity-0"
             }`}
           >
-            <div className="flex flex-col gap-2">
-              <div className="flex gap-3 items-center">
+            <div className="flex flex-col gap-1.5">
+              <div className="flex gap-2 items-center min-w-0">
                 {wineColor ? (
                   <div className="flex shrink-0 items-center">
                     <ColorSwatch
@@ -736,7 +736,7 @@ export const ProductCard = memo(({ product, index = 0 }: { product: Product; ind
                       }
                       isSelected={false}
                       onColorChange={() => {}}
-                      size="sm"
+                      size="xs"
                       atLeastOneColorSelected={false}
                     />
                   </div>
@@ -745,7 +745,7 @@ export const ProductCard = memo(({ product, index = 0 }: { product: Product; ind
                   <MemberPrice
                     amount={product.priceRange.minVariantPrice.amount}
                     currencyCode={product.priceRange.minVariantPrice.currencyCode}
-                    className="text-sm font-semibold"
+                    className="text-xs font-semibold sm:text-sm"
                     showBadge={true}
                     badgeRightOnMobile={true}
                     priceExclVatOverride={
@@ -777,12 +777,12 @@ export const ProductCard = memo(({ product, index = 0 }: { product: Product; ind
         {/* Mobile: Add to Cart button for products with variants (visible on touch/hover) */}
         {!renderInCardAddToCart && (
           <div
-            className={`md:hidden absolute inset-x-2 bottom-2 px-3 py-2.5 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg transition-opacity duration-200 ${
+            className={`md:hidden absolute inset-x-2 bottom-2 px-2.5 py-2 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg transition-opacity duration-200 ${
               isTouched ? "opacity-100" : "opacity-0"
             }`}
           >
-            <div className="flex flex-col gap-2">
-              <div className="flex gap-3 items-center">
+            <div className="flex flex-col gap-1.5">
+              <div className="flex gap-2 items-center min-w-0">
                 {wineColor ? (
                   <div className="flex shrink-0 items-center">
                     <ColorSwatch
@@ -796,7 +796,7 @@ export const ProductCard = memo(({ product, index = 0 }: { product: Product; ind
                       }
                       isSelected={false}
                       onColorChange={() => {}}
-                      size="sm"
+                      size="xs"
                       atLeastOneColorSelected={false}
                     />
                   </div>
@@ -805,7 +805,7 @@ export const ProductCard = memo(({ product, index = 0 }: { product: Product; ind
                   <MemberPrice
                     amount={product.priceRange.minVariantPrice.amount}
                     currencyCode={product.priceRange.minVariantPrice.currencyCode}
-                    className="text-sm font-semibold"
+                    className="text-xs font-semibold sm:text-sm"
                     showBadge={true}
                     badgeRightOnMobile={true}
                     priceExclVatOverride={

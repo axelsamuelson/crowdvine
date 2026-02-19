@@ -12,11 +12,12 @@ interface ColorSwatchProps {
   color: Color | [Color, Color];
   isSelected: boolean;
   onColorChange: (color: Color | [Color, Color]) => void;
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg";
   atLeastOneColorSelected: boolean;
 }
 
 export const sizeClasses = {
+  xs: "size-5",
   sm: "size-6",
   md: "size-8",
   lg: "size-10",
@@ -39,6 +40,7 @@ export function ColorSwatch({
       className={cn(
         "rounded-full ring ring-accent cursor-pointer transition-[outline,box-shadow,opacity] relative overflow-hidden",
         sizeClasses[size],
+        size === "xs" && "ring-[1px]",
         isSelected
           ? "ring-2 opacity-100 ring-primary/80"
           : atLeastOneColorSelected

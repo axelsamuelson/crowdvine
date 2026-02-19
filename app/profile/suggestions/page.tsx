@@ -95,12 +95,12 @@ export default function ProfileSuggestionsPage() {
             ) : (
               <div className="space-y-1">
                 {filtered.map((u) => {
-                  const avatar =
+                  const avatarUrl =
                     u.avatar_image_path && u.avatar_image_path.startsWith("http")
                       ? u.avatar_image_path
                       : u.avatar_image_path
                         ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${u.avatar_image_path}`
-                        : "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f464.svg";
+                        : undefined;
                   return (
                     <Link
                       key={u.id}
@@ -108,7 +108,7 @@ export default function ProfileSuggestionsPage() {
                       className="-mx-2 flex items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-muted/30"
                     >
                       <Avatar className="h-10 w-10 border border-border">
-                        <AvatarImage src={avatar} alt={u.full_name || "User"} />
+                        <AvatarImage src={avatarUrl} alt={u.full_name || "User"} />
                         <AvatarFallback className="text-xs">
                           {(u.full_name || "U")
                             .split(" ")

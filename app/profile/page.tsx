@@ -1289,9 +1289,6 @@ function ProfilePageContent() {
                       ? u.avatar_image_path
                       : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${u.avatar_image_path}`
                     : undefined;
-                  const displayAvatarUrl =
-                    avatarUrl ||
-                    "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f464.svg";
 
                   return (
                     <div
@@ -1300,7 +1297,7 @@ function ProfilePageContent() {
                     >
                       <div className="flex items-start gap-2 min-w-0">
                         <Avatar className="h-9 w-9">
-                          <AvatarImage src={displayAvatarUrl} alt={u.full_name || "User"} />
+                          <AvatarImage src={avatarUrl} alt={u.full_name || "User"} />
                           <AvatarFallback className="text-xs">
                             {u.full_name
                               ? u.full_name
