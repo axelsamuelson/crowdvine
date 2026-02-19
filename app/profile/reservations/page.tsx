@@ -405,7 +405,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
         <div className="flex-1 min-h-0 flex flex-col bg-gray-50">
           <Tabs defaultValue="pallet" className="flex h-full flex-col min-h-0">
             <div className="px-3 md:px-4 pt-2 pb-1.5 bg-white border-b border-gray-200 shrink-0">
-              <TabsList className="w-full grid grid-cols-4 rounded-full bg-white border border-gray-200 h-auto gap-1 p-1">
+              <TabsList className="w-full grid grid-cols-3 rounded-full bg-white border border-gray-200 h-auto gap-1 p-1">
                 <TabsTrigger value="pallet" className="gap-1.5 text-xs flex-1 px-2 md:px-3 py-1.5 md:py-2 h-auto text-[10px] md:text-xs rounded-full">
                   <Package className="h-3 w-3 md:h-3.5 md:w-3.5 shrink-0" />
                   <span className="whitespace-nowrap">Pallet</span>
@@ -417,10 +417,6 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                 <TabsTrigger value="wines" className="gap-1.5 text-xs flex-1 px-2 md:px-3 py-1.5 md:py-2 h-auto text-[10px] md:text-xs rounded-full">
                   <Wine className="h-3 w-3 md:h-3.5 md:w-3.5 shrink-0" />
                   <span className="whitespace-nowrap">Wines</span>
-                </TabsTrigger>
-                <TabsTrigger value="delivery" className="gap-1.5 text-xs flex-1 px-2 md:px-3 py-1.5 md:py-2 h-auto text-[10px] md:text-xs rounded-full">
-                  <MapPin className="h-3 w-3 md:h-3.5 md:w-3.5 shrink-0" />
-                  <span className="whitespace-nowrap">Delivery</span>
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -575,6 +571,58 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                     </div>
                   </div>
                 </Card>
+
+                <Card className="p-4 md:p-5 bg-white border border-gray-200 rounded-2xl">
+                  <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    Delivery
+                  </h4>
+                  <div className="space-y-2">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs text-gray-500">Address</span>
+                      <span className="font-medium text-sm text-gray-900 break-words">
+                        {group.deliveryAddress}
+                      </span>
+                    </div>
+                    {group.latestReservationStatus && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Reservation</span>
+                        <span className="font-medium text-gray-900">{group.latestReservationStatus}</span>
+                      </div>
+                    )}
+                    {group.palletStatus && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Pallet</span>
+                        <span className="font-medium text-gray-900">{group.palletStatus}</span>
+                      </div>
+                    )}
+                    {group.paymentStatus && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Payment</span>
+                        <span className="font-medium text-gray-900">{group.paymentStatus}</span>
+                      </div>
+                    )}
+                    {group.paymentDeadline && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Deadline</span>
+                        <span className="font-medium text-gray-900">
+                          {new Date(group.paymentDeadline).toLocaleDateString("sv-SE")}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+
+                {(group.paymentStatus === "pending_payment") &&
+                  (group.paymentLink ? (
+                    <Button
+                      className="w-full"
+                      onClick={() => window.open(group.paymentLink, "_blank")}
+                    >
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      Pay now
+                    </Button>
+                  ) : null)}
               </div>
             </TabsContent>
 
@@ -947,62 +995,6 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                     </div>
                   )}
                 </Card>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="delivery" className="mt-0 flex-1 min-h-0 overflow-y-auto pb-4 md:pb-6 px-3 md:px-4">
-              <div className="space-y-4 pt-4">
-                <Card className="p-4 md:p-5 bg-white border border-gray-200 rounded-2xl">
-                  <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    Delivery
-                  </h4>
-                  <div className="space-y-2">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-xs text-gray-500">Address</span>
-                      <span className="font-medium text-sm text-gray-900 break-words">
-                        {group.deliveryAddress}
-                      </span>
-                    </div>
-                    {group.latestReservationStatus && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Reservation</span>
-                        <span className="font-medium text-gray-900">{group.latestReservationStatus}</span>
-                      </div>
-                    )}
-                    {group.palletStatus && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Pallet</span>
-                        <span className="font-medium text-gray-900">{group.palletStatus}</span>
-                      </div>
-                    )}
-                    {group.paymentStatus && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Payment</span>
-                        <span className="font-medium text-gray-900">{group.paymentStatus}</span>
-                      </div>
-                    )}
-                    {group.paymentDeadline && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Deadline</span>
-                        <span className="font-medium text-gray-900">
-                          {new Date(group.paymentDeadline).toLocaleDateString("sv-SE")}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </Card>
-
-                {(group.paymentStatus === "pending_payment") &&
-                  (group.paymentLink ? (
-                    <Button
-                      className="w-full"
-                      onClick={() => window.open(group.paymentLink, "_blank")}
-                    >
-                      <CreditCard className="mr-2 h-4 w-4" />
-                      Pay now
-                    </Button>
-                  ) : null)}
               </div>
             </TabsContent>
           </Tabs>

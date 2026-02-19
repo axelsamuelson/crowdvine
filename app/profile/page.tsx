@@ -45,6 +45,7 @@ import {
   Package,
   Settings,
   Search,
+  TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -54,7 +55,7 @@ import { toast } from "sonner";
 // PaymentMethodCard removed - using new payment flow
 import { MiniProgress } from "@/components/ui/progress-components";
 import { getTimeUntilReset } from "@/lib/membership/invite-quota";
-import { MembershipLevel } from "@/lib/membership/points-engine";
+import { MembershipLevel, getVoucherProgress } from "@/lib/membership/points-engine";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { formatPrice } from "@/lib/shopify/utils";
 
@@ -1010,6 +1011,74 @@ function ProfilePageContent() {
                   
           {activeTab === "activity" && (
                 <div className="space-y-4">
+              {/* Progress: next membership level */}
+              <section className="space-y-3">
+                <h2 className="text-base md:text-lg font-light text-gray-900">
+                  Medlemskapsnivå
+                </h2>
+                <div className="bg-white rounded-xl border border-gray-200/50 p-4 md:p-5 shadow-sm">
+                  {membershipData.nextLevel ? (
+                    <LevelProgress
+                      currentPoints={membershipData.membership.impactPoints}
+                      currentLevelMin={membershipData.levelInfo.minPoints}
+                      nextLevelMin={membershipData.nextLevel.minPoints}
+                      nextLevelName={membershipData.nextLevel.name}
+                      activeBuffPercentage={0}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100/50 border border-gray-200">
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="h-5 w-5 text-gray-600" />
+                        <span className="text-sm font-medium text-gray-700">Max nivå</span>
+                      </div>
+                      <span className="text-sm font-semibold text-gray-900">
+                        {membershipData.membership.impactPoints} IP
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              {/* Progress: wine voucher */}
+              <section className="space-y-3">
+                <h2 className="text-base md:text-lg font-light text-gray-900">
+                  Vinstflaska-voucher
+                </h2>
+                <div className="bg-white rounded-xl border border-gray-200/50 p-4 md:p-5 shadow-sm">
+                  {(() => {
+                    const v = getVoucherProgress(membershipData.membership.impactPoints);
+                    return (
+                      <div className="space-y-3">
+                        <div className="relative">
+                          <div className="h-3 bg-gray-200 rounded-full overflow-hidden shadow-inner">
+                            <div
+                              className="h-full bg-gradient-to-r from-amber-500 to-amber-600 transition-all duration-500 ease-out rounded-full"
+                              style={{ width: `${v.progressPercent}%` }}
+                            />
+                          </div>
+                          <div className="flex justify-between items-center mt-2">
+                            <span className="text-sm font-medium text-gray-900">
+                              {v.progressInCycle} / {v.pointsPerVoucher} IP
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {v.pointsToNextVoucher} IP kvar till nästa voucher
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-600">
+                          Samla {v.pointsPerVoucher} Impact Points för en voucher till en vinflaska.
+                          {v.vouchersEarned > 0 && (
+                            <span className="block mt-1 font-medium text-amber-700">
+                              Du har tjänat {v.vouchersEarned} voucher{v.vouchersEarned !== 1 ? "s" : ""} hittills.
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </section>
+
               <section className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-base md:text-lg lg:text-xl font-light text-gray-900">
@@ -1027,80 +1096,6 @@ function ProfilePageContent() {
                 <div className="bg-white rounded-xl border border-gray-200/50 p-4 md:p-6 shadow-sm">
                   <IPTimeline events={ipEvents} />
                     </div>
-              </section>
-
-              {/* Reservation Details */}
-              <section className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-foreground">
-                    Recent reservations
-                  </h3>
-                  {reservations.length > 0 && (
-                    <Link
-                      href="/profile/reservations"
-                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      View all
-                    </Link>
-                  )}
-                      </div>
-                {reservations.length === 0 ? (
-                  <div className="text-sm text-muted-foreground">
-                    You have no reservations yet.
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {reservations.slice(0, 5).map((r: any) => {
-                      const totalBottles =
-                    r.items?.reduce(
-                          (sum: number, item: any) => sum + (item.quantity || 0),
-                      0,
-                    ) || 0;
-                      const capacity = r.pallet_capacity || 0;
-                      const percentFull =
-                        capacity > 0
-                          ? Math.min(
-                              100,
-                              Math.round((totalBottles / capacity) * 100),
-                            )
-                          : undefined;
-                  return (
-                        <div
-                          key={r.id || r.order_id}
-                          className="rounded-xl border border-border bg-card p-3 shadow-sm"
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="text-sm font-semibold text-foreground truncate">
-                                {r.pallet_name || "Reservation"}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {totalBottles} bottles
-                                {capacity ? ` • ${capacity} capacity` : ""}
-                              </p>
-                    </div>
-                            <span className="text-xs rounded-full border px-2 py-0.5 text-muted-foreground">
-                              {r.payment_status || r.status || "pending"}
-                            </span>
-                      </div>
-                          {percentFull !== undefined && (
-                            <div className="mt-2">
-                              <div className="h-1.5 w-full rounded-full bg-muted">
-                                <div
-                                  className="h-1.5 rounded-full bg-primary"
-                                  style={{ width: `${percentFull}%` }}
-                                />
-                </div>
-                              <div className="mt-1 text-[11px] text-muted-foreground">
-                                {percentFull}% full
-                    </div>
-                      </div>
-                  )}
-                </div>
-                );
-                    })}
-                    </div>
-                  )}
               </section>
                     </div>
                 )}

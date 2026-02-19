@@ -50,6 +50,9 @@ export const IP_CONFIG = {
   RATE_LIMIT_HOURS: 24, // Hours between rate-limited actions
 } as const;
 
+/** IP needed for one wine bottle voucher */
+export const POINTS_PER_WINE_VOUCHER = 10;
+
 // Level Thresholds
 export const LEVEL_THRESHOLDS = {
   basic: { min: 0, max: 4 },
@@ -337,6 +340,23 @@ export function getNextLevelInfo(
     name: getLevelDisplayName(nextLevel),
     pointsNeeded: Math.max(0, pointsNeeded),
     minPoints: nextLevelInfo.min,
+  };
+}
+
+/**
+ * Progress toward next wine bottle voucher (POINTS_PER_WINE_VOUCHER IP per voucher)
+ */
+export function getVoucherProgress(currentPoints: number) {
+  const perVoucher = POINTS_PER_WINE_VOUCHER;
+  const progressInCycle = currentPoints % perVoucher;
+  const pointsToNextVoucher = perVoucher - progressInCycle;
+  const vouchersEarned = Math.floor(currentPoints / perVoucher);
+  return {
+    progressInCycle,
+    pointsToNextVoucher: pointsToNextVoucher === perVoucher ? perVoucher : pointsToNextVoucher,
+    progressPercent: (progressInCycle / perVoucher) * 100,
+    vouchersEarned,
+    pointsPerVoucher: perVoucher,
   };
 }
 
