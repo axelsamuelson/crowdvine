@@ -21,12 +21,10 @@ export function useB2BPriceMode(): boolean {
   const onB2BProduction = host.includes("dirtywine.se");
   const onLocalhost = host === "localhost" || host === "127.0.0.1";
   const onBusinessInvite = pathname?.startsWith("/b/") || pathname?.startsWith("/ib/");
-  const localAsDirtywine =
-    process.env.NEXT_PUBLIC_LOCAL_AS_DIRTYWINE === "1";
 
   return (
     onB2BProduction ||
-    (onLocalhost && (forceB2B || localAsDirtywine)) ||
+    (onLocalhost && forceB2B) ||
     !!onBusinessInvite
   );
 }

@@ -5,6 +5,16 @@ import { formatPrice, priceExclVat } from "@/lib/shopify/utils";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { calculateB2BPriceWithDiscount } from "@/lib/price-breakdown";
 
+/** Visningsnamn för medlemskapsnivå (samma som level-badge / points-engine) */
+const MEMBERSHIP_LEVEL_NAMES: Record<string, string> = {
+  basic: "Basic",
+  brons: "Plus",
+  silver: "Premium",
+  guld: "Priority",
+  privilege: "Privilege",
+  admin: "Admin",
+};
+
 interface MemberPriceProps {
   amount: string | number;
   currencyCode: string;
@@ -18,6 +28,10 @@ interface MemberPriceProps {
   calculatedTotalPrice?: number;
   /** Force show exkl. moms regardless of B2B mode (for warehouse source) */
   forceShowExclVat?: boolean;
+  /** On viewports below md: hide only the badge (strikethrough still shown, e.g. product card corner on mobile) */
+  compactOnMobile?: boolean;
+  /** In white box: on mobile badge to the right of price, on desktop badge below price */
+  badgeRightOnMobile?: boolean;
 }
 
 export function MemberPrice({
@@ -29,14 +43,17 @@ export function MemberPrice({
   b2bMarginPercentage,
   calculatedTotalPrice,
   forceShowExclVat,
+  compactOnMobile = false,
+  badgeRightOnMobile = false,
 }: MemberPriceProps) {
   const { discountPercentage, level, loading } = useMembership();
   const isB2BMode = useB2BPriceMode();
   // Use forceShowExclVat if provided, otherwise use B2B mode
-  // On B2C sites (pactwines.com), show inkl. moms
-  // On B2B sites (dirtywine.se), show exkl. moms
+  // On B2C (pactwines.com): no VAT label under price
+  // On B2B (dirtywine.se): show "exkl. moms"
   const showExclVat = forceShowExclVat !== undefined ? forceShowExclVat : isB2BMode;
-  const vatLabel = showExclVat ? "exkl. moms" : "inkl. moms";
+  const vatLabel = showExclVat ? "exkl. moms" : "";
+  const showVatLabel = showExclVat;
 
   if (loading) {
     // Show skeleton while loading
@@ -56,23 +73,17 @@ export function MemberPrice({
         <span className={className}>
           <span className="flex flex-col">
             <span>{formatPrice(displayPrice, currencyCode)}</span>
-            <span className="text-[10px] font-normal text-muted-foreground">
-              {vatLabel}
-            </span>
+            {showVatLabel && (
+              <span className="text-[10px] font-normal text-muted-foreground">
+                {vatLabel}
+              </span>
+            )}
           </span>
         </span>
       );
     }
 
-    // Get level name for badge
-    const levelName =
-      level === "guld"
-        ? "Gold"
-        : level === "silver"
-          ? "Silver"
-          : level === "brons"
-            ? "Bronze"
-            : "";
+    const levelName = level ? MEMBERSHIP_LEVEL_NAMES[level.toLowerCase()] ?? "" : "";
 
     // For discount display, we need the original price before discount
     // Since calculatedTotalPrice is already discounted, we need to calculate original
@@ -80,43 +91,55 @@ export function MemberPrice({
       ? priceExclVatOverride
       : (typeof amount === "string" ? parseFloat(amount) : amount);
 
-    return (
-      <div className="flex items-center gap-2 flex-wrap">
-        {/* Discounted Price (prominent) */}
+    const priceBlock = (
+      <div className="flex flex-col md:flex-row md:items-baseline md:gap-2 gap-0.5">
         <span className={className}>
-          {showExclVat ? (
-            <span className="flex flex-col">
-              <span>{formatPrice(displayPrice.toFixed(2), currencyCode)}</span>
+          <span className="flex flex-col">
+            <span>{formatPrice(displayPrice.toFixed(2), currencyCode)}</span>
+            {showVatLabel && (
               <span className="text-[10px] font-normal text-muted-foreground">
                 {vatLabel}
               </span>
-            </span>
-        ) : (
-          <span className="flex flex-col">
-            <span>{formatPrice(displayPrice.toFixed(2), currencyCode)}</span>
-            <span className="text-[10px] font-normal text-muted-foreground">
-              {vatLabel}
-            </span>
+            )}
           </span>
-        )}
-      </span>
-
-        {/* Original Price (strikethrough) */}
+        </span>
         <span className="text-xs line-through opacity-40">
           <span className="flex flex-col">
             <span>{formatPrice(originalPrice.toFixed(2), currencyCode)}</span>
-            <span className="text-[8px] font-normal text-muted-foreground">
-              {vatLabel}
-            </span>
+            {showVatLabel && (
+              <span className="text-[8px] font-normal text-muted-foreground">
+                {vatLabel}
+              </span>
+            )}
           </span>
         </span>
+      </div>
+    );
+    const badgeEl =
+      showBadge && levelName ? (
+        <span
+          className={
+            compactOnMobile
+              ? "max-md:hidden mt-0.5 block w-full rounded-md bg-black px-2 py-0.5 text-[10px] font-medium text-white"
+              : badgeRightOnMobile
+                ? "shrink-0 rounded-md bg-black px-2 py-0.5 text-[10px] font-medium text-white md:mt-0.5 md:block md:w-full"
+                : "mt-0.5 block w-full rounded-md bg-black px-2 py-0.5 text-[10px] font-medium text-white"
+          }
+        >
+          {levelName} -{discountPercentage}%
+        </span>
+      ) : null;
 
-        {/* Member Badge (optional, small) */}
-        {showBadge && levelName && (
-          <span className="text-[10px] px-2 py-0.5 rounded-md bg-gray-900 text-white font-medium">
-            {levelName} -{discountPercentage}%
-          </span>
-        )}
+    return (
+      <div
+        className={
+          badgeRightOnMobile
+            ? "flex w-max min-w-full flex-row flex-wrap items-center gap-2 md:flex-col md:items-stretch md:gap-0"
+            : "flex w-max min-w-full flex-col gap-0"
+        }
+      >
+        {priceBlock}
+        {badgeEl}
       </div>
     );
   }
@@ -143,72 +166,69 @@ export function MemberPrice({
   if (!hasDiscount) {
     return (
       <span className={className}>
-        {showExclVat ? (
-          <span className="flex flex-col">
-            <span>{formatPrice(displayPrice, currencyCode)}</span>
-            <span className="text-[10px] font-normal text-muted-foreground">
-              exkl. moms
-            </span>
-          </span>
-        ) : (
-          <span className="flex flex-col">
-            <span>{formatPrice(displayPrice, currencyCode)}</span>
+        <span className="flex flex-col">
+          <span>{formatPrice(displayPrice, currencyCode)}</span>
+          {showVatLabel && (
             <span className="text-[10px] font-normal text-muted-foreground">
               {vatLabel}
             </span>
-          </span>
-        )}
+          )}
+        </span>
       </span>
     );
   }
 
-  // Get level name for badge
-  const levelName =
-    level === "guld"
-      ? "Gold"
-      : level === "silver"
-        ? "Silver"
-        : level === "brons"
-          ? "Bronze"
-          : "";
+  const levelName = level ? MEMBERSHIP_LEVEL_NAMES[level.toLowerCase()] ?? "" : "";
 
-  return (
-    <div className="flex items-center gap-2 flex-wrap">
-      {/* Discounted Price (prominent) */}
+  const priceBlock = (
+    <div className="flex flex-col md:flex-row md:items-baseline md:gap-2 gap-0.5">
       <span className={className}>
-        {showExclVat ? (
-          <span className="flex flex-col">
-            <span>{formatPrice(discountedPrice.toFixed(2), currencyCode)}</span>
+        <span className="flex flex-col">
+          <span>{formatPrice(discountedPrice.toFixed(2), currencyCode)}</span>
+          {showVatLabel && (
             <span className="text-[10px] font-normal text-muted-foreground">
               {vatLabel}
             </span>
-          </span>
-        ) : (
-          <span className="flex flex-col">
-            <span>{formatPrice(discountedPrice.toFixed(2), currencyCode)}</span>
-            <span className="text-[10px] font-normal text-muted-foreground">
-              {vatLabel}
-            </span>
-          </span>
-        )}
+          )}
+        </span>
       </span>
-
-      {/* Original Price (strikethrough) */}
       <span className="text-xs line-through opacity-40">
         <span className="flex flex-col">
           <span>{formatPrice(displayPrice.toFixed(2), currencyCode)}</span>
-          <span className="text-[8px] font-normal text-muted-foreground">
-            {vatLabel}
-          </span>
+          {showVatLabel && (
+            <span className="text-[8px] font-normal text-muted-foreground">
+              {vatLabel}
+            </span>
+          )}
         </span>
       </span>
+    </div>
+  );
+  const badgeEl =
+    showBadge && levelName ? (
+      <span
+        className={
+          compactOnMobile
+            ? "max-md:hidden mt-0.5 block w-full rounded-md bg-black px-2 py-0.5 text-[10px] font-medium text-white"
+            : badgeRightOnMobile
+              ? "shrink-0 rounded-md bg-black px-2 py-0.5 text-[10px] font-medium text-white md:mt-0.5 md:block md:w-full"
+              : "mt-0.5 block w-full rounded-md bg-black px-2 py-0.5 text-[10px] font-medium text-white"
+        }
+      >
+        {levelName} -{discountPercentage}%
+      </span>
+    ) : null;
 
-      {/* Member Badge (optional, small) */}
-      {showBadge && levelName && (
-        <span className="text-[10px] px-2 py-0.5 rounded-md bg-gray-900 text-white font-medium">
-          {levelName} -{discountPercentage}%
-        </span>
-      )}
+  return (
+    <div
+      className={
+        badgeRightOnMobile
+          ? "flex w-max min-w-full flex-row flex-wrap items-center gap-2 md:flex-col md:items-stretch md:gap-0"
+          : "flex w-max min-w-full flex-col gap-0"
+      }
+    >
+      {priceBlock}
+      {badgeEl}
     </div>
   );
 }

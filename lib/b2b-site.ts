@@ -1,13 +1,9 @@
 /**
  * B2B site detection: dirtywine.se vs pactwines.com (B2C).
- * Used for stock availability, add-to-cart, etc.
+ * Localhost is always treated as pactwines.com (B2C); use ?b2b=1 for B2B mode.
  */
 export function isB2BHost(host: string | null): boolean {
   if (!host) return false;
   const h = host.toLowerCase().split(":")[0];
-  return (
-    h.includes("dirtywine.se") ||
-    (process.env.NEXT_PUBLIC_LOCAL_AS_DIRTYWINE === "1" &&
-      (h === "localhost" || h === "127.0.0.1"))
-  );
+  return h.includes("dirtywine.se");
 }

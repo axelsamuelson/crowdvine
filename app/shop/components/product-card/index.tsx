@@ -694,6 +694,8 @@ export const ProductCard = memo(({ product, index = 0 }: { product: Product; ind
               amount={product.priceRange.minVariantPrice.amount}
               currencyCode={product.priceRange.minVariantPrice.currencyCode}
               className="text-xs md:text-sm uppercase 2xl:text-base"
+              showBadge={true}
+              compactOnMobile={true}
               priceExclVatOverride={
                 (product as any).b2bPriceExclVat ??
                 product.priceBreakdown?.b2bPriceExclVat
@@ -719,25 +721,40 @@ export const ProductCard = memo(({ product, index = 0 }: { product: Product; ind
               isTouched ? "opacity-100" : "opacity-0"
             }`}
           >
-            <div className="flex gap-3 items-center justify-between">
-              {wineColor && (
-                <div className="flex items-center">
-                  <ColorSwatch
-                    color={
-                      Array.isArray(wineColor.value)
-                        ? [
-                            { name: wineColor.name, value: wineColor.value[0] },
-                            { name: wineColor.name, value: wineColor.value[1] },
-                          ]
-                        : { name: wineColor.name, value: wineColor.value as string }
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-3 items-center">
+                {wineColor ? (
+                  <div className="flex shrink-0 items-center">
+                    <ColorSwatch
+                      color={
+                        Array.isArray(wineColor.value)
+                          ? [
+                              { name: wineColor.name, value: wineColor.value[0] },
+                              { name: wineColor.name, value: wineColor.value[1] },
+                            ]
+                          : { name: wineColor.name, value: wineColor.value as string }
+                      }
+                      isSelected={false}
+                      onColorChange={() => {}}
+                      size="sm"
+                      atLeastOneColorSelected={false}
+                    />
+                  </div>
+                ) : null}
+                <div className="min-w-0 flex-1 flex justify-center">
+                  <MemberPrice
+                    amount={product.priceRange.minVariantPrice.amount}
+                    currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                    className="text-sm font-semibold"
+                    showBadge={true}
+                    badgeRightOnMobile={true}
+                    priceExclVatOverride={
+                      (product as any).b2bPriceExclVat ??
+                      product.priceBreakdown?.b2bPriceExclVat
                     }
-                    isSelected={false}
-                    onColorChange={() => {}} // No-op since this is just for display
-                    size="sm"
-                    atLeastOneColorSelected={false}
                   />
                 </div>
-              )}
+              </div>
               <Button
                 onClick={(e) => {
                   e.preventDefault();
@@ -745,12 +762,10 @@ export const ProductCard = memo(({ product, index = 0 }: { product: Product; ind
                   handleAddToCart();
                 }}
                 disabled={!getBaseProductVariant()}
-                className={`bg-black hover:bg-black/90 text-white border-black rounded-md shrink-0 ${
-                  wineColor ? "ml-auto" : ""
-                }`}
+                className="w-full bg-black hover:bg-black/90 text-white border-black rounded-md"
                 size="sm"
               >
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center justify-center gap-1.5">
                   <span className="text-xs">Add to cart</span>
                   <CirclePlus className="size-3.5" />
                 </div>
@@ -766,25 +781,40 @@ export const ProductCard = memo(({ product, index = 0 }: { product: Product; ind
               isTouched ? "opacity-100" : "opacity-0"
             }`}
           >
-            <div className="flex gap-3 items-center justify-between">
-              {wineColor && (
-                <div className="flex items-center">
-                  <ColorSwatch
-                    color={
-                      Array.isArray(wineColor.value)
-                        ? [
-                            { name: wineColor.name, value: wineColor.value[0] },
-                            { name: wineColor.name, value: wineColor.value[1] },
-                          ]
-                        : { name: wineColor.name, value: wineColor.value as string }
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-3 items-center">
+                {wineColor ? (
+                  <div className="flex shrink-0 items-center">
+                    <ColorSwatch
+                      color={
+                        Array.isArray(wineColor.value)
+                          ? [
+                              { name: wineColor.name, value: wineColor.value[0] },
+                              { name: wineColor.name, value: wineColor.value[1] },
+                            ]
+                          : { name: wineColor.name, value: wineColor.value as string }
+                      }
+                      isSelected={false}
+                      onColorChange={() => {}}
+                      size="sm"
+                      atLeastOneColorSelected={false}
+                    />
+                  </div>
+                ) : null}
+                <div className="min-w-0 flex-1 flex justify-center">
+                  <MemberPrice
+                    amount={product.priceRange.minVariantPrice.amount}
+                    currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                    className="text-sm font-semibold"
+                    showBadge={true}
+                    badgeRightOnMobile={true}
+                    priceExclVatOverride={
+                      (product as any).b2bPriceExclVat ??
+                      product.priceBreakdown?.b2bPriceExclVat
                     }
-                    isSelected={false}
-                    onColorChange={() => {}} // No-op since this is just for display
-                    size="sm"
-                    atLeastOneColorSelected={false}
                   />
                 </div>
-              )}
+              </div>
               <Button
                 onClick={(e) => {
                   e.preventDefault();
@@ -792,12 +822,10 @@ export const ProductCard = memo(({ product, index = 0 }: { product: Product; ind
                   handleAddToCart();
                 }}
                 disabled={!getBaseProductVariant()}
-                className={`bg-black hover:bg-black/90 text-white border-black rounded-md shrink-0 ${
-                  wineColor ? "ml-auto" : ""
-                }`}
+                className="w-full bg-black hover:bg-black/90 text-white border-black rounded-md"
                 size="sm"
               >
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center justify-center gap-1.5">
                   <span className="text-xs">Add to cart</span>
                   <CirclePlus className="size-3.5" />
                 </div>
@@ -822,6 +850,24 @@ export const ProductCard = memo(({ product, index = 0 }: { product: Product; ind
                 <p className="text-sm text-muted-foreground font-normal">
                   {product.producerName}
                 </p>
+              )}
+              {wineColor && (
+                <div className="mt-1">
+                  <ColorSwatch
+                    color={
+                      Array.isArray(wineColor.value)
+                        ? [
+                            { name: wineColor.name, value: wineColor.value[0] },
+                            { name: wineColor.name, value: wineColor.value[1] },
+                          ]
+                        : { name: wineColor.name, value: wineColor.value as string }
+                    }
+                    isSelected={false}
+                    onColorChange={() => {}}
+                    size="sm"
+                    atLeastOneColorSelected={false}
+                  />
+                </div>
               )}
               <StockBadge
                 b2bStock={(product as any).b2bStock}

@@ -21,10 +21,9 @@ export function PortalToggle({ showPortalToggle, className }: PortalToggleProps)
   const forceB2B =
     typeof window !== "undefined" ? window.location.search.includes("b2b=1") : false;
   const onLocalhost = host === "localhost" || host === "127.0.0.1";
-  const localAsDirtywine = process.env.NEXT_PUBLIC_LOCAL_AS_DIRTYWINE === "1";
-  // dirtywine.se = B2B. localhost + ?b2b=1 = B2B. localhost + LOCAL_AS_DIRTYWINE = B2B
+  // dirtywine.se = B2B. localhost = PACT (pactwines.com); use ?b2b=1 for B2B on localhost
   const onB2B =
-    host.includes("dirtywine.se") || (onLocalhost && (forceB2B || localAsDirtywine));
+    host.includes("dirtywine.se") || (onLocalhost && forceB2B);
 
   const handleSwitch = () => {
     const targetOrigin = onB2B ? PACT_ORIGIN : B2B_ORIGIN;

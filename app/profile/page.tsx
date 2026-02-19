@@ -185,7 +185,7 @@ function ProfilePageContent() {
   // Tastings count - must be before any conditional returns
   const [tastingsCount, setTastingsCount] = useState(0);
 
-  // B2B: dirtywine.se in production; localhost = PACT by default (use ?b2b=1 to view as Dirty Wine)
+  // B2B: dirtywine.se in production; localhost = PACT (pactwines.com), use ?b2b=1 for B2B
   const searchParams = useSearchParams();
   const [isB2B, setIsB2B] = useState(false);
   useEffect(() => {
@@ -194,10 +194,7 @@ function ProfilePageContent() {
     const onProductionB2B = host.includes("dirtywine.se");
     const onLocalhost = host === "localhost" || host === "127.0.0.1";
     const forceB2B = searchParams.get("b2b") === "1";
-    const localAsDirtywine = process.env.NEXT_PUBLIC_LOCAL_AS_DIRTYWINE === "1";
-    setIsB2B(
-      onProductionB2B || (onLocalhost && (forceB2B || localAsDirtywine)),
-    );
+    setIsB2B(onProductionB2B || (onLocalhost && forceB2B));
   }, [searchParams]);
 
   useEffect(() => {
