@@ -50,8 +50,23 @@ export const IP_CONFIG = {
   RATE_LIMIT_HOURS: 24, // Hours between rate-limited actions
 } as const;
 
-/** IP needed for one wine bottle voucher */
+/** IP needed for one order voucher (extra discount on a order) */
 export const POINTS_PER_WINE_VOUCHER = 10;
+
+/** Voucher discount % on an order – higher membership = higher discount */
+export const VOUCHER_DISCOUNT_PERCENT: Record<MembershipLevel, number> = {
+  requester: 0,
+  basic: 5,
+  brons: 8,
+  silver: 10,
+  guld: 12,
+  privilege: 15,
+  admin: 15,
+};
+
+export function getVoucherDiscountPercent(level: MembershipLevel): number {
+  return VOUCHER_DISCOUNT_PERCENT[level] ?? 0;
+}
 
 // Level Thresholds
 export const LEVEL_THRESHOLDS = {
@@ -344,7 +359,7 @@ export function getNextLevelInfo(
 }
 
 /**
- * Progress toward next wine bottle voucher (POINTS_PER_WINE_VOUCHER IP per voucher)
+ * Progress toward next order voucher (extra discount on a order; POINTS_PER_WINE_VOUCHER IP per voucher)
  */
 export function getVoucherProgress(currentPoints: number) {
   const perVoucher = POINTS_PER_WINE_VOUCHER;

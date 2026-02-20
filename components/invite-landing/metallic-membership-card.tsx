@@ -106,6 +106,53 @@ export function MetallicMembershipCard({
 
 const VALID_LEVELS = new Set(MEMBERSHIP_LEVELS);
 
+/** Horizontal membership card for mobile – same metallic design as vertical card, horizontal layout */
+export function MembershipCardHorizontal({
+  variant,
+  usePactLogo = false,
+}: MetallicMembershipCardProps) {
+  const config = MEMBERSHIP_CONFIG[variant];
+  const quota = INVITE_QUOTAS[variant];
+
+  return (
+    <div
+      className={`membership-card-wrapper membership-card-horizontal variant-${variant}`}
+      data-variant={variant}
+    >
+      <div className="membership-card-container">
+        <div className="membership-card-inner">
+          <div className="membership-card-border-outer">
+            <div className="membership-card-main" />
+          </div>
+          <div className="membership-card-glow-1" />
+          <div className="membership-card-glow-2" />
+        </div>
+        <div className="membership-card-overlay-1" />
+        <div className="membership-card-overlay-2" />
+        <div className="membership-card-bg-glow" />
+        <div className="membership-card-content">
+          <div className="membership-card-content-top">
+            <div className="membership-card-scrollbar-glass">{config.name}</div>
+            <p className="membership-card-description membership-card-description-inline">
+              {config.description}
+            </p>
+            <p className="membership-card-quota">{quota} invites/month</p>
+          </div>
+          <div className="membership-card-content-right">
+            <div className="membership-card-logo-wrapper">
+              {usePactLogo ? (
+                <PactLogo className="membership-card-logo h-7 w-auto" />
+              ) : (
+                <LogoSvg className="membership-card-logo h-7 w-auto" />
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function MembershipCardsGrid({
   initialMembershipLevel,
   memberName,

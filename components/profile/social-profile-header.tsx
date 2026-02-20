@@ -11,17 +11,10 @@ import {
   MoreHorizontal,
   X,
 } from "lucide-react";
-import { LevelBadge } from "@/components/membership/level-badge";
 import { MembershipLevel } from "@/lib/membership/points-engine";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -208,27 +201,71 @@ export function SocialProfileHeader({
 
       {/* Profile Info */}
       <div className="px-4 md:px-sides pb-4">
-        <div className="relative flex justify-between">
-          {/* Avatar */}
+        {/* Mobile: avatar left of name, Joined, Following, Followers – centrerad vertikalt */}
+        <div className="flex flex-row items-center gap-4 sm:hidden -mt-8">
           <Avatar
             className={cn(
-              "-mt-[50px] h-[100px] w-[100px] border-4 border-background sm:-mt-[68px] sm:h-[136px] sm:w-[136px]"
+              "h-24 w-24 border-2 border-background shrink-0"
             )}
           >
             {avatarUrl ? (
               <AvatarImage src={avatarUrl} alt={userName} className="object-cover" />
             ) : (
-              <AvatarFallback className="bg-primary/10 text-primary text-2xl sm:text-4xl">
+              <AvatarFallback className="bg-primary/10 text-primary text-xl">
+                {initials}
+              </AvatarFallback>
+            )}
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-lg font-bold text-foreground truncate">{userName}</h1>
+            {joinedDate && (
+              <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                <Calendar className="h-3.5 w-3.5" />
+                Joined {joinedDate}
+              </p>
+            )}
+            <div className="flex gap-4 mt-1.5 text-sm">
+              <button
+                className="hover:underline"
+                onClick={() => openFollowDialog("following")}
+                disabled={!userId}
+              >
+                <span className="font-semibold">{followingCount}</span>{" "}
+                <span className="text-muted-foreground">Following</span>
+              </button>
+              <button
+                className="hover:underline"
+                onClick={() => openFollowDialog("followers")}
+                disabled={!userId}
+              >
+                <span className="font-semibold">{followersCount}</span>{" "}
+                <span className="text-muted-foreground">Followers</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop: avatar + action buttons */}
+        <div className="relative flex justify-between hidden sm:flex">
+          <Avatar
+            className={cn(
+              "-mt-[68px] h-[136px] w-[136px] border-4 border-background"
+            )}
+          >
+            {avatarUrl ? (
+              <AvatarImage src={avatarUrl} alt={userName} className="object-cover" />
+            ) : (
+              <AvatarFallback className="bg-primary/10 text-primary text-4xl">
                 {initials}
               </AvatarFallback>
             )}
           </Avatar>
 
           {/* Action Buttons */}
-          <div className="mt-3 flex items-center gap-2">
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
             {isOwnProfile ? (
               <>
-                {/* Mobile: quick suggestions */}
+                {/* Mobile only: quick suggestions */}
                 <Button
                   type="button"
                   variant="ghost"
@@ -243,43 +280,24 @@ export function SocialProfileHeader({
                   <UserPlus className="h-4 w-4" />
                 </Button>
 
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="rounded-full border border-border hover:bg-muted"
-                    >
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem
-                      onClick={() => (window.location.href = "/profile/perks")}
-                    >
-                      My Perks
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => (window.location.href = "/profile/invite")}
-                    >
-                      Invite Friends
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
                 <Button
-                  variant="outline"
                   size="sm"
-                className="rounded-full border-border font-semibold"
-                onClick={() => {
-                  if (onSettings) {
-                    onSettings();
-                  }
-                  // navigate to edit profile
-                  window.location.href = "/profile/edit";
-                }}
+                  className="rounded-full bg-black text-white hover:bg-black/90 font-medium border-0"
+                  onClick={() => (window.location.href = "/profile/invite")}
+                >
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Invite friends
+                </Button>
+                <Button
+                  size="sm"
+                  className="rounded-full bg-black text-white hover:bg-black/90 font-medium border-0"
+                  onClick={() => {
+                    if (onSettings) onSettings();
+                    window.location.href = "/profile/edit";
+                  }}
                 >
                   <Settings className="mr-2 h-4 w-4" />
-                  Edit Profile
+                  Settings
                 </Button>
               </>
             ) : (
@@ -322,19 +340,9 @@ export function SocialProfileHeader({
           </div>
         </div>
 
-        {/* User Info */}
-        <div className="mt-3">
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-foreground">{userName}</h1>
-            {membershipLevel && (
-              <LevelBadge
-                level={membershipLevel}
-                size="sm"
-                showLabel={false}
-                className="inline-flex align-middle scale-[0.75]"
-              />
-            )}
-          </div>
+        {/* User Info – desktop only (on mobile shown next to avatar above) */}
+        <div className="mt-3 hidden sm:block">
+          <h1 className="text-xl font-bold text-foreground">{userName}</h1>
           {userHandle && (
             <p className="text-muted-foreground">@{userHandle}</p>
           )}
@@ -342,11 +350,29 @@ export function SocialProfileHeader({
 
         {/* Bio */}
         {bio && (
-          <p className="mt-3 text-foreground">{bio}</p>
+          <p className="mt-3 text-foreground text-sm sm:text-base">{bio}</p>
         )}
 
-        {/* Website & Joined Date */}
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 text-sm text-muted-foreground">
+        {/* Handle + Website + Joined – mobile (desktop has joined in next block) */}
+        <div className="mt-3 sm:hidden space-y-1">
+          {userHandle && (
+            <p className="text-muted-foreground text-sm">@{userHandle}</p>
+          )}
+          {website && (
+            <a
+              href={website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-sm text-foreground hover:underline"
+            >
+              <LinkIcon className="h-3.5 w-3.5" />
+              {website.replace(/^https?:\/\//, "")}
+            </a>
+          )}
+        </div>
+
+        {/* Website & Joined Date – desktop only */}
+        <div className="mt-3 hidden sm:flex flex-wrap items-center gap-x-4 text-sm text-muted-foreground">
           {website && (
             <a
               href={website}
@@ -366,8 +392,8 @@ export function SocialProfileHeader({
           )}
         </div>
 
-        {/* Stats */}
-        <div className="mt-3 flex gap-5 text-sm">
+        {/* Stats – desktop only (on mobile shown next to avatar above) */}
+        <div className="mt-3 hidden sm:flex gap-5 text-sm">
           <button
             className="hover:underline"
             onClick={() => openFollowDialog("following")}
@@ -384,6 +410,82 @@ export function SocialProfileHeader({
             <span className="font-semibold">{followersCount}</span>{" "}
             <span className="text-muted-foreground">Followers</span>
           </button>
+        </div>
+
+        {/* Mobile: action buttons below avatar row */}
+        <div className="mt-3 flex items-center gap-2 flex-wrap sm:hidden">
+            {isOwnProfile ? (
+              <>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "rounded-full border border-border hover:bg-muted",
+                    mobileSuggestionsOpen && "bg-muted",
+                  )}
+                  onClick={() => setMobileSuggestionsOpen((v) => !v)}
+                  aria-label="People you might like"
+                >
+                  <UserPlus className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  className="rounded-full bg-black text-white hover:bg-black/90 font-medium border-0"
+                  onClick={() => (window.location.href = "/profile/invite")}
+                >
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Invite friends
+                </Button>
+                <Button
+                  size="sm"
+                  className="rounded-full bg-black text-white hover:bg-black/90 font-medium border-0"
+                  onClick={() => {
+                    if (onSettings) onSettings();
+                    window.location.href = "/profile/edit";
+                  }}
+                >
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full border border-border hover:bg-muted"
+                  onClick={onMessage}
+                >
+                  <MessageCircle className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant={isCurrentlyFollowing ? "outline" : "default"}
+                  size="sm"
+                  className="rounded-full border-border font-semibold"
+                  onClick={handleFollowClick}
+                >
+                  {isCurrentlyFollowing ? (
+                    <>
+                      <UserMinus className="mr-2 h-4 w-4" />
+                      Following
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Follow
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full border border-border hover:bg-muted"
+                >
+                  <MoreHorizontal className="h-5 w-5" />
+                </Button>
+              </>
+            )}
         </div>
 
         {/* Mobile-only: swipe carousel for "You might like" (placed under stats) */}

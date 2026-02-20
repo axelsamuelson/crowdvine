@@ -41,11 +41,11 @@ import {
   Check,
   Wifi,
   WifiOff,
-  Calendar,
   Package,
   Settings,
   Search,
   TrendingUp,
+  ArrowRight,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -55,9 +55,20 @@ import { toast } from "sonner";
 // PaymentMethodCard removed - using new payment flow
 import { MiniProgress } from "@/components/ui/progress-components";
 import { getTimeUntilReset } from "@/lib/membership/invite-quota";
-import { MembershipLevel, getVoucherProgress } from "@/lib/membership/points-engine";
+import { MembershipLevel, getVoucherProgress, getVoucherDiscountPercent } from "@/lib/membership/points-engine";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { formatPrice } from "@/lib/shopify/utils";
+import { MetallicMembershipCard, MembershipCardHorizontal } from "@/components/invite-landing/metallic-membership-card";
+import "@/app/profile/profile-membership-card.css";
+
+/** Card variant for metallic membership card (excludes requester/admin). */
+const CARD_LEVELS: Exclude<MembershipLevel, "requester" | "admin">[] = [
+  "basic", "brons", "silver", "guld", "privilege",
+];
+function toCardLevel(level: MembershipLevel): Exclude<MembershipLevel, "requester" | "admin"> {
+  if (CARD_LEVELS.includes(level as any)) return level as Exclude<MembershipLevel, "requester" | "admin">;
+  return "basic";
+}
 
 interface UserProfile {
   id: string;
@@ -833,12 +844,165 @@ function ProfilePageContent() {
     { id: "activity", label: "Activity", count: undefined },
   ];
 
+  const reservationsTabContent = (
+    <div className="space-y-6">
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base md:text-lg lg:text-xl font-light text-gray-900">
+            My Reservations
+          </h2>
+          <Link
+            href="/profile/reservations"
+            className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            View all
+          </Link>
+        </div>
 
+        <div className="grid grid-cols-2 gap-4">
+          <div className="p-4 bg-white rounded-xl border border-gray-200/50 shadow-sm">
+            <div className="flex items-center gap-2 text-gray-400 mb-2">
+              <Package className="w-4 h-4" />
+              <span className="text-xs">Total Bottles</span>
+            </div>
+            <p className="text-2xl font-semibold text-gray-900">
+              {reservations.reduce((sum, r) => sum + ((r.items || []).reduce((s: number, it: any) => s + (it.quantity || 0), 0)), 0)}
+            </p>
+          </div>
+
+          <div className="p-4 bg-white rounded-xl border border-gray-200/50 shadow-sm">
+            <div className="flex items-center gap-2 text-gray-400 mb-2">
+              <Settings className="w-4 h-4" />
+              <span className="text-xs">Unique Pallets</span>
+            </div>
+            <p className="text-2xl font-semibold text-gray-900">
+              {new Set(reservations.map((r) => r.pallet_id).filter(Boolean)).size}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 col-span-2">
+            <div className="rounded-xl border border-border bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">Most ordered bottles</h3>
+                  <p className="text-xs text-muted-foreground">Top list, aggregated by wine.</p>
+                </div>
+              </div>
+              {(() => {
+                const map = new Map<string, any>();
+                for (const r of reservations) {
+                  for (const it of (r.items || [])) {
+                    const key = `${it.wine_name || ""}|${it.vintage || ""}|${it.producer_name || ""}`;
+                    const prev = map.get(key);
+                    if (prev) {
+                      prev.quantity += it.quantity || 0;
+                    } else {
+                      map.set(key, {
+                        wine_name: it.wine_name,
+                        vintage: it.vintage,
+                        producer_name: it.producer_name,
+                        color: it.color,
+                        image_path: it.image_path,
+                        quantity: it.quantity || 0,
+                      });
+                    }
+                  }
+                }
+                const list = Array.from(map.values()).sort((a, b) => (b.quantity || 0) - (a.quantity || 0));
+                if (list.length === 0) {
+                  return <p className="text-sm text-muted-foreground">No bottles yet.</p>;
+                }
+                return (
+                  <div className="space-y-1">
+                    {list.slice(0, 10).map((w) => (
+                      <div
+                        key={`${w.wine_name}-${w.vintage}-${w.producer_name}`}
+                        className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-muted/30"
+                      >
+                        <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-md border bg-muted">
+                          {w.image_path ? (
+                            <img src={w.image_path} alt={w.wine_name || "Wine"} className="h-full w-full object-cover" />
+                          ) : null}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="truncate text-sm font-semibold text-foreground">
+                              {w.wine_name}{w.vintage ? ` ${w.vintage}` : ""}
+                            </p>
+                            <span className="shrink-0 whitespace-nowrap text-sm font-semibold text-foreground">
+                              × {w.quantity}
+                            </span>
+                          </div>
+                          <div className="mt-0.5 flex items-center justify-between gap-3">
+                            <p className="truncate text-xs text-muted-foreground">
+                              {w.producer_name || "Unknown producer"}
+                            </p>
+                            {w.color ? (
+                              <span className="shrink-0 whitespace-nowrap rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
+                                {w.color}
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+
+            <div className="rounded-xl border border-border bg-white p-4 shadow-sm space-y-3">
+              <h3 className="text-sm font-semibold text-foreground">Last Viewed</h3>
+              <div className="space-y-2">
+                {lastViewedProducts.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No recently viewed wines yet.</p>
+                ) : (
+                  lastViewedProducts.slice(0, 5).map((p) => (
+                    <Link
+                      key={p.id}
+                      href={`/product/${p.handle}`}
+                      className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-muted/30"
+                    >
+                      <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-md border bg-muted">
+                        {p.imageUrl ? (
+                          <Image src={p.imageUrl} alt={p.title} fill sizes="40px" className="object-cover" />
+                        ) : null}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="truncate text-sm font-semibold text-foreground">{p.title}</p>
+                          {p.price && p.currencyCode ? (
+                            <span className="shrink-0 whitespace-nowrap text-sm font-semibold text-foreground">
+                              {formatPrice(p.price, p.currencyCode)}
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="mt-0.5 flex items-center justify-between gap-3">
+                          <p className="truncate text-xs text-muted-foreground">
+                            {p.producerName || "Unknown producer"}
+                          </p>
+                          {p.color ? (
+                            <span className="shrink-0 whitespace-nowrap rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
+                              {p.color}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                    </Link>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
 
   return (
     <PageLayout>
       <div className="w-full max-w-7xl mx-auto p-4 md:p-sides">
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(300px,360px)] gap-6 md:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(300px,350px)] gap-6 md:gap-8">
           <div className="space-y-6">
             {/* Social Profile Header - NEW DESIGN */}
             <SocialProfileHeader
@@ -863,6 +1027,15 @@ function ProfilePageContent() {
               onFollowSuggestedUser={(id) => toggleFollowUser(id, false)}
             />
 
+            {/* Medlemskort: horisontellt på mobil mellan header och tabbar */}
+            <section className="profile-membership-card profile-membership-card-horizontal lg:hidden" aria-label="Medlemskort">
+              <MembershipCardHorizontal
+                variant={toCardLevel(membershipData.membership.level)}
+                memberName={userName ?? undefined}
+                usePactLogo
+              />
+            </section>
+
             {/* Profile Tabs */}
             <div className="border-t border-border">
               <SocialProfileTabs
@@ -874,143 +1047,20 @@ function ProfilePageContent() {
 
             {/* Tab Content */}
             <div className="mt-6">
-          {activeTab === "reservations" && (
-            <div className="space-y-6">
-              {/* MY RESERVATIONS (Compact) */}
-              <section className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-base md:text-lg lg:text-xl font-light text-gray-900">
-                    My Reservations
-                  </h2>
-                  <Link
-                    href="/profile/reservations"
-                    className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
-                  >
-                    View all
-                  </Link>
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div className="p-4 bg-white rounded-xl border border-gray-200/50 shadow-sm">
-                    <div className="flex items-center gap-2 text-gray-400 mb-2">
-                      <Package className="w-4 h-4" />
-                      <span className="text-xs">Total Bottles</span>
-                </div>
-                <p className="text-2xl font-semibold text-gray-900">
-                      {reservations.reduce((sum, r) => sum + ((r.items || []).reduce((s: number, it: any) => s + (it.quantity || 0), 0)), 0)}
-                </p>
-              </div>
-
-                  <div className="p-4 bg-white rounded-xl border border-gray-200/50 shadow-sm">
-                    <div className="flex items-center gap-2 text-gray-400 mb-2">
-                      <Calendar className="w-4 h-4" />
-                      <span className="text-xs">Active Orders</span>
-                </div>
-                <p className="text-2xl font-semibold text-gray-900">
-                  {reservations.length}
-                </p>
-              </div>
-
-                  <div className="p-4 bg-white rounded-xl border border-gray-200/50 shadow-sm col-span-2 md:col-span-1">
-                    <div className="flex items-center gap-2 text-gray-400 mb-2">
-                      <Settings className="w-4 h-4" />
-                      <span className="text-xs">Unique Pallets</span>
-                </div>
-                <p className="text-2xl font-semibold text-gray-900">
-                  {
-                        new Set(reservations.map((r) => r.pallet_id).filter(Boolean))
-                          .size
-                  }
-                </p>
-              </div>
-
-              {/* Unique bottles (historical) */}
-              <div className="col-span-2 md:col-span-3 rounded-xl border border-border bg-white p-4 shadow-sm">
-                <div className="flex items-center justify-between gap-3 mb-3">
-                  <div>
-                    <h3 className="text-sm font-semibold text-foreground">Most ordered bottles</h3>
-                    <p className="text-xs text-muted-foreground">Top list, aggregated by wine.</p>
-            </div>
-        </div>
-
-                {(() => {
-                  const map = new Map<string, any>();
-                  for (const r of reservations) {
-                    for (const it of (r.items || [])) {
-                      const key = `${it.wine_name || ''}|${it.vintage || ''}|${it.producer_name || ''}`;
-                      const prev = map.get(key);
-                      if (prev) {
-                        prev.quantity += it.quantity || 0;
-                      } else {
-                        map.set(key, {
-                          wine_name: it.wine_name,
-                          vintage: it.vintage,
-                          producer_name: it.producer_name,
-                          color: it.color,
-                          image_path: it.image_path,
-                          quantity: it.quantity || 0,
-                        });
-                      }
-                    }
-                  }
-                  const list = Array.from(map.values()).sort((a, b) => (b.quantity || 0) - (a.quantity || 0));
-
-                  if (list.length === 0) {
-                    return (
-                      <p className="text-sm text-muted-foreground">No bottles yet.</p>
-                    );
-                  }
-
-                  return (
-                    <div className="space-y-1">
-                      {list.slice(0, 10).map((w) => (
-                        <div
-                          key={`${w.wine_name}-${w.vintage}-${w.producer_name}`}
-                          className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-muted/30"
-                        >
-                          <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-md border bg-muted">
-                            {w.image_path ? (
-                              <img
-                                src={w.image_path}
-                                alt={w.wine_name || 'Wine'}
-                                className="h-full w-full object-cover"
-                              />
-                            ) : null}
-                  </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center justify-between gap-3">
-                              <p className="truncate text-sm font-semibold text-foreground">
-                                {w.wine_name}{w.vintage ? ` ${w.vintage}` : ''}
-                              </p>
-                              <span className="shrink-0 whitespace-nowrap text-sm font-semibold text-foreground">
-                                × {w.quantity}
-                              </span>
-                  </div>
-                            <div className="mt-0.5 flex items-center justify-between gap-3">
-                              <p className="truncate text-xs text-muted-foreground">
-                                {w.producer_name || 'Unknown producer'}
-                              </p>
-                              {w.color ? (
-                                <span className="shrink-0 whitespace-nowrap rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
-                                  {w.color}
-                                </span>
-                              ) : null}
-                  </div>
-                    </div>
-                    </div>
-                      ))}
-                  </div>
-                  );
-                })()}
-                </div>
-                    </div>
+          {activeTab === "reservations" ? reservationsTabContent : null}
+          {activeTab === "activity" && (
+            <div className="space-y-4">
+              {/* Perks link */}
+              <section className="flex justify-end">
+                <Link
+                  href="/profile/perks"
+                  className="inline-flex items-center gap-2 rounded-full bg-black px-4 py-2 text-sm font-medium text-white hover:bg-black/90 transition-colors"
+                >
+                  <span>My Perks</span>
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
               </section>
 
-                    </div>
-                  )}
-                  
-          {activeTab === "activity" && (
-                <div className="space-y-4">
               {/* Progress: next membership level */}
               <section className="space-y-3">
                 <h2 className="text-base md:text-lg font-light text-gray-900">
@@ -1039,14 +1089,15 @@ function ProfilePageContent() {
                 </div>
               </section>
 
-              {/* Progress: wine voucher */}
+              {/* Progress: order voucher (extra discount) */}
               <section className="space-y-3">
                 <h2 className="text-base md:text-lg font-light text-gray-900">
-                  Vinstflaska-voucher
+                  Voucher-rabatt
                 </h2>
                 <div className="bg-white rounded-xl border border-gray-200/50 p-4 md:p-5 shadow-sm">
                   {(() => {
                     const v = getVoucherProgress(membershipData.membership.impactPoints);
+                    const voucherDiscountPercent = getVoucherDiscountPercent(membershipData.membership.level);
                     return (
                       <div className="space-y-3">
                         <div className="relative">
@@ -1066,13 +1117,17 @@ function ProfilePageContent() {
                           </div>
                         </div>
                         <p className="text-xs text-gray-600">
-                          Samla {v.pointsPerVoucher} Impact Points för en voucher till en vinflaska.
-                          {v.vouchersEarned > 0 && (
-                            <span className="block mt-1 font-medium text-amber-700">
-                              Du har tjänat {v.vouchersEarned} voucher{v.vouchersEarned !== 1 ? "s" : ""} hittills.
-                            </span>
-                          )}
+                          Samla {v.pointsPerVoucher} Impact Points för en voucher som ger extra rabatt på en beställning.
+                          Voucher-rabatten är högre ju högre medlemskapsnivå du har.
                         </p>
+                        <p className="text-sm font-medium text-gray-900">
+                          Din voucher-rabatt: {voucherDiscountPercent}% ({membershipData.levelInfo.name})
+                        </p>
+                        {v.vouchersEarned > 0 && (
+                          <p className="text-xs font-medium text-amber-700">
+                            Du har tjänat {v.vouchersEarned} voucher{v.vouchersEarned !== 1 ? "s" : ""} hittills.
+                          </p>
+                        )}
                       </div>
                     );
                   })()}
@@ -1104,6 +1159,15 @@ function ProfilePageContent() {
 
           {/* Right Sidebar */}
           <div className="space-y-4">
+            {/* Medlemskort på desktop – vertikalt i sidofältet */}
+            <section className="profile-membership-card hidden lg:block" aria-label="Medlemskort">
+              <MetallicMembershipCard
+                variant={toCardLevel(membershipData.membership.level)}
+                memberName={userName ?? undefined}
+                usePactLogo
+              />
+            </section>
+
             {/* Search */}
             <div ref={searchWrapRef} className="relative rounded-xl border border-border bg-white p-4 shadow-sm">
               <div className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 bg-white">
@@ -1332,59 +1396,6 @@ function ProfilePageContent() {
                       </div>
                   </div>
 
-            {/* Last Viewed */}
-            <div className="rounded-xl border border-border bg-white p-4 shadow-sm space-y-3">
-              <h3 className="text-sm font-semibold text-foreground">Last Viewed</h3>
-              <div className="space-y-2">
-                {lastViewedProducts.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">
-                    No recently viewed wines yet.
-                  </p>
-                ) : (
-                  lastViewedProducts.slice(0, 5).map((p) => (
-                    <Link
-                      key={p.id}
-                      href={`/product/${p.handle}`}
-                      className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-muted/30"
-                    >
-                      <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-md border bg-muted">
-                        {p.imageUrl ? (
-                          <Image
-                            src={p.imageUrl}
-                            alt={p.title}
-                            fill
-                            sizes="40px"
-                            className="object-cover"
-                          />
-                        ) : null}
-                        </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="truncate text-sm font-semibold text-foreground">
-                            {p.title}
-                          </p>
-                          {p.price && p.currencyCode ? (
-                            <span className="shrink-0 whitespace-nowrap text-sm font-semibold text-foreground">
-                              {formatPrice(p.price, p.currencyCode)}
-                            </span>
-                          ) : null}
-                      </div>
-                        <div className="mt-0.5 flex items-center justify-between gap-3">
-                          <p className="truncate text-xs text-muted-foreground">
-                            {p.producerName || "Unknown producer"}
-                          </p>
-                          {p.color ? (
-                            <span className="shrink-0 whitespace-nowrap rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
-                              {p.color}
-                            </span>
-                          ) : null}
-                </div>
-                      </div>
-                    </Link>
-                  ))
-                )}
-          </div>
-        </div>
             </div>
           </div>
       </div>

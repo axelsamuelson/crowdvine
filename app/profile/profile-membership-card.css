@@ -1,0 +1,410 @@
+/* Metallic membership card on profile – same design as invite signup, scoped to profile */
+.profile-membership-card .membership-card-wrapper {
+  --electric-border-color: #c0c0c0;
+  --electric-light-color: oklch(from var(--electric-border-color) l c h);
+  --gradient-color: oklch(from var(--electric-border-color) 0.3 calc(c / 2) h / 0.4);
+  --color-neutral-900: oklch(0.185 0 0);
+  --metal-bright: #e8e8e8;
+  --metal-medium: #a8a8a8;
+  --glow-color: rgba(192, 192, 192, 0.12);
+  --glow-color-2: rgba(192, 192, 192, 0.06);
+  --border-outer-color: rgba(192, 192, 192, 0.5);
+  --border-glow-color: rgba(192, 192, 192, 0.6);
+  width: 100%;
+  max-width: 350px;
+  margin: 0 auto;
+  padding: 24px;
+  overflow: visible;
+}
+
+.profile-membership-card .membership-card-wrapper.variant-basic {
+  --electric-border-color: #475569;
+  --metal-bright: #64748b;
+  --metal-medium: #334155;
+  --glow-color: rgba(71, 85, 105, 0.18);
+  --glow-color-2: rgba(51, 65, 85, 0.1);
+  --border-outer-color: rgba(71, 85, 105, 0.6);
+  --border-glow-color: rgba(71, 85, 105, 0.7);
+}
+
+.profile-membership-card .membership-card-wrapper.variant-brons {
+  --electric-border-color: #3730a3;
+  --metal-bright: #4f46e5;
+  --metal-medium: #1e1b4b;
+  --glow-color: rgba(55, 48, 163, 0.18);
+  --glow-color-2: rgba(30, 27, 75, 0.1);
+  --border-outer-color: rgba(55, 48, 163, 0.65);
+  --border-glow-color: rgba(55, 48, 163, 0.75);
+}
+
+.profile-membership-card .membership-card-wrapper.variant-silver {
+  --electric-border-color: #065f46;
+  --metal-bright: #047857;
+  --metal-medium: #022c22;
+  --glow-color: rgba(6, 95, 70, 0.2);
+  --glow-color-2: rgba(2, 44, 34, 0.1);
+  --border-outer-color: rgba(6, 95, 70, 0.65);
+  --border-glow-color: rgba(6, 95, 70, 0.75);
+}
+
+.profile-membership-card .membership-card-wrapper.variant-guld {
+  --electric-border-color: #E4CAA0;
+  --metal-bright: #f0dfc4;
+  --metal-medium: #c9a86c;
+  --glow-color: rgba(228, 202, 160, 0.12);
+  --glow-color-2: rgba(228, 202, 160, 0.06);
+  --border-outer-color: rgba(228, 202, 160, 0.65);
+  --border-glow-color: rgba(228, 202, 160, 0.75);
+}
+
+.profile-membership-card .membership-card-wrapper.variant-privilege {
+  --electric-border-color: #2F0E15;
+  --metal-bright: #481620;
+  --metal-medium: #1a080b;
+  --glow-color: rgba(47, 14, 21, 0.25);
+  --glow-color-2: rgba(47, 14, 21, 0.15);
+  --border-outer-color: rgba(47, 14, 21, 0.8);
+  --border-glow-color: rgba(47, 14, 21, 0.9);
+}
+
+.profile-membership-card .membership-card-wrapper.variant-privilege .membership-card-bg-glow {
+  opacity: 0.65;
+}
+
+.profile-membership-card .membership-card-wrapper.variant-guld .membership-card-bg-glow {
+  opacity: 0.3;
+}
+
+.profile-membership-card .membership-card-wrapper .membership-card-svg {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.profile-membership-card .membership-card-wrapper .membership-card-container {
+  padding: 2px;
+  border-radius: 24px;
+  position: relative;
+  overflow: visible;
+  background: linear-gradient(-30deg, var(--gradient-color), transparent, var(--gradient-color)),
+    linear-gradient(to bottom, var(--color-neutral-900), var(--color-neutral-900));
+  box-shadow: 0 0 24px var(--glow-color), 0 0 48px var(--glow-color-2);
+}
+
+.profile-membership-card .membership-card-wrapper .membership-card-inner {
+  position: relative;
+}
+
+.profile-membership-card .membership-card-wrapper .membership-card-border-outer {
+  border: 2px solid var(--border-outer-color);
+  border-radius: 24px;
+  padding-right: 4px;
+  padding-bottom: 4px;
+}
+
+.profile-membership-card .membership-card-wrapper .membership-card-main {
+  width: 100%;
+  aspect-ratio: 350 / 420;
+  min-height: 320px;
+  border-radius: 24px;
+  border: 2px solid var(--electric-border-color);
+  margin-top: -4px;
+  margin-left: -4px;
+}
+
+.profile-membership-card .membership-card-wrapper .membership-card-glow-1 {
+  border: 1px solid var(--border-glow-color);
+  border-radius: 24px;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  filter: blur(1px);
+  opacity: 0.6;
+}
+
+.profile-membership-card .membership-card-wrapper .membership-card-glow-2 {
+  border: 1px solid var(--electric-light-color);
+  border-radius: 24px;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  filter: blur(3px);
+  opacity: 0.35;
+}
+
+.profile-membership-card .membership-card-wrapper .membership-card-overlay-1 {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 24px;
+  opacity: 1;
+  mix-blend-mode: overlay;
+  transform: scale(1.1);
+  filter: blur(16px);
+  background: linear-gradient(-30deg, white, transparent 30%, transparent 70%, white);
+}
+
+.profile-membership-card .membership-card-wrapper .membership-card-overlay-2 {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 24px;
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+  transform: scale(1.1);
+  filter: blur(16px);
+  background: linear-gradient(-30deg, white, transparent 30%, transparent 70%, white);
+}
+
+.profile-membership-card .membership-card-wrapper .membership-card-bg-glow {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 24px;
+  filter: blur(32px);
+  transform: scale(1.08);
+  opacity: 0.25;
+  z-index: -1;
+  background: linear-gradient(-30deg, var(--metal-bright), transparent, var(--electric-border-color));
+}
+
+.profile-membership-card .membership-card-wrapper .membership-card-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  color: oklch(0.985 0 0);
+}
+
+.profile-membership-card .membership-card-wrapper .membership-card-logo-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+}
+
+.profile-membership-card .membership-card-wrapper .membership-card-logo {
+  max-height: 28px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+}
+
+.profile-membership-card .membership-card-wrapper .membership-card-content-top {
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  padding-bottom: 10px;
+  height: 100%;
+}
+
+.profile-membership-card .membership-card-wrapper .membership-card-content-bottom {
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  padding-top: 10px;
+}
+
+.profile-membership-card .membership-card-wrapper .membership-card-scrollbar-glass {
+  margin-top: auto;
+  background: radial-gradient(47.2% 50% at 50.39% 88.37%, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 100%),
+    rgba(255, 255, 255, 0.04);
+  position: relative;
+  transition: background 0.3s ease;
+  border-radius: 14px;
+  width: fit-content;
+  height: fit-content;
+  padding: 6px 12px;
+  text-transform: uppercase;
+  font-weight: bold;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.profile-membership-card .membership-card-wrapper .membership-card-scrollbar-glass:hover {
+  background: radial-gradient(47.2% 50% at 50.39% 88.37%, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 100%),
+    rgba(255, 255, 255, 0.08);
+}
+
+.profile-membership-card .membership-card-wrapper .membership-card-member-name {
+  margin-top: 10px;
+  overflow: hidden;
+}
+
+.profile-membership-card .membership-card-wrapper .membership-card-engraved-name {
+  display: inline-block;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.5),
+    0 -1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.profile-membership-card .membership-card-wrapper .membership-card-scrollbar-glass::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 1px;
+  background: linear-gradient(
+    150deg,
+    rgba(255, 255, 255, 0.48) 16.73%,
+    rgba(255, 255, 255, 0.08) 30.2%,
+    rgba(255, 255, 255, 0.08) 68.2%,
+    rgba(255, 255, 255, 0.6) 81.89%
+  );
+  border-radius: inherit;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: xor;
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+}
+
+.profile-membership-card .membership-card-wrapper .membership-card-description {
+  opacity: 0.8;
+  color: oklch(0.985 0 0);
+  font-size: 13px;
+}
+
+.profile-membership-card .membership-card-wrapper .membership-card-quota {
+  opacity: 0.6;
+  color: oklch(0.985 0 0);
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.profile-membership-card .membership-card-wrapper .membership-card-divider {
+  margin-top: auto;
+  border: none;
+  height: 1px;
+  background-color: currentColor;
+  opacity: 0.1;
+  mask-image: linear-gradient(to right, transparent, black, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black, transparent);
+}
+
+/* ========== Horizontal card (mobile) – samma metalliska design, vågrätt ========== */
+.profile-membership-card-horizontal .membership-card-wrapper.membership-card-horizontal {
+  max-width: 100%;
+  padding: 12px;
+}
+
+.profile-membership-card-horizontal .membership-card-wrapper.membership-card-horizontal .membership-card-container {
+  border-radius: 20px;
+  box-shadow: 0 0 12px var(--glow-color), 0 0 24px var(--glow-color-2);
+}
+
+.profile-membership-card-horizontal .membership-card-wrapper.membership-card-horizontal .membership-card-inner {
+  position: relative;
+}
+
+.profile-membership-card-horizontal .membership-card-wrapper.membership-card-horizontal .membership-card-border-outer {
+  border-radius: 20px;
+  padding-right: 0;
+  padding-bottom: 0;
+}
+
+.profile-membership-card-horizontal .membership-card-wrapper.membership-card-horizontal .membership-card-main {
+  aspect-ratio: unset;
+  min-height: 0;
+  height: 96px;
+  border-radius: 20px;
+  margin-top: 0;
+  margin-left: 0;
+}
+
+.profile-membership-card-horizontal .membership-card-wrapper.membership-card-horizontal .membership-card-glow-1,
+.profile-membership-card-horizontal .membership-card-wrapper.membership-card-horizontal .membership-card-glow-2 {
+  border-radius: 20px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.profile-membership-card-horizontal .membership-card-wrapper.membership-card-horizontal .membership-card-overlay-1,
+.profile-membership-card-horizontal .membership-card-wrapper.membership-card-horizontal .membership-card-overlay-2 {
+  border-radius: 20px;
+  opacity: 0.4;
+}
+
+.profile-membership-card-horizontal .membership-card-wrapper.membership-card-horizontal .membership-card-bg-glow {
+  border-radius: 20px;
+  opacity: 0.12;
+}
+
+.profile-membership-card-horizontal .membership-card-wrapper.membership-card-horizontal .membership-card-content {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  gap: 16px;
+}
+
+.profile-membership-card-horizontal .membership-card-wrapper.membership-card-horizontal .membership-card-content-top {
+  flex: 1;
+  min-width: 0;
+  height: auto;
+  padding: 0;
+  margin: 0;
+}
+
+.profile-membership-card-horizontal .membership-card-wrapper.membership-card-horizontal .membership-card-scrollbar-glass {
+  margin-top: 0;
+}
+
+.profile-membership-card-horizontal .membership-card-wrapper.membership-card-horizontal .membership-card-description-inline {
+  margin-top: 4px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.profile-membership-card-horizontal .membership-card-wrapper.membership-card-horizontal .membership-card-quota {
+  margin-top: 2px;
+  font-size: 11px;
+}
+
+.profile-membership-card-horizontal .membership-card-wrapper.membership-card-horizontal .membership-card-content-right {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.profile-membership-card-horizontal .membership-card-wrapper.membership-card-horizontal .membership-card-content-right .membership-card-logo-wrapper {
+  padding: 6px 8px;
+  margin: 0;
+}
+
+.profile-membership-card-horizontal .membership-card-wrapper.membership-card-horizontal .membership-card-content-right .membership-card-logo {
+  max-height: 28px;
+}

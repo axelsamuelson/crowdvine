@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -12,9 +12,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { motion } from "framer-motion";
+import { ChevronDown, Copy } from "lucide-react";
 import { getLevelInfo } from "@/lib/membership/points-engine";
 import { MetallicMembershipCard } from "../metallic-membership-card";
 import { DirtyWineLogo } from "../dirty-wine-logo";
+import { buildInviteUrl } from "@/lib/invitation-path";
 
 export type InvitationType = "consumer" | "producer" | "business";
 
@@ -160,84 +162,280 @@ export function InvitationTypeSection({
   const isConsumerOnly =
     allowedTypes.length === 1 && allowedTypes[0] === "consumer";
 
+  // Invite-friends section state (consumer welcome only)
+  const inviteSectionRef = useRef<HTMLDivElement>(null);
+  const [inviteData, setInviteData] = useState<{
+    active: Array<{ id: string; code: string; signupUrl?: string; allowed_types?: string[] }>;
+    used: Array<unknown>;
+  } | null>(null);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [generatingSlot, setGeneratingSlot] = useState<number | null>(null);
+  const [copiedSlot, setCopiedSlot] = useState<number | null>(null);
+
+  const fetchInvitations = async () => {
+    setInviteLoading(true);
+    try {
+      const res = await fetch("/api/user/invitations");
+      if (!res.ok) return;
+      const data = await res.json();
+      const active = (data.active || []).map((inv: { code: string; allowed_types?: string[] }) => ({
+        ...inv,
+        signupUrl: inv.signupUrl || buildInviteUrl(inv.code, inv.allowed_types || ["consumer"]),
+      }));
+      setInviteData({ active, used: data.used || [] });
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isWelcome && isConsumerOnly) fetchInvitations();
+  }, [isWelcome, isConsumerOnly]);
+
+  const scrollToInviteSection = () => {
+    inviteSectionRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const generateInvite = async (slotIndex: number) => {
+    setGeneratingSlot(slotIndex);
+    try {
+      const res = await fetch("/api/invitations/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invitation_type: "consumer" }),
+      });
+      const json = await res.json();
+      if (json.invitation?.signupUrl) {
+        setInviteData((prev) =>
+          prev
+            ? {
+                ...prev,
+                active: [...prev.active, { id: json.invitation.id, code: json.invitation.code, signupUrl: json.invitation.signupUrl, allowed_types: ["consumer"] }],
+              }
+            : null,
+        );
+      }
+    } finally {
+      setGeneratingSlot(null);
+    }
+  };
+
+  const copyInviteLink = (url: string, slotIndex: number) => {
+    navigator.clipboard.writeText(url);
+    setCopiedSlot(slotIndex);
+    setTimeout(() => setCopiedSlot(null), 2000);
+  };
+
+  const usedCount = inviteData?.used?.length ?? 0;
+  const progress = Math.min(usedCount, 3) / 3;
+
   // Welcome view (card + Go to platform): only after signup success. For producer, no membership card.
   if (isWelcome) {
     return (
-      <section className="relative py-24 px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{
-            duration: 1.2,
-            ease: [0.16, 1, 0.3, 1],
-          }}
-          className="max-w-md mx-auto text-center"
-        >
-          {!isProducerOnly && (
-            <motion.div
-              className="flex justify-center mb-6"
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
+      <>
+        <section className="relative py-24 px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              duration: 1.2,
+              ease: [0.16, 1, 0.3, 1],
+            }}
+            className="max-w-md mx-auto text-center"
+          >
+            {!isProducerOnly && (
+              <motion.div
+                className="flex justify-center mb-6"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{
+                  duration: 1,
+                  delay: 0.2,
+                  ease: [0.16, 1, 0.3, 1],
+                }}
+              >
+                <MetallicMembershipCard
+                  variant={levelKey}
+                  memberName={displayName}
+                  usePactLogo={isConsumerOnly}
+                />
+              </motion.div>
+            )}
+            <motion.h2
+              className="text-2xl font-semibold text-foreground mb-2"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{
-                duration: 1,
-                delay: 0.2,
+                duration: 0.8,
+                delay: isProducerOnly ? 0.2 : 0.5,
                 ease: [0.16, 1, 0.3, 1],
               }}
             >
-              <MetallicMembershipCard
-                variant={levelKey}
-                memberName={displayName}
-                usePactLogo={isConsumerOnly}
-              />
-            </motion.div>
-          )}
-          <motion.h2
-            className="text-2xl font-semibold text-foreground mb-2"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              duration: 0.8,
-              delay: isProducerOnly ? 0.2 : 0.5,
-              ease: [0.16, 1, 0.3, 1],
-            }}
-          >
-            Welcome, {displayName}
-          </motion.h2>
-          <motion.p
-            className="text-muted-foreground"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{
-              duration: 0.8,
-              delay: isProducerOnly ? 0.4 : 0.7,
-              ease: [0.16, 1, 0.3, 1],
-            }}
-          >
-            {isProducerOnly
-              ? "Your producer profile is set up. You can now access the platform."
-              : "You are now a member of PACT and can access the platform."}
-          </motion.p>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{
-              duration: 0.6,
-              delay: isProducerOnly ? 0.6 : 1,
-              ease: [0.16, 1, 0.3, 1],
-            }}
-            className="mt-6 flex flex-col sm:flex-row gap-3 justify-center items-center"
-          >
-            {isProducerOnly && (
-              <Button asChild variant="outline" className="w-full sm:w-auto">
-                <a href="/producer/wines/new">Add first wine</a>
+              Welcome, {displayName}
+            </motion.h2>
+            <motion.p
+              className="text-muted-foreground"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{
+                duration: 0.8,
+                delay: isProducerOnly ? 0.4 : 0.7,
+                ease: [0.16, 1, 0.3, 1],
+              }}
+            >
+              {isProducerOnly
+                ? "Your producer profile is set up. You can now access the platform."
+                : "You are now a member of PACT and can access the platform."}
+            </motion.p>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{
+                duration: 0.6,
+                delay: isProducerOnly ? 0.6 : 1,
+                ease: [0.16, 1, 0.3, 1],
+              }}
+              className="mt-6 flex flex-col sm:flex-row gap-3 justify-center items-center flex-wrap"
+            >
+              {isProducerOnly && (
+                <Button asChild variant="outline" className="w-full sm:w-auto">
+                  <a href="/producer/wines/new">Add first wine</a>
+                </Button>
+              )}
+              <Button asChild className="w-full sm:w-auto bg-black text-white hover:bg-black/90 hover:text-white">
+                <a href="/">Go to platform</a>
               </Button>
-            )}
-            <Button asChild className="w-full sm:w-auto bg-black text-white hover:bg-black/90 hover:text-white">
-              <a href="/">Go to platform</a>
-            </Button>
+              {isConsumerOnly && (
+                <button
+                  type="button"
+                  onClick={scrollToInviteSection}
+                  className="w-full sm:w-auto rounded-2xl border-2 border-foreground/15 bg-muted/50 hover:bg-muted/80 transition-colors px-5 py-4 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <div className="flex flex-col gap-1">
+                    <span className="text-sm font-semibold text-foreground">
+                      Invite friends. Bottles on us.
+                    </span>
+                    <span className="text-xs text-muted-foreground leading-snug">
+                      When a friend joins, you unlock credits toward bottles.
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 mt-2 text-sm font-medium text-foreground">
+                      Invite friends
+                      <motion.span
+                        animate={{ y: [0, 5, 0] }}
+                        transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
+                        aria-hidden
+                      >
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      </motion.span>
+                    </span>
+                  </div>
+                </button>
+              )}
+            </motion.div>
           </motion.div>
-        </motion.div>
-      </section>
+        </section>
+
+        {isConsumerOnly && (
+          <section
+            id="invite-friends-section"
+            ref={inviteSectionRef}
+            className="relative py-20 px-6 border-t border-border/80 bg-gradient-to-b from-muted/40 to-background"
+          >
+            <div className="max-w-md mx-auto">
+              {/* Headline & intro */}
+              <div className="text-center mb-8">
+                <h3 className="text-2xl font-semibold text-foreground tracking-tight">
+                  Invite 3 friends, get a free case of wine
+                </h3>
+                <p className="mt-2 text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
+                  Each friend who joins unlocks credits toward bottles. Share your links below.
+                </p>
+              </div>
+
+              {/* Progress bar */}
+              <div className="mb-8 p-4 rounded-2xl bg-background/80 border border-border/60 shadow-sm">
+                <div className="flex justify-between items-baseline mb-2">
+                  <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Your progress
+                  </span>
+                  <span className="text-sm font-semibold text-foreground">
+                    {Math.min(usedCount, 3)} of 3 friends joined
+                  </span>
+                </div>
+                <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full rounded-full bg-gradient-to-r from-primary to-primary/80"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progress * 100}%` }}
+                    transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                  />
+                </div>
+              </div>
+
+              {/* Three invite link slots */}
+              <div className="space-y-3">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
+                  Your invite links
+                </p>
+                {[0, 1, 2].map((slotIndex) => {
+                  const inv = inviteData?.active?.[slotIndex];
+                  const url = inv?.signupUrl;
+                  return (
+                    <div
+                      key={slotIndex}
+                      className="flex items-center gap-3 p-4 rounded-2xl border border-border/70 bg-background shadow-sm hover:shadow-md transition-shadow"
+                    >
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold text-foreground">
+                        {slotIndex + 1}
+                      </span>
+                      {url ? (
+                        <>
+                          <input
+                            readOnly
+                            value={url}
+                            className="flex-1 min-w-0 text-xs bg-muted/40 px-3 py-2 rounded-lg border border-border/50 truncate font-mono text-muted-foreground focus:outline-none"
+                          />
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={copiedSlot === slotIndex ? "secondary" : "outline"}
+                            className="shrink-0 rounded-lg"
+                            onClick={() => copyInviteLink(url, slotIndex)}
+                          >
+                            {copiedSlot === slotIndex ? (
+                              <span className="text-xs font-medium text-green-700 dark:text-green-400">
+                                Copied
+                              </span>
+                            ) : (
+                              <>
+                                <Copy className="h-3.5 w-3.5 mr-1.5" />
+                                Copy
+                              </>
+                            )}
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 justify-center rounded-lg h-10 font-medium"
+                          disabled={inviteLoading || generatingSlot !== null}
+                          onClick={() => generateInvite(slotIndex)}
+                        >
+                          {generatingSlot === slotIndex
+                            ? "Generating…"
+                            : "Unlock invite link"}
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        )}
+      </>
     );
   }
 
