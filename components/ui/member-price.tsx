@@ -74,7 +74,7 @@ export function MemberPrice({
           <span className="flex flex-col">
             <span>{formatPrice(displayPrice, currencyCode)}</span>
             {showVatLabel && (
-              <span className="text-[10px] font-normal text-muted-foreground">
+              <span className="text-[8px] md:text-[10px] font-normal text-muted-foreground">
                 {vatLabel}
               </span>
             )}
@@ -97,7 +97,7 @@ export function MemberPrice({
           <span className="flex flex-col">
             <span>{formatPrice(displayPrice.toFixed(2), currencyCode)}</span>
             {showVatLabel && (
-              <span className="text-[10px] font-normal text-muted-foreground">
+              <span className="text-[8px] md:text-[10px] font-normal text-muted-foreground">
                 {vatLabel}
               </span>
             )}
@@ -107,7 +107,7 @@ export function MemberPrice({
           <span className="flex flex-col">
             <span>{formatPrice(originalPrice.toFixed(2), currencyCode)}</span>
             {showVatLabel && (
-              <span className="text-[8px] font-normal text-muted-foreground">
+              <span className="text-[7px] md:text-[8px] font-normal text-muted-foreground">
                 {vatLabel}
               </span>
             )}
@@ -169,7 +169,7 @@ export function MemberPrice({
         <span className="flex flex-col">
           <span>{formatPrice(displayPrice, currencyCode)}</span>
           {showVatLabel && (
-            <span className="text-[10px] font-normal text-muted-foreground">
+            <span className="text-[8px] md:text-[10px] font-normal text-muted-foreground">
               {vatLabel}
             </span>
           )}
@@ -186,7 +186,7 @@ export function MemberPrice({
         <span className="flex flex-col">
           <span>{formatPrice(discountedPrice.toFixed(2), currencyCode)}</span>
           {showVatLabel && (
-            <span className="text-[10px] font-normal text-muted-foreground">
+            <span className="text-[8px] md:text-[10px] font-normal text-muted-foreground">
               {vatLabel}
             </span>
           )}
@@ -196,7 +196,7 @@ export function MemberPrice({
         <span className="flex flex-col">
           <span>{formatPrice(displayPrice.toFixed(2), currencyCode)}</span>
           {showVatLabel && (
-            <span className="text-[8px] font-normal text-muted-foreground">
+            <span className="text-[7px] md:text-[8px] font-normal text-muted-foreground">
               {vatLabel}
             </span>
           )}

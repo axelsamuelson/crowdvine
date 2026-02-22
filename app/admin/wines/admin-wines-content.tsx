@@ -10,12 +10,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { COLOR_MAP } from "@/lib/constants";
+import { COLOR_MAP, DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import { DeleteWineButton } from "@/components/admin/delete-wine-button";
 import type { Wine } from "@/lib/actions/wines";
-import { ChevronDown, X } from "lucide-react";
+import { ChevronDown, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BulkEditsModal } from "./bulk-edits-modal";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const colorColors: Record<string, string> = {
   red: "bg-red-100 text-red-800",
@@ -55,6 +62,9 @@ export function AdminWinesContent({
   const [ap, setAp] = useQueryState("ap", parseAsArrayOf(parseAsString).withDefault([]));
   const [ac, setAc] = useQueryState("ac", parseAsArrayOf(parseAsString).withDefault([]));
   const [ag, setAg] = useQueryState("ag", parseAsArrayOf(parseAsString).withDefault([]));
+  const [searchQuery, setSearchQuery] = useQueryState("q", parseAsString.withDefault(""));
+  const [sortBy, setSortBy] = useQueryState("sort", parseAsString.withDefault("wine"));
+  const [sortDir, setSortDir] = useQueryState("dir", parseAsString.withDefault("asc"));
 
   const [producerOpen, setProducerOpen] = useState(false);
   const [grapesOpen, setGrapesOpen] = useState(false);
@@ -142,18 +152,14 @@ export function AdminWinesContent({
       if (ac.length) {
         const wc = (w.color || "").trim();
         const wcLower = wc.toLowerCase();
-        // Check if wine color matches any selected filter
         const matches = ac.some((selectedColor) => {
           const selectedLower = selectedColor.toLowerCase();
-          // Direct match
           if (wcLower === selectedLower) return true;
-          // Check for dual color match (e.g., "red/white" matches "Red & White" or "Red/White")
           if (selectedColor.includes("/")) {
             const [c1, c2] = selectedColor.split("/").map(c => c.trim().toLowerCase());
             const normalizedWc = wcLower.replace(/[/&]/g, "/");
             return normalizedWc.includes(c1) && normalizedWc.includes(c2);
           }
-          // Check if wine has dual color that matches
           if (wc.includes("/") || wc.includes("&")) {
             const parts = wc.split(/[/&]/).map(p => p.trim().toLowerCase());
             return parts.includes(selectedLower);
@@ -169,11 +175,60 @@ export function AdminWinesContent({
           .filter(Boolean);
         if (!ag.some((g) => wg.includes(g.toLowerCase()))) return false;
       }
+      // Search: match wine name, vintage, producer, grapes, color, handle
+      const q = searchQuery.trim().toLowerCase();
+      if (q) {
+        const producerName = (w.producer?.name || "").toLowerCase();
+        const wineName = (w.wine_name || "").toLowerCase();
+        const vintage = String(w.vintage || "").toLowerCase();
+        const grapes = (w.grape_varieties || "").toLowerCase();
+        const color = (w.color || "").toLowerCase();
+        const handle = (w.handle || "").toLowerCase();
+        const match =
+          producerName.includes(q) ||
+          wineName.includes(q) ||
+          vintage.includes(q) ||
+          grapes.includes(q) ||
+          color.includes(q) ||
+          handle.includes(q);
+        if (!match) return false;
+      }
       return true;
     });
-  }, [wines, ap, ac, ag]);
+  }, [wines, ap, ac, ag, searchQuery]);
+
+  const sortedWines = useMemo(() => {
+    const list = [...filteredWines];
+    const dir = sortDir === "desc" ? -1 : 1;
+    list.sort((a, b) => {
+      switch (sortBy) {
+        case "wine": {
+          const na = `${(a.wine_name || "").toLowerCase()} ${a.vintage || ""}`;
+          const nb = `${(b.wine_name || "").toLowerCase()} ${b.vintage || ""}`;
+          return dir * na.localeCompare(nb, "sv");
+        }
+        case "producer": {
+          const na = (a.producer?.name || "Unknown").toLowerCase();
+          const nb = (b.producer?.name || "Unknown").toLowerCase();
+          return dir * na.localeCompare(nb, "sv");
+        }
+        case "price":
+          return dir * (a.base_price_cents - b.base_price_cents);
+        case "created": {
+          const ta = new Date(a.created_at || 0).getTime();
+          const tb = new Date(b.created_at || 0).getTime();
+          return dir * (ta - tb);
+        }
+        default:
+          return 0;
+      }
+    });
+    return list;
+  }, [filteredWines, sortBy, sortDir]);
 
   const filterCount = ap.length + ac.length + ag.length;
+  const hasSearch = searchQuery.trim().length > 0;
+  const hasActiveFiltersOrSearch = filterCount > 0 || hasSearch;
 
   const toggleProducer = (id: string) => {
     setAp(ap.includes(id) ? ap.filter((x) => x !== id) : [...ap, id]);
@@ -198,6 +253,7 @@ export function AdminWinesContent({
     setAp([]);
     setAc([]);
     setAg([]);
+    setSearchQuery("");
     setProducerOpen(false);
     setGrapesOpen(false);
   };
@@ -212,18 +268,30 @@ export function AdminWinesContent({
     <div className="space-y-4">
       {/* Bulk edits button - opens modal for B2C and B2B margin updates */}
       <div className="flex justify-end">
-        <BulkEditsModal
+          <BulkEditsModal
           initialMargin={initialMargin}
           isMixed={isMixed}
           initialB2BMargin={initialB2BMargin}
           isB2BMixed={isB2BMixed}
           filteredWineIds={filteredWines.map((w) => w.id)}
-          hasActiveFilters={filterCount > 0}
+          hasActiveFilters={filterCount > 0 || hasSearch}
         />
       </div>
 
-      {/* Filter bar - matching shop page design */}
-      <div className="flex flex-wrap items-start gap-4">
+      {/* Search + Filter bar */}
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="relative flex-1 min-w-[200px] max-w-md">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <Input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Sök vin, producent, druva, färg…"
+            className="pl-9 h-10 bg-muted/80 border-muted-foreground/20 focus-visible:ring-primary/40"
+            aria-label="Sök viner"
+          />
+        </div>
+
         <div className="px-3 py-4 rounded-lg bg-muted">
           <div className="flex items-baseline justify-between gap-3 mb-4">
             <h3 className="font-semibold">
@@ -388,112 +456,133 @@ export function AdminWinesContent({
           </Popover>
         </div>
 
-        {filterCount > 0 && (
+        {hasActiveFiltersOrSearch && (
           <div className="flex items-center">
             <Button variant="ghost" size="sm" className="h-8 gap-1 text-foreground/60 hover:text-foreground/80" onClick={clearFilters}>
               <X className="h-3.5 w-3.5" />
-              Clear ({filterCount})
+              {hasSearch && filterCount > 0 ? "Rensa filter och sök" : hasSearch ? "Rensa sök" : `Rensa (${filterCount})`}
             </Button>
           </div>
         )}
       </div>
 
-      {/* Table */}
+      {/* Table - scrollable region so the wine list is always scrollable */}
       <Card>
-        <CardHeader>
-          <CardTitle>All Wines</CardTitle>
-          <CardDescription>
-            {filterCount > 0
-              ? `Showing ${filteredWines.length} of ${wines.length} wines`
-              : `Complete list of all wine products`}
-          </CardDescription>
+        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle>All Wines</CardTitle>
+            <CardDescription>
+              {hasActiveFiltersOrSearch
+                ? `Visar ${filteredWines.length} av ${wines.length} viner`
+                : `Alla vinprodukter`}
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground whitespace-nowrap">Sortera:</span>
+            <Select
+              value={`${sortBy}-${sortDir}`}
+              onValueChange={(v) => {
+                const [s, d] = v.split("-") as [string, string];
+                setSortBy(s);
+                setSortDir(d);
+              }}
+            >
+              <SelectTrigger className="w-[200px] h-9 bg-muted/80">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="wine-asc">Vin (A→Ö)</SelectItem>
+                <SelectItem value="wine-desc">Vin (Ö→A)</SelectItem>
+                <SelectItem value="producer-asc">Producent (A→Ö)</SelectItem>
+                <SelectItem value="producer-desc">Producent (Ö→A)</SelectItem>
+                <SelectItem value="price-asc">Pris (lägst först)</SelectItem>
+                <SelectItem value="price-desc">Pris (högst först)</SelectItem>
+                <SelectItem value="created-desc">Tillagd (nyast först)</SelectItem>
+                <SelectItem value="created-asc">Tillagd (äldst först)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left p-3 font-medium text-sm text-gray-600">Image</th>
-                  <th className="text-left p-3 font-medium text-sm text-gray-600">Wine</th>
-                  <th className="text-left p-3 font-medium text-sm text-gray-600">Producer</th>
-                  <th className="text-left p-3 font-medium text-sm text-gray-600">Color</th>
-                  <th className="text-left p-3 font-medium text-sm text-gray-600">Price</th>
-                  <th className="text-left p-3 font-medium text-sm text-gray-600">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredWines.map((wine) => (
-                  <tr key={wine.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="p-3">
-                      <div className="relative w-16 h-16 bg-gray-100 rounded-lg overflow-hidden">
-                        {wine.label_image_path ? (
+          <div className="overflow-auto max-h-[min(60vh,800px)] rounded-md border border-gray-100">
+            {sortedWines.length > 0 ? (
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left p-3 font-medium text-sm text-gray-600">Image</th>
+                    <th className="text-left p-3 font-medium text-sm text-gray-600">Wine</th>
+                    <th className="text-left p-3 font-medium text-sm text-gray-600">Producer</th>
+                    <th className="text-left p-3 font-medium text-sm text-gray-600">Color</th>
+                    <th className="text-left p-3 font-medium text-sm text-gray-600">Price</th>
+                    <th className="text-left p-3 font-medium text-sm text-gray-600">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedWines.map((wine) => (
+                    <tr key={wine.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="p-3">
+                        <div className="relative w-16 h-16 bg-gray-100 rounded-lg overflow-hidden">
                           <Image
-                            src={wine.label_image_path}
+                            src={wine.label_image_path || DEFAULT_WINE_IMAGE_PATH}
                             alt={`${wine.wine_name} ${wine.vintage}`}
                             fill
                             className="object-cover"
                             sizes="64px"
                           />
-                        ) : (
-                          <div className="flex items-center justify-center w-full h-full text-gray-400 text-xs">
-                            No Image
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <div>
-                        <div className="font-medium text-gray-900">{wine.wine_name}</div>
-                        <div className="text-sm text-gray-500">{wine.vintage}</div>
-                        <div className="text-xs text-gray-400">{wine.grape_varieties}</div>
-                      </div>
-                    </td>
-                    <td className="p-3 text-gray-900">{wine.producer?.name || "Unknown"}</td>
-                    <td className="p-3">
-                      <Badge
-                        className={
-                          colorColors[wine.color as keyof typeof colorColors] ||
-                          "bg-gray-100 text-gray-800"
-                        }
-                      >
-                        {wine.color}
-                      </Badge>
-                    </td>
-                    <td className="p-3 font-medium text-gray-900">
-                      {Math.ceil(wine.base_price_cents / 100)} SEK
-                    </td>
-                    <td className="p-3">
-                      <div className="flex gap-2">
-                        <Link href={`/admin/wines/${wine.id}`}>
-                          <Button variant="outline" size="sm">
-                            Edit
-                          </Button>
-                        </Link>
-                        <DeleteWineButton wineId={wine.id} wineName={wine.wine_name} />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <div>
+                          <div className="font-medium text-gray-900">{wine.wine_name}</div>
+                          <div className="text-sm text-gray-500">{wine.vintage}</div>
+                          <div className="text-xs text-gray-400">{wine.grape_varieties}</div>
+                        </div>
+                      </td>
+                      <td className="p-3 text-gray-900">{wine.producer?.name || "Unknown"}</td>
+                      <td className="p-3">
+                        <Badge
+                          className={
+                            colorColors[wine.color as keyof typeof colorColors] ||
+                            "bg-gray-100 text-gray-800"
+                          }
+                        >
+                          {wine.color}
+                        </Badge>
+                      </td>
+                      <td className="p-3 font-medium text-gray-900">
+                        {Math.ceil(wine.base_price_cents / 100)} SEK
+                      </td>
+                      <td className="p-3">
+                        <div className="flex gap-2">
+                          <Link href={`/admin/wines/${wine.id}`}>
+                            <Button variant="outline" size="sm">
+                              Edit
+                            </Button>
+                          </Link>
+                          <DeleteWineButton wineId={wine.id} wineName={wine.wine_name} />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-gray-500 mb-4">
+                  {hasActiveFiltersOrSearch ? "Inga viner matchar filtren eller sökningen" : "Inga viner hittades"}
+                </p>
+                {hasActiveFiltersOrSearch ? (
+                  <Button variant="outline" onClick={clearFilters}>
+                    Rensa filter och sök
+                  </Button>
+                ) : (
+                  <Link href="/admin/wines/new">
+                    <Button>Add your first wine</Button>
+                  </Link>
+                )}
+              </div>
+            )}
           </div>
-
-          {filteredWines.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-500 mb-4">
-                {filterCount > 0 ? "No wines match the current filters" : "No wines found"}
-              </p>
-              {filterCount > 0 ? (
-                <Button variant="outline" onClick={clearFilters}>
-                  Clear filters
-                </Button>
-              ) : (
-                <Link href="/admin/wines/new">
-                  <Button>Add your first wine</Button>
-                </Link>
-              )}
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>

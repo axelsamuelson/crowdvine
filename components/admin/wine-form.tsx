@@ -32,6 +32,7 @@ import { WineImageUpload } from "@/components/admin/wine-image-upload";
 import { WineImage } from "@/lib/types/wine-images";
 import { PricingCalculator } from "@/components/admin/pricing-calculator-simple";
 import GrapeVarietiesSelector from "@/components/admin/grape-varieties-selector";
+import { Switch } from "@/components/ui/switch";
 import {
   getGrapeVarieties,
   createGrapeVariety,
@@ -72,6 +73,8 @@ export default function WineForm({ wine, producers, isProducerView = false }: Wi
     // B2B
     b2b_margin_percentage: wine?.b2b_margin_percentage ?? null,
     b2b_stock: wine?.b2b_stock ?? null,
+    // Visibility (only when editing; new wines default to live)
+    is_live: wine?.is_live ?? true,
   });
 
   const [images, setImages] = useState<File[]>([]);
@@ -314,6 +317,7 @@ export default function WineForm({ wine, producers, isProducerView = false }: Wi
         handle: generatedHandle,
         label_image_path:
           imagePaths.length > 0 ? imagePaths[0] : formData.label_image_path,
+        is_live: formData.is_live ?? true,
       };
 
       let savedWine;
@@ -361,7 +365,7 @@ export default function WineForm({ wine, producers, isProducerView = false }: Wi
 
   const handleChange = (
     field: keyof CreateWineData,
-    value: string | number | null,
+    value: string | number | boolean | null,
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
@@ -459,6 +463,23 @@ export default function WineForm({ wine, producers, isProducerView = false }: Wi
               </p>
             </div>
           </div>
+
+          {/* Live in shop (edit only) */}
+          {wine && (
+            <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-4">
+              <div>
+                <Label className="text-base font-medium">Synlig i shop</Label>
+                <p className="text-sm text-muted-foreground">
+                  När av är vinet dolt för kunder i shopen och sök.
+                </p>
+              </div>
+              <Switch
+                checked={formData.is_live ?? true}
+                onCheckedChange={(checked) => handleChange("is_live", checked)}
+                aria-label="Vin synligt i shop"
+              />
+            </div>
+          )}
 
           {/* New Grape Varieties Selector */}
           <GrapeVarietiesSelector

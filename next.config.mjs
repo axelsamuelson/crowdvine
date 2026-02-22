@@ -10,6 +10,11 @@ const nextConfig = {
     formats: ["image/avif", "image/webp"],
     remotePatterns: [
       {
+        protocol: "http",
+        hostname: "localhost",
+        pathname: "/**",
+      },
+      {
         protocol: "https",
         hostname: "zylq-002.dx.commercecloud.salesforce.com",
       },

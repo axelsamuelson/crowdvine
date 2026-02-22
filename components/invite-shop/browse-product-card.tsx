@@ -124,15 +124,15 @@ export const BrowseProductCard = memo(
           </Link>
         )}
 
-        {/* Info overlay - same styling as platform ProductCard */}
-        <div className="absolute inset-0 p-2 w-full pointer-events-none">
-          <div className="flex gap-6 justify-between items-baseline px-3 py-1 w-full font-semibold">
-            <div className="flex flex-col">
-              <p className="text-xs md:text-sm uppercase 2xl:text-base text-balance text-foreground">
+        {/* Info overlay - same styling as platform ProductCard (mobile: constrained text, smaller type) */}
+        <div className="absolute inset-0 pl-1 pr-2 pt-2 pb-2 md:p-2 w-full pointer-events-none">
+          <div className="flex gap-2 md:gap-6 justify-between items-start md:items-baseline px-1 md:px-3 py-1 w-full font-semibold">
+            <div className="flex flex-col min-w-0 max-w-[42%] md:max-w-[40%] shrink md:shrink-0 rounded-r pr-1.5 md:pr-0 md:rounded-none py-1 md:py-0 -my-1 md:my-0 overflow-hidden">
+              <p className="text-[8px] leading-tight md:text-sm uppercase 2xl:text-base text-balance line-clamp-2 md:line-clamp-2 break-words overflow-hidden text-foreground">
                 {product.title}
               </p>
               {product.producerName && (
-                <p className="text-[10px] md:text-xs text-muted-foreground font-normal">
+                <p className="text-[7px] md:text-xs text-muted-foreground font-normal line-clamp-1 md:line-clamp-1 mt-0.5 leading-tight">
                   {product.producerName}
                 </p>
               )}
@@ -143,7 +143,7 @@ export const BrowseProductCard = memo(
               />
             </div>
             {product.priceRange && (
-              <div className="flex flex-col items-end text-xs md:text-sm uppercase 2xl:text-base">
+              <div className="flex flex-col items-end min-w-0 shrink md:max-w-[35%] md:shrink-0 gap-0 text-[9px] md:text-sm uppercase 2xl:text-base text-right overflow-hidden">
                 {showExclVat ? (
                   <>
                     {/* Show only B2B price (warehouse price) exkl. moms for B2B invitation pages */}
@@ -151,7 +151,7 @@ export const BrowseProductCard = memo(
                       <MemberPrice
                         amount={product.priceRange.minVariantPrice.amount}
                         currencyCode={product.priceRange.minVariantPrice.currencyCode}
-                        className="text-xs md:text-sm uppercase 2xl:text-base"
+                        className="text-[9px] md:text-sm uppercase 2xl:text-base"
                         calculatedTotalPrice={calculatedWarehousePrice}
                         forceShowExclVat={true}
                       />
@@ -159,7 +159,7 @@ export const BrowseProductCard = memo(
                       <MemberPrice
                         amount={product.priceRange.minVariantPrice.amount}
                         currencyCode={product.priceRange.minVariantPrice.currencyCode}
-                        className="text-xs md:text-sm uppercase 2xl:text-base"
+                        className="text-[9px] md:text-sm uppercase 2xl:text-base"
                         priceExclVatOverride={
                           (product as any).b2bPriceExclVat ??
                           (product as any).priceBreakdown?.b2bPriceExclVat
@@ -171,7 +171,7 @@ export const BrowseProductCard = memo(
                   <MemberPrice
                     amount={product.priceRange.minVariantPrice.amount}
                     currencyCode={product.priceRange.minVariantPrice.currencyCode}
-                    className="text-xs md:text-sm uppercase 2xl:text-base"
+                    className="text-[9px] md:text-sm uppercase 2xl:text-base"
                     priceExclVatOverride={
                       (product as any).b2bPriceExclVat ??
                       (product as any).priceBreakdown?.b2bPriceExclVat
@@ -179,7 +179,7 @@ export const BrowseProductCard = memo(
                   />
                 )}
                 {isWineBox && discountInfo && (
-                  <span className="line-through opacity-30 text-[10px] md:text-xs text-muted-foreground mt-0.5">
+                  <span className="line-through opacity-30 text-[8px] md:text-xs text-muted-foreground mt-0.5">
                     {formatPrice(
                       showExclVat
                         ? priceExclVat(discountInfo.totalWinePrice)

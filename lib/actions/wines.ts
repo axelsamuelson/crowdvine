@@ -43,6 +43,8 @@ export interface Wine {
   // B2B
   b2b_margin_percentage?: number | null;
   b2b_stock?: number | null;
+  // Visibility
+  is_live?: boolean;
 }
 
 export interface CreateWineData {
@@ -70,6 +72,8 @@ export interface CreateWineData {
   // B2B
   b2b_margin_percentage?: number | null;
   b2b_stock?: number | null;
+  // Visibility
+  is_live?: boolean;
 }
 
 const WINES_SELECT_FULL = `
@@ -96,6 +100,7 @@ const WINES_SELECT_FULL = `
   description_html,
   b2b_margin_percentage,
   b2b_stock,
+  is_live,
   created_at,
   updated_at
 `;
@@ -121,6 +126,7 @@ const WINES_SELECT_WITHOUT_B2B = `
   volume_liters,
   description,
   description_html,
+  is_live,
   created_at,
   updated_at
 `;
@@ -270,9 +276,17 @@ export async function createWine(data: CreateWineData) {
     }
   }
 
+  // Ensure handle is unique (avoid duplicate key on wines_handle_key)
+  let handle = data.handle;
+  for (let n = 2; ; n++) {
+    const { data: existing } = await sb.from("wines").select("id").eq("handle", handle).maybeSingle();
+    if (!existing) break;
+    handle = `${data.handle}-${n}`;
+  }
+
   // Prepare insert data - only include simplified pricing fields
   const insertData: Record<string, unknown> = {
-    handle: data.handle,
+    handle,
     wine_name: data.wine_name,
     vintage: data.vintage,
     grape_varieties: data.grape_varieties,
@@ -293,6 +307,7 @@ export async function createWine(data: CreateWineData) {
     description_html: data.description_html,
     b2b_margin_percentage: data.b2b_margin_percentage ?? null,
     b2b_stock: data.b2b_stock ?? null,
+    is_live: data.is_live ?? true,
   };
 
   let result = await sb.from("wines").insert(insertData).select(WINES_SELECT_FULL).single();
@@ -363,6 +378,8 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
     updateData.supplier_price = data.supplier_price;
   if (data.volume_liters !== undefined)
     updateData.volume_liters = data.volume_liters;
+  if (data.is_live !== undefined)
+    updateData.is_live = data.is_live;
 
   // Get current wine data for calculation if needed
   let currentWine = null;

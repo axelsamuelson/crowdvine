@@ -26,6 +26,9 @@ export const CONTACT_LINKS: NavItem[] = [
 export const HIDDEN_PRODUCT_TAG = "nextjs-frontend-hidden";
 export const DEFAULT_OPTION = "Default Title";
 
+/** Default/placeholder image for wines without a label image (public path). */
+export const DEFAULT_WINE_IMAGE_PATH = "/default-wine.png";
+
 export const isDevelopment = process.env.NODE_ENV === "development";
 
 // Internal color mapping for common color names to hex values

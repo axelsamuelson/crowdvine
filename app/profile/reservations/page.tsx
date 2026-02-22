@@ -37,6 +37,7 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import type { LucideIcon } from "lucide-react";
+import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 
 interface Reservation {
   id: string;
@@ -284,7 +285,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
   const [open, setOpen] = useState(false);
 
   const primaryImage =
-    group.wines.find((w) => w.image_path)?.image_path || "/placeholder.jpg";
+    group.wines.find((w) => w.image_path)?.image_path || DEFAULT_WINE_IMAGE_PATH;
 
   const copyPalletKey = () => {
     navigator.clipboard.writeText(group.addressPalletKey);
@@ -922,7 +923,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                             </Link>
                             <div className="space-y-3">
                               {wines.map((w, idx) => {
-                                const img = w.image_path || "/placeholder.jpg";
+                                const img = w.image_path || DEFAULT_WINE_IMAGE_PATH;
                                 const approved = Number(w.approvedQuantity || 0);
                                 const requested = Number(w.totalQuantity || 0);
                                 const pending = Boolean(w.hasPendingApproval);

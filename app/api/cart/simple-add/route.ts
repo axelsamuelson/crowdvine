@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 
 export async function POST(request: Request) {
   try {
@@ -199,7 +200,7 @@ export async function POST(request: Request) {
             handle: item.wines.handle,
             producerName: producerName,
             featuredImage: {
-              url: item.wines.label_image_path || "/placeholder-wine.jpg",
+              url: item.wines.label_image_path || DEFAULT_WINE_IMAGE_PATH,
               altText: `${item.wines.wine_name} ${item.wines.vintage}`,
             },
           },

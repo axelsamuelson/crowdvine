@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 
 export async function GET(
   request: Request,
@@ -32,10 +33,7 @@ export async function GET(
     }
 
     // Fetch wines from all producers in the group
-    const { data: wines, error: winesError } = await sb
-      .from("wines")
-      .select(
-        `
+    const groupWinesSelect = `
         id,
         wine_name,
         vintage,
@@ -48,16 +46,30 @@ export async function GET(
         description,
         description_html,
         producers(name, region)
-      `,
-      )
+      `;
+    let winesResult = await sb
+      .from("wines")
+      .select(groupWinesSelect)
+      .eq("is_live", true)
       .in("producer_id", producerIds)
       .order("created_at", { ascending: false })
       .limit(limit);
 
-    if (winesError) {
-      console.error("Error fetching wines:", winesError);
+    if (winesResult.error && /is_live|column.*does not exist/i.test(winesResult.error.message ?? "")) {
+      winesResult = await sb
+        .from("wines")
+        .select(groupWinesSelect)
+        .in("producer_id", producerIds)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+    }
+
+    if (winesResult.error) {
+      console.error("Error fetching wines:", winesResult.error);
       return NextResponse.json([]);
     }
+
+    const wines = winesResult.data ?? [];
 
     // Convert to Shopify-compatible product format
     const products = (wines || []).map((wine: any) => {
@@ -78,7 +90,7 @@ export async function GET(
         producerId: wine.producer_id,
         producerName: wine.producers?.name || "Unknown",
         featuredImage: {
-          url: wine.label_image_path || "/placeholder-wine.jpg",
+          url: wine.label_image_path || DEFAULT_WINE_IMAGE_PATH,
           altText: wine.wine_name,
         },
         priceRange: {
@@ -113,7 +125,7 @@ export async function GET(
         tags: grapeVarieties,
         images: [
           {
-            url: wine.label_image_path || "/placeholder-wine.jpg",
+            url: wine.label_image_path || DEFAULT_WINE_IMAGE_PATH,
             altText: wine.wine_name,
           },
         ],

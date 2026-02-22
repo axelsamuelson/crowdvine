@@ -14,6 +14,7 @@ import { Edit, Trash2, Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { DeleteWineBoxButton } from "@/components/admin/delete-wine-box-button";
+import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 
 interface WineBox {
   id: string;
@@ -120,19 +121,13 @@ export function WineBoxesList() {
                 >
                   <td className="p-3">
                     <div className="relative w-16 h-16 bg-gray-100 rounded-lg overflow-hidden">
-                      {box.image_url ? (
-                        <Image
-                          src={box.image_url}
-                          alt={box.name}
-                          fill
-                          className="object-cover"
-                          sizes="64px"
-                        />
-                      ) : (
-                        <div className="flex items-center justify-center w-full h-full text-gray-400 text-xs">
-                          No Image
-                        </div>
-                      )}
+                      <Image
+                        src={box.image_url || DEFAULT_WINE_IMAGE_PATH}
+                        alt={box.name}
+                        fill
+                        className="object-cover"
+                        sizes="64px"
+                      />
                     </div>
                   </td>
                   <td className="p-3">

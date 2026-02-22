@@ -7,6 +7,7 @@ import {
 } from "@/components/products/variant-selector";
 import { Product } from "@/lib/shopify/types";
 import Image from "next/image";
+import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 
 interface ProductImageProps {
   product: Product;
@@ -66,16 +67,8 @@ export const ProductImage = memo(({ product, priority = false, index = 0 }: Prod
     };
   }, [shouldLoad, imageToShow?.url]);
 
-  // If no image is available at all, don't render the Image component
-  if (!imageToShow || !imageToShow.url) {
-    return (
-      <div className="size-full bg-muted flex items-center justify-center">
-        <span className="text-muted-foreground text-sm">
-          No image available
-        </span>
-      </div>
-    );
-  }
+  // If no image is available, use default wine image
+  const imageUrl = imageToShow?.url || DEFAULT_WINE_IMAGE_PATH;
 
   // Don't render image until it should load (unless priority)
   if (!shouldLoad && !priority) {
@@ -89,10 +82,10 @@ export const ProductImage = memo(({ product, priority = false, index = 0 }: Prod
   return (
     <div ref={imgRef} className="block size-full overflow-clip [&_img]:block">
       <Image
-        src={imageToShow.url}
-        alt={imageToShow.altText || product.title}
-        width={imageToShow.width || 600}
-        height={imageToShow.height || 600}
+        src={imageUrl}
+        alt={imageToShow?.altText || product.title}
+        width={imageToShow?.width || 600}
+        height={imageToShow?.height || 600}
         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         className="object-cover size-full block"
         quality={85}

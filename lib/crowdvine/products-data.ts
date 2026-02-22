@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getAppUrl, getInternalFetchHeaders } from "@/lib/app-url";
+import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import { getAllWineBoxCalculations } from "@/lib/wine-box-calculations";
 import { calculateB2BPriceExclVat } from "@/lib/price-breakdown";
 
@@ -88,8 +89,7 @@ async function fetchB2BStockAndShippingFromPallets(
 }
 
 function convertToFullUrl(path: string | null | undefined): string {
-  if (!path)
-    return "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop";
+  if (!path) return getAppUrl() + DEFAULT_WINE_IMAGE_PATH;
 
   const cleanPath = path.trim().replace(/\n/g, "");
 
@@ -156,8 +156,7 @@ export async function fetchProductsData(params?: {
 
   const sb = getSupabaseAdmin();
 
-  let query = sb.from("wines").select(
-    `
+  const winesSelect = `
       id,
       wine_name,
       vintage,
@@ -178,8 +177,12 @@ export async function fetchProductsData(params?: {
       description_html,
       created_at,
       producers!inner(name)
-    `,
-  );
+    `;
+
+  let query = sb
+    .from("wines")
+    .select(winesSelect)
+    .eq("is_live", true);
 
   switch (sortKey) {
     case "PRICE":
@@ -193,10 +196,28 @@ export async function fetchProductsData(params?: {
       query = query.order("created_at", { ascending: false });
   }
 
-  const { data, error } = await query.limit(limit);
-  if (error) throw error;
+  let result = await query.limit(limit);
+  if (result.error) {
+    const msg = result.error.message ?? "";
+    if (/is_live|column.*does not exist/i.test(msg)) {
+      query = sb.from("wines").select(winesSelect);
+      switch (sortKey) {
+        case "PRICE":
+          query = query.order("base_price_cents", { ascending: !reverse });
+          break;
+        case "CREATED_AT":
+        case "CREATED":
+          query = query.order("created_at", { ascending: !reverse });
+          break;
+        default:
+          query = query.order("created_at", { ascending: false });
+      }
+      result = await query.limit(limit);
+    }
+    if (result.error) throw result.error;
+  }
 
-  const rawData = data ?? [];
+  const rawData = (result.data ?? []) as any[];
   const currencies = [
     ...new Set(
       rawData
@@ -447,10 +468,7 @@ export async function fetchCollectionProductsData(
   }
 
   const sb = getSupabaseAdmin();
-  const { data, error } = await sb
-    .from("wines")
-    .select(
-      `
+  const collSelect = `
       id,
       wine_name,
       vintage,
@@ -467,14 +485,27 @@ export async function fetchCollectionProductsData(
       label_image_path,
       producer_id,
       producers(name)
-    `,
-    )
+    `;
+  let collResult = await sb
+    .from("wines")
+    .select(collSelect)
+    .eq("is_live", true)
     .eq("producer_id", collectionId)
     .limit(limit);
 
-  if (error) throw error;
+  if (collResult.error) {
+    const msg = collResult.error.message ?? "";
+    if (/is_live|column.*does not exist/i.test(msg)) {
+      collResult = await sb
+        .from("wines")
+        .select(collSelect)
+        .eq("producer_id", collectionId)
+        .limit(limit);
+    }
+    if (collResult.error) throw collResult.error;
+  }
 
-  const collData = data ?? [];
+  const collData = collResult.data ?? [];
   const collCurrencies = [
     ...new Set(
       collData

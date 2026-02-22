@@ -47,10 +47,7 @@ export async function GET(request: Request) {
       .order("updated_at", { ascending: false })
       .limit(5);
 
-    const winesPromise = sb
-      .from("wines")
-      .select(
-        `
+    const winesSelect = `
         id,
         wine_name,
         vintage,
@@ -59,11 +56,25 @@ export async function GET(request: Request) {
         base_price_cents,
         label_image_path,
         producers!inner(name)
-      `,
-      )
-      .or(`wine_name.ilike.%${q}%,handle.ilike.%${q}%`)
-      .order("created_at", { ascending: false })
-      .limit(5);
+      `;
+    const winesPromise = (async () => {
+      let r = await sb
+        .from("wines")
+        .select(winesSelect)
+        .eq("is_live", true)
+        .or(`wine_name.ilike.%${q}%,handle.ilike.%${q}%`)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      if (r.error && /is_live|column.*does not exist/i.test(r.error.message ?? "")) {
+        r = await sb
+          .from("wines")
+          .select(winesSelect)
+          .or(`wine_name.ilike.%${q}%,handle.ilike.%${q}%`)
+          .order("created_at", { ascending: false })
+          .limit(5);
+      }
+      return r;
+    })();
 
     const producersPromise = sb
       .from("producers")

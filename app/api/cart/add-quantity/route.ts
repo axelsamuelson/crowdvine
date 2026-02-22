@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 
 /**
  * POST /api/cart/add-quantity
@@ -251,7 +252,7 @@ export async function POST(request: Request) {
             title: `${item.wines.wine_name} ${item.wines.vintage}`,
             handle: item.wines.handle,
             featuredImage: {
-              url: item.wines.label_image_path || "/placeholder-wine.jpg",
+              url: item.wines.label_image_path || DEFAULT_WINE_IMAGE_PATH,
               altText: `${item.wines.wine_name} ${item.wines.vintage}`,
             },
             priceRange: {

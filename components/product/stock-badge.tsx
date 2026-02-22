@@ -72,19 +72,19 @@ export function StockBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center justify-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium",
+        "inline-flex items-center justify-center gap-0.5 md:gap-1 rounded-full px-1 md:px-1.5 py-0.5 text-[7px] md:text-[9px] font-medium",
         status === "out" &&
-          "bg-muted text-muted-foreground w-[80px]",
+          "bg-muted text-muted-foreground w-[62px] md:w-[80px]",
         status === "few" &&
-          "bg-amber-100 text-amber-700 w-[70px]",
+          "bg-amber-100 text-amber-700 w-[52px] md:w-[70px]",
         status === "in" &&
-          "bg-emerald-100 text-emerald-700 w-[70px]",
+          "bg-emerald-100 text-emerald-700 w-[52px] md:w-[70px]",
         className,
       )}
     >
       <span
         className={cn(
-          "size-1.5 rounded-full shrink-0",
+          "size-1 md:size-1.5 rounded-full shrink-0",
           status === "out" && "bg-muted-foreground",
           status === "few" && "bg-amber-600",
           status === "in" && "bg-emerald-600",

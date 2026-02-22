@@ -671,15 +671,15 @@ export const ProductCard = memo(({ product, index = 0 }: { product: Product; ind
       </div>
 
       {/* Interactive Overlay - moved outside wrapper to avoid overflow-clip issues */}
-      <div className="absolute inset-0 p-2 w-full pointer-events-none">
+      <div className="absolute inset-0 pl-1 pr-2 pt-2 pb-2 md:p-2 w-full pointer-events-none">
         {/* Mobile & Desktop Default: Info overlay (always visible on mobile, visible on desktop until hover) */}
-        <div className="flex gap-6 justify-between items-baseline px-3 py-1 w-full font-semibold transition-all duration-300 translate-y-0 md:group-hover:opacity-0 md:group-focus-visible:opacity-0 md:group-hover:-translate-y-full md:group-focus-visible:-translate-y-full">
-          <div className="flex flex-col">
-            <p className="text-xs md:text-sm uppercase 2xl:text-base text-balance">
+        <div className="flex gap-2 md:gap-6 justify-between items-start md:items-baseline px-1 md:px-3 py-1 w-full font-semibold transition-all duration-300 translate-y-0 md:group-hover:opacity-0 md:group-focus-visible:opacity-0 md:group-hover:-translate-y-full md:group-focus-visible:-translate-y-full">
+          <div className="flex flex-col min-w-0 max-w-[42%] md:max-w-[40%] shrink md:shrink-0 rounded-r pr-1.5 md:pr-0 md:rounded-none py-1 md:py-0 -my-1 md:my-0 overflow-hidden">
+            <p className="text-[8px] leading-tight md:text-sm uppercase 2xl:text-base text-balance line-clamp-2 md:line-clamp-2 break-words overflow-hidden">
               {product.title}
             </p>
             {product.producerName && (
-              <p className="text-[10px] md:text-xs text-muted-foreground font-normal">
+              <p className="text-[7px] md:text-xs text-muted-foreground font-normal line-clamp-1 md:line-clamp-1 mt-0.5 leading-tight">
                 {product.producerName}
               </p>
             )}
@@ -689,11 +689,11 @@ export const ProductCard = memo(({ product, index = 0 }: { product: Product; ind
               className="mt-0.5"
             />
           </div>
-          <div className="flex gap-2 items-center text-xs md:text-sm uppercase 2xl:text-base">
+          <div className="flex gap-1 md:gap-2 items-center justify-end min-w-0 shrink md:max-w-[35%] md:shrink-0 text-[9px] md:text-sm uppercase 2xl:text-base text-right overflow-hidden">
             <MemberPrice
               amount={product.priceRange.minVariantPrice.amount}
               currencyCode={product.priceRange.minVariantPrice.currencyCode}
-              className="text-xs md:text-sm uppercase 2xl:text-base"
+              className="text-[9px] md:text-sm uppercase 2xl:text-base"
               showBadge={true}
               compactOnMobile={true}
               priceExclVatOverride={
@@ -702,7 +702,7 @@ export const ProductCard = memo(({ product, index = 0 }: { product: Product; ind
               }
             />
             {isWineBox && discountInfo && (
-              <span className="line-through opacity-30 text-[10px] md:text-xs">
+              <span className="line-through opacity-30 text-[8px] md:text-xs">
                 {formatPrice(
                   showExclVat
                     ? priceExclVat(discountInfo.totalWinePrice)

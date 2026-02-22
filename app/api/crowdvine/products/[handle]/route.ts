@@ -141,26 +141,28 @@ export async function GET(
   }
 
   // Handle regular wine products
-  // First get the wine ID from handle
-  const { data: wineIdData, error: wineIdError } = await sb
+  // First get the wine ID from handle (optionally filter by is_live if column exists)
+  let wineIdResult = await sb
     .from("wines")
     .select("id")
     .eq("handle", resolvedParams.handle)
+    .eq("is_live", true)
     .single();
 
-  if (wineIdError || !wineIdData)
+  if (wineIdResult.error && /is_live|column.*does not exist/i.test(wineIdResult.error.message ?? "")) {
+    wineIdResult = await sb
+      .from("wines")
+      .select("id")
+      .eq("handle", resolvedParams.handle)
+      .single();
+  }
+
+  if (wineIdResult.error || !wineIdResult.data)
     return NextResponse.json({ error: "not_found" }, { status: 404 });
 
-  // Use fallback method since RPC function might not be available yet
-  let data;
-  let error;
+  const wineIdData = wineIdResult.data;
 
-  try {
-    // Try to get wine with basic query first
-    const result = await sb
-      .from("wines")
-      .select(
-        `
+  const wineSelect = `
         id,
         wine_name,
         vintage,
@@ -180,19 +182,25 @@ export async function GET(
         description,
         description_html,
         producers!inner(name)
-      `,
-      )
+      `;
+
+  let result = await sb
+    .from("wines")
+    .select(wineSelect)
+    .eq("is_live", true)
+    .eq("id", wineIdData.id)
+    .single();
+
+  if (result.error && /is_live|column.*does not exist/i.test(result.error.message ?? "")) {
+    result = await sb
+      .from("wines")
+      .select(wineSelect)
       .eq("id", wineIdData.id)
       .single();
-    data = result.data;
-    error = result.error;
-  } catch (e) {
-    console.error("Error fetching wine:", e);
-    return NextResponse.json(
-      { error: "Failed to fetch wine" },
-      { status: 500 },
-    );
   }
+
+  const data = result.data;
+  const error = result.error;
 
   if (error || !data)
     return NextResponse.json({ error: "not_found" }, { status: 404 });

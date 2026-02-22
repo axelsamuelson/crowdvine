@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { ProductListContent } from "../../components/product-list-content";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { notFound } from "next/navigation";
+import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -98,7 +99,7 @@ export default async function ProducerGroupPage({ params }: PageProps) {
       producerId: wine.producer_id,
       producerName: wine.producers?.name || "Unknown",
       featuredImage: {
-        url: wine.label_image_path || "/placeholder-wine.jpg",
+        url: wine.label_image_path || DEFAULT_WINE_IMAGE_PATH,
         altText: wine.wine_name,
       },
       priceRange: {
@@ -133,7 +134,7 @@ export default async function ProducerGroupPage({ params }: PageProps) {
       tags: grapeVarieties,
       images: [
         {
-          url: wine.label_image_path || "/placeholder-wine.jpg",
+          url: wine.label_image_path || DEFAULT_WINE_IMAGE_PATH,
           altText: wine.wine_name,
         },
       ],
