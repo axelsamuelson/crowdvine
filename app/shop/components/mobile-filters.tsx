@@ -90,8 +90,8 @@ export function MobileFilters({ collections, className }: MobileFiltersProps) {
           </DrawerHeader>
           <div className="overflow-y-auto flex-1 px-4 pb-4 space-y-6">
             <CategoryFilter collections={collections} mode="drawer" />
-            <ColorFilter products={originalProducts} />
             <GrapesFilter products={originalProducts} />
+            <ColorFilter products={originalProducts} />
           </div>
         </DrawerContent>
       </Drawer>

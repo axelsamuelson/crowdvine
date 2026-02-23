@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Collection } from "@/lib/shopify/types";
 import Link from "next/link";
-import { SidebarLinks } from "@/components/layout/sidebar/product-sidebar-links";
 import { CategoryFilter } from "./category-filter";
 import { ColorFilter } from "./color-filter";
 import { GrapesFilter } from "./grapes-filter";
@@ -29,7 +28,7 @@ export function DesktopFilters({
     <>
       <aside
         className={cn(
-          "grid sticky top-top-spacing grid-cols-3 h-[calc(100vh-var(--top-spacing))] pl-sides",
+          "sticky top-top-spacing self-start max-h-[calc(100vh-var(--top-spacing))] grid grid-cols-3 pl-sides",
           className,
         )}
       >
@@ -59,12 +58,9 @@ export function DesktopFilters({
               mode="sidebar"
               onSeeAll={() => setSeeAllOpen(true)}
             />
+            <GrapesFilter products={originalProducts} />
             <ColorFilter products={originalProducts} />
           </Suspense>
-        </div>
-
-        <div className="col-span-3 self-end">
-          <SidebarLinks className="flex-col-reverse py-sides" size="sm" />
         </div>
       </aside>
 
@@ -110,9 +106,8 @@ export function DesktopFilters({
                   </div>
                   <div className="lg:col-span-2">
                     <div className="space-y-6">
-                      <ColorFilter products={originalProducts} />
-                      {/* Only shown in expanded ("See all") mode */}
                       <GrapesFilter products={originalProducts} />
+                      <ColorFilter products={originalProducts} />
                     </div>
                   </div>
                 </div>
