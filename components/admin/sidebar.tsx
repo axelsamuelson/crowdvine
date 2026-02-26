@@ -29,6 +29,7 @@ import {
   LogOut,
   BarChart3,
   ChevronDown,
+  TrendingUp,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -76,6 +77,7 @@ const navigationGroups: NavGroup[] = [
       { name: "Wines", href: "/admin/wines", icon: Wine },
       { name: "Wine Boxes", href: "/admin/wine-boxes", icon: Gift },
       { name: "Wine Tastings", href: "/admin/wine-tastings", icon: Wine },
+      { name: "Competitor prices", href: "/admin/price-sources", icon: TrendingUp },
     ],
   },
   {

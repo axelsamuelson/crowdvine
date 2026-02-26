@@ -11,7 +11,9 @@
     "migrate": "tsx scripts/run-migration.ts",
     "cleanup": "node scripts/cleanup-expired-tokens.js",
     "cleanup-access": "node scripts/cleanup-access-system.js",
-    "build-reputation": "node scripts/send-test-emails.js"
+    "build-reputation": "node scripts/send-test-emails.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",
@@ -115,7 +117,8 @@
     "stripe-event-types": "^3.1.0",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.20.5",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^2.1.9"
   },
   "packageManager": "pnpm@10.12.4+sha512.5ea8b0deed94ed68691c9bad4c955492705c5eeb8a87ef86bc62c74a26b037b08ff9570f108b2e4dbd1dd1a9186fea925e527f141c648e85af45631074680184"
 }
