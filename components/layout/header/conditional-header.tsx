@@ -2,7 +2,6 @@
 
 import { usePathname } from "next/navigation";
 import { Header } from "./index";
-import { LogoOnlyHeader } from "./logo-only-header";
 import { Collection } from "@/lib/shopify/types";
 
 interface ConditionalHeaderProps {
@@ -22,7 +21,7 @@ export function ConditionalHeader({ collections }: ConditionalHeaderProps) {
   const isSignupRoute = pathname === "/signup";
   const isOnboardingRoute = pathname === "/onboarding";
   if (isTastingRoute) {
-    return <LogoOnlyHeader />;
+    return null;
   }
 
   if (

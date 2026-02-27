@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
         cost_currency,
         exchange_rate,
         alcohol_tax_cents,
+        b2b_stock,
         producers(name)
       `)
       .order("wine_name")

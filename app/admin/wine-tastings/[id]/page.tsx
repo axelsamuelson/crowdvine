@@ -29,7 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Settings, Users, Eye, Trash2, Plus, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Check, ChevronsUpDown, X, QrCode } from "lucide-react";
+import { ArrowLeft, Settings, Users, Eye, Trash2, Plus, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Check, ChevronsUpDown, X, QrCode, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import Image from "next/image";
@@ -95,13 +95,15 @@ export default function WineTastingDetailPage() {
   const [updating, setUpdating] = useState(false);
   const [newSessionName, setNewSessionName] = useState("");
   const [creating, setCreating] = useState(false);
-  const [availableWines, setAvailableWines] = useState<Array<{ id: string; wine_name: string; vintage: string; grape_varieties?: string; color?: string; label_image_path?: string | null; producers?: { name: string } | null }>>([]);
+  const [availableWines, setAvailableWines] = useState<Array<{ id: string; wine_name: string; vintage: string; grape_varieties?: string; color?: string; label_image_path?: string | null; b2b_stock?: number | null; producers?: { name: string } | null }>>([]);
   const [selectedWineIds, setSelectedWineIds] = useState<string[]>([]);
   const [wineSearch, setWineSearch] = useState("");
+  const [wineStockFilter, setWineStockFilter] = useState<"all" | "in_stock">("in_stock");
   const [selectedBusinessUserId, setSelectedBusinessUserId] = useState<string | null>(null);
   const [businessUsers, setBusinessUsers] = useState<Array<{ id: string; email: string | null; full_name: string | null }>>([]);
   const [businessOpen, setBusinessOpen] = useState(false);
   const [businessSearch, setBusinessSearch] = useState("");
+  const [draggedWineIndex, setDraggedWineIndex] = useState<number | null>(null);
 
   const isNewPage = id === "new";
 
@@ -281,12 +283,12 @@ export default function WineTastingDetailPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gray-50">
-        <div className="max-w-5xl mx-auto p-4 md:p-6 pt-top-spacing">
+      <main className="min-h-screen bg-neutral-50">
+        <div className="max-w-5xl mx-auto p-4 md:p-6 pt-6 md:pt-8">
           <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-gray-200 rounded mb-4"></div>
-            <div className="h-4 bg-gray-200 rounded mb-2"></div>
-            <div className="h-4 bg-gray-200 rounded"></div>
+            <div className="h-9 bg-neutral-200 rounded-xl w-32" />
+            <div className="h-4 bg-neutral-200 rounded-xl max-w-xs" />
+            <div className="h-4 bg-neutral-200 rounded-xl max-w-sm" />
           </div>
         </div>
       </main>
@@ -300,14 +302,20 @@ export default function WineTastingDetailPage() {
       if (p && typeof p === "object" && "name" in p) return (p as { name: string }).name;
       return "";
     };
-    const filteredWines = availableWines.filter(
-      (w) =>
-        !wineSearch.trim() ||
-        w.wine_name?.toLowerCase().includes(wineSearch.toLowerCase()) ||
-        w.vintage?.toLowerCase().includes(wineSearch.toLowerCase()) ||
-        w.grape_varieties?.toLowerCase().includes(wineSearch.toLowerCase()) ||
-        producerName(w).toLowerCase().includes(wineSearch.toLowerCase()),
-    );
+    const filteredWines = availableWines
+      .filter((w) => {
+        const inStock = w.b2b_stock != null && w.b2b_stock > 0;
+        if (wineStockFilter === "in_stock" && !inStock) return false;
+        return true;
+      })
+      .filter(
+        (w) =>
+          !wineSearch.trim() ||
+          w.wine_name?.toLowerCase().includes(wineSearch.toLowerCase()) ||
+          w.vintage?.toLowerCase().includes(wineSearch.toLowerCase()) ||
+          w.grape_varieties?.toLowerCase().includes(wineSearch.toLowerCase()) ||
+          producerName(w).toLowerCase().includes(wineSearch.toLowerCase()),
+      );
     const selectedWines = selectedWineIds
       .map((wid) => availableWines.find((w) => w.id === wid))
       .filter(Boolean) as (typeof availableWines)[0][];
@@ -330,40 +338,50 @@ export default function WineTastingDetailPage() {
       });
     };
 
+    const moveWineByDrag = (fromIndex: number, toIndex: number) => {
+      if (fromIndex === toIndex) return;
+      setSelectedWineIds((prev) => {
+        const copy = [...prev];
+        const [removed] = copy.splice(fromIndex, 1);
+        copy.splice(toIndex, 0, removed);
+        return copy;
+      });
+    };
+
     return (
-      <main className="min-h-screen bg-gray-50">
-        <div className="max-w-5xl mx-auto p-4 md:p-6 pt-top-spacing space-y-6">
+      <main className="min-h-screen bg-neutral-50">
+        <div className="max-w-5xl mx-auto p-4 md:p-6 pt-6 md:pt-8 pb-8 space-y-6">
           <Link href="/admin/wine-tastings">
-            <Button variant="outline" size="sm" className="rounded-full shrink-0">
+            <Button variant="outline" size="sm" className="rounded-xl shrink-0 border-neutral-200 bg-white">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
+              Tillbaka
             </Button>
           </Link>
-          <Card className="p-6 bg-white border border-gray-200 rounded-2xl">
-            <CardHeader>
-              <CardTitle className="text-lg">New tasting session</CardTitle>
-              <CardDescription>
-                Name the session and add wines in the order they will be tasted.
+          <Card className="p-5 md:p-6 bg-white border border-neutral-100 shadow-sm rounded-2xl">
+            <CardHeader className="px-0 pt-0">
+              <CardTitle className="text-lg font-semibold text-neutral-900">Ny provningssession</CardTitle>
+              <CardDescription className="text-neutral-500">
+                Ge sessionen ett namn och lägg till viner i den ordning de ska provas.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-0 pb-0">
               <form onSubmit={handleCreateSession} className="space-y-6">
                 <div>
-                  <Label htmlFor="session-name">Session name</Label>
+                  <Label htmlFor="session-name" className="text-neutral-700 font-medium">Sessionens namn</Label>
                   <Input
                     id="session-name"
                     value={newSessionName}
                     onChange={(e) => setNewSessionName(e.target.value)}
-                    placeholder="e.g. Red wine evening"
-                    className="mt-2 max-w-md"
+                    placeholder="t.ex. Rödvinskväll"
+                    className="mt-2 max-w-md rounded-xl border-neutral-200"
                     disabled={creating}
                   />
                 </div>
 
                 <div>
-                  <Label className="text-sm font-medium">Business (optional)</Label>
-                  <p className="text-xs text-muted-foreground mt-1 mb-2">
-                    Link session and ratings to a user (e.g. producer). Not required to start a session.
+                  <Label className="text-sm font-medium text-neutral-700">Företag (valfritt)</Label>
+                  <p className="text-xs text-neutral-500 mt-1 mb-2">
+                    Koppla sessionen till en användare (t.ex. producent). Krävs inte för att starta.
                   </p>
                   <Popover open={businessOpen} onOpenChange={setBusinessOpen}>
                     <PopoverTrigger asChild>
@@ -372,7 +390,7 @@ export default function WineTastingDetailPage() {
                         variant="outline"
                         role="combobox"
                         aria-expanded={businessOpen}
-                        className="w-full max-w-md justify-between"
+                        className="w-full max-w-md justify-between rounded-xl border-neutral-200"
                         disabled={creating}
                       >
                         {selectedBusinessUserId
@@ -380,7 +398,7 @@ export default function WineTastingDetailPage() {
                               const u = businessUsers.find((b) => b.id === selectedBusinessUserId);
                               return u ? (u.full_name || u.email || u.id) : selectedBusinessUserId;
                             })()
-                          : "Select business..."}
+                          : "Välj företag..."}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -435,22 +453,60 @@ export default function WineTastingDetailPage() {
                 </div>
 
                 <div>
-                  <Label className="text-sm font-medium">Wines in this session (tasting order)</Label>
-                  <p className="text-xs text-muted-foreground mt-1 mb-2">
-                    Add wines below and use arrows to reorder.
+                  <Label className="text-sm font-medium text-neutral-700">Viner i sessionen (provningsordning)</Label>
+                  <p className="text-xs text-neutral-500 mt-1 mb-2">
+                    Dra viner för att ändra ordning, eller använd pilarna.
                   </p>
                   {selectedWines.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-4 border border-dashed rounded-lg px-4">
-                      No wines added yet. Search and add wines below.
+                    <p className="text-sm text-neutral-500 py-4 border border-dashed border-neutral-200 rounded-xl px-4">
+                      Inga viner tillagda än. Sök och lägg till nedan.
                     </p>
                   ) : (
-                    <ul className="space-y-2 border rounded-lg p-3 bg-gray-50">
+                    <ul
+                      className="space-y-2 border border-neutral-100 rounded-xl p-3 bg-neutral-50"
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = "move";
+                      }}
+                    >
                       {selectedWines.map((w, index) => (
                         <li
                           key={w.id}
-                          className="flex items-center gap-3 py-2 px-3 bg-white rounded border"
+                          draggable
+                          onDragStart={(e) => {
+                            if ((e.target as HTMLElement).closest("button")) {
+                              e.preventDefault();
+                              return;
+                            }
+                            setDraggedWineIndex(index);
+                            e.dataTransfer.setData("text/plain", String(index));
+                            e.dataTransfer.effectAllowed = "move";
+                          }}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            e.dataTransfer.dropEffect = "move";
+                          }}
+                          onDragEnter={(e) => {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = "move";
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const from = Number(e.dataTransfer.getData("text/plain"));
+                            if (Number.isNaN(from)) return;
+                            moveWineByDrag(from, index);
+                            setDraggedWineIndex(null);
+                          }}
+                          onDragEnd={() => setDraggedWineIndex(null)}
+                          className={cn(
+                            "flex items-center gap-3 py-2 px-3 bg-white rounded-xl border border-neutral-100 cursor-grab active:cursor-grabbing select-none transition-opacity",
+                            draggedWineIndex === index && "opacity-50",
+                          )}
                         >
-                          <div className="relative w-10 h-14 shrink-0 rounded overflow-hidden bg-gray-100 border border-gray-200">
+                          <GripVertical className="w-4 h-4 shrink-0 text-neutral-400 pointer-events-none" aria-hidden />
+                          <div className="relative w-10 h-14 shrink-0 rounded-lg overflow-hidden bg-neutral-100 border border-neutral-200 pointer-events-none">
                             {getImageUrl(w.label_image_path) ? (
                               <Image
                                 src={getImageUrl(w.label_image_path)!}
@@ -459,12 +515,13 @@ export default function WineTastingDetailPage() {
                                 className="object-contain"
                                 sizes="40px"
                                 unoptimized
+                                draggable={false}
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">?</div>
+                              <div className="w-full h-full flex items-center justify-center text-neutral-400 text-xs">?</div>
                             )}
                           </div>
-                          <span className="text-sm truncate flex-1 min-w-0">
+                          <span className="text-sm truncate flex-1 min-w-0 text-neutral-900">
                             {index + 1}. {w.wine_name} {w.vintage}
                             {producerName(w) ? ` · ${producerName(w)}` : ""}
                           </span>
@@ -506,20 +563,49 @@ export default function WineTastingDetailPage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="wine-search" className="text-sm font-medium">Add wines</Label>
-                  <Input
-                    id="wine-search"
-                    placeholder="Search by name, vintage, grape or producer..."
-                    value={wineSearch}
-                    onChange={(e) => setWineSearch(e.target.value)}
-                    className="mt-2 mb-3 max-w-md"
-                  />
-                  <ul className="border rounded-lg divide-y max-h-64 overflow-y-auto">
+                  <Label htmlFor="wine-search" className="text-sm font-medium text-neutral-700">Lägg till viner</Label>
+                  <div className="flex flex-wrap items-center gap-2 mt-2 mb-3">
+                    <Input
+                      id="wine-search"
+                      placeholder="Sök på namn, årgang, druva eller producent..."
+                      value={wineSearch}
+                      onChange={(e) => setWineSearch(e.target.value)}
+                      className="max-w-md rounded-xl border-neutral-200"
+                    />
+                    <Select value={wineStockFilter} onValueChange={(v: "all" | "in_stock") => setWineStockFilter(v)}>
+                      <SelectTrigger className="w-[160px] rounded-xl border-neutral-200">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="in_stock">Endast i lager</SelectItem>
+                        <SelectItem value="all">Alla viner</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl border-neutral-200"
+                      onClick={() => {
+                        const toAdd = filteredWines.filter((w) => !selectedWineIds.includes(w.id)).map((w) => w.id);
+                        if (toAdd.length === 0) {
+                          toast.info("All filtered wines are already added.");
+                          return;
+                        }
+                        setSelectedWineIds((prev) => [...prev, ...toAdd]);
+                        toast.success(`Added ${toAdd.length} wine${toAdd.length === 1 ? "" : "s"}.`);
+                      }}
+                      disabled={filteredWines.filter((w) => !selectedWineIds.includes(w.id)).length === 0}
+                    >
+                      Lägg till alla
+                    </Button>
+                  </div>
+                  <ul className="border border-neutral-100 rounded-xl divide-y divide-neutral-100 max-h-64 overflow-y-auto">
                     {filteredWines.map((w) => {
                       const isSelected = selectedWineIds.includes(w.id);
                       return (
-                        <li key={w.id} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50">
-                          <div className="relative w-10 h-14 shrink-0 rounded overflow-hidden bg-gray-100 border border-gray-200">
+                        <li key={w.id} className="flex items-center gap-3 px-3 py-2 hover:bg-neutral-50">
+                          <div className="relative w-10 h-14 shrink-0 rounded-lg overflow-hidden bg-neutral-100 border border-neutral-200">
                             {getImageUrl(w.label_image_path) ? (
                               <Image
                                 src={getImageUrl(w.label_image_path)!}
@@ -530,10 +616,10 @@ export default function WineTastingDetailPage() {
                                 unoptimized
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">?</div>
+                              <div className="w-full h-full flex items-center justify-center text-neutral-400 text-xs">?</div>
                             )}
                           </div>
-                          <span className="text-sm truncate flex-1 min-w-0">
+                          <span className="text-sm truncate flex-1 min-w-0 text-neutral-900">
                             {w.wine_name} {w.vintage}
                             {producerName(w) ? ` · ${producerName(w)}` : ""}
                             {w.grape_varieties ? ` (${w.grape_varieties})` : ""}
@@ -542,22 +628,22 @@ export default function WineTastingDetailPage() {
                             type="button"
                             variant={isSelected ? "secondary" : "outline"}
                             size="sm"
-                            className="shrink-0"
+                            className="shrink-0 rounded-xl"
                             onClick={() => (isSelected ? removeWine(w.id) : addWine(w.id))}
                           >
-                            {isSelected ? "Remove" : <><Plus className="h-4 w-4 mr-1 hidden sm:inline" /> Add</>}
+                            {isSelected ? "Ta bort" : <><Plus className="h-4 w-4 mr-1 hidden sm:inline" /> Lägg till</>}
                           </Button>
                         </li>
                       );
                     })}
                   </ul>
                   {filteredWines.length === 0 && (
-                    <p className="text-sm text-muted-foreground py-2">No wines match your search.</p>
+                    <p className="text-sm text-neutral-500 py-2">Inga viner matchar sökningen.</p>
                   )}
                 </div>
 
-                <Button type="submit" className="rounded-full" disabled={creating}>
-                  {creating ? "Creating…" : "Create session"}
+                <Button type="submit" className="rounded-xl h-11 font-medium" disabled={creating}>
+                  {creating ? "Skapar…" : "Skapa session"}
                 </Button>
               </form>
             </CardContent>
@@ -569,11 +655,11 @@ export default function WineTastingDetailPage() {
 
   if (!session) {
     return (
-      <main className="min-h-screen bg-gray-50">
-        <div className="max-w-5xl mx-auto p-4 md:p-6 pt-top-spacing">
-          <Card className="p-6 bg-white border border-gray-200 rounded-2xl">
+      <main className="min-h-screen bg-neutral-50">
+        <div className="max-w-5xl mx-auto p-4 md:p-6 pt-6 md:pt-8">
+          <Card className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
             <CardContent className="pt-6">
-              <p className="text-center text-gray-600">Session not found</p>
+              <p className="text-center text-neutral-600">Session not found</p>
             </CardContent>
           </Card>
         </div>
@@ -583,36 +669,36 @@ export default function WineTastingDetailPage() {
 
   return (
     <>
-    <main className="min-h-screen bg-gray-50">
-      <div className="max-w-5xl mx-auto p-4 md:p-6 pt-top-spacing space-y-6 md:space-y-8">
+    <main className="min-h-screen bg-neutral-50">
+      <div className="max-w-5xl mx-auto px-4 md:px-6 pt-6 md:pt-8 pb-8 space-y-5 md:space-y-6">
         {/* Header: Back, title, actions */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <Link href="/admin/wine-tastings">
-              <Button variant="outline" size="sm" className="rounded-full shrink-0">
+              <Button variant="outline" size="sm" className="rounded-xl shrink-0 border-neutral-200 bg-white">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Tillbaka
               </Button>
             </Link>
-            <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-medium text-gray-900 truncate">{session.name}</h1>
-              <p className="text-gray-500 font-mono text-xs sm:text-sm truncate">{session.session_code}</p>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl md:text-2xl font-semibold text-neutral-900 truncate">{session.name}</h1>
+              <p className="text-neutral-500 font-mono text-xs md:text-sm truncate mt-0.5">{session.session_code}</p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" className="rounded-full" onClick={() => setQrDialogOpen(true)}>
+            <Button variant="outline" size="sm" className="rounded-xl border-neutral-200" onClick={() => setQrDialogOpen(true)}>
               <QrCode className="w-4 h-4 mr-2" />
               QR & länk
             </Button>
             {session.session_code && (
               <Link href={`/tasting/${session.session_code}`}>
-                <Button variant="outline" size="sm" className="rounded-full">
+                <Button variant="outline" size="sm" className="rounded-xl border-neutral-200">
                   <Eye className="w-4 h-4 mr-2" />
                   Öppna session
                 </Button>
               </Link>
             )}
-            <Button variant="destructive" size="sm" onClick={openDeleteDialog} className="rounded-full">
+            <Button variant="destructive" size="sm" onClick={openDeleteDialog} className="rounded-xl">
               <Trash2 className="w-4 h-4 mr-2" />
               Ta bort
             </Button>
@@ -644,27 +730,27 @@ export default function WineTastingDetailPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Compact session info */}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2 px-3 rounded-xl bg-white border border-gray-200 text-sm">
+        {/* Session info */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3 px-4 rounded-2xl bg-white border border-neutral-100 shadow-sm text-sm">
           <span className="flex items-center gap-2">
-            <span className="text-gray-500">Status:</span>
+            <span className="text-neutral-500">Status:</span>
             <Badge
               className={
                 session.status === "active"
-                  ? "bg-green-100 text-green-800"
+                  ? "bg-green-100 text-green-800 border-0"
                   : session.status === "completed"
-                    ? "bg-blue-100 text-blue-800"
-                    : "bg-gray-100 text-gray-800"
+                    ? "bg-blue-100 text-blue-800 border-0"
+                    : "bg-neutral-100 text-neutral-700 border-0"
               }
             >
               {session.status}
             </Badge>
           </span>
-          <span className="text-gray-500">Skapad: {format(new Date(session.created_at), "d MMM yyyy, HH:mm")}</span>
+          <span className="text-neutral-500">Skapad: {format(new Date(session.created_at), "d MMM yyyy, HH:mm")}</span>
           {session.completed_at && (
-            <span className="text-gray-500">Avslutad: {format(new Date(session.completed_at), "d MMM yyyy")}</span>
+            <span className="text-neutral-500">Avslutad: {format(new Date(session.completed_at), "d MMM yyyy")}</span>
           )}
-          {session.notes && <span className="text-gray-600 truncate max-w-[200px]">{session.notes}</span>}
+          {session.notes && <span className="text-neutral-600 truncate max-w-[200px]">{session.notes}</span>}
         </div>
 
         {/* Active session: current wine + change wine + participants */}
@@ -672,18 +758,18 @@ export default function WineTastingDetailPage() {
           <div className="grid gap-4 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-4">
               {/* Current wine */}
-              <Card className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base font-medium">Aktuellt vin</CardTitle>
-                  <CardDescription className="text-sm">
+              <Card className="rounded-2xl border border-neutral-100 bg-white shadow-sm overflow-hidden">
+                <CardHeader className="pb-2 px-5 pt-5">
+                  <CardTitle className="text-base font-semibold text-neutral-900">Aktuellt vin</CardTitle>
+                  <CardDescription className="text-sm text-neutral-500">
                     Vin {session.current_wine_index + 1} av {session.wines?.length || 0}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-3 px-5 pb-5">
                   {session.wines?.[session.current_wine_index] ? (
                     <>
                       {getImageUrl(session.wines[session.current_wine_index].label_image_path) && (
-                        <div className="relative w-full h-48 sm:h-64 bg-gray-50 rounded-xl overflow-hidden border border-gray-200">
+                        <div className="relative w-full aspect-[3/4] max-h-64 bg-neutral-50 rounded-xl overflow-hidden border border-neutral-100">
                           <Image
                             src={getImageUrl(session.wines[session.current_wine_index].label_image_path)!}
                             alt=""
@@ -694,36 +780,46 @@ export default function WineTastingDetailPage() {
                           />
                         </div>
                       )}
-                      <p className="font-medium text-gray-900">
+                      <p className="font-semibold text-neutral-900">
                         {session.wines[session.current_wine_index].wine_name} {session.wines[session.current_wine_index].vintage}
                       </p>
                       {session.wines[session.current_wine_index].grape_varieties && (
-                        <p className="text-sm text-gray-500">{session.wines[session.current_wine_index].grape_varieties}</p>
+                        <p className="text-sm text-neutral-500">{session.wines[session.current_wine_index].grape_varieties}</p>
                       )}
                     </>
                   ) : (
-                    <p className="text-gray-500 text-sm">Inget vin valt</p>
+                    <p className="text-neutral-500 text-sm">Inget vin valt</p>
                   )}
                 </CardContent>
               </Card>
               {/* Change wine */}
-              <Card className="rounded-2xl border border-gray-200 bg-white p-4">
-                <p className="text-sm font-medium text-gray-900 mb-3">Byt vin</p>
-                <div className="flex flex-col sm:flex-row items-stretch gap-2">
-                  <Button
-                    variant="outline"
-                    className="rounded-full flex-1"
-                    disabled={updating || session.current_wine_index === 0}
-                    onClick={() => changeWine(session.current_wine_index - 1)}
-                  >
-                    <ChevronLeft className="w-4 h-4 mr-1" /> Föregående
-                  </Button>
+              <Card className="rounded-2xl border border-neutral-100 bg-white shadow-sm p-4 md:p-5">
+                <p className="text-sm font-semibold text-neutral-900 mb-3">Byt vin</p>
+                <div className="flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      className="rounded-xl flex-1 border-neutral-200 h-11"
+                      disabled={updating || session.current_wine_index === 0}
+                      onClick={() => changeWine(session.current_wine_index - 1)}
+                    >
+                      <ChevronLeft className="w-4 h-4 mr-1" /> Föregående
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="rounded-xl flex-1 border-neutral-200 h-11"
+                      disabled={updating || session.current_wine_index >= (session.wines?.length ?? 0) - 1}
+                      onClick={() => changeWine(session.current_wine_index + 1)}
+                    >
+                      Nästa <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </div>
                   <Select
                     value={String(session.current_wine_index)}
                     onValueChange={(v) => changeWine(Number(v))}
                     disabled={updating}
                   >
-                    <SelectTrigger className="rounded-full flex-1 min-w-0">
+                    <SelectTrigger className="rounded-xl w-full border-neutral-200 h-11">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -734,34 +830,26 @@ export default function WineTastingDetailPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Button
-                    variant="outline"
-                    className="rounded-full flex-1"
-                    disabled={updating || session.current_wine_index >= (session.wines?.length ?? 0) - 1}
-                    onClick={() => changeWine(session.current_wine_index + 1)}
-                  >
-                    Nästa <ChevronRight className="w-4 h-4 ml-1" />
-                  </Button>
                 </div>
               </Card>
             </div>
             {/* Participants */}
-            <Card className="rounded-2xl border border-gray-200 bg-white p-4">
+            <Card className="rounded-2xl border border-neutral-100 bg-white shadow-sm p-4 md:p-5">
               <div className="flex items-center gap-2 mb-3">
-                <Users className="w-4 h-4 text-gray-600" />
-                <CardTitle className="text-base font-medium">Deltagare</CardTitle>
+                <Users className="w-4 h-4 text-neutral-600" />
+                <CardTitle className="text-base font-semibold text-neutral-900">Deltagare</CardTitle>
               </div>
-              <p className="text-xs text-gray-500 mb-3">{participants.length} deltagare</p>
+              <p className="text-xs text-neutral-500 mb-3">{participants.length} deltagare</p>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {participants.length === 0 ? (
-                  <p className="text-sm text-gray-500">Inga deltagare än</p>
+                  <p className="text-sm text-neutral-500">Inga deltagare än</p>
                 ) : (
                   participants.map((p) => (
-                    <div key={p.id} className="p-2 rounded-lg bg-gray-50 border border-gray-100 text-sm">
-                      <p className="font-medium text-gray-900 truncate">
+                    <div key={p.id} className="p-3 rounded-xl bg-neutral-50 border border-neutral-100 text-sm">
+                      <p className="font-medium text-neutral-900 truncate">
                         {p.name || (p.is_anonymous ? "Anonym" : p.participant_code.slice(0, 8))}
                       </p>
-                      <p className="text-xs text-gray-500">{new Date(p.joined_at).toLocaleTimeString("sv-SE")}</p>
+                      <p className="text-xs text-neutral-500 mt-0.5">{new Date(p.joined_at).toLocaleTimeString("sv-SE")}</p>
                     </div>
                   ))
                 )}
@@ -770,25 +858,25 @@ export default function WineTastingDetailPage() {
           </div>
         )}
 
-        {/* Wines list (compact) */}
-        <Card className="rounded-2xl border border-gray-200 bg-white p-4">
-          <CardTitle className="text-base font-medium mb-1">Viner i sessionen</CardTitle>
-          <p className="text-xs text-gray-500 mb-3">
+        {/* Wines list */}
+        <Card className="rounded-2xl border border-neutral-100 bg-white shadow-sm p-4 md:p-5">
+          <CardTitle className="text-base font-semibold text-neutral-900 mb-1">Viner i sessionen</CardTitle>
+          <p className="text-xs text-neutral-500 mb-3">
             {session.wines?.length || 0} viner · Aktuellt: {session.current_wine_index + 1}
           </p>
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {session.wines?.map((wine, index) => (
               <div
                 key={wine.id}
                 className={cn(
-                  "flex items-center justify-between py-2 px-3 rounded-lg text-sm",
-                  index === session.current_wine_index ? "bg-blue-50 border border-blue-200" : "bg-gray-50 border border-gray-100",
+                  "flex items-center justify-between py-2.5 px-3 rounded-xl text-sm",
+                  index === session.current_wine_index ? "bg-amber-50/70 border border-amber-200" : "bg-neutral-50 border border-neutral-100",
                 )}
               >
-                <span className="truncate">
+                <span className="truncate font-medium text-neutral-900">
                   {index + 1}. {wine.wine_name} {wine.vintage}
                 </span>
-                {index === session.current_wine_index && <Badge className="bg-blue-600 shrink-0">Aktuell</Badge>}
+                {index === session.current_wine_index && <Badge className="bg-amber-100 text-amber-800 border-0 shrink-0">Aktuell</Badge>}
               </div>
             ))}
           </div>
@@ -796,13 +884,13 @@ export default function WineTastingDetailPage() {
 
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-2">
-          <Link href={`/tasting/${session.session_code}`} className="flex-1">
-            <Button variant="outline" className="w-full rounded-full">
+          <Link href={`/tasting/${session.session_code}`} className="flex-1 min-w-0">
+            <Button variant="outline" className="w-full rounded-xl h-11 border-neutral-200">
               <Eye className="w-4 h-4 mr-2" /> Öppna som deltagare
             </Button>
           </Link>
-          <Link href={`/tasting/${session.session_code}/summary`} className="flex-1">
-            <Button variant="outline" className="w-full rounded-full">
+          <Link href={`/tasting/${session.session_code}/summary`} className="flex-1 min-w-0">
+            <Button variant="outline" className="w-full rounded-xl h-11 border-neutral-200">
               Sammanfattning
             </Button>
           </Link>
@@ -811,22 +899,22 @@ export default function WineTastingDetailPage() {
     </main>
 
     <AlertDialog open={deleteDialogOpen} onOpenChange={(open) => !open && closeDeleteDialog()}>
-      <AlertDialogContent className="max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-lg">
+      <AlertDialogContent className="max-w-md rounded-2xl border border-neutral-200 bg-white p-6 shadow-lg">
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-lg font-medium text-gray-900">
+          <AlertDialogTitle className="text-lg font-semibold text-neutral-900">
             Ta bort session?
           </AlertDialogTitle>
-          <AlertDialogDescription className="text-sm text-gray-600">
+          <AlertDialogDescription className="text-sm text-neutral-600">
             Vill du verkligen ta bort &quot;{session.name}&quot;? Detta går inte att ångra och alla betyg samt deltagardata raderas.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="mt-6 flex flex-row justify-end gap-2 sm:justify-end">
-          <AlertDialogCancel className="rounded-full" disabled={deleting}>
+          <AlertDialogCancel className="rounded-xl" disabled={deleting}>
             Avbryt
           </AlertDialogCancel>
           <Button
             variant="destructive"
-            className="rounded-full"
+            className="rounded-xl"
             disabled={deleting}
             onClick={handleConfirmDelete}
           >

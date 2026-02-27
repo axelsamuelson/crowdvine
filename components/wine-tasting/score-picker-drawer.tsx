@@ -11,6 +11,8 @@ import {
   DrawerClose,
 } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
 const ITEM_HEIGHT = 48;
@@ -24,7 +26,10 @@ interface ScorePickerDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   value: number;
-  onConfirm: (value: number) => void;
+  comment: string;
+  /** When true, wheel starts at value but we don't treat value as "saved" - localValue is set by wheel after scroll */
+  initialScrollOnly?: boolean;
+  onConfirm: (value: number, comment: string) => void;
 }
 
 function WheelColumn({
@@ -58,8 +63,13 @@ function WheelColumn({
       requestAnimationFrame(() => {
         isProgrammaticScrollRef.current = false;
       });
+      // After programmatic scroll, update parent so display shows the scrolled-to value
+      const valueToReport = items[clamped];
+      if (valueToReport !== undefined) {
+        setTimeout(() => onChange(valueToReport), 450);
+      }
     },
-    [items.length],
+    [items, onChange],
   );
 
   useEffect(() => {
@@ -68,11 +78,23 @@ function WheelColumn({
       return;
     }
     if (hasScrolledForOpenRef.current) return;
-    hasScrolledForOpenRef.current = true;
     const idx = items.indexOf(value);
     if (idx < 0) return;
-    const t = requestAnimationFrame(() => scrollToIndex(idx));
-    return () => cancelAnimationFrame(t);
+    hasScrolledForOpenRef.current = true;
+    // Retry scroll until drawer content is mounted (Vaul renders when open)
+    let attempts = 0;
+    const maxAttempts = 20;
+    const tryScroll = () => {
+      const el = scrollRef.current;
+      if (el) {
+        scrollToIndex(idx);
+        return;
+      }
+      attempts += 1;
+      if (attempts < maxAttempts) setTimeout(tryScroll, 50);
+    };
+    const t = setTimeout(tryScroll, 80);
+    return () => clearTimeout(t);
   }, [open, value, items, scrollToIndex]);
 
   const getIndexFromScrollTop = useCallback((scrollTop: number) => {
@@ -149,19 +171,27 @@ export function ScorePickerDrawer({
   open,
   onOpenChange,
   value,
+  comment,
+  initialScrollOnly = false,
   onConfirm,
 }: ScorePickerDrawerProps) {
   const [localValue, setLocalValue] = useState(Math.round(Math.max(0, Math.min(100, value))));
+  const [localComment, setLocalComment] = useState(comment);
 
   useEffect(() => {
     if (open) {
-      setLocalValue(Math.round(Math.max(0, Math.min(100, value))));
+      setLocalComment(comment);
+      if (initialScrollOnly) {
+        setLocalValue(0);
+      } else {
+        setLocalValue(Math.round(Math.max(0, Math.min(100, value))));
+      }
     }
-  }, [open, value]);
+  }, [open, value, comment, initialScrollOnly]);
 
   const handleConfirm = () => {
     const clamped = Math.max(0, Math.min(100, localValue));
-    onConfirm(clamped);
+    onConfirm(clamped, localComment.trim());
     onOpenChange(false);
   };
 
@@ -169,21 +199,20 @@ export function ScorePickerDrawer({
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent className="max-h-[85vh] rounded-t-2xl">
         <DrawerHeader className="text-center pb-2">
-          <DrawerTitle className="text-lg font-semibold">Set score</DrawerTitle>
-          <DrawerDescription>
+          <DrawerTitle className="text-lg font-semibold text-neutral-900">Set score</DrawerTitle>
+          <DrawerDescription className="text-neutral-500">
             Swipe to change score from 0 to 100
           </DrawerDescription>
         </DrawerHeader>
         <div className="px-4 pb-4">
-          <div className="flex gap-2 rounded-xl bg-muted/50 border border-border overflow-hidden">
-            <span className="text-xs text-muted-foreground py-2 self-center shrink-0 pl-2">Score</span>
+          <div className="flex gap-2 rounded-xl bg-neutral-50 border border-neutral-200 overflow-hidden">
             <div className="flex flex-1 min-w-0 relative">
               <div
                 className="absolute inset-0 pointer-events-none flex items-center justify-center"
                 aria-hidden
               >
                 <div
-                  className="w-full border-y border-border/60 bg-background/40"
+                  className="w-full border-y border-neutral-200 bg-white/60"
                   style={{ height: ITEM_HEIGHT }}
                 />
               </div>
@@ -197,20 +226,31 @@ export function ScorePickerDrawer({
                 />
               </div>
             </div>
-            <p className="text-sm font-semibold text-foreground py-2 pr-2 shrink-0" aria-live="polite">
+            <p className="text-sm font-semibold text-amber-700 py-2 pr-2 shrink-0" aria-live="polite">
               {localValue}
             </p>
           </div>
         </div>
+        <div className="px-4 pb-4 space-y-2">
+          <Label htmlFor="score-drawer-comment" className="text-neutral-700 font-medium">Comment</Label>
+          <Textarea
+            id="score-drawer-comment"
+            placeholder="Your notes..."
+            value={localComment}
+            onChange={(e) => setLocalComment(e.target.value)}
+            rows={3}
+            className="resize-none rounded-xl border-neutral-200 focus-visible:ring-neutral-400"
+          />
+        </div>
         <DrawerFooter className="pt-2 pb-6 px-4">
           <Button
             onClick={handleConfirm}
-            className="w-full bg-black hover:bg-black/90 text-white rounded-md"
+            className="w-full bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl h-12 font-medium"
           >
             Done
           </Button>
           <DrawerClose asChild>
-            <Button variant="outline" className="w-full rounded-md">
+            <Button variant="outline" className="w-full rounded-xl h-12 border-neutral-200 text-neutral-700">
               Cancel
             </Button>
           </DrawerClose>

@@ -5,8 +5,6 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import Image from "next/image";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -23,7 +21,6 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { PageLayout } from "@/components/layout/page-layout";
-import Prose from "@/components/prose";
 import { SidebarLinks } from "@/components/layout/sidebar/product-sidebar-links";
 import { getColorHex } from "@/lib/utils";
 import { ScorePickerDrawer } from "@/components/wine-tasting/score-picker-drawer";
@@ -82,11 +79,12 @@ export default function TastingPage() {
   const [participant, setParticipant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [currentWineIndex, setCurrentWineIndex] = useState(0);
-  const [rating, setRating] = useState<number>(50);
+  const [rating, setRating] = useState<number>(0);
   const [comment, setComment] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [wineStats, setWineStats] = useState<Map<string, { averageRating: number | null; totalRatings: number }>>(new Map());
+  const [participantRatingsMap, setParticipantRatingsMap] = useState<Map<string, number>>(new Map());
   const [isAdmin, setIsAdmin] = useState(false);
   const [isGuest, setIsGuest] = useState(false);
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
@@ -181,7 +179,7 @@ export default function TastingPage() {
   }, [session, participant, currentWineIndex]);
 
   useEffect(() => {
-    if (session) {
+    if (session && participant) {
       fetchWineStats();
       // Set up polling to refresh stats every 3 seconds
       const interval = setInterval(() => {
@@ -189,7 +187,7 @@ export default function TastingPage() {
       }, 3000);
       return () => clearInterval(interval);
     }
-  }, [session]);
+  }, [session, participant]);
 
   // Poll current_wine_index so guest sees admin changes even if Realtime is unavailable
   useEffect(() => {
@@ -294,6 +292,17 @@ export default function TastingPage() {
         });
         
         setWineStats(newStats);
+
+        // Build map of this participant's ratings so table can show "Your rating" for every wine
+        if (participant) {
+          const myRatings = new Map<string, number>();
+          (ratings || []).forEach((r: any) => {
+            if (r.participant_id === participant.id) {
+              myRatings.set(r.wine_id, r.rating);
+            }
+          });
+          setParticipantRatingsMap(myRatings);
+        }
       }
     } catch (error) {
       console.error("Error fetching wine stats:", error);
@@ -354,7 +363,7 @@ export default function TastingPage() {
     
     const wine = session.wines?.[currentWineIndex];
     if (!wine) {
-      setRating(50);
+      setRating(0);
       setComment("");
       setSaved(false);
       return;
@@ -371,7 +380,7 @@ export default function TastingPage() {
           setComment(data.rating.comment || "");
           setSaved(true);
         } else {
-          setRating(50);
+          setRating(0);
           setComment("");
           setSaved(false);
         }
@@ -381,9 +390,10 @@ export default function TastingPage() {
     }
   };
 
-  const saveRating = async (overrideRating?: number) => {
+  const saveRating = async (overrideRating?: number, overrideComment?: string) => {
     if (!session || !participant || !currentWine) return;
     const valueToSave = overrideRating ?? rating;
+    const commentToSave = overrideComment !== undefined ? overrideComment : comment;
 
     try {
       setSaving(true);
@@ -394,13 +404,15 @@ export default function TastingPage() {
           participant_id: participant.id,
           wine_id: currentWine.id,
           rating: Math.round(valueToSave),
-          comment: comment.trim() || null,
+          comment: commentToSave.trim() || null,
         }),
       });
 
       if (response.ok) {
         if (overrideRating != null) setRating(overrideRating);
+        if (overrideComment !== undefined) setComment(overrideComment);
         setSaved(true);
+        setParticipantRatingsMap((prev) => new Map(prev).set(currentWine.id, Math.round(valueToSave)));
         toast.success("Rating saved!");
         await fetchWineStats();
       } else {
@@ -431,32 +443,32 @@ export default function TastingPage() {
 
   if (loading) {
     return (
-      <PageLayout className="bg-muted" noPadding={true}>
-        <div className="flex flex-col md:grid md:grid-cols-12 md:gap-sides min-h-max p-sides md:pl-sides md:pt-top-spacing">
+      <PageLayout className="bg-neutral-50 min-h-screen" noPadding={true}>
+        <div className="flex flex-col md:grid md:grid-cols-12 md:gap-6 min-h-max p-4 md:pl-sides">
           <div className="col-span-5 2xl:col-span-4 space-y-4">
-            <Skeleton className="h-4 w-32 rounded-md" />
-            <Skeleton className="h-8 w-48 rounded-md" />
-            <div className="rounded-md bg-popover p-4 space-y-3">
-              <Skeleton className="h-4 w-full rounded-md" />
-              <Skeleton className="h-4 w-3/4 rounded-md" />
-              <Skeleton className="h-10 w-full rounded-md" />
+            <Skeleton className="h-4 w-32 rounded-xl" />
+            <Skeleton className="h-8 w-48 rounded-xl" />
+            <div className="rounded-2xl bg-white border border-neutral-100 p-5 space-y-3">
+              <Skeleton className="h-4 w-full rounded-lg" />
+              <Skeleton className="h-4 w-3/4 rounded-lg" />
+              <Skeleton className="h-12 w-full rounded-xl" />
             </div>
           </div>
           <div className="hidden md:block col-span-7 col-start-6">
-            <Skeleton className="aspect-[3/4] w-full rounded-md" />
+            <Skeleton className="aspect-[3/4] w-full rounded-2xl" />
           </div>
         </div>
-        <p className="text-center text-sm text-muted-foreground py-8">Joining session...</p>
+        <p className="text-center text-sm text-neutral-500 py-8">Joining session...</p>
       </PageLayout>
     );
   }
 
   if (!session || !participant) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="max-w-md">
+      <div className="min-h-screen flex items-center justify-center bg-neutral-50 p-4">
+        <Card className="max-w-md rounded-2xl border-neutral-200 shadow-sm">
           <CardContent className="pt-6">
-            <p className="text-center text-gray-600">
+            <p className="text-center text-neutral-600">
               Session not found or could not join.
             </p>
           </CardContent>
@@ -469,10 +481,10 @@ export default function TastingPage() {
 
   if (!currentWine) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="max-w-md">
+      <div className="min-h-screen flex items-center justify-center bg-neutral-50 p-4">
+        <Card className="max-w-md rounded-2xl border-neutral-200 shadow-sm">
           <CardContent className="pt-6">
-            <p className="text-center text-gray-600">No wines in this session.</p>
+            <p className="text-center text-neutral-600">No wines in this session.</p>
           </CardContent>
         </Card>
       </div>
@@ -484,19 +496,37 @@ export default function TastingPage() {
   const producerLogoUrl = currentWine.producers?.logo_image_path
     ? getImageUrl(currentWine.producers.logo_image_path)
     : null;
-  const descriptionHtml = currentWine.description
-    ? `<p>${currentWine.description.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")}</p>`
-    : "";
 
   return (
-    <PageLayout className="bg-muted" noPadding={true}>
+    <PageLayout className="bg-neutral-50 min-h-screen" noPadding={true}>
       <TooltipProvider>
-        <div className="flex flex-col md:grid md:grid-cols-12 md:gap-sides min-h-max pt-[var(--top-spacing)]">
-          {/* Mobile gallery */}
-          <div className="md:hidden col-span-full h-[60vh] min-h-[400px]">
+        {isAdmin && (
+          <div className="fixed top-4 left-4 z-50">
+            <Button variant="outline" size="sm" className="shrink-0 rounded-xl border-neutral-200 bg-white shadow-sm" asChild>
+              <Link href={`/admin/wine-tastings/${session.id}/control`} prefetch={false}>
+                <Settings className="h-4 w-4 mr-2" />
+                Admin
+              </Link>
+            </Button>
+          </div>
+        )}
+        <div className="flex flex-col md:grid md:grid-cols-12 md:gap-6 min-h-max max-md:pb-8">
+          {/* Mobile gallery - soft rounded bottom */}
+          <div
+            className="md:hidden col-span-full h-[55vh] min-h-[360px] overflow-clip rounded-b-3xl bg-white shadow-sm relative"
+            style={{ touchAction: "pan-y", overscrollBehavior: "auto" }}
+          >
+            <button
+              type="button"
+              onClick={() => setScoreDrawerOpen(true)}
+              className="absolute top-4 right-4 z-20 min-w-[3.5rem] min-h-[3.5rem] px-3 rounded-full bg-rose-100 border-2 border-rose-200 shadow-md flex items-center justify-center text-sm font-bold text-rose-900 hover:bg-rose-200 transition-colors"
+              aria-label={saved ? "Change score" : "Score wine"}
+            >
+              {saved ? rating : "No Score"}
+            </button>
             {imageUrl ? (
               <div className="relative w-full h-full">
-                <div className="overflow-hidden h-full">
+                <div className="overflow-clip h-full">
                   <div className="flex h-full">
                     <div className="flex-shrink-0 w-full h-full relative">
                       <Image
@@ -522,45 +552,48 @@ export default function TastingPage() {
                 </div>
               </div>
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-muted/30">No image</div>
+              <div className="w-full h-full flex items-center justify-center text-neutral-400 bg-neutral-100 rounded-b-3xl">No image</div>
             )}
           </div>
 
-          {/* Left column: white box */}
-          <div className="flex sticky top-0 flex-col col-span-5 2xl:col-span-4 max-md:col-span-full md:h-screen min-h-max max-md:p-sides md:pl-sides md:pt-top-spacing max-md:static">
-            <div className="col-span-full">
-              {isAdmin && (
-                <div className="flex justify-end mb-4 md:mb-6">
-                  <Button variant="outline" size="sm" className="shrink-0 rounded-md" asChild>
-                    <Link href={`/admin/wine-tastings/${session.id}/control`} prefetch={false}>
-                      <Settings className="h-4 w-4 mr-2" />
-                      Admin
-                    </Link>
-                  </Button>
-                </div>
-              )}
+          {/* Mobile only: full-width score button */}
+          <div className="md:hidden mx-4 -mt-2 relative z-10">
+            <div className="rounded-2xl bg-white p-4 shadow-sm border border-neutral-100">
+              <Button
+                type="button"
+                size="lg"
+                className="w-full bg-neutral-900 hover:bg-neutral-800 text-white border-0 rounded-xl h-12 text-base font-medium"
+                onClick={() => setScoreDrawerOpen(true)}
+              >
+                {saved ? "Change Score" : "Score Wine"}
+              </Button>
+            </div>
+          </div>
 
-              <div className="flex flex-col col-span-full gap-4 md:mb-10 max-md:order-2">
-                <div className="flex flex-col grid-cols-2 px-3 py-2 rounded-md bg-popover md:grid md:gap-x-4 md:gap-y-10 place-items-baseline">
+          {/* Left column: white info card */}
+          <div className="flex flex-col col-span-5 2xl:col-span-4 max-md:col-span-full min-h-max max-md:px-4 md:pl-sides max-md:static">
+            <div className="col-span-full">
+              <div className="flex flex-col col-span-full gap-5 md:mb-10 max-md:order-2">
+                <div className="flex flex-col grid-cols-2 rounded-2xl bg-white shadow-sm border border-neutral-100 md:grid md:gap-x-6 md:gap-y-6 place-items-baseline p-5 md:p-6">
                   <div className="md:col-start-1 md:row-start-1">
-                    <h1 className="text-lg font-semibold lg:text-xl 2xl:text-2xl text-balance max-md:mb-1">
+                    <h1 className="text-xl font-semibold text-neutral-900 lg:text-2xl 2xl:text-3xl text-balance max-md:mb-1 leading-tight">
                       {currentWine.wine_name} {currentWine.vintage}
                     </h1>
                     {currentWine.producers?.name && (
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-2 mt-2 mb-1">
                         {producerLogoUrl && (
-                          <div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded">
+                          <div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-lg">
                             <Image src={producerLogoUrl} alt="" width={32} height={32} className="h-8 w-8 object-contain" unoptimized />
                           </div>
                         )}
-                        <p className="text-sm text-muted-foreground">{currentWine.producers.name}</p>
+                        <p className="text-sm text-neutral-500">{currentWine.producers.name}</p>
                       </div>
                     )}
                   </div>
-                  <p className="text-sm font-medium md:col-start-2 md:row-start-1">
+                  <p className="text-sm text-neutral-600 md:col-start-2 md:row-start-1 leading-relaxed">
                     {currentWine.description?.trim() || "—"}
                   </p>
-                  <div className="flex gap-3 items-center text-lg font-semibold lg:text-xl 2xl:text-2xl max-md:mt-4 md:col-start-1 md:row-start-2">
+                  <div className="flex gap-3 items-center text-lg font-semibold text-neutral-900 lg:text-xl 2xl:text-2xl max-md:mt-2 md:col-start-1 md:row-start-2">
                     {currentWine.base_price_cents ? (
                       <MemberPrice
                         amount={currentWine.base_price_cents / 100}
@@ -569,78 +602,56 @@ export default function TastingPage() {
                         showBadge={true}
                       />
                     ) : (
-                      <span className="text-muted-foreground">—</span>
+                      <span className="text-neutral-400">—</span>
                     )}
                   </div>
 
-                  <div className="col-span-full w-full mt-4 space-y-3">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <Button
-                        type="button"
-                        size="lg"
-                        className="bg-black hover:bg-black/90 text-white border-black rounded-md"
-                        onClick={() => setScoreDrawerOpen(true)}
-                      >
-                        Score Wine
-                      </Button>
-                      <span className="inline-flex items-center justify-center min-w-[3rem] h-10 px-3 rounded-md bg-muted border border-border text-lg font-semibold tabular-nums">
-                        {rating}
-                      </span>
-                    </div>
+                  <div className="col-span-full w-full mt-2 space-y-4">
+                    <Button
+                      type="button"
+                      size="lg"
+                      className="w-full max-md:hidden bg-neutral-900 hover:bg-neutral-800 text-white border-0 rounded-xl h-12 font-medium"
+                      onClick={() => setScoreDrawerOpen(true)}
+                    >
+                      {saved ? "Change Score" : "Score Wine"}
+                    </Button>
                     <ScorePickerDrawer
+                      key={currentWine.id}
                       open={scoreDrawerOpen}
                       onOpenChange={setScoreDrawerOpen}
-                      value={rating}
-                      onConfirm={(newValue) => {
+                      value={saved ? rating : 50}
+                      comment={comment}
+                      initialScrollOnly={!saved}
+                      onConfirm={(newValue, newComment) => {
                         setRating(newValue);
-                        saveRating(newValue);
+                        setComment(newComment);
+                        saveRating(newValue, newComment);
                       }}
                     />
-                    <div className="space-y-2">
-                      <Label htmlFor="comment">Comment</Label>
-                      <Textarea
-                        id="comment"
-                        placeholder="Your notes..."
-                        value={comment}
-                        onChange={(e) => { setComment(e.target.value); setSaved(false); }}
-                        rows={3}
-                        className="resize-none"
-                      />
-                    </div>
-                    <Button onClick={() => saveRating()} disabled={saving} className="w-full rounded-md" variant="outline">
-                      {saving ? "Saving..." : "Save comment"}
-                    </Button>
-                    {isAdmin && (
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/admin/wine-tastings/${session.id}/control`} prefetch={false}>
-                          <Settings className="h-4 w-4 mr-2" /> Admin
-                        </Link>
-                      </Button>
-                    )}
                     <div className="flex gap-2 pt-2">
-                      <Button variant="secondary" size="sm" onClick={goToSummary}>Summary</Button>
+                      <Button variant="secondary" size="sm" className="rounded-xl" onClick={goToSummary}>Summary</Button>
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <dl className="flex items-center gap-4 rounded-lg bg-popover py-2.5 px-3 justify-between">
-                    <dt className="text-base font-semibold leading-7">Grapes</dt>
-                    <dd className="text-sm text-gray-700">{currentWine.grape_varieties || "—"}</dd>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <dl className="flex items-center gap-4 rounded-xl bg-neutral-50/80 py-3.5 px-4 justify-between border border-neutral-100">
+                    <dt className="text-sm font-semibold text-neutral-700">Grapes</dt>
+                    <dd className="text-sm text-neutral-600">{currentWine.grape_varieties || "—"}</dd>
                   </dl>
-                  <dl className="flex items-center gap-4 rounded-lg bg-popover py-2.5 px-3 justify-between">
-                    <dt className="text-base font-semibold leading-7">Color</dt>
+                  <dl className="flex items-center gap-4 rounded-xl bg-neutral-50/80 py-3.5 px-4 justify-between border border-neutral-100">
+                    <dt className="text-sm font-semibold text-neutral-700">Color</dt>
                     <dd className="flex flex-wrap gap-2 items-center">
                       {currentWine.color ? (
                         <>
                           <div
-                            className="w-6 h-6 rounded-full border border-gray-300"
+                            className="w-6 h-6 rounded-full border border-neutral-200 shadow-inner"
                             style={{ backgroundColor: (() => { const hex = getColorHex(currentWine.color); return Array.isArray(hex) ? hex[0] : hex; })() }}
                             title={currentWine.color}
                           />
-                          <span className="text-sm text-gray-700">{currentWine.color}</span>
+                          <span className="text-sm text-neutral-600">{currentWine.color}</span>
                         </>
                       ) : (
-                        <span className="text-sm text-gray-700">—</span>
+                        <span className="text-sm text-neutral-500">—</span>
                       )}
                     </dd>
                   </dl>
@@ -648,12 +659,22 @@ export default function TastingPage() {
               </div>
             </div>
 
-            <Prose className="col-span-full mb-auto opacity-70 max-md:order-3 max-md:my-6" html={descriptionHtml || ""} />
             <SidebarLinks className="flex-col-reverse max-md:hidden py-sides w-full max-w-[408px] pr-sides max-md:pr-0 max-md:py-0" />
           </div>
 
           {/* Desktop gallery */}
-          <div className="hidden overflow-y-auto relative col-span-7 col-start-6 w-full md:block">
+          <div
+            className="hidden overflow-clip relative col-span-7 col-start-6 w-full md:block rounded-2xl bg-white shadow-sm border border-neutral-100"
+            style={{ touchAction: 'pan-y', overscrollBehavior: 'auto' }}
+          >
+            <button
+              type="button"
+              onClick={() => setScoreDrawerOpen(true)}
+              className="absolute top-6 right-6 z-20 min-w-[4rem] min-h-[4rem] px-4 rounded-full bg-rose-100 border-2 border-rose-200 shadow-md flex items-center justify-center text-base font-bold text-rose-900 hover:bg-rose-200 transition-colors"
+              aria-label={saved ? "Change score" : "Score wine"}
+            >
+              {saved ? rating : "No Score"}
+            </button>
             {imageUrl ? (
               <Image
                 src={imageUrl}
@@ -674,23 +695,28 @@ export default function TastingPage() {
                 onError={(e) => { e.currentTarget.style.display = "none"; }}
               />
             ) : (
-              <div className="flex items-center justify-center min-h-[60vh] text-muted-foreground bg-muted/50">No image</div>
+              <div className="flex items-center justify-center min-h-[60vh] text-neutral-400 bg-neutral-100 rounded-2xl">No image</div>
             )}
           </div>
 
-          {/* All Wines table */}
-          <div className="col-span-full p-sides md:pl-sides md:pb-sides pt-8 border-t border-border/50">
-            <h2 className="text-base font-semibold leading-7 mb-4">All wines</h2>
-            <div className="rounded-md border bg-popover overflow-hidden">
-              <Table>
+          {/* All Wines table - overflow-clip + touchAction so page scrolls when over table */}
+          <div
+            className="col-span-full px-4 md:pl-sides md:pb-sides pt-6 md:pt-8"
+            style={{ touchAction: 'pan-y', overscrollBehavior: 'auto' }}
+          >
+            <h2 className="text-lg font-semibold text-neutral-900 mb-4">All wines</h2>
+            <div
+              className="rounded-2xl border border-neutral-100 bg-white shadow-sm overflow-clip"
+              style={{ touchAction: 'pan-y', overscrollBehavior: 'auto' }}
+            >
+              <Table scrollContainer={false}>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-14"> </TableHead>
-                    <TableHead className="w-12">#</TableHead>
-                    <TableHead>Wine</TableHead>
-                    <TableHead>Vintage</TableHead>
-                    <TableHead>Producer</TableHead>
-                    <TableHead className="text-right">Your rating</TableHead>
+                  <TableRow className="border-neutral-100 hover:bg-transparent">
+                    <TableHead className="w-14 text-neutral-500 font-medium"> </TableHead>
+                    <TableHead className="w-12 text-neutral-500 font-medium">#</TableHead>
+                    <TableHead className="text-neutral-500 font-medium">Wine</TableHead>
+                    <TableHead className="text-neutral-500 font-medium">Vintage</TableHead>
+                    <TableHead className="text-right text-neutral-500 font-medium">Your rating</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -700,7 +726,7 @@ export default function TastingPage() {
                     return (
                       <TableRow
                         key={wine.id}
-                        className={isCurrent ? "bg-muted/50" : "cursor-pointer hover:bg-muted/30"}
+                        className={isCurrent ? "bg-amber-50/70" : "cursor-pointer hover:bg-neutral-50 transition-colors"}
                         onClick={() => {
                           if (!isCurrent) {
                             guestHasOverriddenWineRef.current = true;
@@ -710,7 +736,7 @@ export default function TastingPage() {
                         }}
                       >
                         <TableCell className="w-14 p-2">
-                          <div className="relative w-10 h-14 rounded overflow-hidden bg-muted border border-border flex-shrink-0">
+                          <div className="relative w-10 h-14 rounded-lg overflow-hidden bg-neutral-50 border border-neutral-100 flex-shrink-0">
                             {wineImageUrl ? (
                               <Image
                                 src={wineImageUrl}
@@ -721,15 +747,26 @@ export default function TastingPage() {
                                 unoptimized
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">—</div>
+                              <div className="w-full h-full flex items-center justify-center text-neutral-400 text-xs">—</div>
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="font-medium">{index + 1}</TableCell>
-                        <TableCell>{wine.wine_name}</TableCell>
-                        <TableCell>{wine.vintage || "—"}</TableCell>
-                        <TableCell>{wine.producers?.name ?? "—"}</TableCell>
-                        <TableCell className="text-right">{isCurrent ? rating : "—"}</TableCell>
+                        <TableCell className="font-medium text-neutral-900">{index + 1}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-medium text-neutral-900">{wine.wine_name}</span>
+                            <span className="text-sm text-neutral-500">{wine.producers?.name ?? "—"}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-neutral-600">{wine.vintage || "—"}</TableCell>
+                        <TableCell className="text-right font-semibold tabular-nums text-amber-700">
+                          {(() => {
+                            const savedRating = participantRatingsMap.get(wine.id);
+                            if (savedRating !== undefined) return savedRating;
+                            if (isCurrent) return rating;
+                            return "—";
+                          })()}
+                        </TableCell>
                       </TableRow>
                     );
                   })}
