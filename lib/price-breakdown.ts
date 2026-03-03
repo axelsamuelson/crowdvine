@@ -265,6 +265,28 @@ export function formatCurrency(amount: number): string {
   }).format(roundedAmount);
 }
 
+/** Format for price breakdown (2 decimals, rounded) so e.g. 22.19 shows as 22,19 kr */
+export function formatCurrencyBreakdown(amount: number): string {
+  const rounded = Math.round(amount * 100) / 100;
+  return new Intl.NumberFormat("sv-SE", {
+    style: "currency",
+    currency: "SEK",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(rounded);
+}
+
+/** Total price without decimals – round to nearest integer (120.20 → 120, 120.59 → 121) */
+export function formatCurrencyWhole(amount: number): string {
+  const rounded = Math.round(amount);
+  return new Intl.NumberFormat("sv-SE", {
+    style: "currency",
+    currency: "SEK",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(rounded);
+}
+
 /**
  * Calculate percentage of total for each component
  * @param breakdown - Price breakdown result

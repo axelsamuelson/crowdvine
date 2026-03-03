@@ -41,6 +41,7 @@ export async function GET(request: NextRequest) {
         grape_varieties,
         color,
         label_image_path,
+        base_price_cents,
         cost_amount,
         cost_currency,
         exchange_rate,

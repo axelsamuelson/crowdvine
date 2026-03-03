@@ -1,19 +1,76 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import { v4 as uuidv4 } from "uuid";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { InvoiceForm } from "@/components/admin/invoice-form";
 import { InvoicePreview } from "@/components/admin/invoice-preview";
 import type { InvoiceData } from "@/types/invoice";
+import {
+  getInvoiceDrafts,
+  getInvoiceDraft,
+  saveInvoiceDraft,
+  deleteInvoiceDraft,
+  type InvoiceDraftMeta,
+} from "@/lib/invoice-drafts";
+import { FileDown, FileUp, FilePlus2, ChevronDown, Trash2 } from "lucide-react";
+import type { InvoiceRecipient } from "@/app/api/admin/invoice-recipients/route";
+import type { InvoiceSenderDefaults } from "@/app/api/admin/invoice-sender-defaults/route";
+
+function applySenderDefaultsToInvoice(
+  defaults: InvoiceSenderDefaults | null,
+): Pick<
+  InvoiceData,
+  | "companyName"
+  | "companyLogo"
+  | "companyDetails"
+  | "companyOrgNumber"
+  | "companyVatNumber"
+  | "fromName"
+  | "fromEmail"
+  | "fromAddress"
+  | "fromPostalCode"
+  | "fromCity"
+  | "fromCountry"
+  | "clearingNumber"
+  | "accountNumber"
+  | "paymentTerms"
+  | "footer"
+> {
+  if (!defaults) return {};
+  return {
+    companyName: defaults.company_name ?? "",
+    companyLogo: defaults.company_logo ?? "",
+    companyDetails: defaults.company_details ?? "",
+    companyOrgNumber: defaults.org_number ?? "",
+    companyVatNumber: defaults.vat_number ?? "",
+    fromName: defaults.from_name ?? "",
+    fromEmail: defaults.from_email ?? "",
+    fromAddress: defaults.from_address ?? "",
+    fromPostalCode: defaults.from_postal_code ?? "",
+    fromCity: defaults.from_city ?? "",
+    fromCountry: defaults.from_country ?? "",
+    clearingNumber: defaults.clearing_number ?? "",
+    accountNumber: defaults.account_number ?? "",
+    paymentTerms: defaults.payment_terms ?? "",
+    footer: defaults.default_footer || "Thank you for your business!",
+  };
+}
 
 export default function InvoiceGenerator() {
   const [activeTab, setActiveTab] = useState("edit");
   const invoiceRef = useRef<HTMLDivElement>(null);
+  const [senderDefaults, setSenderDefaults] = useState<InvoiceSenderDefaults | null>(null);
 
   const [invoiceData, setInvoiceData] = useState<InvoiceData>({
     invoiceNumber: `INV-${Math.floor(Math.random() * 10000)}`,
@@ -25,21 +82,27 @@ export default function InvoiceGenerator() {
     fromName: "",
     fromEmail: "",
     fromAddress: "",
+    fromPostalCode: "",
+    fromCity: "",
+    fromCountry: "",
     toName: "",
     toEmail: "",
     toAddress: "",
-    items: [
-      {
-        id: uuidv4(),
-        description: "",
-        quantity: 1,
-        price: 0,
-        currency: "SEK",
-        exchangeRate: 1,
-        discountType: "percentage",
-        discountValue: 0,
-      },
-    ],
+    toPostalCode: "",
+    toCity: "",
+    toCountry: "",
+    shipToSameAsBillTo: false,
+    shipToName: "",
+    shipToAddress: "",
+    shipToPostalCode: "",
+    shipToCity: "",
+    shipToCountry: "",
+    clearingNumber: "",
+    accountNumber: "",
+    reference: "",
+    paymentTerms: "",
+    shippingHandlingAmount: 0,
+    items: [],
     notes: "",
     taxRate: 0,
     currency: "SEK",
@@ -48,6 +111,136 @@ export default function InvoiceGenerator() {
     discountValue: 0,
     applyInvoiceDiscountToDiscountedItems: true,
   });
+
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<InvoiceDraftMeta[]>([]);
+  const [dirtyWineLogoUrl, setDirtyWineLogoUrl] = useState<string | null>(null);
+  const [recipients, setRecipients] = useState<InvoiceRecipient[]>([]);
+  const [selectedRecipientId, setSelectedRecipientId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/admin/invoice-recipients")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setRecipients(Array.isArray(data) ? data : []))
+      .catch(() => setRecipients([]));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/admin/invoice-sender-defaults")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => setSenderDefaults(data))
+      .catch(() => setSenderDefaults(null));
+  }, []);
+
+  useEffect(() => {
+    if (!senderDefaults) return;
+    setInvoiceData((prev) => {
+      if (prev.companyName !== "" || prev.fromName !== "") return prev;
+      const applied = applySenderDefaultsToInvoice(senderDefaults);
+      return { ...prev, ...applied };
+    });
+  }, [senderDefaults]);
+
+  const applyRecipient = (r: InvoiceRecipient) => {
+    const toName = [r.company_name, r.contact_name].filter(Boolean).join(" – ") || "";
+    setInvoiceData((prev) => ({
+      ...prev,
+      toName: toName || prev.toName,
+      toEmail: r.email || prev.toEmail,
+      toAddress: r.address || prev.toAddress,
+      toPostalCode: r.postal_code ?? prev.toPostalCode,
+      toCity: r.city ?? prev.toCity,
+      toCountry: prev.toCountry || "",
+    }));
+    setSelectedRecipientId(r.id);
+  };
+
+  useEffect(() => {
+    fetch("/api/site-content/header_logo_dirtywine", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((data) => {
+        const url = data?.value?.trim();
+        if (url && url !== "null") setDirtyWineLogoUrl(url);
+      })
+      .catch(() => {});
+  }, []);
+
+  const refreshDrafts = useCallback(() => {
+    setDrafts(getInvoiceDrafts());
+  }, []);
+
+  useEffect(() => {
+    refreshDrafts();
+  }, [refreshDrafts]);
+
+  const handleSaveDraft = () => {
+    const id = saveInvoiceDraft(invoiceData, draftId ?? undefined);
+    setDraftId(id);
+    refreshDrafts();
+  };
+
+  const handleLoadDraft = (id: string) => {
+    const data = getInvoiceDraft(id);
+    if (data) {
+      setInvoiceData(data);
+      setDraftId(id);
+    }
+  };
+
+  const handleNewInvoice = () => {
+    const applied = applySenderDefaultsToInvoice(senderDefaults);
+    setInvoiceData({
+      invoiceNumber: `INV-${Math.floor(Math.random() * 10000)}`,
+      date: new Date().toISOString().split("T")[0],
+      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+      companyName: applied.companyName ?? "",
+      companyLogo: applied.companyLogo ?? "",
+      companyDetails: applied.companyDetails ?? "",
+      companyOrgNumber: applied.companyOrgNumber ?? "",
+      companyVatNumber: applied.companyVatNumber ?? "",
+      fromName: applied.fromName ?? "",
+      fromEmail: applied.fromEmail ?? "",
+      fromAddress: applied.fromAddress ?? "",
+      fromPostalCode: applied.fromPostalCode ?? "",
+      fromCity: applied.fromCity ?? "",
+      fromCountry: applied.fromCountry ?? "",
+      toName: "",
+      toEmail: "",
+      toAddress: "",
+      toPostalCode: "",
+      toCity: "",
+      toCountry: "",
+      shipToSameAsBillTo: false,
+      shipToName: "",
+      shipToAddress: "",
+      shipToPostalCode: "",
+      shipToCity: "",
+      shipToCountry: "",
+      clearingNumber: applied.clearingNumber ?? "",
+      accountNumber: applied.accountNumber ?? "",
+      reference: "",
+      paymentTerms: applied.paymentTerms ?? "",
+      shippingHandlingAmount: 0,
+      items: [],
+      notes: "",
+      taxRate: 0,
+      currency: "SEK",
+      footer: applied.footer ?? "Thank you for your business!",
+      discountType: "percentage",
+      discountValue: 0,
+      applyInvoiceDiscountToDiscountedItems: true,
+    });
+    setDraftId(null);
+    setSelectedRecipientId(null);
+  };
+
+  const handleDeleteDraft = (id: string) => {
+    deleteInvoiceDraft(id);
+    if (draftId === id) {
+      handleNewInvoice();
+    }
+    refreshDrafts();
+  };
 
   const handleInvoiceChange = (field: string, value: string | number | boolean) => {
     if (field === "currency") {
@@ -101,13 +294,40 @@ export default function InvoiceGenerator() {
     });
   };
 
+  /** Add a line item from a selected wine (admin wines list). */
+  const addItemFromWine = (wine: {
+    wine_name: string;
+    vintage: string;
+    producers?: { name?: string } | null;
+    base_price_cents?: number | null;
+  }) => {
+    const producerName = wine.producers?.name;
+    const description = [wine.wine_name, wine.vintage].filter(Boolean).join(" ") +
+      (producerName ? ` – ${producerName}` : "");
+    const price = (wine.base_price_cents || 0) / 100;
+    setInvoiceData({
+      ...invoiceData,
+      items: [
+        ...invoiceData.items,
+        {
+          id: uuidv4(),
+          description,
+          quantity: 1,
+          price,
+          currency: invoiceData.currency,
+          exchangeRate: 1,
+          discountType: "percentage",
+          discountValue: 0,
+        },
+      ],
+    });
+  };
+
   const removeItem = (id: string) => {
-    if (invoiceData.items.length > 1) {
-      setInvoiceData({
-        ...invoiceData,
-        items: invoiceData.items.filter((item) => item.id !== id),
-      });
-    }
+    setInvoiceData({
+      ...invoiceData,
+      items: invoiceData.items.filter((item) => item.id !== id),
+    });
   };
 
   const calculateItemDiscount = (item: (typeof invoiceData.items)[0]) => {
@@ -166,12 +386,21 @@ export default function InvoiceGenerator() {
     return calculateSubtotal() - calculateDiscount();
   };
 
+  const calculateShipping = () => {
+    return Number(invoiceData.shippingHandlingAmount) || 0;
+  };
+
+  /** Total excl. VAT (after discount + shipping), used as base for VAT */
+  const calculateTotalExclVAT = () => {
+    return calculateTaxableAmount() + calculateShipping();
+  };
+
   const calculateTax = () => {
-    return calculateTaxableAmount() * (invoiceData.taxRate / 100);
+    return calculateTotalExclVAT() * (invoiceData.taxRate / 100);
   };
 
   const calculateTotal = () => {
-    return calculateTaxableAmount() + calculateTax();
+    return calculateTotalExclVAT() + calculateTax();
   };
 
   const downloadPdf = async () => {
@@ -211,8 +440,64 @@ export default function InvoiceGenerator() {
     }
   };
 
+  const handleSelectRecipient = (id: string | null) => {
+    if (!id) {
+      setSelectedRecipientId(null);
+      return;
+    }
+    const r = recipients.find((x) => x.id === id);
+    if (r) applyRecipient(r);
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6">
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm">
+              <FileUp className="h-4 w-4 mr-2" />
+              Öppna utkast
+              <ChevronDown className="h-4 w-4 ml-1" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-72 max-h-[280px] overflow-y-auto">
+            {drafts.length === 0 ? (
+              <div className="py-4 px-3 text-sm text-muted-foreground text-center">
+                Inga sparade utkast
+              </div>
+            ) : (
+              drafts.map((d) => (
+                <div key={d.id} className="flex items-center gap-0">
+                  <DropdownMenuItem
+                    onClick={() => handleLoadDraft(d.id)}
+                    className="flex-1 min-w-0"
+                  >
+                    <span className="truncate">{d.name}</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="w-8 p-0 justify-center text-muted-foreground hover:text-destructive"
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      handleDeleteDraft(d.id);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </DropdownMenuItem>
+                </div>
+              ))
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <Button variant="outline" size="sm" onClick={handleSaveDraft}>
+          <FileDown className="h-4 w-4 mr-2" />
+          {draftId ? "Uppdatera utkast" : "Spara som utkast"}
+        </Button>
+        <Button variant="ghost" size="sm" onClick={handleNewInvoice}>
+          <FilePlus2 className="h-4 w-4 mr-2" />
+          Ny faktura
+        </Button>
+      </div>
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-6">
           <TabsTrigger value="edit">Edit Invoice</TabsTrigger>
@@ -226,6 +511,10 @@ export default function InvoiceGenerator() {
             handleItemChange={handleItemChange}
             handleLogoUpload={handleLogoUpload}
             addItem={addItem}
+            addItemFromWine={addItemFromWine}
+            recipients={recipients}
+            selectedRecipientId={selectedRecipientId}
+            onSelectRecipient={handleSelectRecipient}
             removeItem={removeItem}
             calculateItemDiscount={calculateItemDiscount}
             calculateItemTotal={calculateItemTotal}
@@ -243,12 +532,15 @@ export default function InvoiceGenerator() {
             <div ref={invoiceRef}>
               <InvoicePreview
                 invoiceData={invoiceData}
+                dirtyWineLogoUrl={dirtyWineLogoUrl}
                 calculateItemDiscount={calculateItemDiscount}
                 calculateItemTotal={calculateItemTotal}
                 calculateTotalItemDiscounts={calculateTotalItemDiscounts}
                 calculateSubtotal={calculateSubtotal}
                 calculateDiscount={calculateDiscount}
                 calculateTaxableAmount={calculateTaxableAmount}
+                calculateShipping={calculateShipping}
+                calculateTotalExclVAT={calculateTotalExclVAT}
                 calculateTax={calculateTax}
                 calculateTotal={calculateTotal}
               />

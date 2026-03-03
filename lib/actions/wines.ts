@@ -40,7 +40,16 @@ export interface Wine {
   // Description fields
   description?: string;
   description_html?: string;
+  // Extra info (admin/wines)
+  terroir_soil?: string | null;
+  production_method?: string | null;
+  tasting_profile_character?: string | null;
+  classification?: string | null;
+  tasting_notes?: string | null;
+  alcohol_percentage?: number | null;
   // B2B
+  b2b_price_cents?: number | null;
+  b2b_cost_sek?: number | null;
   b2b_margin_percentage?: number | null;
   b2b_stock?: number | null;
   // Visibility
@@ -69,7 +78,16 @@ export interface CreateWineData {
   // Description fields
   description?: string;
   description_html?: string;
+  // Extra info (admin/wines)
+  terroir_soil?: string | null;
+  production_method?: string | null;
+  tasting_profile_character?: string | null;
+  classification?: string | null;
+  tasting_notes?: string | null;
+  alcohol_percentage?: number | null;
   // B2B
+  b2b_price_cents?: number | null;
+  b2b_cost_sek?: number | null;
   b2b_margin_percentage?: number | null;
   b2b_stock?: number | null;
   // Visibility
@@ -98,6 +116,14 @@ const WINES_SELECT_FULL = `
   volume_liters,
   description,
   description_html,
+  terroir_soil,
+  production_method,
+  tasting_profile_character,
+  classification,
+  tasting_notes,
+  alcohol_percentage,
+  b2b_price_cents,
+  b2b_cost_sek,
   b2b_margin_percentage,
   b2b_stock,
   is_live,
@@ -126,6 +152,43 @@ const WINES_SELECT_WITHOUT_B2B = `
   volume_liters,
   description,
   description_html,
+  terroir_soil,
+  production_method,
+  tasting_profile_character,
+  classification,
+  tasting_notes,
+  alcohol_percentage,
+  b2b_price_cents,
+  b2b_cost_sek,
+  b2b_margin_percentage,
+  b2b_stock,
+  is_live,
+  created_at,
+  updated_at
+`;
+
+/** Select without optional columns that may not exist before migration 087 */
+const WINES_SELECT_LEGACY = `
+  id,
+  handle,
+  wine_name,
+  vintage,
+  grape_varieties,
+  color,
+  label_image_path,
+  base_price_cents,
+  producer_id,
+  cost_currency,
+  cost_amount,
+  alcohol_tax_cents,
+  price_includes_vat,
+  margin_percentage,
+  calculated_price_cents,
+  supplier_price,
+  sb_price,
+  volume_liters,
+  description,
+  description_html,
   is_live,
   created_at,
   updated_at
@@ -133,7 +196,12 @@ const WINES_SELECT_WITHOUT_B2B = `
 
 function isB2BColumnMissingError(error: { message?: string } | null): boolean {
   const msg = error?.message ?? "";
-  return /b2b_price_cents|b2b_stock|b2b_margin_percentage|column.*does not exist/i.test(msg);
+  return /b2b_price_cents|b2b_stock|b2b_margin_percentage/i.test(msg);
+}
+
+function isOptionalColumnMissingError(error: { message?: string } | null): boolean {
+  const msg = error?.message ?? "";
+  return /terroir_soil|production_method|tasting_profile_character|classification|tasting_notes|alcohol_percentage|column.*does not exist/i.test(msg);
 }
 
 export async function getWines() {
@@ -144,16 +212,26 @@ export async function getWines() {
     .select(WINES_SELECT_FULL)
     .order("wine_name");
 
-  if (error && isB2BColumnMissingError(error)) {
+  if (error && (isB2BColumnMissingError(error) || isOptionalColumnMissingError(error))) {
+    const fallbackSelect = isOptionalColumnMissingError(error) ? WINES_SELECT_LEGACY : WINES_SELECT_WITHOUT_B2B;
     const fallback = await sb
       .from("wines")
-      .select(WINES_SELECT_WITHOUT_B2B)
+      .select(fallbackSelect)
       .order("wine_name");
     if (fallback.error) throw new Error(fallback.error.message);
-    wines = (fallback.data ?? []).map((w: any) => ({
+    const legacy = (fallback.data ?? []) as any[];
+    wines = legacy.map((w: any) => ({
       ...w,
-      b2b_margin_percentage: null,
-      b2b_stock: null,
+      b2b_price_cents: w.b2b_price_cents ?? null,
+      b2b_cost_sek: w.b2b_cost_sek ?? null,
+      b2b_margin_percentage: w.b2b_margin_percentage ?? null,
+      b2b_stock: w.b2b_stock ?? null,
+      terroir_soil: w.terroir_soil ?? null,
+      production_method: w.production_method ?? null,
+      tasting_profile_character: w.tasting_profile_character ?? null,
+      classification: w.classification ?? null,
+      tasting_notes: w.tasting_notes ?? null,
+      alcohol_percentage: w.alcohol_percentage ?? null,
     }));
   } else if (error) {
     throw new Error(error.message);
@@ -188,14 +266,28 @@ export async function getWine(id: string) {
     .eq("id", id)
     .single();
 
-  if (error && isB2BColumnMissingError(error)) {
+  if (error && (isB2BColumnMissingError(error) || isOptionalColumnMissingError(error))) {
+    const fallbackSelect = isOptionalColumnMissingError(error) ? WINES_SELECT_LEGACY : WINES_SELECT_WITHOUT_B2B;
     const fallback = await sb
       .from("wines")
-      .select(WINES_SELECT_WITHOUT_B2B)
+      .select(fallbackSelect)
       .eq("id", id)
       .single();
     if (fallback.error) throw new Error(fallback.error.message);
-    wine = fallback.data ? { ...fallback.data, b2b_margin_percentage: null, b2b_stock: null } : null;
+    const d = fallback.data as any;
+    wine = d ? {
+      ...d,
+      b2b_price_cents: d.b2b_price_cents ?? null,
+      b2b_cost_sek: d.b2b_cost_sek ?? null,
+      b2b_margin_percentage: d.b2b_margin_percentage ?? null,
+      b2b_stock: d.b2b_stock ?? null,
+      terroir_soil: d.terroir_soil ?? null,
+      production_method: d.production_method ?? null,
+      tasting_profile_character: d.tasting_profile_character ?? null,
+      classification: d.classification ?? null,
+      tasting_notes: d.tasting_notes ?? null,
+      alcohol_percentage: d.alcohol_percentage ?? null,
+    } : null;
   } else if (error) {
     throw new Error(error.message);
   }
@@ -305,6 +397,14 @@ export async function createWine(data: CreateWineData) {
     volume_liters: data.volume_liters,
     description: data.description,
     description_html: data.description_html,
+    terroir_soil: data.terroir_soil ?? null,
+    production_method: data.production_method ?? null,
+    tasting_profile_character: data.tasting_profile_character ?? null,
+    classification: data.classification ?? null,
+    tasting_notes: data.tasting_notes ?? null,
+    alcohol_percentage: data.alcohol_percentage ?? null,
+    b2b_price_cents: data.b2b_price_cents ?? null,
+    b2b_cost_sek: data.b2b_cost_sek ?? null,
     b2b_margin_percentage: data.b2b_margin_percentage ?? null,
     b2b_stock: data.b2b_stock ?? null,
     is_live: data.is_live ?? true,
@@ -378,6 +478,22 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
     updateData.supplier_price = data.supplier_price;
   if (data.volume_liters !== undefined)
     updateData.volume_liters = data.volume_liters;
+  if (data.terroir_soil !== undefined)
+    updateData.terroir_soil = data.terroir_soil;
+  if (data.production_method !== undefined)
+    updateData.production_method = data.production_method;
+  if (data.tasting_profile_character !== undefined)
+    updateData.tasting_profile_character = data.tasting_profile_character;
+  if (data.classification !== undefined)
+    updateData.classification = data.classification;
+  if (data.tasting_notes !== undefined)
+    updateData.tasting_notes = data.tasting_notes;
+  if (data.alcohol_percentage !== undefined)
+    updateData.alcohol_percentage = data.alcohol_percentage;
+  if (data.b2b_price_cents !== undefined)
+    updateData.b2b_price_cents = data.b2b_price_cents;
+  if (data.b2b_cost_sek !== undefined)
+    updateData.b2b_cost_sek = data.b2b_cost_sek;
   if (data.is_live !== undefined)
     updateData.is_live = data.is_live;
 

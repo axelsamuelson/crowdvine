@@ -30,6 +30,7 @@ import {
   BarChart3,
   ChevronDown,
   TrendingUp,
+  Building2,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -65,6 +66,7 @@ const navigationGroups: NavGroup[] = [
     icon: Users,
     items: [
       { name: "Users", href: "/admin/users", icon: Users },
+      { name: "Business", href: "/admin/users/business", icon: Building2 },
       { name: "Memberships", href: "/admin/memberships", icon: Award },
       { name: "Access Control", href: "/admin/access-control", icon: Shield },
     ],

@@ -70,6 +70,14 @@ export default function WineForm({ wine, producers, isProducerView = false }: Wi
     label_image_path: wine?.label_image_path || "",
     // Description
     description: wine?.description || "",
+    // Extra info
+    terroir_soil: wine?.terroir_soil ?? "",
+    production_method: wine?.production_method ?? "",
+    tasting_profile_character: wine?.tasting_profile_character ?? "",
+    classification: wine?.classification ?? "",
+    tasting_notes: wine?.tasting_notes ?? "",
+    alcohol_percentage: wine?.alcohol_percentage ?? null,
+    volume_liters: wine?.volume_liters ?? 0.75,
     // B2B
     b2b_margin_percentage: wine?.b2b_margin_percentage ?? null,
     b2b_stock: wine?.b2b_stock ?? null,
@@ -166,6 +174,13 @@ export default function WineForm({ wine, producers, isProducerView = false }: Wi
       base_price_cents: wine.base_price_cents ?? 0,
       label_image_path: wine.label_image_path || "",
       description: wine.description || "",
+      terroir_soil: wine.terroir_soil ?? "",
+      production_method: wine.production_method ?? "",
+      tasting_profile_character: wine.tasting_profile_character ?? "",
+      classification: wine.classification ?? "",
+      tasting_notes: wine.tasting_notes ?? "",
+      alcohol_percentage: wine.alcohol_percentage ?? null,
+      volume_liters: wine.volume_liters ?? 0.75,
       b2b_margin_percentage: wine.b2b_margin_percentage ?? null,
       b2b_stock: wine.b2b_stock ?? null,
     }));
@@ -311,6 +326,28 @@ export default function WineForm({ wine, producers, isProducerView = false }: Wi
         }
       }
 
+      // Store B2B price and cost in SEK (exactly as shown in admin) so tasting summary breakdown matches
+      const hasB2B =
+        formData.b2b_margin_percentage != null &&
+        formData.b2b_margin_percentage >= 0 &&
+        formData.b2b_margin_percentage < 100 &&
+        (formData.cost_amount ?? 0) > 0;
+      const b2b_price_cents = hasB2B
+        ? Math.round(
+            calculateB2BPriceExclVat(
+              formData.cost_amount ?? 0,
+              exchangeRate,
+              2219,
+              formData.b2b_margin_percentage!,
+              shippingPerBottleSek,
+            ) * 100,
+          )
+        : null;
+      const b2b_cost_sek =
+        hasB2B
+          ? Math.round((formData.cost_amount ?? 0) * exchangeRate * 100) / 100
+          : null;
+
       // Use first uploaded image as main image if available, otherwise keep existing
       const wineData = {
         ...formData,
@@ -318,6 +355,8 @@ export default function WineForm({ wine, producers, isProducerView = false }: Wi
         label_image_path:
           imagePaths.length > 0 ? imagePaths[0] : formData.label_image_path,
         is_live: formData.is_live ?? true,
+        b2b_price_cents,
+        b2b_cost_sek,
       };
 
       let savedWine;
@@ -505,6 +544,120 @@ export default function WineForm({ wine, producers, isProducerView = false }: Wi
               properties.
             </p>
           </div>
+
+          {/* Extra wine info: Terroir, Production, Tasting, Classification, Alcohol, Volume */}
+          <Card className="p-4 bg-muted/30 border border-gray-200 rounded-xl">
+            <CardHeader className="p-0 pb-3">
+              <CardTitle className="text-base font-medium">Extra information</CardTitle>
+              <CardDescription className="text-sm">
+                Terroir, production method, tasting profile, classification, alcohol and volume (optional).
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0 space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="terroir_soil">Terroir &amp; Soil</Label>
+                <Textarea
+                  id="terroir_soil"
+                  value={formData.terroir_soil ?? ""}
+                  onChange={(e) => handleChange("terroir_soil", e.target.value)}
+                  placeholder="Terroir and soil description..."
+                  rows={2}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="production_method">Production Method</Label>
+                <Textarea
+                  id="production_method"
+                  value={formData.production_method ?? ""}
+                  onChange={(e) => handleChange("production_method", e.target.value)}
+                  placeholder="Production method..."
+                  rows={2}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tasting_profile_character">Tasting Profile &amp; Character</Label>
+                <Textarea
+                  id="tasting_profile_character"
+                  value={formData.tasting_profile_character ?? ""}
+                  onChange={(e) => handleChange("tasting_profile_character", e.target.value)}
+                  placeholder="Tasting profile and character..."
+                  rows={2}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="classification">Classification</Label>
+                <Input
+                  id="classification"
+                  value={formData.classification ?? ""}
+                  onChange={(e) => handleChange("classification", e.target.value)}
+                  placeholder="e.g. AOP, IGP"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tasting_notes">Tasting Notes</Label>
+                <Textarea
+                  id="tasting_notes"
+                  value={formData.tasting_notes ?? ""}
+                  onChange={(e) => handleChange("tasting_notes", e.target.value)}
+                  placeholder="Tasting notes..."
+                  rows={3}
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="alcohol_percentage">Alcohol (%)</Label>
+                  <Input
+                    id="alcohol_percentage"
+                    type="number"
+                    min={0}
+                    max={25}
+                    step={0.1}
+                    placeholder="e.g. 13.5"
+                    value={
+                      formData.alcohol_percentage != null
+                        ? String(formData.alcohol_percentage)
+                        : ""
+                    }
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === "") {
+                        handleChange("alcohol_percentage", null);
+                        return;
+                      }
+                      const num = parseFloat(v);
+                      if (!Number.isNaN(num)) handleChange("alcohol_percentage", num);
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="volume_liters">Volume (liters)</Label>
+                  <Input
+                    id="volume_liters"
+                    type="number"
+                    min={0.1}
+                    max={30}
+                    step={0.01}
+                    placeholder="0.75"
+                    value={
+                      formData.volume_liters != null
+                        ? String(formData.volume_liters)
+                        : ""
+                    }
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === "") {
+                        handleChange("volume_liters", 0.75);
+                        return;
+                      }
+                      const num = parseFloat(v);
+                      if (!Number.isNaN(num)) handleChange("volume_liters", num);
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">e.g. 0.75 for standard bottle</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Pricing: producer only sets cost; margin is fixed. Admin can set margin. */}
           <PricingCalculator

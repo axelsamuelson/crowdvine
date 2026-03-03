@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +25,7 @@ export function StockBadge({
   className,
 }: StockBadgeProps) {
   const isB2B = useB2BPriceMode();
+  const pathname = usePathname();
   const [isMounted, setIsMounted] = useState(false);
   const [fewLeftThreshold, setFewLeftThreshold] = useState(5);
 
@@ -41,24 +43,20 @@ export function StockBadge({
       .catch(() => {});
   }, []);
 
-  // On server, always return null to avoid hydration mismatch
-  // On client, check isB2B after mount
-  const showBadge = isMounted && isB2B;
+  // Show badge in B2B mode or on tasting summary (so all cards show In stock / Out of stock)
+  const onTastingSummary = pathname?.includes("/tasting/");
+  const showBadge = isMounted && (isB2B || onTastingSummary);
 
   if (!showBadge) return null;
 
-  // When b2bStock is undefined (wine box etc), use availableForSale
+  // In stock endast när b2b_stock är ett tal och >= 1. Null, undefined och 0 = Out of stock.
   const stock = b2bStock;
-  const status: StockStatus =
-    stock === undefined
-      ? availableForSale
-        ? "in"
-        : "out"
-      : stock == null || stock <= 0
-        ? "out"
-        : stock <= fewLeftThreshold
-          ? "few"
-          : "in";
+  const hasStock = typeof stock === "number" && stock > 0;
+  const status: StockStatus = !hasStock
+    ? "out"
+    : stock <= fewLeftThreshold
+      ? "few"
+      : "in";
 
   const label =
     status === "out"

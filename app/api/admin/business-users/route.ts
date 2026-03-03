@@ -5,7 +5,8 @@ import { getCurrentAdmin } from "@/lib/admin-auth-server";
 
 /**
  * GET /api/admin/business-users?q=
- * List profiles that are "business" (producer role or linked to producer) for wine tasting session assignment.
+ * List profiles that are "business" users: producer role, linked to producer, OR portal_access contains 'business' (B2B).
+ * Used for wine tasting assignment and invoice recipient linking.
  * Optional search q on email and full_name.
  */
 export async function GET(request: NextRequest) {
@@ -36,24 +37,37 @@ export async function GET(request: NextRequest) {
     const q = (searchParams.get("q") ?? "").trim().toLowerCase();
 
     const sb = getSupabaseAdmin();
-    let query = sb
+
+    // 1) Producers and profiles linked to a producer
+    const { data: byRole, error: err1 } = await sb
       .from("profiles")
       .select("id, email, full_name")
-      .or("role.eq.producer,producer_id.not.is.null")
-      .order("full_name", { ascending: true, nullsFirst: false })
-      .order("email", { ascending: true });
+      .or("role.eq.producer,producer_id.not.is.null");
 
-    const { data: profiles, error } = await query;
+    // 2) Anyone with B2B portal_access (business account), e.g. Mille Nystedt
+    const { data: byPortal, error: err2 } = await sb
+      .from("profiles")
+      .select("id, email, full_name")
+      .contains("portal_access", ["business"]);
 
-    if (error) {
-      console.error("Error fetching business users:", error);
+    if (err1 || err2) {
+      console.error("Error fetching business users:", err1 ?? err2);
       return NextResponse.json(
-        { error: "Failed to fetch business users", details: error.message },
+        { error: "Failed to fetch business users", details: (err1 ?? err2)?.message },
         { status: 500 },
       );
     }
 
-    let list = profiles ?? [];
+    // Merge and dedupe by id
+    const byId = new Map<string, { id: string; email: string | null; full_name: string | null }>();
+    for (const p of [...(byRole ?? []), ...(byPortal ?? [])]) {
+      if (p?.id) byId.set(p.id, { id: p.id, email: p.email ?? null, full_name: p.full_name ?? null });
+    }
+    let list = Array.from(byId.values()).sort((a, b) => {
+      const na = (a.full_name || a.email || "").toLowerCase();
+      const nb = (b.full_name || b.email || "").toLowerCase();
+      return na.localeCompare(nb) || (a.email || "").localeCompare(b.email || "");
+    });
     if (q) {
       list = list.filter(
         (p: { email?: string | null; full_name?: string | null }) =>

@@ -30,11 +30,17 @@ export async function POST(
       return NextResponse.json({ error: "Session not found" }, { status: 404 });
     }
 
+    // For completed (or any non-active) sessions: return session_id so summary page can load (view-only)
     if (session.status !== "active") {
-      return NextResponse.json(
-        { error: "Session is not active" },
-        { status: 400 },
-      );
+      return NextResponse.json({
+        participant: {
+          id: "",
+          session_id: session.id,
+          participant_code: code,
+          name: null,
+          is_anonymous: true,
+        },
+      });
     }
 
     let participant: { id: string; session_id: string; participant_code: string; name: string | null; is_anonymous: boolean; joined_at?: string } | null = null;

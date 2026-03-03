@@ -16,9 +16,15 @@ const BUSINESS_LINE =
 export function ManifestoSection({
   isBusinessOnly = false,
   isProducerOnly = false,
+  customText,
+  compact = false,
 }: {
   isBusinessOnly?: boolean;
   isProducerOnly?: boolean;
+  /** When set, shown instead of default copy (e.g. tasting summary thank-you message). */
+  customText?: string;
+  /** Less vertical padding (e.g. for secondary manifesto block on tasting summary). */
+  compact?: boolean;
 } = {}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
@@ -49,20 +55,28 @@ export function ManifestoSection({
     ["inset(0 100% 0 0)", "inset(0 0% 0 0)"]
   );
 
-  if (isBusinessOnly) {
+  const businessOrCustomText = customText ?? BUSINESS_LINE;
+
+  if (isBusinessOnly || customText) {
+    const isShortBlock = !!customText || isBusinessOnly;
+    const paddingClass = compact
+      ? "min-h-0 py-8 md:py-10"
+      : isShortBlock
+        ? "min-h-0 py-12 md:py-16"
+        : "min-h-[80vh] py-32";
     return (
       <section
         ref={containerRef}
-        className="relative min-h-[80vh] flex items-center justify-center bg-background px-6 py-32"
+        className={`relative flex items-center justify-center bg-background px-6 ${paddingClass}`}
       >
         <div className="max-w-5xl mx-auto relative">
           <h2 className="text-2xl md:text-4xl lg:text-5xl font-sans leading-tight text-center text-foreground/10">
-            {BUSINESS_LINE}
+            {businessOrCustomText}
           </h2>
 
           <h2 className="absolute inset-0 text-2xl md:text-4xl lg:text-5xl font-sans leading-tight text-center text-black flex flex-col items-center justify-center gap-0">
             <motion.span className="block" style={{ clipPath: clipPathBusiness }}>
-              {BUSINESS_LINE}
+              {businessOrCustomText}
             </motion.span>
           </h2>
         </div>

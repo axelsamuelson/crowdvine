@@ -10,8 +10,11 @@ type HeroImage = { url: string; altText: string };
 
 export function HeroSection({
   showDirtyWineLogo = false,
+  compact = false,
 }: {
   showDirtyWineLogo?: boolean;
+  /** Less vertical space (e.g. for tasting summary page). */
+  compact?: boolean;
 } = {}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [images, setImages] = useState<HeroImage[] | null>(null);
@@ -59,7 +62,7 @@ export function HeroSection({
   return (
     <section
       ref={containerRef}
-      className="relative min-h-screen flex items-center justify-center overflow-hidden bg-background px-6 py-24"
+      className={`relative flex items-center justify-center overflow-hidden bg-background px-6 ${compact ? "min-h-[50vh] py-12" : "min-h-screen py-24"}`}
     >
       <div className="relative flex items-center justify-center">
         {!images ? (

@@ -1,6 +1,7 @@
 "use client";
 
 import type React from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,9 +10,36 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Trash2, Plus } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Trash2, Plus, Wine } from "lucide-react";
 import type { InvoiceData } from "@/types/invoice";
 import { formatCurrency, currencies } from "@/lib/invoice-utils";
+
+export interface InvoiceWine {
+  id: string;
+  wine_name: string;
+  vintage: string;
+  producers?: { name?: string } | null;
+  base_price_cents?: number | null;
+}
+
+export interface InvoiceRecipientOption {
+  id: string;
+  company_name: string;
+  contact_name: string;
+  email: string;
+  address: string;
+  postal_code?: string | null;
+  city?: string | null;
+}
 
 interface InvoiceFormProps {
   invoiceData: InvoiceData;
@@ -19,6 +47,11 @@ interface InvoiceFormProps {
   handleItemChange: (id: string, field: string, value: string | number) => void;
   handleLogoUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   addItem: () => void;
+  addItemFromWine?: (wine: InvoiceWine) => void;
+  /** Företag att välja för att fylla i Till-fälten. */
+  recipients?: InvoiceRecipientOption[];
+  selectedRecipientId?: string | null;
+  onSelectRecipient?: (id: string | null) => void;
   removeItem: (id: string) => void;
   calculateItemDiscount: (item: InvoiceData["items"][0]) => number;
   calculateItemTotal: (item: InvoiceData["items"][0]) => number;
@@ -36,6 +69,10 @@ export function InvoiceForm({
   handleItemChange,
   handleLogoUpload,
   addItem,
+  addItemFromWine,
+  recipients = [],
+  selectedRecipientId = null,
+  onSelectRecipient,
   removeItem,
   calculateItemDiscount,
   calculateItemTotal,
@@ -46,6 +83,34 @@ export function InvoiceForm({
   calculateTaxableAmount,
   calculateTotal,
 }: InvoiceFormProps) {
+  const [wines, setWines] = useState<InvoiceWine[]>([]);
+  const [winesLoading, setWinesLoading] = useState(false);
+  const [winePopoverOpen, setWinePopoverOpen] = useState(false);
+
+  useEffect(() => {
+    if (!addItemFromWine) return;
+    const fetchWines = async () => {
+      setWinesLoading(true);
+      try {
+        const res = await fetch("/api/admin/wines");
+        if (res.ok) {
+          const data = await res.json();
+          setWines(Array.isArray(data) ? data : []);
+        }
+      } catch {
+        setWines([]);
+      } finally {
+        setWinesLoading(false);
+      }
+    };
+    fetchWines();
+  }, [addItemFromWine]);
+
+  const handleSelectWine = (wine: InvoiceWine) => {
+    addItemFromWine?.(wine);
+    setWinePopoverOpen(false);
+  };
+
   return (
     <Card>
       <CardContent className="p-6">
@@ -185,13 +250,33 @@ export function InvoiceForm({
                     )}
                   </div>
                 </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor="companyOrgNumber">Organisationsnummer</Label>
+                    <Input
+                      id="companyOrgNumber"
+                      value={invoiceData.companyOrgNumber ?? ""}
+                      onChange={(e) => handleInvoiceChange("companyOrgNumber", e.target.value)}
+                      placeholder="t.ex. 556123-4567"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="companyVatNumber">Momsreg.nr</Label>
+                    <Input
+                      id="companyVatNumber"
+                      value={invoiceData.companyVatNumber ?? ""}
+                      onChange={(e) => handleInvoiceChange("companyVatNumber", e.target.value)}
+                      placeholder="t.ex. SE556123456701"
+                    />
+                  </div>
+                </div>
                 <div>
-                  <Label htmlFor="companyDetails">Company Details</Label>
+                  <Label htmlFor="companyDetails">Övrigt (valfritt)</Label>
                   <Textarea
                     id="companyDetails"
                     value={invoiceData.companyDetails}
                     onChange={(e) => handleInvoiceChange("companyDetails", e.target.value)}
-                    placeholder="Registration number, VAT ID, etc."
+                    placeholder="Övriga företagsuppgifter"
                   />
                 </div>
               </div>
@@ -218,11 +303,41 @@ export function InvoiceForm({
                   />
                 </div>
                 <div>
-                  <Label htmlFor="fromAddress">Address</Label>
-                  <Textarea
+                  <Label htmlFor="fromAddress">Adress</Label>
+                  <Input
                     id="fromAddress"
                     value={invoiceData.fromAddress}
                     onChange={(e) => handleInvoiceChange("fromAddress", e.target.value)}
+                    placeholder="Gatuadress"
+                  />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor="fromPostalCode">Postnummer</Label>
+                    <Input
+                      id="fromPostalCode"
+                      value={invoiceData.fromPostalCode ?? ""}
+                      onChange={(e) => handleInvoiceChange("fromPostalCode", e.target.value)}
+                      placeholder="t.ex. 111 22"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="fromCity">Stad</Label>
+                    <Input
+                      id="fromCity"
+                      value={invoiceData.fromCity ?? ""}
+                      onChange={(e) => handleInvoiceChange("fromCity", e.target.value)}
+                      placeholder="t.ex. Stockholm"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="fromCountry">Land</Label>
+                  <Input
+                    id="fromCountry"
+                    value={invoiceData.fromCountry ?? ""}
+                    onChange={(e) => handleInvoiceChange("fromCountry", e.target.value)}
+                    placeholder="t.ex. Sverige"
                   />
                 </div>
               </div>
@@ -231,10 +346,39 @@ export function InvoiceForm({
         </div>
 
         <div className="mb-6">
-          <h2 className="text-xl font-semibold mb-4">To</h2>
+          <h2 className="text-xl font-semibold mb-4">Bill To (fakturera till)</h2>
+          {onSelectRecipient && (
+            <div className="mb-4 p-3 rounded-lg bg-muted/50 border border-border">
+              <Label className="text-sm font-medium">Välj företag för att fylla i uppgifterna nedan</Label>
+              <Select
+                value={selectedRecipientId ?? "__none__"}
+                onValueChange={(id) => {
+                  if (!id || id === "__none__") onSelectRecipient(null);
+                  else onSelectRecipient(id);
+                }}
+              >
+                <SelectTrigger className="mt-2 w-full max-w-sm">
+                  <SelectValue placeholder="Välj företag" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— Välj företag —</SelectItem>
+                  {recipients.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.company_name || r.contact_name || r.email || r.id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {recipients.length === 0 && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Lägg till företag under Admin → Användare → Business, sedan visas de här.
+                </p>
+              )}
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="toName">Name</Label>
+              <Label htmlFor="toName">Namn</Label>
               <Input
                 id="toName"
                 value={invoiceData.toName}
@@ -242,7 +386,7 @@ export function InvoiceForm({
               />
             </div>
             <div>
-              <Label htmlFor="toEmail">Email</Label>
+              <Label htmlFor="toEmail">E-post</Label>
               <Input
                 id="toEmail"
                 type="email"
@@ -251,17 +395,212 @@ export function InvoiceForm({
               />
             </div>
             <div className="md:col-span-2">
-              <Label htmlFor="toAddress">Address</Label>
-              <Textarea
+              <Label htmlFor="toAddress">Adress</Label>
+              <Input
                 id="toAddress"
                 value={invoiceData.toAddress}
                 onChange={(e) => handleInvoiceChange("toAddress", e.target.value)}
+                placeholder="Gatuadress"
+              />
+            </div>
+            <div>
+              <Label htmlFor="toPostalCode">Postnummer</Label>
+              <Input
+                id="toPostalCode"
+                value={invoiceData.toPostalCode ?? ""}
+                onChange={(e) => handleInvoiceChange("toPostalCode", e.target.value)}
+                placeholder="t.ex. 111 22"
+              />
+            </div>
+            <div>
+              <Label htmlFor="toCity">Stad</Label>
+              <Input
+                id="toCity"
+                value={invoiceData.toCity ?? ""}
+                onChange={(e) => handleInvoiceChange("toCity", e.target.value)}
+                placeholder="t.ex. Stockholm"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <Label htmlFor="toCountry">Land</Label>
+              <Input
+                id="toCountry"
+                value={invoiceData.toCountry ?? ""}
+                onChange={(e) => handleInvoiceChange("toCountry", e.target.value)}
+                placeholder="t.ex. Sverige"
               />
             </div>
           </div>
         </div>
 
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold mb-4">Ship To (leveransadress)</h2>
+          <div className="flex items-center space-x-2 mb-3">
+            <Checkbox
+              id="shipToSameAsBillTo"
+              checked={Boolean(invoiceData.shipToSameAsBillTo)}
+              onCheckedChange={(checked) =>
+                handleInvoiceChange("shipToSameAsBillTo", checked === true)
+              }
+            />
+            <Label htmlFor="shipToSameAsBillTo" className="text-sm font-normal cursor-pointer">
+              Använd samma adress som Bill To
+            </Label>
+          </div>
+          {!invoiceData.shipToSameAsBillTo && (
+            <>
+              <p className="text-sm text-muted-foreground mb-3">Valfritt. Lämna tomt om samma som Bill To.</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <Label htmlFor="shipToName">Namn</Label>
+                  <Input
+                    id="shipToName"
+                    value={invoiceData.shipToName ?? ""}
+                    onChange={(e) => handleInvoiceChange("shipToName", e.target.value)}
+                    placeholder="Mottagarens namn"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <Label htmlFor="shipToAddress">Adress</Label>
+                  <Input
+                    id="shipToAddress"
+                    value={invoiceData.shipToAddress ?? ""}
+                    onChange={(e) => handleInvoiceChange("shipToAddress", e.target.value)}
+                    placeholder="Gatuadress"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="shipToPostalCode">Postnummer</Label>
+                  <Input
+                    id="shipToPostalCode"
+                    value={invoiceData.shipToPostalCode ?? ""}
+                    onChange={(e) => handleInvoiceChange("shipToPostalCode", e.target.value)}
+                    placeholder="t.ex. 111 22"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="shipToCity">Stad</Label>
+                  <Input
+                    id="shipToCity"
+                    value={invoiceData.shipToCity ?? ""}
+                    onChange={(e) => handleInvoiceChange("shipToCity", e.target.value)}
+                    placeholder="t.ex. Stockholm"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <Label htmlFor="shipToCountry">Land</Label>
+                  <Input
+                    id="shipToCountry"
+                    value={invoiceData.shipToCountry ?? ""}
+                    onChange={(e) => handleInvoiceChange("shipToCountry", e.target.value)}
+                    placeholder="t.ex. Sverige"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold mb-4">Payment Information</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="clearingNumber">Clearing number</Label>
+              <Input
+                id="clearingNumber"
+                value={invoiceData.clearingNumber ?? ""}
+                onChange={(e) => handleInvoiceChange("clearingNumber", e.target.value)}
+                placeholder="t.ex. 123-4"
+              />
+            </div>
+            <div>
+              <Label htmlFor="accountNumber">Account number</Label>
+              <Input
+                id="accountNumber"
+                value={invoiceData.accountNumber ?? ""}
+                onChange={(e) => handleInvoiceChange("accountNumber", e.target.value)}
+                placeholder="Kontonummer"
+              />
+            </div>
+            <div>
+              <Label htmlFor="reference">Reference</Label>
+              <Input
+                id="reference"
+                value={invoiceData.reference ?? ""}
+                onChange={(e) => handleInvoiceChange("reference", e.target.value)}
+                placeholder="Betalningsreferens"
+              />
+            </div>
+            <div>
+              <Label htmlFor="paymentTerms">Payment terms</Label>
+              <Input
+                id="paymentTerms"
+                value={invoiceData.paymentTerms ?? ""}
+                onChange={(e) => handleInvoiceChange("paymentTerms", e.target.value)}
+                placeholder="t.ex. Net 30, Betalning inom 30 dagar"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-6">
+          <Label htmlFor="shippingHandlingAmount">Shipping/Handling ({invoiceData.currency})</Label>
+          <Input
+            id="shippingHandlingAmount"
+            type="number"
+            min={0}
+            step={0.01}
+            value={invoiceData.shippingHandlingAmount ?? 0}
+            onChange={(e) =>
+              handleInvoiceChange("shippingHandlingAmount", Number.parseFloat(e.target.value) || 0)
+            }
+          />
+        </div>
+
         <h2 className="text-xl font-semibold mb-4">Items</h2>
+        {addItemFromWine && (
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <Popover open={winePopoverOpen} onOpenChange={setWinePopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button type="button" variant="outline" disabled={winesLoading}>
+                  <Wine className="h-4 w-4 mr-2" />
+                  {winesLoading ? "Laddar viner..." : "Lägg till vin"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[360px] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Sök vin..." />
+                  <CommandList>
+                    <CommandEmpty>Inga viner hittades.</CommandEmpty>
+                    <CommandGroup heading="Välj vin att lägga till">
+                      {wines.map((wine) => {
+                        const label = [wine.wine_name, wine.vintage].filter(Boolean).join(" ");
+                        const producer = wine.producers?.name ?? "";
+                        const price = Number(wine.base_price_cents ?? 0) / 100;
+                        return (
+                          <CommandItem
+                            key={wine.id}
+                            value={`${label} ${producer} ${wine.id}`.toLowerCase()}
+                            onSelect={() => handleSelectWine(wine)}
+                          >
+                            <span className="flex-1 truncate">
+                              {label}
+                              {producer && <span className="text-muted-foreground"> – {producer}</span>}
+                            </span>
+                            <span className="shrink-0 text-sm text-muted-foreground ml-2">
+                              {price > 0 ? `${Math.round(price)} SEK` : "–"}
+                            </span>
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            <span className="text-sm text-muted-foreground">eller</span>
+          </div>
+        )}
         <div className="space-y-6">
           {invoiceData.items.map((item) => (
             <div key={item.id} className="border rounded-md p-4">
@@ -336,7 +675,7 @@ export function InvoiceForm({
                     variant="ghost"
                     size="icon"
                     onClick={() => removeItem(item.id)}
-                    disabled={invoiceData.items.length <= 1}
+                    disabled={invoiceData.items.length === 0}
                     className="h-10 w-10"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -422,7 +761,7 @@ export function InvoiceForm({
           ))}
 
           <Button variant="outline" onClick={addItem} className="flex items-center mt-4">
-            <Plus className="h-4 w-4 mr-2" /> Add Item
+            <Plus className="h-4 w-4 mr-2" /> Lägg till rad manuellt
           </Button>
 
           <div className="mt-6 border-t pt-4">

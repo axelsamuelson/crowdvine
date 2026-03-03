@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentUser } from "@/lib/auth";
+import { getAppUrl } from "@/lib/app-url";
+import { calculateB2BPriceExclVat } from "@/lib/price-breakdown";
 
 async function ensureSessionAccess(
   sb: ReturnType<typeof getSupabaseAdmin>,
@@ -15,6 +17,8 @@ async function ensureSessionAccess(
 
   if (error || !session) return { allowed: false, error: 404 as const };
   if (session.status === "active") return { allowed: true };
+  // Allow anyone to view summary of completed sessions (link-based access)
+  if (session.status === "completed") return { allowed: true };
   if (!user) return { allowed: false, error: 403 as const };
 
   const { data: profile } = await sb
@@ -66,7 +70,7 @@ export async function GET(
       return NextResponse.json({ error: "Session not found" }, { status: 404 });
     }
 
-    const wineOrder = (session.wine_order as string[] | null) ?? [];
+    let wineOrder = (session.wine_order as string[] | null) ?? [];
     const { data: ratings } = await sb
       .from("wine_tasting_ratings")
       .select(`
@@ -85,6 +89,17 @@ export async function GET(
 
     const totalParticipants = participants?.length ?? 0;
     const totalRatings = ratings?.length ?? 0;
+
+    // If wine_order is empty but we have ratings, derive wine list from rated wines (preserve order of first rating)
+    if (wineOrder.length === 0 && (ratings?.length ?? 0) > 0) {
+      const seen = new Set<string>();
+      wineOrder = (ratings ?? []).map((r: { wine_id: string }) => r.wine_id).filter((id: string) => {
+        if (seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      });
+    }
+
     const totalWines = wineOrder.length;
     const overallAverage =
       totalRatings > 0
@@ -103,6 +118,18 @@ export async function GET(
         grape_varieties?: string;
         color?: string;
         label_image_path?: string;
+        description?: string | null;
+        base_price_cents?: number | null;
+        price_includes_vat?: boolean | null;
+        cost_amount?: number | null;
+        exchange_rate?: number | null;
+        alcohol_tax_cents?: number | null;
+        margin_percentage?: number | null;
+        b2b_margin_percentage?: number | null;
+        b2b_price_excl_vat?: number | null;
+        b2b_shipping_per_bottle_sek?: number | null;
+        b2b_stock?: number | null;
+        producer_name?: string | null;
       };
       totalRatings: number;
       averageRating: number | null;
@@ -122,10 +149,77 @@ export async function GET(
     if (wineOrder.length > 0) {
       const { data: winesData } = await sb
         .from("wines")
-        .select("id, wine_name, vintage, grape_varieties, color, label_image_path")
+        .select("id, wine_name, vintage, grape_varieties, color, label_image_path, description, base_price_cents, price_includes_vat, cost_amount, cost_currency, exchange_rate, alcohol_tax_cents, margin_percentage, b2b_price_cents, b2b_cost_sek, b2b_margin_percentage, b2b_stock, producers(name)")
         .in("id", wineOrder);
 
       const winesMap = new Map((winesData ?? []).map((w: any) => [w.id, w]));
+
+      // Fetch exchange rates for wines where cost is not in SEK and exchange_rate is missing (so Cost is shown in SEK)
+      const currenciesNeedingRate = new Set<string>();
+      for (const w of winesData ?? []) {
+        const currency = (w.cost_currency || "SEK") as string;
+        const hasCost = (w.cost_amount ?? 0) > 0;
+        if (currency !== "SEK" && hasCost && (w.exchange_rate == null || w.exchange_rate === undefined)) {
+          currenciesNeedingRate.add(currency);
+        }
+      }
+      const rateMap = new Map<string, number>();
+      rateMap.set("SEK", 1);
+      for (const currency of currenciesNeedingRate) {
+        try {
+          const res = await fetch(
+            `${getAppUrl()}/api/exchange-rates?from=${currency}&to=SEK`,
+            { cache: "no-store" },
+          );
+          if (res.ok) {
+            const data = await res.json();
+            if (data.rate != null) rateMap.set(currency, data.rate);
+          }
+        } catch {
+          // keep default
+        }
+      }
+
+      // B2B frakt per flaska och lager från pallar (samma logik som products-data)
+      const b2bShippingMap = new Map<string, number>();
+      const b2bStockMap = new Map<string, number>();
+      try {
+        const { data: palletItems } = await sb
+          .from("b2b_pallet_shipment_items")
+          .select("wine_id, quantity, quantity_sold, shipment_id, b2b_pallet_shipments!inner(cost_cents)")
+          .in("wine_id", wineOrder);
+        const items = (palletItems ?? []) as { wine_id: string; quantity: number; quantity_sold?: number; shipment_id: string; b2b_pallet_shipments: { cost_cents?: number } }[];
+        const shipmentIds = [...new Set(items.map((r) => r.shipment_id).filter(Boolean))];
+        const totalBottlesByShipment = new Map<string, number>();
+        if (shipmentIds.length > 0) {
+          const { data: allItems } = await sb
+            .from("b2b_pallet_shipment_items")
+            .select("shipment_id, quantity")
+            .in("shipment_id", shipmentIds);
+          (allItems ?? []).forEach((row: { shipment_id: string; quantity: number }) => {
+            const sid = row.shipment_id;
+            totalBottlesByShipment.set(sid, (totalBottlesByShipment.get(sid) ?? 0) + (row.quantity ?? 0));
+          });
+        }
+        const byWine = new Map<string, { remaining: number; shippingSum: number }>();
+        items.forEach((row) => {
+          const remaining = Math.max(0, (row.quantity ?? 0) - (row.quantity_sold ?? 0));
+          const costCents = row.b2b_pallet_shipments?.cost_cents ?? 0;
+          const totalBottles = totalBottlesByShipment.get(row.shipment_id) ?? 1;
+          const shippingPerBottle = totalBottles > 0 ? costCents / 100 / totalBottles : 0;
+          const wid = row.wine_id;
+          const curr = byWine.get(wid) ?? { remaining: 0, shippingSum: 0 };
+          curr.remaining += remaining;
+          curr.shippingSum += shippingPerBottle * remaining;
+          byWine.set(wid, curr);
+        });
+        byWine.forEach((v, wid) => {
+          b2bStockMap.set(wid, v.remaining);
+          if (v.remaining > 0) b2bShippingMap.set(wid, v.shippingSum / v.remaining);
+        });
+      } catch {
+        /* table may not exist */
+      }
 
       for (const wineId of wineOrder) {
         const wine = winesMap.get(wineId);
@@ -162,6 +256,45 @@ export async function GET(
               ) / 10
             : null;
 
+        const prods = (wine as any).producers;
+        const producerName =
+          prods && typeof prods === "object" && !Array.isArray(prods)
+            ? prods.name ?? null
+            : Array.isArray(prods) && prods[0]?.name
+              ? prods[0].name
+              : null;
+        const baseCents = (wine as any).base_price_cents ?? null;
+        const priceInclVat = (wine as any).price_includes_vat !== false;
+        const w = wine as any;
+        const costCurrency = (w.cost_currency || "SEK") as string;
+        const effectiveExchangeRate =
+          w.exchange_rate ?? rateMap.get(costCurrency) ?? 1;
+        const costAmount = w.cost_amount ?? 0;
+        const alcoholTaxCents = w.alcohol_tax_cents ?? 0;
+        const b2bMarginPct = w.b2b_margin_percentage ?? null;
+        const hasB2BMargin =
+          b2bMarginPct != null &&
+          b2bMarginPct >= 0 &&
+          b2bMarginPct < 100 &&
+          costAmount > 0;
+        const shippingPerBottleSek = b2bShippingMap.get(wineId) ?? 0;
+        // Use stored B2B price from admin when set; otherwise fall back to calculation
+        const storedB2BCents = (w as { b2b_price_cents?: number | null }).b2b_price_cents;
+        const b2bPriceExclVat =
+          storedB2BCents != null && storedB2BCents > 0
+            ? Math.round(storedB2BCents) / 100
+            : hasB2BMargin
+              ? Math.round(
+                  calculateB2BPriceExclVat(
+                    costAmount,
+                    effectiveExchangeRate,
+                    alcoholTaxCents,
+                    b2bMarginPct,
+                    shippingPerBottleSek,
+                  ) * 100,
+                ) / 100
+              : null;
+        const storedCostSek = (w as { b2b_cost_sek?: number | null }).b2b_cost_sek;
         wines.push({
           wine: {
             id: wine.id,
@@ -170,6 +303,24 @@ export async function GET(
             grape_varieties: wine.grape_varieties,
             color: wine.color,
             label_image_path: wine.label_image_path,
+            description: w.description ?? null,
+            base_price_cents: baseCents,
+            price_includes_vat: priceInclVat,
+            cost_amount: w.cost_amount ?? null,
+            exchange_rate: effectiveExchangeRate,
+            alcohol_tax_cents: w.alcohol_tax_cents ?? null,
+            margin_percentage: w.margin_percentage ?? null,
+            b2b_margin_percentage: b2bMarginPct,
+            b2b_price_excl_vat: b2bPriceExclVat,
+            b2b_cost_sek: storedCostSek != null ? Number(storedCostSek) : null,
+            b2b_shipping_per_bottle_sek: hasB2BMargin ? shippingPerBottleSek : null,
+            b2b_stock: (() => {
+              const fromPallets = b2bStockMap.get(wineId);
+              if (fromPallets != null) return fromPallets;
+              const fromWine = (wine as { b2b_stock?: number | null }).b2b_stock;
+              return fromWine != null ? Number(fromWine) : null;
+            })(),
+            producer_name: producerName ?? null,
           },
           totalRatings: totalR,
           averageRating: avg,
