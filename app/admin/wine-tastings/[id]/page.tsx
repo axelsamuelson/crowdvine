@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getAppUrl } from "@/lib/app-url";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -29,7 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Settings, Users, Eye, Trash2, Plus, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Check, ChevronsUpDown, X, QrCode, GripVertical } from "lucide-react";
+import { ArrowLeft, Settings, Users, Eye, Trash2, Plus, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Check, ChevronsUpDown, X, QrCode, GripVertical, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import Image from "next/image";
@@ -56,6 +56,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+  fetchTastingPdfData,
+  captureTastingPdfToDownload,
+  waitForImages,
+  type TastingPdfData,
+} from "@/lib/wine-tasting-pdf";
+import { TastingPdfTemplate } from "@/components/admin/tasting-pdf-template";
 
 function getImageUrl(path: string | null | undefined): string | null {
   if (!path) return null;
@@ -104,6 +111,9 @@ export default function WineTastingDetailPage() {
   const [businessOpen, setBusinessOpen] = useState(false);
   const [businessSearch, setBusinessSearch] = useState("");
   const [draggedWineIndex, setDraggedWineIndex] = useState<number | null>(null);
+  const [pdfExporting, setPdfExporting] = useState(false);
+  const [pdfExportData, setPdfExportData] = useState<TastingPdfData | null>(null);
+  const pdfRef = useRef<HTMLDivElement>(null);
 
   const isNewPage = id === "new";
 
@@ -157,6 +167,35 @@ export default function WineTastingDetailPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!pdfExportData || !pdfRef.current) return;
+    const el = pdfRef.current;
+    const fileName = `vinlistan-${(pdfExportData.session.name || "tasting").replace(/[^a-z0-9-]/gi, "-").toLowerCase()}.pdf`;
+    let cancelled = false;
+    const run = async () => {
+      await new Promise((r) => setTimeout(r, 150));
+      if (cancelled || !pdfRef.current) return;
+      await waitForImages(pdfRef.current);
+      if (cancelled) return;
+      await captureTastingPdfToDownload(pdfRef.current, fileName);
+      if (cancelled) return;
+      setPdfExportData(null);
+      toast.success("PDF nedladdad");
+    };
+    run().catch((e) => {
+      if (!cancelled) {
+        console.error(e);
+        toast.error(e instanceof Error ? e.message : "Kunde inte skapa PDF");
+        setPdfExportData(null);
+      }
+    }).finally(() => {
+      if (!cancelled) setPdfExporting(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [pdfExportData]);
 
   useEffect(() => {
     if (!session || session.id !== id) return;
@@ -667,8 +706,24 @@ export default function WineTastingDetailPage() {
     );
   }
 
+  const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+
   return (
     <>
+    {/* Hidden div for PDF capture – same approach as invoice (html2canvas captures DOM with real <img>) */}
+    {pdfExportData && (
+      <div
+        ref={pdfRef}
+        aria-hidden
+        className="fixed left-[-9999px] top-0 z-[-1] w-[794px] bg-white"
+      >
+        <TastingPdfTemplate
+          session={pdfExportData.session}
+          wines={pdfExportData.wines}
+          baseUrl={baseUrl}
+        />
+      </div>
+    )}
     <main className="min-h-screen bg-neutral-50">
       <div className="max-w-5xl mx-auto px-4 md:px-6 pt-6 md:pt-8 pb-8 space-y-5 md:space-y-6">
         {/* Header: Back, title, actions */}
@@ -686,6 +741,26 @@ export default function WineTastingDetailPage() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl border-neutral-200"
+              disabled={pdfExporting || (session.wines?.length ?? 0) === 0}
+              onClick={async () => {
+                setPdfExporting(true);
+                try {
+                  const data = await fetchTastingPdfData(id);
+                  setPdfExportData(data);
+                } catch (e) {
+                  console.error(e);
+                  toast.error(e instanceof Error ? e.message : "Kunde inte hämta vinlistan");
+                  setPdfExporting(false);
+                }
+              }}
+            >
+              <FileDown className="w-4 h-4 mr-2" />
+              {pdfExporting ? "Skapar PDF…" : "Export PDF"}
+            </Button>
             <Button variant="outline" size="sm" className="rounded-xl border-neutral-200" onClick={() => setQrDialogOpen(true)}>
               <QrCode className="w-4 h-4 mr-2" />
               QR & länk

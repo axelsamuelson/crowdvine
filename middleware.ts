@@ -91,6 +91,12 @@ async function runMiddleware(req: NextRequest) {
     userAgent: req.headers.get("user-agent")?.substring(0, 50),
   });
 
+  const host = req.nextUrl.hostname.toLowerCase();
+  const onB2BProduction = host.includes("dirtywine.se");
+  const onLocalhost = host === "localhost" || host === "127.0.0.1";
+  const forceB2B = req.nextUrl.searchParams.get("b2b") === "1";
+  const isB2BDomain = onB2BProduction || (onLocalhost && forceB2B);
+
   if (!isPublic) {
     // Check for admin authentication first (for admin routes)
     const adminAuthCookie = req.cookies.get("admin-auth")?.value;
@@ -102,7 +108,13 @@ async function runMiddleware(req: NextRequest) {
       return res;
     }
 
-    // Först kontrollera om användaren är inloggad (normal auth)
+    // dirtywine.se: no login required – allow access without auth (admin paths still require admin cookie above)
+    if (onB2BProduction && !isAdminPath) {
+      console.log("✅ MIDDLEWARE: dirtywine.se – allowing without login:", pathname);
+      return res;
+    }
+
+    // pactwines.com (and localhost without ?b2b=1): require login
     if (!user) {
       console.log(
         "🚫 MIDDLEWARE: No user found, redirecting to access-request",
@@ -133,32 +145,15 @@ async function runMiddleware(req: NextRequest) {
       profileRole: profile?.role,
     });
 
-    // dirtywine.se: redirect users without business access to pactwines.com (admin bypasses)
-    const host = req.nextUrl.hostname.toLowerCase();
-    const onB2BProduction = host.includes("dirtywine.se");
-    const onLocalhost = host === "localhost" || host === "127.0.0.1";
-    const forceB2B = req.nextUrl.searchParams.get("b2b") === "1";
-    const isB2BDomain = onB2BProduction || (onLocalhost && forceB2B);
-
-    if (isB2BDomain) {
+    // localhost with ?b2b=1: require business access (dirtywine.se allows all without login)
+    if (onLocalhost && forceB2B) {
       const isAdmin = profile?.role === "admin";
       const portalAccess =
         profile?.portal_access && Array.isArray(profile.portal_access)
           ? profile.portal_access
           : ["user"];
       const canAccessB2B = portalAccess.includes("business");
-
       if (!canAccessB2B && !isAdmin) {
-        console.log(
-          "🚫 MIDDLEWARE: No business access on dirtywine.se, redirecting to access-request",
-        );
-        if (onB2BProduction) {
-          const accessRequest = new URL("/access-request", req.url);
-          accessRequest.searchParams.set("reason", "no_b2b");
-          accessRequest.searchParams.set("redirectedFrom", pathname);
-          return NextResponse.redirect(accessRequest);
-        }
-        // localhost: remove b2b param to show B2C
         const url = new URL(req.url);
         url.searchParams.delete("b2b");
         return NextResponse.redirect(url);

@@ -149,7 +149,7 @@ export async function GET(
     if (wineOrder.length > 0) {
       const { data: winesData } = await sb
         .from("wines")
-        .select("id, wine_name, vintage, grape_varieties, color, label_image_path, description, base_price_cents, price_includes_vat, cost_amount, cost_currency, exchange_rate, alcohol_tax_cents, margin_percentage, b2b_price_cents, b2b_cost_sek, b2b_margin_percentage, b2b_stock, producers(name)")
+        .select("id, wine_name, vintage, grape_varieties, color, label_image_path, description, base_price_cents, price_includes_vat, cost_amount, cost_currency, exchange_rate, alcohol_tax_cents, margin_percentage, b2b_margin_percentage, b2b_stock, producers(name)")
         .in("id", wineOrder);
 
       const winesMap = new Map((winesData ?? []).map((w: any) => [w.id, w]));
@@ -277,24 +277,20 @@ export async function GET(
           b2bMarginPct >= 0 &&
           b2bMarginPct < 100 &&
           costAmount > 0;
+        // Same as dirtywine.se (products-data): per-wine shipping from pallets, always calculate B2B price
         const shippingPerBottleSek = b2bShippingMap.get(wineId) ?? 0;
-        // Use stored B2B price from admin when set; otherwise fall back to calculation
-        const storedB2BCents = (w as { b2b_price_cents?: number | null }).b2b_price_cents;
         const b2bPriceExclVat =
-          storedB2BCents != null && storedB2BCents > 0
-            ? Math.round(storedB2BCents) / 100
-            : hasB2BMargin
-              ? Math.round(
-                  calculateB2BPriceExclVat(
-                    costAmount,
-                    effectiveExchangeRate,
-                    alcoholTaxCents,
-                    b2bMarginPct,
-                    shippingPerBottleSek,
-                  ) * 100,
-                ) / 100
-              : null;
-        const storedCostSek = (w as { b2b_cost_sek?: number | null }).b2b_cost_sek;
+          hasB2BMargin
+            ? Math.round(
+                calculateB2BPriceExclVat(
+                  costAmount,
+                  effectiveExchangeRate,
+                  alcoholTaxCents,
+                  b2bMarginPct,
+                  shippingPerBottleSek,
+                ) * 100,
+              ) / 100
+            : null;
         wines.push({
           wine: {
             id: wine.id,
@@ -312,7 +308,7 @@ export async function GET(
             margin_percentage: w.margin_percentage ?? null,
             b2b_margin_percentage: b2bMarginPct,
             b2b_price_excl_vat: b2bPriceExclVat,
-            b2b_cost_sek: storedCostSek != null ? Number(storedCostSek) : null,
+            b2b_cost_sek: null,
             b2b_shipping_per_bottle_sek: hasB2BMargin ? shippingPerBottleSek : null,
             b2b_stock: (() => {
               const fromPallets = b2bStockMap.get(wineId);

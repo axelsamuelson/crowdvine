@@ -57,7 +57,7 @@ function computeBreakdown(wine: TastingWineModalData): PriceBreakdown | null {
   const costInSek = costAmount * exchangeRate;
   const alcoholTaxSek = alcoholTaxCents / 100;
 
-  // B2B breakdown: use stored cost from admin (b2b_cost_sek) when present so Cost and Vinst match admin exactly
+  // B2B breakdown: same as dirtywine.se – cost from cost_amount × exchange_rate (or stored b2b_cost_sek if set)
   const b2bPrice = wine.b2b_price_excl_vat;
   const b2bMarginPct = wine.b2b_margin_percentage;
   const shippingPerBottle = wine.b2b_shipping_per_bottle_sek ?? 0;
