@@ -154,18 +154,17 @@ export async function GET(
 
       const winesMap = new Map((winesData ?? []).map((w: any) => [w.id, w]));
 
-      // Fetch exchange rates for wines where cost is not in SEK and exchange_rate is missing (so Cost is shown in SEK)
-      const currenciesNeedingRate = new Set<string>();
-      for (const w of winesData ?? []) {
-        const currency = (w.cost_currency || "SEK") as string;
-        const hasCost = (w.cost_amount ?? 0) > 0;
-        if (currency !== "SEK" && hasCost && (w.exchange_rate == null || w.exchange_rate === undefined)) {
-          currenciesNeedingRate.add(currency);
-        }
-      }
+      // Exchange rates: same logic as dirtywine.se (products-data) – default cost_currency EUR, prefer API rate
+      const currencies = [
+        ...new Set(
+          (winesData ?? [])
+            .map((w: any) => (w.cost_currency || "EUR") as string)
+            .filter((c: string) => c),
+        ),
+      ] as string[];
       const rateMap = new Map<string, number>();
       rateMap.set("SEK", 1);
-      for (const currency of currenciesNeedingRate) {
+      for (const currency of currencies.filter((c) => c !== "SEK")) {
         try {
           const res = await fetch(
             `${getAppUrl()}/api/exchange-rates?from=${currency}&to=SEK`,
@@ -176,7 +175,7 @@ export async function GET(
             if (data.rate != null) rateMap.set(currency, data.rate);
           }
         } catch {
-          // keep default
+          /* keep default */
         }
       }
 
@@ -266,9 +265,9 @@ export async function GET(
         const baseCents = (wine as any).base_price_cents ?? null;
         const priceInclVat = (wine as any).price_includes_vat !== false;
         const w = wine as any;
-        const costCurrency = (w.cost_currency || "SEK") as string;
+        const costCurrency = (w.cost_currency || "EUR") as string;
         const effectiveExchangeRate =
-          w.exchange_rate ?? rateMap.get(costCurrency) ?? 1;
+          rateMap.get(costCurrency) ?? w.exchange_rate ?? 1;
         const costAmount = w.cost_amount ?? 0;
         const alcoholTaxCents = w.alcohol_tax_cents ?? 0;
         const b2bMarginPct = w.b2b_margin_percentage ?? null;
