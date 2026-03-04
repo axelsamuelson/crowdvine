@@ -29,6 +29,8 @@ export interface InvoiceWine {
   vintage: string;
   producers?: { name?: string } | null;
   base_price_cents?: number | null;
+  /** Warehouse (B2B) price exkl. moms in SEK – same as tasting summary / dirtywine.se. Use as default when adding to invoice. */
+  b2b_price_excl_vat?: number | null;
 }
 
 export interface InvoiceRecipientOption {
@@ -92,7 +94,7 @@ export function InvoiceForm({
     const fetchWines = async () => {
       setWinesLoading(true);
       try {
-        const res = await fetch("/api/admin/wines");
+        const res = await fetch("/api/admin/wines?for_invoice=1");
         if (res.ok) {
           const data = await res.json();
           setWines(Array.isArray(data) ? data : []);
@@ -576,7 +578,9 @@ export function InvoiceForm({
                       {wines.map((wine) => {
                         const label = [wine.wine_name, wine.vintage].filter(Boolean).join(" ");
                         const producer = wine.producers?.name ?? "";
-                        const price = Number(wine.base_price_cents ?? 0) / 100;
+                        const warehousePrice = wine.b2b_price_excl_vat ?? null;
+                        const fallbackPrice = Number(wine.base_price_cents ?? 0) / 100;
+                        const price = warehousePrice ?? fallbackPrice;
                         return (
                           <CommandItem
                             key={wine.id}
@@ -588,7 +592,7 @@ export function InvoiceForm({
                               {producer && <span className="text-muted-foreground"> – {producer}</span>}
                             </span>
                             <span className="shrink-0 text-sm text-muted-foreground ml-2">
-                              {price > 0 ? `${Math.round(price)} SEK` : "–"}
+                              {price > 0 ? `${Math.round(price)} kr exkl. moms` : "–"}
                             </span>
                           </CommandItem>
                         );

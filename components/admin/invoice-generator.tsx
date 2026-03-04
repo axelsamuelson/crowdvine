@@ -294,17 +294,19 @@ export default function InvoiceGenerator() {
     });
   };
 
-  /** Add a line item from a selected wine (admin wines list). */
+  /** Add a line item from a selected wine. Uses warehouse (B2B) price exkl. moms by default, same as tasting summary / dirtywine.se. */
   const addItemFromWine = (wine: {
     wine_name: string;
     vintage: string;
     producers?: { name?: string } | null;
     base_price_cents?: number | null;
+    b2b_price_excl_vat?: number | null;
   }) => {
     const producerName = wine.producers?.name;
     const description = [wine.wine_name, wine.vintage].filter(Boolean).join(" ") +
       (producerName ? ` – ${producerName}` : "");
-    const price = (wine.base_price_cents || 0) / 100;
+    const warehousePrice = wine.b2b_price_excl_vat ?? null;
+    const price = warehousePrice ?? (wine.base_price_cents ?? 0) / 100;
     setInvoiceData({
       ...invoiceData,
       items: [
@@ -313,7 +315,7 @@ export default function InvoiceGenerator() {
           id: uuidv4(),
           description,
           quantity: 1,
-          price,
+          price: Math.round(price * 100) / 100,
           currency: invoiceData.currency,
           exchangeRate: 1,
           discountType: "percentage",
