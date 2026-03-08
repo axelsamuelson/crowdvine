@@ -73,6 +73,7 @@ export default function PriceSourcesPage() {
   const [refreshSourceId, setRefreshSourceId] = useState<string>("__all__");
   const [detecting, setDetecting] = useState(false);
   const [detectedPlatform, setDetectedPlatform] = useState<string | null>(null);
+  const [detectionFailed, setDetectionFailed] = useState(false);
   const [offers, setOffers] = useState<
     Array<{
       id: string;
@@ -230,9 +231,26 @@ export default function PriceSourcesPage() {
       if (adapter_type) {
         setForm((f) => ({ ...f, adapter_type }));
         setDetectedPlatform(adapter_type);
-        toast.success(`Plattform detekterad: ${adapter_type === "shopify" ? "Shopify" : adapter_type === "woocommerce" ? "WooCommerce" : adapter_type}`);
+        setDetectionFailed(false);
+        toast.success(`Plattform detekterad: ${adapter_type === "shopify" ? "Shopify" : adapter_type === "woocommerce" ? "WooCommerce" : adapter_type === "prestashop" ? "PrestaShop" : adapter_type === "webnode" ? "Webnode" : adapter_type === "lightspeed" ? "Lightspeed" : adapter_type === "drupal" ? "Drupal" : adapter_type === "vin_sensible" ? "Vin Sensible" : adapter_type}`);
       } else {
-        toast.info("Kunde inte identifiera plattformen. Välj manuellt nedan.");
+        setDetectionFailed(true);
+        const urlLower = url.toLowerCase();
+        if (urlLower.includes("hedonism")) {
+          setForm((f) => ({ ...f, adapter_type: "drupal" }));
+          setDetectedPlatform("drupal");
+          toast.success("Plattform kunde inte detekteras (t.ex. Cloudflare). Drupal är vald för hedonism.co.uk – spara källan om det stämmer.");
+        } else if (urlLower.includes("altrovino")) {
+          setForm((f) => ({ ...f, adapter_type: "prestashop" }));
+          setDetectedPlatform("prestashop");
+          toast.success("Plattform kunde inte detekteras (t.ex. 403). PrestaShop är vald för altrovino.be – spara källan om det stämmer.");
+        } else if (urlLower.includes("vin-sensible")) {
+          setForm((f) => ({ ...f, adapter_type: "vin_sensible" }));
+          setDetectedPlatform("vin_sensible");
+          toast.success("Plattform kunde inte detekteras. Vin Sensible är vald för boutique.vin-sensible.fr – spara källan om det stämmer.");
+        } else {
+          toast.info("Kunde inte identifiera plattformen. Välj plattform manuellt i listan nedan.");
+        }
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Kunde inte detektera plattform");
@@ -420,10 +438,19 @@ export default function PriceSourcesPage() {
                     </TableCell>
                     <TableCell>{o.available ? "Ja" : "Nej"}</TableCell>
                     <TableCell>
-                      <div className="flex flex-col gap-0.5 text-sm">
-                        <span className="text-muted-foreground">
-                          {Math.round((o.match_confidence ?? 0) * 100)}%
-                        </span>
+                      <div className="flex flex-col gap-1.5 text-sm">
+                        {(() => {
+                          const pct = (o.match_confidence ?? 0) * 100;
+                          const isApproved = pct >= 40;
+                          return (
+                            <Badge
+                              variant={isApproved ? "default" : "destructive"}
+                              className={isApproved ? "bg-green-600 hover:bg-green-700 text-white w-fit" : "w-fit"}
+                            >
+                              {isApproved ? "Godkänd" : "Ej godkänd"} ({Math.round(pct)}%)
+                            </Badge>
+                          );
+                        })()}
                         <div className="flex flex-wrap gap-x-3 gap-y-0 text-xs text-muted-foreground">
                           <span title={o.producer_match ? "Producent matchar butikens titel" : "Producent matchar inte"}>
                             Producent: {o.producer_match ? "✓" : "✗"}
@@ -522,7 +549,7 @@ export default function PriceSourcesPage() {
                 <Label>Adapter</Label>
                 {detectedPlatform && (
                   <Badge variant="secondary" className="font-normal text-xs shrink-0">
-                    Detekterad: {detectedPlatform === "shopify" ? "Shopify" : detectedPlatform === "woocommerce" ? "WooCommerce" : detectedPlatform}
+                    Detekterad: {detectedPlatform === "shopify" ? "Shopify" : detectedPlatform === "woocommerce" ? "WooCommerce" : detectedPlatform === "prestashop" ? "PrestaShop" : detectedPlatform === "webnode" ? "Webnode" : detectedPlatform === "lightspeed" ? "Lightspeed" : detectedPlatform === "drupal" ? "Drupal" : detectedPlatform === "vin_sensible" ? "Vin Sensible" : detectedPlatform}
                   </Badge>
                 )}
               </div>
@@ -531,19 +558,30 @@ export default function PriceSourcesPage() {
                 onValueChange={(v) => {
                   setForm((f) => ({ ...f, adapter_type: v }));
                   setDetectedPlatform(null);
+                  setDetectionFailed(false);
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Välj plattform" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="shopify">Shopify</SelectItem>
                   <SelectItem value="woocommerce">WooCommerce</SelectItem>
+                  <SelectItem value="prestashop">PrestaShop</SelectItem>
+                  <SelectItem value="webnode">Webnode</SelectItem>
+                  <SelectItem value="lightspeed">Lightspeed</SelectItem>
+                  <SelectItem value="drupal">Drupal (t.ex. hedonism.co.uk)</SelectItem>
+                  <SelectItem value="vin_sensible">Vin Sensible (boutique.vin-sensible.fr)</SelectItem>
                 </SelectContent>
               </Select>
               {detectedPlatform && (
                 <p className="text-xs text-muted-foreground">
                   Du behöver inte ändra adapter – den sattes automatiskt från webbadressen.
+                </p>
+              )}
+              {detectionFailed && !detectedPlatform && (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  Detektering lyckades inte (t.ex. Cloudflare eller 403). Välj rätt plattform i listan ovan – t.ex. Drupal för hedonism.co.uk, PrestaShop för altrovino.be, Vin Sensible för boutique.vin-sensible.fr.
                 </p>
               )}
             </div>

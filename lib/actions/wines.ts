@@ -40,13 +40,18 @@ export interface Wine {
   // Description fields
   description?: string;
   description_html?: string;
+  summary?: string | null;
   // Extra info (admin/wines)
   terroir_soil?: string | null;
   production_method?: string | null;
   tasting_profile_character?: string | null;
   classification?: string | null;
   tasting_notes?: string | null;
-  alcohol_percentage?: number | null;
+  // Specs (PDP bullet list)
+  appellation?: string | null;
+  terroir?: string | null;
+  vinification?: string | null;
+  abv?: string | null;
   // B2B
   b2b_price_cents?: number | null;
   b2b_cost_sek?: number | null;
@@ -78,6 +83,7 @@ export interface CreateWineData {
   // Description fields
   description?: string;
   description_html?: string;
+  summary?: string | null;
   // Extra info (admin/wines)
   terroir_soil?: string | null;
   production_method?: string | null;
@@ -85,6 +91,11 @@ export interface CreateWineData {
   classification?: string | null;
   tasting_notes?: string | null;
   alcohol_percentage?: number | null;
+  // Specs (PDP bullet list)
+  appellation?: string | null;
+  terroir?: string | null;
+  vinification?: string | null;
+  abv?: string | null;
   // B2B
   b2b_price_cents?: number | null;
   b2b_cost_sek?: number | null;
@@ -116,12 +127,18 @@ const WINES_SELECT_FULL = `
   volume_liters,
   description,
   description_html,
+  summary,
   terroir_soil,
   production_method,
   tasting_profile_character,
   classification,
   tasting_notes,
   alcohol_percentage,
+  volume_liters,
+  appellation,
+  terroir,
+  vinification,
+  abv,
   b2b_price_cents,
   b2b_cost_sek,
   b2b_margin_percentage,
@@ -152,14 +169,46 @@ const WINES_SELECT_WITHOUT_B2B = `
   volume_liters,
   description,
   description_html,
+  summary,
   terroir_soil,
   production_method,
   tasting_profile_character,
   classification,
   tasting_notes,
   alcohol_percentage,
-  b2b_price_cents,
-  b2b_cost_sek,
+  volume_liters,
+  appellation,
+  terroir,
+  vinification,
+  abv,
+  is_live,
+  created_at,
+  updated_at
+`;
+
+/** Select without summary column (for DBs that have not run migration 089). */
+const WINES_SELECT_FULL_NO_SUMMARY = `
+  id,
+  handle,
+  wine_name,
+  vintage,
+  grape_varieties,
+  color,
+  label_image_path,
+  base_price_cents,
+  producer_id,
+  cost_currency,
+  cost_amount,
+  exchange_rate,
+  alcohol_tax_cents,
+  price_includes_vat,
+  margin_percentage,
+  calculated_price_cents,
+  supplier_price,
+  sb_price,
+  volume_liters,
+  description,
+  description_html,
   b2b_margin_percentage,
   b2b_stock,
   is_live,
@@ -167,8 +216,34 @@ const WINES_SELECT_WITHOUT_B2B = `
   updated_at
 `;
 
-/** Select without optional columns that may not exist before migration 087 */
+/** Select without optional columns (B2B, summary, specs, extra info) for fallback when columns missing. */
 const WINES_SELECT_LEGACY = `
+  id,
+  handle,
+  wine_name,
+  vintage,
+  grape_varieties,
+  color,
+  label_image_path,
+  base_price_cents,
+  producer_id,
+  cost_currency,
+  cost_amount,
+  alcohol_tax_cents,
+  price_includes_vat,
+  margin_percentage,
+  calculated_price_cents,
+  supplier_price,
+  sb_price,
+  volume_liters,
+  description,
+  description_html,
+  is_live,
+  created_at,
+  updated_at
+`;
+
+const WINES_SELECT_WITHOUT_B2B_NO_SUMMARY = `
   id,
   handle,
   wine_name,
@@ -204,6 +279,16 @@ function isOptionalColumnMissingError(error: { message?: string } | null): boole
   return /terroir_soil|production_method|tasting_profile_character|classification|tasting_notes|alcohol_percentage|column.*does not exist/i.test(msg);
 }
 
+function isSummaryColumnMissingError(error: { message?: string } | null): boolean {
+  const msg = error?.message ?? "";
+  return /column.*summary.*does not exist|summary.*does not exist/i.test(msg);
+}
+
+function isSpecsColumnMissingError(error: { message?: string } | null): boolean {
+  const msg = error?.message ?? "";
+  return /column.*wines\.(appellation|terroir|vinification|abv).*does not exist/i.test(msg);
+}
+
 export async function getWines() {
   const sb = await supabaseServer();
 
@@ -212,30 +297,61 @@ export async function getWines() {
     .select(WINES_SELECT_FULL)
     .order("wine_name");
 
-  if (error && (isB2BColumnMissingError(error) || isOptionalColumnMissingError(error))) {
+  if (error && (isB2BColumnMissingError(error) || isOptionalColumnMissingError(error) || isSummaryColumnMissingError(error) || isSpecsColumnMissingError(error))) {
     const fallbackSelect = isOptionalColumnMissingError(error) ? WINES_SELECT_LEGACY : WINES_SELECT_WITHOUT_B2B;
-    const fallback = await sb
+    let fallback = await sb
       .from("wines")
       .select(fallbackSelect)
       .order("wine_name");
-    if (fallback.error) throw new Error(fallback.error.message);
-    const legacy = (fallback.data ?? []) as any[];
-    wines = legacy.map((w: any) => ({
-      ...w,
-      b2b_price_cents: w.b2b_price_cents ?? null,
-      b2b_cost_sek: w.b2b_cost_sek ?? null,
-      b2b_margin_percentage: w.b2b_margin_percentage ?? null,
-      b2b_stock: w.b2b_stock ?? null,
-      terroir_soil: w.terroir_soil ?? null,
-      production_method: w.production_method ?? null,
-      tasting_profile_character: w.tasting_profile_character ?? null,
-      classification: w.classification ?? null,
-      tasting_notes: w.tasting_notes ?? null,
-      alcohol_percentage: w.alcohol_percentage ?? null,
-    }));
-  } else if (error) {
-    throw new Error(error.message);
+    if (fallback.error && (isSummaryColumnMissingError(fallback.error) || isSpecsColumnMissingError(fallback.error))) {
+      fallback = await sb
+        .from("wines")
+        .select(WINES_SELECT_WITHOUT_B2B_NO_SUMMARY)
+        .order("wine_name");
+      if (!fallback.error && fallback.data) {
+        wines = (fallback.data as any[]).map((w: any) => ({
+          ...w,
+          b2b_price_cents: null,
+          b2b_cost_sek: null,
+          b2b_margin_percentage: null,
+          b2b_stock: null,
+          summary: null,
+          terroir_soil: null,
+          production_method: null,
+          tasting_profile_character: null,
+          classification: null,
+          tasting_notes: null,
+          alcohol_percentage: null,
+          appellation: null,
+          terroir: null,
+          vinification: null,
+          abv: null,
+        }));
+        error = null;
+      }
+    } else if (!fallback.error) {
+      wines = (fallback.data ?? []).map((w: any) => ({
+        ...w,
+        b2b_price_cents: w.b2b_price_cents ?? null,
+        b2b_cost_sek: w.b2b_cost_sek ?? null,
+        b2b_margin_percentage: w.b2b_margin_percentage ?? null,
+        b2b_stock: w.b2b_stock ?? null,
+        terroir_soil: w.terroir_soil ?? null,
+        production_method: w.production_method ?? null,
+        tasting_profile_character: w.tasting_profile_character ?? null,
+        classification: w.classification ?? null,
+        tasting_notes: w.tasting_notes ?? null,
+        alcohol_percentage: w.alcohol_percentage ?? null,
+        summary: (w as any).summary ?? null,
+        appellation: (w as any).appellation ?? null,
+        terroir: (w as any).terroir ?? null,
+        vinification: (w as any).vinification ?? null,
+        abv: (w as any).abv ?? null,
+      }));
+      error = null;
+    }
   }
+  if (error) throw new Error(error.message);
 
   const wineList = wines ?? [];
   // Get all producers for the wines
@@ -266,31 +382,64 @@ export async function getWine(id: string) {
     .eq("id", id)
     .single();
 
-  if (error && (isB2BColumnMissingError(error) || isOptionalColumnMissingError(error))) {
+  if (error && (isB2BColumnMissingError(error) || isOptionalColumnMissingError(error) || isSummaryColumnMissingError(error) || isSpecsColumnMissingError(error))) {
     const fallbackSelect = isOptionalColumnMissingError(error) ? WINES_SELECT_LEGACY : WINES_SELECT_WITHOUT_B2B;
-    const fallback = await sb
+    let fallback = await sb
       .from("wines")
       .select(fallbackSelect)
       .eq("id", id)
       .single();
-    if (fallback.error) throw new Error(fallback.error.message);
-    const d = fallback.data as any;
-    wine = d ? {
-      ...d,
-      b2b_price_cents: d.b2b_price_cents ?? null,
-      b2b_cost_sek: d.b2b_cost_sek ?? null,
-      b2b_margin_percentage: d.b2b_margin_percentage ?? null,
-      b2b_stock: d.b2b_stock ?? null,
-      terroir_soil: d.terroir_soil ?? null,
-      production_method: d.production_method ?? null,
-      tasting_profile_character: d.tasting_profile_character ?? null,
-      classification: d.classification ?? null,
-      tasting_notes: d.tasting_notes ?? null,
-      alcohol_percentage: d.alcohol_percentage ?? null,
-    } : null;
-  } else if (error) {
-    throw new Error(error.message);
+    if (fallback.error && (isSummaryColumnMissingError(fallback.error) || isSpecsColumnMissingError(fallback.error))) {
+      fallback = await sb
+        .from("wines")
+        .select(WINES_SELECT_WITHOUT_B2B_NO_SUMMARY)
+        .eq("id", id)
+        .single();
+      if (!fallback.error && fallback.data) {
+        wine = {
+          ...fallback.data,
+          b2b_price_cents: null,
+          b2b_cost_sek: null,
+          b2b_margin_percentage: null,
+          b2b_stock: null,
+          summary: null,
+          terroir_soil: null,
+          production_method: null,
+          tasting_profile_character: null,
+          classification: null,
+          tasting_notes: null,
+          alcohol_percentage: null,
+          appellation: null,
+          terroir: null,
+          vinification: null,
+          abv: null,
+        } as any;
+        error = null;
+      }
+    } else if (!fallback.error && fallback.data) {
+      const d = fallback.data as any;
+      wine = {
+        ...d,
+        b2b_price_cents: d.b2b_price_cents ?? null,
+        b2b_cost_sek: d.b2b_cost_sek ?? null,
+        b2b_margin_percentage: d.b2b_margin_percentage ?? null,
+        b2b_stock: d.b2b_stock ?? null,
+        terroir_soil: d.terroir_soil ?? null,
+        production_method: d.production_method ?? null,
+        tasting_profile_character: d.tasting_profile_character ?? null,
+        classification: d.classification ?? null,
+        tasting_notes: d.tasting_notes ?? null,
+        alcohol_percentage: d.alcohol_percentage ?? null,
+        summary: d.summary ?? null,
+        appellation: d.appellation ?? null,
+        terroir: d.terroir ?? null,
+        vinification: d.vinification ?? null,
+        abv: d.abv ?? null,
+      } as any;
+      error = null;
+    }
   }
+  if (error) throw new Error(error.message);
 
   if (!wine) throw new Error("Wine not found");
 
@@ -397,12 +546,17 @@ export async function createWine(data: CreateWineData) {
     volume_liters: data.volume_liters,
     description: data.description,
     description_html: data.description_html,
+    summary: data.summary ?? null,
     terroir_soil: data.terroir_soil ?? null,
     production_method: data.production_method ?? null,
     tasting_profile_character: data.tasting_profile_character ?? null,
     classification: data.classification ?? null,
     tasting_notes: data.tasting_notes ?? null,
     alcohol_percentage: data.alcohol_percentage ?? null,
+    appellation: data.appellation ?? null,
+    terroir: data.terroir ?? null,
+    vinification: data.vinification ?? null,
+    abv: data.abv ?? null,
     b2b_price_cents: data.b2b_price_cents ?? null,
     b2b_cost_sek: data.b2b_cost_sek ?? null,
     b2b_margin_percentage: data.b2b_margin_percentage ?? null,
@@ -412,15 +566,19 @@ export async function createWine(data: CreateWineData) {
 
   let result = await sb.from("wines").insert(insertData).select(WINES_SELECT_FULL).single();
 
-  if (result.error && isB2BColumnMissingError(result.error)) {
+  if (result.error && (isB2BColumnMissingError(result.error) || isSummaryColumnMissingError(result.error) || isSpecsColumnMissingError(result.error))) {
     const { b2b_margin_percentage: _b2bM, b2b_stock: _b2bS, ...insertWithoutB2B } = insertData;
     result = await sb.from("wines").insert(insertWithoutB2B).select(WINES_SELECT_WITHOUT_B2B).single();
-    if (result.error) throw new Error(result.error.message);
-    if (result.data)
+    if (result.error && (isSummaryColumnMissingError(result.error) || isSpecsColumnMissingError(result.error))) {
+      const { summary: _sum, appellation: _a, terroir: _t, vinification: _v, abv: _abv, ...insertWithoutSummary } = insertWithoutB2B;
+      result = await sb.from("wines").insert(insertWithoutSummary).select(WINES_SELECT_WITHOUT_B2B_NO_SUMMARY).single();
+      if (!result.error && result.data)
+        result.data = { ...result.data, b2b_margin_percentage: null, b2b_stock: null, summary: null, appellation: null, terroir: null, vinification: null, abv: null } as typeof result.data;
+    } else if (!result.error && result.data) {
       result.data = { ...result.data, b2b_margin_percentage: null, b2b_stock: null } as typeof result.data;
-  } else if (result.error) {
-    throw new Error(result.error.message);
+    }
   }
+  if (result.error) throw new Error(result.error.message);
 
   const wine = result.data;
   if (!wine) throw new Error("Failed to create wine");
@@ -470,6 +628,11 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
   if (data.description !== undefined) updateData.description = data.description;
   if (data.description_html !== undefined)
     updateData.description_html = data.description_html;
+  if (data.summary !== undefined) updateData.summary = data.summary;
+  if (data.appellation !== undefined) updateData.appellation = data.appellation;
+  if (data.terroir !== undefined) updateData.terroir = data.terroir;
+  if (data.vinification !== undefined) updateData.vinification = data.vinification;
+  if (data.abv !== undefined) updateData.abv = data.abv;
   if (data.b2b_margin_percentage !== undefined)
     updateData.b2b_margin_percentage = data.b2b_margin_percentage;
   if (data.b2b_stock !== undefined)
@@ -605,7 +768,7 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
     .select(WINES_SELECT_FULL)
     .single();
 
-  if (updateResult.error && isB2BColumnMissingError(updateResult.error)) {
+  if (updateResult.error && (isB2BColumnMissingError(updateResult.error) || isSummaryColumnMissingError(updateResult.error) || isSpecsColumnMissingError(updateResult.error))) {
     const { b2b_margin_percentage: _m, b2b_stock: _s, ...updateWithoutB2B } = updateData;
     updateResult = await sb
       .from("wines")
@@ -613,13 +776,21 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
       .eq("id", id)
       .select(WINES_SELECT_WITHOUT_B2B)
       .single();
-    if (updateResult.error) {
-      console.error("Update wine error:", updateResult.error);
-      throw new Error(updateResult.error.message);
-    }
-    if (updateResult.data)
+    if (updateResult.error && (isSummaryColumnMissingError(updateResult.error) || isSpecsColumnMissingError(updateResult.error))) {
+      const { summary: _sum, appellation: _a, terroir: _t, vinification: _v, abv: _abv, ...updateWithoutSummary } = updateWithoutB2B;
+      updateResult = await sb
+        .from("wines")
+        .update(updateWithoutSummary)
+        .eq("id", id)
+        .select(WINES_SELECT_WITHOUT_B2B_NO_SUMMARY)
+        .single();
+      if (!updateResult.error && updateResult.data)
+        updateResult.data = { ...updateResult.data, b2b_margin_percentage: null, b2b_stock: null, summary: null, appellation: null, terroir: null, vinification: null, abv: null } as typeof updateResult.data;
+    } else if (!updateResult.error && updateResult.data) {
       updateResult.data = { ...updateResult.data, b2b_margin_percentage: null, b2b_stock: null } as typeof updateResult.data;
-  } else if (updateResult.error) {
+    }
+  }
+  if (updateResult.error) {
     console.error("Update wine error:", updateResult.error);
     throw new Error(updateResult.error.message);
   }

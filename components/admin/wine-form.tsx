@@ -68,7 +68,8 @@ export default function WineForm({ wine, producers, isProducerView = false }: Wi
     base_price_cents: wine?.base_price_cents ?? 0,
     // Set the existing label_image_path if editing
     label_image_path: wine?.label_image_path || "",
-    // Description
+    // Summary (short text for PDP white box) and Description (long text above Price breakdown)
+    summary: wine?.summary ?? "",
     description: wine?.description || "",
     // Extra info
     terroir_soil: wine?.terroir_soil ?? "",
@@ -78,6 +79,11 @@ export default function WineForm({ wine, producers, isProducerView = false }: Wi
     tasting_notes: wine?.tasting_notes ?? "",
     alcohol_percentage: wine?.alcohol_percentage ?? null,
     volume_liters: wine?.volume_liters ?? 0.75,
+    // Specs (bullet list under description on PDP; Region comes from Producer)
+    appellation: wine?.appellation ?? "",
+    terroir: wine?.terroir ?? "",
+    vinification: wine?.vinification ?? "",
+    abv: wine?.abv ?? "",
     // B2B
     b2b_margin_percentage: wine?.b2b_margin_percentage ?? null,
     b2b_stock: wine?.b2b_stock ?? null,
@@ -173,6 +179,7 @@ export default function WineForm({ wine, producers, isProducerView = false }: Wi
       margin_percentage: isProducerView ? DEFAULT_PRODUCER_MARGIN : (wine.margin_percentage ?? 10.0),
       base_price_cents: wine.base_price_cents ?? 0,
       label_image_path: wine.label_image_path || "",
+      summary: wine.summary ?? "",
       description: wine.description || "",
       terroir_soil: wine.terroir_soil ?? "",
       production_method: wine.production_method ?? "",
@@ -181,6 +188,10 @@ export default function WineForm({ wine, producers, isProducerView = false }: Wi
       tasting_notes: wine.tasting_notes ?? "",
       alcohol_percentage: wine.alcohol_percentage ?? null,
       volume_liters: wine.volume_liters ?? 0.75,
+      appellation: wine.appellation ?? "",
+      terroir: wine.terroir ?? "",
+      vinification: wine.vinification ?? "",
+      abv: wine.abv ?? "",
       b2b_margin_percentage: wine.b2b_margin_percentage ?? null,
       b2b_stock: wine.b2b_stock ?? null,
     }));
@@ -529,7 +540,23 @@ export default function WineForm({ wine, producers, isProducerView = false }: Wi
             disabled={loading}
           />
 
-          {/* Description (above Pricing) */}
+          {/* Summary: short text shown in PDP white box */}
+          <div className="space-y-2">
+            <Label htmlFor="summary">Summary</Label>
+            <Textarea
+              id="summary"
+              value={formData.summary}
+              onChange={(e) => handleChange("summary", e.target.value)}
+              placeholder="Short summary shown in the product page white box..."
+              rows={2}
+            />
+            <p className="text-sm text-muted-foreground">
+              Shown in the white box on the product page. Leave empty to show
+              nothing there.
+            </p>
+          </div>
+
+          {/* Description: long text shown above Price breakdown */}
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Textarea
@@ -540,8 +567,8 @@ export default function WineForm({ wine, producers, isProducerView = false }: Wi
               rows={6}
             />
             <p className="text-sm text-muted-foreground">
-              Leave empty to use auto-generated description based on wine
-              properties.
+              Shown above Price breakdown. Leave empty to use auto-generated
+              description based on wine properties.
             </p>
           </div>
 
@@ -658,6 +685,50 @@ export default function WineForm({ wine, producers, isProducerView = false }: Wi
               </div>
             </CardContent>
           </Card>
+
+          {/* Specs: bullet list under description on PDP (Region from Producer; Appellation, Terroir, Vinification, ABV per wine) */}
+          <div className="space-y-4 rounded-lg border border-border p-4 bg-muted/20">
+            <h3 className="text-sm font-medium">Specifikationer (punktlistan under beskrivning)</h3>
+            <p className="text-sm text-muted-foreground">Region hämtas från producenten.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="appellation">Appellation</Label>
+                <Input
+                  id="appellation"
+                  value={formData.appellation}
+                  onChange={(e) => handleChange("appellation", e.target.value)}
+                  placeholder="e.g. Vin de France"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="terroir">Terroir</Label>
+                <Input
+                  id="terroir"
+                  value={formData.terroir}
+                  onChange={(e) => handleChange("terroir", e.target.value)}
+                  placeholder="e.g. Schist"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="vinification">Vinification</Label>
+                <Input
+                  id="vinification"
+                  value={formData.vinification}
+                  onChange={(e) => handleChange("vinification", e.target.value)}
+                  placeholder="e.g. 60 days skin contact"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="abv">ABV</Label>
+                <Input
+                  id="abv"
+                  value={formData.abv}
+                  onChange={(e) => handleChange("abv", e.target.value)}
+                  placeholder="e.g. 13%"
+                />
+              </div>
+            </div>
+          </div>
 
           {/* Pricing: producer only sets cost; margin is fixed. Admin can set margin. */}
           <PricingCalculator

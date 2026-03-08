@@ -11,6 +11,8 @@ export interface FetchOptions {
   timeoutMs?: number;
   maxRetries?: number;
   delayAfterMs?: number;
+  /** Optional headers (e.g. User-Agent) to send. Merged with defaults; provided values override. */
+  headers?: Record<string, string>;
 }
 
 /** Metadata for a single fetch (diagnostics). */
@@ -57,6 +59,13 @@ export async function fetchWithRetries(
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
 
+  const defaultHeaders: Record<string, string> = {
+    "User-Agent": USER_AGENT,
+    Accept: "text/html, application/xhtml+xml, application/json, application/ld+json",
+    "Accept-Language": "en-US,en;q=0.9",
+  };
+  const headers = { ...defaultHeaders, ...options.headers };
+
   let lastError: Error | null = null;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -65,11 +74,7 @@ export async function fetchWithRetries(
 
       const res = await fetch(url, {
         signal: controller.signal,
-        headers: {
-          "User-Agent": USER_AGENT,
-          Accept: "text/html, application/xhtml+xml, application/json, application/ld+json",
-          "Accept-Language": "en-US,en;q=0.9",
-        },
+        headers,
         redirect: "follow",
       });
 
@@ -116,7 +121,7 @@ export function delay(ms: number): Promise<void> {
 
 /** In-memory TTL cache for PDP content (per URL). Used to avoid re-hitting same URL in one run. */
 const cache = new Map<string, { text: string; expiresAt: number }>();
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 min
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 min (same URL fetched once per run during batch refresh)
 
 export async function fetchWithCache(
   url: string,

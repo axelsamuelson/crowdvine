@@ -35,11 +35,12 @@ export async function POST(request: NextRequest) {
       wineId?: string;
       batchSize?: number;
       sourceId?: string;
+      skipIfFetchedWithinHours?: number;
     };
-    const { wineId, batchSize, sourceId } = body;
+    const { wineId, batchSize, sourceId, skipIfFetchedWithinHours } = body;
 
     if (wineId) {
-      const result = await refreshOffersForWine(wineId, { sourceId });
+      const result = await refreshOffersForWine(wineId, { sourceId, skipIfFetchedWithinHours });
       return NextResponse.json({
         wineId: result.wineId,
         results: result.results,
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const summary = await refreshOffersForAllWines({ batchSize, sourceId });
+    const summary = await refreshOffersForAllWines({ batchSize, sourceId, skipIfFetchedWithinHours });
     return NextResponse.json({
       processed: summary.processed,
       totalWines: summary.totalWines,

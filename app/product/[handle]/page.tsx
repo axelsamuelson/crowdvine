@@ -36,6 +36,10 @@ import { WineBoxDiscountInfo } from "@/components/products/wine-box-discount-inf
 import { ProductViewTracker } from "./components/product-view-tracker";
 import { StockBadge } from "@/components/product/stock-badge";
 import { CartSourceProviderConditional } from "@/components/cart/cart-source-provider-conditional";
+import { CompetitorOffersSection } from "@/components/product/competitor-offers-section";
+import { WineSpecsList } from "@/components/product/wine-specs-list";
+import { getOffersByWineId } from "@/lib/external-prices/db";
+import { getAppUrl, getInternalFetchHeaders } from "@/lib/app-url";
 
 // Generate static params for all products at build time
 export async function generateStaticParams() {
@@ -46,6 +50,13 @@ export async function generateStaticParams() {
 
 // Disable static generation for now - make it dynamic
 export const dynamic = "force-dynamic";
+
+/** Extract vintage year from a title string (e.g. "Pachorra 2023" or competitor title → 2023). */
+function getVintageFromTitle(title: string | null | undefined): number | null {
+  if (!title || typeof title !== "string") return null;
+  const match = title.match(/\b(19\d{2}|20\d{2})\b/);
+  return match ? parseInt(match[1], 10) : null;
+}
 
 export async function generateMetadata(props: {
   params: Promise<{ handle: string }>;
@@ -119,6 +130,61 @@ export default async function ProductPage(props: {
 
   const hasVariants = product.variants.length > 1;
   const hasEvenOptions = product.options.length % 2 === 0;
+
+  let competitorOffers: Array<{
+    price_source_name: string | null;
+    pdp_url: string;
+    price_amount_sek: number | null;
+    /** Vintage/year from the competitor's listing (extracted from title_raw). */
+    vintage: number | null;
+  }> = [];
+  if (product.productType === "wine" && product.id) {
+    try {
+      const offers = await getOffersByWineId(product.id);
+      const approved = offers.filter((o) => (o.match_confidence ?? 0) >= 0.4);
+      const currencies = [
+        ...new Set(
+          approved
+            .map((o) => (o.currency ?? "SEK").toUpperCase())
+            .filter((c) => c && c !== "SEK"),
+        ),
+      ];
+      const rateMap: Record<string, number> = { SEK: 1 };
+      if (currencies.length > 0) {
+        const base = getAppUrl();
+        const headers = getInternalFetchHeaders();
+        await Promise.all(
+          currencies.map(async (c) => {
+            try {
+              const res = await fetch(
+                `${base}/api/exchange-rates?from=${c}&to=SEK`,
+                { cache: "no-store", headers },
+              );
+              const data = res.ok ? await res.json() : null;
+              if (data?.rate && Number.isFinite(data.rate)) rateMap[c] = data.rate;
+            } catch {
+              /* ignore */
+            }
+          }),
+        );
+      }
+      competitorOffers = approved.map((o) => {
+        const amount = o.price_amount != null ? Number(o.price_amount) : null;
+        const currency = (o.currency ?? "SEK").toUpperCase();
+        const rate = rateMap[currency] ?? 1;
+        const price_amount_sek =
+          amount != null ? Math.round(amount * rate * 100) / 100 : null;
+        return {
+          price_source_name: o.price_source?.name ?? null,
+          pdp_url: o.pdp_url,
+          price_amount_sek,
+          vintage: getVintageFromTitle(o.title_raw),
+        };
+      });
+    } catch {
+      competitorOffers = [];
+    }
+  }
 
   return (
     <CartSourceProviderConditional>
@@ -200,10 +266,12 @@ export default async function ProductPage(props: {
                   />
                 </div>
 
-                {/* Row 1, Col 2: Description */}
-                <p className="text-sm font-medium md:col-start-2 md:row-start-1">
-                  {product.description}
-                </p>
+                {/* Row 1, Col 2: Summary only (short text for white box); empty = show nothing */}
+                {product.summary ? (
+                  <p className="text-sm font-medium md:col-start-2 md:row-start-1">
+                    {product.summary}
+                  </p>
+                ) : null}
 
                 {/* Row 2, Col 1: Price only; breakdown is in separate box below */}
                 <div className="flex gap-3 items-center text-lg font-semibold lg:text-xl 2xl:text-2xl max-md:mt-4 md:col-start-1 md:row-start-2">
@@ -235,15 +303,23 @@ export default async function ProductPage(props: {
                   <VariantSelectorSlots product={product} />
                 </Suspense>
               </div>
+              {/* Description (long text) above Price breakdown, below Grape Varieties */}
+              <Prose
+                className="col-span-full opacity-70 max-md:order-3"
+                html={product.descriptionHtml}
+              />
+              {/* Wine specs in bullet form (Region, Appellation, Terroir, Vinification, ABV) */}
+              {product.productType === "wine" && product.specs && Object.keys(product.specs).length > 0 ? (
+                <div className="col-span-full mt-4">
+                  <WineSpecsList specs={product.specs} />
+                </div>
+              ) : null}
               {/* Price info in its own white box under grape varieties / color */}
               <ProductPriceInfoBox product={product} />
+              {/* Competitor prices: where else this wine is available */}
+              <CompetitorOffersSection offers={competitorOffers} />
             </div>
           </div>
-
-          <Prose
-            className="col-span-full mb-auto opacity-70 max-md:order-3 max-md:my-6"
-            html={product.descriptionHtml}
-          />
 
           <WineBoxDiscountInfo product={product} />
 
