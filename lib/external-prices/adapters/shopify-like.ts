@@ -84,6 +84,7 @@ export function parseProductJs(jsonText: string, pdpUrl: string): NormalizedOffe
     const data = JSON.parse(jsonText) as {
       title?: string;
       vendor?: string;
+      price?: number;
       variants?: Array<{
         price?: string | number;
         available?: boolean;
@@ -99,11 +100,25 @@ export function parseProductJs(jsonText: string, pdpUrl: string): NormalizedOffe
     let available = true;
     let size: string | null = null;
     if (v) {
-      if (typeof v.price === "number") priceAmount = v.price;
-      else if (typeof v.price === "string") priceAmount = parseFloat(v.price);
+      let raw: number | null = null;
+      if (typeof v.price === "number") raw = v.price;
+      else if (typeof v.price === "string") raw = parseFloat(v.price);
+      if (raw != null && !Number.isNaN(raw)) {
+        // Many Shopify theme .js endpoints return price in cents (integer); e.g. 2300 = 23.00 EUR
+        if (Number.isInteger(raw) && raw >= 100) {
+          priceAmount = raw / 100;
+        } else {
+          priceAmount = raw;
+        }
+      }
       if (typeof v.available === "boolean") available = v.available;
       const opt = (v.option1 ?? "") || (v.option2 ?? "");
       if (opt && /\d+\s*(ml|cl)/i.test(opt)) size = opt;
+    }
+    // Fallback: root-level price (also often in cents)
+    if (priceAmount == null && typeof data.price === "number" && !Number.isNaN(data.price)) {
+      const raw = data.price;
+      priceAmount = Number.isInteger(raw) && raw >= 100 ? raw / 100 : raw;
     }
     return {
       priceAmount,
@@ -360,7 +375,18 @@ export const shopifyLikeAdapter: SourceAdapter = {
     const delayMs = source.rate_limit_delay_ms ?? 2000;
     await delay(delayMs);
 
-    const jsUrl = pdpUrl.endsWith(".js") ? pdpUrl : pdpUrl.replace(/\/?$/, "") + ".js";
+    // Shopify .js endpoint is path-only (no query string): /products/handle.js
+    let jsUrl: string;
+    if (pdpUrl.endsWith(".js")) {
+      jsUrl = pdpUrl;
+    } else {
+      try {
+        const u = new URL(pdpUrl);
+        jsUrl = u.origin + u.pathname.replace(/\/?$/, "") + ".js";
+      } catch {
+        jsUrl = pdpUrl.replace(/\?.*$/, "").replace(/\/?$/, "") + ".js";
+      }
+    }
     const jsRes = await fetchWithCache(jsUrl, { timeoutMs: 10_000, maxRetries: 1 });
     if (jsRes.ok && jsRes.text) {
       const fromJs = parseProductJs(jsRes.text, pdpUrl);

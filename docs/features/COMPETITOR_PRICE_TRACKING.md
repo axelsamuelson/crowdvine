@@ -29,14 +29,18 @@ Run the migration that creates the tables (e.g. in Supabase SQL editor or via yo
 - **One wine**:  
   `POST /api/admin/price-sources/refresh`  
   Body: `{ "wineId": "<wine-uuid>" }`  
+  Optional: `{ "sourceId": "<uuid>" }` to refresh only one source.  
   (Requires admin auth.)
 
 - **All wines**:  
   `POST /api/admin/price-sources/refresh`  
   Body: `{}`  
-  Optional: `{ "batchSize": 50 }` to limit how many wines are processed in one run.
+  Optional body fields:
+  - `batchSize` (number): Limit how many wines are processed in one run (avoids timeout; e.g. `50`).
+  - `sourceId` (uuid): Refresh only this price source.
+  - `skipIfFetchedWithinHours` (number): Skip refreshing a wine+source if it was already fetched within this many hours (e.g. `168` = 7 days). Reduces requests when running weekly or in batches.
 
-- **Scheduling**: Call the refresh endpoint from Vercel Cron or an external cron (e.g. daily). See “Scheduling” below.
+- **Scheduling**: Call the refresh endpoint from Vercel Cron or an external cron. See “Scheduling” and “Weekly run” below.
 
 ## API endpoints
 
@@ -47,7 +51,7 @@ Run the migration that creates the tables (e.g. in Supabase SQL editor or via yo
 | GET | `/api/admin/price-sources/[id]` | Get one source. |
 | PATCH | `/api/admin/price-sources/[id]` | Update source. |
 | DELETE | `/api/admin/price-sources/[id]` | Delete source. |
-| POST | `/api/admin/price-sources/refresh` | Trigger refresh (body: optional `wineId`, optional `batchSize`). |
+| POST | `/api/admin/price-sources/refresh` | Trigger refresh (body: optional `wineId`, `batchSize`, `sourceId`, `skipIfFetchedWithinHours`). |
 | GET | `/api/admin/wines/[id]/offers` | Get competitor offers for a wine (sorted by price). |
 
 All require admin authentication.
@@ -67,7 +71,7 @@ All require admin authentication.
 
 ## Scheduling
 
-To run refresh on a schedule (e.g. daily):
+To run refresh on a schedule (e.g. daily or weekly):
 
 1. **Vercel Cron**: In `vercel.json` add a cron that calls `POST /api/admin/price-sources/refresh` with a secret header or API key, and ensure the route validates it when called from cron (e.g. check `Authorization: Bearer <CRON_SECRET>` or `x-cron-secret`).
 2. **External cron**: Use GitHub Actions or another scheduler to send the same POST request with admin credentials or a shared secret.
@@ -81,3 +85,19 @@ Example (Vercel) — add to `vercel.json`:
 ```
 
 Ensure the refresh route allows server-to-server calls: either use the same admin session (e.g. cookie) from a logged-in cron runner, or add optional support for a `CRON_SECRET` env var so that requests with `Authorization: Bearer <CRON_SECRET>` are accepted without session (implement in the refresh route if you use this).
+
+## Weekly run (once per week)
+
+To scrape competitor prices **once a week** with minimal requests:
+
+1. **Single weekly cron**  
+   Schedule the refresh e.g. Sunday 04:00: `0 4 * * 0`.  
+   In the request body send `skipIfFetchedWithinHours: 168` (7 days). Only wine+source pairs that were **not** fetched in the last 7 days will be refreshed; the rest are skipped (no HTTP calls).
+
+2. **Batch to avoid timeout**  
+   If you have many wines, use `batchSize` (e.g. `50`) so each run finishes within your server timeout (e.g. Vercel 5 min). You can either:
+   - Run the same endpoint several times per week (e.g. Mon–Fri at 04:00) with `batchSize: 50` and `skipIfFetchedWithinHours: 168`, so over 5 days all wines get a chance to refresh, or
+   - Run one weekly job with a larger `batchSize` if your environment allows longer execution.
+
+3. **Optimizations in code**  
+   The service already (a) reuses the stored PDP URL when a wine+source has an existing offer (one PDP fetch instead of search + many candidates), and (b) keeps an in-memory cache for the run so the same URL is not fetched twice. Together with `skipIfFetchedWithinHours`, weekly runs stay efficient.

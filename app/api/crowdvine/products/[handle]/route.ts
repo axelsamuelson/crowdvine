@@ -181,7 +181,12 @@ export async function GET(
         producer_id,
         description,
         description_html,
-        producers!inner(name)
+        summary,
+        appellation,
+        terroir,
+        vinification,
+        abv,
+        producers!inner(name, region)
       `;
 
   let result = await sb
@@ -191,12 +196,28 @@ export async function GET(
     .eq("id", wineIdData.id)
     .single();
 
-  if (result.error && /is_live|column.*does not exist/i.test(result.error.message ?? "")) {
+  if (result.error && /is_live|column.*does not exist|summary|appellation|terroir|vinification|abv/i.test(result.error.message ?? "")) {
+    const wineSelectWithoutSummary = `
+        id, wine_name, vintage, grape_varieties, color, handle,
+        base_price_cents, cost_amount, cost_currency, exchange_rate,
+        alcohol_tax_cents, margin_percentage, b2b_margin_percentage, b2b_stock,
+        label_image_path, producer_id, description, description_html,
+        producers!inner(name)
+      `;
     result = await sb
       .from("wines")
-      .select(wineSelect)
+      .select(wineSelectWithoutSummary)
       .eq("id", wineIdData.id)
+      .eq("is_live", true)
       .single();
+    if (result.error && /is_live|column.*does not exist/i.test(result.error.message ?? "")) {
+      result = await sb
+        .from("wines")
+        .select(wineSelectWithoutSummary)
+        .eq("id", wineIdData.id)
+        .single();
+    }
+    if (result.data) (result.data as Record<string, unknown>).summary = null;
   }
 
   const data = result.data;
@@ -360,11 +381,23 @@ export async function GET(
     ? b2bStock != null && b2bStock > 0
     : true;
 
+  const specs: Record<string, string> = {};
+  const producerRegion = (i.producers as { name?: string; region?: string } | null)?.region;
+  if (producerRegion?.trim()) specs["Region"] = producerRegion.trim();
+  if (i.appellation?.trim()) specs["Appellation"] = i.appellation.trim();
+  if (i.terroir?.trim()) specs["Terroir"] = i.terroir.trim();
+  if (i.vinification?.trim()) specs["Vinification"] = i.vinification.trim();
+  if (i.abv?.trim()) specs["ABV"] = i.abv.trim();
+
   const product = {
     id: i.id,
     title: `${i.wine_name} ${i.vintage}`,
     description: wineDescription,
     descriptionHtml: wineDescriptionHtml,
+    /** Short summary for PDP white box; null if not set. */
+    summary: i.summary ?? null,
+    /** Wine specs for bullet list under description (Region, Appellation, Terroir, Vinification, ABV). */
+    specs: Object.keys(specs).length > 0 ? specs : null,
     handle: i.handle,
     productType: "wine",
     categoryId: i.producer_id,

@@ -124,6 +124,23 @@ export interface OfferWithSource extends ExternalOffer {
   price_source?: { name: string; slug: string } | null;
 }
 
+/** Get existing offer for (wine_id, price_source_id). Used for PDP-only refresh. */
+export async function getOfferByWineAndSource(
+  wineId: string,
+  priceSourceId: string
+): Promise<{ pdp_url: string; last_fetched_at: string } | null> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("external_offers")
+    .select("pdp_url, last_fetched_at")
+    .eq("wine_id", wineId)
+    .eq("price_source_id", priceSourceId)
+    .not("pdp_url", "is", null)
+    .maybeSingle();
+  if (error) throw new Error(`getOfferByWineAndSource: ${error.message}`);
+  return data as { pdp_url: string; last_fetched_at: string } | null;
+}
+
 export async function getOffersByWineId(wineId: string): Promise<OfferWithSource[]> {
   const sb = getSupabaseAdmin();
   const { data, error } = await sb

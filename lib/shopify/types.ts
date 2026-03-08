@@ -140,6 +140,10 @@ export type Product = {
   producerId?: string;
   description: string;
   descriptionHtml: string;
+  /** Short summary for PDP white box (wines). */
+  summary?: string | null;
+  /** Wine specs for bullet list under description (e.g. Region, Appellation, Terroir, Vinification, ABV). */
+  specs?: Record<string, string> | null;
   featuredImage: Image;
   currencyCode: string;
   priceRange: {

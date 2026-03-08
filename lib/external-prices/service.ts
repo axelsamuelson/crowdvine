@@ -9,10 +9,10 @@ import { getAdapter } from "./adapters";
 import { evaluateMatch, MATCH_THRESHOLD } from "./match";
 import {
   listPriceSources,
+  getOfferByWineAndSource,
   upsertExternalOffer,
   updatePriceSourceLastCrawled,
 } from "./db";
-import { clearFetchCache } from "./fetch-with-retries";
 
 const DEFAULT_MATCH_THRESHOLD = MATCH_THRESHOLD;
 /** Cap candidates per wine+source to limit PDP fetches and runtime. */
@@ -65,12 +65,66 @@ async function refreshOneWineOneSource(
   wine: WineForMatch,
   wineId: string,
   source: Awaited<ReturnType<typeof listPriceSources>>[number],
-  options: { matchThreshold?: number }
+  options: { matchThreshold?: number; skipIfFetchedWithinHours?: number }
 ): Promise<{ result: RefreshResult; error?: string }> {
   const threshold =
     (options.matchThreshold ?? (source.config?.matchThreshold as number)) ?? DEFAULT_MATCH_THRESHOLD;
   try {
+    const existing = await getOfferByWineAndSource(wineId, source.id);
+
+    if (options.skipIfFetchedWithinHours != null && options.skipIfFetchedWithinHours > 0 && existing?.last_fetched_at) {
+      const fetchedAt = new Date(existing.last_fetched_at).getTime();
+      const cutoff = Date.now() - options.skipIfFetchedWithinHours * 60 * 60 * 1000;
+      if (fetchedAt >= cutoff) {
+        return {
+          result: {
+            wineId,
+            sourceId: source.id,
+            sourceName: source.name,
+            offersUpdated: 0,
+            candidatesChecked: 0,
+            bestConfidence: null,
+          },
+        };
+      }
+    }
+
     const adapter = getAdapter(source);
+    if (existing?.pdp_url) {
+      try {
+        const offer = await adapter.fetchOffer(existing.pdp_url, source);
+        if (offer) {
+          const evalResult = evaluateMatch(wine, offer, { threshold });
+          if (evalResult.accepted) {
+            await upsertExternalOffer({
+              wine_id: wineId,
+              price_source_id: source.id,
+              pdp_url: offer.pdpUrl,
+              price_amount: offer.priceAmount,
+              currency: offer.currency,
+              available: offer.available,
+              title_raw: offer.titleRaw,
+              match_confidence: evalResult.score,
+            });
+            await updatePriceSourceLastCrawled(source.id);
+            return {
+              result: {
+                wineId,
+                sourceId: source.id,
+                sourceName: source.name,
+                offersUpdated: 1,
+                candidatesChecked: 1,
+                bestConfidence: evalResult.score,
+              },
+            };
+          }
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn(`[external-prices] PDP-only fetch failed for ${existing.pdp_url}, falling back to search:`, msg);
+      }
+    }
+
     const allCandidates = await adapter.searchCandidates(wine, source);
     const candidates = allCandidates.slice(0, MAX_CANDIDATES_PER_SOURCE);
     let offersUpdated = 0;
@@ -166,7 +220,7 @@ async function refreshOneWineOneSource(
  */
 export async function refreshOffersForWine(
   wineId: string,
-  options: { matchThreshold?: number; sourceId?: string } = {}
+  options: { matchThreshold?: number; sourceId?: string; skipIfFetchedWithinHours?: number } = {}
 ): Promise<RefreshOneWineResult> {
   const wine = await loadWineForMatch(wineId);
   if (!wine) {
@@ -177,7 +231,10 @@ export async function refreshOffersForWine(
   if (options.sourceId) {
     sources = sources.filter((s) => s.id === options.sourceId);
   }
-  const opts = { matchThreshold: options.matchThreshold };
+  const opts = {
+    matchThreshold: options.matchThreshold,
+    skipIfFetchedWithinHours: options.skipIfFetchedWithinHours,
+  };
 
   const settled = await Promise.all(
     sources.map((source) => refreshOneWineOneSource(wine, wineId, source, opts))
@@ -196,6 +253,7 @@ export async function refreshOffersForAllWines(options: {
   matchThreshold?: number;
   batchSize?: number;
   sourceId?: string;
+  skipIfFetchedWithinHours?: number;
 } = {}): Promise<{ processed: number; totalWines: number; errors: string[] }> {
   const sb = getSupabaseAdmin();
   const { data: wines, error } = await sb
@@ -208,7 +266,6 @@ export async function refreshOffersForAllWines(options: {
   const batchSize = options.batchSize ?? wineIds.length;
   const toProcess = wineIds.slice(0, batchSize);
 
-  clearFetchCache();
   const allErrors: string[] = [];
   let processed = 0;
 
@@ -216,6 +273,7 @@ export async function refreshOffersForAllWines(options: {
     const result = await refreshOffersForWine(wineId, {
       matchThreshold: options.matchThreshold,
       sourceId: options.sourceId,
+      skipIfFetchedWithinHours: options.skipIfFetchedWithinHours,
     });
     processed++;
     allErrors.push(...result.errors);

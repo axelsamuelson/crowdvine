@@ -26,7 +26,7 @@ async function requireAdmin() {
 /**
  * POST /api/admin/price-sources/detect
  * Body: { base_url: string }
- * Returns: { adapter_type: "shopify" | "woocommerce" | null }
+ * Returns: { adapter_type: "shopify" | "woocommerce" | "prestashop" | null }
  */
 export async function POST(request: NextRequest) {
   try {
