@@ -8,6 +8,7 @@ import type { SourceAdapter } from "./base";
 import type { NormalizedOffer, PriceSource, WineForMatch } from "../types";
 import { fetchWithCache, fetchWithRetries, delay } from "../fetch-with-retries";
 import { buildQueryPack } from "../query-pack";
+import { extractCurrencyFromHtml } from "./currency-from-html";
 
 const MAX_CANDIDATES_TOTAL = 20;
 
@@ -98,9 +99,13 @@ function parseHtmlFallback(html: string, pdpUrl: string): NormalizedOffer | null
     if (euroMatch) priceAmount = parseFloat(euroMatch[1].replace(",", "."));
   }
 
+  let currency = "EUR";
+  const detectedCurrency = extractCurrencyFromHtml(html);
+  if (detectedCurrency) currency = detectedCurrency;
+
   return {
     priceAmount: priceAmount ?? null,
-    currency: "EUR",
+    currency,
     available: true,
     titleRaw: title || "Unknown",
     pdpUrl,

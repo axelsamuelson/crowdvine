@@ -17,6 +17,8 @@ export interface Producer {
   short_description: string;
   logo_image_path: string;
   pickup_zone_id?: string;
+  /** When true, producer and their wines appear on the website. When false, hidden from shop/collections/search. */
+  is_live?: boolean;
 }
 
 export interface CreateProducerData {
@@ -31,6 +33,7 @@ export interface CreateProducerData {
   short_description: string;
   logo_image_path: string;
   pickup_zone_id?: string;
+  is_live?: boolean;
 }
 
 export async function getProducers() {
@@ -75,6 +78,7 @@ export async function createProducer(data: CreateProducerData) {
       ...data,
       owner_id: user?.id || null,
       status: "active", // Set default status
+      is_live: data.is_live ?? true,
     })
     .select()
     .single();
@@ -115,6 +119,7 @@ export async function updateProducer(
 
   revalidatePath("/admin/producers");
   revalidatePath(`/admin/producers/${id}`);
+  revalidatePath("/shop");
   return producer;
 }
 

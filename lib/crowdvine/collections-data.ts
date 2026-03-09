@@ -17,14 +17,28 @@ export interface CollectionData {
 export async function fetchCollectionsData(): Promise<CollectionData[]> {
   const sb = getSupabaseAdmin();
 
-  const { data: producers, error } = await sb
-    .from("producers")
-    .select("id, name, region")
-    .order("name");
+  try {
+    const { data: producers, error } = await sb
+      .from("producers")
+      .select("id, name, region")
+      .order("name")
+      .eq("is_live", true);
+    if (error && /is_live|column.*does not exist/i.test(error.message)) {
+      const fallback = await sb.from("producers").select("id, name, region").order("name");
+      if (fallback.error) throw fallback.error;
+      return buildCollectionsFromProducers(fallback.data ?? []);
+    }
+    if (error) throw error;
+    return buildCollectionsFromProducers(producers ?? []);
+  } catch {
+    const { data: producers, error } = await sb.from("producers").select("id, name, region").order("name");
+    if (error) throw error;
+    return buildCollectionsFromProducers(producers ?? []);
+  }
+}
 
-  if (error) throw error;
-
-  const producerCollections = (producers || []).map((producer: any) => ({
+function buildCollectionsFromProducers(producers: any[]): CollectionData[] {
+  const producerCollections = producers.map((producer: any) => ({
     id: producer.id,
     handle: producer.name.toLowerCase().replace(/\s+/g, "-"),
     title: producer.name,

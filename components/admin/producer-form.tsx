@@ -21,6 +21,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Switch } from "@/components/ui/switch";
 import {
   CreateProducerData,
   Producer,
@@ -49,6 +50,7 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
     short_description: producer?.short_description || "",
     logo_image_path: producer?.logo_image_path || "",
     pickup_zone_id: producer?.pickup_zone_id || "",
+    is_live: producer?.is_live ?? true,
   });
 
   const [error, setError] = useState("");
@@ -305,6 +307,24 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
             </Alert>
+          )}
+
+          {producer && (
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div>
+                <Label htmlFor="is_live" className="text-base font-medium">Live på webbsidan</Label>
+                <p className="text-sm text-muted-foreground">
+                  När av är producenten och dess viner dolda i shop, sök och samlingar.
+                </p>
+              </div>
+              <Switch
+                id="is_live"
+                checked={formData.is_live ?? true}
+                onCheckedChange={(checked) =>
+                  setFormData((prev) => ({ ...prev, is_live: !!checked }))
+                }
+              />
+            </div>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

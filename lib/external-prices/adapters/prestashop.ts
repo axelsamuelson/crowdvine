@@ -8,6 +8,7 @@ import type { SourceAdapter } from "./base";
 import type { NormalizedOffer, PriceSource, WineForMatch } from "../types";
 import { fetchWithCache, fetchWithRetries, delay } from "../fetch-with-retries";
 import { buildQueryPack } from "../query-pack";
+import { extractCurrencyFromHtml } from "./currency-from-html";
 
 const MAX_CANDIDATES_TOTAL = 15;
 const JSON_LD_PRODUCT_TYPE = "https://schema.org/Product";
@@ -98,6 +99,8 @@ function parseHtmlFallback(html: string, pdpUrl: string): NormalizedOffer | null
   );
   if (currencyMeta) currency = currencyMeta[1];
   if (/€|EUR/i.test(html) && currency === "EUR") currency = "EUR";
+  const detectedCurrency = extractCurrencyFromHtml(html);
+  if (detectedCurrency) currency = detectedCurrency;
 
   let available = true;
   if (/out of stock|rupture|sold out|indisponible/i.test(html)) available = false;

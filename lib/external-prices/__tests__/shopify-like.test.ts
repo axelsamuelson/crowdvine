@@ -113,6 +113,17 @@ describe("parseProductJs", () => {
     expect(offer!.size).toBe("750ml");
   });
 
+  it("uses defaultCurrency when .js has no currency (e.g. EUR for winely.store)", () => {
+    const json = JSON.stringify({
+      title: "Wine",
+      variants: [{ price: 2300, available: true }],
+    });
+    const offer = parseProductJs(json, "https://winely.store/products/wine", "EUR");
+    expect(offer).not.toBeNull();
+    expect(offer!.currency).toBe("EUR");
+    expect(offer!.priceAmount).toBe(23);
+  });
+
   it("returns null for invalid JSON", () => {
     expect(parseProductJs("not json", "https://x.com")).toBeNull();
   });

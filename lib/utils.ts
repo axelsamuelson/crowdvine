@@ -29,6 +29,16 @@ export function createUrl(pathname: string, params: URLSearchParams | string) {
   return `${pathname}${queryString}`;
 }
 
+/** Map single word color to hex; used for blend parsing */
+function getSingleColorHex(word: string): string {
+  const w = word.trim().toLowerCase();
+  if (COLOR_MAP[w]) return COLOR_MAP[w];
+  for (const [key, value] of Object.entries(COLOR_MAP)) {
+    if (w === key || w.includes(key) || key.includes(w)) return value;
+  }
+  return "#666666";
+}
+
 export function getColorHex(
   colorName: string | undefined | null,
 ): string | [string, string] {
@@ -36,21 +46,28 @@ export function getColorHex(
     return "#000000"; // Default black color
   }
 
-  const lowerColorName = colorName.toLowerCase();
+  const lowerColorName = colorName.trim().toLowerCase();
 
   // Check for exact match first
   if (COLOR_MAP[lowerColorName]) {
     return COLOR_MAP[lowerColorName];
   }
 
-  // Check for partial matches (for cases where color name might have extra text)
+  // Blend colors: "Red & White", "Red/White", "Red / White"
+  const blendParts = lowerColorName.split(/\s*[\/&]\s*/).map((s) => s.trim()).filter(Boolean);
+  if (blendParts.length >= 2) {
+    const hex1 = getSingleColorHex(blendParts[0]);
+    const hex2 = getSingleColorHex(blendParts[1]);
+    return [hex1, hex2];
+  }
+
+  // Single color: partial match
   for (const [key, value] of Object.entries(COLOR_MAP)) {
     if (lowerColorName.includes(key) || key.includes(lowerColorName)) {
       return value;
     }
   }
 
-  // Return a default color if no match found
   return "#666666";
 }
 

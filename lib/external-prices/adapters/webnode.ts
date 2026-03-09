@@ -8,6 +8,7 @@ import type { SourceAdapter } from "./base";
 import type { NormalizedOffer, PriceSource, WineForMatch } from "../types";
 import { fetchWithCache, fetchWithRetries, delay } from "../fetch-with-retries";
 import { buildQueryPack } from "../query-pack";
+import { extractCurrencyFromHtml } from "./currency-from-html";
 
 const MAX_CANDIDATES_TOTAL = 20;
 
@@ -77,9 +78,13 @@ function parseHtmlFallback(html: string, pdpUrl: string): NormalizedOffer | null
   let available = true;
   if (/out_of_stock["']\s*:\s*true|indisponible|épuisé/i.test(html)) available = false;
 
+  let currency = "EUR";
+  const detectedCurrency = extractCurrencyFromHtml(html);
+  if (detectedCurrency) currency = detectedCurrency;
+
   return {
     priceAmount: priceAmount ?? null,
-    currency: "EUR",
+    currency,
     available,
     titleRaw: title || "Unknown",
     pdpUrl,
@@ -155,7 +160,11 @@ export const webnodeAdapter: SourceAdapter = {
     if (!ok || !text) return null;
 
     const fromWnd = parseWndProductData(text, pdpUrl);
-    if (fromWnd) return fromWnd;
+    if (fromWnd) {
+      const detectedCurrency = extractCurrencyFromHtml(text);
+      if (detectedCurrency) return { ...fromWnd, currency: detectedCurrency };
+      return fromWnd;
+    }
     return parseHtmlFallback(text, pdpUrl);
   },
 };

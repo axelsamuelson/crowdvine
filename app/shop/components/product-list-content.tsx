@@ -17,6 +17,17 @@ interface ProductListContentProps {
   collectionHandle?: string;
 }
 
+// Normalize color string for comparison: "Red & White", "Red/White", "red-&-white" → canonical form
+function normalizeColorForCompare(s: string | undefined | null): string {
+  if (!s || typeof s !== "string") return "";
+  return s
+    .trim()
+    .toLowerCase()
+    .replace(/\s*[\/&]\s*/g, " & ")
+    .replace(/-/g, " ")
+    .replace(/\s+/g, " ");
+}
+
 // Client-side color filtering function
 function filterProductsByColors(
   products: Product[],
@@ -27,29 +38,23 @@ function filterProductsByColors(
   }
 
   const filteredProducts = products.filter((product) => {
+    const matchColor = (variantOrOptionColor: string | undefined | null) =>
+      colors.some(
+        (selectedColor) =>
+          normalizeColorForCompare(selectedColor) ===
+          normalizeColorForCompare(variantOrOptionColor),
+      );
+
     // Check if product has any variants with the selected colors
-    // Note: variants is now a simple array after adaptShopifyProduct transformation
     const hasMatchingColor = product.variants?.some((variant: any) => {
       if (!variant.selectedOptions) return false;
-
-      // Look for color option in variant
       return variant.selectedOptions.some((option: any) => {
         const isColorOption =
-          option.name.toLowerCase().includes("color") ||
-          option.name.toLowerCase().includes("colour");
-
+          option.name?.toLowerCase().includes("color") ||
+          option.name?.toLowerCase().includes("colour");
         if (!isColorOption) return false;
-
-        // Check if this variant's color matches any of the selected colors
-        const variantColor = option.value;
-
-        return colors.some((selectedColor) => {
-          // For blend colors (Red/Orange), match against "Red & Orange" in product
-          const normalizedSelected = selectedColor.replace("/", " & ");
-          const normalizedVariant = variantColor.replace("/", " & ");
-
-          return normalizedSelected === normalizedVariant;
-        });
+        const variantColor = option.value ?? option.name;
+        return matchColor(variantColor);
       });
     });
 
@@ -57,28 +62,20 @@ function filterProductsByColors(
     if (!hasMatchingColor && product.options) {
       const colorOption = product.options.find(
         (opt: any) =>
-          opt.name.toLowerCase().includes("color") ||
-          opt.name.toLowerCase().includes("colour"),
+          opt.name?.toLowerCase().includes("color") ||
+          opt.name?.toLowerCase().includes("colour"),
       );
-
-      if (colorOption && colorOption.values) {
-        return colorOption.values.some((value: any) => {
-          // Handle both string values and object values with .name property
+      if (colorOption?.values?.length) {
+        const optionMatches = colorOption.values.some((value: any) => {
           const colorValue =
-            typeof value === "string" ? value : value.name || value.id;
-
-          return colors.some((selectedColor) => {
-            // For blend colors (Red/Orange), match against "Red & Orange" in product
-            const normalizedSelected = selectedColor.replace("/", " & ");
-            const normalizedValue = colorValue.replace("/", " & ");
-
-            return normalizedSelected === normalizedValue;
-          });
+            typeof value === "string" ? value : value.name ?? value.id ?? "";
+          return matchColor(colorValue);
         });
+        if (optionMatches) return true;
       }
     }
 
-    return hasMatchingColor;
+    return !!hasMatchingColor;
   });
 
   return filteredProducts;

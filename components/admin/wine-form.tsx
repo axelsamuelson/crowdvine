@@ -47,16 +47,18 @@ interface WineFormProps {
   producers: Producer[];
   /** When true, producer can only set cost; margin is fixed by platform (no margin/B2B inputs) */
   isProducerView?: boolean;
+  /** Pre-select this producer when creating a new wine (e.g. from /admin/wines/new?producer_id=xxx) */
+  initialProducerId?: string;
 }
 
-export default function WineForm({ wine, producers, isProducerView = false }: WineFormProps) {
+export default function WineForm({ wine, producers, isProducerView = false, initialProducerId }: WineFormProps) {
   const [formData, setFormData] = useState<CreateWineData>({
     handle: wine?.handle || "",
     wine_name: wine?.wine_name === "" ? "" : (wine?.wine_name ?? ""),
     vintage: wine?.vintage || "",
     grape_varieties: wine?.grape_varieties || "",
     color: wine?.color || "Red",
-    producer_id: wine?.producer_id || "",
+    producer_id: wine?.producer_id || initialProducerId || "",
     // Simplified pricing fields
     cost_currency: wine?.cost_currency || "EUR",
     cost_amount: wine?.cost_amount ?? 0,

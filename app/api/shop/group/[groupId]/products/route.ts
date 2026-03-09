@@ -26,7 +26,15 @@ export async function GET(
       return NextResponse.json([]);
     }
 
-    const producerIds = members?.map((m) => m.producer_id) || [];
+    let producerIds = members?.map((m) => m.producer_id) || [];
+
+    if (producerIds.length > 0) {
+      const prodResult = await sb.from("producers").select("id, is_live").in("id", producerIds);
+      if (!prodResult.error && prodResult.data && prodResult.data.length > 0) {
+        const liveIds = (prodResult.data as any[]).filter((p: any) => p.is_live !== false).map((p: any) => p.id);
+        if (liveIds.length > 0) producerIds = liveIds;
+      }
+    }
 
     if (producerIds.length === 0) {
       return NextResponse.json([]);

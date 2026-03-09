@@ -8,6 +8,7 @@ import type { SourceAdapter } from "./base";
 import type { NormalizedOffer, PriceSource, WineForMatch } from "../types";
 import { fetchWithCache, fetchWithRetries, delay } from "../fetch-with-retries";
 import { buildQueryPack } from "../query-pack";
+import { extractCurrencyFromHtml } from "./currency-from-html";
 
 /** Per-source cache: URL -> normalized offer. Filled when using sitemap fallback. */
 const sitemapOfferCache = new Map<string, Map<string, NormalizedOffer>>();
@@ -78,8 +79,9 @@ function parseJsonLdProduct(html: string, pdpUrl: string): NormalizedOffer | nul
   return null;
 }
 
-/** Parse Shopify product .js JSON (e.g. /products/foo.js). Returns normalized offer with vendor/size when present. */
-export function parseProductJs(jsonText: string, pdpUrl: string): NormalizedOffer | null {
+/** Parse Shopify product .js JSON (e.g. /products/foo.js). Returns normalized offer with vendor/size when present.
+ * defaultCurrency: when the .js response has no currency (common), use this (e.g. "EUR" for winely.store). */
+export function parseProductJs(jsonText: string, pdpUrl: string, defaultCurrency?: string): NormalizedOffer | null {
   try {
     const data = JSON.parse(jsonText) as {
       title?: string;
@@ -120,9 +122,10 @@ export function parseProductJs(jsonText: string, pdpUrl: string): NormalizedOffe
       const raw = data.price;
       priceAmount = Number.isInteger(raw) && raw >= 100 ? raw / 100 : raw;
     }
+    const currency = (defaultCurrency ?? "SEK").trim().toUpperCase() || "SEK";
     return {
       priceAmount,
-      currency: "SEK",
+      currency,
       available,
       titleRaw: title,
       pdpUrl,
@@ -185,6 +188,8 @@ function parseHtmlFallback(html: string, pdpUrl: string): NormalizedOffer | null
   let currency = "SEK";
   const currencyMeta = html.match(/<meta[^>]*property\s*=\s*["']og:price:currency["'][^>]*content\s*=\s*["']([^"']+)["']/i);
   if (currencyMeta) currency = currencyMeta[1];
+  const detectedCurrency = extractCurrencyFromHtml(html);
+  if (detectedCurrency) currency = detectedCurrency;
 
   let available = true;
   if (/sold.out|out.of.stock|add.to.cart|buy.now/i.test(html)) {
@@ -389,8 +394,21 @@ export const shopifyLikeAdapter: SourceAdapter = {
     }
     const jsRes = await fetchWithCache(jsUrl, { timeoutMs: 10_000, maxRetries: 1 });
     if (jsRes.ok && jsRes.text) {
-      const fromJs = parseProductJs(jsRes.text, pdpUrl);
-      if (fromJs) return fromJs;
+      const defaultCurrency = (source.config?.default_currency as string)?.trim() || undefined;
+      const fromJs = parseProductJs(jsRes.text, pdpUrl, defaultCurrency);
+      if (fromJs) {
+        const usedDefault = (defaultCurrency ?? "SEK").toUpperCase();
+        if (fromJs.currency === usedDefault) {
+          const { text: html, ok } = await fetchWithCache(pdpUrl, { timeoutMs: 8_000, maxRetries: 1 });
+          if (ok && html) {
+            const detected = extractCurrencyFromHtml(html);
+            if (detected && detected !== usedDefault) {
+              return { ...fromJs, currency: detected };
+            }
+          }
+        }
+        return fromJs;
+      }
     }
 
     const { text, ok } = await fetchWithCache(pdpUrl, {

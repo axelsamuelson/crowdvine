@@ -104,20 +104,33 @@ export function VariantOptionSelector({
             optionNameLowerCase === "grape varieties";
           const isDisplayOnlyOption = isColorOption || isGrapeVarietyOption;
 
-          // If this is a color option, show color display only
+          // If this is a color option, show color display only (one swatch or two for blends)
           if (isColorOption) {
             const color = getColorHex(value.name);
-            const name = value.name ? value.name.split("/") : ["Unknown"];
+            const isBlend = Array.isArray(color);
 
             return (
               <div key={key} className="flex items-center gap-2">
-                <div
-                  className="w-6 h-6 rounded-full border border-gray-300"
-                  style={{
-                    backgroundColor: Array.isArray(color) ? color[0] : color,
-                  }}
-                  title={value.name}
-                />
+                {isBlend ? (
+                  <div className="flex -space-x-2">
+                    <div
+                      className="w-6 h-6 rounded-full border-2 border-white dark:border-gray-800 shadow shrink-0"
+                      style={{ backgroundColor: color[0] }}
+                      title={value.name}
+                    />
+                    <div
+                      className="w-6 h-6 rounded-full border-2 border-white dark:border-gray-800 shadow shrink-0"
+                      style={{ backgroundColor: color[1] }}
+                      title={value.name}
+                    />
+                  </div>
+                ) : (
+                  <div
+                    className="w-6 h-6 rounded-full border border-gray-300 shrink-0"
+                    style={{ backgroundColor: color }}
+                    title={value.name}
+                  />
+                )}
                 <span className="text-sm text-gray-700">{value.name}</span>
               </div>
             );

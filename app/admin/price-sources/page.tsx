@@ -26,9 +26,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Pencil, RefreshCw, TrendingUp, Search, ExternalLink } from "lucide-react";
+import { Plus, Trash2, Pencil, RefreshCw, TrendingUp, Search, ExternalLink, ChevronDownIcon } from "lucide-react";
 import { toast } from "sonner";
 import {
   Table,
@@ -61,6 +62,7 @@ const defaultForm = {
   adapter_type: "shopify",
   is_active: true,
   rate_limit_delay_ms: 2000,
+  default_currency: "",
 };
 
 export default function PriceSourcesPage() {
@@ -71,6 +73,7 @@ export default function PriceSourcesPage() {
   const [form, setForm] = useState(defaultForm);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshSourceId, setRefreshSourceId] = useState<string>("__all__");
+  const [sourcePopoverOpen, setSourcePopoverOpen] = useState(false);
   const [detecting, setDetecting] = useState(false);
   const [detectedPlatform, setDetectedPlatform] = useState<string | null>(null);
   const [detectionFailed, setDetectionFailed] = useState(false);
@@ -144,6 +147,7 @@ export default function PriceSourcesPage() {
       adapter_type: s.adapter_type,
       is_active: s.is_active,
       rate_limit_delay_ms: s.rate_limit_delay_ms,
+      default_currency: (s.config?.default_currency as string) ?? "",
     });
     setDetectedPlatform(null);
     setShowDialog(true);
@@ -160,6 +164,13 @@ export default function PriceSourcesPage() {
       toast.error("Namn, slug och webbadress krävs");
       return;
     }
+    const existingConfig = (editingId ? sources.find((s) => s.id === editingId)?.config : null) ?? {};
+    const config: Record<string, unknown> = { ...existingConfig } as Record<string, unknown>;
+    if (form.default_currency?.trim()) {
+      config.default_currency = form.default_currency.trim().toUpperCase();
+    } else {
+      delete config.default_currency;
+    }
     const body = {
       name: form.name.trim(),
       slug: form.slug.trim(),
@@ -168,6 +179,7 @@ export default function PriceSourcesPage() {
       adapter_type: form.adapter_type,
       is_active: form.is_active,
       rate_limit_delay_ms: form.rate_limit_delay_ms,
+      config,
     };
     try {
       if (editingId) {
@@ -295,23 +307,50 @@ export default function PriceSourcesPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Select
-            value={refreshSourceId}
-            onValueChange={setRefreshSourceId}
-            disabled={refreshing || sources.length === 0}
-          >
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Alla källor" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">Alla källor</SelectItem>
-              {sources.map((s) => (
-                <SelectItem key={s.id} value={s.id}>
-                  {s.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Popover open={sourcePopoverOpen} onOpenChange={setSourcePopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                disabled={refreshing || sources.length === 0}
+                className="w-[200px] justify-between font-normal"
+                aria-label="Välj källa att uppdatera"
+              >
+                <span className="truncate">
+                  {refreshSourceId === "__all__"
+                    ? "Alla källor"
+                    : sources.find((s) => s.id === refreshSourceId)?.name ?? "Välj källa"}
+                </span>
+                <ChevronDownIcon className="h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+              <div className="max-h-[min(70vh,24rem)] overflow-y-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRefreshSourceId("__all__");
+                    setSourcePopoverOpen(false);
+                  }}
+                  className={`flex w-full items-center px-3 py-2.5 text-left text-sm hover:bg-muted/80 ${refreshSourceId === "__all__" ? "bg-muted font-medium" : ""}`}
+                >
+                  Alla källor
+                </button>
+                {sources.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => {
+                      setRefreshSourceId(s.id);
+                      setSourcePopoverOpen(false);
+                    }}
+                    className={`flex w-full items-center px-3 py-2.5 text-left text-sm hover:bg-muted/80 ${refreshSourceId === s.id ? "bg-muted font-medium" : ""}`}
+                  >
+                    {s.name}
+                  </button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
           <Button
             variant="outline"
             onClick={handleRefreshAll}
@@ -407,8 +446,9 @@ export default function PriceSourcesPage() {
           ) : offers.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4">Inga träffar ännu. Kör &quot;Uppdatera alla erbjudanden&quot; för att hämta priser.</p>
           ) : (
-            <Table>
-              <TableHeader>
+            <div className="max-h-[min(70vh,28rem)] overflow-y-auto overflow-x-auto overscroll-contain border rounded-md">
+              <Table scrollContainer={false}>
+                <TableHeader>
                 <TableRow>
                   <TableHead>Vin / Producent</TableHead>
                   <TableHead>Källa</TableHead>
@@ -478,7 +518,8 @@ export default function PriceSourcesPage() {
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -584,6 +625,28 @@ export default function PriceSourcesPage() {
                   Detektering lyckades inte (t.ex. Cloudflare eller 403). Välj rätt plattform i listan ovan – t.ex. Drupal för hedonism.co.uk, PrestaShop för altrovino.be, Vin Sensible för boutique.vin-sensible.fr.
                 </p>
               )}
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="default_currency">Standardvaluta</Label>
+              <Select
+                value={form.default_currency || "__auto__"}
+                onValueChange={(v) => setForm((f) => ({ ...f, default_currency: v === "__auto__" ? "" : v }))}
+              >
+                <SelectTrigger id="default_currency">
+                  <SelectValue placeholder="Auto (från sidan)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__auto__">Auto (från sidan)</SelectItem>
+                  <SelectItem value="SEK">SEK</SelectItem>
+                  <SelectItem value="EUR">EUR</SelectItem>
+                  <SelectItem value="GBP">GBP</SelectItem>
+                  <SelectItem value="DKK">DKK</SelectItem>
+                  <SelectItem value="USD">USD</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Används när butiken inte anger valuta (t.ex. Shopify .js). Sätt till EUR för winely.store.
+              </p>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="delay_ms">Fördröjning mellan anrop (ms)</Label>

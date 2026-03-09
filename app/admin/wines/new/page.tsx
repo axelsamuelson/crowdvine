@@ -4,8 +4,14 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
-export default async function NewWinePage() {
+interface NewWinePageProps {
+  searchParams: Promise<{ producer_id?: string }>;
+}
+
+export default async function NewWinePage({ searchParams }: NewWinePageProps) {
   const producers = await getProducers();
+  const params = await searchParams;
+  const initialProducerId = params.producer_id && params.producer_id.trim() ? params.producer_id.trim() : undefined;
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -23,7 +29,7 @@ export default async function NewWinePage() {
           </div>
         </div>
 
-        <WineForm producers={producers} />
+        <WineForm producers={producers} initialProducerId={initialProducerId} />
       </div>
     </main>
   );

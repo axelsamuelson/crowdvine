@@ -176,13 +176,14 @@ export async function fetchProductsData(params?: {
       description,
       description_html,
       created_at,
-      producers!inner(name)
+      producers!inner(name, is_live)
     `;
 
   let query = sb
     .from("wines")
     .select(winesSelect)
-    .eq("is_live", true);
+    .eq("is_live", true)
+    .eq("producers.is_live", true);
 
   switch (sortKey) {
     case "PRICE":
@@ -199,8 +200,14 @@ export async function fetchProductsData(params?: {
   let result = await query.limit(limit);
   if (result.error) {
     const msg = result.error.message ?? "";
-    if (/is_live|column.*does not exist/i.test(msg)) {
-      query = sb.from("wines").select(winesSelect);
+    const fallbackSelect = `
+      id, wine_name, vintage, grape_varieties, color, handle, base_price_cents,
+      cost_amount, cost_currency, exchange_rate, alcohol_tax_cents, margin_percentage,
+      b2b_margin_percentage, b2b_stock, label_image_path, producer_id, description,
+      description_html, created_at, producers!inner(name)
+    `;
+    if (/is_live|column.*does not exist|producers\.is_live/i.test(msg)) {
+      query = sb.from("wines").select(fallbackSelect).eq("is_live", true);
       switch (sortKey) {
         case "PRICE":
           query = query.order("base_price_cents", { ascending: !reverse });
@@ -213,6 +220,24 @@ export async function fetchProductsData(params?: {
           query = query.order("created_at", { ascending: false });
       }
       result = await query.limit(limit);
+    }
+    if (result.error) {
+      const msg2 = result.error.message ?? "";
+      if (/is_live|column.*does not exist/i.test(msg2)) {
+        query = sb.from("wines").select(fallbackSelect);
+        switch (sortKey) {
+          case "PRICE":
+            query = query.order("base_price_cents", { ascending: !reverse });
+            break;
+          case "CREATED_AT":
+          case "CREATED":
+            query = query.order("created_at", { ascending: !reverse });
+            break;
+          default:
+            query = query.order("created_at", { ascending: false });
+        }
+        result = await query.limit(limit);
+      }
     }
     if (result.error) throw result.error;
   }
@@ -468,6 +493,21 @@ export async function fetchCollectionProductsData(
   }
 
   const sb = getSupabaseAdmin();
+
+  // When collection is a producer, only show wines if producer is live
+  const producerCheck = await sb
+    .from("producers")
+    .select("id, is_live")
+    .eq("id", collectionId)
+    .maybeSingle();
+  if (producerCheck.error && /is_live|column.*does not exist/i.test(producerCheck.error.message ?? "")) {
+    // is_live column not yet migrated; continue
+  } else if (producerCheck.data && (producerCheck.data as any).is_live === false) {
+    return [];
+  } else if (producerCheck.data === null && /^[0-9a-f-]{36}$/i.test(collectionId)) {
+    return [];
+  }
+
   const collSelect = `
       id,
       wine_name,

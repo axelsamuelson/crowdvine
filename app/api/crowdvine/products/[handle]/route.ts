@@ -226,6 +226,14 @@ export async function GET(
   if (error || !data)
     return NextResponse.json({ error: "not_found" }, { status: 404 });
 
+  // Hide wines whose producer is offline
+  const producerId = (data as any).producer_id;
+  if (producerId) {
+    const { data: prod } = await sb.from("producers").select("is_live").eq("id", producerId).maybeSingle();
+    if (prod && (prod as any).is_live === false)
+      return NextResponse.json({ error: "not_found" }, { status: 404 });
+  }
+
   // Get wine images
   const { data: wineImages } = await sb
     .from("wine_images")

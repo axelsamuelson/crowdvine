@@ -76,19 +76,44 @@ export async function GET(request: Request) {
       return r;
     })();
 
-    const producersPromise = sb
-      .from("producers")
-      .select("id, name, region, logo_image_path")
-      .or(`name.ilike.%${q}%,region.ilike.%${q}%`)
-      .order("name", { ascending: true })
-      .limit(5);
+    const producersPromise = (async () => {
+      let r = await sb
+        .from("producers")
+        .select("id, name, region, logo_image_path, is_live")
+        .or(`name.ilike.%${q}%,region.ilike.%${q}%`)
+        .order("name", { ascending: true })
+        .limit(5);
+      if (r.error && /is_live|column.*does not exist/i.test(r.error.message ?? "")) {
+        r = await sb
+          .from("producers")
+          .select("id, name, region, logo_image_path")
+          .or(`name.ilike.%${q}%,region.ilike.%${q}%`)
+          .order("name", { ascending: true })
+          .limit(5);
+      }
+      return r;
+    })();
 
-    const [{ data: users, error: usersErr }, { data: wines, error: winesErr }, { data: producers, error: producersErr }] =
+    const [{ data: users, error: usersErr }, { data: wines, error: winesErr }, { data: producersRaw, error: producersErr }] =
       await Promise.all([usersPromise, winesPromise, producersPromise]);
 
     if (usersErr) throw usersErr;
     if (winesErr) throw winesErr;
     if (producersErr) throw producersErr;
+
+    const producers = (producersRaw || []).filter((p: any) => p.is_live !== false);
+
+    const wineList = wines || [];
+    const producerIdsFromWines = [...new Set(wineList.map((w: any) => w.producer_id).filter(Boolean))];
+    let liveProducerIds = new Set<string>(producerIdsFromWines);
+    if (producerIdsFromWines.length > 0) {
+      const prodResult = await sb.from("producers").select("id, is_live").in("id", producerIdsFromWines);
+      if (!prodResult.error && prodResult.data) {
+        const liveIds = (prodResult.data as any[]).filter((p: any) => p.is_live !== false).map((p: any) => p.id);
+        liveProducerIds = new Set(liveIds);
+      }
+    }
+    const winesFiltered = liveProducerIds.size > 0 ? wineList.filter((w: any) => liveProducerIds.has(w.producer_id)) : wineList;
 
     return NextResponse.json({
       users: (users || []).map((u: any) => ({
@@ -97,7 +122,7 @@ export async function GET(request: Request) {
         description: u.description,
         avatar_image_path: u.avatar_image_path,
       })),
-      wines: (wines || []).map((w: any) => ({
+      wines: winesFiltered.map((w: any) => ({
         id: w.id,
         name: `${w.wine_name}${w.vintage ? ` ${w.vintage}` : ""}`.trim(),
         handle: w.handle,
@@ -108,7 +133,7 @@ export async function GET(request: Request) {
           convertToFullUrl(w.label_image_path) ||
           "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
       })),
-      producers: (producers || []).map((p: any) => ({
+      producers: producers.map((p: any) => ({
         id: p.id,
         name: p.name,
         region: p.region,

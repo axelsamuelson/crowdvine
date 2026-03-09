@@ -68,20 +68,20 @@ export function useAvailableColors(products: Product[]) {
 
           console.log(`🔍 Product color value: "${colorName}"`);
 
+          // Normalize for comparison: "Red & White", "Red/White", extra spaces
+          const normalized = colorName.trim().toLowerCase().replace(/\s*\/\s*/g, " & ").replace(/\s+/g, " ");
+
           // Match against allColors (both single and dual colors)
           const matchingColor = allColors.find((c) => {
             if (Array.isArray(c)) {
-              // Dual color - match exact string "Red & Orange" or "Red/Orange"
-              const dualName1 = `${c[0].name} & ${c[1].name}`;
-              const dualName2 = `${c[0].name}/${c[1].name}`;
-              const matches =
-                colorName === dualName1 || colorName === dualName2;
+              const dualName1 = `${c[0].name} & ${c[1].name}`.toLowerCase();
+              const dualName2 = `${c[0].name}/${c[1].name}`.toLowerCase().replace("/", " & ");
+              const matches = normalized === dualName1 || normalized === dualName2;
               if (matches)
                 console.log(`✅ Matched blend: ${colorName} → ${dualName1}`);
               return matches;
             } else {
-              // Single color - exact match
-              const matches = c.name === colorName;
+              const matches = c.name.toLowerCase() === normalized;
               if (matches) console.log(`✅ Matched single: ${colorName}`);
               return matches;
             }

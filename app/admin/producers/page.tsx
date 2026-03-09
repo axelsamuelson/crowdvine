@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { DeleteProducerButton } from "@/components/admin/delete-producer-button";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -96,10 +97,21 @@ export default async function ProducersPage() {
                   {producers.map((producer) => (
                     <TableRow key={producer.id} className="hover:bg-gray-50">
                       <TableCell className="min-w-[240px]">
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex items-center gap-2 flex-wrap">
                           <div className="font-medium text-gray-900 truncate">
                             {producer.name}
                           </div>
+                          {(producer as any).is_live === false ? (
+                            <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200">
+                              Offline
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">
+                              Live
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="min-w-0 mt-0.5">
                           {producer.short_description ? (
                             <div className="text-xs text-gray-500 truncate">
                               {producer.short_description}

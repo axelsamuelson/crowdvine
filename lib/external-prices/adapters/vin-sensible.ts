@@ -8,6 +8,7 @@ import type { SourceAdapter } from "./base";
 import type { NormalizedOffer, PriceSource, WineForMatch } from "../types";
 import { fetchWithCache, fetchWithRetries, delay } from "../fetch-with-retries";
 import { buildQueryPack } from "../query-pack";
+import { extractCurrencyFromHtml } from "./currency-from-html";
 
 const MAX_CANDIDATES_TOTAL = 20;
 
@@ -114,9 +115,12 @@ export const vinSensibleAdapter: SourceAdapter = {
 
     const priceAmount = parsePrice(text);
     const titleRaw = parseTitle(text);
+    let currency = "EUR";
+    const detectedCurrency = extractCurrencyFromHtml(text);
+    if (detectedCurrency) currency = detectedCurrency;
     return {
       priceAmount: priceAmount ?? null,
-      currency: "EUR",
+      currency,
       available: true,
       titleRaw: titleRaw || "Unknown",
       pdpUrl,

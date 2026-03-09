@@ -49,6 +49,7 @@ export async function PUT(
       updateData.logo_image_path = body.logo_image_path;
     if (body.pickup_zone_id !== undefined)
       updateData.pickup_zone_id = body.pickup_zone_id || null;
+    if (body.is_live !== undefined) updateData.is_live = !!body.is_live;
 
     const { data: producer, error } = await supabase
       .from("producers")
