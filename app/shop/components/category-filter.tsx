@@ -35,13 +35,12 @@ export function CategoryFilter({
 
   const listContainerClass =
     mode === "sidebar"
-      ? // Compact height so Color and Grapes fit in view without scrolling
-        "max-h-36 lg:max-h-44 xl:max-h-52 overflow-y-auto pr-1"
+      ? "max-h-24 lg:max-h-28 xl:max-h-32 overflow-y-auto pr-1"
       : "";
 
   return (
-    <div className={cn("px-3 py-4 rounded-lg bg-muted", className)}>
-      <div className="flex items-baseline justify-between gap-3 mb-4">
+    <div className={cn("px-2.5 py-2 rounded-lg bg-muted", className)}>
+      <div className="flex items-baseline justify-between gap-2 mb-2">
         <h3 className="text-sm font-semibold">
           Producers{" "}
           {categoryCount > 0 && (
@@ -62,7 +61,7 @@ export function CategoryFilter({
       </div>
 
       <div className={listContainerClass}>
-        <ul className="flex flex-col gap-1">
+        <ul className="flex flex-col gap-0.5">
           {collections
             .filter((collection) => collection.handle !== "wine-boxes")
             .map((collection, index) => {

@@ -15,6 +15,8 @@ interface ProductListContentProps {
   collections: Collection[];
   selectedProducers?: string[];
   collectionHandle?: string;
+  /** Map wine id -> price source slugs that have an offer for that wine. Used for competitor filter. */
+  wineSourceSlugs?: Record<string, string[]>;
 }
 
 // Normalize color string for comparison: "Red & White", "Red/White", "red-&-white" → canonical form
@@ -81,6 +83,20 @@ function filterProductsByColors(
   return filteredProducts;
 }
 
+function filterProductsBySource(
+  products: Product[],
+  sourceSlugs: string[],
+  wineSourceSlugs: Record<string, string[]>,
+): Product[] {
+  if (!sourceSlugs || sourceSlugs.length === 0 || !wineSourceSlugs) return products;
+  const wanted = new Set(sourceSlugs);
+  return products.filter((product) => {
+    const slugs = wineSourceSlugs[product.id];
+    if (!slugs || slugs.length === 0) return false;
+    return slugs.some((s) => wanted.has(s));
+  });
+}
+
 function filterProductsByGrapes(products: Product[], grapes: string[]): Product[] {
   if (!grapes || grapes.length === 0) return products;
 
@@ -123,17 +139,34 @@ export function ProductListContent({
   collections,
   selectedProducers = [],
   collectionHandle,
+  wineSourceSlugs = {},
 }: ProductListContentProps & { collectionHandle?: string }) {
-  const { setProducts, setOriginalProducts } = useProducts();
+  const { setProducts, setOriginalProducts, setAvailableSourceSlugs } = useProducts();
 
-  // Get current color filters from URL
+  // Tell the sidebar which "Buy at" sources have at least one wine in this list (hide empty options)
+  useEffect(() => {
+    if (products.length === 0) {
+      setAvailableSourceSlugs([]);
+      return;
+    }
+    const slugs = new Set<string>();
+    for (const p of products) {
+      for (const s of wineSourceSlugs[p.id] ?? []) slugs.add(s);
+    }
+    setAvailableSourceSlugs(Array.from(slugs));
+  }, [products, wineSourceSlugs, setAvailableSourceSlugs]);
+
+  // Get current filters from URL
   const [colorFilters] = useQueryState(
     "fcolor",
     parseAsArrayOf(parseAsString).withDefault([]),
   );
-
   const [grapeFilters] = useQueryState(
     "fgrape",
+    parseAsArrayOf(parseAsString).withDefault([]),
+  );
+  const [sourceFilters] = useQueryState(
+    "fsource",
     parseAsArrayOf(parseAsString).withDefault([]),
   );
 
@@ -142,8 +175,10 @@ export function ProductListContent({
     let out = products;
     if (colorFilters?.length) out = filterProductsByColors(out, colorFilters);
     if (grapeFilters?.length) out = filterProductsByGrapes(out, grapeFilters);
+    if (sourceFilters?.length)
+      out = filterProductsBySource(out, sourceFilters, wineSourceSlugs);
     return out;
-  }, [products, colorFilters, grapeFilters]);
+  }, [products, colorFilters, grapeFilters, sourceFilters, wineSourceSlugs]);
 
   // Set both original and filtered products in the provider whenever they change
   useEffect(() => {
@@ -174,14 +209,14 @@ export function ProductListContent({
       metadata: { 
         productCount: filteredProducts.length,
         totalProducts: products.length,
-        hasFilters: colorFilters.length > 0 || grapeFilters.length > 0 || selectedProducers.length > 0 || isCollectionPage,
+        hasFilters: colorFilters.length > 0 || grapeFilters.length > 0 || sourceFilters.length > 0 || selectedProducers.length > 0 || isCollectionPage,
         collectionHandle: collectionHandle,
         isCollectionPage: isCollectionPage,
         productIds,
         producerIds,
       }
     });
-  }, [filteredProducts.length, products.length, colorFilters.length, grapeFilters.length, selectedProducers.length, collectionHandle]);
+  }, [filteredProducts.length, products.length, colorFilters.length, grapeFilters.length, sourceFilters.length, selectedProducers.length, collectionHandle]);
 
   return (
     <>

@@ -244,7 +244,7 @@ export default function PriceSourcesPage() {
         setForm((f) => ({ ...f, adapter_type }));
         setDetectedPlatform(adapter_type);
         setDetectionFailed(false);
-        toast.success(`Plattform detekterad: ${adapter_type === "shopify" ? "Shopify" : adapter_type === "woocommerce" ? "WooCommerce" : adapter_type === "prestashop" ? "PrestaShop" : adapter_type === "webnode" ? "Webnode" : adapter_type === "lightspeed" ? "Lightspeed" : adapter_type === "drupal" ? "Drupal" : adapter_type === "vin_sensible" ? "Vin Sensible" : adapter_type}`);
+        toast.success(`Plattform detekterad: ${adapter_type === "shopify" ? "Shopify" : adapter_type === "woocommerce" ? "WooCommerce" : adapter_type === "prestashop" ? "PrestaShop" : adapter_type === "webnode" ? "Webnode" : adapter_type === "lightspeed" ? "Lightspeed" : adapter_type === "drupal" ? "Drupal" : adapter_type === "vin_sensible" ? "Vin Sensible" : adapter_type === "vivino" ? "Vivino" : adapter_type}`);
       } else {
         setDetectionFailed(true);
         const urlLower = url.toLowerCase();
@@ -613,6 +613,7 @@ export default function PriceSourcesPage() {
                   <SelectItem value="lightspeed">Lightspeed</SelectItem>
                   <SelectItem value="drupal">Drupal (t.ex. hedonism.co.uk)</SelectItem>
                   <SelectItem value="vin_sensible">Vin Sensible (boutique.vin-sensible.fr)</SelectItem>
+                  <SelectItem value="vivino">Vivino (vivino.com)</SelectItem>
                 </SelectContent>
               </Select>
               {detectedPlatform && (

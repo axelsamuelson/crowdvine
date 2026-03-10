@@ -8,9 +8,16 @@ import { useQueryState, parseAsArrayOf, parseAsString } from "nuqs";
 interface GrapesFilterProps {
   products?: Product[];
   className?: string;
+  mode?: "sidebar" | "drawer" | "overlay";
+  onSeeAll?: () => void;
 }
 
-export function GrapesFilter({ products = [], className }: GrapesFilterProps) {
+export function GrapesFilter({
+  products = [],
+  className,
+  mode = "sidebar",
+  onSeeAll,
+}: GrapesFilterProps) {
   const { availableGrapes, toggleGrape } = useAvailableGrapes(products);
   const [active] = useQueryState(
     "fgrape",
@@ -23,16 +30,26 @@ export function GrapesFilter({ products = [], className }: GrapesFilterProps) {
   if (!availableGrapes || availableGrapes.length === 0) return null;
 
   return (
-    <div className={cn("px-3 py-4 rounded-md bg-muted", className)}>
-      <div className="flex items-baseline justify-between gap-3 mb-4">
+    <div className={cn("px-2.5 py-2 rounded-md bg-muted", className)}>
+      <div className="flex items-baseline justify-between gap-2 mb-2">
         <h3 className="text-sm font-semibold">
           Grapes{" "}
           {count > 0 && <span className="text-foreground/50">({count})</span>}
         </h3>
+        {mode === "sidebar" && onSeeAll && (
+          <button
+            type="button"
+            onClick={onSeeAll}
+            className="text-xs font-medium text-foreground/60 hover:text-foreground/80 transition-colors"
+            aria-label="See all filters"
+          >
+            See all
+          </button>
+        )}
       </div>
 
-      <div className="max-h-40 overflow-y-auto pr-1">
-        <div className="flex flex-col gap-1">
+      <div className="max-h-24 lg:max-h-28 overflow-y-auto pr-1">
+        <div className="flex flex-col gap-0.5">
           {availableGrapes.map((g) => {
             const isOn = active.includes(g);
             return (

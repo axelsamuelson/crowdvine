@@ -14,6 +14,7 @@ import {
 import { CategoryFilter } from "./category-filter";
 import { ColorFilter } from "./color-filter";
 import { GrapesFilter } from "./grapes-filter";
+import { CompetitorFilter, type PriceSourceForFilter } from "./competitor-filter";
 import { useFilterCount } from "../hooks/use-filter-count";
 import { useProducts } from "../providers/products-provider";
 import { ResultsCount } from "./results-count";
@@ -22,10 +23,11 @@ import Link from "next/link";
 
 interface MobileFiltersProps {
   collections: Collection[];
+  priceSources?: PriceSourceForFilter[];
   className?: string;
 }
 
-export function MobileFilters({ collections, className }: MobileFiltersProps) {
+export function MobileFilters({ collections, priceSources = [], className }: MobileFiltersProps) {
   const filterCount = useFilterCount();
   const { products, originalProducts } = useProducts();
   const [isMounted, setIsMounted] = React.useState(false);
@@ -90,7 +92,8 @@ export function MobileFilters({ collections, className }: MobileFiltersProps) {
           </DrawerHeader>
           <div className="overflow-y-auto flex-1 px-4 pb-4 space-y-6">
             <CategoryFilter collections={collections} mode="drawer" />
-            <GrapesFilter products={originalProducts} />
+            <GrapesFilter products={originalProducts} mode="drawer" />
+            <CompetitorFilter sources={priceSources} mode="drawer" />
             <ColorFilter products={originalProducts} />
           </div>
         </DrawerContent>

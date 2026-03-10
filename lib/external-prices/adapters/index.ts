@@ -6,6 +6,7 @@ export { webnodeAdapter } from "./webnode";
 export { lightspeedAdapter } from "./lightspeed";
 export { drupalAdapter } from "./drupal";
 export { vinSensibleAdapter } from "./vin-sensible";
+export { vivinoAdapter } from "./vivino";
 
 import type { PriceSource } from "../types";
 import type { SourceAdapter } from "./base";
@@ -16,6 +17,7 @@ import { webnodeAdapter } from "./webnode";
 import { lightspeedAdapter } from "./lightspeed";
 import { drupalAdapter } from "./drupal";
 import { vinSensibleAdapter } from "./vin-sensible";
+import { vivinoAdapter } from "./vivino";
 
 const registry: Record<string, SourceAdapter> = {
   shopify: shopifyLikeAdapter,
@@ -25,6 +27,7 @@ const registry: Record<string, SourceAdapter> = {
   lightspeed: lightspeedAdapter,
   drupal: drupalAdapter,
   vin_sensible: vinSensibleAdapter,
+  vivino: vivinoAdapter,
 };
 
 export function getAdapter(source: PriceSource): SourceAdapter {

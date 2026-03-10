@@ -8,6 +8,7 @@ import Link from "next/link";
 import { CategoryFilter } from "./category-filter";
 import { ColorFilter } from "./color-filter";
 import { GrapesFilter } from "./grapes-filter";
+import { CompetitorFilter, type PriceSourceForFilter } from "./competitor-filter";
 import { useProducts } from "../providers/products-provider";
 import { useFilterCount } from "../hooks/use-filter-count";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -15,14 +16,17 @@ import { X } from "lucide-react";
 
 export function DesktopFilters({
   collections,
+  priceSources = [],
   className,
 }: {
   collections: Collection[];
+  priceSources?: PriceSourceForFilter[];
   className?: string;
 }) {
   const { originalProducts } = useProducts();
   const filterCount = useFilterCount();
   const [seeAllOpen, setSeeAllOpen] = useState(false);
+  const openSeeAll = () => setSeeAllOpen(true);
 
   return (
     <>
@@ -32,9 +36,9 @@ export function DesktopFilters({
           className,
         )}
       >
-        <div className="flex flex-col col-span-3 xl:col-span-2 gap-4">
-          <div className="flex justify-between items-baseline pl-2 -mb-2">
-            <h2 className="text-2xl font-semibold">
+        <div className="flex flex-col col-span-3 xl:col-span-2 gap-2">
+          <div className="flex justify-between items-baseline pl-2 -mb-1">
+            <h2 className="text-xl font-semibold">
               Filter{" "}
               {filterCount > 0 && (
                 <span className="text-foreground/50">({filterCount})</span>
@@ -56,9 +60,18 @@ export function DesktopFilters({
             <CategoryFilter
               collections={collections}
               mode="sidebar"
-              onSeeAll={() => setSeeAllOpen(true)}
+              onSeeAll={openSeeAll}
             />
-            <GrapesFilter products={originalProducts} />
+            <GrapesFilter
+              products={originalProducts}
+              mode="sidebar"
+              onSeeAll={openSeeAll}
+            />
+            <CompetitorFilter
+              sources={priceSources}
+              mode="sidebar"
+              onSeeAll={openSeeAll}
+            />
             <ColorFilter products={originalProducts} />
           </Suspense>
         </div>
@@ -66,9 +79,9 @@ export function DesktopFilters({
 
       {/* Full-screen "See all" overlay (desktop) */}
       <Dialog open={seeAllOpen} onOpenChange={setSeeAllOpen}>
-        <DialogContent className="w-screen h-[100dvh] max-w-none left-0 top-0 translate-x-0 translate-y-0 p-0 sm:rounded-none">
-          <div className="h-full w-full flex flex-col bg-background">
-            <DialogHeader className="px-6 py-5 border-b border-border flex-row items-center justify-between space-y-0">
+        <DialogContent hideCloseButton className="w-screen h-[100dvh] max-w-none left-0 top-0 translate-x-0 translate-y-0 p-0 sm:rounded-none">
+          <div className="h-full w-full flex flex-col bg-background min-h-0">
+            <DialogHeader className="shrink-0 px-6 py-4 border-b border-border flex-row items-center justify-between space-y-0">
               <DialogTitle className="text-xl font-semibold">
                 Filters {filterCount > 0 && <span className="text-muted-foreground">({filterCount})</span>}
               </DialogTitle>
@@ -90,7 +103,7 @@ export function DesktopFilters({
                 <Button
                   size="icon"
                   variant="ghost"
-                  aria-label="Close"
+                  aria-label="Stäng"
                   onClick={() => setSeeAllOpen(false)}
                 >
                   <X className="h-4 w-4" />
@@ -98,18 +111,13 @@ export function DesktopFilters({
               </div>
             </DialogHeader>
 
-            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+            <div className="flex-1 min-h-0 overflow-y-auto px-6 py-6">
               <Suspense fallback={null}>
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
-                  <div className="lg:col-span-3">
-                    <CategoryFilter collections={collections} mode="overlay" />
-                  </div>
-                  <div className="lg:col-span-2">
-                    <div className="space-y-6">
-                      <GrapesFilter products={originalProducts} />
-                      <ColorFilter products={originalProducts} />
-                    </div>
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
+                  <CategoryFilter collections={collections} mode="overlay" />
+                  <GrapesFilter products={originalProducts} mode="overlay" />
+                  <CompetitorFilter sources={priceSources} mode="overlay" />
+                  <ColorFilter products={originalProducts} />
                 </div>
               </Suspense>
             </div>

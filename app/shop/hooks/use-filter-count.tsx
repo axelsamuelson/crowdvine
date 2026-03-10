@@ -13,6 +13,10 @@ export function useFilterCount() {
     "fgrape",
     parseAsArrayOf(parseAsString).withDefault([]),
   );
+  const [sources] = useQueryState(
+    "fsource",
+    parseAsArrayOf(parseAsString).withDefault([]),
+  );
 
   // Count active filters
   let count = 0;
@@ -25,6 +29,11 @@ export function useFilterCount() {
   // Count grape filters
   if (grapes.length > 0) {
     count += grapes.length;
+  }
+
+  // Count competitor/source filters
+  if (sources.length > 0) {
+    count += sources.length;
   }
 
   // Count collection filter (if not on "all" products)
@@ -58,4 +67,12 @@ export function useGrapeFilterCount() {
     parseAsArrayOf(parseAsString).withDefault([]),
   );
   return grapes.length;
+}
+
+export function useCompetitorFilterCount() {
+  const [sources] = useQueryState(
+    "fsource",
+    parseAsArrayOf(parseAsString).withDefault([]),
+  );
+  return sources.length;
 }

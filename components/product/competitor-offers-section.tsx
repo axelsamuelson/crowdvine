@@ -10,6 +10,8 @@ export interface CompetitorOffer {
   price_amount_sek: number | null;
   /** Vintage/year as shown on the competitor's listing (from their title). */
   vintage?: number | null;
+  /** Rating from source (e.g. Vivino 0–5). */
+  rating?: number | null;
 }
 
 interface CompetitorOffersSectionProps {
@@ -83,6 +85,11 @@ function CompetitorOfferRow({ offer }: { offer: CompetitorOffer }) {
         {offer.price_source_name ?? "Other store"}
       </span>
       <div className="flex items-center gap-3">
+        {offer.rating != null ? (
+          <span className="text-sm text-muted-foreground" title="Betyg från källan">
+            {Number(offer.rating).toFixed(1)}
+          </span>
+        ) : null}
         <span className="text-sm font-semibold text-foreground tabular-nums">
           {formatSek(offer.price_amount_sek)}
           {year ? (

@@ -105,6 +105,7 @@ async function refreshOneWineOneSource(
               available: offer.available,
               title_raw: offer.titleRaw,
               match_confidence: evalResult.score,
+              rating: offer.rating ?? null,
             });
             await updatePriceSourceLastCrawled(source.id);
             return {
@@ -136,6 +137,7 @@ async function refreshOneWineOneSource(
       available: boolean;
       title_raw: string;
       match_confidence: number;
+      rating?: number | null;
     } | null = null;
     let candidatesChecked = 0;
 
@@ -157,6 +159,7 @@ async function refreshOneWineOneSource(
             available: offer.available,
             title_raw: offer.titleRaw,
             match_confidence: evalResult.score,
+            rating: offer.rating ?? null,
           };
           if (STOP_AFTER_FIRST_MATCH) break;
         }
@@ -176,6 +179,7 @@ async function refreshOneWineOneSource(
         available: bestOffer.available,
         title_raw: bestOffer.title_raw,
         match_confidence: bestOffer.match_confidence,
+        rating: bestOffer.rating ?? null,
       });
       offersUpdated = 1;
       console.info(

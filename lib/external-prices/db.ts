@@ -7,7 +7,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import type { ExternalOffer, PriceSource } from "./types";
 
 const PRICE_SOURCES_SELECT = "id, created_at, updated_at, name, slug, base_url, search_url_template, sitemap_url, adapter_type, is_active, rate_limit_delay_ms, last_crawled_at, config";
-const EXTERNAL_OFFERS_SELECT = "id, created_at, updated_at, wine_id, price_source_id, pdp_url, price_amount, currency, available, title_raw, match_confidence, last_fetched_at";
+const EXTERNAL_OFFERS_SELECT = "id, created_at, updated_at, wine_id, price_source_id, pdp_url, price_amount, currency, available, title_raw, match_confidence, last_fetched_at, rating";
 
 export async function listPriceSources(activeOnly = false): Promise<PriceSource[]> {
   const sb = getSupabaseAdmin();
@@ -92,11 +92,13 @@ export interface UpsertExternalOfferInput {
   available: boolean;
   title_raw: string | null;
   match_confidence: number;
+  /** Rating from source (e.g. Vivino 0–5). Optional. */
+  rating?: number | null;
 }
 
 export async function upsertExternalOffer(input: UpsertExternalOfferInput): Promise<ExternalOffer> {
   const sb = getSupabaseAdmin();
-  const row = {
+  const row: Record<string, unknown> = {
     wine_id: input.wine_id,
     price_source_id: input.price_source_id,
     pdp_url: input.pdp_url,
@@ -108,6 +110,7 @@ export async function upsertExternalOffer(input: UpsertExternalOfferInput): Prom
     last_fetched_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
+  if (input.rating !== undefined) row.rating = input.rating;
   const { data, error } = await sb
     .from("external_offers")
     .upsert(row, {
@@ -154,6 +157,31 @@ export async function getOffersByWineId(wineId: string): Promise<OfferWithSource
     const { price_sources, ...offer } = r;
     return { ...offer, price_source: price_sources ?? null };
   });
+}
+
+/** Minimum match_confidence (0–1) to count as "Godkänd". Offers below this are excluded from shop filter and "Buy at" list. */
+const APPROVED_MATCH_THRESHOLD = 0.4;
+
+/** For a set of wine IDs, return which price source slugs have an *approved* offer (match_confidence >= threshold) for each wine. Used for shop competitor filter; only "Godkänd" matches count. */
+export async function getSourceSlugsByWineIds(wineIds: string[]): Promise<Record<string, string[]>> {
+  if (wineIds.length === 0) return {};
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("external_offers")
+    .select("wine_id, price_sources(slug)")
+    .in("wine_id", wineIds)
+    .gte("match_confidence", APPROVED_MATCH_THRESHOLD);
+  if (error) throw new Error(`getSourceSlugsByWineIds: ${error.message}`);
+  const rows = (data ?? []) as { wine_id: string; price_sources: { slug: string } | null }[];
+  const out: Record<string, string[]> = {};
+  for (const row of rows) {
+    const slug = row.price_sources?.slug;
+    if (slug) {
+      if (!out[row.wine_id]) out[row.wine_id] = [];
+      if (!out[row.wine_id].includes(slug)) out[row.wine_id].push(slug);
+    }
+  }
+  return out;
 }
 
 export interface OfferRow extends ExternalOffer {

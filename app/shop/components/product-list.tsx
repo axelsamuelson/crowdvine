@@ -12,6 +12,7 @@ import { ProductListContent } from "./product-list-content";
 import { mapSortKeys } from "@/lib/shopify/utils";
 import { headers } from "next/headers";
 import { isB2BHost } from "@/lib/b2b-site";
+import { getSourceSlugsByWineIds } from "@/lib/external-prices/db";
 
 function sortProductsByStock(products: Product[], inStockFirst: boolean): Product[] {
   return [...products].sort((a, b) => {
@@ -121,12 +122,23 @@ export default async function ProductList({
     console.warn("Error fetching collections in ProductList:", error);
   }
 
+  let wineSourceSlugs: Record<string, string[]> = {};
+  try {
+    const wineIds = products.map((p) => p.id).filter(Boolean);
+    if (wineIds.length > 0) {
+      wineSourceSlugs = await getSourceSlugsByWineIds(wineIds);
+    }
+  } catch (error) {
+    console.warn("Error fetching wine source slugs in ProductList:", error);
+  }
+
   return (
     <ProductListContent
       products={products}
       collections={collections}
       selectedProducers={producers}
       collectionHandle={collection}
+      wineSourceSlugs={wineSourceSlugs}
     />
   );
 }

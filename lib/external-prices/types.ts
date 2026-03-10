@@ -41,6 +41,8 @@ export interface ExternalOffer {
   title_raw: string | null;
   match_confidence: number;
   last_fetched_at: string;
+  /** Rating from source (e.g. Vivino 0–5). Null if not provided. */
+  rating?: number | null;
 }
 
 /** Normalized offer extracted from a PDP (by an adapter). */
@@ -54,5 +56,9 @@ export interface NormalizedOffer {
   vendor?: string | null;
   /** Bottle size if derivable (e.g. 750ml, 1500ml). */
   size?: string | null;
+  /** Rating from source (e.g. Vivino 0–5 scale). */
+  rating?: number | null;
+  /** Number of ratings/reviews (e.g. Vivino). */
+  ratingCount?: number | null;
 }
 

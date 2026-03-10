@@ -137,6 +137,8 @@ export default async function ProductPage(props: {
     price_amount_sek: number | null;
     /** Vintage/year from the competitor's listing (extracted from title_raw). */
     vintage: number | null;
+    /** Rating from source (e.g. Vivino 0–5). */
+    rating: number | null;
   }> = [];
   if (product.productType === "wine" && product.id) {
     try {
@@ -179,6 +181,7 @@ export default async function ProductPage(props: {
           pdp_url: o.pdp_url,
           price_amount_sek,
           vintage: getVintageFromTitle(o.title_raw),
+          rating: o.rating != null ? Number(o.rating) : null,
         };
       });
     } catch {

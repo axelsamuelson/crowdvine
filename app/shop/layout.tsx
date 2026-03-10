@@ -5,6 +5,7 @@ import { PageLayout } from "@/components/layout/page-layout";
 import { MobileFilters } from "./components/mobile-filters";
 import { ProductsProvider } from "./providers/products-provider";
 import { CompleteOrderRail } from "@/components/cart/complete-order-rail";
+import { listPriceSources } from "@/lib/external-prices/db";
 
 // Enable ISR with 1 minute revalidation for the layout
 export const revalidate = 60;
@@ -22,6 +23,14 @@ export default async function ShopLayout({
     collections = [];
   }
 
+  let priceSources: { id: string; name: string; slug: string }[] = [];
+  try {
+    const sources = await listPriceSources(true);
+    priceSources = sources.map((s) => ({ id: s.id, name: s.name, slug: s.slug }));
+  } catch (error) {
+    console.warn("Failed to fetch price sources in shop layout:", error);
+  }
+
   return (
     <PageLayout>
       <ProductsProvider>
@@ -29,6 +38,7 @@ export default async function ShopLayout({
           <Suspense fallback={null}>
             <DesktopFilters
               collections={collections}
+              priceSources={priceSources}
               className="col-span-3 max-md:hidden"
             />
           </Suspense>
@@ -38,7 +48,7 @@ export default async function ShopLayout({
               <CompleteOrderRail showMobile />
             </div>
             <Suspense fallback={null}>
-              <MobileFilters collections={collections} />
+              <MobileFilters collections={collections} priceSources={priceSources} />
             </Suspense>
           </div>
 

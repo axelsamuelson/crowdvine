@@ -5,7 +5,7 @@
 
 import { fetchWithRetries } from "./fetch-with-retries";
 
-export type DetectedPlatform = "shopify" | "woocommerce" | "prestashop" | "webnode" | "lightspeed" | "drupal" | "vin_sensible" | null;
+export type DetectedPlatform = "shopify" | "woocommerce" | "prestashop" | "webnode" | "lightspeed" | "drupal" | "vin_sensible" | "vivino" | null;
 
 const SHOPIFY_SIGNATURES = [
   /cdn\.shopify\.com/i,
@@ -74,6 +74,19 @@ function getUrlToFetch(input: string): string {
   }
 }
 
+/** Host-based detection (no fetch): Vivino is a known wine site with custom frontend. */
+function detectFromHost(baseUrl: string): DetectedPlatform {
+  try {
+    const withScheme = baseUrl.trim().startsWith("http") ? baseUrl.trim() : `https://${baseUrl.trim()}`;
+    const u = new URL(withScheme);
+    const host = (u.hostname || "").toLowerCase().replace(/^www\./, "");
+    if (host === "vivino.com") return "vivino";
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
 function detectFromHtml(html: string): DetectedPlatform {
   // Check Shopify first (strong, specific signals)
   for (const re of SHOPIFY_SIGNATURES) {
@@ -118,6 +131,9 @@ const BROWSER_ACCEPT =
 export async function detectPlatform(baseUrl: string): Promise<DetectedPlatform> {
   const url = getUrlToFetch(baseUrl);
   if (!url) throw new Error("Ogiltig webbadress");
+
+  const fromHost = detectFromHost(baseUrl);
+  if (fromHost) return fromHost;
 
   const { ok, text } = await fetchWithRetries(url, {
     timeoutMs: 12_000,

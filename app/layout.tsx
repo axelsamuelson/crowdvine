@@ -112,9 +112,12 @@ export default async function RootLayout({
                 <MembershipProvider>
                   <OnboardingProvider>
                     <NuqsAdapter>
-                      <main data-vaul-drawer-wrapper="true">
-                        <ConditionalHeader collections={collections} />
-                        {children}
+                      <main>
+                        {/* Vaul drawer needs this wrapper; inner div avoids hydration mismatch from drawer lib touching the node */}
+                        <div data-vaul-drawer-wrapper="true">
+                          <ConditionalHeader collections={collections} />
+                          {children}
+                        </div>
                       </main>
                       {isDevelopment && <DebugGrid />}
                       <Toaster closeButton position="bottom-right" />

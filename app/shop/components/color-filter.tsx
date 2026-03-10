@@ -31,8 +31,8 @@ export function ColorFilter({ products = [], className }: ColorFilterProps) {
   // Don't render motion components during SSR
   if (!isClient) {
     return (
-      <div className={cn("px-3 py-4 rounded-md bg-muted", className)}>
-        <h3 className="mb-4 font-semibold">
+      <div className={cn("px-2.5 py-2 rounded-md bg-muted", className)}>
+        <h3 className="mb-2 font-semibold text-sm">
           Color{" "}
           {colorCount > 0 && (
             <span className="text-foreground/50">({colorCount})</span>
@@ -52,9 +52,9 @@ export function ColorFilter({ products = [], className }: ColorFilterProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className={cn("px-3 py-4 rounded-md bg-muted", className)}
+          className={cn("px-2.5 py-2 rounded-md bg-muted", className)}
         >
-          <h3 className="mb-4 font-semibold">
+          <h3 className="mb-2 font-semibold text-sm">
             Color{" "}
             {colorCount > 0 && (
               <span className="text-foreground/50">({colorCount})</span>
