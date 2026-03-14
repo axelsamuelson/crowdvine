@@ -3,7 +3,10 @@ import path from "path";
 
 export default defineConfig({
   test: {
-    include: ["lib/external-prices/__tests__/**/*.test.ts"],
+    include: [
+      "lib/external-prices/__tests__/**/*.test.ts",
+      "lib/menu-extraction/__tests__/**/*.test.ts",
+    ],
     environment: "node",
   },
   resolve: {

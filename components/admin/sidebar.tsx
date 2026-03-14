@@ -31,6 +31,7 @@ import {
   ChevronDown,
   TrendingUp,
   Building2,
+  Sparkles,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -96,6 +97,13 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: "Bookings", href: "/admin/bookings", icon: Calendar },
       { name: "Reservations", href: "/admin/reservations", icon: FileText },
+    ],
+  },
+  {
+    name: "AI & Menyer",
+    icon: Sparkles,
+    items: [
+      { name: "Menyextraktion", href: "/admin/menu-extraction", icon: Sparkles },
     ],
   },
 ];

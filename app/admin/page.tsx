@@ -25,6 +25,7 @@ import {
   CreditCard,
   Shield,
   FileText,
+  Sparkles,
 } from "lucide-react";
 
 export default async function AdminDashboard() {
@@ -396,6 +397,13 @@ export default async function AdminDashboard() {
               <Link href="/admin/content">
                 <FileText className="h-5 w-5 md:h-6 md:w-6 mb-2" />
                 <span className="text-xs md:text-sm">Content</span>
+              </Link>
+            </Button>
+
+            <Button asChild variant="outline" className="h-auto p-3 md:p-4 flex-col rounded-xl">
+              <Link href="/admin/menu-extraction">
+                <Sparkles className="h-5 w-5 md:h-6 md:w-6 mb-2" />
+                <span className="text-xs md:text-sm">Menyextraktion (AI)</span>
               </Link>
             </Button>
           </div>
