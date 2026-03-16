@@ -86,7 +86,7 @@ export function WineBoxesList() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
+        <div>
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200">

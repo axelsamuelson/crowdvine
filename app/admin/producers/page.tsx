@@ -73,7 +73,7 @@ export default async function ProducersPage() {
             <CardDescription>Complete list of all producers</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
+            <div>
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gray-50 hover:bg-gray-50">

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog,
@@ -82,15 +81,15 @@ export function EventTimeline({ events }: EventTimelineProps) {
     setSelectedUserIds([]);
   };
   const getEventColor = (category: string) => {
-    const colors = {
-      auth: "bg-blue-100 text-blue-800",
-      navigation: "bg-purple-100 text-purple-800",
-      cart: "bg-orange-100 text-orange-800",
-      checkout: "bg-green-100 text-green-800",
-      validation: "bg-yellow-100 text-yellow-800",
-      engagement: "bg-pink-100 text-pink-800",
+    const colors: Record<string, string> = {
+      auth: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200",
+      navigation: "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-200",
+      cart: "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-200",
+      checkout: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200",
+      validation: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200",
+      engagement: "bg-pink-100 text-pink-800 dark:bg-pink-900/40 dark:text-pink-200",
     };
-    return colors[category as keyof typeof colors] || "bg-gray-100 text-gray-800";
+    return colors[category] ?? "bg-gray-100 text-gray-800 dark:bg-zinc-700 dark:text-zinc-200";
   };
 
   // Get unique categories and event types for filters
@@ -136,18 +135,20 @@ export function EventTimeline({ events }: EventTimelineProps) {
 
   return (
     <>
-      <Card className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Recent Events</h3>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Recent Events
+          </h3>
           <div className="flex gap-2 items-center">
             <Badge variant="outline">{filteredEvents.length} events</Badge>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 pb-4 border-b">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 pb-4 border-b border-gray-200 dark:border-[#1F1F23]">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">Filter by Category</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter by Category</label>
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
               <SelectTrigger>
                 <SelectValue placeholder="All categories" />
@@ -164,7 +165,7 @@ export function EventTimeline({ events }: EventTimelineProps) {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">Filter by Users</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter by Users</label>
             <Popover open={userFilterOpen} onOpenChange={setUserFilterOpen}>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="w-full justify-between">
@@ -176,10 +177,10 @@ export function EventTimeline({ events }: EventTimelineProps) {
                   <X className="h-4 w-4 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-80 p-2" align="start">
+              <PopoverContent className="w-80 p-2 bg-white dark:bg-[#1F1F23] border-gray-200 dark:border-zinc-700" align="start">
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between px-2 pb-2 border-b">
-                    <Label className="text-sm font-medium">Select Users</Label>
+                  <div className="flex items-center justify-between px-2 pb-2 border-b border-gray-200 dark:border-zinc-700">
+                    <Label className="text-sm font-medium text-gray-900 dark:text-white">Select Users</Label>
                     {selectedUserIds.length > 0 && (
                       <Button
                         variant="ghost"
@@ -191,9 +192,9 @@ export function EventTimeline({ events }: EventTimelineProps) {
                       </Button>
                     )}
                   </div>
-                  <div className="px-2 py-1 border-b">
+                  <div className="px-2 py-1 border-b border-gray-200 dark:border-zinc-700">
                     <label
-                      className="flex items-center gap-2 cursor-pointer text-sm font-medium hover:bg-gray-50 rounded px-1 py-1 -mx-1"
+                      className="flex items-center gap-2 cursor-pointer text-sm font-medium text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-zinc-800 rounded px-1 py-1 -mx-1"
                     >
                       <Checkbox
                         checked={users.length > 0 && selectedUserIds.length === users.length}
@@ -208,7 +209,7 @@ export function EventTimeline({ events }: EventTimelineProps) {
                       return (
                         <label
                           key={user.id}
-                          className="flex items-center gap-2 cursor-pointer text-sm px-2 py-1 hover:bg-gray-50 rounded"
+                          className="flex items-center gap-2 cursor-pointer text-sm text-gray-900 dark:text-white px-2 py-1 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded"
                         >
                           <Checkbox
                             checked={isSelected}
@@ -221,7 +222,7 @@ export function EventTimeline({ events }: EventTimelineProps) {
                       );
                     })}
                     {users.length === 0 && (
-                      <p className="text-xs text-gray-500 px-2 py-2">No users found</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 px-2 py-2">No users found</p>
                     )}
                   </div>
                 </div>
@@ -230,7 +231,7 @@ export function EventTimeline({ events }: EventTimelineProps) {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">Search Events</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Search Events</label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
@@ -255,7 +256,7 @@ export function EventTimeline({ events }: EventTimelineProps) {
 
         {filteredEvents.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-500">No events found matching your filters.</p>
+            <p className="text-gray-500 dark:text-gray-400">No events found matching your filters.</p>
             <Button
               variant="outline"
               className="mt-2"
@@ -280,7 +281,7 @@ export function EventTimeline({ events }: EventTimelineProps) {
                 <div
                   key={event.id}
                   onClick={() => setSelectedEvent(event)}
-                  className="p-4 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                  className="p-4 border border-gray-200 dark:border-[#1F1F23] rounded-lg hover:bg-gray-50 dark:hover:bg-[#1F1F23] transition-colors cursor-pointer"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -290,16 +291,16 @@ export function EventTimeline({ events }: EventTimelineProps) {
                         >
                           {event.event_type}
                         </span>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
                           {format(new Date(event.created_at), "MMM d, HH:mm:ss")}
                         </span>
-                        <span className="text-xs font-medium text-blue-600">
+                        <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
                           {userName}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600">{event.page_url}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">{event.page_url}</p>
                     {event.event_metadata && Object.keys(event.event_metadata).length > 0 && (
-                      <div className="text-xs bg-gray-100 p-2 rounded mt-2 overflow-x-auto">
+                      <div className="text-xs bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-gray-200 p-2 rounded mt-2 overflow-x-auto">
                         {Object.entries(event.event_metadata).slice(0, 3).map(([key, value]) => (
                           <div key={key} className="truncate">
                             <strong>{key}:</strong> {String(value).substring(0, 50)}
@@ -307,7 +308,7 @@ export function EventTimeline({ events }: EventTimelineProps) {
                           </div>
                         ))}
                         {Object.keys(event.event_metadata).length > 3 && (
-                          <div className="text-gray-400 mt-1">Click to see more...</div>
+                          <div className="text-gray-400 dark:text-gray-500 mt-1">Click to see more...</div>
                         )}
                       </div>
                     )}
@@ -318,114 +319,108 @@ export function EventTimeline({ events }: EventTimelineProps) {
             </div>
           </ScrollArea>
         )}
-      </Card>
+      </div>
 
       <Dialog open={!!selectedEvent} onOpenChange={() => setSelectedEvent(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl bg-white dark:bg-[#1F1F23] border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-white">
           <DialogHeader>
-            <DialogTitle>Event Details</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-gray-900 dark:text-white">Event Details</DialogTitle>
+            <DialogDescription className="text-gray-500 dark:text-gray-400">
               Detailed information about this event
             </DialogDescription>
           </DialogHeader>
           
           {selectedEvent && (
             <div className="space-y-4 mt-4">
-              {/* User Info */}
               {selectedEvent.profiles && (
                 <>
                   <div>
-                    <p className="text-sm font-medium text-gray-500 mb-1">User</p>
-                    <p className="text-sm font-semibold">
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">User</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
                       {selectedEvent.profiles.full_name || selectedEvent.profiles.email || 'Guest User'}
                     </p>
                     {selectedEvent.profiles.email && selectedEvent.profiles.full_name && (
-                      <p className="text-xs text-gray-400">{selectedEvent.profiles.email}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">{selectedEvent.profiles.email}</p>
                     )}
                   </div>
-                  <Separator />
+                  <Separator className="bg-gray-200 dark:bg-zinc-700" />
                 </>
               )}
 
-              {/* Event Type & Category */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Event Type</p>
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Event Type</p>
                   <Badge className={getEventColor(selectedEvent.event_category)}>
                     {selectedEvent.event_type}
                   </Badge>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Category</p>
-                  <Badge variant="outline">{selectedEvent.event_category}</Badge>
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Category</p>
+                  <Badge variant="outline" className="text-gray-900 dark:text-white border-gray-300 dark:border-zinc-600">{selectedEvent.event_category}</Badge>
                 </div>
               </div>
 
-              <Separator />
+              <Separator className="bg-gray-200 dark:bg-zinc-700" />
 
-              {/* Timestamp */}
               <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">Timestamp</p>
-                <p className="text-sm">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Timestamp</p>
+                <p className="text-sm text-gray-900 dark:text-white">
                   {format(new Date(selectedEvent.created_at), "PPpp")}
                 </p>
               </div>
 
-              <Separator />
+              <Separator className="bg-gray-200 dark:bg-zinc-700" />
 
-              {/* Page URL */}
               {selectedEvent.page_url && (
                 <div>
-                  <p className="text-sm font-medium text-gray-500 mb-1">Page URL</p>
-                  <a 
-                    href={selectedEvent.page_url} 
-                    target="_blank" 
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Page URL</p>
+                  <a
+                    href={selectedEvent.page_url}
+                    target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-blue-600 hover:underline break-all"
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline break-all"
                   >
                     {selectedEvent.page_url}
                   </a>
                 </div>
               )}
 
-              <Separator />
+              <Separator className="bg-gray-200 dark:bg-zinc-700" />
 
-              {/* Event Metadata */}
               {selectedEvent.event_metadata && Object.keys(selectedEvent.event_metadata).length > 0 && (
                 <div>
-                  <p className="text-sm font-medium text-gray-500 mb-2">Event Data</p>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <pre className="text-xs overflow-x-auto">
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Event Data</p>
+                  <div className="bg-gray-50 dark:bg-zinc-800 p-4 rounded-lg">
+                    <pre className="text-xs overflow-x-auto text-gray-900 dark:text-gray-200">
                       {JSON.stringify(selectedEvent.event_metadata, null, 2)}
                     </pre>
                   </div>
                 </div>
               )}
 
-              {/* Additional Info */}
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-zinc-700">
                 {selectedEvent.user_id && (
                   <div>
-                    <p className="text-xs font-medium text-gray-500">User ID</p>
-                    <p className="text-xs font-mono">{selectedEvent.user_id}</p>
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">User ID</p>
+                    <p className="text-xs font-mono text-gray-900 dark:text-gray-200">{selectedEvent.user_id}</p>
                   </div>
                 )}
                 {selectedEvent.session_id && (
                   <div>
-                    <p className="text-xs font-medium text-gray-500">Session ID</p>
-                    <p className="text-xs font-mono">{selectedEvent.session_id}</p>
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Session ID</p>
+                    <p className="text-xs font-mono text-gray-900 dark:text-gray-200">{selectedEvent.session_id}</p>
                   </div>
                 )}
                 {selectedEvent.user_agent && (
                   <div className="col-span-2">
-                    <p className="text-xs font-medium text-gray-500">User Agent</p>
-                    <p className="text-xs break-all">{selectedEvent.user_agent}</p>
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">User Agent</p>
+                    <p className="text-xs break-all text-gray-900 dark:text-gray-200">{selectedEvent.user_agent}</p>
                   </div>
                 )}
                 {selectedEvent.referrer && (
                   <div className="col-span-2">
-                    <p className="text-xs font-medium text-gray-500">Referrer</p>
-                    <p className="text-xs break-all">{selectedEvent.referrer || 'Direct'}</p>
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Referrer</p>
+                    <p className="text-xs break-all text-gray-900 dark:text-gray-200">{selectedEvent.referrer || 'Direct'}</p>
                   </div>
                 )}
               </div>

@@ -709,7 +709,7 @@ export default function TastingPage() {
               className="rounded-2xl border border-neutral-100 bg-white shadow-sm overflow-clip"
               style={{ touchAction: 'pan-y', overscrollBehavior: 'auto' }}
             >
-              <Table scrollContainer={false}>
+              <Table>
                 <TableHeader>
                   <TableRow className="border-neutral-100 hover:bg-transparent">
                     <TableHead className="w-14 text-neutral-500 font-medium"> </TableHead>

@@ -186,12 +186,12 @@ export default function UserDetailPage({
 
   const getLevelColor = (level: string) => {
     const colors: Record<string, { bg: string; text: string }> = {
-      basic: { bg: "bg-slate-200", text: "text-slate-900" },
-      brons: { bg: "bg-indigo-200", text: "text-indigo-950" },
-      silver: { bg: "bg-emerald-200", text: "text-emerald-950" },
-      guld: { bg: "bg-[#E4CAA0]/30", text: "text-gray-900" },
-      privilege: { bg: "bg-rose-200", text: "text-rose-950" },
-      admin: { bg: "bg-purple-200", text: "text-purple-950" },
+      basic: { bg: "bg-slate-200 dark:bg-slate-700", text: "text-slate-900 dark:text-slate-100" },
+      brons: { bg: "bg-indigo-200 dark:bg-indigo-800/60", text: "text-indigo-950 dark:text-indigo-100" },
+      silver: { bg: "bg-emerald-200 dark:bg-emerald-800/60", text: "text-emerald-950 dark:text-emerald-100" },
+      guld: { bg: "bg-[#E4CAA0]/30 dark:bg-amber-900/50", text: "text-gray-900 dark:text-amber-100" },
+      privilege: { bg: "bg-rose-200 dark:bg-rose-900/50", text: "text-rose-950 dark:text-rose-100" },
+      admin: { bg: "bg-purple-200 dark:bg-purple-800/60", text: "text-purple-950 dark:text-purple-100" },
     };
     return colors[level] || colors.basic;
   };
@@ -210,9 +210,9 @@ export default function UserDetailPage({
 
   if (loading) {
     return (
-      <div className="p-8">
+      <div className="p-6">
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-300 dark:border-zinc-600 border-t-gray-900 dark:border-t-white" />
         </div>
       </div>
     );
@@ -220,10 +220,10 @@ export default function UserDetailPage({
 
   if (!profile) {
     return (
-      <div className="p-8">
+      <div className="p-6">
         <div className="text-center py-12">
-          <p className="text-muted-foreground">User not found</p>
-          <Button onClick={() => router.push("/admin/users")} className="mt-4">
+          <p className="text-gray-500 dark:text-gray-400">User not found</p>
+          <Button onClick={() => router.push("/admin/users")} className="mt-4 border-gray-300 dark:border-zinc-600 text-gray-900 dark:text-white" variant="outline">
             Back to Users
           </Button>
         </div>
@@ -240,11 +240,11 @@ export default function UserDetailPage({
     if (accountSource.source === "invitation") {
       const inviter = accountSource.invitation?.inviter_profile;
       return (
-        <div className="mt-3 text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
+        <div className="mt-3 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2 flex-wrap">
           <Sparkles className="w-4 h-4" />
           <span>
             Invited by{" "}
-            <span className="text-foreground">
+            <span className="text-gray-900 dark:text-white">
               {inviter?.full_name || inviter?.email || "Unknown"}
             </span>
             {accountSource.invitation?.code
@@ -256,7 +256,7 @@ export default function UserDetailPage({
     }
     if (accountSource.source === "access_token") {
       return (
-        <div className="mt-3 text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
+        <div className="mt-3 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2 flex-wrap">
           <LinkIcon className="w-4 h-4" />
           <span>Created via approved access link</span>
         </div>
@@ -264,11 +264,11 @@ export default function UserDetailPage({
     }
     if (accountSource.source === "access_request") {
       return (
-        <div className="mt-3 text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
+        <div className="mt-3 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2 flex-wrap">
           <LinkIcon className="w-4 h-4" />
           <span>
             Access request:{" "}
-            <span className="text-foreground">
+            <span className="text-gray-900 dark:text-white">
               {accountSource.access_request?.status || "unknown"}
             </span>
           </span>
@@ -277,7 +277,7 @@ export default function UserDetailPage({
     }
     if (accountSource.source === "direct_signup") {
       return (
-        <div className="mt-3 text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
+        <div className="mt-3 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2 flex-wrap">
           <LinkIcon className="w-4 h-4" />
           <span>Created via direct signup</span>
         </div>
@@ -287,24 +287,23 @@ export default function UserDetailPage({
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
+    <div className="space-y-4 max-w-7xl mx-auto">
+      <div>
         <Button
           variant="ghost"
           onClick={() => router.push("/admin/users")}
-          className="mb-4 gap-2"
+          className="mb-4 gap-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1F1F23]"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Users
         </Button>
 
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between gap-4">
           <div className="space-y-2">
-            <h1 className="text-3xl font-light text-foreground">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               {profile.full_name || profile.email}
             </h1>
-            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
               <div className="flex items-center gap-1.5">
                 <Mail className="w-4 h-4" />
                 <span>{profile.email}</span>
@@ -322,7 +321,7 @@ export default function UserDetailPage({
 
           {membership && (
             <div
-              className={`px-4 py-2 rounded-full ${levelColors.bg} ${levelColors.text} text-sm font-medium`}
+              className={`px-4 py-2 rounded-full ${levelColors.bg} ${levelColors.text} text-sm font-medium shrink-0`}
             >
               {getLevelDisplayName(membership.level)}
             </div>
@@ -331,103 +330,102 @@ export default function UserDetailPage({
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-8">
-        <div className="bg-background border border-border rounded-xl p-6">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+        <div className="bg-white dark:bg-[#0F0F12] border border-gray-200 dark:border-[#1F1F23] rounded-xl p-6">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-foreground" />
+            <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-[#1F1F23] flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-gray-700 dark:text-gray-300" />
             </div>
             <div>
-              <p className="text-2xl font-light text-foreground">
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {membership?.impact_points || 0}
               </p>
-              <p className="text-xs text-muted-foreground">Impact Points</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Impact Points</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-background border border-border rounded-xl p-6">
+        <div className="bg-white dark:bg-[#0F0F12] border border-gray-200 dark:border-[#1F1F23] rounded-xl p-6">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center">
-              <Package className="w-5 h-5 text-foreground" />
+            <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-[#1F1F23] flex items-center justify-center">
+              <Package className="w-5 h-5 text-gray-700 dark:text-gray-300" />
             </div>
             <div>
-              <p className="text-2xl font-light text-foreground">
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {reservations.length}
               </p>
-              <p className="text-xs text-muted-foreground">Reservations</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Reservations</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-background border border-border rounded-xl p-6">
+        <div className="bg-white dark:bg-[#0F0F12] border border-gray-200 dark:border-[#1F1F23] rounded-xl p-6">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center">
-              <Users className="w-5 h-5 text-foreground" />
+            <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-[#1F1F23] flex items-center justify-center">
+              <Users className="w-5 h-5 text-gray-700 dark:text-gray-300" />
             </div>
             <div>
-              <p className="text-2xl font-light text-foreground">
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {invitations.filter((i) => i.used_at).length}
               </p>
-              <p className="text-xs text-muted-foreground">Invites Used</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Invites Used</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-background border border-border rounded-xl p-6">
+        <div className="bg-white dark:bg-[#0F0F12] border border-gray-200 dark:border-[#1F1F23] rounded-xl p-6">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center">
-              <Award className="w-5 h-5 text-foreground" />
+            <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-[#1F1F23] flex items-center justify-center">
+              <Award className="w-5 h-5 text-gray-700 dark:text-gray-300" />
             </div>
             <div>
-              <p className="text-2xl font-light text-foreground">
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {membership
                   ? `${membership.invites_used_this_month}/${membership.invite_quota_monthly}`
                   : "0/0"}
               </p>
-              <p className="text-xs text-muted-foreground">Quota This Month</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Quota This Month</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-background border border-border rounded-xl p-6">
+        <div className="bg-white dark:bg-[#0F0F12] border border-gray-200 dark:border-[#1F1F23] rounded-xl p-6">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center">
-              <LayoutGrid className="w-5 h-5 text-foreground" />
+            <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-[#1F1F23] flex items-center justify-center">
+              <LayoutGrid className="w-5 h-5 text-gray-700 dark:text-gray-300" />
             </div>
             <div>
-              <p className="text-2xl font-light text-foreground">{views.plpViews}</p>
-              <p className="text-xs text-muted-foreground">PLP Views</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{views.plpViews}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">PLP Views</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-background border border-border rounded-xl p-6">
+        <div className="bg-white dark:bg-[#0F0F12] border border-gray-200 dark:border-[#1F1F23] rounded-xl p-6">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center">
-              <Eye className="w-5 h-5 text-foreground" />
+            <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-[#1F1F23] flex items-center justify-center">
+              <Eye className="w-5 h-5 text-gray-700 dark:text-gray-300" />
             </div>
             <div>
-              <p className="text-2xl font-light text-foreground">{views.pdpViews}</p>
-              <p className="text-xs text-muted-foreground">PDP Views</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{views.pdpViews}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">PDP Views</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content - Tabs */}
+      {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Reservations */}
         <div className="lg:col-span-2 space-y-6">
           {/* Reservations */}
-          <div className="bg-background border border-border rounded-xl p-6">
-            <h2 className="text-xl font-light text-foreground mb-4 flex items-center gap-2">
+          <div className="bg-white dark:bg-[#0F0F12] border border-gray-200 dark:border-[#1F1F23] rounded-xl p-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <Package className="w-5 h-5" />
               Reservations ({reservations.length})
             </h2>
 
             {reservations.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4">
+              <p className="text-sm text-gray-500 dark:text-gray-400 py-4">
                 No reservations yet
               </p>
             ) : (
@@ -435,14 +433,14 @@ export default function UserDetailPage({
                 {reservations.map((reservation) => (
                   <div
                     key={reservation.id}
-                    className="border border-border rounded-lg p-4 hover:border-foreground/20 transition-all"
+                    className="border border-gray-200 dark:border-[#1F1F23] rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-[#1F1F23] transition-colors"
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div>
-                        <p className="text-sm font-medium text-foreground">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
                           {reservation.total_bottles} bottles
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
                           {new Date(
                             reservation.created_at,
                           ).toLocaleDateString()}
@@ -451,10 +449,10 @@ export default function UserDetailPage({
                       <span
                         className={`px-2 py-1 rounded text-xs ${
                           reservation.status === "completed"
-                            ? "bg-green-100 text-green-900"
+                            ? "bg-green-100 text-green-900 dark:bg-green-900/40 dark:text-green-200"
                             : reservation.status === "pending"
-                              ? "bg-yellow-100 text-yellow-900"
-                              : "bg-gray-100 text-gray-900"
+                              ? "bg-yellow-100 text-yellow-900 dark:bg-yellow-900/40 dark:text-yellow-200"
+                              : "bg-gray-100 text-gray-900 dark:bg-zinc-700 dark:text-zinc-200"
                         }`}
                       >
                         {reservation.status}
@@ -462,8 +460,8 @@ export default function UserDetailPage({
                     </div>
 
                     {reservation.wines && reservation.wines.length > 0 && (
-                      <div className="mt-2 pt-2 border-t border-border/50">
-                        <p className="text-xs text-muted-foreground">
+                      <div className="mt-2 pt-2 border-t border-gray-200 dark:border-[#1F1F23]">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
                           {reservation.wines
                             .slice(0, 2)
                             .map((w: any) => w.wine_name)
@@ -480,14 +478,14 @@ export default function UserDetailPage({
           </div>
 
           {/* Impact Points History */}
-          <div className="bg-background border border-border rounded-xl p-6">
-            <h2 className="text-xl font-light text-foreground mb-4 flex items-center gap-2">
+          <div className="bg-white dark:bg-[#0F0F12] border border-gray-200 dark:border-[#1F1F23] rounded-xl p-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <TrendingUp className="w-5 h-5" />
               Impact Points History ({ipEvents.length})
             </h2>
 
             {ipEvents.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4">
+              <p className="text-sm text-gray-500 dark:text-gray-400 py-4">
                 No activity yet
               </p>
             ) : (
@@ -495,17 +493,17 @@ export default function UserDetailPage({
                 {ipEvents.map((event) => (
                   <div
                     key={event.id}
-                    className="flex items-center justify-between py-2 border-b border-border/30 last:border-0"
+                    className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-[#1F1F23] last:border-0"
                   >
                     <div>
-                      <p className="text-sm font-medium text-foreground">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
                         {event.event_type.replace(/_/g, " ")}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
                         {new Date(event.created_at).toLocaleDateString()}
                       </p>
                     </div>
-                    <span className="text-sm font-medium text-green-600">
+                    <span className="text-sm font-medium text-green-600 dark:text-green-400">
                       +{event.points_earned} IP
                     </span>
                   </div>
@@ -514,16 +512,13 @@ export default function UserDetailPage({
             )}
           </div>
 
-          {/* User Events */}
           <UserEventsCard userId={userId} />
         </div>
 
-        {/* Right Column - Invitations & Info */}
         <div className="space-y-6">
-          {/* Membership Info */}
           {membership && (
-            <div className="bg-background border border-border rounded-xl p-6">
-              <h2 className="text-xl font-light text-foreground mb-4 flex items-center gap-2">
+            <div className="bg-white dark:bg-[#0F0F12] border border-gray-200 dark:border-[#1F1F23] rounded-xl p-6">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 <Award className="w-5 h-5" />
                 Membership
               </h2>
@@ -535,66 +530,57 @@ export default function UserDetailPage({
                   >
                     {getLevelDisplayName(membership.level)}
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     Member since{" "}
                     {new Date(membership.created_at).toLocaleDateString()}
                   </p>
                 </div>
 
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Impact Points</span>
-                    <span className="font-medium">
-                      {membership.impact_points}
-                    </span>
+                  <div className="flex justify-between text-gray-900 dark:text-white">
+                    <span className="text-gray-500 dark:text-gray-400">Impact Points</span>
+                    <span className="font-medium">{membership.impact_points}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Monthly Quota</span>
-                    <span className="font-medium">
-                      {membership.invite_quota_monthly}
-                    </span>
+                  <div className="flex justify-between text-gray-900 dark:text-white">
+                    <span className="text-gray-500 dark:text-gray-400">Monthly Quota</span>
+                    <span className="font-medium">{membership.invite_quota_monthly}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">
-                      Used This Month
-                    </span>
-                    <span className="font-medium">
-                      {membership.invites_used_this_month}
-                    </span>
+                  <div className="flex justify-between text-gray-900 dark:text-white">
+                    <span className="text-gray-500 dark:text-gray-400">Used This Month</span>
+                    <span className="font-medium">{membership.invites_used_this_month}</span>
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Invitations */}
-          <div className="bg-background border border-border rounded-xl p-6">
-            <h2 className="text-xl font-light text-foreground mb-4 flex items-center gap-2">
+          <div className="bg-white dark:bg-[#0F0F12] border border-gray-200 dark:border-[#1F1F23] rounded-xl p-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <Users className="w-5 h-5" />
               Invitations ({invitations.length})
             </h2>
 
-            <div className="mb-4 text-xs text-muted-foreground space-y-1">
+            <div className="mb-4 text-xs text-gray-500 dark:text-gray-400 space-y-1">
               <div className="flex justify-between">
                 <span>Total Created:</span>
-                <span className="font-medium">{invitations.length}</span>
+                <span className="font-medium text-gray-900 dark:text-white">{invitations.length}</span>
               </div>
               <div className="flex justify-between">
                 <span>Used:</span>
-                <span className="font-medium text-green-600">
+                <span className="font-medium text-green-600 dark:text-green-400">
                   {invitations.filter((i) => i.used_at).length}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span>Active:</span>
-                <span className="font-medium">
+                <span className="font-medium text-gray-900 dark:text-white">
                   {invitations.filter((i) => !i.used_at && i.is_active).length}
                 </span>
               </div>
             </div>
 
             {invitations.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4">
+              <p className="text-sm text-gray-500 dark:text-gray-400 py-4">
                 No invitations created
               </p>
             ) : (
@@ -604,22 +590,21 @@ export default function UserDetailPage({
                     key={invite.id}
                     className={`border rounded-lg p-4 ${
                       invite.used_at
-                        ? "border-green-200 bg-green-50/30"
+                        ? "border-green-200 dark:border-green-800/50 bg-green-50/30 dark:bg-green-900/20"
                         : invite.is_active
-                          ? "border-border bg-background"
-                          : "border-red-200 bg-red-50/30"
+                          ? "border-gray-200 dark:border-[#1F1F23] bg-transparent dark:bg-transparent"
+                          : "border-red-200 dark:border-red-800/50 bg-red-50/30 dark:bg-red-900/20"
                     }`}
                   >
                     <div className="space-y-3">
-                      {/* Code & Status */}
                       <div className="flex items-start justify-between">
                         <div>
-                          <code className="text-xs font-mono text-foreground bg-muted px-2 py-1 rounded">
+                          <code className="text-xs font-mono text-gray-900 dark:text-white bg-gray-100 dark:bg-zinc-800 px-2 py-1 rounded">
                             {invite.code}
                           </code>
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                             Level:{" "}
-                            <span className="font-medium">
+                            <span className="font-medium text-gray-900 dark:text-white">
                               {invite.initial_level || "basic"}
                             </span>
                           </p>
@@ -627,10 +612,10 @@ export default function UserDetailPage({
                         <span
                           className={`px-2 py-1 rounded text-xs font-medium ${
                             invite.used_at
-                              ? "bg-green-100 text-green-900"
+                              ? "bg-green-100 text-green-900 dark:bg-green-900/40 dark:text-green-200"
                               : invite.is_active
-                                ? "bg-blue-100 text-blue-900"
-                                : "bg-red-100 text-red-900"
+                                ? "bg-blue-100 text-blue-900 dark:bg-blue-900/40 dark:text-blue-200"
+                                : "bg-red-100 text-red-900 dark:bg-red-900/40 dark:text-red-200"
                           }`}
                         >
                           {invite.used_at
@@ -641,31 +626,29 @@ export default function UserDetailPage({
                         </span>
                       </div>
 
-                      {/* Used By Info */}
                       {invite.used_at && invite.used_by_profile && (
-                        <div className="pt-2 border-t border-green-200">
-                          <p className="text-xs font-medium text-foreground mb-1">
+                        <div className="pt-2 border-t border-green-200 dark:border-green-800/50">
+                          <p className="text-xs font-medium text-gray-900 dark:text-white mb-1">
                             Used by:
                           </p>
                           <div className="space-y-0.5">
                             {invite.used_by_profile.full_name && (
-                              <p className="text-xs text-foreground">
+                              <p className="text-xs text-gray-900 dark:text-white">
                                 👤 {invite.used_by_profile.full_name}
                               </p>
                             )}
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
                               📧 {invite.used_by_profile.email}
                             </p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
                               🕐 {new Date(invite.used_at).toLocaleString()}
                             </p>
                           </div>
                         </div>
                       )}
 
-                      {/* Created Date */}
-                      <div className="pt-2 border-t border-border/50">
-                        <p className="text-xs text-muted-foreground">
+                      <div className="pt-2 border-t border-gray-200 dark:border-[#1F1F23]">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
                           Created{" "}
                           {new Date(invite.created_at).toLocaleDateString()} at{" "}
                           {new Date(invite.created_at).toLocaleTimeString()}

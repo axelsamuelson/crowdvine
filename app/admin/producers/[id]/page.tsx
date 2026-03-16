@@ -98,7 +98,7 @@ export default async function EditProducerPage({
                 </Link>
               </p>
             ) : (
-              <div className="overflow-x-auto rounded-md border">
+              <div className="rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gray-50 hover:bg-gray-50">

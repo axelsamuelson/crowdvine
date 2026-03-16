@@ -446,8 +446,8 @@ export default function PriceSourcesPage() {
           ) : offers.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4">Inga träffar ännu. Kör &quot;Uppdatera alla erbjudanden&quot; för att hämta priser.</p>
           ) : (
-            <div className="max-h-[min(70vh,28rem)] overflow-y-auto overflow-x-auto overscroll-contain border rounded-md">
-              <Table scrollContainer={false}>
+            <div className="border rounded-md">
+              <Table>
                 <TableHeader>
                 <TableRow>
                   <TableHead>Vin / Producent</TableHead>

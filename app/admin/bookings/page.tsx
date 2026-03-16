@@ -344,7 +344,7 @@ export default function BookingsPage() {
               <p className="mt-2 text-gray-500">Loading bookings...</p>
             </div>
           ) : filteredBookings && filteredBookings.length > 0 ? (
-            <div className="overflow-x-auto">
+            <div>
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200">

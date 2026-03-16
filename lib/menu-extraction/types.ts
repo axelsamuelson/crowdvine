@@ -156,8 +156,10 @@ export interface CreateMenuDocumentInput {
 
 export interface AIExtractedRow {
   raw_text: string;
-  row_type: RowType;
-  wine_type: WineType | null;
+  /** Known types or AI-returned strings (e.g. subheader, subsection_header) – schema is tolerant. */
+  row_type: RowType | string;
+  /** Known types or AI-returned strings (e.g. house_wine) – schema is tolerant. */
+  wine_type: WineType | string | null;
   producer: string | null;
   wine_name: string | null;
   vintage: string | null;
@@ -171,7 +173,7 @@ export interface AIExtractedRow {
   price_glass: number | null;
   price_bottle: number | null;
   price_other: number | null;
-  currency: string;
+  currency: string | null;
   confidence: number;
   review_reasons: (ReviewReason | string)[];
 }

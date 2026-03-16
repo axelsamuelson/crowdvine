@@ -46,6 +46,8 @@ const CONCURRENCY = 3;
  *   empty rows so the rest of the menu is persisted and we never return invalid JSON.
  */
 
+/** Max tokens for raw text extraction from PDF (single PDF call). */
+const MAX_TOKENS_RAW_TEXT = 16000;
 /** Max tokens for the initial "list section names" call. Small response. */
 const MAX_TOKENS_SECTION_LIST = 512;
 /** Default max tokens per section. Claude Sonnet 4.6 supports up to 64k; this fits ~80–100 wines per section. */
@@ -53,39 +55,98 @@ const MAX_TOKENS_PER_SECTION = 16384;
 /** Retry with this if a section fails (e.g. truncated JSON). Handles very large sections (200+ wines). */
 const MAX_TOKENS_PER_SECTION_RETRY = 32768;
 
+/** User prompt for extracting raw text from PDF (no JSON, no structuring). */
+const RAW_TEXT_EXTRACTION_PROMPT =
+  "Returnera all text i detta dokument exakt som den är, bevarad sektion för sektion, rad för rad.\nIngen analys, ingen JSON, ingen strukturering.\nBara texten, med sektionsrubriker bevarade.";
+
 /**
  * Isolated AI call – easy to swap provider later.
  * TODO(menu-extraction): If credentials or model need manual config (e.g. env var name), wire here.
  */
 
-function makePdfContent(base64Pdf: string, text: string): { type: "document"; source: { type: "base64"; media_type: "application/pdf"; data: string } }[] | ({ type: "document"; source: { type: "base64"; media_type: "application/pdf"; data: string } } | { type: "text"; text: string })[] {
+type MessageContent = { type: "document"; source: { type: "base64"; media_type: "application/pdf"; data: string } } | { type: "text"; text: string };
+
+function makePdfContent(base64Pdf: string, text: string): MessageContent[] {
   return [
     { type: "document" as const, source: { type: "base64" as const, media_type: "application/pdf" as const, data: base64Pdf } },
     { type: "text" as const, text },
   ];
 }
 
+function makeTextContent(text: string): MessageContent[] {
+  return [{ type: "text" as const, text }];
+}
+
+/** Token usage from a single API call (when available from stream). */
+export interface ExtractionUsage {
+  input_tokens: number;
+  output_tokens: number;
+}
+
 async function runStreamingCall(
   client: Anthropic,
-  content: { type: "document"; source: { type: "base64"; media_type: "application/pdf"; data: string } }[] | ({ type: "document"; source: { type: "base64"; media_type: "application/pdf"; data: string } } | { type: "text"; text: string })[],
+  content: MessageContent[],
   maxTokens: number,
   systemPrompt: string
-): Promise<string> {
+): Promise<{ text: string; usage: ExtractionUsage | null }> {
+  const hasDocument = content.some((block) => block.type === "document");
   const stream = await client.beta.messages.create({
     model: MODEL_ID,
     max_tokens: maxTokens,
     system: systemPrompt,
     messages: [{ role: "user", content }],
-    betas: ["pdfs-2024-09-25"],
+    ...(hasDocument ? { betas: ["pdfs-2024-09-25"] as const } : {}),
     stream: true,
   });
   let text = "";
-  for await (const event of stream as AsyncIterable<{ type: string; delta?: { type?: string; text?: string } }>) {
+  let usage: ExtractionUsage | null = null;
+  for await (const event of stream as AsyncIterable<{
+    type: string;
+    delta?: { type?: string; text?: string };
+    usage?: { input_tokens?: number; output_tokens?: number };
+  }>) {
     if (event.type === "content_block_delta" && event.delta?.type === "text_delta" && typeof event.delta.text === "string") {
       text += event.delta.text;
     }
+    if ((event.type === "message_start" || event.type === "message_delta") && event.usage) {
+      const u = event.usage;
+      usage = {
+        input_tokens: u.input_tokens ?? usage?.input_tokens ?? 0,
+        output_tokens: u.output_tokens ?? usage?.output_tokens ?? 0,
+      };
+    }
   }
-  return text.trim().replace(/^```json\s*/i, "").replace(/\s*```$/i, "");
+  const trimmed = text.trim().replace(/^```json\s*/i, "").replace(/\s*```$/i, "");
+  return { text: trimmed, usage };
+}
+
+/**
+ * Steg 1 – ett PDF-anrop: extrahera hela menyn som ren text (sparas som raw_text).
+ */
+async function extractRawTextFromPdf(pdfBuffer: Buffer): Promise<{ rawText: string; usage: ExtractionUsage | null }> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set");
+  const client = new Anthropic({ apiKey });
+  const base64Pdf = pdfBuffer.toString("base64");
+  const content = makePdfContent(base64Pdf, RAW_TEXT_EXTRACTION_PROMPT);
+  const { text, usage } = await runStreamingCall(client, content, MAX_TOKENS_RAW_TEXT, MENU_EXTRACTION_SYSTEM_PROMPT);
+  return { rawText: text, usage };
+}
+
+/**
+ * Klipp ut texten för en sektion från rawText: från sektionsnamnet till nästa sektion (eller slutet).
+ * Case-insensitive sökning. Om sektionen inte hittas returneras hela rawText som fallback.
+ */
+function extractSectionText(rawText: string, sectionName: string, nextSectionName?: string): string {
+  const lower = rawText.toLowerCase();
+  const sectionLower = sectionName.toLowerCase();
+  const startIdx = lower.indexOf(sectionLower);
+  if (startIdx === -1) return rawText;
+  if (nextSectionName === undefined || nextSectionName === "") return rawText.slice(startIdx);
+  const nextLower = nextSectionName.toLowerCase();
+  const endIdx = lower.indexOf(nextLower, startIdx + 1);
+  if (endIdx === -1) return rawText.slice(startIdx);
+  return rawText.slice(startIdx, endIdx);
 }
 
 /** Försök reparera trunkerad JSON innan parse */
@@ -112,36 +173,39 @@ function repairTruncatedJson(raw: string): string {
   return text;
 }
 
-/** Steg 1 – hämta sektionsnamn från PDF. */
-async function extractSections(pdfBuffer: Buffer): Promise<string[]> {
+/** Steg 2 – hämta sektionsnamn från raw text (text-input, ingen PDF). */
+async function extractSections(rawText: string): Promise<{ sectionNames: string[]; usage: ExtractionUsage | null }> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set");
   const client = new Anthropic({ apiKey });
-  const base64Pdf = pdfBuffer.toString("base64");
   const prompt =
-    "Lista BARA sektionsnamnen i denna vinmeny, en per rad.\nReturnera endast en JSON-array med strängarna.\nExempel: [\"Champagne\", \"Vitt vin\", \"Rött vin\"]\nIngen annan text.";
-  const content = makePdfContent(base64Pdf, prompt);
-  const raw = await runStreamingCall(client, content, MAX_TOKENS_SECTION_LIST, MENU_EXTRACTION_SYSTEM_PROMPT);
+    "Lista BARA sektionsnamnen i denna vinmeny, en per rad.\nReturnera endast en JSON-array med strängarna.\nExempel: [\"Champagne\", \"Vitt vin\", \"Rött vin\"]\nIngen annan text.\n\nMenyn (text):\n" +
+    rawText;
+  const content = makeTextContent(prompt);
+  const { text: raw, usage } = await runStreamingCall(client, content, MAX_TOKENS_SECTION_LIST, MENU_EXTRACTION_SYSTEM_PROMPT);
   const parsed = JSON.parse(raw) as unknown;
   if (!Array.isArray(parsed) || !parsed.every((x): x is string => typeof x === "string")) {
     throw new Error("extractSections: expected JSON array of strings");
   }
-  return parsed;
+  return { sectionNames: parsed, usage };
 }
 
-/** Steg 2 – extrahera en sektion. Returnerar AIExtractionResult med en sektion. maxTokens override för retry. */
+/** Steg 3 – extrahera en sektion från raw text (endast relevant text skickas). maxTokens override för retry. */
 async function extractSection(
-  pdfBuffer: Buffer,
+  rawText: string,
   sectionName: string,
+  nextSectionName: string | undefined,
   maxTokens: number = MAX_TOKENS_PER_SECTION
-): Promise<AIExtractionResult> {
+): Promise<{ result: AIExtractionResult; usage: ExtractionUsage | null }> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set");
   const client = new Anthropic({ apiKey });
-  const base64Pdf = pdfBuffer.toString("base64");
-  const prompt = `Extrahera ENDAST sektionen '${sectionName.replace(/'/g, "\\'")}' från denna vinmeny.\nReturnera JSON i exakt detta format utan någon text före eller efter:\n{ "sections": [{ "section_name", "normalized_section", "rows": [...] }] }`;
-  const content = makePdfContent(base64Pdf, prompt);
-  const raw = await runStreamingCall(client, content, maxTokens, MENU_EXTRACTION_SYSTEM_PROMPT);
+  const sectionText = extractSectionText(rawText, sectionName, nextSectionName);
+  const prompt =
+    `Extrahera ENDAST sektionen '${sectionName.replace(/'/g, "\\'")}' från följande text.\nReturnera JSON i exakt detta format utan någon text före eller efter:\n{ "sections": [{ "section_name", "normalized_section", "rows": [...] }] }\n\nText för sektionen:\n` +
+    sectionText;
+  const content = makeTextContent(prompt);
+  const { text: raw, usage } = await runStreamingCall(client, content, maxTokens, MENU_EXTRACTION_SYSTEM_PROMPT);
   const repaired = repairTruncatedJson(raw);
   if (repaired !== raw) {
     console.warn("[extraction] JSON was truncated – attempted repair for section:", sectionName);
@@ -149,38 +213,48 @@ async function extractSection(
   const json = JSON.parse(repaired) as unknown;
   const parsed = aiExtractionResultSchema.safeParse(json);
   if (!parsed.success) throw new Error(`extractSection(${sectionName}): ${parsed.error.message}`);
-  return parsed.data as AIExtractionResult;
+  return { result: parsed.data as AIExtractionResult, usage };
 }
 
 /**
- * Call Claude with PDF as document block. Two-step: sections list → one section at a time (parallel, max 3).
+ * Alternativ B: PDF en gång (→ raw text), sedan alla anrop på text. Sparar raw_text på dokumentet.
  */
 export async function callMenuExtractionModel(
-  pdfBuffer: Buffer
+  pdfBuffer: Buffer,
+  documentId: string
 ): Promise<AIExtractionResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     throw new Error("ANTHROPIC_API_KEY is not set");
   }
 
-  const sectionNames = await extractSections(pdfBuffer);
+  const { rawText, usage: rawTextUsage } = await extractRawTextFromPdf(pdfBuffer);
+  await updateMenuDocument(documentId, { raw_text: rawText });
+
+  const { sectionNames, usage: sectionsListUsage } = await extractSections(rawText);
   console.warn("[extraction] Found", sectionNames.length, "sections:", sectionNames);
 
   const limit = pLimit(CONCURRENCY);
   const total = sectionNames.length;
+  const allUsages: ExtractionUsage[] = [];
+  if (rawTextUsage) allUsages.push(rawTextUsage);
+  if (sectionsListUsage) allUsages.push(sectionsListUsage);
 
   const results: AIExtractionResult[] = await Promise.all(
     sectionNames.map((name, index) =>
       limit(async (): Promise<AIExtractionResult> => {
+        const nextSectionName = sectionNames[index + 1];
         console.warn("[extraction] Extracting section:", name, `(${index + 1}/${total})`);
         try {
-          const result = await extractSection(pdfBuffer, name);
+          const { result, usage: sectionUsage } = await extractSection(rawText, name, nextSectionName);
+          if (sectionUsage) allUsages.push(sectionUsage);
           console.warn("[extraction] Completed section:", name);
           return result;
         } catch (firstErr) {
           console.warn("[extraction] Section failed, retrying with higher max_tokens:", name, firstErr instanceof Error ? firstErr.message : String(firstErr));
           try {
-            const result = await extractSection(pdfBuffer, name, MAX_TOKENS_PER_SECTION_RETRY);
+            const { result, usage: sectionUsage } = await extractSection(rawText, name, nextSectionName, MAX_TOKENS_PER_SECTION_RETRY);
+            if (sectionUsage) allUsages.push(sectionUsage);
             console.warn("[extraction] Completed section (retry):", name);
             return result;
           } catch (retryErr) {
@@ -193,6 +267,12 @@ export async function callMenuExtractionModel(
       })
     )
   );
+
+  const totalInput = allUsages.reduce((sum, u) => sum + u.input_tokens, 0);
+  const totalOutput = allUsages.reduce((sum, u) => sum + u.output_tokens, 0);
+  if (totalInput > 0 || totalOutput > 0) {
+    console.warn("[extraction] Token usage for this document – input_tokens:", totalInput, "output_tokens:", totalOutput, "total:", totalInput + totalOutput);
+  }
 
   const merged: AIExtractionResult = {
     sections: results.flatMap((r) => r.sections),
@@ -287,7 +367,7 @@ export async function extractMenuFromDocument(documentId: string): Promise<void>
   }
   await updateMenuDocument(documentId, { extraction_status: "processing", raw_text: null });
   try {
-    const result = await callMenuExtractionModel(pdfBuffer);
+    const result = await callMenuExtractionModel(pdfBuffer, documentId);
     const normalizedRows = mapAIResultToRows(documentId, result, {});
     await saveMenuExtractionResult({
       documentId,

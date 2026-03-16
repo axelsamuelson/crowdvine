@@ -5,16 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import {
   LayoutDashboard,
   Users,
@@ -28,7 +19,6 @@ import {
   Award,
   LogOut,
   BarChart3,
-  ChevronDown,
   TrendingUp,
   Building2,
   Sparkles,
@@ -115,115 +105,98 @@ export function Sidebar({ userEmail, onSignOut, mobileOpen, onMobileClose }: Sid
     pathname === item.href ||
     (item.href !== "/admin" && pathname.startsWith(item.href + "/"));
 
-  const groupHasActiveItem = (group: NavGroup) =>
-    group.items.some(isItemActive);
-
   const SidebarContent = (
     <>
-      {/* Logo */}
-      <div className="flex h-16 items-center px-6 border-b border-gray-200">
-        <Link href="/admin" onClick={onMobileClose} className="flex items-center space-x-2">
-          <div className="h-8 w-8 bg-gray-900 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">C</span>
+      {/* Logo – template style */}
+      <div className="flex h-16 items-center px-6 border-b border-gray-200 dark:border-[#1F1F23]">
+        <Link
+          href="/admin"
+          onClick={onMobileClose}
+          className="flex items-center gap-3"
+        >
+          <div className="h-8 w-8 bg-gray-900 dark:bg-white rounded-lg flex items-center justify-center flex-shrink-0">
+            <span className="text-white dark:text-gray-900 font-bold text-sm">
+              C
+            </span>
           </div>
-          <span className="text-xl font-bold text-gray-900">CrowdVine</span>
+          <span className="text-lg font-semibold text-gray-900 dark:text-white">
+            CrowdVine
+          </span>
         </Link>
       </div>
 
-      {/* Navigation */}
-      <ScrollArea className="flex-1 px-3 py-4">
-        <nav className="space-y-1">
-          {navigationGroups.map((group) => {
-            const isGroupOpen = groupHasActiveItem(group);
-            return (
-              <Collapsible
-                key={group.name}
-                defaultOpen={isGroupOpen}
-                className="group/collapsible"
-              >
-                <CollapsibleTrigger
-                  className={cn(
-                    "flex w-full items-center justify-between px-3 py-2 text-sm font-medium rounded-lg transition-colors",
-                    "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
-                  )}
-                >
-                  <div className="flex items-center">
-                    <group.icon className="mr-3 h-5 w-5 shrink-0" />
-                    {group.name}
-                  </div>
-                  <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className="ml-5 mt-1 space-y-0.5 border-l border-gray-200 pl-3">
-                    {group.items.map((item) => {
-                      const isActive = isItemActive(item);
-                      return (
-                        <Link
-                          key={item.name}
-                          href={item.href}
-                          onClick={onMobileClose}
-                          className={cn(
-                            "flex items-center py-2 text-sm rounded-md transition-colors pl-3",
-                            isActive
-                              ? "text-gray-900 font-medium bg-gray-100"
-                              : "text-gray-500 hover:text-gray-900 hover:bg-gray-50",
-                          )}
-                        >
-                          <item.icon className="mr-2 h-4 w-4 shrink-0 opacity-70" />
-                          {item.name}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-            );
-          })}
+      {/* Navigation – template: section labels + flat nav items */}
+      <ScrollArea className="flex-1 py-4 px-4">
+        <nav className="space-y-6">
+          {navigationGroups.map((group) => (
+            <div key={group.name}>
+              <div className="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                {group.name}
+              </div>
+              <div className="space-y-1">
+                {group.items.map((item) => {
+                  const isActive = isItemActive(item);
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      onClick={onMobileClose}
+                      className={cn(
+                        "flex items-center px-3 py-2 text-sm rounded-md transition-colors",
+                        isActive
+                          ? "text-gray-900 dark:text-white font-medium bg-gray-100 dark:bg-[#1F1F23]"
+                          : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1F1F23]",
+                      )}
+                    >
+                      <item.icon className="mr-3 h-4 w-4 shrink-0" />
+                      {item.name}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
       </ScrollArea>
 
-      {/* User section */}
-      <div className="border-t border-gray-200 p-4">
-        <div className="flex items-center space-x-3 mb-3">
-          <div className="h-8 w-8 bg-gray-200 rounded-full flex items-center justify-center">
-            <span className="text-gray-600 font-medium text-sm">
-              {userEmail.charAt(0).toUpperCase()}
-            </span>
+      {/* User section – template footer style */}
+      <div className="border-t border-gray-200 dark:border-[#1F1F23] px-4 py-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 truncate">
+            <div className="h-7 w-7 rounded-full bg-gray-200 dark:bg-[#1F1F23] flex items-center justify-center flex-shrink-0">
+              <span className="font-medium text-gray-700 dark:text-gray-300 text-xs">
+                {userEmail.charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <span className="truncate">{userEmail}</span>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">
-              {userEmail}
-            </p>
-            <p className="text-xs text-gray-500">Admin</p>
-          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onSignOut}
+            className="w-full justify-start text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1F1F23]"
+          >
+            <LogOut className="mr-3 h-4 w-4" />
+            Sign out
+          </Button>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onSignOut}
-          className="w-full justify-start"
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          Sign Out
-        </Button>
       </div>
     </>
   );
 
   return (
     <>
-      {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex h-full w-64 flex-col bg-white border-r border-gray-200">
+      <aside className="hidden lg:flex h-full w-64 flex-col flex-shrink-0 bg-white dark:bg-[#0F0F12] border-r border-gray-200 dark:border-[#1F1F23]">
         {SidebarContent}
       </aside>
 
-      {/* Mobile Sheet */}
       <Sheet open={mobileOpen} onOpenChange={(open) => !open && onMobileClose?.()}>
-        <SheetContent side="left" className="w-64 p-0">
+        <SheetContent
+          side="left"
+          className="w-64 p-0 bg-white dark:bg-[#0F0F12] border-r border-gray-200 dark:border-[#1F1F23]"
+        >
           <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-          <div className="flex h-full flex-col bg-white">
-            {SidebarContent}
-          </div>
+          <div className="flex h-full flex-col">{SidebarContent}</div>
         </SheetContent>
       </Sheet>
     </>

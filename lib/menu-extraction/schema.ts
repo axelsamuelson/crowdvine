@@ -5,24 +5,26 @@
 
 import { z } from "zod";
 
-const rowTypeEnum = z.enum([
-  "wine_row",
-  "header",
-  "description",
-  "noise",
-  "unknown",
+/** Tolerant: accept known row_type or any string (e.g. subheader, subsection_header, country_header). */
+const rowTypeEnum = z.union([
+  z.enum(["wine_row", "header", "description", "noise", "unknown"]),
+  z.string(),
 ]);
 
-const wineTypeEnum = z.enum([
-  "sparkling",
-  "white",
-  "orange",
-  "rose",
-  "red",
-  "sweet",
-  "fortified",
-  "non_alcoholic",
-  "unknown",
+/** Tolerant: accept known wine_type or any string (e.g. house_wine). */
+const wineTypeEnum = z.union([
+  z.enum([
+    "sparkling",
+    "white",
+    "orange",
+    "rose",
+    "red",
+    "sweet",
+    "fortified",
+    "non_alcoholic",
+    "unknown",
+  ]),
+  z.string(),
 ]);
 
 const reviewReasonEnum = z.union([
@@ -58,7 +60,7 @@ const aiExtractedRowSchema = z.object({
   price_glass: z.number().nullable(),
   price_bottle: z.number().nullable(),
   price_other: z.number().nullable(),
-  currency: z.string(),
+  currency: z.string().nullable(),
   confidence: z.number().min(0).max(1),
   review_reasons: z.array(reviewReasonEnum),
 });

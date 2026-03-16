@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -116,14 +115,14 @@ export function UserEventsCard({ userId }: { userId: string }) {
 
   const getEventColor = (category: string) => {
     const colors: Record<string, string> = {
-      auth: "bg-blue-100 text-blue-800",
-      navigation: "bg-purple-100 text-purple-800",
-      cart: "bg-orange-100 text-orange-800",
-      checkout: "bg-green-100 text-green-800",
-      validation: "bg-yellow-100 text-yellow-800",
-      engagement: "bg-pink-100 text-pink-800",
+      auth: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200",
+      navigation: "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-200",
+      cart: "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-200",
+      checkout: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200",
+      validation: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200",
+      engagement: "bg-pink-100 text-pink-800 dark:bg-pink-900/40 dark:text-pink-200",
     };
-    return colors[category] || "bg-gray-100 text-gray-800";
+    return colors[category] ?? "bg-gray-100 text-gray-800 dark:bg-zinc-700 dark:text-zinc-200";
   };
 
   const loadMore = async () => {
@@ -144,27 +143,27 @@ export function UserEventsCard({ userId }: { userId: string }) {
 
   return (
     <>
-      <Card className="p-6">
+      <div className="bg-white dark:bg-[#0F0F12] border border-gray-200 dark:border-[#1F1F23] rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-xl font-light text-foreground">Events</h2>
-            <p className="text-xs text-muted-foreground">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Events</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               Showing {events.length} of {total}
             </p>
           </div>
-          <Badge variant="outline">{filteredEvents.length} filtered</Badge>
+          <Badge variant="outline" className="text-gray-900 dark:text-white border-gray-300 dark:border-zinc-600">{filteredEvents.length} filtered</Badge>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 pb-4 border-b">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 pb-4 border-b border-gray-200 dark:border-[#1F1F23]">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Filter by Category
             </label>
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger>
+              <SelectTrigger className="bg-white dark:bg-[#1F1F23] border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-white">
                 <SelectValue placeholder="All categories" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white dark:bg-[#1F1F23] border-gray-200 dark:border-zinc-700">
                 <SelectItem value="all">All Categories</SelectItem>
                 {categories.map((cat) => (
                   <SelectItem key={cat} value={cat}>
@@ -176,7 +175,7 @@ export function UserEventsCard({ userId }: { userId: string }) {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Search Events
             </label>
             <div className="relative">
@@ -185,13 +184,13 @@ export function UserEventsCard({ userId }: { userId: string }) {
                 placeholder="Search by event type or URL..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-10 bg-white dark:bg-[#1F1F23] border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-white"
               />
               {searchQuery && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0 text-gray-500 dark:text-gray-400"
                   onClick={() => setSearchQuery("")}
                 >
                   <X className="h-4 w-4" />
@@ -202,9 +201,9 @@ export function UserEventsCard({ userId }: { userId: string }) {
         </div>
 
         {loading ? (
-          <div className="text-sm text-muted-foreground">Loading...</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">Loading...</div>
         ) : filteredEvents.length === 0 ? (
-          <div className="text-sm text-muted-foreground">No events found.</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">No events found.</div>
         ) : (
           <ScrollArea className="h-[600px]">
             <div className="space-y-3">
@@ -212,7 +211,7 @@ export function UserEventsCard({ userId }: { userId: string }) {
                 <div
                   key={event.id}
                   onClick={() => setSelectedEvent(event)}
-                  className="p-4 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                  className="p-4 border border-gray-200 dark:border-[#1F1F23] rounded-lg hover:bg-gray-50 dark:hover:bg-[#1F1F23] transition-colors cursor-pointer"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
@@ -224,14 +223,14 @@ export function UserEventsCard({ userId }: { userId: string }) {
                         >
                           {event.event_type}
                         </span>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
                           {format(new Date(event.created_at), "MMM d, HH:mm:ss")}
                         </span>
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-xs text-gray-900 dark:text-white border-gray-300 dark:border-zinc-600">
                           {event.event_category}
                         </Badge>
                       </div>
-                      <p className="text-sm text-gray-600 truncate">
+                      <p className="text-sm text-gray-600 dark:text-gray-300 truncate">
                         {event.page_url || "—"}
                       </p>
                     </div>
@@ -243,7 +242,7 @@ export function UserEventsCard({ userId }: { userId: string }) {
                 <div className="pt-2">
                   <Button
                     variant="outline"
-                    className="w-full"
+                    className="w-full border-gray-300 dark:border-zinc-600 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-zinc-800"
                     onClick={loadMore}
                     disabled={loadingMore}
                   >
@@ -254,49 +253,49 @@ export function UserEventsCard({ userId }: { userId: string }) {
             </div>
           </ScrollArea>
         )}
-      </Card>
+      </div>
 
       <Dialog open={!!selectedEvent} onOpenChange={() => setSelectedEvent(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl bg-white dark:bg-[#1F1F23] border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-white">
           <DialogHeader>
-            <DialogTitle>Event Details</DialogTitle>
-            <DialogDescription>Full event payload</DialogDescription>
+            <DialogTitle className="text-gray-900 dark:text-white">Event Details</DialogTitle>
+            <DialogDescription className="text-gray-500 dark:text-gray-400">Full event payload</DialogDescription>
           </DialogHeader>
 
           {selectedEvent && (
             <div className="space-y-4 mt-2">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Event Type</p>
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Event Type</p>
                   <Badge className={getEventColor(selectedEvent.event_category)}>
                     {selectedEvent.event_type}
                   </Badge>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Category</p>
-                  <Badge variant="outline">{selectedEvent.event_category}</Badge>
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Category</p>
+                  <Badge variant="outline" className="text-gray-900 dark:text-white border-gray-300 dark:border-zinc-600">{selectedEvent.event_category}</Badge>
                 </div>
               </div>
 
-              <Separator />
+              <Separator className="bg-gray-200 dark:bg-zinc-700" />
 
               <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">URL</p>
-                <p className="text-sm break-words">{selectedEvent.page_url || "—"}</p>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">URL</p>
+                <p className="text-sm break-words text-gray-900 dark:text-white">{selectedEvent.page_url || "—"}</p>
               </div>
 
               <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">Timestamp</p>
-                <p className="text-sm">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Timestamp</p>
+                <p className="text-sm text-gray-900 dark:text-white">
                   {format(new Date(selectedEvent.created_at), "PPpp")}
                 </p>
               </div>
 
-              <Separator />
+              <Separator className="bg-gray-200 dark:bg-zinc-700" />
 
               <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">Metadata</p>
-                <pre className="text-xs bg-muted p-3 rounded overflow-auto max-h-[300px]">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Metadata</p>
+                <pre className="text-xs bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-gray-200 p-3 rounded overflow-auto max-h-[300px]">
 {JSON.stringify(selectedEvent.event_metadata || {}, null, 2)}
                 </pre>
               </div>

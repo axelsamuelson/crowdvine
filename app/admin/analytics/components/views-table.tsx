@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Card } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -86,20 +85,24 @@ export function ViewsTable() {
   };
 
   return (
-    <Card className="p-6">
-      <div className="flex items-center justify-between mb-4">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">PLP vs PDP Views</h3>
-          <p className="text-sm text-muted-foreground">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            PLP vs PDP Views
+          </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Dimension: {dimension === "wine" ? "Wine" : "Producer"}
           </p>
         </div>
         <Badge variant="outline">{filteredAndSorted.length} rows</Badge>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 pb-4 border-b">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4 border-b border-gray-200 dark:border-[#1F1F23]">
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">Dimension</label>
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Dimension
+          </label>
           <Select value={dimension} onValueChange={(v) => setDimension(v as Dimension)}>
             <SelectTrigger>
               <SelectValue />
@@ -112,7 +115,9 @@ export function ViewsTable() {
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">Time range</label>
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Time range
+          </label>
           <Select value={timeRange} onValueChange={setTimeRange}>
             <SelectTrigger>
               <SelectValue />
@@ -127,7 +132,9 @@ export function ViewsTable() {
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">Search</label>
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Search
+          </label>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
@@ -141,36 +148,36 @@ export function ViewsTable() {
       </div>
 
       {loading ? (
-        <div className="text-sm text-muted-foreground">Loading...</div>
+        <div className="text-sm text-gray-500 dark:text-gray-400">Loading...</div>
       ) : filteredAndSorted.length === 0 ? (
-        <div className="text-sm text-muted-foreground">No data yet.</div>
+        <div className="text-sm text-gray-500 dark:text-gray-400">No data yet.</div>
       ) : (
-        <div className="overflow-x-auto">
+        <div>
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>
+              <TableRow className="border-gray-200 dark:border-[#1F1F23] hover:bg-transparent dark:hover:bg-transparent">
+                <TableHead className="text-gray-900 dark:text-white font-medium">
                   <Button
                     variant="ghost"
-                    className="px-0"
+                    className="px-0 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-zinc-800"
                     onClick={() => toggleSort("name")}
                   >
                     Name <ArrowUpDown className="ml-2 h-4 w-4" />
                   </Button>
                 </TableHead>
-                <TableHead className="text-right">
+                <TableHead className="text-right text-gray-900 dark:text-white font-medium">
                   <Button
                     variant="ghost"
-                    className="px-0"
+                    className="px-0 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-zinc-800"
                     onClick={() => toggleSort("plpViews")}
                   >
                     PLP Views <ArrowUpDown className="ml-2 h-4 w-4" />
                   </Button>
                 </TableHead>
-                <TableHead className="text-right">
+                <TableHead className="text-right text-gray-900 dark:text-white font-medium">
                   <Button
                     variant="ghost"
-                    className="px-0"
+                    className="px-0 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-zinc-800"
                     onClick={() => toggleSort("pdpViews")}
                   >
                     PDP Views <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -180,13 +187,13 @@ export function ViewsTable() {
             </TableHeader>
             <TableBody>
               {filteredAndSorted.map((r) => (
-                <TableRow key={r.key}>
-                  <TableCell className="font-medium">{r.name}</TableCell>
-                  <TableCell className="text-right">
-                    <Badge variant="outline">{r.plpViews}</Badge>
+                <TableRow key={r.key} className="border-gray-200 dark:border-[#1F1F23]">
+                  <TableCell className="font-medium text-gray-900 dark:text-white">{r.name}</TableCell>
+                  <TableCell className="text-right text-gray-900 dark:text-white">
+                    <Badge variant="outline" className="text-gray-900 dark:text-white border-gray-300 dark:border-zinc-600">{r.plpViews}</Badge>
                   </TableCell>
-                  <TableCell className="text-right">
-                    <Badge variant="outline">{r.pdpViews}</Badge>
+                  <TableCell className="text-right text-gray-900 dark:text-white">
+                    <Badge variant="outline" className="text-gray-900 dark:text-white border-gray-300 dark:border-zinc-600">{r.pdpViews}</Badge>
                   </TableCell>
                 </TableRow>
               ))}
@@ -194,7 +201,7 @@ export function ViewsTable() {
           </Table>
         </div>
       )}
-    </Card>
+    </div>
   );
 }
 

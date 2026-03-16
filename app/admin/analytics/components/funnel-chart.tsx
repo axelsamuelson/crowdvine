@@ -1,6 +1,5 @@
 "use client";
 
-import { Card } from "@/components/ui/card";
 import {
   BarChart,
   Bar,
@@ -17,19 +16,17 @@ interface FunnelChartProps {
 }
 
 export function FunnelChart({ data }: FunnelChartProps) {
-  // Show message if no data available
   if (!data || data.total_users === 0) {
     return (
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">Conversion Funnel</h3>
-        <div className="text-center py-12">
-          <p className="text-gray-500 mb-2">No conversion data available yet</p>
-          <p className="text-sm text-gray-400">
-            Run the analytics migration to start tracking user journeys.
-            See docs/deployment/ANALYTICS_MIGRATION.sql
-          </p>
-        </div>
-      </Card>
+      <div className="text-center py-12">
+        <p className="text-gray-500 dark:text-gray-400 mb-2">
+          No conversion data available yet
+        </p>
+        <p className="text-sm text-gray-400 dark:text-gray-500">
+          Run the analytics migration to start tracking user journeys. See
+          docs/deployment/ANALYTICS_MIGRATION.sql
+        </p>
+      </div>
     );
   }
 
@@ -58,60 +55,58 @@ export function FunnelChart({ data }: FunnelChartProps) {
   });
 
   return (
-    <Card className="p-6">
-      <h3 className="text-lg font-semibold mb-4">Conversion Funnel</h3>
-      <div className="space-y-4">
-        <ResponsiveContainer width="100%" height={400}>
-          <BarChart data={stepsWithRates}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-            <YAxis />
-            <Tooltip
-              content={({ active, payload }) => {
-                if (active && payload && payload.length) {
-                  const data = payload[0].payload;
-                  return (
-                    <div className="bg-white p-3 border rounded shadow-lg">
-                      <p className="font-semibold">{data.name}</p>
-                      <p className="text-sm">Users: {data.value}</p>
-                      <p className="text-sm">Conversion: {data.conversionRate}%</p>
-                      {data.dropOff > 0 && (
-                        <p className="text-sm text-red-600">Drop-off: {data.dropOff}</p>
-                      )}
-                    </div>
-                  );
-                }
-                return null;
-              }}
-            />
-            <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-              {stepsWithRates.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+    <div className="space-y-4 text-gray-700 dark:text-gray-300">
+      <ResponsiveContainer width="100%" height={400}>
+        <BarChart data={stepsWithRates}>
+          <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.4} />
+          <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} tick={{ fill: "currentColor" }} stroke="currentColor" />
+          <YAxis tick={{ fill: "currentColor" }} stroke="currentColor" />
+          <Tooltip
+            content={({ active, payload }) => {
+              if (active && payload && payload.length) {
+                const d = payload[0].payload;
+                return (
+                  <div className="bg-white dark:bg-[#1F1F23] p-3 border border-gray-200 dark:border-zinc-700 rounded-lg shadow-lg text-gray-900 dark:text-white">
+                    <p className="font-semibold">{d.name}</p>
+                    <p className="text-sm">Users: {d.value}</p>
+                    <p className="text-sm">Conversion: {d.conversionRate}%</p>
+                    {d.dropOff > 0 && (
+                      <p className="text-sm text-red-600 dark:text-red-400">Drop-off: {d.dropOff}</p>
+                    )}
+                  </div>
+                );
+              }
+              return null;
+            }}
+          />
+          <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+            {stepsWithRates.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.color} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
 
-        {/* Bottleneck identification */}
-        <div className="mt-6">
-          <h4 className="font-semibold mb-2">Identified Bottlenecks</h4>
-          <div className="space-y-2">
-            {stepsWithRates
-              .filter((step, index) => index > 0 && parseFloat(step.conversionRate) < 50)
-              .map((step) => (
-                <div
-                  key={step.name}
-                  className="p-3 bg-red-50 border border-red-200 rounded"
-                >
-                  <p className="font-medium text-red-900">{step.name}</p>
-                  <p className="text-sm text-red-700">
-                    Only {step.conversionRate}% conversion rate - {step.dropOff} users dropped off
-                  </p>
-                </div>
-              ))}
-          </div>
+      <div className="mt-6">
+        <h4 className="font-semibold mb-2 text-gray-900 dark:text-white">
+          Identified Bottlenecks
+        </h4>
+        <div className="space-y-2">
+          {stepsWithRates
+            .filter((step, index) => index > 0 && parseFloat(step.conversionRate) < 50)
+            .map((step) => (
+              <div
+                key={step.name}
+                className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50"
+              >
+                <p className="font-medium text-red-900 dark:text-red-200">{step.name}</p>
+                <p className="text-sm text-red-700 dark:text-red-300">
+                  Only {step.conversionRate}% conversion rate - {step.dropOff} users dropped off
+                </p>
+              </div>
+            ))}
         </div>
       </div>
-    </Card>
+    </div>
   );
 }

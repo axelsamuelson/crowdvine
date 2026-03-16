@@ -236,3 +236,19 @@ body,
     font-size: 1.2em;
   }
 } */
+
+/* Recharts dark mode: tooltip and legend in admin analytics */
+.dark .cohort-tooltip .recharts-default-tooltip,
+.dark .recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: #1f1f23 !important;
+  border: 1px solid #3f3f46 !important;
+  border-radius: 8px;
+  color: #e5e7eb !important;
+  padding: 8px 12px;
+}
+.dark .recharts-legend-wrapper {
+  color: #e5e7eb;
+}
+.dark .recharts-legend-item-text {
+  fill: #e5e7eb !important;
+}

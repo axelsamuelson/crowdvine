@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card } from "@/components/ui/card";
 import {
   LineChart,
   Line,
@@ -27,14 +26,24 @@ export function CohortAnalysis() {
   }, []);
 
   return (
-    <Card className="p-6">
-      <h3 className="text-lg font-semibold mb-4">Cohort Retention Analysis</h3>
+    <div className="space-y-4 cohort-chart text-gray-700 dark:text-gray-300">
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+        Cohort Retention Analysis
+      </h3>
       <ResponsiveContainer width="100%" height={400}>
         <LineChart data={cohortData}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="week" />
-          <YAxis />
-          <Tooltip />
+          <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.4} />
+          <XAxis dataKey="week" tick={{ fill: "currentColor", fontSize: 12 }} stroke="currentColor" />
+          <YAxis tick={{ fill: "currentColor", fontSize: 12 }} stroke="currentColor" />
+          <Tooltip
+            contentStyle={{
+              backgroundColor: "#fff",
+              color: "#111",
+              border: "1px solid #e5e7eb",
+              borderRadius: "8px",
+            }}
+            wrapperClassName="cohort-tooltip"
+          />
           <Legend />
           <Line
             type="monotone"
@@ -50,6 +59,6 @@ export function CohortAnalysis() {
           />
         </LineChart>
       </ResponsiveContainer>
-    </Card>
+    </div>
   );
 }

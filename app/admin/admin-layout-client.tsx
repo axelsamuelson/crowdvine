@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Sidebar } from "@/components/admin/sidebar";
+import { AdminTopNav } from "@/components/admin/admin-top-nav";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 
@@ -19,33 +20,31 @@ export function AdminLayoutClient({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
-      <Sidebar 
-        userEmail={userEmail} 
+    <div className="flex h-screen bg-white dark:bg-[#0F0F12]">
+      <Sidebar
+        userEmail={userEmail}
         onSignOut={onSignOut}
         mobileOpen={mobileOpen}
         onMobileClose={() => setMobileOpen(false)}
       />
 
-      {/* Main content - min-h-0 so flex child can shrink and main gets bounded height for scroll */}
-      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-        {/* Mobile header */}
-        <div className="lg:hidden flex items-center justify-between p-4 bg-white border-b border-gray-200">
+      <div className="w-full flex-1 flex flex-col min-w-0">
+        <header className="h-16 flex-shrink-0 border-b border-gray-200 dark:border-[#1F1F23] flex items-center">
           <Button
             variant="ghost"
-            size="sm"
+            size="icon"
+            className="lg:hidden ml-2"
             onClick={() => setMobileOpen(true)}
-            className="lg:hidden"
+            aria-label="Open menu"
           >
-            <Menu className="h-5 w-5" />
+            <Menu className="h-5 w-5 text-gray-600 dark:text-gray-300" />
           </Button>
-          <span className="text-lg font-semibold text-gray-900">CrowdVine Admin</span>
-          <div className="w-10" /> {/* Spacer for centering */}
-        </div>
-
-        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 md:p-6">
-          <div className="max-w-7xl mx-auto min-h-0">{children}</div>
+          <div className="flex-1 min-w-0">
+            <AdminTopNav userEmail={userEmail} onSignOut={onSignOut} />
+          </div>
+        </header>
+        <main className="flex-1 overflow-auto p-6 bg-white dark:bg-[#0F0F12]">
+          <div className="max-w-7xl mx-auto">{children}</div>
         </main>
       </div>
     </div>

@@ -4,9 +4,12 @@ import { cn } from "@/lib/utils";
 
 const Table = React.forwardRef<
   HTMLTableElement,
-  React.HTMLAttributes<HTMLTableElement> & { scrollContainer?: boolean }
->(({ className, scrollContainer = true, ...props }, ref) => (
-  <div className={cn("relative w-full", scrollContainer ? "overflow-auto" : "overflow-clip")}>
+  React.HTMLAttributes<HTMLTableElement> & {
+    /** If true, wrapper gets overflow-auto (captures scroll). Default false so page scroll works when hovering table. */
+    scrollContainer?: boolean;
+  }
+>(({ className, scrollContainer = false, ...props }, ref) => (
+  <div className={cn("relative w-full", scrollContainer ? "overflow-auto" : "overflow-visible")}>
     <table
       ref={ref}
       className={cn("w-full caption-bottom text-sm", className)}

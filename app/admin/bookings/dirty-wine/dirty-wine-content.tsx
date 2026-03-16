@@ -128,7 +128,7 @@ export function DirtyWineContent() {
                 <p className="mt-2 text-muted-foreground">Laddar ordrar...</p>
               </div>
             ) : filteredOrders.length > 0 ? (
-              <div className="overflow-x-auto">
+              <div>
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border">

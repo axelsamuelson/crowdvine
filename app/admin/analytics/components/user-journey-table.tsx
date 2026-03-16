@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Card } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -43,8 +42,8 @@ export function UserJourneyTable({ users }: UserJourneyTableProps) {
   const [filterCompleted, setFilterCompleted] = useState<string>("all");
 
   const getStatusIcon = (value: any) => {
-    if (value) return <CheckCircle className="w-4 h-4 text-green-600" />;
-    return <XCircle className="w-4 h-4 text-gray-300" />;
+    if (value) return <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />;
+    return <XCircle className="w-4 h-4 text-gray-300 dark:text-zinc-500" />;
   };
 
   const getUserName = (user: any) => {
@@ -80,16 +79,16 @@ export function UserJourneyTable({ users }: UserJourneyTableProps) {
 
   const getCompletionStatus = (user: any) => {
     if (user.has_no_events) {
-      return { status: 'no-events', color: 'bg-gray-100 text-gray-600', label: 'No events', icon: XCircle };
+      return { status: 'no-events', color: 'bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-zinc-300', label: 'No events', icon: XCircle };
     }
     if (user.reservation_completed_at) {
-      return { status: 'completed', color: 'bg-green-100 text-green-800', label: 'Completed', icon: Award };
+      return { status: 'completed', color: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200', label: 'Completed', icon: Award };
     } else if (user.checkout_started_at) {
-      return { status: 'in-progress', color: 'bg-blue-100 text-blue-800', label: 'In Progress', icon: TrendingUp };
+      return { status: 'in-progress', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200', label: 'In Progress', icon: TrendingUp };
     } else if (getStepsCompleted(user) >= 3) {
-      return { status: 'active', color: 'bg-yellow-100 text-yellow-800', label: 'Active', icon: TrendingUp };
+      return { status: 'active', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200', label: 'Active', icon: TrendingUp };
     }
-    return { status: 'new', color: 'bg-gray-100 text-gray-800', label: 'New', icon: TrendingUp };
+    return { status: 'new', color: 'bg-gray-100 text-gray-800 dark:bg-zinc-800 dark:text-zinc-300', label: 'New', icon: TrendingUp };
   };
 
   const sortedAndFilteredUsers = useMemo(() => {
@@ -131,16 +130,19 @@ export function UserJourneyTable({ users }: UserJourneyTableProps) {
   }, [users, searchQuery, filterCompleted]);
 
   return (
-    <Card className="p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold">User Journeys</h3>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          User Journeys
+        </h3>
         <Badge variant="outline">{sortedAndFilteredUsers.length} users</Badge>
       </div>
 
-      {/* Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 pb-4 border-b">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4 border-b border-gray-200 dark:border-[#1F1F23]">
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">Filter by Status</label>
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Filter by Status
+          </label>
           <Select value={filterCompleted} onValueChange={setFilterCompleted}>
             <SelectTrigger>
               <SelectValue placeholder="All users" />
@@ -156,7 +158,9 @@ export function UserJourneyTable({ users }: UserJourneyTableProps) {
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">Search Users</label>
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Search Users
+          </label>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
@@ -171,27 +175,27 @@ export function UserJourneyTable({ users }: UserJourneyTableProps) {
 
       {sortedAndFilteredUsers.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-gray-500">No users found matching your filters.</p>
+          <p className="text-gray-500 dark:text-gray-400">No users found matching your filters.</p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
+        <div>
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Progress</TableHead>
-                <TableHead>Steps</TableHead>
-                <TableHead>Reached</TableHead>
-                <TableHead className="text-center">Lists</TableHead>
-                <TableHead className="text-center">Request</TableHead>
-                <TableHead className="text-center">Approved</TableHead>
-                <TableHead className="text-center">Login</TableHead>
-                <TableHead className="text-center">Product</TableHead>
-                <TableHead className="text-center">Cart</TableHead>
-                <TableHead className="text-center">Validate</TableHead>
-                <TableHead className="text-center">Checkout</TableHead>
-                <TableHead className="text-center">Completed</TableHead>
+              <TableRow className="border-gray-200 dark:border-[#1F1F23] hover:bg-transparent dark:hover:bg-transparent">
+                <TableHead className="text-gray-900 dark:text-white font-medium">User</TableHead>
+                <TableHead className="text-gray-900 dark:text-white font-medium">Status</TableHead>
+                <TableHead className="text-gray-900 dark:text-white font-medium">Progress</TableHead>
+                <TableHead className="text-gray-900 dark:text-white font-medium">Steps</TableHead>
+                <TableHead className="text-gray-900 dark:text-white font-medium">Reached</TableHead>
+                <TableHead className="text-gray-900 dark:text-white font-medium text-center">Lists</TableHead>
+                <TableHead className="text-gray-900 dark:text-white font-medium text-center">Request</TableHead>
+                <TableHead className="text-gray-900 dark:text-white font-medium text-center">Approved</TableHead>
+                <TableHead className="text-gray-900 dark:text-white font-medium text-center">Login</TableHead>
+                <TableHead className="text-gray-900 dark:text-white font-medium text-center">Product</TableHead>
+                <TableHead className="text-gray-900 dark:text-white font-medium text-center">Cart</TableHead>
+                <TableHead className="text-gray-900 dark:text-white font-medium text-center">Validate</TableHead>
+                <TableHead className="text-gray-900 dark:text-white font-medium text-center">Checkout</TableHead>
+                <TableHead className="text-gray-900 dark:text-white font-medium text-center">Completed</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -200,11 +204,11 @@ export function UserJourneyTable({ users }: UserJourneyTableProps) {
                 const CompletionIcon = completionInfo.icon;
                 
                 return (
-                  <TableRow key={user.user_id}>
-                    <TableCell className="font-medium">
+                  <TableRow key={user.user_id} className="border-gray-200 dark:border-[#1F1F23]">
+                    <TableCell className="font-medium text-gray-900 dark:text-white">
                       <div>
                         <div>{getUserName(user)}</div>
-                        <div className="text-xs text-gray-500">{getUserEmail(user)}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">{getUserEmail(user)}</div>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -215,30 +219,30 @@ export function UserJourneyTable({ users }: UserJourneyTableProps) {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-gray-200 rounded-full h-2">
+                        <div className="flex-1 bg-gray-200 dark:bg-zinc-700 rounded-full h-2">
                           <div 
-                            className="bg-blue-600 h-2 rounded-full transition-all" 
+                            className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full transition-all" 
                             style={{ width: `${getCompletionPercentage(user)}%` }}
                           />
                         </div>
-                        <span className="text-xs font-medium w-12">
+                        <span className="text-xs font-medium text-gray-900 dark:text-gray-200 w-12">
                           {getCompletionPercentage(user)}%
                         </span>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">
+                      <Badge variant="outline" className="text-gray-900 dark:text-white border-gray-300 dark:border-zinc-600">
                         {getStepsCompleted(user)} / {STEPS.length}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm text-gray-600">
+                    <TableCell className="text-sm text-gray-600 dark:text-gray-300">
                       {getReachedStep(user)}
                     </TableCell>
                     <TableCell className="text-center">
                       {user.has_no_events ? (
-                        <span className="text-gray-400">-</span>
+                        <span className="text-gray-400 dark:text-gray-500">-</span>
                       ) : (
-                        <Badge variant="outline">{user.product_list_view_count || 0}</Badge>
+                        <Badge variant="outline" className="text-gray-900 dark:text-white border-gray-300 dark:border-zinc-600">{user.product_list_view_count || 0}</Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-center">{getStatusIcon(user.access_requested_at)}</TableCell>
@@ -256,6 +260,6 @@ export function UserJourneyTable({ users }: UserJourneyTableProps) {
           </Table>
         </div>
       )}
-    </Card>
+    </div>
   );
 }

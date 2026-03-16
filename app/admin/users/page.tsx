@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,20 +42,16 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
-  CheckCircle,
-  XCircle,
-  Clock,
   Search,
   Edit,
   Trash2,
   UserPlus,
   Shield,
   Factory,
-  Mail,
-  Key,
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -255,26 +250,26 @@ export default function UsersAdmin() {
     const roles = user.roles?.length ? user.roles : [user.role || "user"];
     const portalAccess = user.portal_access || ["user"];
     const badges: React.ReactNode[] = [];
-    if (roles.includes("user")) badges.push(<Badge key="user" variant="secondary" className="mr-1"><UserPlus className="w-3 h-3 mr-1" />User</Badge>);
-    if (roles.includes("admin")) badges.push(<Badge key="admin" variant="default" className="bg-red-600 mr-1"><Shield className="w-3 h-3 mr-1" />Admin</Badge>);
-    if (roles.includes("producer")) badges.push(<Badge key="producer" variant="default" className="bg-emerald-600 mr-1"><Factory className="w-3 h-3 mr-1" />Producer</Badge>);
-    if (portalAccess.includes("business")) badges.push(<Badge key="business" variant="outline" className="mr-1">Business</Badge>);
-    if (badges.length === 0) badges.push(<Badge key="none" variant="outline">User</Badge>);
+    if (roles.includes("user")) badges.push(<Badge key="user" variant="secondary" className="mr-1 bg-gray-100 text-gray-800 dark:bg-zinc-700 dark:text-zinc-200"><UserPlus className="w-3 h-3 mr-1" />User</Badge>);
+    if (roles.includes("admin")) badges.push(<Badge key="admin" variant="default" className="bg-red-600 dark:bg-red-700 mr-1"><Shield className="w-3 h-3 mr-1" />Admin</Badge>);
+    if (roles.includes("producer")) badges.push(<Badge key="producer" variant="default" className="bg-emerald-600 dark:bg-emerald-700 mr-1"><Factory className="w-3 h-3 mr-1" />Producer</Badge>);
+    if (portalAccess.includes("business")) badges.push(<Badge key="business" variant="outline" className="mr-1 border-gray-300 dark:border-zinc-600 text-gray-900 dark:text-white">Business</Badge>);
+    if (badges.length === 0) badges.push(<Badge key="none" variant="outline" className="border-gray-300 dark:border-zinc-600 text-gray-900 dark:text-white">User</Badge>);
     return <span className="flex flex-wrap gap-1">{badges}</span>;
   };
 
   const getMembershipBadge = (level: string) => {
-    const colors = {
-      admin: "bg-purple-600 text-white",
-      privilege: "bg-[#2F0E15] text-white",
-      guld: "bg-[#E4CAA0] text-gray-900",
-      silver: "bg-emerald-800 text-white",
-      brons: "bg-indigo-700 text-white",
-      basic: "bg-slate-600 text-white",
-      requester: "bg-gray-300 text-gray-700",
+    const colors: Record<string, string> = {
+      admin: "bg-purple-600 dark:bg-purple-700 text-white",
+      privilege: "bg-[#2F0E15] dark:bg-rose-900/80 text-white",
+      guld: "bg-[#E4CAA0] dark:bg-amber-900/50 text-gray-900 dark:text-amber-100",
+      silver: "bg-emerald-800 dark:bg-emerald-700 text-white",
+      brons: "bg-indigo-700 dark:bg-indigo-600 text-white",
+      basic: "bg-slate-600 dark:bg-slate-600 text-white",
+      requester: "bg-gray-300 dark:bg-zinc-700 text-gray-700 dark:text-zinc-200",
     };
 
-    const labels = {
+    const labels: Record<string, string> = {
       admin: "Admin",
       privilege: "Privilege",
       guld: "Priority",
@@ -285,8 +280,8 @@ export default function UsersAdmin() {
     };
 
     return (
-      <Badge className={colors[level as keyof typeof colors] || colors.basic}>
-        {labels[level as keyof typeof labels] || level}
+      <Badge className={colors[level] ?? colors.basic}>
+        {labels[level] ?? level}
       </Badge>
     );
   };
@@ -357,134 +352,142 @@ export default function UsersAdmin() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-          <p className="mt-4 text-gray-600">Loading users...</p>
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-gray-300 dark:border-zinc-600 border-t-gray-900 dark:border-t-white" />
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading users...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Users Management</h1>
-        <p className="text-gray-600 mt-2">
-          Manage platform users and their access permissions
-        </p>
-      </div>
-
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Filters</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <Label htmlFor="search">Search</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  id="search"
-                  placeholder="Search by email or name..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+    <div className="space-y-4">
+      {/* Single card – same structure as /admin dashboard (e.g. Platform overview) */}
+      <div className="bg-white dark:bg-[#0F0F12] rounded-xl p-6 flex flex-col border border-gray-200 dark:border-[#1F1F23]">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 text-left flex items-center gap-2">
+          <Users className="w-3.5 h-3.5 text-zinc-900 dark:text-zinc-50" />
+          Users
+        </h2>
+        <div className="flex-1">
+          {/* Inner box: filters – same style as dashboard inner boxes */}
+          <div className="w-full bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800 rounded-xl mb-4">
+            <div className="p-4 border-b border-gray-100 dark:border-zinc-800">
+              <p className="text-xs text-gray-600 dark:text-zinc-400">
+                Search and filter
+              </p>
+              <p className="text-2xl font-semibold text-gray-900 dark:text-zinc-50">
+                {filteredUsers.length} users
+              </p>
+            </div>
+            <div className="p-4 flex flex-wrap gap-4">
+              <div className="flex-1 min-w-[200px]">
+                <Label htmlFor="search" className="text-xs font-medium text-gray-900 dark:text-zinc-100 mb-1.5 block">Search</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-zinc-400 h-4 w-4" />
+                  <Input
+                    id="search"
+                    placeholder="By email or name..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 h-9 text-sm bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500"
+                  />
+                </div>
+              </div>
+              <div className="w-44">
+                <Label htmlFor="role" className="text-xs font-medium text-gray-900 dark:text-zinc-100 mb-1.5 block">Role</Label>
+                <Select value={roleFilter} onValueChange={setRoleFilter}>
+                  <SelectTrigger className="h-9 text-sm bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-zinc-100">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-[#1F1F23] border-gray-200 dark:border-zinc-700 z-[100]" sideOffset={4}>
+                    <SelectItem value="all">All Roles</SelectItem>
+                    <SelectItem value="user">User</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="producer">Producer</SelectItem>
+                    <SelectItem value="business">Business</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            <div className="w-48">
-              <Label htmlFor="role">Role</Label>
-              <Select value={roleFilter} onValueChange={setRoleFilter}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Roles</SelectItem>
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="producer">Producer</SelectItem>
-                  <SelectItem value="business">Business</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Users Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Users ({filteredUsers.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
+          {/* User list – same inner-box style as Recent Bookings list */}
+<div className="w-full bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800 rounded-xl">
+          <div className="p-4 flex items-center justify-between border-b border-gray-100 dark:border-zinc-800">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100">
+              User list
+                <span className="text-xs font-normal text-gray-500 dark:text-zinc-400 ml-1">
+                  ({filteredUsers.length} shown)
+                </span>
+              </h3>
+            </div>
+            <div className="p-2">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>
+              <TableRow className="border-gray-200 dark:border-zinc-800 hover:bg-transparent dark:hover:bg-transparent">
+                <TableHead className="text-gray-900 dark:text-zinc-100 font-medium text-xs">
                   <button
                     onClick={() => handleSort("email")}
-                    className="flex items-center hover:text-gray-900 transition-colors"
+                    className="flex items-center hover:text-gray-900 dark:hover:text-zinc-100 transition-colors"
                   >
                     User
                     {getSortIcon("email")}
                   </button>
                 </TableHead>
-                <TableHead>
+                <TableHead className="text-gray-900 dark:text-zinc-100 font-medium text-xs">
                   <button
                     onClick={() => handleSort("role")}
-                    className="flex items-center hover:text-gray-900 transition-colors"
+                    className="flex items-center hover:text-gray-900 dark:hover:text-zinc-100 transition-colors"
                   >
                     Role
                     {getSortIcon("role")}
                   </button>
                 </TableHead>
-                <TableHead>
+                <TableHead className="text-gray-900 dark:text-zinc-100 font-medium text-xs">
                   <button
                     onClick={() => handleSort("membership")}
-                    className="flex items-center hover:text-gray-900 transition-colors"
+                    className="flex items-center hover:text-gray-900 dark:hover:text-zinc-100 transition-colors"
                   >
                     Membership
                     {getSortIcon("membership")}
                   </button>
                 </TableHead>
-                <TableHead>
+                <TableHead className="text-gray-900 dark:text-zinc-100 font-medium text-xs">
                   <button
                     onClick={() => handleSort("impact_points")}
-                    className="flex items-center hover:text-gray-900 transition-colors"
+                    className="flex items-center hover:text-gray-900 dark:hover:text-zinc-100 transition-colors"
                   >
                     Impact Points
                     {getSortIcon("impact_points")}
                   </button>
                 </TableHead>
-                <TableHead>
+                <TableHead className="text-gray-900 dark:text-zinc-100 font-medium text-xs">
                   <button
                     onClick={() => handleSort("invites")}
-                    className="flex items-center hover:text-gray-900 transition-colors"
+                    className="flex items-center hover:text-gray-900 dark:hover:text-zinc-100 transition-colors"
                   >
                     Invites
                     {getSortIcon("invites")}
                   </button>
                 </TableHead>
-                <TableHead>
+                <TableHead className="text-gray-900 dark:text-zinc-100 font-medium text-xs">
                   <button
                     onClick={() => handleSort("joined")}
-                    className="flex items-center hover:text-gray-900 transition-colors"
+                    className="flex items-center hover:text-gray-900 dark:hover:text-zinc-100 transition-colors"
                   >
                     Joined
                     {getSortIcon("joined")}
                   </button>
                 </TableHead>
-                <TableHead>
+                <TableHead className="text-gray-900 dark:text-zinc-100 font-medium text-xs">
                   <button
                     onClick={() => handleSort("last_active")}
-                    className="flex items-center hover:text-gray-900 transition-colors"
+                    className="flex items-center hover:text-gray-900 dark:hover:text-zinc-100 transition-colors"
                   >
                     Last Active
                     {getSortIcon("last_active")}
                   </button>
                 </TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead className="text-gray-900 dark:text-zinc-100 font-medium text-xs">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -492,11 +495,11 @@ export default function UsersAdmin() {
                 <TableRow
                   key={user.id}
                   onClick={() => router.push(`/admin/users/${user.id}`)}
-                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  className="cursor-pointer border-gray-200 dark:border-zinc-800 transition-colors [&:hover]:bg-gray-100 dark:[&:hover]:bg-zinc-800/50"
                 >
-                  <TableCell>
-                    <div className="font-medium">{user.email}</div>
-                    <div className="text-sm text-gray-500">
+                  <TableCell className="text-gray-900 dark:text-zinc-100">
+                    <div className="font-medium text-sm">{user.email}</div>
+                    <div className="text-xs text-gray-500 dark:text-zinc-400">
                       {user.email_confirmed_at
                         ? "Email confirmed"
                         : "Email not confirmed"}
@@ -506,35 +509,33 @@ export default function UsersAdmin() {
                   <TableCell>
                     {getMembershipBadge(user.membership_level)}
                   </TableCell>
-                  <TableCell>
-                    <span className="font-semibold text-gray-900">
-                      {user.impact_points}
-                    </span>
-                    <span className="text-gray-500 text-sm"> IP</span>
+                  <TableCell className="text-gray-900 dark:text-zinc-100 text-sm">
+                    <span className="font-semibold">{user.impact_points}</span>
+                    <span className="text-gray-500 dark:text-zinc-400 text-xs"> IP</span>
                   </TableCell>
-                  <TableCell>
-                    <span className="text-sm text-gray-700">
+                  <TableCell className="text-gray-600 dark:text-zinc-300 text-xs">
+                    <span>
                       {user.invites_used} / {user.invite_quota}
                     </span>
                   </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
+                  <TableCell className="text-gray-600 dark:text-zinc-300 text-xs">
+                    <div>
                       {new Date(user.created_at).toLocaleDateString()}
                     </div>
                     {user.last_sign_in_at && (
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-gray-500 dark:text-zinc-400">
                         Last login:{" "}
                         {new Date(user.last_sign_in_at).toLocaleDateString()}
                       </div>
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-gray-600 dark:text-zinc-300 text-xs">
                     {user.last_active_at ? (
-                      <div className="text-sm">
+                      <div>
                         {new Date(user.last_active_at).toLocaleString()}
                       </div>
                     ) : (
-                      <div className="text-sm text-gray-400">—</div>
+                      <div className="text-gray-400 dark:text-zinc-500">—</div>
                     )}
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
@@ -543,6 +544,7 @@ export default function UsersAdmin() {
                         size="sm"
                         variant="outline"
                         onClick={() => openEditDialog(user)}
+                        className="border-gray-300 dark:border-zinc-600 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-zinc-800"
                       >
                         <Edit className="w-4 h-4 mr-1" />
                         Edit
@@ -554,16 +556,16 @@ export default function UsersAdmin() {
                             Delete
                           </Button>
                         </AlertDialogTrigger>
-                        <AlertDialogContent>
+                        <AlertDialogContent className="bg-white dark:bg-[#1F1F23] border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-white">
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Delete User</AlertDialogTitle>
-                            <AlertDialogDescription>
+                            <AlertDialogTitle className="text-gray-900 dark:text-white">Delete User</AlertDialogTitle>
+                            <AlertDialogDescription className="text-gray-500 dark:text-gray-400">
                               Are you sure you want to delete {user.email}? This
                               action cannot be undone.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogCancel className="text-gray-700 dark:text-gray-300 border-gray-300 dark:border-zinc-600">Cancel</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() => deleteUser(user.id)}
                               className="bg-red-600 hover:bg-red-700"
@@ -579,34 +581,36 @@ export default function UsersAdmin() {
               ))}
             </TableBody>
           </Table>
-          {filteredUsers.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              No users found matching your criteria.
             </div>
-          )}
-        </CardContent>
-      </Card>
+            {filteredUsers.length === 0 && (
+              <div className="text-center py-12 text-gray-500 dark:text-zinc-400 text-sm">
+                No users found matching your criteria.
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Edit User Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="bg-white dark:bg-[#1F1F23] border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-white">
           <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
+            <DialogTitle className="text-gray-900 dark:text-white">Edit User</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-gray-700 dark:text-gray-300">Email</Label>
               <Input
                 id="email"
                 value={selectedUser?.email || ""}
                 disabled
-                className="bg-gray-50"
+                className="bg-gray-50 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 text-gray-600 dark:text-gray-400 mt-1"
               />
             </div>
             <div className="space-y-3">
-              <Label>User types</Label>
+              <Label className="text-gray-700 dark:text-gray-300">User types</Label>
               <div className="flex flex-wrap gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex items-center gap-2 cursor-pointer text-gray-900 dark:text-white">
                   <Checkbox
                     checked={editForm.roles.includes("user")}
                     onCheckedChange={(checked) => {
@@ -617,7 +621,7 @@ export default function UsersAdmin() {
                   />
                   <span>User</span>
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex items-center gap-2 cursor-pointer text-gray-900 dark:text-white">
                   <Checkbox
                     checked={editForm.roles.includes("admin")}
                     onCheckedChange={(checked) => {
@@ -627,7 +631,7 @@ export default function UsersAdmin() {
                   />
                   <span>Admin</span>
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex items-center gap-2 cursor-pointer text-gray-900 dark:text-white">
                   <Checkbox
                     checked={editForm.roles.includes("producer")}
                     onCheckedChange={(checked) => {
@@ -637,7 +641,7 @@ export default function UsersAdmin() {
                   />
                   <span>Producer</span>
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex items-center gap-2 cursor-pointer text-gray-900 dark:text-white">
                   <Checkbox
                     checked={editForm.portal_access.includes("business")}
                     onCheckedChange={(checked) => {
@@ -648,11 +652,11 @@ export default function UsersAdmin() {
                   <span>Business</span>
                 </label>
               </div>
-              <p className="text-xs text-gray-500">User = B2C (pactwines.com). Business = B2B (dirtywine.se).</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">User = B2C (pactwines.com). Business = B2B (dirtywine.se).</p>
             </div>
             {editForm.roles.includes("producer") && (
               <div className="space-y-2">
-                <Label htmlFor="producer_id">Linked Producer</Label>
+                <Label htmlFor="producer_id" className="text-gray-700 dark:text-gray-300">Linked Producer</Label>
                 <Select
                   value={editForm.producer_id || "__none__"}
                   onValueChange={(value) =>
@@ -662,10 +666,10 @@ export default function UsersAdmin() {
                     })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-white mt-1">
                     <SelectValue placeholder="Select producer" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white dark:bg-[#1F1F23] border-gray-200 dark:border-zinc-700">
                     <SelectItem value="__none__">No producer linked</SelectItem>
                     {producers.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
@@ -674,24 +678,24 @@ export default function UsersAdmin() {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Producer accounts must be linked to a producer to manage wines
                   and producer information.
                 </p>
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="membership_level">Membership Level</Label>
+              <Label htmlFor="membership_level" className="text-gray-700 dark:text-gray-300">Membership Level</Label>
               <Select
                 value={editForm.membership_level}
                 onValueChange={(value) =>
                   setEditForm({ ...editForm, membership_level: value })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-white mt-1">
                   <SelectValue placeholder="Select membership level" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white dark:bg-[#1F1F23] border-gray-200 dark:border-zinc-700">
                   <SelectItem value="requester">
                     Requester (No Access)
                   </SelectItem>
@@ -703,7 +707,7 @@ export default function UsersAdmin() {
                   <SelectItem value="admin">Admin (Unlimited)</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 Requester = No platform access. Basic and above = Full access.
               </p>
             </div>
@@ -711,7 +715,7 @@ export default function UsersAdmin() {
               <Button
                 variant="outline"
                 onClick={() => setIsEditDialogOpen(false)}
-                className="flex-1"
+                className="flex-1 border-gray-300 dark:border-zinc-600 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-zinc-800"
               >
                 Cancel
               </Button>
