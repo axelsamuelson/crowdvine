@@ -5,8 +5,6 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useQueryState, parseAsArrayOf, parseAsString } from "nuqs";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -25,9 +23,9 @@ import {
 } from "@/components/ui/select";
 
 const colorColors: Record<string, string> = {
-  red: "bg-red-100 text-red-800",
-  white: "bg-yellow-100 text-yellow-800",
-  rose: "bg-pink-100 text-pink-800",
+  red: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300",
+  white: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300",
+  rose: "bg-pink-100 dark:bg-pink-900/30 text-pink-800 dark:text-pink-300",
 };
 
 function capitalize(s: string) {
@@ -268,7 +266,7 @@ export function AdminWinesContent({
     <div className="space-y-4">
       {/* Bulk edits button - opens modal for B2C and B2B margin updates */}
       <div className="flex justify-end">
-          <BulkEditsModal
+        <BulkEditsModal
           initialMargin={initialMargin}
           isMixed={isMixed}
           initialB2BMargin={initialB2BMargin}
@@ -281,23 +279,23 @@ export function AdminWinesContent({
       {/* Search + Filter bar */}
       <div className="flex flex-wrap items-center gap-4">
         <div className="relative flex-1 min-w-[200px] max-w-md">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500 dark:text-zinc-400 pointer-events-none" />
           <Input
             type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Sök vin, producent, druva, färg…"
-            className="pl-9 h-10 bg-muted/80 border-muted-foreground/20 focus-visible:ring-primary/40"
+            className="pl-9 h-10 bg-gray-50 dark:bg-zinc-900/70 border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-zinc-100 placeholder:text-gray-500 dark:placeholder:text-zinc-400 rounded-lg"
             aria-label="Sök viner"
           />
         </div>
 
-        <div className="px-3 py-4 rounded-lg bg-muted">
+        <div className="px-3 py-4 rounded-xl bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800">
           <div className="flex items-baseline justify-between gap-3 mb-4">
-            <h3 className="font-semibold">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100">
               Producers{" "}
               {ap.length > 0 && (
-                <span className="text-foreground/50">({ap.length})</span>
+                <span className="text-gray-500 dark:text-zinc-400">({ap.length})</span>
               )}
             </h3>
           </div>
@@ -305,18 +303,18 @@ export function AdminWinesContent({
             <PopoverTrigger asChild>
               <button
                 type="button"
-                className="flex w-full items-center justify-between gap-2 text-sm font-medium text-foreground hover:text-foreground/80 transition-colors"
+                className="flex w-full items-center justify-between gap-2 text-xs font-medium text-gray-900 dark:text-zinc-100 hover:text-gray-700 dark:hover:text-zinc-300 transition-colors"
               >
                 <span>Select producers</span>
                 <ChevronDown className="h-3.5 w-3.5 opacity-60" />
               </button>
             </PopoverTrigger>
-            <PopoverContent className="w-64 p-2" align="start">
+            <PopoverContent className="w-64 p-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl" align="start">
               <div className="max-h-56 overflow-y-auto space-y-2">
                 {producers.map((p) => (
                   <label
                     key={p.id}
-                    className="flex items-center gap-2 cursor-pointer text-sm"
+                    className="flex items-center gap-2 cursor-pointer text-sm text-gray-900 dark:text-zinc-100"
                   >
                     <Checkbox
                       checked={ap.includes(p.id)}
@@ -330,11 +328,11 @@ export function AdminWinesContent({
           </Popover>
         </div>
 
-        <div className="px-3 py-4 rounded-md bg-muted">
-          <h3 className="mb-4 font-semibold">
+        <div className="px-3 py-4 rounded-xl bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800">
+          <h3 className="mb-4 text-sm font-semibold text-gray-900 dark:text-zinc-100">
             Color{" "}
             {ac.length > 0 && (
-              <span className="text-foreground/50">({ac.length})</span>
+              <span className="text-gray-500 dark:text-zinc-400">({ac.length})</span>
             )}
           </h3>
           {availableColors.singleColors.length > 0 || availableColors.dualColors.length > 0 ? (
@@ -350,12 +348,12 @@ export function AdminWinesContent({
                     type="button"
                     onClick={() => toggleColor(c)}
                     className={cn(
-                      "rounded-full size-8 ring ring-accent cursor-pointer transition-[outline,box-shadow,opacity] relative overflow-hidden",
+                      "rounded-full size-8 ring cursor-pointer transition-[outline,box-shadow,opacity] relative overflow-hidden",
                       isOn
-                        ? "ring-2 opacity-100 ring-primary/80"
+                        ? "ring-2 opacity-100 ring-gray-900 dark:ring-zinc-100"
                         : atLeastOneSelected
-                          ? "opacity-40 hover:ring-primary/30 hover:opacity-70"
-                          : "opacity-100",
+                          ? "opacity-40 ring-gray-300 dark:ring-zinc-600 hover:opacity-70"
+                          : "opacity-100 ring-gray-300 dark:ring-zinc-600",
                     )}
                     style={{ backgroundColor: c.value }}
                     title={c.name}
@@ -378,12 +376,12 @@ export function AdminWinesContent({
                     type="button"
                     onClick={() => toggleColor([c1, c2])}
                     className={cn(
-                      "rounded-full size-8 ring ring-accent cursor-pointer transition-[outline,box-shadow,opacity] relative overflow-hidden",
+                      "rounded-full size-8 ring cursor-pointer transition-[outline,box-shadow,opacity] relative overflow-hidden",
                       isOn
-                        ? "ring-2 opacity-100 ring-primary/80"
+                        ? "ring-2 opacity-100 ring-gray-900 dark:ring-zinc-100"
                         : atLeastOneSelected
-                          ? "opacity-40 hover:ring-primary/30 hover:opacity-70"
-                          : "opacity-100",
+                          ? "opacity-40 ring-gray-300 dark:ring-zinc-600 hover:opacity-70"
+                          : "opacity-100 ring-gray-300 dark:ring-zinc-600",
                     )}
                     title={displayName}
                     aria-pressed={isOn}
@@ -405,16 +403,16 @@ export function AdminWinesContent({
               })}
             </div>
           ) : (
-            <span className="text-xs text-foreground/50">—</span>
+            <span className="text-xs text-gray-500 dark:text-zinc-400">—</span>
           )}
         </div>
 
-        <div className="px-3 py-4 rounded-md bg-muted">
+        <div className="px-3 py-4 rounded-xl bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800">
           <div className="flex items-baseline justify-between gap-3 mb-4">
-            <h3 className="font-semibold">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100">
               Grapes{" "}
               {ag.length > 0 && (
-                <span className="text-foreground/50">({ag.length})</span>
+                <span className="text-gray-500 dark:text-zinc-400">({ag.length})</span>
               )}
             </h3>
           </div>
@@ -422,24 +420,24 @@ export function AdminWinesContent({
             <PopoverTrigger asChild>
               <button
                 type="button"
-                className="flex w-full items-center justify-between gap-2 text-sm font-medium text-foreground hover:text-foreground/80 transition-colors"
+                className="flex w-full items-center justify-between gap-2 text-xs font-medium text-gray-900 dark:text-zinc-100 hover:text-gray-700 dark:hover:text-zinc-300 transition-colors"
               >
                 <span>Select grapes</span>
                 <ChevronDown className="h-3.5 w-3.5 opacity-60" />
               </button>
             </PopoverTrigger>
-            <PopoverContent className="w-64 p-2" align="start">
+            <PopoverContent className="w-64 p-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl" align="start">
               <Input
                 value={grapeSearch}
                 onChange={(e) => setGrapeSearch(e.target.value)}
                 placeholder="Search grapes…"
-                className="mb-2 h-8 bg-background"
+                className="mb-2 h-8 bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700"
               />
               <div className="max-h-48 overflow-y-auto space-y-2">
                 {filteredGrapesList.map((g) => (
                   <label
                     key={g}
-                    className="flex items-center gap-2 cursor-pointer text-sm"
+                    className="flex items-center gap-2 cursor-pointer text-sm text-gray-900 dark:text-zinc-100"
                   >
                     <Checkbox
                       checked={ag.includes(g)}
@@ -449,7 +447,7 @@ export function AdminWinesContent({
                   </label>
                 ))}
                 {filteredGrapesList.length === 0 && (
-                  <p className="text-xs text-foreground/50 py-2">No grapes match</p>
+                  <p className="text-xs text-gray-500 dark:text-zinc-400 py-2">No grapes match</p>
                 )}
               </div>
             </PopoverContent>
@@ -458,7 +456,12 @@ export function AdminWinesContent({
 
         {hasActiveFiltersOrSearch && (
           <div className="flex items-center">
-            <Button variant="ghost" size="sm" className="h-8 gap-1 text-foreground/60 hover:text-foreground/80" onClick={clearFilters}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1 text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-zinc-100 rounded-lg"
+              onClick={clearFilters}
+            >
               <X className="h-3.5 w-3.5" />
               {hasSearch && filterCount > 0 ? "Rensa filter och sök" : hasSearch ? "Rensa sök" : `Rensa (${filterCount})`}
             </Button>
@@ -467,18 +470,18 @@ export function AdminWinesContent({
       </div>
 
       {/* Table - scrollable region so the wine list is always scrollable */}
-      <Card>
-        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="bg-white dark:bg-[#0F0F12] rounded-xl border border-gray-200 dark:border-[#1F1F23] overflow-hidden">
+        <div className="p-6 border-b border-gray-200 dark:border-[#1F1F23] flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <CardTitle>All Wines</CardTitle>
-            <CardDescription>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">All Wines</h2>
+            <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
               {hasActiveFiltersOrSearch
                 ? `Visar ${filteredWines.length} av ${wines.length} viner`
                 : `Alla vinprodukter`}
-            </CardDescription>
+            </p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground whitespace-nowrap">Sortera:</span>
+            <span className="text-xs text-gray-500 dark:text-zinc-400 whitespace-nowrap">Sortera:</span>
             <Select
               value={`${sortBy}-${sortDir}`}
               onValueChange={(v) => {
@@ -487,7 +490,7 @@ export function AdminWinesContent({
                 setSortDir(d);
               }}
             >
-              <SelectTrigger className="w-[200px] h-9 bg-muted/80">
+              <SelectTrigger className="w-[200px] h-9 rounded-lg border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-900/70 text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -502,89 +505,90 @@ export function AdminWinesContent({
               </SelectContent>
             </Select>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-auto max-h-[min(60vh,800px)] rounded-md border border-gray-100">
-            {sortedWines.length > 0 ? (
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">Image</th>
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">Wine</th>
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">Producer</th>
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">Color</th>
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">Price</th>
-                    <th className="text-left p-3 font-medium text-sm text-gray-600">Actions</th>
+        </div>
+        <div className="overflow-auto max-h-[min(60vh,800px)]">
+          {sortedWines.length > 0 ? (
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900/70">
+                  <th className="text-left p-3 font-medium text-xs text-gray-600 dark:text-zinc-400">Image</th>
+                  <th className="text-left p-3 font-medium text-xs text-gray-600 dark:text-zinc-400">Wine</th>
+                  <th className="text-left p-3 font-medium text-xs text-gray-600 dark:text-zinc-400">Producer</th>
+                  <th className="text-left p-3 font-medium text-xs text-gray-600 dark:text-zinc-400">Color</th>
+                  <th className="text-left p-3 font-medium text-xs text-gray-600 dark:text-zinc-400">Price</th>
+                  <th className="text-left p-3 font-medium text-xs text-gray-600 dark:text-zinc-400">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedWines.map((wine) => (
+                  <tr key={wine.id} className="border-b border-gray-100 dark:border-zinc-800/50 hover:bg-gray-50 dark:hover:bg-zinc-800/50">
+                    <td className="p-3">
+                      <div className="relative w-16 h-16 bg-gray-100 dark:bg-zinc-800 rounded-lg overflow-hidden">
+                        <Image
+                          src={wine.label_image_path || DEFAULT_WINE_IMAGE_PATH}
+                          alt={`${wine.wine_name} ${wine.vintage}`}
+                          fill
+                          className="object-cover"
+                          sizes="64px"
+                        />
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-zinc-100">{wine.wine_name}</div>
+                        <div className="text-sm text-gray-500 dark:text-zinc-400">{wine.vintage}</div>
+                        <div className="text-xs text-gray-400 dark:text-zinc-500">{wine.grape_varieties}</div>
+                      </div>
+                    </td>
+                    <td className="p-3 text-sm text-gray-900 dark:text-zinc-100">{wine.producer?.name || "Unknown"}</td>
+                    <td className="p-3">
+                      <span
+                        className={cn(
+                          "inline-flex px-2 py-0.5 rounded-md text-[11px] font-medium",
+                          colorColors[wine.color as keyof typeof colorColors] ||
+                            "bg-gray-100 dark:bg-zinc-800 text-gray-800 dark:text-zinc-300",
+                        )}
+                      >
+                        {wine.color}
+                      </span>
+                    </td>
+                    <td className="p-3 font-medium text-sm text-gray-900 dark:text-zinc-100">
+                      {Math.ceil(wine.base_price_cents / 100)} SEK
+                    </td>
+                    <td className="p-3">
+                      <div className="flex gap-2">
+                        <Link href={`/admin/wines/${wine.id}`}>
+                          <Button variant="outline" size="sm" className="rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700">
+                            Edit
+                          </Button>
+                        </Link>
+                        <DeleteWineButton wineId={wine.id} wineName={wine.wine_name} />
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {sortedWines.map((wine) => (
-                    <tr key={wine.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="p-3">
-                        <div className="relative w-16 h-16 bg-gray-100 rounded-lg overflow-hidden">
-                          <Image
-                            src={wine.label_image_path || DEFAULT_WINE_IMAGE_PATH}
-                            alt={`${wine.wine_name} ${wine.vintage}`}
-                            fill
-                            className="object-cover"
-                            sizes="64px"
-                          />
-                        </div>
-                      </td>
-                      <td className="p-3">
-                        <div>
-                          <div className="font-medium text-gray-900">{wine.wine_name}</div>
-                          <div className="text-sm text-gray-500">{wine.vintage}</div>
-                          <div className="text-xs text-gray-400">{wine.grape_varieties}</div>
-                        </div>
-                      </td>
-                      <td className="p-3 text-gray-900">{wine.producer?.name || "Unknown"}</td>
-                      <td className="p-3">
-                        <Badge
-                          className={
-                            colorColors[wine.color as keyof typeof colorColors] ||
-                            "bg-gray-100 text-gray-800"
-                          }
-                        >
-                          {wine.color}
-                        </Badge>
-                      </td>
-                      <td className="p-3 font-medium text-gray-900">
-                        {Math.ceil(wine.base_price_cents / 100)} SEK
-                      </td>
-                      <td className="p-3">
-                        <div className="flex gap-2">
-                          <Link href={`/admin/wines/${wine.id}`}>
-                            <Button variant="outline" size="sm">
-                              Edit
-                            </Button>
-                          </Link>
-                          <DeleteWineButton wineId={wine.id} wineName={wine.wine_name} />
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-gray-500 mb-4">
-                  {hasActiveFiltersOrSearch ? "Inga viner matchar filtren eller sökningen" : "Inga viner hittades"}
-                </p>
-                {hasActiveFiltersOrSearch ? (
-                  <Button variant="outline" onClick={clearFilters}>
-                    Rensa filter och sök
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-sm text-gray-500 dark:text-zinc-400 mb-4">
+                {hasActiveFiltersOrSearch ? "Inga viner matchar filtren eller sökningen" : "Inga viner hittades"}
+              </p>
+              {hasActiveFiltersOrSearch ? (
+                <Button variant="outline" size="sm" className="rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700" onClick={clearFilters}>
+                  Rensa filter och sök
+                </Button>
+              ) : (
+                <Link href="/admin/wines/new">
+                  <Button size="sm" className="rounded-lg text-xs font-medium bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900 hover:bg-gray-800 dark:hover:bg-zinc-200">
+                    Add your first wine
                   </Button>
-                ) : (
-                  <Link href="/admin/wines/new">
-                    <Button>Add your first wine</Button>
-                  </Link>
-                )}
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+                </Link>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

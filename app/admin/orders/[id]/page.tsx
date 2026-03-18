@@ -116,10 +116,10 @@ export default function OrderDetailsPage() {
         <Card>
           <CardContent className="p-12">
             <div className="text-center">
-              <h3 className="text-lg font-medium mb-2 text-gray-900">
+              <h3 className="text-lg font-medium mb-2 text-gray-900 dark:text-gray-100">
                 Order not found
               </h3>
-              <p className="text-gray-500">
+              <p className="text-gray-500 dark:text-gray-400">
                 The order with ID {orderId} could not be found.
               </p>
             </div>
@@ -166,7 +166,7 @@ export default function OrderDetailsPage() {
           {/* Customer Info */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                 <User className="w-4 h-4" />
                 Customer
               </div>
@@ -177,14 +177,14 @@ export default function OrderDetailsPage() {
                     orderData.profiles?.email ||
                     "Unknown Customer"}
                 </div>
-                <div className="text-sm text-gray-500">
+                <div className="text-sm text-gray-500 dark:text-gray-400">
                   {orderData.profiles?.email}
                 </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                 <Calendar className="w-4 h-4" />
                 Status
               </div>
@@ -192,10 +192,10 @@ export default function OrderDetailsPage() {
                 variant="secondary"
                 className={
                   orderData.status === "placed"
-                    ? "bg-green-100 text-green-800"
+                    ? "bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-400"
                     : orderData.status === "confirmed"
-                      ? "bg-blue-100 text-blue-800"
-                      : "bg-gray-100 text-gray-800"
+                      ? "bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-400"
+                      : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300"
                 }
               >
                 {orderData.status || "Unknown"}
@@ -203,14 +203,14 @@ export default function OrderDetailsPage() {
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                 <Package className="w-4 h-4" />
                 Total Value
               </div>
               <div className="text-lg font-semibold">
                 {formatPrice(calculateTotal())}
               </div>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-gray-500 dark:text-gray-400">
                 {totalBottles} bottles
               </div>
             </div>
@@ -219,7 +219,7 @@ export default function OrderDetailsPage() {
           {/* Payment & Fulfillment Status */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                 <CreditCard className="w-4 h-4" />
                 Payment Status
               </div>
@@ -227,10 +227,10 @@ export default function OrderDetailsPage() {
                 variant="secondary"
                 className={
                   orderData.payment_status === "paid"
-                    ? "bg-green-100 text-green-800"
+                    ? "bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-400"
                     : orderData.payment_status === "pending"
-                      ? "bg-yellow-100 text-yellow-800"
-                      : "bg-red-100 text-red-800"
+                      ? "bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-400"
+                      : "bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-400"
                 }
               >
                 {orderData.payment_status || "Unknown"}
@@ -238,7 +238,7 @@ export default function OrderDetailsPage() {
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                 <CheckCircle className="w-4 h-4" />
                 Fulfillment Status
               </div>
@@ -246,10 +246,10 @@ export default function OrderDetailsPage() {
                 variant="secondary"
                 className={
                   orderData.fulfillment_status === "fulfilled"
-                    ? "bg-green-100 text-green-800"
+                    ? "bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-400"
                     : orderData.fulfillment_status === "processing"
-                      ? "bg-blue-100 text-blue-800"
-                      : "bg-gray-100 text-gray-800"
+                      ? "bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-400"
+                      : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300"
                 }
               >
                 {orderData.fulfillment_status || "Pending"}
@@ -259,13 +259,13 @@ export default function OrderDetailsPage() {
 
           {/* Delivery Zones */}
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
               <MapPin className="w-4 h-4" />
               Delivery Information
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <div className="text-xs text-gray-500 mb-1">Delivery Zone</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Delivery Zone</div>
                 <div className="text-sm">
                   {orderData.delivery_zone_id
                     ? `Zone ${orderData.delivery_zone_id}`
@@ -273,7 +273,7 @@ export default function OrderDetailsPage() {
                 </div>
               </div>
               <div>
-                <div className="text-xs text-gray-500 mb-1">Pickup Zone</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Pickup Zone</div>
                 <div className="text-sm">
                   {orderData.pickup_zone_id
                     ? `Zone ${orderData.pickup_zone_id}`
@@ -295,29 +295,29 @@ export default function OrderDetailsPage() {
           {bookings.length > 0 ? (
             <div className="space-y-4">
               {bookings.map((order: any, index) => (
-                <div key={order.id} className="border rounded-lg p-4 space-y-3">
+                <div key={order.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
                   <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-start">
                     <div className="md:col-span-2">
-                      <div className="font-medium text-gray-900">
+                      <div className="font-medium text-gray-900 dark:text-gray-100">
                         {order.wines?.wine_name} {order.wines?.vintage}
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
                         {order.wines?.producers?.name}
                       </div>
                     </div>
 
                     <div>
-                      <div className="text-xs text-gray-500 mb-1">Quantity</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Quantity</div>
                       <Badge
                         variant="secondary"
-                        className="bg-blue-100 text-blue-800"
+                        className="bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-400"
                       >
                         {order.quantity} bottles
                       </Badge>
                     </div>
 
                     <div>
-                      <div className="text-xs text-gray-500 mb-1">
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
                         Price Each
                       </div>
                       <div className="text-sm font-medium">
@@ -326,7 +326,7 @@ export default function OrderDetailsPage() {
                     </div>
 
                     <div>
-                      <div className="text-xs text-gray-500 mb-1">Total</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total</div>
                       <div className="text-sm font-semibold">
                         {formatPrice(
                           (order.wines?.base_price_cents || 0) * order.quantity,
@@ -335,7 +335,7 @@ export default function OrderDetailsPage() {
                     </div>
 
                     <div>
-                      <div className="text-xs text-gray-500 mb-1">Pallet</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Pallet</div>
                       <div className="text-sm">
                         {order.pallets?.name || "No Pallet Assigned"}
                       </div>
@@ -345,7 +345,7 @@ export default function OrderDetailsPage() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               No items found for this order.
             </div>
           )}

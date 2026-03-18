@@ -25,6 +25,9 @@ interface CrawlSessionSummary {
   document_ids: string[];
   extracted?: number;
   extraction_failed?: number;
+  auto_correction_attempted?: number;
+  auto_correction_improved?: number;
+  auto_correction_still_review?: number;
 }
 
 async function main(): Promise<void> {
@@ -60,6 +63,13 @@ async function main(): Promise<void> {
   console.log("  extracted       :", summary.extracted ?? 0);
   console.log("  extraction_failed:", summary.extraction_failed ?? 0);
   console.log("  document_ids    :", summary.document_ids?.length ?? 0);
+  if ((summary.auto_correction_attempted ?? 0) > 0) {
+    console.log("\n  AutoCorrectionResult (aggregated):", {
+      rowsAttempted: summary.auto_correction_attempted ?? 0,
+      rowsImproved: summary.auto_correction_improved ?? 0,
+      rowsStillNeedsReview: summary.auto_correction_still_review ?? 0,
+    });
+  }
   if (summary.rate_limit_429) {
     console.log("\n  ⚠️  rate_limit_429: true");
   }

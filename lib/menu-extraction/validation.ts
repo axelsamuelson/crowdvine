@@ -39,7 +39,14 @@ export function getReviewReasons(row: AIExtractedRow): ReviewReason[] {
   if (row.review_reasons?.includes("grapes_inferred")) {
     reasons.push("grapes_inferred");
   }
-  if (row.review_reasons?.includes("suspicious_vintage")) {
+  // Don't flag N.V. (non-vintage) as suspicious
+  const vintageIsNV =
+    row.vintage?.trim().toUpperCase() === "N.V." ||
+    /^n\.?\s*v\.?$/i.test(row.vintage?.trim() ?? "");
+  if (
+    row.review_reasons?.includes("suspicious_vintage") &&
+    !vintageIsNV
+  ) {
     reasons.push("suspicious_vintage");
   }
   if (row.review_reasons?.includes("multiple_price_formats")) {
@@ -121,17 +128,31 @@ export function validateExtractedRow(row: AIExtractedRow): {
   return { isValid, flags };
 }
 
+/** Reasons that alone don't require review when confidence is at least medium. */
+const SOFT_REVIEW_REASONS = new Set<ReviewReason>([
+  "grapes_inferred",
+  "ambiguous_format",
+]);
+
 /**
  * A row needs review if:
  * confidence_label !== 'high' OR review_reasons.length > 0 OR central fields missing.
+ * Exception: if confidence is at least "medium" and the only reasons are soft
+ * (grapes_inferred, ambiguous_format), we do not require review.
  */
 export function needsReview(
   row: AIExtractedRow,
   confidenceLabel: ConfidenceLabel
 ): boolean {
-  if (confidenceLabel !== "high") return true;
+  if (confidenceLabel === "low") return true;
   const reasons = getReviewReasons(row);
-  if (reasons.length > 0) return true;
+  const hardReasons = reasons.filter((r) => !SOFT_REVIEW_REASONS.has(r));
+  if (hardReasons.length > 0) return true;
+  if (reasons.length > 0) {
+    // Only soft reasons left; require at least medium confidence to skip review
+    if (confidenceLabel !== "medium" && confidenceLabel !== "high") return true;
+    return false;
+  }
   if (row.row_type === "wine_row") {
     if (!row.wine_name?.trim()) return true;
     if (!row.producer?.trim()) return true;

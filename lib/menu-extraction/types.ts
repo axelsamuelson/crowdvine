@@ -71,6 +71,10 @@ export interface MenuDocument {
   error_message: string | null;
   content_hash: string | null;
   source_slug: string | null;
+  extraction_input_tokens: number | null;
+  extraction_output_tokens: number | null;
+  extraction_cache_read_input_tokens: number | null;
+  extraction_cache_creation_input_tokens: number | null;
 }
 
 export interface MenuDocumentSection {
@@ -113,6 +117,8 @@ export interface MenuExtractedRow {
   normalized_payload: Record<string, unknown> | null;
   validation_flags: Record<string, unknown> | null;
   extraction_version: string | null;
+  /** True when row was improved by auto-correction (few-shot re-extraction). */
+  auto_corrected?: boolean;
 }
 
 export interface MenuExtractionFeedback {
@@ -189,6 +195,29 @@ export interface AIExtractionResult {
 }
 
 // ---------------------------------------------------------------------------
+// Menu extraction batches (Anthropic Batch API)
+// ---------------------------------------------------------------------------
+
+export type MenuExtractionBatchStatus =
+  | "submitted"
+  | "processing"
+  | "ended"
+  | "processed"
+  | "failed";
+
+export interface MenuExtractionBatch {
+  id: string;
+  created_at?: string;
+  updated_at?: string;
+  anthropic_batch_id: string | null;
+  document_ids: string[];
+  status: MenuExtractionBatchStatus;
+  phase_1_result: Record<string, { rawText: string; sectionNames: string[] }> | null;
+  error_message: string | null;
+  processed_at: string | null;
+}
+
+// ---------------------------------------------------------------------------
 // Starwinelist crawler
 // ---------------------------------------------------------------------------
 
@@ -236,6 +265,8 @@ export interface CrawlResult {
   extracted?: boolean;
   /** Reason extraction was skipped (e.g. scanned PDF, no raw text, or extraction error). */
   extraction_skipped_reason?: "scanned_pdf" | "no_raw_text" | "extraction_error";
+  /** Auto-correction result when extraction ran and auto-correction was attempted. */
+  auto_correction?: { rowsAttempted: number; rowsImproved: number; rowsStillNeedsReview: number };
 }
 
 export interface CrawlSessionSummary {
@@ -253,6 +284,10 @@ export interface CrawlSessionSummary {
   extracted?: number;
   /** Count of documents where extraction was attempted but failed. */
   extraction_failed?: number;
+  /** Aggregated auto-correction across documents (for smoke test / reporting). */
+  auto_correction_attempted?: number;
+  auto_correction_improved?: number;
+  auto_correction_still_review?: number;
 }
 
 // ---------------------------------------------------------------------------

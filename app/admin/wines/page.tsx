@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getWines } from "@/lib/actions/wines";
 import { Button } from "@/components/ui/button";
-import { Upload, Settings } from "lucide-react";
+import { Upload, Settings, Wine, Plus } from "lucide-react";
 import { AdminWinesContent } from "./admin-wines-content";
 import { getAppUrl, getInternalFetchHeaders } from "@/lib/app-url";
 
@@ -75,26 +75,34 @@ export default async function WinesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Wines</h1>
-          <p className="text-gray-600">Manage wine products</p>
+      <div className="flex flex-wrap justify-between items-start gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-gray-100 dark:bg-zinc-800">
+            <Wine className="w-5 h-5 text-gray-900 dark:text-zinc-50" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Wines</h1>
+            <p className="text-sm text-gray-600 dark:text-zinc-400">Manage wine products</p>
+          </div>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           <Link href="/admin/wines/settings">
-            <Button variant="outline" className="bg-gray-50 hover:bg-gray-100">
-              <Settings className="w-4 h-4 mr-2" />
+            <Button variant="outline" size="sm" className="rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700">
+              <Settings className="w-3.5 h-3.5 mr-1.5" />
               Settings
             </Button>
           </Link>
           <Link href="/admin/bulk-upload">
-            <Button variant="outline" className="bg-gray-50 hover:bg-gray-100">
-              <Upload className="w-4 h-4 mr-2" />
+            <Button variant="outline" size="sm" className="rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700">
+              <Upload className="w-3.5 h-3.5 mr-1.5" />
               Bulk Upload
             </Button>
           </Link>
           <Link href="/admin/wines/new">
-            <Button>Add Wine</Button>
+            <Button size="sm" className="rounded-lg text-xs font-medium bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900 hover:bg-gray-800 dark:hover:bg-zinc-200">
+              <Plus className="w-3.5 h-3.5 mr-1.5" />
+              Add Wine
+            </Button>
           </Link>
         </div>
       </div>

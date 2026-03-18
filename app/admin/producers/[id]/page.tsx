@@ -5,14 +5,9 @@ import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import ProducerForm from "@/components/admin/producer-form";
 import { DeleteProducerButton } from "@/components/admin/delete-producer-button";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { RelatedTasksCard } from "@/components/admin/operations/related-tasks-card";
+import { getTasksForEntity } from "@/lib/actions/operations-entity";
 import { notFound } from "next/navigation";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -22,7 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Wine, Plus } from "lucide-react";
 
 interface EditProducerPageProps {
   params: Promise<{ id: string }>;
@@ -33,24 +28,49 @@ export default async function EditProducerPage({
 }: EditProducerPageProps) {
   try {
     const { id } = await params;
-    const producer = await getProducer(id);
     const sb = getSupabaseAdmin();
 
-    let winesResult = await sb
-      .from("wines")
-      .select("id, wine_name, vintage, handle, base_price_cents, is_live, label_image_path")
-      .eq("producer_id", id)
-      .order("wine_name", { ascending: true });
+    const [producer, relatedTasks, projectsRes, objectivesRes, adminsRes, winesResult] =
+      await Promise.all([
+        getProducer(id),
+        getTasksForEntity("producer", id),
+        sb.from("admin_projects")
+          .select("id, name")
+          .is("deleted_at", null)
+          .eq("status", "active")
+          .order("name"),
+        sb.from("admin_objectives")
+          .select("id, title")
+          .is("deleted_at", null)
+          .eq("status", "active")
+          .order("title"),
+        sb.from("profiles")
+          .select("id, email")
+          .eq("role", "admin")
+          .order("email"),
+        sb
+          .from("wines")
+          .select("id, wine_name, vintage, handle, base_price_cents, is_live, label_image_path")
+          .eq("producer_id", id)
+          .order("wine_name", { ascending: true }),
+      ]);
 
-    if (winesResult.error && /is_live|column.*does not exist/i.test(winesResult.error.message ?? "")) {
-      winesResult = await sb
+    const projects = projectsRes.data ?? [];
+    const objectives = objectivesRes.data ?? [];
+    const admins = adminsRes.data ?? [];
+
+    let winesData = winesResult;
+
+    if (winesData.error && /is_live|column.*does not exist/i.test(winesData.error.message ?? "")) {
+      const fallback = await sb
         .from("wines")
         .select("id, wine_name, vintage, handle, base_price_cents, label_image_path")
         .eq("producer_id", id)
         .order("wine_name", { ascending: true });
+      winesData = fallback as typeof winesResult;
     }
 
-    const wines = (winesResult.data ?? []) as Array<{
+    const wines = (winesData.data ?? []) as Array<{
       id: string;
       wine_name: string;
       vintage: string;
@@ -62,10 +82,15 @@ export default async function EditProducerPage({
 
     return (
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Edit Producer</h1>
-            <p className="text-gray-600">Update producer information</p>
+        <div className="flex flex-wrap justify-between items-start gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-gray-100 dark:bg-zinc-800">
+              <Wine className="w-5 h-5 text-gray-900 dark:text-zinc-50" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Edit Producer</h1>
+              <p className="text-sm text-gray-600 dark:text-zinc-400">Update producer information</p>
+            </div>
           </div>
           <DeleteProducerButton
             producerId={producer.id}
@@ -75,47 +100,58 @@ export default async function EditProducerPage({
 
         <ProducerForm producer={producer} />
 
-        <Card>
-          <CardHeader>
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <CardTitle>Viner</CardTitle>
-                <CardDescription>
-                  Alla viner som tillhör denna producent ({wines.length} st)
-                </CardDescription>
-              </div>
-              <Link href={`/admin/wines/new?producer_id=${id}`}>
-                <Button size="sm">Lägg till vin</Button>
-              </Link>
+        <RelatedTasksCard
+          entity_type="producer"
+          entity_id={id}
+          entity_label={producer.name}
+          tasks={relatedTasks}
+          projects={projects}
+          objectives={objectives}
+          admins={admins}
+        />
+
+        <div className="bg-white dark:bg-[#0F0F12] rounded-xl border border-gray-200 dark:border-[#1F1F23] overflow-hidden">
+          <div className="p-6 border-b border-gray-200 dark:border-[#1F1F23] flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">Viner</h2>
+              <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
+                Alla viner som tillhör denna producent ({wines.length} st)
+              </p>
             </div>
-          </CardHeader>
-          <CardContent>
+            <Link href={`/admin/wines/new?producer_id=${id}`}>
+              <Button size="sm" className="rounded-lg text-xs font-medium bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900 hover:bg-gray-800 dark:hover:bg-zinc-200">
+                <Plus className="w-3.5 h-3.5 mr-1.5" />
+                Lägg till vin
+              </Button>
+            </Link>
+          </div>
+          <div className="p-6">
             {wines.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4">
+              <p className="text-sm text-gray-500 dark:text-zinc-400 py-4">
                 Inga viner kopplade till denna producent.{" "}
-                <Link href={`/admin/wines/new?producer_id=${id}`} className="text-primary underline">
+                <Link href={`/admin/wines/new?producer_id=${id}`} className="text-gray-900 dark:text-zinc-100 underline font-medium">
                   Lägg till vin
                 </Link>
               </p>
             ) : (
-              <div className="rounded-md border">
+              <div className="rounded-xl border border-gray-200 dark:border-zinc-800 overflow-hidden">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-gray-50 hover:bg-gray-50">
-                      <TableHead className="text-gray-600 w-20">Bild</TableHead>
-                      <TableHead className="text-gray-600">Namn</TableHead>
-                      <TableHead className="text-gray-600">Vintage</TableHead>
-                      <TableHead className="text-gray-600">Handle</TableHead>
-                      <TableHead className="text-gray-600">Pris</TableHead>
-                      <TableHead className="text-gray-600">Status</TableHead>
-                      <TableHead className="text-right text-gray-600">Åtgärder</TableHead>
+                    <TableRow className="bg-gray-50 dark:bg-zinc-900/70 hover:bg-gray-50 dark:hover:bg-zinc-900/70 border-b border-gray-200 dark:border-zinc-800">
+                      <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400 w-20">Bild</TableHead>
+                      <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">Namn</TableHead>
+                      <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">Vintage</TableHead>
+                      <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">Handle</TableHead>
+                      <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">Pris</TableHead>
+                      <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">Status</TableHead>
+                      <TableHead className="text-right text-xs font-medium text-gray-600 dark:text-zinc-400">Åtgärder</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {wines.map((wine) => (
-                      <TableRow key={wine.id} className="hover:bg-gray-50">
+                      <TableRow key={wine.id} className="hover:bg-gray-50 dark:hover:bg-zinc-800/50 border-b border-gray-100 dark:border-zinc-800/50">
                         <TableCell className="w-20 p-2">
-                          <div className="relative w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                          <div className="relative w-16 h-16 bg-gray-100 dark:bg-zinc-800 rounded-lg overflow-hidden flex-shrink-0">
                             <Image
                               src={wine.label_image_path || DEFAULT_WINE_IMAGE_PATH}
                               alt={`${wine.wine_name} ${wine.vintage}`}
@@ -125,34 +161,34 @@ export default async function EditProducerPage({
                             />
                           </div>
                         </TableCell>
-                        <TableCell className="font-medium text-gray-900">
+                        <TableCell className="font-medium text-gray-900 dark:text-zinc-100">
                           {wine.wine_name}
                         </TableCell>
-                        <TableCell className="text-gray-700">
+                        <TableCell className="text-sm text-gray-700 dark:text-zinc-300">
                           {wine.vintage || "—"}
                         </TableCell>
-                        <TableCell className="text-gray-700 font-mono text-sm">
+                        <TableCell className="text-sm text-gray-700 dark:text-zinc-300 font-mono">
                           {wine.handle || "—"}
                         </TableCell>
-                        <TableCell className="text-gray-700">
+                        <TableCell className="text-sm text-gray-700 dark:text-zinc-300">
                           {wine.base_price_cents != null
                             ? `${(wine.base_price_cents / 100).toFixed(0)} kr`
                             : "—"}
                         </TableCell>
                         <TableCell>
                           {"is_live" in wine && wine.is_live === false ? (
-                            <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200">
+                            <span className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
                               Offline
-                            </Badge>
+                            </span>
                           ) : (
-                            <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">
+                            <span className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
                               Live
-                            </Badge>
+                            </span>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
                           <Link href={`/admin/wines/${wine.id}`}>
-                            <Button variant="outline" size="sm">
+                            <Button variant="outline" size="sm" className="rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700">
                               Redigera
                             </Button>
                           </Link>
@@ -163,8 +199,8 @@ export default async function EditProducerPage({
                 </Table>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     );
   } catch (error) {

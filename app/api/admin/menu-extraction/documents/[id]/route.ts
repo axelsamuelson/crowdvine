@@ -27,9 +27,14 @@ export async function GET(
     ]);
     const total_rows = rows.length;
     const needs_review_count = rows.filter((r) => r.needs_review).length;
+    const reviewed_count = rows.filter((r) => !r.needs_review).length;
     const high_confidence_count = rows.filter(
       (r) => r.confidence_label === "high"
     ).length;
+    const ambiguous_format_count = rows.filter((r) =>
+      Array.isArray(r.review_reasons) && r.review_reasons.includes("ambiguous_format")
+    ).length;
+    const auto_corrected_count = rows.filter((r) => r.auto_corrected === true).length;
     const by_section: Record<string, number> = {};
     for (const s of sections) {
       by_section[s.section_name] = rows.filter(
@@ -43,7 +48,10 @@ export async function GET(
       stats: {
         total_rows,
         needs_review_count,
+        reviewed_count,
         high_confidence_count,
+        ambiguous_format_count,
+        auto_corrected_count,
         by_section,
       },
     });

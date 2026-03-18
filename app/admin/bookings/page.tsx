@@ -3,13 +3,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -17,18 +10,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Calendar,
   Wine,
-  Users,
-  Package,
   DollarSign,
-  MapPin,
-  Clock,
-  CheckCircle,
-  AlertCircle,
   Search,
-  Filter,
   Download,
   MoreHorizontal,
   Trash2,
+  ArrowRight,
 } from "lucide-react";
 
 export default function BookingsPage() {
@@ -218,294 +205,308 @@ export default function BookingsPage() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Bookings</h1>
-          <p className="text-sm text-gray-600 mt-1">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Bookings
+          </h1>
+          <p className="text-sm text-gray-600 dark:text-zinc-400 mt-1">
             Manage customer wine reservations
           </p>
         </div>
         <div className="flex items-center gap-2">
           {selectedBookings.length > 0 && (
-            <Button variant="destructive" size="sm" onClick={handleBulkDelete}>
-              <Trash2 className="h-4 w-4 mr-2" />
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleBulkDelete}
+              className="rounded-lg text-xs font-medium"
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-2" />
               Delete ({selectedBookings.length})
             </Button>
           )}
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800/50"
+          >
+            <Download className="h-3.5 w-3.5 mr-2" />
             Export
           </Button>
-          <Button variant="outline" size="sm">
-            <MoreHorizontal className="h-4 w-4" />
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800/50"
+          >
+            <MoreHorizontal className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
 
       <Tabs value={initialTab} onValueChange={handleTabChange}>
-        <TabsList>
-          <TabsTrigger value="pact">PACT</TabsTrigger>
+        <TabsList className="bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800 rounded-xl p-1">
+          <TabsTrigger
+            value="pact"
+            className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm text-xs font-medium"
+          >
+            PACT
+          </TabsTrigger>
           <TabsTrigger value="dirty-wine" asChild>
-            <Link href="/admin/bookings/dirty-wine">Dirty Wine</Link>
+            <Link
+              href="/admin/bookings/dirty-wine"
+              className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm text-xs font-medium px-4 py-2"
+            >
+              Dirty Wine
+            </Link>
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="pact" className="mt-6 space-y-6">
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Total Bookings
+          {/* Summary Stats – dashboard card style */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              {
+                label: "Total Bookings",
+                value: String(totalBookings),
+                sub: "Individual reservations",
+                icon: Calendar,
+                iconBg: "text-blue-600 dark:text-blue-400",
+              },
+              {
+                label: "Total Bottles",
+                value: String(totalBottles),
+                sub: "Bottles reserved",
+                icon: Wine,
+                iconBg: "text-purple-600 dark:text-purple-400",
+              },
+              {
+                label: "Total Value",
+                value: formatPrice(totalValue),
+                sub: "Estimated value",
+                icon: DollarSign,
+                iconBg: "text-emerald-600 dark:text-emerald-400",
+              },
+            ].map((stat) => (
+              <div
+                key={stat.label}
+                className="bg-white dark:bg-[#0F0F12] rounded-xl p-4 flex flex-col border border-gray-200 dark:border-[#1F1F23] hover:border-gray-200 dark:hover:border-zinc-700 transition-all"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="p-2 rounded-lg bg-gray-100 dark:bg-zinc-800">
+                    <stat.icon
+                      className={`w-4 h-4 ${stat.iconBg}`}
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-gray-600 dark:text-zinc-400 mt-3">
+                  {stat.label}
                 </p>
-                <p className="text-2xl font-bold text-blue-600">
-                  {totalBookings}
+                <p className="text-2xl font-semibold text-gray-900 dark:text-zinc-50 mt-0.5">
+                  {stat.value}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Individual reservations
-                </p>
-              </div>
-              <Calendar className="h-10 w-10 text-blue-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Total Bottles
-                </p>
-                <p className="text-2xl font-bold text-purple-600">
-                  {totalBottles}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Bottles reserved
-                </p>
-              </div>
-              <Wine className="h-10 w-10 text-purple-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Total Value
-                </p>
-                <p className="text-2xl font-bold text-green-600">
-                  {formatPrice(totalValue)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Estimated value
+                <p className="text-[11px] text-gray-500 dark:text-zinc-400 mt-1">
+                  {stat.sub}
                 </p>
               </div>
-              <DollarSign className="h-10 w-10 text-green-600" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            ))}
+          </div>
 
-      {/* Bookings Table */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>All Bookings</CardTitle>
-              <CardDescription>
+          {/* Bookings Table – dashboard card + inner box */}
+          <div className="bg-white dark:bg-[#0F0F12] rounded-xl p-6 flex flex-col border border-gray-200 dark:border-[#1F1F23]">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <Calendar className="w-3.5 h-3.5 text-zinc-900 dark:text-zinc-50" />
+              All Bookings
+            </h2>
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <p className="text-xs text-gray-500 dark:text-zinc-400">
                 Complete list of all wine reservations
-              </CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              </p>
+              <div className="relative flex items-center gap-2">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-zinc-400" />
                 <input
                   type="text"
                   placeholder="Search bookings..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="pl-9 pr-4 py-2 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-zinc-100 focus:ring-offset-0 placeholder:text-gray-500 dark:placeholder:text-zinc-400 w-48"
                 />
               </div>
-              <Button variant="outline" size="sm">
-                <Filter className="h-4 w-4 mr-2" />
-                Filter
-              </Button>
+            </div>
+            <div className="w-full bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800 rounded-xl overflow-hidden">
+              {loading ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-300 dark:border-zinc-600 border-t-gray-900 dark:border-t-zinc-100 mx-auto" />
+                  <p className="mt-2 text-xs text-gray-500 dark:text-zinc-400">
+                    Loading bookings...
+                  </p>
+                </div>
+              ) : filteredBookings && filteredBookings.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-100 dark:border-zinc-800">
+                        <th className="text-left p-3 text-xs font-medium text-gray-600 dark:text-zinc-400">
+                          <Checkbox
+                            checked={
+                              selectedBookings.length === filteredBookings.length &&
+                              filteredBookings.length > 0
+                            }
+                            onCheckedChange={handleSelectAll}
+                          />
+                        </th>
+                        <th className="text-left p-3 text-xs font-medium text-gray-600 dark:text-zinc-400">
+                          Order ID
+                        </th>
+                        <th className="text-left p-3 text-xs font-medium text-gray-600 dark:text-zinc-400">
+                          Date
+                        </th>
+                        <th className="text-left p-3 text-xs font-medium text-gray-600 dark:text-zinc-400">
+                          Customer
+                        </th>
+                        <th className="text-left p-3 text-xs font-medium text-gray-600 dark:text-zinc-400">
+                          Total
+                        </th>
+                        <th className="text-left p-3 text-xs font-medium text-gray-600 dark:text-zinc-400">
+                          Payment
+                        </th>
+                        <th className="text-left p-3 text-xs font-medium text-gray-600 dark:text-zinc-400">
+                          Fulfillment
+                        </th>
+                        <th className="text-left p-3 text-xs font-medium text-gray-600 dark:text-zinc-400">
+                          Wine
+                        </th>
+                        <th className="text-left p-3 text-xs font-medium text-gray-600 dark:text-zinc-400">
+                          Producer
+                        </th>
+                        <th className="text-left p-3 text-xs font-medium text-gray-600 dark:text-zinc-400">
+                          Qty
+                        </th>
+                        <th className="text-left p-3 text-xs font-medium text-gray-600 dark:text-zinc-400">
+                          Pallet
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredBookings.map((booking) => (
+                        <tr
+                          key={booking.id}
+                          className="border-b border-gray-100 dark:border-zinc-800 last:border-0 hover:bg-gray-100 dark:hover:bg-zinc-800/50 cursor-pointer transition-colors"
+                          onClick={() => handleRowClick(booking)}
+                        >
+                          <td
+                            className="p-3"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Checkbox
+                              checked={selectedBookings.includes(booking.id)}
+                              onCheckedChange={(checked) =>
+                                handleSelectBooking(
+                                  booking.id,
+                                  checked as boolean,
+                                )
+                              }
+                            />
+                          </td>
+                          <td className="p-3 font-mono text-xs text-gray-900 dark:text-zinc-100">
+                            {booking.reservation?.order_id?.substring(0, 8) ||
+                              booking.id?.substring(0, 8) ||
+                              "N/A"}
+                          </td>
+                          <td className="p-3 text-xs text-gray-600 dark:text-zinc-400">
+                            {new Date(booking.created_at).toLocaleDateString(
+                              "sv-SE",
+                            )}
+                          </td>
+                          <td className="p-3">
+                            <div className="text-xs">
+                              <div className="font-medium text-gray-900 dark:text-zinc-100">
+                                {booking.profiles?.full_name ||
+                                  booking.reservation?.profiles?.full_name ||
+                                  booking.profiles?.email ||
+                                  booking.reservation?.profiles?.email ||
+                                  `User ${booking.user_id?.substring(0, 8)}` ||
+                                  "Unknown"}
+                              </div>
+                              <div className="text-[11px] text-gray-500 dark:text-zinc-400 truncate max-w-[120px]">
+                                {booking.profiles?.email ||
+                                  booking.reservation?.profiles?.email}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-3 text-xs font-medium text-gray-900 dark:text-zinc-100">
+                            {formatPrice(
+                              (booking.wines?.base_price_cents || 0) *
+                                booking.quantity,
+                            )}
+                          </td>
+                          <td className="p-3">
+                            <span
+                              className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                                booking.reservation?.payment_status === "paid"
+                                  ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
+                                  : booking.reservation?.payment_status ===
+                                      "pending"
+                                    ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
+                                    : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
+                              }`}
+                            >
+                              {booking.reservation?.payment_status || "Pending"}
+                            </span>
+                          </td>
+                          <td className="p-3">
+                            <span
+                              className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                                booking.reservation?.fulfillment_status ===
+                                "fulfilled"
+                                  ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
+                                  : booking.reservation?.fulfillment_status ===
+                                      "processing"
+                                    ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
+                                    : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-zinc-400"
+                              }`}
+                            >
+                              {booking.reservation?.fulfillment_status ||
+                                "Pending"}
+                            </span>
+                          </td>
+                          <td className="p-3 text-xs font-medium text-gray-900 dark:text-zinc-100">
+                            {booking.wines?.wine_name} {booking.wines?.vintage}
+                          </td>
+                          <td className="p-3 text-xs text-gray-900 dark:text-zinc-100">
+                            {booking.wines?.producers?.name}
+                          </td>
+                          <td className="p-3">
+                            <span className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
+                              {booking.quantity}
+                            </span>
+                          </td>
+                          <td className="p-3 text-xs text-gray-900 dark:text-zinc-100">
+                            {booking.pallets?.name || "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-12 px-4">
+                  <Calendar className="h-14 w-14 mx-auto mb-4 text-gray-400 dark:text-zinc-500" />
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100 mb-1">
+                    No bookings found
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-zinc-400 max-w-sm mx-auto">
+                    When customers make reservations, they will appear here.
+                  </p>
+                  <Link
+                    href="/admin"
+                    className="inline-flex items-center gap-2 mt-4 py-2 px-3 rounded-lg text-xs font-medium text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-zinc-100 hover:bg-gray-100 dark:hover:bg-zinc-800/50 transition-colors"
+                  >
+                    Back to dashboard
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2 text-gray-500">Loading bookings...</p>
-            </div>
-          ) : filteredBookings && filteredBookings.length > 0 ? (
-            <div>
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left p-2 text-xs font-medium text-gray-600">
-                      <Checkbox
-                        checked={
-                          selectedBookings.length === filteredBookings.length &&
-                          filteredBookings.length > 0
-                        }
-                        onCheckedChange={handleSelectAll}
-                      />
-                    </th>
-                    <th className="text-left p-2 text-xs font-medium text-gray-600">
-                      Order ID
-                    </th>
-                    <th className="text-left p-2 text-xs font-medium text-gray-600">
-                      Date
-                    </th>
-                    <th className="text-left p-2 text-xs font-medium text-gray-600">
-                      Customer
-                    </th>
-                    <th className="text-left p-2 text-xs font-medium text-gray-600">
-                      Total (Cost)
-                    </th>
-                    <th className="text-left p-2 text-xs font-medium text-gray-600">
-                      Payment Status
-                    </th>
-                    <th className="text-left p-2 text-xs font-medium text-gray-600">
-                      Fulfillment Status
-                    </th>
-                    <th className="text-left p-2 text-xs font-medium text-gray-600">
-                      Wine
-                    </th>
-                    <th className="text-left p-2 text-xs font-medium text-gray-600">
-                      Producer
-                    </th>
-                    <th className="text-left p-2 text-xs font-medium text-gray-600">
-                      Quantity
-                    </th>
-                    <th className="text-left p-2 text-xs font-medium text-gray-600">
-                      Pallet
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredBookings.map((booking) => (
-                    <tr
-                      key={booking.id}
-                      className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
-                      onClick={() => handleRowClick(booking)}
-                    >
-                      <td className="p-2" onClick={(e) => e.stopPropagation()}>
-                        <Checkbox
-                          checked={selectedBookings.includes(booking.id)}
-                          onCheckedChange={(checked) =>
-                            handleSelectBooking(booking.id, checked as boolean)
-                          }
-                        />
-                      </td>
-                      <td className="p-2">
-                        <div className="font-mono text-xs text-gray-600">
-                          {booking.reservation?.order_id?.substring(0, 8) ||
-                            booking.id?.substring(0, 8) ||
-                            "N/A"}
-                        </div>
-                      </td>
-                      <td className="p-2 text-xs text-gray-500">
-                        {new Date(booking.created_at).toLocaleDateString(
-                          "sv-SE",
-                        )}
-                      </td>
-                      <td className="p-2">
-                        <div className="text-xs">
-                          <div className="font-medium text-gray-900">
-                            {booking.profiles?.full_name ||
-                              booking.reservation?.profiles?.full_name ||
-                              booking.profiles?.email ||
-                              booking.reservation?.profiles?.email ||
-                              `User ${booking.user_id?.substring(0, 8)}` ||
-                              "Unknown Customer"}
-                          </div>
-                          <div className="text-xs text-gray-500 truncate max-w-[120px]">
-                            {booking.profiles?.email ||
-                              booking.reservation?.profiles?.email}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-2 text-xs font-medium text-gray-900">
-                        {formatPrice(
-                          (booking.wines?.base_price_cents || 0) *
-                            booking.quantity,
-                        )}
-                      </td>
-                      <td className="p-2">
-                        <Badge
-                          variant="secondary"
-                          className={
-                            booking.reservation?.payment_status === "paid"
-                              ? "bg-green-100 text-green-800 text-xs"
-                              : booking.reservation?.payment_status ===
-                                  "pending"
-                                ? "bg-yellow-100 text-yellow-800 text-xs"
-                                : "bg-red-100 text-red-800 text-xs"
-                          }
-                        >
-                          {booking.reservation?.payment_status || "Pending"}
-                        </Badge>
-                      </td>
-                      <td className="p-2">
-                        <Badge
-                          variant="secondary"
-                          className={
-                            booking.reservation?.fulfillment_status ===
-                            "fulfilled"
-                              ? "bg-green-100 text-green-800 text-xs"
-                              : booking.reservation?.fulfillment_status ===
-                                  "processing"
-                                ? "bg-blue-100 text-blue-800 text-xs"
-                                : "bg-gray-100 text-gray-800 text-xs"
-                          }
-                        >
-                          {booking.reservation?.fulfillment_status || "Pending"}
-                        </Badge>
-                      </td>
-                      <td className="p-2">
-                        <div className="text-xs font-medium text-gray-900">
-                          {booking.wines?.wine_name} {booking.wines?.vintage}
-                        </div>
-                      </td>
-                      <td className="p-2 text-xs text-gray-900">
-                        {booking.wines?.producers?.name}
-                      </td>
-                      <td className="p-2">
-                        <Badge
-                          variant="secondary"
-                          className="bg-blue-100 text-blue-800 text-xs"
-                        >
-                          {booking.quantity}
-                        </Badge>
-                      </td>
-                      <td className="p-2 text-xs text-gray-900">
-                        {booking.pallets?.name || "Unassigned"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <Calendar className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-              <h3 className="text-lg font-medium mb-2 text-gray-900">
-                No bookings found
-              </h3>
-              <p className="text-gray-500">
-                When customers make reservations, they will appear here.
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
         </TabsContent>
       </Tabs>
     </div>

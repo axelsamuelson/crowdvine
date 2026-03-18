@@ -43,7 +43,7 @@ export function AdminLayoutClient({
             <AdminTopNav userEmail={userEmail} onSignOut={onSignOut} />
           </div>
         </header>
-        <main className="flex-1 overflow-auto p-6 bg-white dark:bg-[#0F0F12]">
+        <main className="flex-1 overflow-auto p-6 bg-white dark:bg-[#0F0F12] text-gray-900 dark:text-zinc-100">
           <div className="max-w-7xl mx-auto">{children}</div>
         </main>
       </div>

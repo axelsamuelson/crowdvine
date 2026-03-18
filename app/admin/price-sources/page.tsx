@@ -2,13 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -28,7 +21,6 @@ import {
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Pencil, RefreshCw, TrendingUp, Search, ExternalLink, ChevronDownIcon } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -300,19 +292,25 @@ export default function PriceSourcesPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Konkurrentpriser</h1>
-          <p className="text-sm text-gray-600 mt-1">
-            Hantera butiker vi spårar för att hämta priser och länkar till viner (t.ex. morenaturalwine.com, primalwine.com).
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-gray-100 dark:bg-zinc-800">
+            <TrendingUp className="w-5 h-5 text-gray-900 dark:text-zinc-50" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Konkurrentpriser</h1>
+            <p className="text-sm text-gray-600 dark:text-zinc-400 mt-0.5">
+              Hantera butiker vi spårar för att hämta priser och länkar till viner (t.ex. morenaturalwine.com, primalwine.com).
+            </p>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Popover open={sourcePopoverOpen} onOpenChange={setSourcePopoverOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
+                size="sm"
                 disabled={refreshing || sources.length === 0}
-                className="w-[200px] justify-between font-normal"
+                className="w-[200px] justify-between rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700"
                 aria-label="Välj källa att uppdatera"
               >
                 <span className="truncate">
@@ -320,10 +318,10 @@ export default function PriceSourcesPage() {
                     ? "Alla källor"
                     : sources.find((s) => s.id === refreshSourceId)?.name ?? "Välj källa"}
                 </span>
-                <ChevronDownIcon className="h-4 w-4 shrink-0 opacity-50" />
+                <ChevronDownIcon className="h-3.5 w-3.5 shrink-0 opacity-50" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+            <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-white dark:bg-zinc-900 border-gray-200 dark:border-zinc-700 rounded-xl" align="start">
               <div className="max-h-[min(70vh,24rem)] overflow-y-auto">
                 <button
                   type="button"
@@ -331,7 +329,7 @@ export default function PriceSourcesPage() {
                     setRefreshSourceId("__all__");
                     setSourcePopoverOpen(false);
                   }}
-                  className={`flex w-full items-center px-3 py-2.5 text-left text-sm hover:bg-muted/80 ${refreshSourceId === "__all__" ? "bg-muted font-medium" : ""}`}
+                  className={`flex w-full items-center px-3 py-2.5 text-left text-sm hover:bg-gray-100 dark:hover:bg-zinc-800 ${refreshSourceId === "__all__" ? "bg-gray-100 dark:bg-zinc-800 font-medium text-gray-900 dark:text-zinc-100" : "text-gray-900 dark:text-zinc-100"}`}
                 >
                   Alla källor
                 </button>
@@ -343,7 +341,7 @@ export default function PriceSourcesPage() {
                       setRefreshSourceId(s.id);
                       setSourcePopoverOpen(false);
                     }}
-                    className={`flex w-full items-center px-3 py-2.5 text-left text-sm hover:bg-muted/80 ${refreshSourceId === s.id ? "bg-muted font-medium" : ""}`}
+                    className={`flex w-full items-center px-3 py-2.5 text-left text-sm hover:bg-gray-100 dark:hover:bg-zinc-800 ${refreshSourceId === s.id ? "bg-gray-100 dark:bg-zinc-800 font-medium text-gray-900 dark:text-zinc-100" : "text-gray-900 dark:text-zinc-100"}`}
                   >
                     {s.name}
                   </button>
@@ -353,14 +351,16 @@ export default function PriceSourcesPage() {
           </Popover>
           <Button
             variant="outline"
+            size="sm"
             onClick={handleRefreshAll}
             disabled={refreshing || sources.length === 0}
+            className="rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700"
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+            <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${refreshing ? "animate-spin" : ""}`} />
             {refreshing ? "Uppdaterar…" : "Uppdatera alla erbjudanden"}
           </Button>
-          <Button onClick={openCreate}>
-            <Plus className="h-4 w-4 mr-2" />
+          <Button size="sm" onClick={openCreate} className="rounded-lg text-xs font-medium bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900 hover:bg-gray-800 dark:hover:bg-zinc-200">
+            <Plus className="h-3.5 w-3.5 mr-1.5" />
             Lägg till källa
           </Button>
         </div>
@@ -368,173 +368,177 @@ export default function PriceSourcesPage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-gray-200 dark:border-zinc-700 border-t-gray-900 dark:border-t-zinc-100" />
         </div>
       ) : sources.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <TrendingUp className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Inga priskällor ännu</h3>
-            <p className="text-gray-500 mb-4 max-w-md mx-auto">
-              Lägg till en butik (t.ex. morenaturalwine.com) för att automatiskt hämta priser och länkar för era viner.
-            </p>
-            <Button onClick={openCreate}>
-              <Plus className="h-4 w-4 mr-2" />
-              Lägg till första källan
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="bg-white dark:bg-[#0F0F12] rounded-xl p-6 border border-gray-200 dark:border-[#1F1F23] flex flex-col items-center justify-center py-12">
+          <TrendingUp className="h-12 w-12 text-gray-400 dark:text-zinc-500 mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Inga priskällor ännu</h3>
+          <p className="text-sm text-gray-500 dark:text-zinc-400 mb-4 max-w-md text-center">
+            Lägg till en butik (t.ex. morenaturalwine.com) för att automatiskt hämta priser och länkar för era viner.
+          </p>
+          <Button size="sm" onClick={openCreate} className="rounded-lg text-xs font-medium bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900 hover:bg-gray-800 dark:hover:bg-zinc-200">
+            <Plus className="h-3.5 w-3.5 mr-1.5" />
+            Lägg till första källan
+          </Button>
+        </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {sources.map((s) => (
-            <Card key={s.id}>
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      {s.name}
-                      {!s.is_active && (
-                        <Badge variant="secondary">Inaktiv</Badge>
-                      )}
-                    </CardTitle>
-                    <CardDescription className="mt-1 truncate" title={s.base_url}>
-                      {s.base_url}
-                    </CardDescription>
+            <div
+              key={s.id}
+              className="bg-white dark:bg-[#0F0F12] rounded-xl p-6 border border-gray-200 dark:border-[#1F1F23]"
+            >
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">{s.name}</h3>
+                    {!s.is_active && (
+                      <span className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-400">
+                        Inaktiv
+                      </span>
+                    )}
                   </div>
-                  <div className="flex shrink-0 gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(s)} aria-label="Redigera">
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(s.id)} aria-label="Ta bort" className="text-red-600 hover:text-red-700">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1 truncate" title={s.base_url}>
+                    {s.base_url}
+                  </p>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
+                <div className="flex shrink-0 gap-1">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-gray-600 dark:text-zinc-400" onClick={() => openEdit(s)} aria-label="Redigera">
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => handleDelete(s.id)} aria-label="Ta bort">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-2 text-sm">
                 <div className="flex flex-wrap gap-2">
-                  <span className="text-gray-500">Slug:</span>
-                  <span className="font-mono">{s.slug}</span>
-                  <span className="text-gray-500">Typ:</span>
-                  <span>{s.adapter_type}</span>
-                  <span className="text-gray-500">Fördröjning:</span>
-                  <span>{s.rate_limit_delay_ms} ms</span>
+                  <span className="text-gray-500 dark:text-zinc-400">Slug:</span>
+                  <span className="font-mono text-gray-900 dark:text-zinc-100">{s.slug}</span>
+                  <span className="text-gray-500 dark:text-zinc-400">Typ:</span>
+                  <span className="text-gray-900 dark:text-zinc-100">{s.adapter_type}</span>
+                  <span className="text-gray-500 dark:text-zinc-400">Fördröjning:</span>
+                  <span className="text-gray-900 dark:text-zinc-100">{s.rate_limit_delay_ms} ms</span>
                 </div>
                 {s.last_crawled_at && (
-                  <p className="text-gray-500 text-xs">
+                  <p className="text-xs text-gray-500 dark:text-zinc-400">
                     Senast uppdaterad: {new Date(s.last_crawled_at).toLocaleString("sv-SE")}
                   </p>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Sparade träffar</CardTitle>
-          <CardDescription>
+      <div className="bg-white dark:bg-[#0F0F12] rounded-xl border border-gray-200 dark:border-[#1F1F23] overflow-hidden">
+        <div className="p-6 border-b border-gray-200 dark:border-[#1F1F23]">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Sparade träffar</h2>
+          <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
             Erbjudanden från konkurrentbutiker som matchade era viner. Sorterade med senast uppdaterade först.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </p>
+        </div>
+        <div className="p-6">
           {offersLoading ? (
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900" />
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-200 dark:border-zinc-700 border-t-gray-900 dark:border-t-zinc-100" />
             </div>
           ) : offers.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4">Inga träffar ännu. Kör &quot;Uppdatera alla erbjudanden&quot; för att hämta priser.</p>
+            <p className="text-sm text-gray-500 dark:text-zinc-400 py-4">Inga träffar ännu. Kör &quot;Uppdatera alla erbjudanden&quot; för att hämta priser.</p>
           ) : (
-            <div className="border rounded-md">
+            <div className="rounded-xl border border-gray-200 dark:border-zinc-800 overflow-hidden">
               <Table>
                 <TableHeader>
-                <TableRow>
-                  <TableHead>Vin / Producent</TableHead>
-                  <TableHead>Källa</TableHead>
-                  <TableHead className="text-right">Pris</TableHead>
-                  <TableHead>Tillgänglig</TableHead>
-                  <TableHead>Match</TableHead>
-                  <TableHead>Senast</TableHead>
-                  <TableHead className="w-[80px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {offers.map((o) => (
-                  <TableRow key={o.id}>
-                    <TableCell>
-                      <div className="font-medium">
-                        {o.wine?.wine_name ?? "—"} {o.wine?.vintage ? `(${o.wine.vintage})` : ""}
-                      </div>
-                      {o.producer_name && (
-                        <div className="text-xs text-muted-foreground mt-0.5">
-                          {o.producer_name}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>{o.price_source?.name ?? o.price_source_id}</TableCell>
-                    <TableCell className="text-right">
-                      {o.price_amount != null ? `${o.price_amount} ${o.currency}` : "—"}
-                    </TableCell>
-                    <TableCell>{o.available ? "Ja" : "Nej"}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-1.5 text-sm">
-                        {(() => {
-                          const pct = (o.match_confidence ?? 0) * 100;
-                          const isApproved = pct >= 40;
-                          return (
-                            <Badge
-                              variant={isApproved ? "default" : "destructive"}
-                              className={isApproved ? "bg-green-600 hover:bg-green-700 text-white w-fit" : "w-fit"}
-                            >
-                              {isApproved ? "Godkänd" : "Ej godkänd"} ({Math.round(pct)}%)
-                            </Badge>
-                          );
-                        })()}
-                        <div className="flex flex-wrap gap-x-3 gap-y-0 text-xs text-muted-foreground">
-                          <span title={o.producer_match ? "Producent matchar butikens titel" : "Producent matchar inte"}>
-                            Producent: {o.producer_match ? "✓" : "✗"}
-                          </span>
-                          <span title={o.wine_name_match ? "Vinnamn matchar butikens titel" : "Vinnamn matchar inte"}>
-                            Vinnamn: {o.wine_name_match ? "✓" : "✗"}
-                          </span>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-xs">
-                      {o.last_fetched_at ? new Date(o.last_fetched_at).toLocaleString("sv-SE") : "—"}
-                    </TableCell>
-                    <TableCell>
-                      <a
-                        href={o.pdp_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center text-primary hover:underline"
-                        title="Öppna i butiken"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                      </a>
-                    </TableCell>
+                  <TableRow className="bg-gray-50 dark:bg-zinc-900/70 border-b border-gray-200 dark:border-zinc-800">
+                    <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">Vin / Producent</TableHead>
+                    <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">Källa</TableHead>
+                    <TableHead className="text-right text-xs font-medium text-gray-600 dark:text-zinc-400">Pris</TableHead>
+                    <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">Tillgänglig</TableHead>
+                    <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">Match</TableHead>
+                    <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">Senast</TableHead>
+                    <TableHead className="w-[80px]"></TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
+                </TableHeader>
+                <TableBody>
+                  {offers.map((o) => (
+                    <TableRow key={o.id} className="border-b border-gray-100 dark:border-zinc-800/50 hover:bg-gray-50 dark:hover:bg-zinc-800/50">
+                      <TableCell>
+                        <div className="font-medium text-gray-900 dark:text-zinc-100">
+                          {o.wine?.wine_name ?? "—"} {o.wine?.vintage ? `(${o.wine.vintage})` : ""}
+                        </div>
+                        {o.producer_name && (
+                          <div className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
+                            {o.producer_name}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-900 dark:text-zinc-100">{o.price_source?.name ?? o.price_source_id}</TableCell>
+                      <TableCell className="text-right text-sm text-gray-900 dark:text-zinc-100">
+                        {o.price_amount != null ? `${o.price_amount} ${o.currency}` : "—"}
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-700 dark:text-zinc-300">{o.available ? "Ja" : "Nej"}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1.5 text-sm">
+                          {(() => {
+                            const pct = (o.match_confidence ?? 0) * 100;
+                            const isApproved = pct >= 40;
+                            return (
+                              <span
+                                className={`inline-flex w-fit px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                                  isApproved
+                                    ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
+                                    : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
+                                }`}
+                              >
+                                {isApproved ? "Godkänd" : "Ej godkänd"} ({Math.round(pct)}%)
+                              </span>
+                            );
+                          })()}
+                          <div className="flex flex-wrap gap-x-3 gap-y-0 text-xs text-gray-500 dark:text-zinc-400">
+                            <span title={o.producer_match ? "Producent matchar butikens titel" : "Producent matchar inte"}>
+                              Producent: {o.producer_match ? "✓" : "✗"}
+                            </span>
+                            <span title={o.wine_name_match ? "Vinnamn matchar butikens titel" : "Vinnamn matchar inte"}>
+                              Vinnamn: {o.wine_name_match ? "✓" : "✗"}
+                            </span>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-xs text-gray-500 dark:text-zinc-400">
+                        {o.last_fetched_at ? new Date(o.last_fetched_at).toLocaleString("sv-SE") : "—"}
+                      </TableCell>
+                      <TableCell>
+                        <a
+                          href={o.pdp_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center text-gray-900 dark:text-zinc-100 hover:underline"
+                          title="Öppna i butiken"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
               </Table>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md rounded-xl border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
           <DialogHeader>
-            <DialogTitle>{editingId ? "Redigera priskälla" : "Lägg till priskälla"}</DialogTitle>
-            <DialogDescription>
-              Butikens webbadress och sök-URL används för att hitta viner. Använd <code className="text-xs bg-gray-100 px-1 rounded">{`{query}`}</code> där söktermen ska vara.
+            <DialogTitle className="text-gray-900 dark:text-zinc-100">{editingId ? "Redigera priskälla" : "Lägg till priskälla"}</DialogTitle>
+            <DialogDescription className="text-gray-600 dark:text-zinc-400">
+              Butikens webbadress och sök-URL används för att hitta viner. Använd <code className="text-xs bg-gray-100 dark:bg-zinc-800 px-1 rounded">{`{query}`}</code> där söktermen ska vara.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="name">Namn</Label>
+              <Label htmlFor="name" className="text-gray-700 dark:text-zinc-300">Namn</Label>
               <Input
                 id="name"
                 placeholder="t.ex. More Natural Wine"
@@ -543,55 +547,60 @@ export default function PriceSourcesPage() {
                   setForm((f) => ({ ...f, name: e.target.value }));
                   if (!editingId && !form.slug) setForm((f) => ({ ...f, slug: slugFromName(e.target.value) }));
                 }}
+                className="border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="slug">Slug (unik id)</Label>
+              <Label htmlFor="slug" className="text-gray-700 dark:text-zinc-300">Slug (unik id)</Label>
               <Input
                 id="slug"
                 placeholder="t.ex. morenaturalwine"
                 value={form.slug}
                 onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))}
+                className="border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="base_url">Webbadress</Label>
+              <Label htmlFor="base_url" className="text-gray-700 dark:text-zinc-300">Webbadress</Label>
               <div className="flex gap-2">
                 <Input
                   id="base_url"
                   placeholder="https://morenaturalwine.com"
                   value={form.base_url}
                   onChange={(e) => setForm((f) => ({ ...f, base_url: e.target.value }))}
-                  className="flex-1"
+                  className="flex-1 border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
                 />
                 <Button
                   type="button"
                   variant="outline"
+                  size="sm"
                   onClick={handleDetectPlatform}
                   disabled={detecting || !form.base_url.trim()}
                   title="Auto-upptäck butikens plattform (Shopify, WooCommerce m.fl.)"
+                  className="rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700"
                 >
-                  <Search className={`h-4 w-4 sm:mr-2 ${detecting ? "animate-pulse" : ""}`} />
+                  <Search className={`h-3.5 w-3.5 sm:mr-2 ${detecting ? "animate-pulse" : ""}`} />
                   <span className="hidden sm:inline">{detecting ? "Detekterar…" : "Detektera plattform"}</span>
                 </Button>
               </div>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="search_url">Sök-URL (valfritt)</Label>
+              <Label htmlFor="search_url" className="text-gray-700 dark:text-zinc-300">Sök-URL (valfritt)</Label>
               <Input
                 id="search_url"
                 placeholder="https://morenaturalwine.com/search?q={query}"
                 value={form.search_url_template}
                 onChange={(e) => setForm((f) => ({ ...f, search_url_template: e.target.value }))}
+                className="border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
               />
             </div>
             <div className="grid gap-2">
               <div className="flex items-center justify-between gap-2">
-                <Label>Adapter</Label>
+                <Label className="text-gray-700 dark:text-zinc-300">Adapter</Label>
                 {detectedPlatform && (
-                  <Badge variant="secondary" className="font-normal text-xs shrink-0">
+                  <span className="inline-flex px-2 py-0.5 rounded-md text-[11px] font-medium border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-zinc-300 shrink-0">
                     Detekterad: {detectedPlatform === "shopify" ? "Shopify" : detectedPlatform === "woocommerce" ? "WooCommerce" : detectedPlatform === "prestashop" ? "PrestaShop" : detectedPlatform === "webnode" ? "Webnode" : detectedPlatform === "lightspeed" ? "Lightspeed" : detectedPlatform === "drupal" ? "Drupal" : detectedPlatform === "vin_sensible" ? "Vin Sensible" : detectedPlatform}
-                  </Badge>
+                  </span>
                 )}
               </div>
               <Select
@@ -602,7 +611,7 @@ export default function PriceSourcesPage() {
                   setDetectionFailed(false);
                 }}
               >
-                <SelectTrigger>
+                <SelectTrigger className="border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800">
                   <SelectValue placeholder="Välj plattform" />
                 </SelectTrigger>
                 <SelectContent>
@@ -617,7 +626,7 @@ export default function PriceSourcesPage() {
                 </SelectContent>
               </Select>
               {detectedPlatform && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-gray-500 dark:text-zinc-400">
                   Du behöver inte ändra adapter – den sattes automatiskt från webbadressen.
                 </p>
               )}
@@ -628,12 +637,12 @@ export default function PriceSourcesPage() {
               )}
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="default_currency">Standardvaluta</Label>
+              <Label htmlFor="default_currency" className="text-gray-700 dark:text-zinc-300">Standardvaluta</Label>
               <Select
                 value={form.default_currency || "__auto__"}
                 onValueChange={(v) => setForm((f) => ({ ...f, default_currency: v === "__auto__" ? "" : v }))}
               >
-                <SelectTrigger id="default_currency">
+                <SelectTrigger id="default_currency" className="border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800">
                   <SelectValue placeholder="Auto (från sidan)" />
                 </SelectTrigger>
                 <SelectContent>
@@ -645,12 +654,12 @@ export default function PriceSourcesPage() {
                   <SelectItem value="USD">USD</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-gray-500 dark:text-zinc-400">
                 Används när butiken inte anger valuta (t.ex. Shopify .js). Sätt till EUR för winely.store.
               </p>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="delay_ms">Fördröjning mellan anrop (ms)</Label>
+              <Label htmlFor="delay_ms" className="text-gray-700 dark:text-zinc-300">Fördröjning mellan anrop (ms)</Label>
               <Input
                 id="delay_ms"
                 type="number"
@@ -658,10 +667,11 @@ export default function PriceSourcesPage() {
                 step={500}
                 value={form.rate_limit_delay_ms}
                 onChange={(e) => setForm((f) => ({ ...f, rate_limit_delay_ms: Number(e.target.value) || 2000 }))}
+                className="border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
               />
             </div>
             <div className="flex items-center justify-between">
-              <Label htmlFor="active">Aktiv</Label>
+              <Label htmlFor="active" className="text-gray-700 dark:text-zinc-300">Aktiv</Label>
               <Switch
                 id="active"
                 checked={form.is_active}
@@ -670,10 +680,10 @@ export default function PriceSourcesPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDialog(false)}>
+            <Button variant="outline" size="sm" onClick={() => setShowDialog(false)} className="rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700">
               Avbryt
             </Button>
-            <Button onClick={handleSubmit}>
+            <Button size="sm" onClick={handleSubmit} className="rounded-lg text-xs font-medium bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900 hover:bg-gray-800 dark:hover:bg-zinc-200">
               {editingId ? "Spara" : "Skapa"}
             </Button>
           </DialogFooter>

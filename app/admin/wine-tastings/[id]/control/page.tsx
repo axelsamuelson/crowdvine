@@ -16,8 +16,8 @@ export default function ControlRedirectPage() {
   }, [id, router]);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <p className="text-gray-500 text-sm">Omdirigerar…</p>
+    <div className="min-h-screen bg-gray-50 dark:bg-[#0A0A0B] flex items-center justify-center p-4">
+      <p className="text-gray-500 dark:text-zinc-400 text-sm">Omdirigerar…</p>
     </div>
   );
 }

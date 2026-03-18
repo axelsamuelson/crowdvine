@@ -25,6 +25,11 @@ PRISFORMAT att känna igen:
 - "20cl 155" → price_other: 155, format_label: "20cl"
 - "(1liter)" → notera i format_label: "1liter"
 
+VID TVEKSAMT FORMAT – fyll i enligt fallback så att vi undviker ambiguous_format när det går:
+- Ett tydligt tal (t.ex. "165", "165 kr") → price_glass: talet
+- Två tal (t.ex. "165/725" eller "165 725") → lägre tal: price_glass, högre: price_bottle
+- Sätt ambiguous_format ENDAST om formatet verkligen är oavgörbart (t.ex. tre+ olika siffror, eller ingen tydlig prissiffra)
+
 SEKTIONER att identifiera (normalisera till engelska):
 Husets vin → house_wine
 Alkoholfritt → non_alcoholic
@@ -78,3 +83,52 @@ Returnera JSON i exakt detta format utan någon text före eller efter:
   ]
 }
 `;
+
+/**
+ * Padding so the cacheable system prefix reaches ≥2048 tokens (required for Claude Sonnet 4.6).
+ * Prompt caching: https://platform.claude.com/docs/en/build-with-claude/prompt-caching
+ * This block is marked with cache_control so repeated extraction calls read from cache (0.1× cost).
+ */
+export const MENU_EXTRACTION_SYSTEM_PROMPT_CACHE_PADDING = `
+CACHED CONTEXT – repeated rules and examples for minimum token threshold (do not duplicate in output).
+
+PRISFORMAT – igenkänn och mappa exakt:
+- "165/725" eller "165 / 725" → price_glass: 165, price_bottle: 725
+- "15cl 185/75cl 895" → price_glass: 185, price_bottle: 895, format_label: "15cl/75cl"
+- "6cl 85" → price_other: 85, format_label: "6cl"
+- "95kr/cl" eller "95 kr/cl" → price_other: 95, format_label: "per cl"
+- "20cl 155" → price_other: 155, format_label: "20cl"
+- Ett enda tal i slutet av raden (t.ex. "165" eller "165 kr") → price_glass med det talet
+- Två tal (t.ex. "165/725" eller "165 725") → lägre tal till price_glass, högre till price_bottle
+
+SEKTIONER – normalisera till engelska nycklar: house_wine, non_alcoholic, sparkling, white, orange, rose, red, sweet, fortified. Svenska namn: Husets vin, Alkoholfritt, Bubbel, Vitt, Orange, Rosé, Rött, Sött, Portvin/Dessertvin.
+
+ROW-TYPER: wine_row för faktiska viner med producent och pris; header för sektionsrubriker; description för beskrivande text; noise för tomma eller irrelevanta rader; unknown vid tveksamhet. wine_type: sparkling, white, orange, rose, red, sweet, fortified, non_alcoholic, unknown.
+
+JSON-SCHEMA för varje objekt i rows-arrayen:
+raw_text (string, exakt kopia av radtexten), row_type (wine_row|header|description|noise|unknown), wine_type (nullable), producer (nullable), wine_name (nullable), vintage (nullable), region (nullable), country (nullable), grapes (array av strängar, tom [] om druva inte nämns), attributes (array, t.ex. ["NATURVIN","EKO"]), format_label (nullable), price_glass (number|null), price_bottle (number|null), price_other (number|null), currency (string, t.ex. SEK), confidence (tal 0-1), review_reasons (array: använd endast missing_price, missing_wine_name, missing_producer, unknown_country, grapes_inferred, suspicious_vintage, multiple_price_formats, low_confidence, likely_non_wine_row, ambiguous_format, region_country_mismatch när det stämmer).
+
+EXEMPEL på wine_row:
+{"raw_text":"Loimer Riesling Kamptal 2022 165/725","row_type":"wine_row","wine_type":"white","producer":"Loimer","wine_name":"Riesling","vintage":"2022","region":"Kamptal","country":"Austria","grapes":[],"attributes":[],"format_label":"15cl/75cl","price_glass":165,"price_bottle":725,"price_other":null,"currency":"SEK","confidence":0.88,"review_reasons":[]}
+
+EXEMPEL på flera rader i en sektion:
+{"section_name":"Vitt","normalized_section":"white","rows":[{"raw_text":"...","row_type":"wine_row",...}]}
+
+Regler: Returnera alltid strikt JSON utan markdown-block. Fyll i alla fält som kan utläsas från texten; sätt null eller [] där du är osäker. Gissa aldrig druvor – grapes ska vara [] om druvan inte nämns. Använd fallback för pris: ett tydligt tal → price_glass; två tal → lägre price_glass, högre price_bottle. Sätt ambiguous_format endast när formatet verkligen är oavgörbart (t.ex. tre eller fler siffror utan tydlig struktur). För N.V. eller n.v. använd vintage "N.V." och sätt inte suspicious_vintage. Confidence ska reflektera hur säker du är på producent, vinnamn och pris (0.6–1.0 för tydliga rader).
+`.repeat(2);
+
+/**
+ * Builds system prompt with optional few-shot block for auto-correction.
+ * If fewShotBlock is empty, returns MENU_EXTRACTION_SYSTEM_PROMPT unchanged.
+ */
+export function buildExtractionPromptWithFewShot(fewShotBlock: string): string {
+  if (!fewShotBlock || !fewShotBlock.trim()) {
+    return MENU_EXTRACTION_SYSTEM_PROMPT;
+  }
+  return (
+    MENU_EXTRACTION_SYSTEM_PROMPT.trimEnd() +
+    "\n\nTIDIGARE KORRIGERINGAR – lär dig av dessa exempel:\n" +
+    fewShotBlock +
+    "\n\nAnvänd dessa exempel för att undvika samma misstag."
+  );
+}

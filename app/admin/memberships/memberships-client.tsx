@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -13,7 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Edit, Save, Loader2 } from "lucide-react";
+import { Edit, Save, Loader2, Award } from "lucide-react";
 import { toast } from "sonner";
 
 interface Perk {
@@ -156,45 +154,53 @@ export function MembershipsClient({
 
   return (
     <>
-      {/* Membership Level Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {levels.map((level) => {
-          const perks = perksByLevel[level as keyof typeof perksByLevel] || [];
-          const threshold = levelThresholds[
-            level as keyof typeof levelThresholds
-          ] || { min: 0, max: 0 };
-          const quota = inviteQuotas[level];
-          const colors = getLevelColors(level);
+      <div className="bg-white dark:bg-[#0F0F12] rounded-xl p-6 flex flex-col border border-gray-200 dark:border-[#1F1F23] mb-6">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+          <Award className="w-3.5 h-3.5 text-zinc-900 dark:text-zinc-50" />
+          Membership Levels
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {levels.map((level) => {
+            const perks = perksByLevel[level as keyof typeof perksByLevel] || [];
+            const threshold = levelThresholds[
+              level as keyof typeof levelThresholds
+            ] || { min: 0, max: 0 };
+            const quota = inviteQuotas[level];
+            const colors = getLevelColors(level);
 
-          return (
-            <Card key={level} className="border border-gray-200">
-              <CardHeader className="pb-4">
+            return (
+              <div
+                key={level}
+                className="bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800 rounded-xl p-4 hover:border-gray-200 dark:hover:border-zinc-700 transition-all"
+              >
                 <div className="flex items-center justify-between mb-4">
-                  {/* Level Badge */}
                   <div
-                    className={`px-4 py-2 rounded-md text-sm font-medium ${colors.badge} ${colors.text}`}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium ${colors.badge} ${colors.text}`}
                   >
-                    {getLevelName(level)} Membership
+                    {getLevelName(level)}
                   </div>
-
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleEditClick(level)}
+                        className="rounded-lg h-8 w-8 p-0 border-gray-200 dark:border-zinc-700"
                       >
-                        <Edit className="w-4 h-4" />
+                        <Edit className="w-3.5 h-3.5" />
                       </Button>
                     </DialogTrigger>
-                    <DialogContent aria-describedby="edit-membership-description">
+                    <DialogContent
+                      aria-describedby="edit-membership-description"
+                      className="bg-white dark:bg-zinc-900 border-gray-200 dark:border-zinc-700"
+                    >
                       <DialogHeader>
-                        <DialogTitle>
+                        <DialogTitle className="text-gray-900 dark:text-zinc-100">
                           Edit {getLevelName(level)} Membership
                         </DialogTitle>
                         <p
                           id="edit-membership-description"
-                          className="text-sm text-gray-600 mt-2"
+                          className="text-sm text-gray-600 dark:text-zinc-400 mt-2"
                         >
                           Configure discount percentage and invite quota for
                           this membership level
@@ -203,7 +209,9 @@ export function MembershipsClient({
 
                       <div className="space-y-4">
                         <div>
-                          <Label htmlFor="discount">Member Discount (%)</Label>
+                          <Label htmlFor="discount" className="text-gray-900 dark:text-zinc-100">
+                            Member Discount (%)
+                          </Label>
                           <Input
                             id="discount"
                             type="number"
@@ -213,14 +221,17 @@ export function MembershipsClient({
                             onChange={(e) =>
                               setDiscountValue(Number(e.target.value))
                             }
+                            className="mt-1.5"
                           />
-                          <p className="text-xs text-gray-500 mt-1">
+                          <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">
                             Discount applied to all wine purchases
                           </p>
                         </div>
 
                         <div>
-                          <Label htmlFor="quota">Monthly Invite Quota</Label>
+                          <Label htmlFor="quota" className="text-gray-900 dark:text-zinc-100">
+                            Monthly Invite Quota
+                          </Label>
                           <Input
                             id="quota"
                             type="number"
@@ -229,8 +240,9 @@ export function MembershipsClient({
                             onChange={(e) =>
                               setQuotaValue(Number(e.target.value))
                             }
+                            className="mt-1.5"
                           />
-                          <p className="text-xs text-gray-500 mt-1">
+                          <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">
                             Number of invites per month
                           </p>
                         </div>
@@ -240,23 +252,23 @@ export function MembershipsClient({
                             variant="outline"
                             onClick={() => setEditingLevel(null)}
                             disabled={saving}
-                            className="flex-1"
+                            className="flex-1 rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700"
                           >
                             Cancel
                           </Button>
                           <Button
                             onClick={handleSave}
                             disabled={saving}
-                            className="flex-1 bg-black hover:bg-black/90 text-white"
+                            className="flex-1 rounded-lg text-xs font-medium bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900 hover:opacity-90"
                           >
                             {saving ? (
                               <>
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
                                 Saving...
                               </>
                             ) : (
                               <>
-                                <Save className="w-4 h-4 mr-2" />
+                                <Save className="w-3.5 h-3.5 mr-2" />
                                 Save Changes
                               </>
                             )}
@@ -266,99 +278,95 @@ export function MembershipsClient({
                     </DialogContent>
                   </Dialog>
                 </div>
-              </CardHeader>
 
-              <CardContent className="space-y-4">
-                {/* IP Threshold */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">IP Threshold</p>
-                    <p className="text-sm font-medium text-gray-900">
-                      {threshold.min} -{" "}
-                      {threshold.max === Infinity ? "∞" : threshold.max} points
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Invite Quota</p>
-                    <p className="text-sm font-medium text-gray-900">
-                      {quota === 999999 ? "Unlimited" : `${quota}/month`}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Member Discount */}
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Member Discount</p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {getCurrentDiscount(level)}%
-                  </p>
-                </div>
-
-                {/* Perks List */}
-                <div>
-                  <p className="text-xs text-gray-500 mb-2">Active Perks</p>
-                  <div className="space-y-2">
-                    {perks.length > 0 ? (
-                      perks.map((perk) => (
-                        <div
-                          key={perk.id}
-                          className="flex items-start gap-2 text-sm"
-                        >
-                          <Badge
-                            variant="outline"
-                            className="text-xs mt-0.5 flex-shrink-0"
-                          >
-                            {perk.perk_type}
-                          </Badge>
-                          <span className="text-gray-600 text-xs">
-                            {perk.description}
-                          </span>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-xs text-gray-400">
-                        No perks configured
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-[11px] text-gray-500 dark:text-zinc-400 mb-0.5">
+                        IP Threshold
                       </p>
-                    )}
+                      <p className="text-xs font-medium text-gray-900 dark:text-zinc-100">
+                        {threshold.min} -{" "}
+                        {threshold.max === Infinity ? "∞" : threshold.max} pts
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-gray-500 dark:text-zinc-400 mb-0.5">
+                        Invite Quota
+                      </p>
+                      <p className="text-xs font-medium text-gray-900 dark:text-zinc-100">
+                        {quota === 999999 ? "Unlimited" : `${quota}/month`}
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                {/* Fee Reduction (from perks) */}
-                {perks.find((p) => p.perk_type === "fee_reduction") && (
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Service Fee</p>
-                    <p className="text-sm font-medium text-gray-900">
-                      {
-                        perks.find((p) => p.perk_type === "fee_reduction")
-                          ?.perk_value
-                      }
+                    <p className="text-[11px] text-gray-500 dark:text-zinc-400 mb-0.5">
+                      Member Discount
+                    </p>
+                    <p className="text-xs font-medium text-gray-900 dark:text-zinc-100">
+                      {getCurrentDiscount(level)}%
                     </p>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
+
+                  <div>
+                    <p className="text-[11px] text-gray-500 dark:text-zinc-400 mb-1.5">
+                      Active Perks
+                    </p>
+                    <div className="space-y-1.5">
+                      {perks.length > 0 ? (
+                        perks.map((perk) => (
+                          <div
+                            key={perk.id}
+                            className="flex items-start gap-2 text-xs"
+                          >
+                            <span className="inline-flex px-2 py-0.5 rounded-md text-[11px] font-medium border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-zinc-300 flex-shrink-0">
+                              {perk.perk_type}
+                            </span>
+                            <span className="text-gray-600 dark:text-zinc-400">
+                              {perk.description}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-[11px] text-gray-500 dark:text-zinc-400">
+                          No perks configured
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {perks.find((p) => p.perk_type === "fee_reduction") && (
+                    <div>
+                      <p className="text-[11px] text-gray-500 dark:text-zinc-400 mb-0.5">
+                        Service Fee
+                      </p>
+                      <p className="text-xs font-medium text-gray-900 dark:text-zinc-100">
+                        {
+                          perks.find((p) => p.perk_type === "fee_reduction")
+                            ?.perk_value
+                        }
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Info Section */}
-      <Card className="border border-gray-200 bg-blue-50">
-        <CardContent className="p-6">
-          <h3 className="text-sm font-semibold text-gray-900 mb-2">
-            Membership System Configuration
-          </h3>
-          <div className="space-y-1 text-xs text-gray-600">
-            <p>
-              • IP Thresholds and Invite Quotas are currently hardcoded in code
-            </p>
-            <p>• Perks are stored in the database and can be managed</p>
-            <p>• Member discounts apply to all wine purchases</p>
-            <p>
-              • Click Edit on any level to modify discount and quota settings
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="bg-white dark:bg-[#0F0F12] rounded-xl p-6 border border-gray-200 dark:border-[#1F1F23]">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100 mb-2">
+          Membership System Configuration
+        </h3>
+        <div className="space-y-1 text-xs text-gray-600 dark:text-zinc-400">
+          <p>• IP Thresholds and Invite Quotas are currently hardcoded in code</p>
+          <p>• Perks are stored in the database and can be managed</p>
+          <p>• Member discounts apply to all wine purchases</p>
+          <p>• Click Edit on any level to modify discount and quota settings</p>
+        </div>
+      </div>
     </>
   );
 }

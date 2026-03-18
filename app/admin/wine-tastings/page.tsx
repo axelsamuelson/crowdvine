@@ -4,14 +4,6 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
   AlertDialog,
   AlertDialogCancel,
   AlertDialogContent,
@@ -20,7 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Wine, Users, Calendar, Eye, Trash2 } from "lucide-react";
+import { Plus, Wine, Calendar, Eye, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -76,13 +68,29 @@ export default function WineTastingsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
-        return <Badge className="bg-green-100 text-green-800">Active</Badge>;
+        return (
+          <span className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
+            Active
+          </span>
+        );
       case "completed":
-        return <Badge className="bg-blue-100 text-blue-800">Completed</Badge>;
+        return (
+          <span className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
+            Completed
+          </span>
+        );
       case "archived":
-        return <Badge className="bg-gray-100 text-gray-800">Archived</Badge>;
+        return (
+          <span className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-400">
+            Archived
+          </span>
+        );
       default:
-        return <Badge>{status}</Badge>;
+        return (
+          <span className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-400">
+            {status}
+          </span>
+        );
     }
   };
 
@@ -128,20 +136,25 @@ export default function WineTastingsPage() {
 
   return (
     <>
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-gray-50 dark:bg-[#0A0A0B]">
       <div className="max-w-5xl mx-auto p-4 md:p-6 pt-top-spacing space-y-6 md:space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-medium text-gray-900 mb-2">
-              Wine Tasting Sessions
-            </h1>
-            <p className="text-gray-500">
-              Create and manage digital wine tasting sessions
-            </p>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-gray-100 dark:bg-zinc-800">
+              <Wine className="w-5 h-5 text-gray-900 dark:text-zinc-50" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                Wine Tasting Sessions
+              </h1>
+              <p className="text-sm text-gray-500 dark:text-zinc-400">
+                Create and manage digital wine tasting sessions
+              </p>
+            </div>
           </div>
           <Link href="/admin/wine-tastings/new" prefetch={false}>
-            <Button className="rounded-full bg-black hover:bg-black/90 text-white w-full sm:w-auto">
-              <Plus className="w-4 h-4 mr-2" />
+            <Button size="sm" className="rounded-lg text-xs font-medium bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900 hover:bg-gray-800 dark:hover:bg-zinc-200 w-full sm:w-auto">
+              <Plus className="w-3.5 h-3.5 mr-1.5" />
               New Session
             </Button>
           </Link>
@@ -152,32 +165,48 @@ export default function WineTastingsPage() {
           <Button
             variant={statusFilter === "all" ? "default" : "outline"}
             onClick={() => setStatusFilter("all")}
-            className="rounded-full"
             size="sm"
+            className={
+              statusFilter === "all"
+                ? "rounded-lg text-xs font-medium bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900"
+                : "rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700"
+            }
           >
             All
           </Button>
           <Button
             variant={statusFilter === "active" ? "default" : "outline"}
             onClick={() => setStatusFilter("active")}
-            className="rounded-full"
             size="sm"
+            className={
+              statusFilter === "active"
+                ? "rounded-lg text-xs font-medium bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900"
+                : "rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700"
+            }
           >
             Active
           </Button>
           <Button
             variant={statusFilter === "completed" ? "default" : "outline"}
             onClick={() => setStatusFilter("completed")}
-            className="rounded-full"
             size="sm"
+            className={
+              statusFilter === "completed"
+                ? "rounded-lg text-xs font-medium bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900"
+                : "rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700"
+            }
           >
             Completed
           </Button>
           <Button
             variant={statusFilter === "archived" ? "default" : "outline"}
             onClick={() => setStatusFilter("archived")}
-            className="rounded-full"
             size="sm"
+            className={
+              statusFilter === "archived"
+                ? "rounded-lg text-xs font-medium bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900"
+                : "rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700"
+            }
           >
             Archived
           </Button>
@@ -186,59 +215,52 @@ export default function WineTastingsPage() {
         {/* Sessions List */}
         {loading ? (
           <div className="text-center py-12">
-            <div className="animate-pulse space-y-4">
-              <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
-            </div>
+            <div className="animate-spin rounded-full h-10 w-10 border-2 border-gray-200 dark:border-zinc-700 border-t-gray-900 dark:border-t-zinc-100 mx-auto" />
+            <p className="mt-4 text-sm text-gray-500 dark:text-zinc-400">Loading sessions…</p>
           </div>
         ) : sessions.length === 0 ? (
-          <Card className="p-6 bg-white border border-gray-200 rounded-2xl">
-            <CardContent className="py-12 text-center">
-              <Wine className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-500 mb-4">No sessions found</p>
-              <Link href="/admin/wine-tastings/new" prefetch={false}>
-                <Button className="rounded-full bg-black hover:bg-black/90 text-white">
-                  Create Your First Session
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+          <div className="bg-white dark:bg-[#0F0F12] rounded-xl p-6 border border-gray-200 dark:border-[#1F1F23] flex flex-col items-center justify-center py-12">
+            <Wine className="w-12 h-12 text-gray-400 dark:text-zinc-500 mb-4" />
+            <p className="text-sm text-gray-500 dark:text-zinc-400 mb-4">No sessions found</p>
+            <Link href="/admin/wine-tastings/new" prefetch={false}>
+              <Button size="sm" className="rounded-lg text-xs font-medium bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900 hover:bg-gray-800 dark:hover:bg-zinc-200">
+                <Plus className="w-3.5 h-3.5 mr-1.5" />
+                Create Your First Session
+              </Button>
+            </Link>
+          </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {sessions.map((session) => (
-              <Card 
-                key={session.id} 
-                className="p-6 bg-white border border-gray-200 rounded-2xl hover:shadow-lg transition-shadow"
+              <div
+                key={session.id}
+                className="p-6 bg-white dark:bg-[#0F0F12] border border-gray-200 dark:border-[#1F1F23] rounded-xl hover:shadow-lg transition-shadow"
               >
-                <CardHeader className="px-0 pt-0">
-                  <div className="flex justify-between items-start mb-2">
-                    <CardTitle className="text-lg font-medium text-gray-900 line-clamp-2">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-start gap-2">
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-zinc-100 line-clamp-2">
                       {session.name}
-                    </CardTitle>
+                    </h2>
                     {getStatusBadge(session.status)}
                   </div>
-                  <CardDescription className="font-mono text-xs text-gray-500">
+                  <p className="font-mono text-xs text-gray-500 dark:text-zinc-400">
                     {session.session_code}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="px-0 space-y-3">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Calendar className="w-4 h-4 mr-2 shrink-0" />
+                  </p>
+                  <div className="flex items-center text-xs text-gray-600 dark:text-zinc-400">
+                    <Calendar className="w-3.5 h-3.5 mr-2 shrink-0" />
                     <span className="truncate">
                       {format(new Date(session.created_at), "MMM d, yyyy")}
                     </span>
                   </div>
                   {session.created_by_profile && (
-                    <div className="text-sm text-gray-600 truncate">
+                    <p className="text-xs text-gray-600 dark:text-zinc-400 truncate">
                       Created by: {session.created_by_profile.full_name || session.created_by_profile.email}
-                    </div>
+                    </p>
                   )}
                   <div className="flex flex-col sm:flex-row gap-2 pt-2">
-                    <Link
-                      href={`/admin/wine-tastings/${session.id}`}
-                      className="flex-1"
-                    >
-                      <Button variant="outline" className="w-full rounded-full">
-                        <Eye className="w-4 h-4 mr-2" />
+                    <Link href={`/admin/wine-tastings/${session.id}`} className="flex-1">
+                      <Button variant="outline" size="sm" className="w-full rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700">
+                        <Eye className="w-3.5 h-3.5 mr-1.5" />
                         Öppna
                       </Button>
                     </Link>
@@ -246,13 +268,13 @@ export default function WineTastingsPage() {
                       variant="destructive"
                       size="icon"
                       onClick={() => openDeleteDialog(session.id, session.name)}
-                      className="shrink-0 rounded-full"
+                      className="shrink-0 rounded-lg h-9 w-9"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             ))}
           </div>
         )}
@@ -260,22 +282,22 @@ export default function WineTastingsPage() {
     </main>
 
     <AlertDialog open={deleteDialog.open} onOpenChange={(open) => !open && closeDeleteDialog()}>
-      <AlertDialogContent className="max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-lg">
+      <AlertDialogContent className="max-w-md rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-lg">
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-lg font-medium text-gray-900">
+          <AlertDialogTitle className="text-lg font-semibold text-gray-900 dark:text-zinc-100">
             Ta bort session?
           </AlertDialogTitle>
-          <AlertDialogDescription className="text-sm text-gray-600">
+          <AlertDialogDescription className="text-sm text-gray-600 dark:text-zinc-400">
             Vill du verkligen ta bort &quot;{deleteDialog.sessionName}&quot;? Detta går inte att ångra och alla betyg samt deltagardata raderas.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="mt-6 flex flex-row justify-end gap-2 sm:justify-end">
-          <AlertDialogCancel className="rounded-full" disabled={deleting}>
+          <AlertDialogCancel className="rounded-lg text-xs font-medium" disabled={deleting}>
             Avbryt
           </AlertDialogCancel>
           <Button
             variant="destructive"
-            className="rounded-full"
+            className="rounded-lg text-xs font-medium"
             disabled={deleting}
             onClick={handleConfirmDelete}
           >

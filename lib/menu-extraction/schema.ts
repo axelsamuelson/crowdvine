@@ -1,6 +1,7 @@
 /**
  * Zod schemas for validating AI extraction response.
  * Used in callMenuExtractionModel before passing result to mapAIResultToRows/save.
+ * Hardened with .catch() / .default() so that minor AI output quirks don't produce empty sections.
  */
 
 import { z } from "zod";
@@ -45,34 +46,43 @@ const reviewReasonEnum = z.union([
   z.string(),
 ]);
 
-const aiExtractedRowSchema = z.object({
-  raw_text: z.string(),
-  row_type: rowTypeEnum,
-  wine_type: wineTypeEnum.nullable(),
-  producer: z.string().nullable(),
-  wine_name: z.string().nullable(),
-  vintage: z.string().nullable(),
-  region: z.string().nullable(),
-  country: z.string().nullable(),
-  grapes: z.array(z.string()),
-  attributes: z.array(z.string()),
-  format_label: z.string().nullable(),
-  price_glass: z.number().nullable(),
-  price_bottle: z.number().nullable(),
-  price_other: z.number().nullable(),
-  currency: z.string().nullable(),
-  confidence: z.number().min(0).max(1),
-  review_reasons: z.array(reviewReasonEnum),
-});
+/** Coerce confidence from number or string; clamp to [0,1]; default 0.5 on invalid. */
+const confidenceSchema = z
+  .union([z.number(), z.string()])
+  .transform((v) => (typeof v === "number" ? v : parseFloat(String(v))))
+  .pipe(z.number().min(0).max(1))
+  .catch(0.5);
+
+const aiExtractedRowSchema = z
+  .object({
+    raw_text: z.union([z.string(), z.null(), z.undefined()]).transform((s) => (s != null ? String(s) : "")).catch(""),
+    row_type: rowTypeEnum.catch("unknown"),
+    wine_type: wineTypeEnum.nullable().catch(null),
+    producer: z.string().nullable().catch(null),
+    wine_name: z.string().nullable().catch(null),
+    vintage: z.string().nullable().catch(null),
+    region: z.string().nullable().catch(null),
+    country: z.string().nullable().catch(null),
+    grapes: z.array(z.string()).catch([]),
+    attributes: z.array(z.string()).catch([]),
+    format_label: z.string().nullable().catch(null),
+    price_glass: z.number().nullable().catch(null),
+    price_bottle: z.number().nullable().catch(null),
+    price_other: z.number().nullable().catch(null),
+    currency: z.string().nullable().catch(null),
+    confidence: confidenceSchema,
+    review_reasons: z.array(reviewReasonEnum).catch([]),
+  })
+  .passthrough();
 
 const aiSectionBlockSchema = z.object({
-  section_name: z.string(),
-  normalized_section: z.string(),
-  rows: z.array(aiExtractedRowSchema),
+  section_name: z.string().catch(""),
+  normalized_section: z.string().catch(""),
+  rows: z.array(aiExtractedRowSchema).catch([]),
 });
 
 export const aiExtractionResultSchema = z.object({
-  sections: z.array(aiSectionBlockSchema).min(0),
+  sections: z.array(aiSectionBlockSchema).min(0).catch([]),
 });
 
 export type AIExtractionResultValidated = z.infer<typeof aiExtractionResultSchema>;

@@ -19,14 +19,21 @@ export default async function DirtyWinePage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="outline" size="icon" asChild>
-          <Link href="/admin/bookings?tab=dirty-wine">
+        <Button
+          variant="outline"
+          size="icon"
+          asChild
+          className="rounded-lg border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800/50"
+        >
+          <Link href="/admin/bookings?tab=pact">
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dirty Wine · B2B</h1>
-          <p className="text-sm text-gray-600 mt-1">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Dirty Wine · B2B
+          </h1>
+          <p className="text-sm text-gray-600 dark:text-zinc-400 mt-1">
             Ordrar från dirtywine.se, offline-ordrar och fakturor
           </p>
         </div>

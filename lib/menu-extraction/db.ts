@@ -5,6 +5,11 @@
  */
 
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+
+/** Slug that looks like a Starwinelist 404 page id (e.g. 404, 1066). Exclude from listing and do not create sources for these. */
+export function isStarwinelist404Slug(slug: string): boolean {
+  return /^\d+$/.test(String(slug).trim());
+}
 import type {
   MenuDocument,
   MenuDocumentSection,
@@ -17,12 +22,16 @@ import type {
   MenuManualRun,
   ManualRunStatus,
   ManualRunStep,
+  MenuExtractionBatch,
+  MenuExtractionBatchStatus,
+  MenuExtractionFeedback,
 } from "./types";
 
 const MENU_DOCUMENTS_SELECT =
-  "id, created_at, updated_at, file_path, file_name, mime_type, source_type, upload_status, extraction_status, page_count, raw_text, ai_raw_response, model_version, prompt_version, workflow_version, extracted_at, error_message, content_hash, source_slug";
+  "id, created_at, updated_at, file_path, file_name, mime_type, source_type, upload_status, extraction_status, page_count, raw_text, ai_raw_response, model_version, prompt_version, workflow_version, extracted_at, error_message, content_hash, source_slug, extraction_input_tokens, extraction_output_tokens, extraction_cache_read_input_tokens, extraction_cache_creation_input_tokens";
 const MENU_DOCUMENT_SECTIONS_SELECT =
   "id, created_at, document_id, section_name, normalized_section, page_number, section_order";
+// Omit auto_corrected until migration 099_menu_extracted_rows_auto_corrected.sql is applied.
 const MENU_EXTRACTED_ROWS_SELECT =
   "id, created_at, updated_at, document_id, section_id, row_index, page_number, raw_text, row_type, wine_type, producer, wine_name, vintage, region, country, grapes, attributes, format_label, price_glass, price_bottle, price_other, currency, confidence, confidence_label, needs_review, review_reasons, normalized_payload, validation_flags, extraction_version";
 
@@ -76,6 +85,22 @@ export async function getMenuDocumentById(
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(`getMenuDocumentById: ${error.message}`);
+  return data as MenuDocument | null;
+}
+
+/** Get a single document by exact file_path (e.g. babette/2026-03-10T23-24-53-885Z.pdf). */
+export async function getMenuDocumentByFilePath(
+  file_path: string
+): Promise<MenuDocument | null> {
+  const sb = getSupabaseAdmin();
+  const path = file_path.trim();
+  if (!path) return null;
+  const { data, error } = await sb
+    .from("menu_documents")
+    .select(MENU_DOCUMENTS_SELECT)
+    .eq("file_path", path)
+    .maybeSingle();
+  if (error) throw new Error(`getMenuDocumentByFilePath: ${error.message}`);
   return data as MenuDocument | null;
 }
 
@@ -297,6 +322,138 @@ export async function getExtractedRowsByDocumentId(
   return (data ?? []) as MenuExtractedRow[];
 }
 
+export async function getExtractedRowById(rowId: string): Promise<MenuExtractedRow | null> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("menu_extracted_rows")
+    .select(MENU_EXTRACTED_ROWS_SELECT)
+    .eq("id", rowId)
+    .maybeSingle();
+  if (error) throw new Error(`getExtractedRowById: ${error.message}`);
+  return data as MenuExtractedRow | null;
+}
+
+/** Allowed fields for human review edits and auto-correction (not raw_text, row_index, document_id, etc.). */
+// Include "auto_corrected" after migration 099_menu_extracted_rows_auto_corrected.sql is applied.
+const UPDATE_EXTRACTED_ROW_ALLOWED_KEYS = new Set([
+  "producer",
+  "wine_name",
+  "vintage",
+  "region",
+  "country",
+  "price_glass",
+  "price_bottle",
+  "price_other",
+  "needs_review",
+  "review_reasons",
+]);
+
+export async function updateExtractedRow(
+  rowId: string,
+  data: Partial<Pick<
+    MenuExtractedRow,
+    | "producer"
+    | "wine_name"
+    | "vintage"
+    | "region"
+    | "country"
+    | "price_glass"
+    | "price_bottle"
+    | "price_other"
+    | "needs_review"
+    | "review_reasons"
+  >>
+): Promise<MenuExtractedRow> {
+  const sb = getSupabaseAdmin();
+  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  for (const [k, v] of Object.entries(data)) {
+    if (UPDATE_EXTRACTED_ROW_ALLOWED_KEYS.has(k)) updates[k] = v;
+  }
+  const { data: out, error } = await sb
+    .from("menu_extracted_rows")
+    .update(updates)
+    .eq("id", rowId)
+    .select(MENU_EXTRACTED_ROWS_SELECT)
+    .single();
+  if (error) throw new Error(`updateExtractedRow: ${error.message}`);
+  return out as MenuExtractedRow;
+}
+
+const MENU_EXTRACTION_FEEDBACK_SELECT =
+  "id, created_at, row_id, document_id, original_prediction, corrected_payload, error_types, corrected_by, notes";
+
+export async function createExtractionFeedback(params: {
+  rowId: string;
+  documentId: string;
+  originalPrediction: Record<string, unknown>;
+  correctedPayload: Record<string, unknown>;
+  errorTypes?: string[] | null;
+  correctedBy?: string | null;
+  notes?: string | null;
+}): Promise<void> {
+  const sb = getSupabaseAdmin();
+  const { error } = await sb.from("menu_extraction_feedback").insert({
+    row_id: params.rowId,
+    document_id: params.documentId,
+    original_prediction: params.originalPrediction,
+    corrected_payload: params.correctedPayload,
+    error_types: params.errorTypes ?? null,
+    corrected_by: params.correctedBy ?? null,
+    notes: params.notes ?? null,
+  });
+  if (error) throw new Error(`createExtractionFeedback: ${error.message}`);
+}
+
+/** List feedback rows for a document. TODO(menu-extraction): surface in admin UI (correction history). */
+export async function getExtractionFeedbackByDocumentId(
+  documentId: string
+): Promise<MenuExtractionFeedback[]> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("menu_extraction_feedback")
+    .select(MENU_EXTRACTION_FEEDBACK_SELECT)
+    .eq("document_id", documentId)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(`getExtractionFeedbackByDocumentId: ${error.message}`);
+  return (data ?? []) as MenuExtractionFeedback[];
+}
+
+/** Get feedback for all documents linked to a Starwinelist slug (for few-shot per restaurant). Max 20, newest first. */
+export async function getExtractionFeedbackBySlug(
+  slug: string
+): Promise<MenuExtractionFeedback[]> {
+  const sb = getSupabaseAdmin();
+  const { data: docs, error: docsError } = await sb
+    .from("menu_documents")
+    .select("id")
+    .eq("source_slug", slug);
+  if (docsError) throw new Error(`getExtractionFeedbackBySlug (docs): ${docsError.message}`);
+  const documentIds = (docs ?? []).map((d: { id: string }) => d.id);
+  if (documentIds.length === 0) return [];
+  const { data, error } = await sb
+    .from("menu_extraction_feedback")
+    .select(MENU_EXTRACTION_FEEDBACK_SELECT)
+    .in("document_id", documentIds)
+    .order("created_at", { ascending: false })
+    .limit(20);
+  if (error) throw new Error(`getExtractionFeedbackBySlug: ${error.message}`);
+  return (data ?? []) as MenuExtractionFeedback[];
+}
+
+/** Get Starwinelist source that has this document as latest (by latest_document_id). */
+export async function getStarwinelistSourceByDocumentId(
+  documentId: string
+): Promise<StarwinelistSource | null> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("starwinelist_sources")
+    .select(STARWINELIST_SOURCES_SELECT)
+    .eq("latest_document_id", documentId)
+    .maybeSingle();
+  if (error) throw new Error(`getStarwinelistSourceByDocumentId: ${error.message}`);
+  return data as StarwinelistSource | null;
+}
+
 export async function getDocumentSectionsByDocumentId(
   documentId: string
 ): Promise<MenuDocumentSection[]> {
@@ -308,6 +465,60 @@ export async function getDocumentSectionsByDocumentId(
     .order("section_order", { ascending: true });
   if (error) throw new Error(`getDocumentSectionsByDocumentId: ${error.message}`);
   return (data ?? []) as MenuDocumentSection[];
+}
+
+// ---------------------------------------------------------------------------
+// Menu extraction batches (Anthropic Batch API)
+// ---------------------------------------------------------------------------
+
+const MENU_EXTRACTION_BATCHES_SELECT =
+  "id, created_at, updated_at, anthropic_batch_id, document_ids, status, phase_1_result, error_message, processed_at";
+
+export async function createMenuExtractionBatch(
+  documentIds: string[],
+  phase1Result: Record<string, { rawText: string; sectionNames: string[] }>,
+  anthropicBatchId: string | null,
+  status: MenuExtractionBatchStatus = "submitted"
+): Promise<MenuExtractionBatch> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("menu_extraction_batches")
+    .insert({
+      document_ids: documentIds,
+      phase_1_result: phase1Result as unknown,
+      anthropic_batch_id: anthropicBatchId,
+      status,
+    })
+    .select(MENU_EXTRACTION_BATCHES_SELECT)
+    .single();
+  if (error) throw new Error(`createMenuExtractionBatch: ${error.message}`);
+  return data as MenuExtractionBatch;
+}
+
+export async function getMenuExtractionBatchById(id: string): Promise<MenuExtractionBatch | null> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("menu_extraction_batches")
+    .select(MENU_EXTRACTION_BATCHES_SELECT)
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(`getMenuExtractionBatchById: ${error.message}`);
+  return data as MenuExtractionBatch | null;
+}
+
+export async function updateMenuExtractionBatch(
+  id: string,
+  updates: Partial<Pick<MenuExtractionBatch, "anthropic_batch_id" | "status" | "error_message" | "processed_at">>
+): Promise<MenuExtractionBatch> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("menu_extraction_batches")
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select(MENU_EXTRACTION_BATCHES_SELECT)
+    .single();
+  if (error) throw new Error(`updateMenuExtractionBatch: ${error.message}`);
+  return data as MenuExtractionBatch;
 }
 
 // ---------------------------------------------------------------------------
@@ -367,7 +578,8 @@ export async function listStarwinelistSources(
   if (city) q = q.eq("city", city);
   const { data, error } = await q;
   if (error) throw new Error(`listStarwinelistSources: ${error.message}`);
-  return (data ?? []) as StarwinelistSource[];
+  const list = (data ?? []) as StarwinelistSource[];
+  return list.filter((s) => !isStarwinelist404Slug(s.slug));
 }
 
 export async function updateStarwinelistSource(
@@ -397,7 +609,8 @@ export async function listPendingCrawlSources(
   if (limit != null && limit > 0) q = q.limit(limit);
   const { data, error } = await q;
   if (error) throw new Error(`listPendingCrawlSources: ${error.message}`);
-  return (data ?? []) as StarwinelistSource[];
+  const list = (data ?? []) as StarwinelistSource[];
+  return list.filter((s) => !isStarwinelist404Slug(s.slug));
 }
 
 // ---------------------------------------------------------------------------

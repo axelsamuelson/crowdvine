@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Truck, Package, Globe, Navigation } from "lucide-react";
 import { ZonesClient } from "./zones-client";
 
@@ -55,99 +54,83 @@ export default async function ZonesPage() {
     0,
   );
 
+  const stats = [
+    {
+      label: "Total Zones",
+      value: String(totalZones),
+      sub: "Active zones",
+      icon: Globe,
+      iconBg: "text-blue-600 dark:text-blue-400",
+    },
+    {
+      label: "Pickup Zones",
+      value: String(pickupZones.length),
+      sub: "Wine origins",
+      icon: Truck,
+      iconBg: "text-emerald-600 dark:text-emerald-400",
+    },
+    {
+      label: "Delivery Zones",
+      value: String(deliveryZones.length),
+      sub: "Customer areas",
+      icon: Package,
+      iconBg: "text-purple-600 dark:text-purple-400",
+    },
+    {
+      label: "Total Pallets",
+      value: String(totalPallets),
+      sub: "Across all zones",
+      icon: Navigation,
+      iconBg: "text-amber-600 dark:text-amber-400",
+    },
+  ];
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-4xl font-bold text-gray-900">Zone Management</h1>
-          <p className="text-gray-600 mt-2">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Zone Management
+          </h1>
+          <p className="text-sm text-gray-600 dark:text-zinc-400 mt-1">
             Manage pickup and delivery zones for pallet routing
           </p>
         </div>
-        <Button asChild>
+        <Button
+          asChild
+          className="rounded-lg text-xs font-medium h-9 bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900 hover:opacity-90"
+        >
           <Link href="/admin/zones/new">
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="h-3.5 w-3.5 mr-2" />
             Add Zone
           </Link>
         </Button>
       </div>
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Total Zones
-                </p>
-                <p className="text-3xl font-bold text-blue-600">{totalZones}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Active zones
-                </p>
+      {/* Summary Stats – dashboard card style */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((stat) => (
+          <div
+            key={stat.label}
+            className="bg-white dark:bg-[#0F0F12] rounded-xl p-4 flex flex-col border border-gray-200 dark:border-[#1F1F23] hover:border-gray-200 dark:hover:border-zinc-700 transition-all"
+          >
+            <div className="flex items-start justify-between">
+              <div className="p-2 rounded-lg bg-gray-100 dark:bg-zinc-800">
+                <stat.icon className={`w-4 h-4 ${stat.iconBg}`} />
               </div>
-              <Globe className="h-12 w-12 text-blue-600" />
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Pickup Zones
-                </p>
-                <p className="text-3xl font-bold text-green-600">
-                  {pickupZones.length}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Wine origins
-                </p>
-              </div>
-              <Truck className="h-12 w-12 text-green-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Delivery Zones
-                </p>
-                <p className="text-3xl font-bold text-purple-600">
-                  {deliveryZones.length}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Customer areas
-                </p>
-              </div>
-              <Package className="h-12 w-12 text-purple-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Total Pallets
-                </p>
-                <p className="text-3xl font-bold text-orange-600">
-                  {totalPallets}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Across all zones
-                </p>
-              </div>
-              <Navigation className="h-12 w-12 text-orange-600" />
-            </div>
-          </CardContent>
-        </Card>
+            <p className="text-xs text-gray-600 dark:text-zinc-400 mt-3">
+              {stat.label}
+            </p>
+            <p className="text-2xl font-semibold text-gray-900 dark:text-zinc-50 mt-0.5">
+              {stat.value}
+            </p>
+            <p className="text-[11px] text-gray-500 dark:text-zinc-400 mt-1">
+              {stat.sub}
+            </p>
+          </div>
+        ))}
       </div>
 
       {/* Client-side Filtered Zones */}

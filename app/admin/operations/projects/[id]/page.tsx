@@ -1,0 +1,231 @@
+import { notFound } from "next/navigation"
+import { getProject } from "@/lib/actions/operations"
+import { getSupabaseAdmin } from "@/lib/supabase-admin"
+import { ProjectStatusBadge } from "@/components/admin/operations/project-status-badge"
+import { ProgressBar } from "@/components/admin/operations/progress-bar"
+import { StrategicBreadcrumb } from "@/components/admin/operations/strategic-breadcrumb"
+import { TaskTable } from "@/components/admin/operations/task-table"
+import { CreateTaskButton } from "@/components/admin/operations/create-task-button"
+import { CreateProjectButton } from "@/components/admin/operations/create-project-button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import Link from "next/link"
+import { ExternalLink } from "lucide-react"
+import type { Task } from "@/lib/types/operations"
+
+interface PageProps {
+  params: Promise<{ id: string }>
+}
+
+export default async function ProjectDetailPage({ params }: PageProps) {
+  const { id } = await params
+
+  const project = await getProject(id).catch(() => null)
+  if (!project) notFound()
+
+  const sb = getSupabaseAdmin()
+
+  const [objectivesRes, adminsRes] = await Promise.all([
+    sb
+      .from("admin_objectives")
+      .select("id, title")
+      .is("deleted_at", null)
+      .eq("status", "active")
+      .order("title"),
+    sb
+      .from("profiles")
+      .select("id, email")
+      .eq("role", "admin")
+      .order("email"),
+  ])
+
+  const objectives = objectivesRes.data ?? []
+  const admins = adminsRes.data ?? []
+
+  const tasks = (project.tasks ?? []) as Task[]
+
+  const statuses = [
+    {
+      label: "Total",
+      value: tasks.length,
+    },
+    {
+      label: "Open",
+      value: tasks.filter(
+        (t) => !["done", "cancelled"].includes(t.status)
+      ).length,
+    },
+    {
+      label: "In Progress",
+      value: tasks.filter((t) => t.status === "in_progress").length,
+    },
+    {
+      label: "Done",
+      value: tasks.filter((t) => t.status === "done").length,
+    },
+  ]
+
+  return (
+    <div className="space-y-6">
+      {/* Strategisk tråd */}
+      {project.objective && (
+        <StrategicBreadcrumb
+          objective={{
+            id: project.objective_id!,
+            title: project.objective.title,
+          }}
+          current={project.name}
+          showUnlinkedWarning={false}
+        />
+      )}
+
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-2">
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+            {project.name}
+          </h1>
+          <div className="flex items-center gap-2">
+            <ProjectStatusBadge status={project.status} />
+            <span className="text-sm text-gray-500 dark:text-gray-400 capitalize">
+              {project.priority} priority
+            </span>
+            {project.owner && (
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                · {project.owner.email.split("@")[0]}
+              </span>
+            )}
+          </div>
+        </div>
+        <CreateProjectButton
+          objectives={objectives}
+          admins={admins}
+          project={project}
+          label="Edit Project"
+        />
+      </div>
+
+      {/* Progress */}
+      <div className="rounded-xl border border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-[#0F0F12] p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Progress
+          </span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            {project.progress ?? 0}%
+          </span>
+        </div>
+        <ProgressBar value={project.progress ?? 0} showLabel={false} />
+
+        {/* Stat row */}
+        <div className="grid grid-cols-4 gap-4 pt-2 border-t border-gray-100 dark:border-[#1F1F23]">
+          {statuses.map((s) => (
+            <div key={s.label} className="text-center">
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                {s.value}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {s.label}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Objective link */}
+      {project.objective && (
+        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+          <span>Linked to objective:</span>
+          <Link
+            href={`/admin/operations/okrs/${project.objective_id}`}
+            className="flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            {project.objective.title}
+            <ExternalLink className="h-3 w-3" />
+          </Link>
+        </div>
+      )}
+
+      {/* Tabs */}
+      <Tabs defaultValue="tasks">
+        <TabsList className="bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800 rounded-xl p-1">
+          <TabsTrigger
+            value="tasks"
+            className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm text-xs font-medium"
+          >
+            Tasks ({tasks.length})
+          </TabsTrigger>
+          <TabsTrigger
+            value="details"
+            className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm text-xs font-medium"
+          >
+            Details
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="tasks" className="space-y-4 mt-4">
+          <div className="flex justify-end">
+            <CreateTaskButton
+              projects={[{ id: project.id, name: project.name }]}
+              objectives={objectives}
+              admins={admins}
+              defaultProjectId={project.id}
+              label="Add Task"
+            />
+          </div>
+          <TaskTable
+            tasks={tasks}
+            projects={[{ id: project.id, name: project.name }]}
+            objectives={objectives}
+            admins={admins}
+            showProject={false}
+          />
+        </TabsContent>
+
+        <TabsContent value="details" className="mt-4">
+          <div className="rounded-xl border border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-[#0F0F12] p-4 space-y-4">
+            {project.description && (
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                  Description
+                </p>
+                <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                  {project.description}
+                </p>
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              {project.start_date && (
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Start Date
+                  </p>
+                  <p className="text-gray-700 dark:text-gray-300">
+                    {project.start_date}
+                  </p>
+                </div>
+              )}
+              {project.due_date && (
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Due Date
+                  </p>
+                  <p className="text-gray-700 dark:text-gray-300">
+                    {project.due_date}
+                  </p>
+                </div>
+              )}
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Created
+                </p>
+                <p className="text-gray-700 dark:text-gray-300">
+                  {new Date(project.created_at).toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  )
+}

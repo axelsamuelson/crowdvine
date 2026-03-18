@@ -13,13 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -292,54 +285,56 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{producer ? "Edit Producer" : "Add Producer"}</CardTitle>
-        <CardDescription>
+    <div className="bg-white dark:bg-[#0F0F12] rounded-xl p-6 border border-gray-200 dark:border-[#1F1F23]">
+      <div className="mb-6">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+          {producer ? "Edit Producer" : "Add Producer"}
+        </h2>
+        <p className="text-sm text-gray-500 dark:text-zinc-400 mt-0.5">
           {producer
             ? "Update producer information"
             : "Create a new wine producer"}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+        </p>
+      </div>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {error && (
+          <Alert variant="destructive" className="border-red-200 dark:border-red-900/50">
+            <AlertDescription className="text-red-800 dark:text-red-200">{error}</AlertDescription>
+          </Alert>
+        )}
 
-          {producer && (
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <div>
-                <Label htmlFor="is_live" className="text-base font-medium">Live på webbsidan</Label>
-                <p className="text-sm text-muted-foreground">
-                  När av är producenten och dess viner dolda i shop, sök och samlingar.
-                </p>
-              </div>
-              <Switch
-                id="is_live"
-                checked={formData.is_live ?? true}
-                onCheckedChange={(checked) =>
-                  setFormData((prev) => ({ ...prev, is_live: !!checked }))
-                }
-              />
+        {producer && (
+          <div className="flex items-center justify-between rounded-xl border border-gray-200 dark:border-zinc-800 p-4 bg-gray-50 dark:bg-zinc-900/70">
+            <div>
+              <Label htmlFor="is_live" className="text-sm font-medium text-gray-900 dark:text-zinc-100">Live på webbsidan</Label>
+              <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
+                När av är producenten och dess viner dolda i shop, sök och samlingar.
+              </p>
             </div>
-          )}
+            <Switch
+              id="is_live"
+              checked={formData.is_live ?? true}
+              onCheckedChange={(checked) =>
+                setFormData((prev) => ({ ...prev, is_live: !!checked }))
+              }
+            />
+          </div>
+        )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Name *</Label>
+              <Label htmlFor="name" className="text-gray-700 dark:text-zinc-300">Name *</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => handleChange("name", e.target.value)}
                 required
+                className="border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="country">Country *</Label>
+              <Label htmlFor="country" className="text-gray-700 dark:text-zinc-300">Country *</Label>
               <Select
                 value={formData.country_code || undefined}
                 onValueChange={(v) => {
@@ -348,7 +343,7 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
                 }}
                 required
               >
-                <SelectTrigger id="country" className="w-full">
+                <SelectTrigger id="country" className="w-full border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800">
                   <SelectValue placeholder="Select country" />
                 </SelectTrigger>
                 <SelectContent>
@@ -365,7 +360,7 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="lat">Latitude *</Label>
+                <Label htmlFor="lat" className="text-gray-700 dark:text-zinc-300">Latitude *</Label>
                 <Input
                   id="lat"
                   type="number"
@@ -376,13 +371,15 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
                   }
                   required
                   className={
-                    geocodeSuccess ? "border-green-500 bg-green-50" : ""
+                    geocodeSuccess
+                      ? "border-green-500 dark:border-green-600 bg-green-50 dark:bg-green-900/20"
+                      : "border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
                   }
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="lon">Longitude *</Label>
+                <Label htmlFor="lon" className="text-gray-700 dark:text-zinc-300">Longitude *</Label>
                 <Input
                   id="lon"
                   type="number"
@@ -393,19 +390,21 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
                   }
                   required
                   className={
-                    geocodeSuccess ? "border-green-500 bg-green-50" : ""
+                    geocodeSuccess
+                      ? "border-green-500 dark:border-green-600 bg-green-50 dark:bg-green-900/20"
+                      : "border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
                   }
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="region">Region *</Label>
+                <Label htmlFor="region" className="text-gray-700 dark:text-zinc-300">Region *</Label>
                 <Select
                   value={formData.region || undefined}
                   onValueChange={(v) => handleChange("region", v)}
                   required
                 >
-                  <SelectTrigger id="region" className="w-full">
+                  <SelectTrigger id="region" className="w-full border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800">
                     <SelectValue placeholder="Select region" />
                   </SelectTrigger>
                   <SelectContent>
@@ -425,19 +424,19 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
                 onClick={handleGeocode}
                 disabled={geocoding || !formData.address_city}
                 variant="outline"
-                className="w-auto"
+                className="w-auto rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700"
               >
                 {geocoding ? "Geocoding..." : "🌍 Get Coordinates from Address"}
               </Button>
               {geocodeSuccess && (
-                <span className="text-sm text-green-600 font-medium">
+                <span className="text-xs font-medium text-green-600 dark:text-green-400">
                   ✅ Coordinates updated successfully!
                 </span>
               )}
             </div>
 
             {formData.address_city && (
-              <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded border border-gray-200">
+              <div className="text-xs text-gray-500 dark:text-zinc-400 p-2 bg-gray-50 dark:bg-zinc-900/70 rounded-lg border border-gray-200 dark:border-zinc-800">
                 📍 Will geocode:{" "}
                 {[
                   formData.address_street,
@@ -452,28 +451,30 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="address_street">Street Address *</Label>
+            <Label htmlFor="address_street" className="text-gray-700 dark:text-zinc-300">Street Address *</Label>
             <Input
               id="address_street"
               value={formData.address_street}
               onChange={(e) => handleChange("address_street", e.target.value)}
               required
+              className="border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="address_city">City *</Label>
+              <Label htmlFor="address_city" className="text-gray-700 dark:text-zinc-300">City *</Label>
               <Input
                 id="address_city"
                 value={formData.address_city}
                 onChange={(e) => handleChange("address_city", e.target.value)}
                 required
+                className="border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="address_postcode">Postal Code *</Label>
+              <Label htmlFor="address_postcode" className="text-gray-700 dark:text-zinc-300">Postal Code *</Label>
               <Input
                 id="address_postcode"
                 value={formData.address_postcode}
@@ -481,12 +482,13 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
                   handleChange("address_postcode", e.target.value)
                 }
                 required
+                className="border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="short_description">Description</Label>
+            <Label htmlFor="short_description" className="text-gray-700 dark:text-zinc-300">Description</Label>
             <Textarea
               id="short_description"
               value={formData.short_description}
@@ -494,37 +496,39 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
                 handleChange("short_description", e.target.value)
               }
               rows={3}
+              className="border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="logo_image_path">Logo Image URL</Label>
+            <Label htmlFor="logo_image_path" className="text-gray-700 dark:text-zinc-300">Logo Image URL</Label>
             <Input
               id="logo_image_path"
               type="url"
               value={formData.logo_image_path}
               onChange={(e) => handleChange("logo_image_path", e.target.value)}
               placeholder="https://example.com/image.jpg"
+              className="border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
             />
           </div>
 
           <div className="space-y-4">
-            <div className="flex items-center space-x-3 p-4 bg-blue-50 border border-blue-200 rounded-md">
+            <div className="flex items-center space-x-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
               <input
                 type="checkbox"
                 id="is_pickup_zone"
                 checked={isPickupZone}
                 onChange={(e) => setIsPickupZone(e.target.checked)}
-                className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="h-5 w-5 rounded border-gray-300 dark:border-zinc-600 text-blue-600 focus:ring-blue-500"
               />
               <div className="flex-1">
                 <Label
                   htmlFor="is_pickup_zone"
-                  className="font-semibold text-blue-900 cursor-pointer"
+                  className="font-semibold text-blue-900 dark:text-blue-200 cursor-pointer"
                 >
                   Make this producer a pickup zone
                 </Label>
-                <p className="text-sm text-blue-700 mt-1">
+                <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
                   Automatically creates a pickup zone at the producer's location
                   for pallet consolidation
                 </p>
@@ -533,7 +537,7 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
 
             {!isPickupZone && (
               <div className="space-y-2">
-                <Label htmlFor="pickup_zone_id">
+                <Label htmlFor="pickup_zone_id" className="text-gray-700 dark:text-zinc-300">
                   Or select existing Pickup Zone
                 </Label>
                 <select
@@ -542,7 +546,7 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
                   onChange={(e) =>
                     handleChange("pickup_zone_id", e.target.value)
                   }
-                  className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-1 text-base transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm aria-[invalid=true]:border-red-500 aria-[invalid=true]:focus-visible:!ring-red-500"
+                  className="flex h-10 w-full rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1 text-sm text-gray-900 dark:text-zinc-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-400 dark:focus-visible:ring-zinc-500"
                 >
                   <option value="">No pickup zone selected</option>
                   {pickupZones.map((zone) => (
@@ -555,24 +559,29 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
             )}
 
             {isPickupZone && (
-              <div className="text-sm text-gray-600 p-3 bg-gray-50 border border-gray-200 rounded-md">
+              <div className="text-xs text-gray-600 dark:text-zinc-400 p-3 bg-gray-50 dark:bg-zinc-900/70 border border-gray-200 dark:border-zinc-800 rounded-xl">
                 ℹ️ A pickup zone named "
-                <strong>{formData.name} (Pickup)</strong>" will be{" "}
+                <strong className="text-gray-900 dark:text-zinc-100">{formData.name} (Pickup)</strong>" will be{" "}
                 {producer?.pickup_zone_id ? "updated" : "created"} at this
                 producer's location
               </div>
             )}
           </div>
 
-          <div className="flex justify-end space-x-4">
+          <div className="flex justify-end gap-2 pt-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => router.back()}
+              className="rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700"
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="rounded-lg text-xs font-medium bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900 hover:bg-gray-800 dark:hover:bg-zinc-200"
+            >
               {loading
                 ? "Saving..."
                 : producer
@@ -581,7 +590,6 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
             </Button>
           </div>
         </form>
-      </CardContent>
-    </Card>
+    </div>
   );
 }

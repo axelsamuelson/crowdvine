@@ -36,20 +36,30 @@ export default async function MembershipsPage() {
     .order("ip_threshold");
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-4xl font-bold text-gray-900">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
           Membership Management
         </h1>
-        <p className="text-gray-600 mt-2">
+        <p className="text-sm text-gray-600 dark:text-zinc-400 mt-1">
           Configure levels, perks, benefits, and progression rewards
         </p>
       </div>
 
       <Tabs defaultValue="levels" className="w-full">
-        <TabsList>
-          <TabsTrigger value="levels">Membership Levels</TabsTrigger>
-          <TabsTrigger value="progression">Progression Rewards</TabsTrigger>
+        <TabsList className="bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800 rounded-xl p-1">
+          <TabsTrigger
+            value="levels"
+            className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm text-xs font-medium"
+          >
+            Membership Levels
+          </TabsTrigger>
+          <TabsTrigger
+            value="progression"
+            className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm text-xs font-medium"
+          >
+            Progression Rewards
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="levels" className="mt-6">

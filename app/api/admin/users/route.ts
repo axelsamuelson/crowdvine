@@ -11,18 +11,39 @@ export async function GET(request: NextRequest) {
 
     // Use admin client to get all users with profiles
     const adminSupabase = getSupabaseAdmin();
-    
-    // Get all users from auth.users
-    const { data: authUsers, error: listUsersError } =
-      await adminSupabase.auth.admin.listUsers();
-    
-    if (listUsersError) {
-      console.error("Error fetching auth users:", listUsersError);
-      return NextResponse.json(
-        { error: "Failed to fetch users" },
-        { status: 500 },
-      );
+
+    // Fetch ALL auth users (listUsers defaults to 50 per page; paginate to get all)
+    const allAuthUsers: Array<{
+      id: string;
+      email?: string;
+      created_at?: string;
+      last_sign_in_at?: string;
+      email_confirmed_at?: string;
+    }> = [];
+    let page = 1;
+    let hasMore = true;
+    while (hasMore) {
+      const { data, error: listUsersError } =
+        await adminSupabase.auth.admin.listUsers({
+          page: String(page),
+          per_page: "1000",
+        });
+
+      if (listUsersError) {
+        console.error("Error fetching auth users:", listUsersError);
+        return NextResponse.json(
+          { error: "Failed to fetch users" },
+          { status: 500 },
+        );
+      }
+
+      const users = data?.users ?? [];
+      allAuthUsers.push(...users);
+      hasMore = users.length === 1000;
+      page += 1;
     }
+
+    const authUsers = { users: allAuthUsers };
 
     // Get all profiles with membership data (roles + portal_access for multi-type edit)
     const { data: profiles, error: profilesError } = await adminSupabase

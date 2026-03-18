@@ -6,6 +6,7 @@
 import {
   createMenuDocument,
   getStarwinelistSourceBySlug,
+  isStarwinelist404Slug,
   listStarwinelistSources,
   updateStarwinelistSource,
   upsertStarwinelistSource,
@@ -142,8 +143,11 @@ export async function crawlRestaurant(
     });
 
     try {
-      await extractMenuFromDocument(doc.id);
+      const extractionResult = await extractMenuFromDocument(doc.id);
       result.extracted = true;
+      if (extractionResult.autoCorrection) {
+        result.auto_correction = extractionResult.autoCorrection;
+      }
     } catch (extractErr) {
       const msg = extractErr instanceof Error ? extractErr.message : String(extractErr);
       console.warn("[crawler] Extraction failed for", source.slug, ":", msg);
@@ -182,13 +186,25 @@ export async function crawlRestaurant(
 
 /**
  * Crawl a single restaurant by slug. Fetches or creates source then runs crawlRestaurant.
+ * Skips 404-like slugs (numeric only); they are not saved or crawled.
  */
 export async function crawlSingleRestaurant(slug: string): Promise<CrawlResult> {
-  let source = await getStarwinelistSourceBySlug(slug);
+  const trimmed = String(slug).trim();
+  if (!trimmed || isStarwinelist404Slug(trimmed)) {
+    return {
+      slug: trimmed,
+      name: null,
+      pdf_url: null,
+      swl_updated_at: null,
+      skipped: true,
+      skip_reason: "404_page",
+    };
+  }
+  let source = await getStarwinelistSourceBySlug(trimmed);
   if (!source) {
     source = await upsertStarwinelistSource({
-      slug,
-      source_url: `https://starwinelist.com/wine-place/${slug}`,
+      slug: trimmed,
+      source_url: `https://starwinelist.com/wine-place/${trimmed}`,
       city: "stockholm",
     });
   }
@@ -212,9 +228,13 @@ export async function runCrawlSession(
     document_ids: [],
     extracted: 0,
     extraction_failed: 0,
+    auto_correction_attempted: 0,
+    auto_correction_improved: 0,
+    auto_correction_still_review: 0,
   };
 
-  const slugs = await fetchRestaurantSlugsByCity(city);
+  const allSlugs = await fetchRestaurantSlugsByCity(city);
+  const slugs = allSlugs.filter((s) => !isStarwinelist404Slug(s));
   summary.total_found = slugs.length;
 
   for (const slug of slugs) {
@@ -246,6 +266,11 @@ export async function runCrawlSession(
       if (result.extraction_skipped_reason === "extraction_error") {
         summary.extraction_failed = (summary.extraction_failed ?? 0) + 1;
       }
+      if (result.auto_correction) {
+        summary.auto_correction_attempted = (summary.auto_correction_attempted ?? 0) + result.auto_correction.rowsAttempted;
+        summary.auto_correction_improved = (summary.auto_correction_improved ?? 0) + result.auto_correction.rowsImproved;
+        summary.auto_correction_still_review = (summary.auto_correction_still_review ?? 0) + result.auto_correction.rowsStillNeedsReview;
+      }
     }
   }
 
@@ -269,11 +294,14 @@ export async function runCrawlForSlugs(
     document_ids: [],
     extracted: 0,
     extraction_failed: 0,
+    auto_correction_attempted: 0,
+    auto_correction_improved: 0,
+    auto_correction_still_review: 0,
   };
 
   for (const slug of slugs) {
     const trimmed = typeof slug === "string" ? slug.trim() : "";
-    if (!trimmed) continue;
+    if (!trimmed || isStarwinelist404Slug(trimmed)) continue;
     await sleep(CRAWL_DELAY_MS);
     let source = await getStarwinelistSourceBySlug(trimmed);
     if (!source) {
@@ -304,6 +332,11 @@ export async function runCrawlForSlugs(
       if (result.extracted) summary.extracted = (summary.extracted ?? 0) + 1;
       if (result.extraction_skipped_reason === "extraction_error") {
         summary.extraction_failed = (summary.extraction_failed ?? 0) + 1;
+      }
+      if (result.auto_correction) {
+        summary.auto_correction_attempted = (summary.auto_correction_attempted ?? 0) + result.auto_correction.rowsAttempted;
+        summary.auto_correction_improved = (summary.auto_correction_improved ?? 0) + result.auto_correction.rowsImproved;
+        summary.auto_correction_still_review = (summary.auto_correction_still_review ?? 0) + result.auto_correction.rowsStillNeedsReview;
       }
     }
   }

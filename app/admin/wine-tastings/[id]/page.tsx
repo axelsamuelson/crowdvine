@@ -5,14 +5,6 @@ import { getAppUrl } from "@/lib/app-url";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -322,12 +314,12 @@ export default function WineTastingDetailPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-neutral-50">
+      <main className="min-h-screen bg-gray-50 dark:bg-[#0A0A0B]">
         <div className="max-w-5xl mx-auto p-4 md:p-6 pt-6 md:pt-8">
           <div className="animate-pulse space-y-6">
-            <div className="h-9 bg-neutral-200 rounded-xl w-32" />
-            <div className="h-4 bg-neutral-200 rounded-xl max-w-xs" />
-            <div className="h-4 bg-neutral-200 rounded-xl max-w-sm" />
+            <div className="h-9 bg-gray-200 dark:bg-zinc-700 rounded-xl w-32" />
+            <div className="h-4 bg-gray-200 dark:bg-zinc-700 rounded-xl max-w-xs" />
+            <div className="h-4 bg-gray-200 dark:bg-zinc-700 rounded-xl max-w-sm" />
           </div>
         </div>
       </main>
@@ -388,38 +380,38 @@ export default function WineTastingDetailPage() {
     };
 
     return (
-      <main className="min-h-screen bg-neutral-50">
+      <main className="min-h-screen bg-gray-50 dark:bg-[#0A0A0B]">
         <div className="max-w-5xl mx-auto p-4 md:p-6 pt-6 md:pt-8 pb-8 space-y-6">
           <Link href="/admin/wine-tastings">
-            <Button variant="outline" size="sm" className="rounded-xl shrink-0 border-neutral-200 bg-white">
-              <ArrowLeft className="w-4 h-4 mr-2" />
+            <Button variant="outline" size="sm" className="rounded-lg shrink-0 border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-medium">
+              <ArrowLeft className="w-3.5 h-3.5 mr-1.5" />
               Tillbaka
             </Button>
           </Link>
-          <Card className="p-5 md:p-6 bg-white border border-neutral-100 shadow-sm rounded-2xl">
-            <CardHeader className="px-0 pt-0">
-              <CardTitle className="text-lg font-semibold text-neutral-900">Ny provningssession</CardTitle>
-              <CardDescription className="text-neutral-500">
+          <div className="p-5 md:p-6 bg-white dark:bg-[#0F0F12] border border-gray-200 dark:border-[#1F1F23] rounded-xl">
+            <div className="mb-6">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">Ny provningssession</h2>
+              <p className="text-sm text-gray-500 dark:text-zinc-400 mt-0.5">
                 Ge sessionen ett namn och lägg till viner i den ordning de ska provas.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="px-0 pb-0">
+              </p>
+            </div>
+            <div>
               <form onSubmit={handleCreateSession} className="space-y-6">
                 <div>
-                  <Label htmlFor="session-name" className="text-neutral-700 font-medium">Sessionens namn</Label>
+                  <Label htmlFor="session-name" className="text-sm font-medium text-gray-700 dark:text-zinc-300">Sessionens namn</Label>
                   <Input
                     id="session-name"
                     value={newSessionName}
                     onChange={(e) => setNewSessionName(e.target.value)}
                     placeholder="t.ex. Rödvinskväll"
-                    className="mt-2 max-w-md rounded-xl border-neutral-200"
+                    className="mt-2 max-w-md rounded-lg border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
                     disabled={creating}
                   />
                 </div>
 
                 <div>
-                  <Label className="text-sm font-medium text-neutral-700">Företag (valfritt)</Label>
-                  <p className="text-xs text-neutral-500 mt-1 mb-2">
+                  <Label className="text-sm font-medium text-gray-700 dark:text-zinc-300">Företag (valfritt)</Label>
+                  <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1 mb-2">
                     Koppla sessionen till en användare (t.ex. producent). Krävs inte för att starta.
                   </p>
                   <Popover open={businessOpen} onOpenChange={setBusinessOpen}>
@@ -429,7 +421,7 @@ export default function WineTastingDetailPage() {
                         variant="outline"
                         role="combobox"
                         aria-expanded={businessOpen}
-                        className="w-full max-w-md justify-between rounded-xl border-neutral-200"
+                        className="w-full max-w-md justify-between rounded-lg border-gray-200 dark:border-zinc-700 text-sm"
                         disabled={creating}
                       >
                         {selectedBusinessUserId
@@ -482,7 +474,7 @@ export default function WineTastingDetailPage() {
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="mt-2 text-muted-foreground"
+                      className="mt-2 text-gray-500 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-zinc-100"
                       onClick={() => setSelectedBusinessUserId(null)}
                     >
                       <X className="mr-1 h-4 w-4" />
@@ -492,17 +484,17 @@ export default function WineTastingDetailPage() {
                 </div>
 
                 <div>
-                  <Label className="text-sm font-medium text-neutral-700">Viner i sessionen (provningsordning)</Label>
-                  <p className="text-xs text-neutral-500 mt-1 mb-2">
+                  <Label className="text-sm font-medium text-gray-700 dark:text-zinc-300">Viner i sessionen (provningsordning)</Label>
+                  <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1 mb-2">
                     Dra viner för att ändra ordning, eller använd pilarna.
                   </p>
                   {selectedWines.length === 0 ? (
-                    <p className="text-sm text-neutral-500 py-4 border border-dashed border-neutral-200 rounded-xl px-4">
+                    <p className="text-sm text-gray-500 dark:text-zinc-400 py-4 border border-dashed border-gray-200 dark:border-zinc-700 rounded-xl px-4">
                       Inga viner tillagda än. Sök och lägg till nedan.
                     </p>
                   ) : (
                     <ul
-                      className="space-y-2 border border-neutral-100 rounded-xl p-3 bg-neutral-50"
+                      className="space-y-2 border border-gray-100 dark:border-zinc-800 rounded-xl p-3 bg-gray-50 dark:bg-zinc-900/70"
                       onDragOver={(e) => {
                         e.preventDefault();
                         e.dataTransfer.dropEffect = "move";
@@ -540,12 +532,12 @@ export default function WineTastingDetailPage() {
                           }}
                           onDragEnd={() => setDraggedWineIndex(null)}
                           className={cn(
-                            "flex items-center gap-3 py-2 px-3 bg-white rounded-xl border border-neutral-100 cursor-grab active:cursor-grabbing select-none transition-opacity",
+                            "flex items-center gap-3 py-2 px-3 bg-white dark:bg-zinc-800 rounded-xl border border-gray-100 dark:border-zinc-700 cursor-grab active:cursor-grabbing select-none transition-opacity",
                             draggedWineIndex === index && "opacity-50",
                           )}
                         >
-                          <GripVertical className="w-4 h-4 shrink-0 text-neutral-400 pointer-events-none" aria-hidden />
-                          <div className="relative w-10 h-14 shrink-0 rounded-lg overflow-hidden bg-neutral-100 border border-neutral-200 pointer-events-none">
+                          <GripVertical className="w-4 h-4 shrink-0 text-gray-400 dark:text-zinc-500 pointer-events-none" aria-hidden />
+                          <div className="relative w-10 h-14 shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-zinc-700 border border-gray-200 dark:border-zinc-600 pointer-events-none">
                             {getImageUrl(w.label_image_path) ? (
                               <Image
                                 src={getImageUrl(w.label_image_path)!}
@@ -560,7 +552,7 @@ export default function WineTastingDetailPage() {
                               <div className="w-full h-full flex items-center justify-center text-neutral-400 text-xs">?</div>
                             )}
                           </div>
-                          <span className="text-sm truncate flex-1 min-w-0 text-neutral-900">
+                          <span className="text-sm truncate flex-1 min-w-0 text-gray-900 dark:text-zinc-100">
                             {index + 1}. {w.wine_name} {w.vintage}
                             {producerName(w) ? ` · ${producerName(w)}` : ""}
                           </span>
@@ -602,17 +594,17 @@ export default function WineTastingDetailPage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="wine-search" className="text-sm font-medium text-neutral-700">Lägg till viner</Label>
+                  <Label htmlFor="wine-search" className="text-sm font-medium text-gray-700 dark:text-zinc-300">Lägg till viner</Label>
                   <div className="flex flex-wrap items-center gap-2 mt-2 mb-3">
                     <Input
                       id="wine-search"
                       placeholder="Sök på namn, årgang, druva eller producent..."
                       value={wineSearch}
                       onChange={(e) => setWineSearch(e.target.value)}
-                      className="max-w-md rounded-xl border-neutral-200"
+                      className="max-w-md rounded-lg border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
                     />
                     <Select value={wineStockFilter} onValueChange={(v: "all" | "in_stock") => setWineStockFilter(v)}>
-                      <SelectTrigger className="w-[160px] rounded-xl border-neutral-200">
+                      <SelectTrigger className="w-[160px] rounded-lg border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -624,7 +616,7 @@ export default function WineTastingDetailPage() {
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="rounded-xl border-neutral-200"
+                      className="rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700"
                       onClick={() => {
                         const toAdd = filteredWines.filter((w) => !selectedWineIds.includes(w.id)).map((w) => w.id);
                         if (toAdd.length === 0) {
@@ -639,12 +631,12 @@ export default function WineTastingDetailPage() {
                       Lägg till alla
                     </Button>
                   </div>
-                  <ul className="border border-neutral-100 rounded-xl divide-y divide-neutral-100 max-h-64 overflow-y-auto">
+                  <ul className="border border-gray-100 dark:border-zinc-800 rounded-xl divide-y divide-gray-100 dark:divide-zinc-800 max-h-64 overflow-y-auto">
                     {filteredWines.map((w) => {
                       const isSelected = selectedWineIds.includes(w.id);
                       return (
-                        <li key={w.id} className="flex items-center gap-3 px-3 py-2 hover:bg-neutral-50">
-                          <div className="relative w-10 h-14 shrink-0 rounded-lg overflow-hidden bg-neutral-100 border border-neutral-200">
+                        <li key={w.id} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800/50">
+                          <div className="relative w-10 h-14 shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-zinc-700 border border-gray-200 dark:border-zinc-600">
                             {getImageUrl(w.label_image_path) ? (
                               <Image
                                 src={getImageUrl(w.label_image_path)!}
@@ -658,7 +650,7 @@ export default function WineTastingDetailPage() {
                               <div className="w-full h-full flex items-center justify-center text-neutral-400 text-xs">?</div>
                             )}
                           </div>
-                          <span className="text-sm truncate flex-1 min-w-0 text-neutral-900">
+                          <span className="text-sm truncate flex-1 min-w-0 text-gray-900 dark:text-zinc-100">
                             {w.wine_name} {w.vintage}
                             {producerName(w) ? ` · ${producerName(w)}` : ""}
                             {w.grape_varieties ? ` (${w.grape_varieties})` : ""}
@@ -667,7 +659,7 @@ export default function WineTastingDetailPage() {
                             type="button"
                             variant={isSelected ? "secondary" : "outline"}
                             size="sm"
-                            className="shrink-0 rounded-xl"
+                            className="shrink-0 rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700"
                             onClick={() => (isSelected ? removeWine(w.id) : addWine(w.id))}
                           >
                             {isSelected ? "Ta bort" : <><Plus className="h-4 w-4 mr-1 hidden sm:inline" /> Lägg till</>}
@@ -677,16 +669,16 @@ export default function WineTastingDetailPage() {
                     })}
                   </ul>
                   {filteredWines.length === 0 && (
-                    <p className="text-sm text-neutral-500 py-2">Inga viner matchar sökningen.</p>
+                    <p className="text-sm text-gray-500 dark:text-zinc-400 py-2">Inga viner matchar sökningen.</p>
                   )}
                 </div>
 
-                <Button type="submit" className="rounded-xl h-11 font-medium" disabled={creating}>
+                <Button type="submit" className="rounded-lg h-10 text-xs font-medium bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900 hover:bg-gray-800 dark:hover:bg-zinc-200" disabled={creating}>
                   {creating ? "Skapar…" : "Skapa session"}
                 </Button>
               </form>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </main>
     );
@@ -694,13 +686,11 @@ export default function WineTastingDetailPage() {
 
   if (!session) {
     return (
-      <main className="min-h-screen bg-neutral-50">
+      <main className="min-h-screen bg-gray-50 dark:bg-[#0A0A0B]">
         <div className="max-w-5xl mx-auto p-4 md:p-6 pt-6 md:pt-8">
-          <Card className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
-            <CardContent className="pt-6">
-              <p className="text-center text-neutral-600">Session not found</p>
-            </CardContent>
-          </Card>
+          <div className="rounded-xl border border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-[#0F0F12] p-6">
+            <p className="text-center text-sm text-gray-600 dark:text-zinc-400">Session not found</p>
+          </div>
         </div>
       </main>
     );
@@ -724,27 +714,27 @@ export default function WineTastingDetailPage() {
         />
       </div>
     )}
-    <main className="min-h-screen bg-neutral-50">
+    <main className="min-h-screen bg-gray-50 dark:bg-[#0A0A0B]">
       <div className="max-w-5xl mx-auto px-4 md:px-6 pt-6 md:pt-8 pb-8 space-y-5 md:space-y-6">
         {/* Header: Back, title, actions */}
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <Link href="/admin/wine-tastings">
-              <Button variant="outline" size="sm" className="rounded-xl shrink-0 border-neutral-200 bg-white">
-                <ArrowLeft className="w-4 h-4 mr-2" />
+              <Button variant="outline" size="sm" className="rounded-lg shrink-0 border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-medium">
+                <ArrowLeft className="w-3.5 h-3.5 mr-1.5" />
                 Tillbaka
               </Button>
             </Link>
             <div className="min-w-0 flex-1">
-              <h1 className="text-xl md:text-2xl font-semibold text-neutral-900 truncate">{session.name}</h1>
-              <p className="text-neutral-500 font-mono text-xs md:text-sm truncate mt-0.5">{session.session_code}</p>
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white truncate">{session.name}</h1>
+              <p className="text-gray-500 dark:text-zinc-400 font-mono text-xs md:text-sm truncate mt-0.5">{session.session_code}</p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
               size="sm"
-              className="rounded-xl border-neutral-200"
+              className="rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700"
               disabled={pdfExporting || (session.wines?.length ?? 0) === 0}
               onClick={async () => {
                 setPdfExporting(true);
@@ -758,23 +748,23 @@ export default function WineTastingDetailPage() {
                 }
               }}
             >
-              <FileDown className="w-4 h-4 mr-2" />
+              <FileDown className="w-3.5 h-3.5 mr-1.5" />
               {pdfExporting ? "Skapar PDF…" : "Export PDF"}
             </Button>
-            <Button variant="outline" size="sm" className="rounded-xl border-neutral-200" onClick={() => setQrDialogOpen(true)}>
-              <QrCode className="w-4 h-4 mr-2" />
+            <Button variant="outline" size="sm" className="rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700" onClick={() => setQrDialogOpen(true)}>
+              <QrCode className="w-3.5 h-3.5 mr-1.5" />
               QR & länk
             </Button>
             {session.session_code && (
               <Link href={`/tasting/${session.session_code}`}>
-                <Button variant="outline" size="sm" className="rounded-xl border-neutral-200">
-                  <Eye className="w-4 h-4 mr-2" />
+                <Button variant="outline" size="sm" className="rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700">
+                  <Eye className="w-3.5 h-3.5 mr-1.5" />
                   Öppna session
                 </Button>
               </Link>
             )}
-            <Button variant="destructive" size="sm" onClick={openDeleteDialog} className="rounded-xl">
-              <Trash2 className="w-4 h-4 mr-2" />
+            <Button variant="destructive" size="sm" onClick={openDeleteDialog} className="rounded-lg text-xs font-medium">
+              <Trash2 className="w-3.5 h-3.5 mr-1.5" />
               Ta bort
             </Button>
           </div>
@@ -782,7 +772,7 @@ export default function WineTastingDetailPage() {
 
         {/* QR & link popup */}
         <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
-          <DialogContent className="rounded-2xl border border-gray-200 p-6 max-w-[min(90vw,340px)]">
+          <DialogContent className="rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 max-w-[min(90vw,340px)]">
             <DialogTitle className="sr-only">QR-kod och länk</DialogTitle>
             <div className="flex flex-col items-center gap-4">
               <QRCodeDisplay
@@ -806,26 +796,26 @@ export default function WineTastingDetailPage() {
         </Dialog>
 
         {/* Session info */}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3 px-4 rounded-2xl bg-white border border-neutral-100 shadow-sm text-sm">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3 px-4 rounded-xl bg-white dark:bg-[#0F0F12] border border-gray-200 dark:border-[#1F1F23] text-sm">
           <span className="flex items-center gap-2">
-            <span className="text-neutral-500">Status:</span>
-            <Badge
+            <span className="text-gray-500 dark:text-zinc-400">Status:</span>
+            <span
               className={
                 session.status === "active"
-                  ? "bg-green-100 text-green-800 border-0"
+                  ? "inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
                   : session.status === "completed"
-                    ? "bg-blue-100 text-blue-800 border-0"
-                    : "bg-neutral-100 text-neutral-700 border-0"
+                    ? "inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
+                    : "inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-400"
               }
             >
               {session.status}
-            </Badge>
+            </span>
           </span>
-          <span className="text-neutral-500">Skapad: {format(new Date(session.created_at), "d MMM yyyy, HH:mm")}</span>
+          <span className="text-gray-500 dark:text-zinc-400">Skapad: {format(new Date(session.created_at), "d MMM yyyy, HH:mm")}</span>
           {session.completed_at && (
-            <span className="text-neutral-500">Avslutad: {format(new Date(session.completed_at), "d MMM yyyy")}</span>
+            <span className="text-gray-500 dark:text-zinc-400">Avslutad: {format(new Date(session.completed_at), "d MMM yyyy")}</span>
           )}
-          {session.notes && <span className="text-neutral-600 truncate max-w-[200px]">{session.notes}</span>}
+          {session.notes && <span className="text-gray-600 dark:text-zinc-400 truncate max-w-[200px]">{session.notes}</span>}
         </div>
 
         {/* Active session: current wine + change wine + participants */}
@@ -833,18 +823,18 @@ export default function WineTastingDetailPage() {
           <div className="grid gap-4 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-4">
               {/* Current wine */}
-              <Card className="rounded-2xl border border-neutral-100 bg-white shadow-sm overflow-hidden">
-                <CardHeader className="pb-2 px-5 pt-5">
-                  <CardTitle className="text-base font-semibold text-neutral-900">Aktuellt vin</CardTitle>
-                  <CardDescription className="text-sm text-neutral-500">
+              <div className="rounded-xl border border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-[#0F0F12] overflow-hidden">
+                <div className="pb-2 px-5 pt-5">
+                  <h3 className="text-base font-semibold text-gray-900 dark:text-white">Aktuellt vin</h3>
+                  <p className="text-sm text-gray-500 dark:text-zinc-400 mt-0.5">
                     Vin {session.current_wine_index + 1} av {session.wines?.length || 0}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3 px-5 pb-5">
+                  </p>
+                </div>
+                <div className="space-y-3 px-5 pb-5">
                   {session.wines?.[session.current_wine_index] ? (
                     <>
                       {getImageUrl(session.wines[session.current_wine_index].label_image_path) && (
-                        <div className="relative w-full aspect-[3/4] max-h-64 bg-neutral-50 rounded-xl overflow-hidden border border-neutral-100">
+                        <div className="relative w-full aspect-[3/4] max-h-64 bg-gray-50 dark:bg-zinc-900/70 rounded-xl overflow-hidden border border-gray-100 dark:border-zinc-800">
                           <Image
                             src={getImageUrl(session.wines[session.current_wine_index].label_image_path)!}
                             alt=""
@@ -855,38 +845,38 @@ export default function WineTastingDetailPage() {
                           />
                         </div>
                       )}
-                      <p className="font-semibold text-neutral-900">
+                      <p className="font-semibold text-gray-900 dark:text-zinc-100">
                         {session.wines[session.current_wine_index].wine_name} {session.wines[session.current_wine_index].vintage}
                       </p>
                       {session.wines[session.current_wine_index].grape_varieties && (
-                        <p className="text-sm text-neutral-500">{session.wines[session.current_wine_index].grape_varieties}</p>
+                        <p className="text-sm text-gray-500 dark:text-zinc-400">{session.wines[session.current_wine_index].grape_varieties}</p>
                       )}
                     </>
                   ) : (
-                    <p className="text-neutral-500 text-sm">Inget vin valt</p>
+                    <p className="text-gray-500 dark:text-zinc-400 text-sm">Inget vin valt</p>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
               {/* Change wine */}
-              <Card className="rounded-2xl border border-neutral-100 bg-white shadow-sm p-4 md:p-5">
-                <p className="text-sm font-semibold text-neutral-900 mb-3">Byt vin</p>
+              <div className="rounded-xl border border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-[#0F0F12] p-4 md:p-5">
+                <p className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Byt vin</p>
                 <div className="flex flex-col gap-2">
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
-                      className="rounded-xl flex-1 border-neutral-200 h-11"
+                      className="rounded-lg flex-1 border-gray-200 dark:border-zinc-700 h-10 text-xs font-medium"
                       disabled={updating || session.current_wine_index === 0}
                       onClick={() => changeWine(session.current_wine_index - 1)}
                     >
-                      <ChevronLeft className="w-4 h-4 mr-1" /> Föregående
+                      <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Föregående
                     </Button>
                     <Button
                       variant="outline"
-                      className="rounded-xl flex-1 border-neutral-200 h-11"
+                      className="rounded-lg flex-1 border-gray-200 dark:border-zinc-700 h-10 text-xs font-medium"
                       disabled={updating || session.current_wine_index >= (session.wines?.length ?? 0) - 1}
                       onClick={() => changeWine(session.current_wine_index + 1)}
                     >
-                      Nästa <ChevronRight className="w-4 h-4 ml-1" />
+                      Nästa <ChevronRight className="w-3.5 h-3.5 ml-1" />
                     </Button>
                   </div>
                   <Select
@@ -894,7 +884,7 @@ export default function WineTastingDetailPage() {
                     onValueChange={(v) => changeWine(Number(v))}
                     disabled={updating}
                   >
-                    <SelectTrigger className="rounded-xl w-full border-neutral-200 h-11">
+                    <SelectTrigger className="rounded-lg w-full border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 h-10">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -906,37 +896,37 @@ export default function WineTastingDetailPage() {
                     </SelectContent>
                   </Select>
                 </div>
-              </Card>
+              </div>
             </div>
             {/* Participants */}
-            <Card className="rounded-2xl border border-neutral-100 bg-white shadow-sm p-4 md:p-5">
+            <div className="rounded-xl border border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-[#0F0F12] p-4 md:p-5">
               <div className="flex items-center gap-2 mb-3">
-                <Users className="w-4 h-4 text-neutral-600" />
-                <CardTitle className="text-base font-semibold text-neutral-900">Deltagare</CardTitle>
+                <Users className="w-4 h-4 text-gray-600 dark:text-zinc-400" />
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white">Deltagare</h3>
               </div>
-              <p className="text-xs text-neutral-500 mb-3">{participants.length} deltagare</p>
+              <p className="text-xs text-gray-500 dark:text-zinc-400 mb-3">{participants.length} deltagare</p>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {participants.length === 0 ? (
-                  <p className="text-sm text-neutral-500">Inga deltagare än</p>
+                  <p className="text-sm text-gray-500 dark:text-zinc-400">Inga deltagare än</p>
                 ) : (
                   participants.map((p) => (
-                    <div key={p.id} className="p-3 rounded-xl bg-neutral-50 border border-neutral-100 text-sm">
-                      <p className="font-medium text-neutral-900 truncate">
+                    <div key={p.id} className="p-3 rounded-xl bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800 text-sm">
+                      <p className="font-medium text-gray-900 dark:text-zinc-100 truncate">
                         {p.name || (p.is_anonymous ? "Anonym" : p.participant_code.slice(0, 8))}
                       </p>
-                      <p className="text-xs text-neutral-500 mt-0.5">{new Date(p.joined_at).toLocaleTimeString("sv-SE")}</p>
+                      <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">{new Date(p.joined_at).toLocaleTimeString("sv-SE")}</p>
                     </div>
                   ))
                 )}
               </div>
-            </Card>
+            </div>
           </div>
         )}
 
         {/* Wines list */}
-        <Card className="rounded-2xl border border-neutral-100 bg-white shadow-sm p-4 md:p-5">
-          <CardTitle className="text-base font-semibold text-neutral-900 mb-1">Viner i sessionen</CardTitle>
-          <p className="text-xs text-neutral-500 mb-3">
+        <div className="rounded-xl border border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-[#0F0F12] p-4 md:p-5">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">Viner i sessionen</h3>
+          <p className="text-xs text-gray-500 dark:text-zinc-400 mb-3">
             {session.wines?.length || 0} viner · Aktuellt: {session.current_wine_index + 1}
           </p>
           <div className="space-y-2">
@@ -945,27 +935,31 @@ export default function WineTastingDetailPage() {
                 key={wine.id}
                 className={cn(
                   "flex items-center justify-between py-2.5 px-3 rounded-xl text-sm",
-                  index === session.current_wine_index ? "bg-amber-50/70 border border-amber-200" : "bg-neutral-50 border border-neutral-100",
+                  index === session.current_wine_index ? "bg-amber-50/70 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800" : "bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800",
                 )}
               >
-                <span className="truncate font-medium text-neutral-900">
+                <span className="truncate font-medium text-gray-900 dark:text-zinc-100">
                   {index + 1}. {wine.wine_name} {wine.vintage}
                 </span>
-                {index === session.current_wine_index && <Badge className="bg-amber-100 text-amber-800 border-0 shrink-0">Aktuell</Badge>}
+                {index === session.current_wine_index && (
+                  <span className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 shrink-0">
+                    Aktuell
+                  </span>
+                )}
               </div>
             ))}
           </div>
-        </Card>
+        </div>
 
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-2">
           <Link href={`/tasting/${session.session_code}`} className="flex-1 min-w-0">
-            <Button variant="outline" className="w-full rounded-xl h-11 border-neutral-200">
-              <Eye className="w-4 h-4 mr-2" /> Öppna som deltagare
+            <Button variant="outline" size="sm" className="w-full rounded-lg h-10 text-xs font-medium border-gray-200 dark:border-zinc-700">
+              <Eye className="w-3.5 h-3.5 mr-1.5" /> Öppna som deltagare
             </Button>
           </Link>
           <Link href={`/tasting/${session.session_code}/summary`} className="flex-1 min-w-0">
-            <Button variant="outline" className="w-full rounded-xl h-11 border-neutral-200">
+            <Button variant="outline" size="sm" className="w-full rounded-lg h-10 text-xs font-medium border-gray-200 dark:border-zinc-700">
               Sammanfattning
             </Button>
           </Link>
@@ -974,22 +968,22 @@ export default function WineTastingDetailPage() {
     </main>
 
     <AlertDialog open={deleteDialogOpen} onOpenChange={(open) => !open && closeDeleteDialog()}>
-      <AlertDialogContent className="max-w-md rounded-2xl border border-neutral-200 bg-white p-6 shadow-lg">
+      <AlertDialogContent className="max-w-md rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-lg">
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-lg font-semibold text-neutral-900">
+          <AlertDialogTitle className="text-lg font-semibold text-gray-900 dark:text-zinc-100">
             Ta bort session?
           </AlertDialogTitle>
-          <AlertDialogDescription className="text-sm text-neutral-600">
+          <AlertDialogDescription className="text-sm text-gray-600 dark:text-zinc-400">
             Vill du verkligen ta bort &quot;{session.name}&quot;? Detta går inte att ångra och alla betyg samt deltagardata raderas.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="mt-6 flex flex-row justify-end gap-2 sm:justify-end">
-          <AlertDialogCancel className="rounded-xl" disabled={deleting}>
+          <AlertDialogCancel className="rounded-lg text-xs font-medium" disabled={deleting}>
             Avbryt
           </AlertDialogCancel>
           <Button
             variant="destructive"
-            className="rounded-xl"
+            className="rounded-lg text-xs font-medium"
             disabled={deleting}
             onClick={handleConfirmDelete}
           >

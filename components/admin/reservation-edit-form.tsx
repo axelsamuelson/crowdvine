@@ -462,7 +462,7 @@ export default function ReservationEditForm({
 
                         <div className="space-y-1">
                           <Label>Total</Label>
-                          <div className="text-lg font-semibold text-green-600">
+                          <div className="text-lg font-semibold text-green-600 dark:text-green-400">
                             {formatPrice(
                               (item.wine?.base_price_cents || 0) *
                                 item.quantity,
@@ -496,7 +496,7 @@ export default function ReservationEditForm({
               ))}
 
               {items.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                   No items in this reservation. Click "Add Item" to add wines.
                 </div>
               )}
@@ -517,23 +517,23 @@ export default function ReservationEditForm({
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Reservation ID:</span>
+                  <span className="text-gray-600 dark:text-gray-400">Reservation ID:</span>
                   <span className="font-mono">
                     {reservation.id.substring(0, 8)}...
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Customer:</span>
+                  <span className="text-gray-600 dark:text-gray-400">Customer:</span>
                   <span className="font-mono">
                     {reservation.user_id?.substring(0, 8)}...
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Created:</span>
+                  <span className="text-gray-600 dark:text-gray-400">Created:</span>
                   <span>{formatDate(reservation.created_at)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Items:</span>
+                  <span className="text-gray-600 dark:text-gray-400">Items:</span>
                   <span>
                     {items.length} wine{items.length !== 1 ? "s" : ""}
                   </span>
@@ -544,8 +544,8 @@ export default function ReservationEditForm({
 
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Total Cost:</span>
-                  <span className="text-xl font-bold text-green-600">
+                  <span className="text-gray-600 dark:text-gray-400">Total Cost:</span>
+                  <span className="text-xl font-bold text-green-600 dark:text-green-400">
                     {formatPrice(calculateTotalCost())}
                   </span>
                 </div>

@@ -22,6 +22,10 @@ import {
   TrendingUp,
   Building2,
   Sparkles,
+  ListTodo,
+  FolderKanban,
+  Target,
+  UserCheck,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -68,7 +72,6 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: "Producers", href: "/admin/producers", icon: Wine },
       { name: "Wines", href: "/admin/wines", icon: Wine },
-      { name: "Wine Boxes", href: "/admin/wine-boxes", icon: Gift },
       { name: "Wine Tastings", href: "/admin/wine-tastings", icon: Wine },
       { name: "Competitor prices", href: "/admin/price-sources", icon: TrendingUp },
     ],
@@ -87,6 +90,16 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: "Bookings", href: "/admin/bookings", icon: Calendar },
       { name: "Reservations", href: "/admin/reservations", icon: FileText },
+    ],
+  },
+  {
+    name: "Operations",
+    icon: ListTodo,
+    items: [
+      { name: "Tasks", href: "/admin/operations/tasks", icon: ListTodo },
+      { name: "Projects", href: "/admin/operations/projects", icon: FolderKanban },
+      { name: "Objectives", href: "/admin/operations/okrs", icon: Target },
+      { name: "My Work", href: "/admin/operations/my-work", icon: UserCheck },
     ],
   },
   {

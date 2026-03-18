@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
@@ -75,82 +74,96 @@ export function DirtyWineContent() {
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid w-full grid-cols-2 max-w-md">
-        <TabsTrigger value="orders">Ordrar</TabsTrigger>
-        <TabsTrigger value="invoice">Skapa faktura</TabsTrigger>
+      <TabsList className="bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800 rounded-xl p-1 grid w-full grid-cols-2 max-w-md">
+        <TabsTrigger
+          value="orders"
+          className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm text-xs font-medium"
+        >
+          Ordrar
+        </TabsTrigger>
+        <TabsTrigger
+          value="invoice"
+          className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm text-xs font-medium"
+        >
+          Skapa faktura
+        </TabsTrigger>
       </TabsList>
 
       <TabsContent value="orders" className="mt-6">
-        <Card>
-          <CardHeader>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <CardTitle>Ordrar</CardTitle>
-                <CardDescription>
-                  Online-ordrar från dirtywine.se och offline-ordrar i samma tabell
-                </CardDescription>
+        <div className="bg-white dark:bg-[#0F0F12] rounded-xl p-6 flex flex-col border border-gray-200 dark:border-[#1F1F23]">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <Package className="w-3.5 h-3.5 text-zinc-900 dark:text-zinc-50" />
+            Ordrar
+          </h2>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+            <p className="text-xs text-gray-500 dark:text-zinc-400">
+              Online-ordrar från dirtywine.se och offline-ordrar i samma tabell
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Select
+                value={typeFilter}
+                onValueChange={(v) => setTypeFilter(v as "all" | OrderType)}
+              >
+                <SelectTrigger className="w-[140px] rounded-lg border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 text-xs h-9">
+                  <SelectValue placeholder="Typ" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Alla</SelectItem>
+                  <SelectItem value="online">Online</SelectItem>
+                  <SelectItem value="offline">Offline</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-zinc-400" />
+                <input
+                  type="text"
+                  placeholder="Sök..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 pr-4 py-2 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm w-[180px] bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 placeholder:text-gray-500 dark:placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-zinc-100 focus:ring-offset-0"
+                />
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Select
-                  value={typeFilter}
-                  onValueChange={(v) => setTypeFilter(v as "all" | OrderType)}
-                >
-                  <SelectTrigger className="w-[140px]">
-                    <SelectValue placeholder="Typ" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Alla</SelectItem>
-                    <SelectItem value="online">Online</SelectItem>
-                    <SelectItem value="offline">Offline</SelectItem>
-                  </SelectContent>
-                </Select>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <input
-                    type="text"
-                    placeholder="Sök..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9 pr-4 py-2 border border-input rounded-md text-sm w-[180px] focus:outline-none focus:ring-2 focus:ring-ring"
-                  />
-                </div>
-                <Button size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Offline-ordre
-                </Button>
-              </div>
+              <Button
+                size="sm"
+                className="rounded-lg text-xs font-medium h-9 bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900 hover:opacity-90"
+              >
+                <Plus className="h-3.5 w-3.5 mr-2" />
+                Offline-ordre
+              </Button>
             </div>
-          </CardHeader>
-          <CardContent>
+          </div>
+          <div className="w-full bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800 rounded-xl overflow-hidden">
             {loading ? (
               <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
-                <p className="mt-2 text-muted-foreground">Laddar ordrar...</p>
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-300 dark:border-zinc-600 border-t-gray-900 dark:border-t-zinc-100 mx-auto" />
+                <p className="mt-2 text-xs text-gray-500 dark:text-zinc-400">
+                  Laddar ordrar...
+                </p>
               </div>
             ) : filteredOrders.length > 0 ? (
-              <div>
+              <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-border">
-                      <th className="text-left p-2 text-xs font-medium text-muted-foreground">
+                    <tr className="border-b border-gray-100 dark:border-zinc-800">
+                      <th className="text-left p-3 text-xs font-medium text-gray-600 dark:text-zinc-400">
                         Typ
                       </th>
-                      <th className="text-left p-2 text-xs font-medium text-muted-foreground">
+                      <th className="text-left p-3 text-xs font-medium text-gray-600 dark:text-zinc-400">
                         Order ID
                       </th>
-                      <th className="text-left p-2 text-xs font-medium text-muted-foreground">
+                      <th className="text-left p-3 text-xs font-medium text-gray-600 dark:text-zinc-400">
                         Datum
                       </th>
-                      <th className="text-left p-2 text-xs font-medium text-muted-foreground">
+                      <th className="text-left p-3 text-xs font-medium text-gray-600 dark:text-zinc-400">
                         Kund
                       </th>
-                      <th className="text-left p-2 text-xs font-medium text-muted-foreground">
+                      <th className="text-left p-3 text-xs font-medium text-gray-600 dark:text-zinc-400">
                         E-post
                       </th>
-                      <th className="text-right p-2 text-xs font-medium text-muted-foreground">
+                      <th className="text-right p-3 text-xs font-medium text-gray-600 dark:text-zinc-400">
                         Totalt
                       </th>
-                      <th className="text-left p-2 text-xs font-medium text-muted-foreground">
+                      <th className="text-left p-3 text-xs font-medium text-gray-600 dark:text-zinc-400">
                         Status
                       </th>
                     </tr>
@@ -159,34 +172,36 @@ export function DirtyWineContent() {
                     {filteredOrders.map((order) => (
                       <tr
                         key={order.id}
-                        className="border-b border-border/50 hover:bg-muted/50"
+                        className="border-b border-gray-100 dark:border-zinc-800 last:border-0 hover:bg-gray-100 dark:hover:bg-zinc-800/50 transition-colors"
                       >
-                        <td className="p-2">
+                        <td className="p-3">
                           <span
                             className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${
                               order.type === "online"
-                                ? "bg-blue-100 text-blue-800"
-                                : "bg-amber-100 text-amber-800"
+                                ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
+                                : "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
                             }`}
                           >
                             {order.type === "online" ? "Online" : "Offline"}
                           </span>
                         </td>
-                        <td className="p-2 font-mono text-xs">{order.orderId}</td>
-                        <td className="p-2 text-sm text-muted-foreground">
+                        <td className="p-3 font-mono text-xs text-gray-900 dark:text-zinc-100">
+                          {order.orderId}
+                        </td>
+                        <td className="p-3 text-xs text-gray-600 dark:text-zinc-400">
                           {new Date(order.date).toLocaleDateString("sv-SE")}
                         </td>
-                        <td className="p-2 font-medium">{order.customer}</td>
-                        <td className="p-2 text-sm text-muted-foreground">
+                        <td className="p-3 text-xs font-medium text-gray-900 dark:text-zinc-100">
+                          {order.customer}
+                        </td>
+                        <td className="p-3 text-xs text-gray-600 dark:text-zinc-400">
                           {order.email}
                         </td>
-                        <td className="p-2 text-right font-medium">
+                        <td className="p-3 text-right text-xs font-medium text-gray-900 dark:text-zinc-100">
                           {formatPrice(order.totalCents)}
                         </td>
-                        <td className="p-2">
-                          <span className="text-xs text-muted-foreground">
-                            {order.status}
-                          </span>
+                        <td className="p-3 text-xs text-gray-600 dark:text-zinc-400">
+                          {order.status}
                         </td>
                       </tr>
                     ))}
@@ -194,10 +209,12 @@ export function DirtyWineContent() {
                 </table>
               </div>
             ) : (
-              <div className="text-center py-12">
-                <Package className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-medium mb-2">Inga ordrar</h3>
-                <p className="text-muted-foreground max-w-md mx-auto mb-4">
+              <div className="text-center py-12 px-4">
+                <Package className="h-14 w-14 mx-auto mb-4 text-gray-400 dark:text-zinc-500" />
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100 mb-1">
+                  Inga ordrar
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-zinc-400 max-w-md mx-auto mb-4">
                   {typeFilter !== "all" || searchTerm
                     ? "Inga ordrar matchar filter/sökning."
                     : "Online-ordrar från dirtywine.se eller offline-ordrar visas här."}
@@ -209,23 +226,26 @@ export function DirtyWineContent() {
                       setTypeFilter("all");
                       setSearchTerm("");
                     }}
+                    className="rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700"
                   >
                     Rensa filter
                   </Button>
                 ) : (
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
+                  <Button className="rounded-lg text-xs font-medium h-9 bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900 hover:opacity-90">
+                    <Plus className="h-3.5 w-3.5 mr-2" />
                     Skapa offline-ordrar
                   </Button>
                 )}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </TabsContent>
 
       <TabsContent value="invoice" className="mt-6">
-        <InvoiceGenerator />
+        <div className="bg-white dark:bg-[#0F0F12] rounded-xl p-6 border border-gray-200 dark:border-[#1F1F23]">
+          <InvoiceGenerator />
+        </div>
       </TabsContent>
     </Tabs>
   );
