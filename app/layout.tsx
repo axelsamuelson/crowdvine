@@ -18,7 +18,6 @@ import { PortalProvider } from "@/lib/context/portal-context";
 import { OnboardingProvider } from "@/components/onboarding/onboarding-provider";
 import { cn } from "../lib/utils";
 import { B2BThemeEffect } from "../components/layout/b2b-theme-effect";
-import { VaulDrawerWrapper } from "../components/layout/vaul-drawer-wrapper";
 
 const V0Setup = dynamic(() => import("@/components/v0-setup"));
 
@@ -114,10 +113,11 @@ export default async function RootLayout({
                   <OnboardingProvider>
                     <NuqsAdapter>
                       <main>
-                        <VaulDrawerWrapper>
+                        {/* Vaul drawer needs this wrapper; inner div avoids hydration mismatch from drawer lib touching the node */}
+                        <div data-vaul-drawer-wrapper="true">
                           <ConditionalHeader collections={collections} />
                           {children}
-                        </VaulDrawerWrapper>
+                        </div>
                       </main>
                       {isDevelopment && <DebugGrid />}
                       <Toaster closeButton position="bottom-right" />

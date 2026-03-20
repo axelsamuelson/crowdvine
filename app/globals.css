@@ -133,32 +133,6 @@
 }
 
 /* ---------------------------
-   System dark mode (prefers-color-scheme)
-   Ensures text and UI tokens are light on dark backgrounds
----------------------------- */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-b2b="true"]) {
-    --background: 0 0% 6%;
-    --foreground: 0 0% 95%;
-    --card: 0 0% 9%;
-    --card-foreground: 0 0% 95%;
-    --popover: 0 0% 9%;
-    --popover-foreground: 0 0% 95%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 6%;
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 0 0% 95%;
-    --muted: 0 0% 14%;
-    --muted-foreground: 0 0% 65%;
-    --accent: 0 0% 14%;
-    --accent-foreground: 0 0% 95%;
-    --border: 0 0% 20%;
-    --input: 0 0% 14%;
-    --ring: 0 0% 40%;
-  }
-}
-
-/* ---------------------------
    Dirty Wine (B2B) dark mode
    Applied when data-b2b="true" on html (dirtywine.se or localhost)
 ---------------------------- */
