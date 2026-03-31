@@ -1,6 +1,8 @@
 -- Seed Operations module – CrowdVine Q1 2026
 -- Person 1: cdc144b5-a8d5-48a3-a28a-03d76cfef4f9
 -- Person 2: 8aeec114-78a8-47b5-b535-12b355964933
+--
+-- För att ta bort all denna data: kör scripts/cleanup-seed-operations.sql
 
 -- Säkerställ idempotens — kan köras flera gånger
 DELETE FROM admin_tasks        WHERE id::text LIKE 'd2000000%';

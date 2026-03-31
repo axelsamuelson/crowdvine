@@ -26,7 +26,8 @@ export async function getTasksForEntity(
       *,
       project:admin_projects(id, name),
       objective:admin_objectives(id, title),
-      assignee:profiles!admin_tasks_assigned_to_fkey(id, email)
+      assignee:profiles!admin_tasks_assigned_to_fkey(id, email),
+      creator:profiles!admin_tasks_created_by_fkey(id, email)
     `)
     .in("id", taskIds)
     .is("deleted_at", null)

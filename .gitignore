@@ -12,6 +12,8 @@
 
 # debug
 npm-debug.log*
+tmp/debug-scroll.log
+.cursor/debug-*.log
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*

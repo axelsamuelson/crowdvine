@@ -4,11 +4,11 @@
  */
 
 import Anthropic from "@anthropic-ai/sdk";
+import { MODEL_ID } from "./anthropic-models";
 import {
   getSystemBlocksForExtraction,
   extractSectionText,
   repairTruncatedJson,
-  MODEL_ID,
   MAX_TOKENS_PER_SECTION,
   mapAIResultToRows,
   runPhase1ForBatch,
@@ -155,24 +155,25 @@ async function streamAndReassembleResults(
   }
 
   const assembled: Record<string, AIExtractionResult> = {};
-  for (const [documentId, sectionNames] of Object.entries(phase1Result)) {
+  for (const [documentId, phaseDoc] of Object.entries(phase1Result)) {
+    const names = phaseDoc.sectionNames;
     const items = (byDoc[documentId] ?? []).sort((a, b) => a.sectionIndex - b.sectionIndex);
     const sections: AIExtractionResult["sections"] = [];
-    for (let i = 0; i < sectionNames.length; i++) {
+    for (let i = 0; i < names.length; i++) {
       const item = items.find((x) => x.sectionIndex === i);
       const raw = item ? repairTruncatedJson(item.text.trim().replace(/^```json\s*/i, "").replace(/\s*```$/i, "")) : "{}";
       let parsed: unknown;
       try {
         parsed = JSON.parse(raw);
       } catch {
-        sections.push({ section_name: sectionNames[i], normalized_section: sectionNames[i], rows: [] });
+        sections.push({ section_name: names[i]!, normalized_section: names[i]!, rows: [] });
         continue;
       }
       const validated = aiExtractionResultSchema.safeParse(parsed);
       if (validated.success && validated.data.sections.length > 0) {
         sections.push(validated.data.sections[0]);
       } else {
-        sections.push({ section_name: sectionNames[i], normalized_section: sectionNames[i], rows: [] });
+        sections.push({ section_name: names[i]!, normalized_section: names[i]!, rows: [] });
       }
     }
     assembled[documentId] = { sections };
@@ -201,9 +202,11 @@ async function persistBatchResults(
       },
       normalizedRows,
     });
+    const finishedAt = new Date().toISOString();
     await updateMenuDocument(documentId, {
       extraction_status: "completed",
-      extracted_at: new Date().toISOString(),
+      extracted_at: finishedAt,
+      last_extraction_attempt_at: finishedAt,
       error_message: null,
     });
   }

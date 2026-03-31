@@ -18,7 +18,17 @@ import {
   MENU_EXTRACTION_SYSTEM_PROMPT,
   MENU_EXTRACTION_SYSTEM_PROMPT_CACHE_PADDING,
   MENU_EXTRACTION_PROMPT_VERSION,
+  buildPromptWithCriticFeedback,
 } from "./prompts";
+import { ACTOR_MODEL_PRIMARY, ACTOR_MODEL_FALLBACK, MODEL_ID } from "./anthropic-models";
+import { buildSectionUserPrompt } from "./section-user-prompt";
+import {
+  reviewExtraction,
+  shouldSkipCritic,
+  shouldSkipCriticReason,
+  CRITIC_MODEL,
+} from "./critic";
+import { extractSectionsInBatch } from "./batch-extraction";
 import {
   getReviewReasons,
   computeConfidence,
@@ -35,12 +45,28 @@ import {
   normalizeCurrency,
 } from "./normalization";
 import { aiExtractionResultSchema } from "./schema";
-import type { AIExtractionResult, AIExtractedRow } from "./types";
+import { usageToCostUsd } from "./pricing";
+import type {
+  AIExtractionResult,
+  AIExtractedRow,
+  AISectionBlock,
+  ExtractionUsage,
+  CriticIssue,
+  RowType,
+  WineType,
+  SectionTrace,
+  SectionTraceStep,
+  ExtractionTrace,
+} from "./types";
+
+export { calculateCostUsd } from "./pricing";
 
 const WORKFLOW_VERSION = "1.0.0";
-/** Override with MENU_EXTRACTION_MODEL (e.g. claude-haiku-4-5) for cost optimization. Exported for batch API. */
-export const MODEL_ID = process.env.MENU_EXTRACTION_MODEL || "claude-sonnet-4-6";
+/** Re-export for batch API and scripts. */
+export { MODEL_ID, ACTOR_MODEL_PRIMARY, ACTOR_MODEL_FALLBACK } from "./anthropic-models";
+export type { ExtractionUsage } from "./types";
 const CONCURRENCY = 3;
+const MAX_SECTIONS_FOR_SYNC_BATCH = 3;
 
 /** System blocks with cache_control on last block (≥2048 tokens total for Sonnet 4.6 cache). Exported for batch API. */
 export function getSystemBlocksForExtraction(): Array<{ type: "text"; text: string; cache_control?: { type: "ephemeral" } }> {
@@ -96,26 +122,53 @@ function makeTextContent(text: string): MessageContent[] {
   return [{ type: "text" as const, text }];
 }
 
-/** Token usage from a single API call (when available from stream). Includes cache when using prompt caching. */
-export interface ExtractionUsage {
-  input_tokens: number;
-  output_tokens: number;
-  cache_read_input_tokens?: number;
-  cache_creation_input_tokens?: number;
+function mergeAnthropicUsageChunk(
+  prev: ExtractionUsage | null,
+  chunk: Record<string, number | undefined>
+): ExtractionUsage {
+  return {
+    input_tokens: chunk["input_tokens"] ?? prev?.input_tokens ?? 0,
+    output_tokens: chunk["output_tokens"] ?? prev?.output_tokens ?? 0,
+    cache_read_input_tokens: chunk["cache_read_input_tokens"] ?? prev?.cache_read_input_tokens ?? 0,
+    cache_creation_input_tokens:
+      chunk["cache_creation_input_tokens"] ?? prev?.cache_creation_input_tokens ?? 0,
+  };
 }
 
-type StreamUsage = {
-  input_tokens?: number;
-  output_tokens?: number;
-  cache_read_input_tokens?: number;
-  cache_creation_input_tokens?: number;
-};
+function sumExtractionUsage(usages: ExtractionUsage[]): ExtractionUsage {
+  return usages.reduce(
+    (acc, u) => ({
+      input_tokens: acc.input_tokens + u.input_tokens,
+      output_tokens: acc.output_tokens + u.output_tokens,
+      cache_read_input_tokens:
+        (acc.cache_read_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0),
+      cache_creation_input_tokens:
+        (acc.cache_creation_input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0),
+    }),
+    {
+      input_tokens: 0,
+      output_tokens: 0,
+      cache_read_input_tokens: 0,
+      cache_creation_input_tokens: 0,
+    }
+  );
+}
+
+function usageToTraceFields(u: ExtractionUsage): NonNullable<SectionTraceStep["usage"]> {
+  return {
+    inputTokens: u.input_tokens,
+    outputTokens: u.output_tokens,
+    cacheReadTokens: u.cache_read_input_tokens,
+    cacheCreationTokens: u.cache_creation_input_tokens,
+  };
+}
 
 async function runStreamingCall(
   client: Anthropic,
   content: MessageContent[],
   maxTokens: number,
-  systemPromptOrBlocks: string | Array<{ type: "text"; text: string; cache_control?: { type: "ephemeral" } }>
+  systemPromptOrBlocks: string | Array<{ type: "text"; text: string; cache_control?: { type: "ephemeral" } }>,
+  options?: { model?: string }
 ): Promise<{ text: string; usage: ExtractionUsage | null }> {
   const hasDocument = content.some((block) => block.type === "document");
   const systemBlocks = Array.isArray(systemPromptOrBlocks) ? systemPromptOrBlocks : null;
@@ -123,8 +176,10 @@ async function runStreamingCall(
     ? systemPromptOrBlocks.map((b) => b.text).join("\n\n")
     : systemPromptOrBlocks;
 
+  const modelId = options?.model ?? ACTOR_MODEL_PRIMARY;
+
   const createParams = {
-    model: MODEL_ID,
+    model: modelId,
     max_tokens: maxTokens,
     messages: [{ role: "user" as const, content }] as const,
     stream: true as const,
@@ -142,27 +197,24 @@ async function runStreamingCall(
       });
 
   let text = "";
-  let usage: ExtractionUsage | null = null;
+  let streamUsage: ExtractionUsage | null = null;
   for await (const event of stream as AsyncIterable<{
     type: string;
     delta?: { type?: string; text?: string };
-    usage?: StreamUsage;
+    usage?: Record<string, number | undefined>;
   }>) {
     if (event.type === "content_block_delta" && event.delta?.type === "text_delta" && typeof event.delta.text === "string") {
       text += event.delta.text;
     }
-    if ((event.type === "message_start" || event.type === "message_delta") && event.usage) {
-      const u = event.usage;
-      usage = {
-        input_tokens: u.input_tokens ?? usage?.input_tokens ?? 0,
-        output_tokens: u.output_tokens ?? usage?.output_tokens ?? 0,
-        cache_read_input_tokens: u.cache_read_input_tokens ?? usage?.cache_read_input_tokens ?? 0,
-        cache_creation_input_tokens: u.cache_creation_input_tokens ?? usage?.cache_creation_input_tokens ?? 0,
-      };
+    if (event.type === "message_start" || event.type === "message_delta") {
+      const ru = (event as unknown as { usage?: Record<string, number | undefined> }).usage;
+      if (ru) {
+        streamUsage = mergeAnthropicUsageChunk(streamUsage, ru);
+      }
     }
   }
   const trimmed = text.trim().replace(/^```json\s*/i, "").replace(/\s*```$/i, "");
-  return { text: trimmed, usage };
+  return { text: trimmed, usage: streamUsage };
 }
 
 /**
@@ -174,7 +226,13 @@ async function extractRawTextFromPdf(pdfBuffer: Buffer): Promise<{ rawText: stri
   const client = new Anthropic({ apiKey });
   const base64Pdf = pdfBuffer.toString("base64");
   const content = makePdfContent(base64Pdf, RAW_TEXT_EXTRACTION_PROMPT);
-  const { text, usage } = await runStreamingCall(client, content, MAX_TOKENS_RAW_TEXT, getSystemBlocksForExtraction());
+  const { text, usage } = await runStreamingCall(
+    client,
+    content,
+    MAX_TOKENS_RAW_TEXT,
+    getSystemBlocksForExtraction(),
+    { model: ACTOR_MODEL_PRIMARY }
+  );
   return { rawText: text, usage };
 }
 
@@ -292,7 +350,7 @@ function repairTruncatedSectionList(raw: string): string {
 }
 
 /** Extrahera sektionsnamn lokalt från raw text (inga API-anrop). */
-function extractSectionsFromText(rawText: string): string[] {
+export function extractSectionsFromText(rawText: string): string[] {
   const lines = rawText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   const seen = new Set<string>();
   const result: string[] = [];
@@ -320,17 +378,23 @@ async function extractSection(
   rawText: string,
   sectionName: string,
   nextSectionName: string | undefined,
-  maxTokens: number = MAX_TOKENS_PER_SECTION
+  maxTokens: number = MAX_TOKENS_PER_SECTION,
+  options?: { model?: string; userPrompt?: string }
 ): Promise<{ result: AIExtractionResult; usage: ExtractionUsage | null }> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set");
   const client = new Anthropic({ apiKey });
   const sectionText = extractSectionText(rawText, sectionName, nextSectionName);
   const prompt =
-    `Extrahera ENDAST sektionen '${sectionName.replace(/'/g, "\\'")}' från följande text.\nReturnera JSON i exakt detta format utan någon text före eller efter:\n{ "sections": [{ "section_name", "normalized_section", "rows": [...] }] }\n\nText för sektionen:\n` +
-    sectionText;
+    options?.userPrompt ?? buildSectionUserPrompt(sectionName, sectionText);
   const content = makeTextContent(prompt);
-  const { text: raw, usage } = await runStreamingCall(client, content, maxTokens, getSystemBlocksForExtraction());
+  const { text: raw, usage } = await runStreamingCall(
+    client,
+    content,
+    maxTokens,
+    getSystemBlocksForExtraction(),
+    { model: options?.model ?? ACTOR_MODEL_PRIMARY }
+  );
   const repaired = repairTruncatedJson(raw);
   if (repaired !== raw) {
     console.warn("[extraction] JSON was truncated – attempted repair for section:", sectionName);
@@ -359,6 +423,375 @@ async function extractSection(
   return { result, usage };
 }
 
+/** Retry with higher max_tokens; on total failure return empty section (same as legacy orchestration). */
+async function extractSectionWithRetries(
+  rawText: string,
+  sectionName: string,
+  nextSectionName: string | undefined,
+  userPrompt: string,
+  model: string
+): Promise<{ result: AIExtractionResult; usages: ExtractionUsage[] }> {
+  const usages: ExtractionUsage[] = [];
+  try {
+    const { result, usage } = await extractSection(rawText, sectionName, nextSectionName, MAX_TOKENS_PER_SECTION, {
+      model,
+      userPrompt,
+    });
+    if (usage) usages.push(usage);
+    return { result, usages };
+  } catch (firstErr) {
+    console.warn(
+      "[extraction] Section failed, retrying with higher max_tokens:",
+      sectionName,
+      firstErr instanceof Error ? firstErr.message : String(firstErr)
+    );
+    try {
+      const { result, usage } = await extractSection(
+        rawText,
+        sectionName,
+        nextSectionName,
+        MAX_TOKENS_PER_SECTION_RETRY,
+        {
+          model,
+          userPrompt,
+        }
+      );
+      if (usage) usages.push(usage);
+      return { result, usages };
+    } catch (retryErr) {
+      const errMsg = retryErr instanceof Error ? retryErr.message : String(retryErr);
+      console.warn("[extraction] Section failed after retry – saving as empty section:", sectionName, "| reason:", errMsg);
+      return {
+        result: {
+          sections: [{ section_name: sectionName, normalized_section: sectionName, rows: [] }],
+        },
+        usages,
+      };
+    }
+  }
+}
+
+export type SectionCriticMeta = {
+  iterations: number;
+  criticApproved: boolean | null;
+};
+
+/**
+ * Actor + Critic loop (max 3). Critic never mutates rows; only feeds the next Actor prompt.
+ */
+async function extractSectionWithCriticLoop(params: {
+  rawText: string;
+  sectionName: string;
+  nextSectionName: string | undefined;
+  maxIterations?: number;
+  initialActorRows?: AIExtractedRow[] | null;
+}): Promise<{
+  sectionBlock: AISectionBlock;
+  meta: SectionCriticMeta;
+  usages: ExtractionUsage[];
+  lastActorModel: string;
+  sectionTrace: SectionTrace;
+  traceStats: {
+    criticSkippedAutoApprove: number;
+    criticSkippedHeuristic: number;
+    criticApiCalls: number;
+    usedSonnetFallback: boolean;
+  };
+}> {
+  const { rawText, sectionName, nextSectionName, maxIterations = 3, initialActorRows } = params;
+  const sectionText = extractSectionText(rawText, sectionName, nextSectionName);
+  const basePrompt = buildSectionUserPrompt(sectionName, sectionText);
+
+  const steps: SectionTraceStep[] = [];
+  let criticSkippedAutoApprove = 0;
+  let criticSkippedHeuristic = 0;
+  let criticApiCalls = 0;
+  let usedSonnetFallback = false;
+
+  let iteration = 1;
+  let previousIssues: CriticIssue[] = [];
+  const usages: ExtractionUsage[] = [];
+  let lastActorModel = ACTOR_MODEL_PRIMARY;
+
+  let rows: AIExtractedRow[] = [];
+  let normalizedSection = sectionName;
+  let sectionDisplayName = sectionName;
+
+  while (iteration <= maxIterations) {
+    const useBatchFirstPass =
+      iteration === 1 && initialActorRows != null && initialActorRows.length > 0;
+
+    if (!useBatchFirstPass) {
+      const userPrompt =
+        iteration === 1
+          ? buildPromptWithCriticFeedback(basePrompt, [])
+          : buildPromptWithCriticFeedback(basePrompt, previousIssues);
+
+      let actorModel = iteration === 3 ? ACTOR_MODEL_FALLBACK : ACTOR_MODEL_PRIMARY;
+      const actorStart = Date.now();
+      let { result, usages: actorUsages } = await extractSectionWithRetries(
+        rawText,
+        sectionName,
+        nextSectionName,
+        userPrompt,
+        actorModel
+      );
+      for (const u of actorUsages) usages.push(u);
+      lastActorModel = actorModel;
+
+      let fallbackSecond: { result: AIExtractionResult; usages: ExtractionUsage[] } | null = null;
+      const empty =
+        !result.sections[0] || (result.sections[0].rows?.length ?? 0) === 0;
+      if (empty && actorModel === ACTOR_MODEL_PRIMARY && iteration < 3) {
+        fallbackSecond = await extractSectionWithRetries(
+          rawText,
+          sectionName,
+          nextSectionName,
+          userPrompt,
+          ACTOR_MODEL_FALLBACK
+        );
+        for (const u of fallbackSecond.usages) usages.push(u);
+        lastActorModel = ACTOR_MODEL_FALLBACK;
+        usedSonnetFallback = true;
+        result = fallbackSecond.result;
+        actorUsages = [...actorUsages, ...fallbackSecond.usages];
+      }
+
+      const block = result.sections[0];
+      if (block) {
+        rows = block.rows as AIExtractedRow[];
+        normalizedSection = block.normalized_section || sectionName;
+        sectionDisplayName = block.section_name || sectionName;
+      } else {
+        rows = [];
+      }
+
+      const mergedForStep = sumExtractionUsage(actorUsages);
+      let actorCostUsd: number;
+      if (fallbackSecond) {
+        const haikuU = sumExtractionUsage(
+          actorUsages.slice(0, actorUsages.length - fallbackSecond.usages.length)
+        );
+        const sonnetU = sumExtractionUsage(fallbackSecond.usages);
+        actorCostUsd =
+          usageToCostUsd(ACTOR_MODEL_PRIMARY, haikuU) + usageToCostUsd(ACTOR_MODEL_FALLBACK, sonnetU);
+      } else {
+        actorCostUsd = usageToCostUsd(lastActorModel, mergedForStep);
+      }
+
+      steps.push({
+        iteration,
+        role: "actor",
+        model: lastActorModel,
+        durationMs: Date.now() - actorStart,
+        usage: usageToTraceFields(mergedForStep),
+        costUsd: actorCostUsd,
+      });
+    } else {
+      rows = initialActorRows!;
+      normalizedSection = sectionName;
+      sectionDisplayName = sectionName;
+      steps.push({
+        iteration,
+        role: "actor",
+        model: ACTOR_MODEL_PRIMARY,
+        skipped: true,
+        skipReason: "batch_api first pass",
+        durationMs: 0,
+        costUsd: 0,
+      });
+    }
+
+    if (shouldSkipCritic(rows)) {
+      const reason = shouldSkipCriticReason(rows);
+      console.warn(`[critic] Skipped – heuristic: ${reason}`);
+      criticSkippedHeuristic += 1;
+      steps.push({
+        iteration,
+        role: "critic",
+        skipped: true,
+        skipReason: reason,
+        durationMs: 0,
+        costUsd: 0,
+      });
+      const totalCostUsd = steps.reduce((s, x) => s + (x.costUsd ?? 0), 0);
+      return {
+        sectionBlock: {
+          section_name: sectionDisplayName,
+          normalized_section: normalizedSection,
+          rows,
+        },
+        meta: { iterations: iteration, criticApproved: true },
+        usages,
+        lastActorModel,
+        sectionTrace: {
+          section: sectionName,
+          iterations: iteration,
+          approved: true,
+          totalCostUsd,
+          steps,
+        },
+        traceStats: {
+          criticSkippedAutoApprove,
+          criticSkippedHeuristic,
+          criticApiCalls,
+          usedSonnetFallback,
+        },
+      };
+    }
+
+    try {
+      const criticStart = Date.now();
+      const criticResult = await reviewExtraction({
+        sectionText,
+        sectionName,
+        extractedRows: rows,
+        iteration,
+      });
+      if (criticResult.skipped) {
+        criticSkippedAutoApprove += 1;
+      } else {
+        criticApiCalls += 1;
+        if (criticResult.usage) {
+          usages.push({
+            input_tokens: criticResult.usage.inputTokens,
+            output_tokens: criticResult.usage.outputTokens,
+            cache_read_input_tokens: 0,
+            cache_creation_input_tokens: 0,
+          });
+        }
+      }
+
+      const criticCost = criticResult.usage?.costUsd ?? 0;
+
+      const costLog = criticResult.usage?.costUsd != null ? `$${criticResult.usage.costUsd.toFixed(4)}` : "$0";
+      console.warn(
+        `[critic-actor] '${sectionName}' iter ${iteration} model=${lastActorModel}: approved=${criticResult.approved} confidence=${criticResult.overallConfidence} issues=${criticResult.issues.length} cost=${costLog}`
+      );
+
+      steps.push({
+        iteration,
+        role: "critic",
+        model: CRITIC_MODEL,
+        approved: criticResult.approved,
+        confidence: criticResult.overallConfidence,
+        issueCount: criticResult.issues.length,
+        issues: criticResult.issues,
+        skipped: criticResult.skipped,
+        durationMs: Date.now() - criticStart,
+        usage: criticResult.usage
+          ? {
+              inputTokens: criticResult.usage.inputTokens,
+              outputTokens: criticResult.usage.outputTokens,
+            }
+          : undefined,
+        costUsd: criticCost,
+      });
+
+      if (criticResult.approved) {
+        const totalCostUsd = steps.reduce((s, x) => s + (x.costUsd ?? 0), 0);
+        return {
+          sectionBlock: {
+            section_name: sectionDisplayName,
+            normalized_section: normalizedSection,
+            rows,
+          },
+          meta: { iterations: iteration, criticApproved: true },
+          usages,
+          lastActorModel,
+          sectionTrace: {
+            section: sectionName,
+            iterations: iteration,
+            approved: true,
+            totalCostUsd,
+            steps,
+          },
+          traceStats: {
+            criticSkippedAutoApprove,
+            criticSkippedHeuristic,
+            criticApiCalls,
+            usedSonnetFallback,
+          },
+        };
+      }
+
+      previousIssues = criticResult.issues;
+      iteration += 1;
+    } catch (criticErr) {
+      console.warn(
+        "[critic-actor] Critic failed (non-fatal):",
+        sectionName,
+        criticErr instanceof Error ? criticErr.message : criticErr
+      );
+      steps.push({
+        iteration,
+        role: "critic",
+        model: CRITIC_MODEL,
+        skipped: true,
+        skipReason: criticErr instanceof Error ? criticErr.message : String(criticErr),
+        durationMs: 0,
+        costUsd: 0,
+      });
+      const totalCostUsd = steps.reduce((s, x) => s + (x.costUsd ?? 0), 0);
+      return {
+        sectionBlock: {
+          section_name: sectionDisplayName,
+          normalized_section: normalizedSection,
+          rows,
+        },
+        meta: { iterations: iteration, criticApproved: null },
+        usages,
+        lastActorModel,
+        sectionTrace: {
+          section: sectionName,
+          iterations: iteration,
+          approved: false,
+          totalCostUsd,
+          steps,
+        },
+        traceStats: {
+          criticSkippedAutoApprove,
+          criticSkippedHeuristic,
+          criticApiCalls,
+          usedSonnetFallback,
+        },
+      };
+    }
+  }
+
+  console.warn(`[critic-actor] '${sectionName}' escalated after ${maxIterations} iterations`);
+  const totalCostUsd = steps.reduce((s, x) => s + (x.costUsd ?? 0), 0);
+  return {
+    sectionBlock: {
+      section_name: sectionDisplayName,
+      normalized_section: normalizedSection,
+      rows,
+    },
+    meta: { iterations: maxIterations, criticApproved: false },
+    usages,
+    lastActorModel,
+    sectionTrace: {
+      section: sectionName,
+      iterations: maxIterations,
+      approved: false,
+      totalCostUsd,
+      steps,
+    },
+    traceStats: {
+      criticSkippedAutoApprove,
+      criticSkippedHeuristic,
+      criticApiCalls,
+      usedSonnetFallback,
+    },
+  };
+}
+
+export type CriticRunStats = {
+  approved_direct: number;
+  improved_by_critic: number;
+  escalated: number;
+};
+
 /**
  * Same as extractSection but with a custom system prompt (e.g. with few-shot for auto-correction).
  * Exported for auto-correction.ts; does not use prompt caching.
@@ -378,7 +811,9 @@ export async function extractSectionWithSystemPrompt(
     `Extrahera ENDAST sektionen '${sectionName.replace(/'/g, "\\'")}' från följande text.\nReturnera JSON i exakt detta format utan någon text före eller efter:\n{ "sections": [{ "section_name", "normalized_section", "rows": [...] }] }\n\nText för sektionen:\n` +
     sectionText;
   const content = makeTextContent(prompt);
-  const { text: raw, usage } = await runStreamingCall(client, content, maxTokens, systemPrompt);
+  const { text: raw, usage } = await runStreamingCall(client, content, maxTokens, systemPrompt, {
+    model: ACTOR_MODEL_PRIMARY,
+  });
   const repaired = repairTruncatedJson(raw);
   if (repaired !== raw) {
     console.warn("[extraction] JSON was truncated – attempted repair for section:", sectionName);
@@ -414,7 +849,14 @@ export async function extractSectionWithSystemPrompt(
 export async function callMenuExtractionModel(
   pdfBuffer: Buffer,
   documentId: string
-): Promise<{ result: AIExtractionResult; usage: ExtractionUsage }> {
+): Promise<{
+  result: AIExtractionResult;
+  usage: ExtractionUsage;
+  criticStats: CriticRunStats;
+  usedBatchApi: boolean;
+  perSectionMeta: SectionCriticMeta[];
+  extractionTrace: ExtractionTrace;
+}> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     throw new Error("ANTHROPIC_API_KEY is not set");
@@ -426,39 +868,108 @@ export async function callMenuExtractionModel(
   const sectionNames = extractSectionsFromText(rawText);
   console.warn("[extraction] Found", sectionNames.length, "sections from raw text:", sectionNames);
 
+  let batchMap: Map<string, AIExtractedRow[]> | null = null;
+  let batchUsage: ExtractionUsage | null = null;
+  let usedBatchApi = false;
+
+  if (sectionNames.length > MAX_SECTIONS_FOR_SYNC_BATCH) {
+    try {
+      const batch = await extractSectionsInBatch({ sections: sectionNames, rawText });
+      batchMap = batch.map;
+      batchUsage = batch.usage;
+      usedBatchApi = true;
+      console.warn("[batch-extraction] Batch Actor completed for", sectionNames.length, "sections");
+    } catch (batchErr) {
+      console.warn(
+        "[batch-extraction] Batch failed, using synchronous Actor only:",
+        batchErr instanceof Error ? batchErr.message : batchErr
+      );
+    }
+  }
+
   const limit = pLimit(CONCURRENCY);
   const total = sectionNames.length;
   const allUsages: ExtractionUsage[] = [];
   if (rawTextUsage) allUsages.push(rawTextUsage);
+  if (batchUsage) allUsages.push(batchUsage);
 
-  const results: AIExtractionResult[] = await Promise.all(
+  const sectionBlocks: AISectionBlock[] = [];
+  const perSectionMeta: SectionCriticMeta[] = [];
+  const sectionTraces: SectionTrace[] = [];
+  let traceCriticSkippedAuto = 0;
+  let traceCriticSkippedHeuristic = 0;
+  let traceCriticApi = 0;
+  let traceUsedSonnet = false;
+
+  await Promise.all(
     sectionNames.map((name, index) =>
-      limit(async (): Promise<AIExtractionResult> => {
+      limit(async () => {
         const nextSectionName = sectionNames[index + 1];
-        console.warn("[extraction] Extracting section:", name, `(${index + 1}/${total})`);
-        try {
-          const { result, usage: sectionUsage } = await extractSection(rawText, name, nextSectionName);
-          if (sectionUsage) allUsages.push(sectionUsage);
-          console.warn("[extraction] Completed section:", name);
-          return result;
-        } catch (firstErr) {
-          console.warn("[extraction] Section failed, retrying with higher max_tokens:", name, firstErr instanceof Error ? firstErr.message : String(firstErr));
-          try {
-            const { result, usage: sectionUsage } = await extractSection(rawText, name, nextSectionName, MAX_TOKENS_PER_SECTION_RETRY);
-            if (sectionUsage) allUsages.push(sectionUsage);
-            console.warn("[extraction] Completed section (retry):", name);
-            return result;
-          } catch (retryErr) {
-            const errMsg = retryErr instanceof Error ? retryErr.message : String(retryErr);
-            console.warn("[extraction] Section failed after retry – saving as empty section:", name, "| reason:", errMsg);
-            return {
-              sections: [{ section_name: name, normalized_section: name, rows: [] }],
-            };
-          }
-        }
+        console.warn("[extraction] Section pipeline:", name, `(${index + 1}/${total})`);
+        const initial = batchMap?.get(name) ?? null;
+        const { sectionBlock, meta, usages, sectionTrace, traceStats } =
+          await extractSectionWithCriticLoop({
+            rawText,
+            sectionName: name,
+            nextSectionName,
+            initialActorRows: initial?.length ? initial : null,
+          });
+        for (const u of usages) allUsages.push(u);
+        sectionBlocks[index] = sectionBlock;
+        perSectionMeta[index] = meta;
+        sectionTraces[index] = sectionTrace;
+        traceCriticSkippedAuto += traceStats.criticSkippedAutoApprove;
+        traceCriticSkippedHeuristic += traceStats.criticSkippedHeuristic;
+        traceCriticApi += traceStats.criticApiCalls;
+        traceUsedSonnet = traceUsedSonnet || traceStats.usedSonnetFallback;
+        console.warn("[extraction] Completed section:", name);
       })
     )
   );
+
+  const criticStats: CriticRunStats = {
+    approved_direct: 0,
+    improved_by_critic: 0,
+    escalated: 0,
+  };
+  for (const m of perSectionMeta) {
+    if (m.criticApproved === true && m.iterations === 1) criticStats.approved_direct += 1;
+    else if (m.criticApproved === true && m.iterations > 1) criticStats.improved_by_critic += 1;
+    else if (m.criticApproved === false) criticStats.escalated += 1;
+  }
+
+  const rawTextCostUsd = rawTextUsage
+    ? usageToCostUsd(ACTOR_MODEL_PRIMARY, rawTextUsage)
+    : 0;
+  const batchCostUsd = batchUsage
+    ? usageToCostUsd(ACTOR_MODEL_PRIMARY, batchUsage)
+    : 0;
+  const sectionsCostUsd = sectionTraces.reduce((s, t) => s + (t?.totalCostUsd ?? 0), 0);
+  const totalCostUsdTrace = rawTextCostUsd + batchCostUsd + sectionsCostUsd;
+
+  const traceUsesSonnet = (st: SectionTrace): boolean =>
+    st.steps.some(
+      (step) =>
+        (step.model?.toLowerCase().includes("sonnet") ?? false) ||
+        step.model === ACTOR_MODEL_FALLBACK
+    );
+
+  const extractionTrace: ExtractionTrace = {
+    documentId,
+    totalSections: sectionNames.length,
+    approvedFirstTry: criticStats.approved_direct,
+    improvedByCritic: criticStats.improved_by_critic,
+    escalated: criticStats.escalated,
+    totalIterations: sectionTraces.reduce((s, t) => s + (t?.iterations ?? 0), 0),
+    totalCostUsd: totalCostUsdTrace,
+    rawTextExtractionCostUsd: rawTextCostUsd,
+    batchActorCostUsd: batchCostUsd,
+    criticSkippedAutoApprove: traceCriticSkippedAuto,
+    criticSkippedHeuristic: traceCriticSkippedHeuristic,
+    criticApiCalls: traceCriticApi,
+    usedSonnetFallback: traceUsedSonnet || sectionTraces.some((st) => st && traceUsesSonnet(st)),
+    sections: sectionNames.map((_, i) => sectionTraces[i]).filter((x): x is SectionTrace => x != null),
+  };
 
   const aggregated: ExtractionUsage = {
     input_tokens: allUsages.reduce((sum, u) => sum + u.input_tokens, 0),
@@ -480,9 +991,16 @@ export async function callMenuExtractionModel(
   }
 
   const merged: AIExtractionResult = {
-    sections: results.flatMap((r) => r.sections),
+    sections: sectionBlocks,
   };
-  return { result: merged, usage: aggregated };
+  return {
+    result: merged,
+    usage: aggregated,
+    criticStats,
+    usedBatchApi,
+    perSectionMeta,
+    extractionTrace,
+  };
 }
 
 /**
@@ -494,8 +1012,13 @@ export async function runPhase1ForBatch(
 ): Promise<Record<string, { rawText: string; sectionNames: string[] }>> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set");
+  const attemptAt = new Date().toISOString();
   for (const documentId of documentIds) {
-    await updateMenuDocument(documentId, { extraction_status: "processing", raw_text: null });
+    await updateMenuDocument(documentId, {
+      extraction_status: "processing",
+      raw_text: null,
+      last_extraction_attempt_at: attemptAt,
+    });
   }
   const out: Record<string, { rawText: string; sectionNames: string[] }> = {};
   for (const documentId of documentIds) {
@@ -520,7 +1043,8 @@ export async function runPhase1ForBatch(
 export function mapAIResultToRows(
   documentId: string,
   result: AIExtractionResult,
-  sectionMap: Record<string, string>
+  sectionMap: Record<string, string>,
+  perSectionMeta?: SectionCriticMeta[]
 ): MenuExtractedRowForInsert[] {
   const out: MenuExtractedRowForInsert[] = [];
   let globalRowIndex = 0;
@@ -528,6 +1052,10 @@ export function mapAIResultToRows(
     const section = result.sections[si];
     const sectionId = sectionMap[section.section_name] ?? null;
     const sectionOrder = si;
+    const criticMeta = perSectionMeta?.[si] ?? {
+      iterations: 1,
+      criticApproved: null as boolean | null,
+    };
     for (const aiRow of section.rows) {
       let normalized = applyNormalization(aiRow);
       normalized = tryFillPriceFromRawText(normalized);
@@ -542,8 +1070,8 @@ export function mapAIResultToRows(
         row_index: globalRowIndex,
         page_number: null,
         raw_text: normalized.raw_text,
-        row_type: normalized.row_type,
-        wine_type: normalized.wine_type,
+        row_type: normalized.row_type as RowType,
+        wine_type: normalized.wine_type as WineType | null,
         producer: normalized.producer,
         wine_name: normalized.wine_name,
         vintage: normalized.vintage,
@@ -555,7 +1083,7 @@ export function mapAIResultToRows(
         price_glass: normalized.price_glass,
         price_bottle: normalized.price_bottle,
         price_other: normalized.price_other,
-        currency: normalized.currency,
+        currency: normalized.currency ?? "SEK",
         confidence,
         confidence_label: confidenceLabel,
         needs_review: needsReviewFlag,
@@ -564,6 +1092,8 @@ export function mapAIResultToRows(
         validation_flags: Object.keys(flags).length ? flags : null,
         extraction_version: WORKFLOW_VERSION,
         section_order: sectionOrder,
+        extraction_iterations: criticMeta.iterations,
+        critic_approved: criticMeta.criticApproved,
       });
       globalRowIndex++;
     }
@@ -674,10 +1204,16 @@ export async function extractMenuFromDocument(documentId: string): Promise<Extra
   if (!pdfBuffer || pdfBuffer.length === 0) {
     throw new Error(`Could not download PDF from storage: ${filePath}`);
   }
-  await updateMenuDocument(documentId, { extraction_status: "processing", raw_text: null });
+  const attemptStart = new Date().toISOString();
+  await updateMenuDocument(documentId, {
+    extraction_status: "processing",
+    raw_text: null,
+    last_extraction_attempt_at: attemptStart,
+  });
   try {
-    const { result, usage } = await callMenuExtractionModel(pdfBuffer, documentId);
-    const normalizedRows = mapAIResultToRows(documentId, result, {});
+    const { result, usage, criticStats, usedBatchApi, perSectionMeta, extractionTrace } =
+      await callMenuExtractionModel(pdfBuffer, documentId);
+    const normalizedRows = mapAIResultToRows(documentId, result, {}, perSectionMeta);
     await saveMenuExtractionResult({
       documentId,
       aiRawResponse: result,
@@ -688,15 +1224,32 @@ export async function extractMenuFromDocument(documentId: string): Promise<Extra
       },
       normalizedRows,
     });
-    await updateMenuDocument(documentId, {
-      extraction_status: "completed",
-      extracted_at: new Date().toISOString(),
+    const finishedAt = new Date().toISOString();
+    const completionPayload = {
+      extraction_status: "completed" as const,
+      extracted_at: finishedAt,
+      last_extraction_attempt_at: finishedAt,
       error_message: null,
       extraction_input_tokens: usage.input_tokens,
       extraction_output_tokens: usage.output_tokens,
       extraction_cache_read_input_tokens: usage.cache_read_input_tokens ?? null,
       extraction_cache_creation_input_tokens: usage.cache_creation_input_tokens ?? null,
-    });
+      critic_stats: {
+        approved_direct: criticStats.approved_direct,
+        improved_by_critic: criticStats.improved_by_critic,
+        escalated: criticStats.escalated,
+      },
+      used_batch_api: usedBatchApi,
+      extraction_trace: extractionTrace,
+    };
+    try {
+      await updateMenuDocument(documentId, completionPayload);
+    } catch (traceErr) {
+      console.warn("[extraction] Failed to save extraction_trace (retrying without trace):", traceErr);
+      const { extraction_trace: _omit, ...rest } = completionPayload;
+      await updateMenuDocument(documentId, rest);
+    }
+    console.warn("[extraction] Critic-Actor:", criticStats, "batch_api:", usedBatchApi);
 
     const docAfter = await getMenuDocumentById(documentId);
     const rawText = docAfter?.raw_text?.trim() ?? "";
@@ -720,6 +1273,7 @@ export async function extractMenuFromDocument(documentId: string): Promise<Extra
     await updateMenuDocument(documentId, {
       extraction_status: "failed",
       error_message: message,
+      last_extraction_attempt_at: new Date().toISOString(),
     });
     throw err;
   }

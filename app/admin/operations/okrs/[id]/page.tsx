@@ -10,6 +10,7 @@ import { CreateProjectButton } from "@/components/admin/operations/create-projec
 import { ProjectStatusBadge } from "@/components/admin/operations/project-status-badge"
 import { AddKeyResultButton } from "@/components/admin/operations/add-key-result-button"
 import { CreateObjectiveButton } from "@/components/admin/operations/create-objective-button"
+import { CreatedMetaLine } from "@/components/admin/operations/created-meta-line"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Link from "next/link"
 import type { Task, KeyResult, ProjectStatus } from "@/lib/types/operations"
@@ -59,8 +60,8 @@ export default async function ObjectiveDetailPage({ params }: PageProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-2">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium text-gray-500 dark:text-zinc-400">
               {objective.period}
@@ -74,7 +75,7 @@ export default async function ObjectiveDetailPage({ params }: PageProps) {
             )}
             <ObjectiveStatusBadge status={objective.status} />
           </div>
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl break-words">
             {objective.title}
           </h1>
           {objective.owner && (
@@ -82,12 +83,19 @@ export default async function ObjectiveDetailPage({ params }: PageProps) {
               Owner: {objective.owner.email}
             </p>
           )}
+          <CreatedMetaLine
+            createdAt={objective.created_at}
+            creatorEmail={objective.creator?.email}
+            showUnknownIfNoCreator={Boolean(objective.created_by)}
+          />
         </div>
-        <CreateObjectiveButton
-          admins={admins}
-          objective={objective}
-          label="Edit Objective"
-        />
+        <div className="w-full shrink-0 sm:w-auto [&_button]:w-full sm:[&_button]:w-auto">
+          <CreateObjectiveButton
+            admins={admins}
+            objective={objective}
+            label="Edit Objective"
+          />
+        </div>
       </div>
 
       {/* Progress card */}
@@ -111,34 +119,34 @@ export default async function ObjectiveDetailPage({ params }: PageProps) {
 
       {/* Tabs */}
       <Tabs defaultValue="key_results">
-        <TabsList className="bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800 rounded-xl p-1">
+        <TabsList className="h-auto min-h-10 w-full min-w-0 flex-wrap justify-start gap-1 bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800 rounded-xl p-1 sm:inline-flex sm:flex-nowrap">
           <TabsTrigger
             value="key_results"
-            className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm text-xs font-medium"
+            className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm text-xs font-medium shrink-0"
           >
             Key Results ({objective.key_results?.length ?? 0})
           </TabsTrigger>
           <TabsTrigger
             value="projects"
-            className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm text-xs font-medium"
+            className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm text-xs font-medium shrink-0"
           >
             Projects ({projects.length})
           </TabsTrigger>
           <TabsTrigger
             value="tasks"
-            className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm text-xs font-medium"
+            className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm text-xs font-medium shrink-0"
           >
             Tasks ({tasks.length})
           </TabsTrigger>
         </TabsList>
 
         {/* Key Results */}
-        <TabsContent value="key_results" className="mt-4 space-y-4">
-          <div className="flex justify-end">
+        <TabsContent value="key_results" className="mt-4 space-y-4 min-w-0">
+          <div className="flex justify-stretch sm:justify-end [&_button]:w-full sm:[&_button]:w-auto">
             <AddKeyResultButton objective_id={objective.id} />
           </div>
 
-          <div className="rounded-xl border border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-[#0F0F12] px-4">
+          <div className="rounded-xl border border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-[#0F0F12] px-3 sm:px-4 min-w-0">
             {(!objective.key_results || objective.key_results.length === 0) && (
               <p className="text-sm text-gray-500 dark:text-gray-400 py-8 text-center">
                 No key results yet
@@ -151,8 +159,8 @@ export default async function ObjectiveDetailPage({ params }: PageProps) {
         </TabsContent>
 
         {/* Projects */}
-        <TabsContent value="projects" className="mt-4 space-y-4">
-          <div className="flex justify-end">
+        <TabsContent value="projects" className="mt-4 space-y-4 min-w-0">
+          <div className="flex justify-stretch sm:justify-end [&_button]:w-full sm:[&_button]:w-auto">
             <CreateProjectButton
               objectives={objectives}
               admins={admins}
@@ -193,8 +201,8 @@ export default async function ObjectiveDetailPage({ params }: PageProps) {
         </TabsContent>
 
         {/* Tasks */}
-        <TabsContent value="tasks" className="mt-4 space-y-4">
-          <div className="flex justify-end">
+        <TabsContent value="tasks" className="mt-4 space-y-4 min-w-0">
+          <div className="flex justify-stretch sm:justify-end [&_button]:w-full sm:[&_button]:w-auto">
             <CreateTaskButton
               projects={projects.map((p: { id: string; name: string }) => ({
                 id: p.id,

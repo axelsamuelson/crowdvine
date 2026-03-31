@@ -7,6 +7,7 @@ import { StrategicBreadcrumb } from "@/components/admin/operations/strategic-bre
 import { TaskTable } from "@/components/admin/operations/task-table"
 import { CreateTaskButton } from "@/components/admin/operations/create-task-button"
 import { CreateProjectButton } from "@/components/admin/operations/create-project-button"
+import { CreatedMetaLine } from "@/components/admin/operations/created-meta-line"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Link from "next/link"
 import { ExternalLink } from "lucide-react"
@@ -79,12 +80,12 @@ export default async function ProjectDetailPage({ params }: PageProps) {
       )}
 
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-2">
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 space-y-2">
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl break-words">
             {project.name}
           </h1>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <ProjectStatusBadge status={project.status} />
             <span className="text-sm text-gray-500 dark:text-gray-400 capitalize">
               {project.priority} priority
@@ -95,13 +96,20 @@ export default async function ProjectDetailPage({ params }: PageProps) {
               </span>
             )}
           </div>
+          <CreatedMetaLine
+            createdAt={project.created_at}
+            creatorEmail={project.creator?.email}
+            showUnknownIfNoCreator={Boolean(project.created_by)}
+          />
         </div>
-        <CreateProjectButton
-          objectives={objectives}
-          admins={admins}
-          project={project}
-          label="Edit Project"
-        />
+        <div className="w-full shrink-0 sm:w-auto [&_button]:w-full sm:[&_button]:w-auto">
+          <CreateProjectButton
+            objectives={objectives}
+            admins={admins}
+            project={project}
+            label="Edit Project"
+          />
+        </div>
       </div>
 
       {/* Progress */}
@@ -117,7 +125,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         <ProgressBar value={project.progress ?? 0} showLabel={false} />
 
         {/* Stat row */}
-        <div className="grid grid-cols-4 gap-4 pt-2 border-t border-gray-100 dark:border-[#1F1F23]">
+        <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-100 dark:border-[#1F1F23] sm:grid-cols-4 sm:gap-4">
           {statuses.map((s) => (
             <div key={s.label} className="text-center">
               <p className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -133,8 +141,8 @@ export default async function ProjectDetailPage({ params }: PageProps) {
 
       {/* Objective link */}
       {project.objective && (
-        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-          <span>Linked to objective:</span>
+        <div className="flex flex-col gap-1 text-sm text-gray-600 dark:text-gray-400 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
+          <span className="shrink-0">Linked to objective:</span>
           <Link
             href={`/admin/operations/okrs/${project.objective_id}`}
             className="flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
@@ -147,23 +155,23 @@ export default async function ProjectDetailPage({ params }: PageProps) {
 
       {/* Tabs */}
       <Tabs defaultValue="tasks">
-        <TabsList className="bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800 rounded-xl p-1">
+        <TabsList className="h-auto min-h-10 w-full min-w-0 flex-wrap justify-start gap-1 bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800 rounded-xl p-1 sm:inline-flex sm:flex-nowrap">
           <TabsTrigger
             value="tasks"
-            className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm text-xs font-medium"
+            className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm text-xs font-medium shrink-0"
           >
             Tasks ({tasks.length})
           </TabsTrigger>
           <TabsTrigger
             value="details"
-            className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm text-xs font-medium"
+            className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm text-xs font-medium shrink-0"
           >
             Details
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="tasks" className="space-y-4 mt-4">
-          <div className="flex justify-end">
+        <TabsContent value="tasks" className="space-y-4 mt-4 min-w-0">
+          <div className="flex justify-stretch sm:justify-end [&_button]:w-full sm:[&_button]:w-auto">
             <CreateTaskButton
               projects={[{ id: project.id, name: project.name }]}
               objectives={objectives}

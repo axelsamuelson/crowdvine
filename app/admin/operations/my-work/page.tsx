@@ -88,20 +88,22 @@ export default async function MyWorkPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl">
             My Work
           </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 truncate">
             {admin?.email}
           </p>
         </div>
-        <CreateTaskButton
-          projects={projects}
-          objectives={objectives}
-          admins={admins}
-        />
+        <div className="w-full shrink-0 sm:w-auto [&_button]:w-full sm:[&_button]:w-auto">
+          <CreateTaskButton
+            projects={projects}
+            objectives={objectives}
+            admins={admins}
+          />
+        </div>
       </div>
 
       {/* Stat row */}

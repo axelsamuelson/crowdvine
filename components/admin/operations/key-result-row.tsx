@@ -65,8 +65,8 @@ export function KeyResultRow({ kr }: Props) {
 
   return (
     <>
-      <div className="flex items-center gap-4 py-3 border-b border-gray-100 dark:border-[#1F1F23] last:border-0">
-        <div className="flex-1 min-w-0 space-y-1.5">
+      <div className="flex flex-col gap-3 py-3 border-b border-gray-100 dark:border-[#1F1F23] last:border-0 sm:flex-row sm:items-center sm:gap-4">
+        <div className="min-w-0 flex-1 space-y-1.5">
           <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
             {kr.title}
           </p>
@@ -78,7 +78,7 @@ export function KeyResultRow({ kr }: Props) {
           <ProgressBar value={progress} size="sm" />
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2 sm:justify-start">
           {kr.type === "binary" ? (
             <div className="flex items-center gap-2">
               <Button
@@ -130,7 +130,7 @@ export function KeyResultRow({ kr }: Props) {
           )}
 
           {kr.due_date && (
-            <span className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">
+            <span className="w-full text-right text-xs text-gray-500 dark:text-gray-400 sm:w-auto sm:text-left">
               {kr.due_date}
             </span>
           )}

@@ -3,6 +3,8 @@
  * No other logic.
  */
 
+import type { CriticIssue } from "./types";
+
 export const MENU_EXTRACTION_PROMPT_VERSION = "menu-extraction-v1";
 
 export const MENU_EXTRACTION_SYSTEM_PROMPT = `
@@ -130,5 +132,56 @@ export function buildExtractionPromptWithFewShot(fewShotBlock: string): string {
     "\n\nTIDIGARE KORRIGERINGAR – lär dig av dessa exempel:\n" +
     fewShotBlock +
     "\n\nAnvänd dessa exempel för att undvika samma misstag."
+  );
+}
+
+/** Critic: komprimerad systemprompt (instruktioner + schema). */
+export const MENU_EXTRACTION_CRITIC_PROMPT = `Granska vindata-extraktion mot råtext.
+
+Kontrollera per rad:
+- Stämmer producent, vinnamn, årgång mot råtexten?
+- Är priser korrekt tolkade (glas/flaska/annat)?
+- Saknas vinrader som finns i råtexten?
+- Är raden felklassificerad (header tolkad som vin)?
+
+Godkänn om allt stämmer. Neka med specifika issues annars.
+
+Returnera JSON utan text före eller efter:
+{
+  "approved": true/false,
+  "overallConfidence": 0.0-1.0,
+  "issues": [
+    {
+      "rowIndex": N,
+      "field": "producer|wine_name|vintage|price_glass|price_bottle|row_type",
+      "problem": "vad som är fel",
+      "suggestion": "vad det borde vara"
+    }
+  ],
+  "summary": "kort förklaring max 20 ord"
+}`;
+
+/** Ephemeral cache padding for Critic system (≥ cache minimum when combined with prompt). */
+export const MENU_EXTRACTION_CRITIC_CACHE_PADDING = `
+CRITIC – regler: rowIndex är 0-baserad index i "rows". Fältnamn: producer, wine_name, vintage, price_glass, price_bottle, raw_text, etc.
+Om råtexten visar ett vin som saknas i JSON: approved false, issue med tydlig suggestion.
+Om pris i JSON inte matchar råtext: approved false.
+Om allt matchar: approved true, issues [].
+`.repeat(8);
+
+/** Appends Critic feedback for Actor re-extraction (iteration > 1). */
+export function buildPromptWithCriticFeedback(
+  baseUserPrompt: string,
+  issues: CriticIssue[]
+): string {
+  if (!issues.length) return baseUserPrompt;
+  const lines = issues.map(
+    (i, idx) =>
+      `${idx + 1}. Rad ${i.rowIndex} fält "${i.field}": ${i.problem} → ${i.suggestion}`
+  );
+  return (
+    baseUserPrompt +
+    "\n\nRÄTTA DESSA SPECIFIKA FEL FRÅN FÖREGÅENDE FÖRSÖK:\n" +
+    lines.join("\n")
   );
 }

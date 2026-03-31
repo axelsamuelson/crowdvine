@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Sidebar } from "@/components/admin/sidebar";
 import { AdminTopNav } from "@/components/admin/admin-top-nav";
 import { Button } from "@/components/ui/button";
@@ -12,12 +12,144 @@ interface AdminLayoutClientProps {
   onSignOut: () => void;
 }
 
+function debugScrollLog(payload: Record<string, unknown>) {
+  if (process.env.NODE_ENV !== "development") return;
+  fetch("/api/debug/scroll-log", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  }).catch(() => {});
+}
+
 export function AdminLayoutClient({
   children,
   userEmail,
   onSignOut,
 }: AdminLayoutClientProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const mainRef = useRef<HTMLElement | null>(null);
+  const logCountRef = useRef(0);
+
+  useEffect(() => {
+    const el = mainRef.current;
+    if (!el) return;
+
+    // #region scroll debug log
+    debugScrollLog({
+      hypothesisId: "H3",
+      location: "admin-layout-client:init",
+      message: "Admin main metrics",
+      data: {
+        clientHeight: el.clientHeight,
+        scrollHeight: el.scrollHeight,
+        overflowY: window.getComputedStyle(el).overflowY,
+        overflowX: window.getComputedStyle(el).overflowX,
+      },
+      timestamp: Date.now(),
+    });
+    // #endregion
+
+    const emit = (hypothesisId: string, message: string) => {
+      if (logCountRef.current >= 8) return;
+      logCountRef.current += 1;
+      // #region scroll debug log
+      debugScrollLog({
+        hypothesisId,
+        location: "admin-layout-client:main",
+        message,
+        data: {
+          scrollTop: el.scrollTop,
+          clientHeight: el.clientHeight,
+          scrollHeight: el.scrollHeight,
+        },
+        timestamp: Date.now(),
+      });
+      // #endregion
+    };
+
+    const onScroll = () => emit("H3", "Main scrolled");
+    const onTouchMove = () => emit("H4", "Main touchmove observed");
+
+    el.addEventListener("scroll", onScroll, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: true });
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      el.removeEventListener("touchmove", onTouchMove);
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    if (process.env.NODE_ENV !== "development") return;
+    const el = mainRef.current;
+    if (!el) return;
+
+    const log = (hypothesisId: string, message: string, data: object) => {
+      // #region agent log
+      fetch("/api/debug/agent-log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: "aae6fd",
+          hypothesisId,
+          location: "admin-layout-client.tsx:scrollProbe",
+          message,
+          data,
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
+    };
+
+    const cs = window.getComputedStyle(el);
+    log("H4", "main scrollability snapshot", {
+      clientHeight: el.clientHeight,
+      scrollHeight: el.scrollHeight,
+      scrollTop: el.scrollTop,
+      overflowY: cs.overflowY,
+      overflowX: cs.overflowX,
+      canScrollY: el.scrollHeight > el.clientHeight + 1,
+    });
+
+    let touchMoves = 0;
+    const onDocTouchMove = (e: TouchEvent) => {
+      if (touchMoves >= 14) return;
+      touchMoves += 1;
+      const t = e.target;
+      log("H5", "document capture touchmove", {
+        n: touchMoves,
+        targetTag: t instanceof Element ? t.tagName : "?",
+        targetClass:
+          t instanceof Element ? (t as HTMLElement).className?.slice?.(0, 80) : "",
+        mainScrollTop: el.scrollTop,
+        mainScrollHeight: el.scrollHeight,
+        mainClientHeight: el.clientHeight,
+        defaultPrevented: e.defaultPrevented,
+      });
+    };
+
+    let scrollEvents = 0;
+    const onMainScroll = () => {
+      if (scrollEvents >= 8) return;
+      scrollEvents += 1;
+      log("H5", "main scroll fired", {
+        n: scrollEvents,
+        scrollTop: el.scrollTop,
+      });
+    };
+
+    document.addEventListener("touchmove", onDocTouchMove, {
+      capture: true,
+      passive: true,
+    });
+    el.addEventListener("scroll", onMainScroll, { passive: true });
+
+    return () => {
+      document.removeEventListener("touchmove", onDocTouchMove, {
+        capture: true,
+      });
+      el.removeEventListener("scroll", onMainScroll);
+    };
+  }, []);
 
   return (
     <div className="flex h-screen bg-white dark:bg-[#0F0F12]">
@@ -43,8 +175,14 @@ export function AdminLayoutClient({
             <AdminTopNav userEmail={userEmail} onSignOut={onSignOut} />
           </div>
         </header>
-        <main className="flex-1 overflow-auto p-6 bg-white dark:bg-[#0F0F12] text-gray-900 dark:text-zinc-100">
-          <div className="max-w-7xl mx-auto">{children}</div>
+        {/* min-h-0: flex child must shrink so overflow-auto on main is the scroll container (fixes wheel over tables). */}
+        <main
+          ref={(node) => {
+            mainRef.current = node;
+          }}
+          className="flex-1 min-h-0 overflow-auto p-6 bg-white dark:bg-[#0F0F12] text-gray-900 dark:text-zinc-100"
+        >
+          <div className="max-w-7xl mx-auto min-h-0">{children}</div>
         </main>
       </div>
     </div>

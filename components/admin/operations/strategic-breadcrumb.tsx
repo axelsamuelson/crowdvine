@@ -51,24 +51,24 @@ export function StrategicBreadcrumb({
   const isUnlinked = levels.length === 0
 
   return (
-    <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 flex-wrap">
+    <div className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
       {levels.map((level, i) => (
-        <span key={i} className="flex items-center gap-1">
-          <span className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
+        <span key={i} className="flex min-w-0 max-w-full items-center gap-1">
+          <span className="shrink-0 text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
             {level.label}
           </span>
           <Link
             href={level.href}
-            className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors truncate max-w-[180px]"
+            className="min-w-0 max-w-[min(100%,14rem)] truncate hover:text-gray-900 dark:hover:text-gray-100 transition-colors sm:max-w-[220px]"
             title={level.title}
           >
             {level.title}
           </Link>
-          <ChevronRight className="h-3 w-3 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+          <ChevronRight className="h-3 w-3 shrink-0 text-gray-400 dark:text-gray-500" />
         </span>
       ))}
 
-      <span className="font-medium text-gray-900 dark:text-gray-100 truncate max-w-[200px]">
+      <span className="min-w-0 flex-1 basis-full break-words font-medium text-gray-900 dark:text-gray-100 sm:basis-auto sm:truncate sm:max-w-md">
         {current}
       </span>
 

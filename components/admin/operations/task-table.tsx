@@ -27,6 +27,7 @@ import { Unlink, Trash2, Pencil } from "lucide-react"
 import { TaskStatusBadge } from "./task-status-badge"
 import { TaskPriorityBadge } from "./task-priority-badge"
 import { TaskFormDialog } from "./task-form-dialog"
+import { formatOpsDateTimeSv } from "./created-meta-line"
 import { deleteTask } from "@/lib/actions/operations"
 import type {
   Task,
@@ -98,8 +99,8 @@ export function TaskTable({
 
   return (
     <>
-      <div className="rounded-xl border border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-[#0F0F12] overflow-hidden">
-        <Table>
+      <div className="rounded-xl border border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-[#0F0F12] overflow-hidden min-w-0">
+        <Table scrollContainer className="min-w-[920px]">
           <TableHeader>
             <TableRow className="bg-gray-50 dark:bg-zinc-900/70 border-b border-gray-200 dark:border-zinc-800">
               <TableHead className="w-10 text-xs font-medium text-gray-600 dark:text-zinc-400">
@@ -118,6 +119,9 @@ export function TaskTable({
               <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">Due Date</TableHead>
               {showProject && <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">Project</TableHead>}
               {showObjective && <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">Objective</TableHead>}
+              <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400 min-w-[100px]">
+                Skapad
+              </TableHead>
               <TableHead className="w-20 text-xs font-medium text-gray-600 dark:text-zinc-400" />
             </TableRow>
           </TableHeader>
@@ -126,7 +130,7 @@ export function TaskTable({
               <TableRow>
                 <TableCell
                   colSpan={
-                    7 + (showProject ? 1 : 0) + (showObjective ? 1 : 0)
+                    8 + (showProject ? 1 : 0) + (showObjective ? 1 : 0)
                   }
                   className="text-center py-10 text-gray-600 dark:text-gray-400"
                 >
@@ -210,6 +214,24 @@ export function TaskTable({
                     </span>
                   </TableCell>
                 )}
+
+                <TableCell className="text-xs text-gray-600 dark:text-zinc-400 align-top max-w-[130px]">
+                  <div className="whitespace-nowrap">
+                    {formatOpsDateTimeSv(task.created_at)}
+                  </div>
+                  {task.creator?.email ? (
+                    <div
+                      className="truncate mt-0.5 text-gray-700 dark:text-zinc-300"
+                      title={task.creator.email}
+                    >
+                      {task.creator.email}
+                    </div>
+                  ) : (
+                    <div className="text-gray-500 dark:text-zinc-500 mt-0.5 italic">
+                      Okänd
+                    </div>
+                  )}
+                </TableCell>
 
                 <TableCell onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center gap-1">

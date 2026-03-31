@@ -54,6 +54,9 @@ export function TaskDetailActions({
     }
   }
 
+  const fieldClass =
+    "h-9 text-sm rounded-lg border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-zinc-900/40 text-gray-900 dark:text-zinc-100"
+
   return (
     <div className="rounded-xl border border-gray-200 dark:border-[#1F1F23] p-4 bg-white dark:bg-[#0F0F12] space-y-4">
       <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -68,7 +71,7 @@ export function TaskDetailActions({
           onValueChange={(v) => handleUpdate("status", v)}
           disabled={saving}
         >
-          <SelectTrigger className="h-8 text-sm">
+          <SelectTrigger className={fieldClass}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -90,7 +93,7 @@ export function TaskDetailActions({
           onValueChange={(v) => handleUpdate("priority", v)}
           disabled={saving}
         >
-          <SelectTrigger className="h-8 text-sm">
+          <SelectTrigger className={fieldClass}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -112,7 +115,7 @@ export function TaskDetailActions({
           }
           disabled={saving}
         >
-          <SelectTrigger className="h-8 text-sm">
+          <SelectTrigger className={fieldClass}>
             <SelectValue placeholder="Unassigned" />
           </SelectTrigger>
           <SelectContent>
@@ -131,7 +134,7 @@ export function TaskDetailActions({
         <Label className="text-xs text-gray-600 dark:text-gray-400">Due Date</Label>
         <Input
           type="date"
-          className="h-8 text-sm"
+          className={fieldClass}
           defaultValue={task.due_date ?? ""}
           onChange={(e) =>
             handleUpdate("due_date", e.target.value || null)
@@ -151,7 +154,7 @@ export function TaskDetailActions({
             }
             disabled={saving}
           >
-            <SelectTrigger className="h-8 text-sm flex-1">
+            <SelectTrigger className={`${fieldClass} flex-1`}>
               <SelectValue placeholder="No project" />
             </SelectTrigger>
             <SelectContent>
@@ -185,7 +188,7 @@ export function TaskDetailActions({
             }
             disabled={saving}
           >
-            <SelectTrigger className="h-8 text-sm flex-1">
+            <SelectTrigger className={`${fieldClass} flex-1`}>
               <SelectValue placeholder="No objective" />
             </SelectTrigger>
             <SelectContent>
@@ -215,7 +218,7 @@ export function TaskDetailActions({
           type="number"
           step="0.5"
           min="0"
-          className="h-8 text-sm"
+          className={fieldClass}
           defaultValue={task.estimated_hours ?? ""}
           onChange={(e) =>
             handleUpdate(
@@ -230,11 +233,17 @@ export function TaskDetailActions({
       {/* Meta */}
       <div className="pt-2 border-t border-gray-100 dark:border-[#1F1F23] space-y-1">
         <p className="text-xs text-gray-500 dark:text-gray-400">
-          Created {new Date(task.created_at).toLocaleDateString()}
+          Created{" "}
+          {new Date(task.created_at).toLocaleDateString("sv-SE", {
+            timeZone: "UTC",
+          })}
         </p>
         {task.completed_at && (
           <p className="text-xs text-green-600 dark:text-green-400">
-            Completed {new Date(task.completed_at).toLocaleDateString()}
+            Completed{" "}
+            {new Date(task.completed_at).toLocaleDateString("sv-SE", {
+              timeZone: "UTC",
+            })}
           </p>
         )}
       </div>

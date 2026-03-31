@@ -51,6 +51,13 @@ async function logActivity(
   })
 }
 
+/** Standard admin_tasks-rad: projekt, objective, assignee, skapare. */
+const ADMIN_TASK_SELECT = `*,
+  project:admin_projects(id, name),
+  objective:admin_objectives(id, title),
+  assignee:profiles!admin_tasks_assigned_to_fkey(id, email),
+  creator:profiles!admin_tasks_created_by_fkey(id, email)`
+
 // ─── Progress-beräkning ──────────────────────────────────────
 
 import {
@@ -67,14 +74,7 @@ export async function getTasks(filters: TaskFilters = {}): Promise<Task[]> {
 
   let query = sb
     .from("admin_tasks")
-    .select(
-      `
-      *,
-      project:admin_projects(id, name),
-      objective:admin_objectives(id, title),
-      assignee:profiles!admin_tasks_assigned_to_fkey(id, email)
-    `
-    )
+    .select(ADMIN_TASK_SELECT)
     .order("created_at", { ascending: false })
 
   if (!filters.include_deleted) {
@@ -130,10 +130,7 @@ export async function getTask(id: string): Promise<TaskDetail> {
     .from("admin_tasks")
     .select(
       `
-      *,
-      project:admin_projects(id, name),
-      objective:admin_objectives(id, title),
-      assignee:profiles!admin_tasks_assigned_to_fkey(id, email),
+      ${ADMIN_TASK_SELECT},
       comments:admin_task_comments(
         *,
         author:profiles!admin_task_comments_author_id_fkey(id, email)
@@ -143,9 +140,8 @@ export async function getTask(id: string): Promise<TaskDetail> {
         actor:profiles!admin_task_activity_actor_id_fkey(id, email)
       ),
       entity_links:admin_entity_links(*),
-      subtasks:admin_tasks!admin_tasks_parent_task_id_fkey(
-        *,
-        assignee:profiles!admin_tasks_assigned_to_fkey(id, email)
+      subtasks:admin_tasks!parent_task_id(
+        ${ADMIN_TASK_SELECT}
       )
     `
     )
@@ -153,7 +149,16 @@ export async function getTask(id: string): Promise<TaskDetail> {
     .is("deleted_at", null)
     .single()
 
-  if (error) throw new Error(error.message)
+  // Supabase/PostgREST returns an error for `.single()` when no rows are found.
+  // Treat "no rows" as not-found so the UI can render a graceful empty state.
+  if (error) {
+    const code = (error as any)?.code as string | undefined
+    const msg = (error as any)?.message as string | undefined
+    if (code === "PGRST116" || msg?.toLowerCase().includes("0 rows")) {
+      return null as unknown as TaskDetail
+    }
+    throw new Error(error.message)
+  }
 
   // Hämta dependencies separat
   const { data: deps } = await sb
@@ -191,14 +196,7 @@ export async function createTask(data: CreateTaskData): Promise<Task> {
       ...data,
       created_by: actor_id,
     })
-    .select(
-      `
-      *,
-      project:admin_projects(id, name),
-      objective:admin_objectives(id, title),
-      assignee:profiles!admin_tasks_assigned_to_fkey(id, email)
-    `
-    )
+    .select(ADMIN_TASK_SELECT)
     .single()
 
   if (error) throw new Error(error.message)
@@ -208,6 +206,7 @@ export async function createTask(data: CreateTaskData): Promise<Task> {
   revalidatePath("/admin/operations")
   revalidatePath("/admin/operations/tasks")
   revalidatePath("/admin/operations/my-work")
+  revalidatePath(`/admin/operations/tasks/${task.id}`)
 
   return task
 }
@@ -242,14 +241,7 @@ export async function updateTask(
     .from("admin_tasks")
     .update(updates)
     .eq("id", id)
-    .select(
-      `
-      *,
-      project:admin_projects(id, name),
-      objective:admin_objectives(id, title),
-      assignee:profiles!admin_tasks_assigned_to_fkey(id, email)
-    `
-    )
+    .select(ADMIN_TASK_SELECT)
     .single()
 
   if (error) throw new Error(error.message)
@@ -405,7 +397,8 @@ export async function getProjects(
       `
       *,
       objective:admin_objectives(id, title),
-      owner:profiles!admin_projects_owner_id_fkey(id, email)
+      owner:profiles!admin_projects_owner_id_fkey(id, email),
+      creator:profiles!admin_projects_created_by_fkey(id, email)
     `
     )
     .order("created_at", { ascending: false })
@@ -468,7 +461,8 @@ export async function getProject(id: string) {
       `
       *,
       objective:admin_objectives(id, title),
-      owner:profiles!admin_projects_owner_id_fkey(id, email)
+      owner:profiles!admin_projects_owner_id_fkey(id, email),
+      creator:profiles!admin_projects_created_by_fkey(id, email)
     `
     )
     .eq("id", id)
@@ -479,12 +473,7 @@ export async function getProject(id: string) {
 
   const { data: tasks } = await sb
     .from("admin_tasks")
-    .select(
-      `
-      *,
-      assignee:profiles!admin_tasks_assigned_to_fkey(id, email)
-    `
-    )
+    .select(ADMIN_TASK_SELECT)
     .eq("project_id", id)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
@@ -506,15 +495,17 @@ export async function createProject(
   data: CreateProjectData
 ): Promise<Project> {
   const sb = getSupabaseAdmin()
+  const actor_id = await getActorId()
 
   const { data: project, error } = await sb
     .from("admin_projects")
-    .insert(data)
+    .insert({ ...data, created_by: actor_id })
     .select(
       `
       *,
       objective:admin_objectives(id, title),
-      owner:profiles!admin_projects_owner_id_fkey(id, email)
+      owner:profiles!admin_projects_owner_id_fkey(id, email),
+      creator:profiles!admin_projects_created_by_fkey(id, email)
     `
     )
     .single()
@@ -541,7 +532,8 @@ export async function updateProject(
       `
       *,
       objective:admin_objectives(id, title),
-      owner:profiles!admin_projects_owner_id_fkey(id, email)
+      owner:profiles!admin_projects_owner_id_fkey(id, email),
+      creator:profiles!admin_projects_created_by_fkey(id, email)
     `
     )
     .single()
@@ -581,7 +573,8 @@ export async function getObjectives(
       `
       *,
       key_results:admin_key_results(*),
-      owner:profiles!admin_objectives_owner_id_fkey(id, email)
+      owner:profiles!admin_objectives_owner_id_fkey(id, email),
+      creator:profiles!admin_objectives_created_by_fkey(id, email)
     `
     )
     .order("created_at", { ascending: false })
@@ -652,7 +645,8 @@ export async function getObjective(id: string) {
       `
       *,
       key_results:admin_key_results(*),
-      owner:profiles!admin_objectives_owner_id_fkey(id, email)
+      owner:profiles!admin_objectives_owner_id_fkey(id, email),
+      creator:profiles!admin_objectives_created_by_fkey(id, email)
     `
     )
     .eq("id", id)
@@ -666,7 +660,8 @@ export async function getObjective(id: string) {
     .select(
       `
       *,
-      owner:profiles!admin_projects_owner_id_fkey(id, email)
+      owner:profiles!admin_projects_owner_id_fkey(id, email),
+      creator:profiles!admin_projects_created_by_fkey(id, email)
     `
     )
     .eq("objective_id", id)
@@ -676,9 +671,7 @@ export async function getObjective(id: string) {
     .from("admin_tasks")
     .select(
       `
-      *,
-      assignee:profiles!admin_tasks_assigned_to_fkey(id, email),
-      project:admin_projects(id, name)
+      ${ADMIN_TASK_SELECT}
     `
     )
     .eq("objective_id", id)
@@ -700,15 +693,17 @@ export async function createObjective(
   data: CreateObjectiveData
 ): Promise<Objective> {
   const sb = getSupabaseAdmin()
+  const actor_id = await getActorId()
 
   const { data: objective, error } = await sb
     .from("admin_objectives")
-    .insert(data)
+    .insert({ ...data, created_by: actor_id })
     .select(
       `
       *,
       key_results:admin_key_results(*),
-      owner:profiles!admin_objectives_owner_id_fkey(id, email)
+      owner:profiles!admin_objectives_owner_id_fkey(id, email),
+      creator:profiles!admin_objectives_created_by_fkey(id, email)
     `
     )
     .single()
@@ -735,7 +730,8 @@ export async function updateObjective(
       `
       *,
       key_results:admin_key_results(*),
-      owner:profiles!admin_objectives_owner_id_fkey(id, email)
+      owner:profiles!admin_objectives_owner_id_fkey(id, email),
+      creator:profiles!admin_objectives_created_by_fkey(id, email)
     `
     )
     .single()
@@ -835,14 +831,7 @@ export async function getMyWork() {
 
   const { data: tasks, error } = await sb
     .from("admin_tasks")
-    .select(
-      `
-      *,
-      project:admin_projects(id, name),
-      objective:admin_objectives(id, title),
-      assignee:profiles!admin_tasks_assigned_to_fkey(id, email)
-    `
-    )
+    .select(ADMIN_TASK_SELECT)
     .eq("assigned_to", actor_id)
     .is("deleted_at", null)
     .not("status", "in", '("done","cancelled")')
@@ -909,13 +898,7 @@ export async function getOperationsDashboard() {
       .eq("status", "active"),
     sb
       .from("admin_tasks")
-      .select(
-        `
-        *,
-        project:admin_projects(id, name),
-        objective:admin_objectives(id, title)
-      `
-      )
+      .select(ADMIN_TASK_SELECT)
       .eq("assigned_to", actor_id)
       .is("deleted_at", null)
       .not("status", "in", '("done","cancelled")')
@@ -924,13 +907,7 @@ export async function getOperationsDashboard() {
       .order("due_date", { ascending: true }),
     sb
       .from("admin_tasks")
-      .select(
-        `
-        *,
-        project:admin_projects(id, name),
-        assignee:profiles!admin_tasks_assigned_to_fkey(id, email)
-      `
-      )
+      .select(ADMIN_TASK_SELECT)
       .is("deleted_at", null)
       .eq("status", "blocked")
       .order("updated_at", { ascending: false })

@@ -16,22 +16,30 @@ export async function GET(request: NextRequest) {
     const docIds = sources
       .map((s) => (s as { latest_document_id?: string | null }).latest_document_id)
       .filter(Boolean) as string[];
-    let docMap: Record<string, { file_name: string; extraction_status: string }> = {};
+    let docMap: Record<
+      string,
+      { file_name: string; extraction_status: string; last_extraction_attempt_at: string | null }
+    > = {};
     if (docIds.length > 0) {
       const sb = getSupabaseAdmin();
       const { data: docs } = await sb
         .from("menu_documents")
-        .select("id, file_name, extraction_status")
+        .select("id, file_name, extraction_status, last_extraction_attempt_at")
         .in("id", docIds);
       docMap = (docs ?? []).reduce(
         (acc, d) => {
           acc[(d as { id: string }).id] = {
             file_name: (d as { file_name: string }).file_name,
             extraction_status: (d as { extraction_status: string }).extraction_status,
+            last_extraction_attempt_at:
+              (d as { last_extraction_attempt_at: string | null }).last_extraction_attempt_at ?? null,
           };
           return acc;
         },
-        {} as Record<string, { file_name: string; extraction_status: string }>
+        {} as Record<
+          string,
+          { file_name: string; extraction_status: string; last_extraction_attempt_at: string | null }
+        >
       );
     }
     const withDocs = sources.map((s) => {

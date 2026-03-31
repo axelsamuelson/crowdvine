@@ -55,6 +55,7 @@ interface MenuDocument {
   extraction_status: ExtractionStatus;
   created_at?: string;
   extracted_at?: string | null;
+  last_extraction_attempt_at?: string | null;
   model_version?: string | null;
   prompt_version?: string | null;
   workflow_version?: string | null;
@@ -64,7 +65,60 @@ interface MenuDocument {
   extraction_output_tokens?: number | null;
   extraction_cache_read_input_tokens?: number | null;
   extraction_cache_creation_input_tokens?: number | null;
+  critic_stats?: {
+    approved_direct?: number;
+    improved_by_critic?: number;
+    escalated?: number;
+  } | null;
+  used_batch_api?: boolean | null;
+  extraction_trace?: ExtractionTraceJson | null;
 }
+
+/** Mirrors lib/menu-extraction/types ExtractionTrace for client display. */
+type ExtractionTraceJson = {
+  documentId?: string;
+  totalSections?: number;
+  approvedFirstTry?: number;
+  improvedByCritic?: number;
+  escalated?: number;
+  totalIterations?: number;
+  totalCostUsd?: number;
+  rawTextExtractionCostUsd?: number;
+  batchActorCostUsd?: number;
+  criticSkippedAutoApprove?: number;
+  criticSkippedHeuristic?: number;
+  criticApiCalls?: number;
+  usedSonnetFallback?: boolean;
+  sections?: Array<{
+    section: string;
+    iterations: number;
+    approved: boolean;
+    totalCostUsd: number;
+    steps?: Array<{
+      iteration: number;
+      role: string;
+      model?: string;
+      approved?: boolean;
+      confidence?: number;
+      issueCount?: number;
+      issues?: Array<{
+        rowIndex: number;
+        field: string;
+        problem: string;
+        suggestion: string;
+      }>;
+      skipped?: boolean;
+      skipReason?: string;
+      durationMs?: number;
+      usage?: {
+        inputTokens?: number;
+        outputTokens?: number;
+        cacheReadTokens?: number;
+      };
+      costUsd?: number;
+    }>;
+  }>;
+};
 
 interface MenuDocumentSection {
   id: string;
@@ -90,6 +144,8 @@ interface MenuExtractedRow {
   review_reasons: string[] | null;
   section_id: string | null;
   auto_corrected?: boolean;
+  extraction_iterations?: number | null;
+  critic_approved?: boolean | null;
 }
 
 interface DocumentDetailResponse {
@@ -124,6 +180,31 @@ function rowToSnapshot(r: MenuExtractedRow): Record<string, unknown> {
   };
 }
 
+function CriticActorBadges({ row }: { row: MenuExtractedRow }) {
+  const iter = row.extraction_iterations ?? 1;
+  const approved = row.critic_approved;
+  return (
+    <>
+      {iter > 1 && (
+        <Badge
+          variant="outline"
+          className="text-[10px] border-violet-400 text-violet-800 dark:text-violet-200 shrink-0"
+        >
+          {iter} iter
+        </Badge>
+      )}
+      {approved === false && (
+        <Badge className="text-[10px] bg-red-600 dark:bg-red-700 text-white shrink-0">Eskalerad</Badge>
+      )}
+      {approved === true && iter > 1 && (
+        <Badge className="text-[10px] bg-emerald-600 dark:bg-emerald-700 text-white shrink-0">
+          Auto-fixad
+        </Badge>
+      )}
+    </>
+  );
+}
+
 export default function MenuExtractionDetailPage() {
   const params = useParams();
   const id = typeof params.id === "string" ? params.id : "";
@@ -151,6 +232,7 @@ export default function MenuExtractionDetailPage() {
   const [savedRowId, setSavedRowId] = useState<string | null>(null);
   const [bulkSectionId, setBulkSectionId] = useState<string | null>(null);
   const [bulkProgress, setBulkProgress] = useState<string | null>(null);
+  const [traceOpen, setTraceOpen] = useState(false);
   const [entityTasksData, setEntityTasksData] = useState<{
     tasks: Task[];
     projects: ProjectMin[];
@@ -530,7 +612,7 @@ export default function MenuExtractionDetailPage() {
                 )}
               </div>
             )}
-            <div className="p-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+            <div className="p-4 grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-4 text-xs">
               <div>
                 <span className="text-gray-500 dark:text-zinc-200">Uppladdad</span>
                 <p className="font-medium text-gray-900 dark:text-zinc-100 mt-0.5">
@@ -538,12 +620,22 @@ export default function MenuExtractionDetailPage() {
                 </p>
               </div>
               <div>
-                <span className="text-gray-500 dark:text-zinc-200">Extraherad</span>
+                <span className="text-gray-500 dark:text-zinc-200">Extraherad (klar)</span>
                 <p className="font-medium text-gray-900 dark:text-zinc-100 mt-0.5">
                   {doc.extracted_at ? new Date(doc.extracted_at).toLocaleString("sv-SE") : "—"}
                 </p>
               </div>
-              <div className="sm:col-span-2">
+              <div className="col-span-2 lg:col-span-1">
+                <span className="text-gray-500 dark:text-zinc-200" title="Uppdateras vid varje extraktionsförsök, även misslyckat">
+                  Senaste extraktionsförsök
+                </span>
+                <p className="font-medium text-gray-900 dark:text-zinc-100 mt-0.5">
+                  {doc.last_extraction_attempt_at
+                    ? new Date(doc.last_extraction_attempt_at).toLocaleString("sv-SE")
+                    : "—"}
+                </p>
+              </div>
+              <div className="col-span-2 lg:col-span-2">
                 <span className="text-gray-500 dark:text-zinc-200">Modell / prompt / workflow</span>
                 <p className="font-medium text-gray-900 dark:text-zinc-100 mt-0.5 truncate" title={`${doc.model_version ?? ""} / ${doc.prompt_version ?? ""} / ${doc.workflow_version ?? ""}`}>
                   {doc.model_version ?? "—"} / {doc.prompt_version ?? "—"} / {doc.workflow_version ?? "—"}
@@ -568,11 +660,126 @@ export default function MenuExtractionDetailPage() {
             <div className="px-4 pb-4 flex flex-wrap gap-4 text-xs text-gray-700 dark:text-zinc-200">
               <span><strong className="text-gray-900 dark:text-zinc-100">Totalt rader:</strong> {stats.total_rows}</span>
               <span><strong className="text-gray-900 dark:text-zinc-100">Auto-korrigerade:</strong> {stats.auto_corrected_count ?? 0}</span>
+              {doc.extraction_trace?.totalCostUsd != null && (
+                <span>
+                  <strong className="text-gray-900 dark:text-zinc-100">Kostnad:</strong>{" "}
+                  ${Number(doc.extraction_trace.totalCostUsd).toFixed(4)} USD
+                </span>
+              )}
+              {doc.critic_stats != null && typeof doc.critic_stats === "object" && (
+                <>
+                  <span>
+                    <strong className="text-gray-900 dark:text-zinc-100">Godkänd direkt:</strong>{" "}
+                    {Number((doc.critic_stats as { approved_direct?: number }).approved_direct) || 0} sektioner
+                  </span>
+                  <span>
+                    <strong className="text-gray-900 dark:text-zinc-100">Förbättrad av Critic:</strong>{" "}
+                    {Number((doc.critic_stats as { improved_by_critic?: number }).improved_by_critic) || 0}{" "}
+                    sektioner
+                  </span>
+                  <span>
+                    <strong className="text-gray-900 dark:text-zinc-100">Eskalerad:</strong>{" "}
+                    {Number((doc.critic_stats as { escalated?: number }).escalated) || 0} sektioner
+                  </span>
+                </>
+              )}
+              {doc.extraction_trace?.usedSonnetFallback === true && (
+                <span>
+                  <strong className="text-gray-900 dark:text-zinc-100">Sonnet-fallback:</strong> Ja
+                </span>
+              )}
+              {doc.used_batch_api === true && (
+                <span>
+                  <strong className="text-gray-900 dark:text-zinc-100">Batch API:</strong> Ja
+                </span>
+              )}
               <span><strong className="text-gray-900 dark:text-zinc-100">Kvar för granskning:</strong> {stats.needs_review_count}</span>
               <span><strong className="text-gray-900 dark:text-zinc-100">Granskade:</strong> {reviewedCount}</span>
               <span><strong className="text-gray-900 dark:text-zinc-100">High confidence:</strong> {stats.high_confidence_count}</span>
               <span><strong className="text-gray-900 dark:text-zinc-100">Ambiguous format:</strong> {stats.ambiguous_format_count}</span>
             </div>
+
+            {doc.extraction_trace?.sections && doc.extraction_trace.sections.length > 0 && (
+              <div className="px-4 pb-4 border-t border-gray-100 dark:border-zinc-800 pt-3">
+                <Collapsible open={traceOpen} onOpenChange={setTraceOpen}>
+                  <CollapsibleTrigger className="flex items-center gap-2 text-xs font-medium text-gray-800 dark:text-zinc-100 hover:opacity-90 w-full text-left">
+                    {traceOpen ? (
+                      <ChevronDown className="h-4 w-4 shrink-0" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 shrink-0" />
+                    )}
+                    Extraction Trace ({doc.extraction_trace.sections.length} sektioner)
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-3 space-y-3 text-xs">
+                    {doc.extraction_trace.sections.map((sec, si) => (
+                      <div
+                        key={`${sec.section}-${si}`}
+                        className="rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50/80 dark:bg-zinc-900/50 p-3"
+                      >
+                        <div className="flex flex-wrap items-center gap-2 justify-between">
+                          <span className="font-medium text-gray-900 dark:text-zinc-100">{sec.section}</span>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="outline" className="text-[10px]">
+                              {sec.iterations} iter
+                            </Badge>
+                            {sec.approved ? (
+                              <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
+                                <Check className="h-3.5 w-3.5" /> Approved
+                              </span>
+                            ) : (
+                              <span className="text-red-600 dark:text-red-400 flex items-center gap-0.5">
+                                <AlertTriangle className="h-3.5 w-3.5" /> Eskalerad
+                              </span>
+                            )}
+                            <span className="text-gray-600 dark:text-zinc-300">
+                              ${sec.totalCostUsd.toFixed(4)}
+                            </span>
+                          </div>
+                        </div>
+                        {sec.steps && sec.steps.length > 0 && (
+                          <ul className="mt-2 space-y-1.5 text-gray-700 dark:text-zinc-300 border-t border-gray-200 dark:border-zinc-700 pt-2">
+                            {sec.steps.map((st, sti) => (
+                              <li key={sti} className="pl-2 border-l-2 border-gray-300 dark:border-zinc-600">
+                                <span className="font-medium text-gray-800 dark:text-zinc-200">
+                                  iter {st.iteration} · {st.role}
+                                </span>
+                                {st.model && ` · ${st.model}`}
+                                {st.skipped && (
+                                  <span className="text-amber-700 dark:text-amber-300">
+                                    {" "}
+                                    (skipped{st.skipReason ? `: ${st.skipReason}` : ""})
+                                  </span>
+                                )}
+                                {st.usage && (
+                                  <span className="ml-1 text-gray-600 dark:text-zinc-400">
+                                    in {st.usage.inputTokens ?? 0} / out {st.usage.outputTokens ?? 0}
+                                  </span>
+                                )}
+                                {st.costUsd != null && st.costUsd > 0 && (
+                                  <span className="ml-1">${st.costUsd.toFixed(4)}</span>
+                                )}
+                                {st.role === "critic" && st.issues && st.issues.length > 0 && (
+                                  <ul className="mt-1 list-disc list-inside text-[11px] text-gray-600 dark:text-zinc-400">
+                                    {st.issues.slice(0, 5).map((iss, ii) => (
+                                      <li key={ii}>
+                                        Rad {iss.rowIndex} {iss.field}: {iss.problem}
+                                      </li>
+                                    ))}
+                                    {st.issues.length > 5 && (
+                                      <li>… +{st.issues.length - 5} till</li>
+                                    )}
+                                  </ul>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    ))}
+                  </CollapsibleContent>
+                </Collapsible>
+              </div>
+            )}
           </div>
         </div>
 
@@ -658,7 +865,7 @@ export default function MenuExtractionDetailPage() {
                           </Button>
                         )}
                       </div>
-                      <div className="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950/50 min-w-0">
+                      <div className="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950/50 min-w-0 overflow-x-clip">
                         <Table>
                           <TableHeader>
                             <TableRow className="border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900/50 hover:bg-transparent">
@@ -707,6 +914,7 @@ export default function MenuExtractionDetailPage() {
                                       {row.auto_corrected && (
                                         <Badge className="text-[10px] bg-green-600 dark:bg-green-700 text-white shrink-0">Auto-korrigerad</Badge>
                                       )}
+                                      <CriticActorBadges row={row} />
                                     </div>
                                   </TableCell>
                                   <TableCell className="max-w-[180px] align-top">
@@ -824,7 +1032,7 @@ export default function MenuExtractionDetailPage() {
                         </Button>
                       )}
                     </div>
-                    <div className="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950/50 min-w-0">
+                    <div className="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950/50 min-w-0 overflow-x-clip">
                       <Table>
                         <TableHeader>
                           <TableRow className="border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900/50 hover:bg-transparent">
@@ -871,6 +1079,7 @@ export default function MenuExtractionDetailPage() {
                                     {row.auto_corrected && (
                                       <Badge className="text-[10px] bg-green-600 dark:bg-green-700 text-white shrink-0">Auto-korrigerad</Badge>
                                     )}
+                                    <CriticActorBadges row={row} />
                                   </div>
                                 </TableCell>
                                 <TableCell className="max-w-[180px] align-top">
@@ -970,7 +1179,8 @@ function RawTextCell({
               {display}
             </button>
           </CollapsibleTrigger>
-          <CollapsibleContent>
+          {/* When open, avoid overflow-hidden on Radix content (steals vertical wheel from main scroll). */}
+          <CollapsibleContent className="data-[state=open]:!overflow-visible">
             <div className="pt-1 text-gray-600 dark:text-zinc-200 break-words">
               {rawText}
             </div>

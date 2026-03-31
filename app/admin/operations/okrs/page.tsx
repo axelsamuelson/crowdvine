@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin"
 import { ObjectiveStatusBadge } from "@/components/admin/operations/objective-status-badge"
 import { ProgressBar } from "@/components/admin/operations/progress-bar"
 import { CreateObjectiveButton } from "@/components/admin/operations/create-objective-button"
+import { CreatedMetaLine } from "@/components/admin/operations/created-meta-line"
 import Link from "next/link"
 import { Target } from "lucide-react"
 import type { ObjectiveStatus, StrategyArea } from "@/lib/types/operations"
@@ -54,13 +55,13 @@ export default async function ObjectivesPage({ searchParams }: PageProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-gray-100 dark:bg-zinc-800">
+      <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="p-2 rounded-lg bg-gray-100 dark:bg-zinc-800 shrink-0">
             <Target className="w-5 h-5 text-gray-900 dark:text-zinc-50" />
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">
               Objectives
             </h1>
             <p className="text-sm text-gray-500 dark:text-zinc-400 mt-0.5">
@@ -68,7 +69,9 @@ export default async function ObjectivesPage({ searchParams }: PageProps) {
             </p>
           </div>
         </div>
-        <CreateObjectiveButton admins={admins} />
+        <div className="w-full shrink-0 sm:w-auto [&_button]:w-full sm:[&_button]:w-auto">
+          <CreateObjectiveButton admins={admins} />
+        </div>
       </div>
 
       {/* Cards */}
@@ -87,7 +90,7 @@ export default async function ObjectivesPage({ searchParams }: PageProps) {
             href={`/admin/operations/okrs/${obj.id}`}
             className="block rounded-xl border border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-[#0F0F12] p-5 hover:border-gray-300 dark:hover:border-zinc-600 transition-colors"
           >
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
               {/* Left */}
               <div className="flex-1 min-w-0 space-y-3">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -115,10 +118,16 @@ export default async function ObjectivesPage({ searchParams }: PageProps) {
                 )}
 
                 <ProgressBar value={obj.progress ?? 0} />
+                <CreatedMetaLine
+                  createdAt={obj.created_at}
+                  creatorEmail={obj.creator?.email}
+                  showUnknownIfNoCreator={Boolean(obj.created_by)}
+                  className="pt-1"
+                />
               </div>
 
               {/* Right */}
-              <div className="flex-shrink-0 text-right space-y-2 min-w-[100px]">
+              <div className="flex-shrink-0 space-y-2 sm:text-right sm:min-w-[100px]">
                 <div className="text-2xl font-semibold text-gray-900 dark:text-white">
                   {obj.progress ?? 0}%
                 </div>

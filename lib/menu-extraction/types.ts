@@ -68,6 +68,8 @@ export interface MenuDocument {
   prompt_version: string | null;
   workflow_version: string | null;
   extracted_at: string | null;
+  /** Last time extraction was started or finished (success or failed). */
+  last_extraction_attempt_at?: string | null;
   error_message: string | null;
   content_hash: string | null;
   source_slug: string | null;
@@ -75,6 +77,12 @@ export interface MenuDocument {
   extraction_output_tokens: number | null;
   extraction_cache_read_input_tokens: number | null;
   extraction_cache_creation_input_tokens: number | null;
+  /** Aggregated Critic-Actor stats (approved_direct, improved_by_critic, escalated). */
+  critic_stats?: Record<string, unknown> | null;
+  /** True when section Actor used Anthropic Message Batches API. */
+  used_batch_api?: boolean;
+  /** Full Actor/Critic trace per section (JSON). */
+  extraction_trace?: ExtractionTrace | null;
 }
 
 export interface MenuDocumentSection {
@@ -119,6 +127,10 @@ export interface MenuExtractedRow {
   extraction_version: string | null;
   /** True when row was improved by auto-correction (few-shot re-extraction). */
   auto_corrected?: boolean;
+  /** Actor-Critic rounds for this row's section (1–3). */
+  extraction_iterations?: number;
+  /** null = Critic skipped/failed; true = approved; false = max iterations without approval. */
+  critic_approved?: boolean | null;
 }
 
 export interface MenuExtractionFeedback {
@@ -151,6 +163,7 @@ export interface CreateMenuDocumentInput {
   prompt_version?: string | null;
   workflow_version?: string | null;
   extracted_at?: string | null;
+  last_extraction_attempt_at?: string | null;
   error_message?: string | null;
   content_hash?: string | null;
   source_slug?: string | null;
@@ -192,6 +205,87 @@ export interface AISectionBlock {
 
 export interface AIExtractionResult {
   sections: AISectionBlock[];
+}
+
+/** Critic output: per-row feedback to the Actor. */
+export interface CriticIssue {
+  rowIndex: number;
+  field: string;
+  problem: string;
+  suggestion: string;
+}
+
+export interface CriticResult {
+  approved: boolean;
+  overallConfidence: number;
+  issues: CriticIssue[];
+  summary: string;
+  /** True when approved without API (high confidence + no review reasons). */
+  skipped: boolean;
+  /** Set when Critic API was used (or skipped with zero cost). */
+  usage?: {
+    inputTokens: number;
+    outputTokens: number;
+    costUsd: number;
+  };
+}
+
+/** One step in a section trace (Actor or Critic). */
+export interface SectionTraceStep {
+  iteration: number;
+  role: "actor" | "critic";
+  model?: string;
+  approved?: boolean;
+  confidence?: number;
+  issueCount?: number;
+  issues?: CriticIssue[];
+  skipped?: boolean;
+  skipReason?: string;
+  durationMs?: number;
+  usage?: {
+    inputTokens: number;
+    outputTokens: number;
+    cacheReadTokens?: number;
+    cacheCreationTokens?: number;
+  };
+  costUsd?: number;
+}
+
+/** Per-section trace after extraction. */
+export interface SectionTrace {
+  section: string;
+  iterations: number;
+  approved: boolean;
+  totalCostUsd: number;
+  steps: SectionTraceStep[];
+}
+
+/** Full document extraction trace (persisted on menu_documents.extraction_trace). */
+export interface ExtractionTrace {
+  documentId: string;
+  totalSections: number;
+  approvedFirstTry: number;
+  improvedByCritic: number;
+  escalated: number;
+  totalIterations: number;
+  totalCostUsd: number;
+  /** Raw PDF→text phase (first Actor call). */
+  rawTextExtractionCostUsd?: number;
+  /** Batch Actor (intra-doc) pre-pass, if used. */
+  batchActorCostUsd?: number;
+  criticSkippedAutoApprove: number;
+  criticSkippedHeuristic: number;
+  criticApiCalls: number;
+  usedSonnetFallback: boolean;
+  sections: SectionTrace[];
+}
+
+/** Token usage from a single Anthropic call (incl. prompt cache). */
+export interface ExtractionUsage {
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_input_tokens?: number;
+  cache_creation_input_tokens?: number;
 }
 
 // ---------------------------------------------------------------------------

@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin"
 import { ProjectStatusBadge } from "@/components/admin/operations/project-status-badge"
 import { ProgressBar } from "@/components/admin/operations/progress-bar"
 import { CreateProjectButton } from "@/components/admin/operations/create-project-button"
+import { formatOpsDateTimeSv } from "@/components/admin/operations/created-meta-line"
 import {
   Table,
   TableBody,
@@ -69,13 +70,13 @@ export default async function ProjectsPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-gray-100 dark:bg-zinc-800">
+      <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="p-2 rounded-lg bg-gray-100 dark:bg-zinc-800 shrink-0">
             <FolderKanban className="w-5 h-5 text-gray-900 dark:text-zinc-50" />
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">
               Projects
             </h1>
             <p className="text-sm text-gray-500 dark:text-zinc-400 mt-0.5">
@@ -83,11 +84,13 @@ export default async function ProjectsPage({ searchParams }: PageProps) {
             </p>
           </div>
         </div>
-        <CreateProjectButton objectives={objectives} admins={admins} />
+        <div className="w-full shrink-0 sm:w-auto [&_button]:w-full sm:[&_button]:w-auto">
+          <CreateProjectButton objectives={objectives} admins={admins} />
+        </div>
       </div>
 
-      <div className="rounded-xl border border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-[#0F0F12] overflow-hidden">
-        <Table>
+      <div className="rounded-xl border border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-[#0F0F12] overflow-hidden min-w-0">
+        <Table scrollContainer className="min-w-[880px]">
           <TableHeader>
             <TableRow className="bg-gray-50 dark:bg-zinc-900/70 border-b border-gray-200 dark:border-zinc-800">
               <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">Name</TableHead>
@@ -97,6 +100,7 @@ export default async function ProjectsPage({ searchParams }: PageProps) {
               <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">Priority</TableHead>
               <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">Due Date</TableHead>
               <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">Progress</TableHead>
+              <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">Skapad</TableHead>
               <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">Open Tasks</TableHead>
             </TableRow>
           </TableHeader>
@@ -104,7 +108,7 @@ export default async function ProjectsPage({ searchParams }: PageProps) {
             {sorted.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={8}
+                  colSpan={9}
                   className="text-center py-10 text-sm text-gray-500 dark:text-zinc-400"
                 >
                   No projects found
@@ -162,6 +166,24 @@ export default async function ProjectsPage({ searchParams }: PageProps) {
 
                 <TableCell className="min-w-[120px]">
                   <ProgressBar value={project.progress ?? 0} size="sm" />
+                </TableCell>
+
+                <TableCell className="text-xs text-gray-600 dark:text-zinc-400 max-w-[140px]">
+                  <div className="whitespace-nowrap">
+                    {formatOpsDateTimeSv(project.created_at)}
+                  </div>
+                  {project.creator?.email ? (
+                    <div
+                      className="truncate mt-0.5 text-gray-700 dark:text-zinc-300"
+                      title={project.creator.email}
+                    >
+                      {project.creator.email}
+                    </div>
+                  ) : project.created_by ? (
+                    <div className="text-gray-500 dark:text-zinc-500 mt-0.5 italic">
+                      Okänd
+                    </div>
+                  ) : null}
                 </TableCell>
 
                 <TableCell className="text-sm text-gray-700 dark:text-gray-300">

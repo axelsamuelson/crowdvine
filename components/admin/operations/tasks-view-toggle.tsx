@@ -32,11 +32,11 @@ export function TasksViewToggle({ onViewChange }: Props) {
   }
 
   return (
-    <div className="flex items-center rounded-lg border border-gray-200 dark:border-[#1F1F23] overflow-hidden">
+    <div className="flex w-full items-center rounded-lg border border-gray-200 dark:border-[#1F1F23] overflow-hidden sm:w-auto">
       <Button
         variant="ghost"
         size="sm"
-        className={`h-8 px-3 rounded-none border-r border-gray-200 dark:border-[#1F1F23] ${
+        className={`h-9 flex-1 px-3 rounded-none border-r border-gray-200 dark:border-[#1F1F23] sm:h-8 sm:flex-none ${
           view === "table"
             ? "bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white"
             : "text-gray-500 dark:text-gray-400"
@@ -49,7 +49,7 @@ export function TasksViewToggle({ onViewChange }: Props) {
       <Button
         variant="ghost"
         size="sm"
-        className={`h-8 px-3 rounded-none ${
+        className={`h-9 flex-1 px-3 rounded-none sm:h-8 sm:flex-none ${
           view === "board"
             ? "bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white"
             : "text-gray-500 dark:text-gray-400"

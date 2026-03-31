@@ -125,6 +125,7 @@ export interface Objective {
   deleted_at: string | null
   created_at: string
   updated_at: string
+  created_by?: string | null
   // Computed
   progress?: number
   project_count?: number
@@ -132,6 +133,7 @@ export interface Objective {
   // Joins
   key_results?: KeyResult[]
   owner?: AdminUserMin
+  creator?: AdminUserMin
 }
 
 // ─── Project ─────────────────────────────────────────────────
@@ -150,6 +152,7 @@ export interface Project {
   deleted_at: string | null
   created_at: string
   updated_at: string
+  created_by?: string | null
   // Computed
   progress?: number
   task_count?: number
@@ -157,6 +160,7 @@ export interface Project {
   // Joins
   objective?: ObjectiveMin
   owner?: AdminUserMin
+  creator?: AdminUserMin
 }
 
 // ─── Task ────────────────────────────────────────────────────
@@ -186,6 +190,7 @@ export interface Task {
   project?: ProjectMin
   objective?: ObjectiveMin
   assignee?: AdminUserMin
+  creator?: AdminUserMin
 }
 
 // ─── Task detail (detaljsida) ────────────────────────────────

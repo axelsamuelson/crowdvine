@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Upload, Play, Globe, Check, X, Sparkles } from "lucide-react";
+import { Upload, Play, Globe, Sparkles, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -47,7 +47,52 @@ interface StarwinelistSourceRow {
   last_error: string | null;
   crawl_attempts?: number;
   latest_document_id: string | null;
-  latest_document?: { id: string; file_name: string; extraction_status: string } | null;
+  latest_document?: {
+    id: string;
+    file_name: string;
+    extraction_status: string;
+    last_extraction_attempt_at?: string | null;
+  } | null;
+}
+
+interface MenuDocumentListRow {
+  id: string;
+  file_name: string;
+  extraction_status: string;
+  extracted_at: string | null;
+  last_extraction_attempt_at?: string | null;
+  created_at?: string;
+  source_slug?: string | null;
+  total_rows?: number;
+  needs_review_count?: number;
+}
+
+type DocSortKey = "last_extraction_attempt_at" | "extracted_at" | "file_name" | "created_at";
+
+function compareNullableIso(
+  a: string | null | undefined,
+  b: string | null | undefined,
+  desc: boolean
+): number {
+  const aMissing = a == null || a === "";
+  const bMissing = b == null || b === "";
+  if (aMissing && bMissing) return 0;
+  if (aMissing) return 1;
+  if (bMissing) return -1;
+  const c = a.localeCompare(b);
+  return desc ? -c : c;
+}
+
+function sortMenuDocuments(rows: MenuDocumentListRow[], key: DocSortKey, desc: boolean): MenuDocumentListRow[] {
+  return [...rows].sort((x, y) => {
+    if (key === "file_name") {
+      const c = (x.file_name ?? "").localeCompare(y.file_name ?? "", "sv");
+      return desc ? -c : c;
+    }
+    const av = key === "created_at" ? x.created_at : key === "extracted_at" ? x.extracted_at : x.last_extraction_attempt_at;
+    const bv = key === "created_at" ? y.created_at : key === "extracted_at" ? y.extracted_at : y.last_extraction_attempt_at;
+    return compareNullableIso(av, bv, desc);
+  });
 }
 
 interface CrawlSummary {
@@ -75,6 +120,41 @@ export default function MenuExtractionOverviewPage() {
   const [crawlSummary, setCrawlSummary] = useState<CrawlSummary | null>(null);
   const [crawlSkippedReason, setCrawlSkippedReason] = useState<string | null>(null);
   const [browserAdapter, setBrowserAdapter] = useState<"playwright" | "browserless" | null>(null);
+
+  const [documents, setDocuments] = useState<MenuDocumentListRow[]>([]);
+  const [documentsLoading, setDocumentsLoading] = useState(false);
+  const [docSort, setDocSort] = useState<{ key: DocSortKey; desc: boolean }>({
+    key: "last_extraction_attempt_at",
+    desc: true,
+  });
+
+  const loadDocuments = useCallback(async () => {
+    setDocumentsLoading(true);
+    try {
+      const res = await fetch("/api/admin/menu-extraction/documents?withStats=true");
+      if (!res.ok) throw new Error("Kunde inte ladda dokument");
+      const data = await res.json();
+      setDocuments(data.documents ?? []);
+    } catch {
+      setDocuments([]);
+    } finally {
+      setDocumentsLoading(false);
+    }
+  }, []);
+
+  const sortedDocuments = useMemo(
+    () => sortMenuDocuments(documents, docSort.key, docSort.desc),
+    [documents, docSort.key, docSort.desc]
+  );
+
+  const toggleDocSort = (key: DocSortKey) => {
+    setDocSort((s) =>
+      s.key === key ? { key, desc: !s.desc } : { key, desc: key === "file_name" ? false : true }
+    );
+  };
+
+  const formatDocDate = (iso: string | null | undefined) =>
+    iso ? new Date(iso).toLocaleString("sv-SE") : "—";
 
   const loadSources = async () => {
     setSourcesLoading(true);
@@ -104,7 +184,8 @@ export default function MenuExtractionOverviewPage() {
   useEffect(() => {
     loadSources();
     loadCrawlConfig();
-  }, []);
+    loadDocuments();
+  }, [loadDocuments]);
 
   const handleUploadSubmit = async () => {
     if (!uploadForm.file_path.trim() || !uploadForm.file_name.trim()) {
@@ -126,6 +207,7 @@ export default function MenuExtractionOverviewPage() {
       toast.success("Dokument skapat");
       setUploadOpen(false);
       setUploadForm({ file_path: "", file_name: "" });
+      loadDocuments();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Kunde inte skapa");
     } finally {
@@ -152,6 +234,7 @@ export default function MenuExtractionOverviewPage() {
         toast.success("Crawl klar");
       }
       loadSources();
+      loadDocuments();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Crawl misslyckades");
     } finally {
@@ -212,6 +295,7 @@ export default function MenuExtractionOverviewPage() {
       if (!res.ok) throw new Error(data.error || "Retry misslyckades");
       toast.success(`Crawl för ${slug} klar`);
       loadSources();
+      loadDocuments();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Retry misslyckades");
     }
@@ -418,7 +502,8 @@ export default function MenuExtractionOverviewPage() {
                 Inga källor ännu. Klicka &quot;Kör crawl nu&quot; för att hämta restauranger från Stockholm.
               </p>
             ) : (
-              <div className="rounded-lg border border-gray-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-950/50">
+              <div className="rounded-lg border border-gray-200 dark:border-zinc-800 overflow-x-clip bg-white dark:bg-zinc-950/50">
+                {/* overflow-x-clip: rounded corners without overflow-hidden (avoids wheel / nested scroll issues) */}
                 <Table className="w-full">
                   <TableHeader>
                     <TableRow className="bg-gray-50 dark:bg-zinc-900/70 border-b border-gray-200 dark:border-zinc-800 hover:bg-transparent">
@@ -467,7 +552,15 @@ export default function MenuExtractionOverviewPage() {
                         </TableCell>
                         <TableCell className="py-2.5 align-top" title="Har AI extraherat vinrader från PDF:en?">
                           {s.latest_document ? (
-                            statusBadge(s.latest_document.extraction_status as ExtractionStatus)
+                            <div className="space-y-1">
+                              {statusBadge(s.latest_document.extraction_status as ExtractionStatus)}
+                              {s.latest_document.last_extraction_attempt_at && (
+                                <p className="text-[10px] text-gray-500 dark:text-zinc-400 leading-tight">
+                                  Senaste försök:{" "}
+                                  {new Date(s.latest_document.last_extraction_attempt_at).toLocaleString("sv-SE")}
+                                </p>
+                              )}
+                            </div>
                           ) : (
                             <span className="text-xs text-gray-400 dark:text-zinc-500">—</span>
                           )}
@@ -523,6 +616,126 @@ export default function MenuExtractionOverviewPage() {
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Alla meny-dokument – sortera bl.a. på senaste extraktionsförsök (även misslyckade) */}
+      <div className="bg-white dark:bg-[#0F0F12] border border-gray-200 dark:border-[#1F1F23] rounded-xl p-6 flex flex-col">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2 text-left flex items-center gap-2">
+          <FileText className="w-3.5 h-3.5 text-zinc-900 dark:text-zinc-50" />
+          Alla meny-dokument
+        </h2>
+        <p className="text-xs text-gray-500 dark:text-zinc-400 mb-4">
+          Klicka på kolumnrubrik för att sortera. <strong>Senaste försök</strong> uppdateras vid varje extraktion (lyckad eller misslyckad).
+        </p>
+        <div className="w-full bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800 rounded-xl p-2">
+          {documentsLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-300 dark:border-zinc-600 border-t-gray-900 dark:border-t-white" />
+            </div>
+          ) : sortedDocuments.length === 0 ? (
+            <p className="text-sm text-center py-8 text-gray-500 dark:text-zinc-200">
+              Inga dokument ännu. Ladda upp en meny eller kör crawl.
+            </p>
+          ) : (
+            <div className="rounded-lg border border-gray-200 dark:border-zinc-800 overflow-x-clip bg-white dark:bg-zinc-950/50">
+              <Table className="w-full">
+                <TableHeader>
+                  <TableRow className="bg-gray-50 dark:bg-zinc-900/70 border-b border-gray-200 dark:border-zinc-800 hover:bg-transparent">
+                    <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400 py-3 pl-4 min-w-[140px]">
+                      <button
+                        type="button"
+                        className="font-medium text-left hover:text-gray-900 dark:hover:text-zinc-100 inline-flex items-center gap-1"
+                        onClick={() => toggleDocSort("file_name")}
+                      >
+                        Fil
+                        {docSort.key === "file_name" && (docSort.desc ? " ↓" : " ↑")}
+                      </button>
+                    </TableHead>
+                    <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400 py-3">
+                      Status
+                    </TableHead>
+                    <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400 py-3 whitespace-nowrap">
+                      <button
+                        type="button"
+                        className="font-medium text-left hover:text-gray-900 dark:hover:text-zinc-100 inline-flex items-center gap-1"
+                        onClick={() => toggleDocSort("last_extraction_attempt_at")}
+                        title="Inkluderar misslyckade försök"
+                      >
+                        Senaste försök
+                        {docSort.key === "last_extraction_attempt_at" && (docSort.desc ? " ↓" : " ↑")}
+                      </button>
+                    </TableHead>
+                    <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400 py-3 whitespace-nowrap">
+                      <button
+                        type="button"
+                        className="font-medium text-left hover:text-gray-900 dark:hover:text-zinc-100 inline-flex items-center gap-1"
+                        onClick={() => toggleDocSort("extracted_at")}
+                        title="Endast vid lyckad extraktion"
+                      >
+                        Extraherad (klar)
+                        {docSort.key === "extracted_at" && (docSort.desc ? " ↓" : " ↑")}
+                      </button>
+                    </TableHead>
+                    <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400 py-3 whitespace-nowrap">
+                      <button
+                        type="button"
+                        className="font-medium text-left hover:text-gray-900 dark:hover:text-zinc-100 inline-flex items-center gap-1"
+                        onClick={() => toggleDocSort("created_at")}
+                      >
+                        Uppladdad
+                        {docSort.key === "created_at" && (docSort.desc ? " ↓" : " ↑")}
+                      </button>
+                    </TableHead>
+                    <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400 py-3 text-right pr-4">
+                      Rader / granskning
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sortedDocuments.map((d) => (
+                    <TableRow
+                      key={d.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => router.push(`/admin/menu-extraction/${d.id}`)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          router.push(`/admin/menu-extraction/${d.id}`);
+                        }
+                      }}
+                      className="border-gray-100 dark:border-zinc-800 hover:bg-gray-100 dark:hover:bg-zinc-800/50 cursor-pointer"
+                    >
+                      <TableCell className="py-2.5 pl-4 align-top">
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm text-gray-900 dark:text-zinc-100 truncate" title={d.file_name}>
+                            {d.file_name}
+                          </p>
+                          {d.source_slug && (
+                            <p className="text-xs text-gray-500 dark:text-zinc-400 font-mono truncate">{d.source_slug}</p>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-2.5 align-top">{statusBadge(d.extraction_status as ExtractionStatus)}</TableCell>
+                      <TableCell className="py-2.5 align-top text-xs text-gray-700 dark:text-zinc-200 whitespace-nowrap">
+                        {formatDocDate(d.last_extraction_attempt_at)}
+                      </TableCell>
+                      <TableCell className="py-2.5 align-top text-xs text-gray-700 dark:text-zinc-200 whitespace-nowrap">
+                        {formatDocDate(d.extracted_at)}
+                      </TableCell>
+                      <TableCell className="py-2.5 align-top text-xs text-gray-700 dark:text-zinc-200 whitespace-nowrap">
+                        {formatDocDate(d.created_at)}
+                      </TableCell>
+                      <TableCell className="py-2.5 pr-4 align-top text-right text-xs text-gray-600 dark:text-zinc-300">
+                        {d.total_rows ?? 0} / <span className="text-amber-700 dark:text-amber-400">{d.needs_review_count ?? 0}</span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </div>
       </div>
 

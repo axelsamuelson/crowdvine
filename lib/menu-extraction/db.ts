@@ -28,12 +28,11 @@ import type {
 } from "./types";
 
 const MENU_DOCUMENTS_SELECT =
-  "id, created_at, updated_at, file_path, file_name, mime_type, source_type, upload_status, extraction_status, page_count, raw_text, ai_raw_response, model_version, prompt_version, workflow_version, extracted_at, error_message, content_hash, source_slug, extraction_input_tokens, extraction_output_tokens, extraction_cache_read_input_tokens, extraction_cache_creation_input_tokens";
+  "id, created_at, updated_at, file_path, file_name, mime_type, source_type, upload_status, extraction_status, page_count, raw_text, ai_raw_response, model_version, prompt_version, workflow_version, extracted_at, last_extraction_attempt_at, error_message, content_hash, source_slug, extraction_input_tokens, extraction_output_tokens, extraction_cache_read_input_tokens, extraction_cache_creation_input_tokens, critic_stats, used_batch_api, extraction_trace";
 const MENU_DOCUMENT_SECTIONS_SELECT =
   "id, created_at, document_id, section_name, normalized_section, page_number, section_order";
-// Omit auto_corrected until migration 099_menu_extracted_rows_auto_corrected.sql is applied.
 const MENU_EXTRACTED_ROWS_SELECT =
-  "id, created_at, updated_at, document_id, section_id, row_index, page_number, raw_text, row_type, wine_type, producer, wine_name, vintage, region, country, grapes, attributes, format_label, price_glass, price_bottle, price_other, currency, confidence, confidence_label, needs_review, review_reasons, normalized_payload, validation_flags, extraction_version";
+  "id, created_at, updated_at, document_id, section_id, row_index, page_number, raw_text, row_type, wine_type, producer, wine_name, vintage, region, country, grapes, attributes, format_label, price_glass, price_bottle, price_other, currency, confidence, confidence_label, needs_review, review_reasons, normalized_payload, validation_flags, extraction_version, auto_corrected, extraction_iterations, critic_approved";
 
 const STARWINELIST_SOURCES_SELECT =
   "id, created_at, updated_at, slug, name, city, source_url, swl_updated_at, swl_updated_at_parsed, pdf_url, pdf_last_seen_at, crawl_status, last_crawled_at, last_error, crawl_attempts, latest_document_id";
@@ -207,6 +206,8 @@ function aiRowToDbRow(
     normalized_payload: null,
     validation_flags: null,
     extraction_version: extractionVersion,
+    extraction_iterations: 1,
+    critic_approved: null,
   };
 }
 
@@ -298,10 +299,12 @@ export async function saveMenuExtractionResult(params: {
   }
 
   // Update document with AI raw response and extraction meta (updated_at set inside updateMenuDocument)
+  const finishedAt = new Date().toISOString();
   await updateMenuDocument(documentId, {
     ai_raw_response: aiRawResponse as unknown,
     extraction_status: "completed",
-    extracted_at: new Date().toISOString(),
+    extracted_at: finishedAt,
+    last_extraction_attempt_at: finishedAt,
     model_version: meta.modelVersion,
     prompt_version: meta.promptVersion,
     workflow_version: meta.workflowVersion,
@@ -334,7 +337,6 @@ export async function getExtractedRowById(rowId: string): Promise<MenuExtractedR
 }
 
 /** Allowed fields for human review edits and auto-correction (not raw_text, row_index, document_id, etc.). */
-// Include "auto_corrected" after migration 099_menu_extracted_rows_auto_corrected.sql is applied.
 const UPDATE_EXTRACTED_ROW_ALLOWED_KEYS = new Set([
   "producer",
   "wine_name",
@@ -346,6 +348,7 @@ const UPDATE_EXTRACTED_ROW_ALLOWED_KEYS = new Set([
   "price_other",
   "needs_review",
   "review_reasons",
+  "auto_corrected",
 ]);
 
 export async function updateExtractedRow(
@@ -362,6 +365,7 @@ export async function updateExtractedRow(
     | "price_other"
     | "needs_review"
     | "review_reasons"
+    | "auto_corrected"
   >>
 ): Promise<MenuExtractedRow> {
   const sb = getSupabaseAdmin();

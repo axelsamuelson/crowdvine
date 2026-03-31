@@ -22,6 +22,7 @@ export function TaskComments({
   const router = useRouter()
   const [body, setBody] = useState("")
   const [loading, setLoading] = useState(false)
+  const dateFmt = new Intl.DateTimeFormat("sv-SE", { timeZone: "UTC" })
 
   async function handleSubmit() {
     if (!body.trim()) return
@@ -62,7 +63,7 @@ export function TaskComments({
                   {comment.author?.email?.split("@")[0] ?? "Unknown"}
                 </span>
                 <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {new Date(comment.created_at).toLocaleDateString()}
+                  {dateFmt.format(new Date(comment.created_at))}
                 </span>
               </div>
               <p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
@@ -79,11 +80,13 @@ export function TaskComments({
           rows={3}
           value={body}
           onChange={(e) => setBody(e.target.value)}
+          className="rounded-lg border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-zinc-900/40 text-gray-900 dark:text-zinc-100 placeholder:text-gray-500 dark:placeholder:text-zinc-500"
         />
         <Button
           size="sm"
           onClick={handleSubmit}
           disabled={loading || !body.trim()}
+          className="rounded-lg bg-gray-900 text-white hover:bg-gray-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
         >
           {loading ? "Posting..." : "Post Comment"}
         </Button>

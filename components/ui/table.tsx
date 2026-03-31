@@ -9,7 +9,14 @@ const Table = React.forwardRef<
     scrollContainer?: boolean;
   }
 >(({ className, scrollContainer = false, ...props }, ref) => (
-  <div className={cn("relative w-full", scrollContainer ? "overflow-auto" : "overflow-visible")}>
+  <div
+    className={cn(
+      "relative w-full min-w-0",
+      scrollContainer
+        ? "overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch] [touch-action:pan-x_pan-y]"
+        : "overflow-visible touch-pan-y"
+    )}
+  >
     <table
       ref={ref}
       className={cn("w-full caption-bottom text-sm", className)}

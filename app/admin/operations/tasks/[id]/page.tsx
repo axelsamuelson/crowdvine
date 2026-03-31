@@ -1,4 +1,3 @@
-import { notFound } from "next/navigation"
 import { getTask } from "@/lib/actions/operations"
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
 import { getCurrentAdmin } from "@/lib/admin-auth-server"
@@ -8,6 +7,8 @@ import { TaskPriorityBadge } from "@/components/admin/operations/task-priority-b
 import { EntityLinkBadge } from "@/components/admin/operations/entity-link-badge"
 import { TaskDetailActions } from "@/components/admin/operations/task-detail-actions"
 import { TaskComments } from "@/components/admin/operations/task-comments"
+import { CreatedMetaLine } from "@/components/admin/operations/created-meta-line"
+import Link from "next/link"
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -22,7 +23,39 @@ export default async function TaskDetailPage({ params }: PageProps) {
     getCurrentAdmin(),
   ])
 
-  if (!task) notFound()
+  if (!task) {
+    return (
+      <div className="space-y-4">
+        <StrategicBreadcrumb current="Task" showUnlinkedWarning={false} />
+        <div className="rounded-xl border border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-[#0F0F12] p-4">
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Task hittades inte
+          </h1>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            Den här tasken kan vara borttagen eller så gick något fel när vi
+            hämtade den.
+          </p>
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+            <Link
+              href="/admin/operations/tasks"
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-900 hover:bg-gray-50 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-gray-100 dark:hover:bg-zinc-900/60"
+            >
+              Tillbaka till Tasks
+            </Link>
+            <Link
+              href="/admin/operations"
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-900 hover:bg-gray-50 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-gray-100 dark:hover:bg-zinc-900/60"
+            >
+              Till Operations
+            </Link>
+          </div>
+          <p className="mt-3 text-xs text-gray-500 dark:text-gray-500">
+            ID: <span className="font-mono">{id}</span>
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   const [projectsRes, objectivesRes, adminsRes] = await Promise.all([
     sb
@@ -60,22 +93,33 @@ export default async function TaskDetailPage({ params }: PageProps) {
       />
 
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-2">
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-            {task.title}
-          </h1>
-          <div className="flex items-center gap-2">
-            <TaskStatusBadge status={task.status} />
-            <TaskPriorityBadge priority={task.priority} />
-          </div>
+      <div className="min-w-0 space-y-2">
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl break-words">
+          {task.title}
+        </h1>
+        <div className="flex flex-wrap items-center gap-2">
+          <TaskStatusBadge status={task.status} />
+          <TaskPriorityBadge priority={task.priority} />
         </div>
+        <CreatedMetaLine
+          createdAt={task.created_at}
+          creatorEmail={task.creator?.email}
+          showUnknownIfNoCreator
+        />
       </div>
 
-      {/* Body */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Vänster: 2/3 */}
-        <div className="lg:col-span-2 space-y-6">
+      {/* Body — details first on small screens for quicker edits */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="order-1 space-y-4 lg:order-2 lg:col-span-1">
+          <TaskDetailActions
+            task={task}
+            projects={projects}
+            objectives={objectives}
+            admins={admins}
+          />
+        </div>
+
+        <div className="order-2 min-w-0 space-y-6 lg:order-1 lg:col-span-2">
           {/* Description */}
           {task.description && (
             <div className="rounded-xl border border-gray-200 dark:border-[#1F1F23] p-4 bg-white dark:bg-[#0F0F12]">
@@ -98,9 +142,9 @@ export default async function TaskDetailPage({ params }: PageProps) {
                 {task.subtasks.map((sub) => (
                   <div
                     key={sub.id}
-                    className="flex items-center justify-between text-sm py-1"
+                    className="flex flex-col gap-1 text-sm py-1 sm:flex-row sm:items-center sm:justify-between"
                   >
-                    <span className="text-gray-700 dark:text-gray-300">
+                    <span className="min-w-0 break-words text-gray-700 dark:text-gray-300">
                       {sub.title}
                     </span>
                     <TaskStatusBadge status={sub.status} />
@@ -129,16 +173,6 @@ export default async function TaskDetailPage({ params }: PageProps) {
             task_id={task.id}
             comments={task.comments}
             current_admin_id={admin?.id ?? ""}
-          />
-        </div>
-
-        {/* Höger: 1/3 */}
-        <div className="space-y-4">
-          <TaskDetailActions
-            task={task}
-            projects={projects}
-            objectives={objectives}
-            admins={admins}
           />
         </div>
       </div>
