@@ -27,7 +27,7 @@ export function AdminLayoutClient({
   onSignOut,
 }: AdminLayoutClientProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const mainRef = useRef<HTMLElement | null>(null);
+  const mainRef = useRef<HTMLDivElement | null>(null);
   const logCountRef = useRef(0);
 
   useEffect(() => {
@@ -75,6 +75,15 @@ export function AdminLayoutClient({
     return () => {
       el.removeEventListener("scroll", onScroll);
       el.removeEventListener("touchmove", onTouchMove);
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    document.documentElement.classList.add("admin-app-root");
+    document.body.classList.add("admin-app-root");
+    return () => {
+      document.documentElement.classList.remove("admin-app-root");
+      document.body.classList.remove("admin-app-root");
     };
   }, []);
 
@@ -152,7 +161,7 @@ export function AdminLayoutClient({
   }, []);
 
   return (
-    <div className="flex h-dvh max-h-dvh min-h-0 w-full bg-white pt-[env(safe-area-inset-top,0px)] dark:bg-[#0F0F12]">
+    <div className="flex h-dvh max-h-dvh min-h-0 w-full bg-white pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] dark:bg-[#0F0F12]">
       <Sidebar
         userEmail={userEmail}
         onSignOut={onSignOut}
@@ -176,14 +185,14 @@ export function AdminLayoutClient({
           </div>
         </header>
         {/* min-h-0: flex child must shrink so overflow-auto on main is the scroll container (fixes wheel over tables). */}
-        <main
+        <div
           ref={(node) => {
             mainRef.current = node;
           }}
-          className="min-h-0 flex-1 overflow-auto bg-white px-6 pt-6 text-gray-900 dark:bg-[#0F0F12] dark:text-zinc-100 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] [-webkit-overflow-scrolling:touch]"
+          className="min-h-0 flex-1 overflow-auto bg-white px-6 pb-6 pt-6 text-gray-900 [-webkit-overflow-scrolling:touch] dark:bg-[#0F0F12] dark:text-zinc-100"
         >
-          <div className="max-w-7xl mx-auto min-h-0">{children}</div>
-        </main>
+          <div className="mx-auto min-h-0 max-w-7xl">{children}</div>
+        </div>
       </div>
     </div>
   );

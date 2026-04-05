@@ -9,6 +9,18 @@
   body {
     @apply bg-background text-foreground font-sans;
   }
+
+  /* Admin app: match shell so no gray strip shows under h-dvh when body peeks through (mobile Chrome/Safari soft nav). */
+  html.admin-app-root,
+  body.admin-app-root {
+    background-color: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    html.admin-app-root,
+    body.admin-app-root {
+      background-color: #0f0f12;
+    }
+  }
 }
 
 @layer utilities {
