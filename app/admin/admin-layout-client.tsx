@@ -152,7 +152,7 @@ export function AdminLayoutClient({
   }, []);
 
   return (
-    <div className="flex h-screen bg-white dark:bg-[#0F0F12]">
+    <div className="flex h-dvh max-h-dvh min-h-0 w-full bg-white pt-[env(safe-area-inset-top,0px)] dark:bg-[#0F0F12]">
       <Sidebar
         userEmail={userEmail}
         onSignOut={onSignOut}
@@ -160,7 +160,7 @@ export function AdminLayoutClient({
         onMobileClose={() => setMobileOpen(false)}
       />
 
-      <div className="w-full flex-1 flex flex-col min-w-0">
+      <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col">
         <header className="h-16 flex-shrink-0 border-b border-gray-200 dark:border-[#1F1F23] flex items-center">
           <Button
             variant="ghost"
@@ -180,7 +180,7 @@ export function AdminLayoutClient({
           ref={(node) => {
             mainRef.current = node;
           }}
-          className="flex-1 min-h-0 overflow-auto p-6 bg-white dark:bg-[#0F0F12] text-gray-900 dark:text-zinc-100"
+          className="min-h-0 flex-1 overflow-auto bg-white px-6 pt-6 text-gray-900 dark:bg-[#0F0F12] dark:text-zinc-100 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] [-webkit-overflow-scrolling:touch]"
         >
           <div className="max-w-7xl mx-auto min-h-0">{children}</div>
         </main>

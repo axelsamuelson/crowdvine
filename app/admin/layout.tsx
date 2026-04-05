@@ -1,9 +1,17 @@
+import type { Viewport } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentAdmin } from "@/lib/admin-auth-server";
 import { AdminLayoutClient } from "./admin-layout-client";
 
 // Force dynamic rendering for admin layout since it uses cookies
 export const dynamic = "force-dynamic";
+
+/** Lets env(safe-area-inset-*) reflect gesture areas; pairs with padding on <main> in AdminLayoutClient. */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 export default async function AdminLayout({
   children,
