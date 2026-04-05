@@ -14,7 +14,7 @@ const Table = React.forwardRef<
       "relative w-full min-w-0",
       scrollContainer
         ? "overflow-x-auto overflow-y-visible overscroll-x-contain overscroll-y-auto [-webkit-overflow-scrolling:touch] [touch-action:pan-x_pan-y]"
-        : "overflow-visible touch-pan-y"
+        : "overflow-visible touch-pan-y",
     )}
   >
     <table

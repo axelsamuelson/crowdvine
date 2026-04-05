@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useSyncExternalStore } from "react"
+import { useState, useEffect } from "react"
 import {
   DndContext,
   DragOverlay,
@@ -132,25 +132,6 @@ function applyDrag(
 const BOARD_LAYOUT_CLASS =
   "-mx-1 flex w-full min-w-0 flex-col gap-4 px-1 pb-4 sm:mx-0 sm:px-0 md:inline-flex md:w-max md:max-w-none md:min-w-max md:flex-row md:items-start md:gap-3 md:pb-4"
 
-/**
- * Whole-card drag only on real desktop-style input. Plain (min-width: 768px)
- * matches phone landscape; listeners on the full card then attach dnd-kit’s
- * document pointermove (non-passive) and block scrolling site-wide while interacting.
- */
-function useWholeCardDragLayout(): boolean {
-  const query = "(min-width: 768px) and (hover: hover) and (pointer: fine)"
-  return useSyncExternalStore(
-    (onChange) => {
-      if (typeof window === "undefined") return () => {}
-      const mq = window.matchMedia(query)
-      mq.addEventListener("change", onChange)
-      return () => mq.removeEventListener("change", onChange)
-    },
-    () => window.matchMedia(query).matches,
-    () => false
-  )
-}
-
 export function TaskBoard({ tasks }: Props) {
   const today = new Date().toISOString().split("T")[0]
 
@@ -165,12 +146,12 @@ export function TaskBoard({ tasks }: Props) {
 
   return (
     <div>
-      <p className="mb-2 text-xs text-gray-500 dark:text-zinc-400 md:hidden">
-        Scrolla på kortets text.{" "}
+      <p className="mb-2 text-xs text-gray-500 dark:text-zinc-400">
+        Klicka på korttexten för att öppna uppgiften.{" "}
         <span className="font-medium text-gray-700 dark:text-zinc-300">
-          Dra i vänster kant
+          Dra i grep-rutan till vänster
         </span>{" "}
-        (lite åt sidan) för att flytta — ingen långtryckning behövs.
+        för att flytta kortet.
       </p>
       <TaskBoardDnD tasks={tasks} isOverdue={isOverdue} />
     </div>
@@ -361,7 +342,6 @@ function SortableTaskCard({
   columnId: TaskStatus
   isOverdue: boolean
 }) {
-  const wholeCardDrag = useWholeCardDragLayout()
   const {
     attributes,
     listeners,
@@ -385,34 +365,16 @@ function SortableTaskCard({
     ? "shadow-lg border-gray-300 dark:border-gray-500"
     : "border-gray-200 dark:border-[#1F1F23] hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm"
 
-  if (wholeCardDrag) {
-    return (
-      <div ref={setNodeRef} style={style}>
-        <Link
-          ref={setActivatorNodeRef}
-          href={`/admin/operations/tasks/${task.id}`}
-          {...listeners}
-          {...attributes}
-          className={`block min-w-0 space-y-2 overflow-clip rounded-lg border bg-white p-3 transition-shadow dark:bg-[#0F0F12] cursor-grab touch-manipulation active:cursor-grabbing ${shellTone}`}
-          title="Håll ned och dra för att flytta kortet"
-          aria-label="Håll ned och dra för att flytta uppgift"
-        >
-          <TaskCardBody task={task} isOverdue={isOverdue} />
-        </Link>
-      </div>
-    )
-  }
-
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-stretch rounded-lg border bg-white dark:bg-[#0F0F12] transition-shadow ${shellTone}`}
+      className={`flex min-w-0 items-stretch rounded-lg border bg-white dark:bg-[#0F0F12] transition-shadow ${shellTone}`}
     >
       <button
         ref={setActivatorNodeRef}
         type="button"
-        className="flex w-12 min-w-12 shrink-0 cursor-grab touch-none items-center justify-center self-stretch rounded-l-lg border-r border-gray-200 bg-gray-50/80 text-gray-400 hover:bg-gray-100 active:cursor-grabbing dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-500 dark:hover:bg-zinc-800/80"
+        className="flex w-10 min-w-10 shrink-0 cursor-grab touch-none items-center justify-center self-stretch rounded-l-lg border-r border-gray-200 bg-gray-50/80 text-gray-400 hover:bg-gray-100 active:cursor-grabbing sm:w-12 sm:min-w-12 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-500 dark:hover:bg-zinc-800/80"
         aria-label="Dra för att flytta uppgift"
         title="Dra här för att flytta kortet"
         {...listeners}
