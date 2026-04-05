@@ -99,7 +99,7 @@ export function TaskTable({
 
   return (
     <>
-      <div className="rounded-xl border border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-[#0F0F12] overflow-hidden min-w-0">
+      <div className="rounded-xl border border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-[#0F0F12] min-w-0">
         <Table scrollContainer className="min-w-[920px]">
           <TableHeader>
             <TableRow className="bg-gray-50 dark:bg-zinc-900/70 border-b border-gray-200 dark:border-zinc-800">

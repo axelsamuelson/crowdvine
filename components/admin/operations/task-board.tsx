@@ -407,7 +407,7 @@ function SortableTaskCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-stretch overflow-hidden rounded-lg border bg-white dark:bg-[#0F0F12] transition-shadow ${shellTone}`}
+      className={`flex items-stretch rounded-lg border bg-white dark:bg-[#0F0F12] transition-shadow ${shellTone}`}
     >
       <button
         ref={setActivatorNodeRef}
@@ -423,7 +423,7 @@ function SortableTaskCard({
 
       <Link
         href={`/admin/operations/tasks/${task.id}`}
-        className="min-w-0 flex-1 touch-manipulation space-y-2 p-3"
+        className="min-w-0 flex-1 touch-manipulation space-y-2 rounded-r-lg p-3"
       >
         <TaskCardBody task={task} isOverdue={isOverdue} />
       </Link>
