@@ -34,15 +34,27 @@ export function computeKeyResultProgress(kr: KeyResult): number {
   )
 }
 
+/** Tasks linked to the objective (`objective_id` set). Only `status` is required for progress. */
+export type ObjectiveLinkedTask = Pick<Task, "status"> & { project_id?: string | null }
+
 export function computeObjectiveProgress(
   objective: Objective,
-  keyResults: KeyResult[]
+  keyResults: KeyResult[],
+  objectiveTasks: ObjectiveLinkedTask[] = []
 ): number {
-  if (
-    objective.progress_method === "manual" &&
-    objective.manual_progress !== null
-  ) {
-    return objective.manual_progress
+  if (objective.progress_method === "manual") {
+    return objective.manual_progress ?? 0
+  }
+  if (objective.progress_method === "tasks") {
+    return computeProjectProgress(objectiveTasks as Task[])
+  }
+  if (objective.progress_method === "key_results") {
+    if (keyResults.length === 0) return 0
+    const total = keyResults.reduce(
+      (sum, kr) => sum + computeKeyResultProgress(kr),
+      0
+    )
+    return Math.round(total / keyResults.length)
   }
   if (keyResults.length === 0) return 0
   const total = keyResults.reduce(
@@ -50,4 +62,49 @@ export function computeObjectiveProgress(
     0
   )
   return Math.round(total / keyResults.length)
+}
+
+/** Average KR progress, or null if there are no key results. */
+export function computeKeyResultsAggregateProgress(
+  keyResults: KeyResult[]
+): number | null {
+  if (keyResults.length === 0) return null
+  const total = keyResults.reduce(
+    (sum, kr) => sum + computeKeyResultProgress(kr),
+    0
+  )
+  return Math.round(total / keyResults.length)
+}
+
+/**
+ * Average of per-project task-based progress for the given projects.
+ * Projects with no active (non-cancelled) tasks are skipped.
+ */
+/** Genomsnittlig objective-progress för ett goal (objectives ska redan ha `progress` satt). */
+export function computeGoalProgress(
+  objectives: Pick<Objective, "progress">[]
+): number {
+  if (objectives.length === 0) return 0
+  const sum = objectives.reduce((s, o) => s + (o.progress ?? 0), 0)
+  return Math.round(sum / objectives.length)
+}
+
+export function computeProjectsDeliveryAggregateProgress(
+  projectIds: string[],
+  tasksWithProjectId: Pick<Task, "project_id" | "status">[]
+): number | null {
+  if (projectIds.length === 0) return null
+  const progresses: number[] = []
+  for (const pid of projectIds) {
+    const projectTasks = tasksWithProjectId.filter(
+      (t) => t.project_id === pid
+    ) as Task[]
+    const active = projectTasks.filter((t) => t.status !== "cancelled")
+    if (active.length === 0) continue
+    progresses.push(computeProjectProgress(projectTasks))
+  }
+  if (progresses.length === 0) return null
+  return Math.round(
+    progresses.reduce((sum, p) => sum + p, 0) / progresses.length
+  )
 }

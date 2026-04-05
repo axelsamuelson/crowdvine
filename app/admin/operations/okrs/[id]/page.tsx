@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation"
-import { getObjective } from "@/lib/actions/operations"
+import { getGoals, getObjective } from "@/lib/actions/operations"
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
 import { ObjectiveStatusBadge } from "@/components/admin/operations/objective-status-badge"
 import { ProgressBar } from "@/components/admin/operations/progress-bar"
@@ -11,6 +11,7 @@ import { ProjectStatusBadge } from "@/components/admin/operations/project-status
 import { AddKeyResultButton } from "@/components/admin/operations/add-key-result-button"
 import { CreateObjectiveButton } from "@/components/admin/operations/create-objective-button"
 import { CreatedMetaLine } from "@/components/admin/operations/created-meta-line"
+import { ObjectiveOutcomeDeliveryHint } from "@/components/admin/operations/objective-outcome-delivery-hint"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Link from "next/link"
 import type { Task, KeyResult, ProjectStatus } from "@/lib/types/operations"
@@ -38,7 +39,7 @@ export default async function ObjectiveDetailPage({ params }: PageProps) {
 
   const sb = getSupabaseAdmin()
 
-  const [objectivesRes, adminsRes] = await Promise.all([
+  const [objectivesRes, adminsRes, goals] = await Promise.all([
     sb
       .from("admin_objectives")
       .select("id, title")
@@ -50,10 +51,23 @@ export default async function ObjectiveDetailPage({ params }: PageProps) {
       .select("id, email")
       .eq("role", "admin")
       .order("email"),
+    getGoals({}),
   ])
 
   const objectives = objectivesRes.data ?? []
   const admins = adminsRes.data ?? []
+  const goalOptions = goals.map((g) => ({ id: g.id, title: g.title }))
+  const objectiveIdsForKrs = objectives.map((o) => o.id)
+  let keyResultOptions: { id: string; title: string; objective_id: string }[] =
+    []
+  if (objectiveIdsForKrs.length > 0) {
+    const { data } = await sb
+      .from("admin_key_results")
+      .select("id, title, objective_id")
+      .in("objective_id", objectiveIdsForKrs)
+      .order("sort_order")
+    keyResultOptions = data ?? []
+  }
   const tasks = (objective.tasks ?? []) as Task[]
   const projects = objective.projects ?? []
 
@@ -92,6 +106,7 @@ export default async function ObjectiveDetailPage({ params }: PageProps) {
         <div className="w-full shrink-0 sm:w-auto [&_button]:w-full sm:[&_button]:w-auto">
           <CreateObjectiveButton
             admins={admins}
+            goals={goalOptions}
             objective={objective}
             label="Edit Objective"
           />
@@ -109,6 +124,11 @@ export default async function ObjectiveDetailPage({ params }: PageProps) {
           </span>
         </div>
         <ProgressBar value={objective.progress ?? 0} showLabel={false} />
+
+        <ObjectiveOutcomeDeliveryHint
+          krAggregate={objective.kr_progress_aggregate ?? null}
+          projectDelivery={objective.project_delivery_progress ?? null}
+        />
 
         {objective.description && (
           <p className="text-sm text-gray-500 dark:text-gray-400 pt-1 border-t border-gray-100 dark:border-[#1F1F23]">
@@ -165,6 +185,7 @@ export default async function ObjectiveDetailPage({ params }: PageProps) {
               objectives={objectives}
               admins={admins}
               defaultObjectiveId={objective.id}
+              keyResultOptions={keyResultOptions}
               label="Add Project"
             />
           </div>

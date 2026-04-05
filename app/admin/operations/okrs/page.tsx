@@ -1,4 +1,4 @@
-import { getObjectives } from "@/lib/actions/operations"
+import { getGoals, getObjectives } from "@/lib/actions/operations"
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
 import { ObjectiveStatusBadge } from "@/components/admin/operations/objective-status-badge"
 import { ProgressBar } from "@/components/admin/operations/progress-bar"
@@ -41,8 +41,9 @@ export default async function ObjectivesPage({ searchParams }: PageProps) {
   if (params.strategy_area)
     filters.strategy_area = params.strategy_area as StrategyArea
 
-  const [objectives, adminsRes] = await Promise.all([
+  const [objectives, goals, adminsRes] = await Promise.all([
     getObjectives(filters),
+    getGoals({}),
     sb
       .from("profiles")
       .select("id, email")
@@ -51,6 +52,7 @@ export default async function ObjectivesPage({ searchParams }: PageProps) {
   ])
 
   const admins = adminsRes.data ?? []
+  const goalOptions = goals.map((g) => ({ id: g.id, title: g.title }))
 
   return (
     <div className="space-y-6">
@@ -70,7 +72,7 @@ export default async function ObjectivesPage({ searchParams }: PageProps) {
           </div>
         </div>
         <div className="w-full shrink-0 sm:w-auto [&_button]:w-full sm:[&_button]:w-auto">
-          <CreateObjectiveButton admins={admins} />
+          <CreateObjectiveButton admins={admins} goals={goalOptions} />
         </div>
       </div>
 

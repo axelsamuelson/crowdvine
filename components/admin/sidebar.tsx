@@ -26,6 +26,8 @@ import {
   FolderKanban,
   Target,
   UserCheck,
+  Waypoints,
+  Flag,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -96,9 +98,11 @@ const navigationGroups: NavGroup[] = [
     name: "Operations",
     icon: ListTodo,
     items: [
-      { name: "Tasks", href: "/admin/operations/tasks", icon: ListTodo },
-      { name: "Projects", href: "/admin/operations/projects", icon: FolderKanban },
+      { name: "Goals", href: "/admin/operations/goals", icon: Flag },
       { name: "Objectives", href: "/admin/operations/okrs", icon: Target },
+      { name: "Projects", href: "/admin/operations/projects", icon: FolderKanban },
+      { name: "Tasks", href: "/admin/operations/tasks", icon: ListTodo },
+      { name: "Strategy map", href: "/admin/strategy-map", icon: Waypoints },
       { name: "My Work", href: "/admin/operations/my-work", icon: UserCheck },
     ],
   },

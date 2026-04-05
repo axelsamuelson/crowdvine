@@ -4,16 +4,20 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import { ObjectiveFormDialog } from "./objective-form-dialog"
-import type { AdminUserMin, Objective } from "@/lib/types/operations"
+import type { AdminUserMin, GoalMin, Objective } from "@/lib/types/operations"
 
 interface Props {
   admins: AdminUserMin[]
+  goals?: GoalMin[]
+  defaultGoalId?: string | null
   objective?: Objective | null
   label?: string
 }
 
 export function CreateObjectiveButton({
   admins,
+  goals = [],
+  defaultGoalId = null,
   objective,
   label = "Create Objective",
 }: Props) {
@@ -34,6 +38,8 @@ export function CreateObjectiveButton({
         onOpenChange={setOpen}
         objective={objective}
         admins={admins}
+        goals={goals}
+        defaultGoalId={defaultGoalId}
       />
     </>
   )

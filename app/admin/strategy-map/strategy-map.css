@@ -1,0 +1,61 @@
+@keyframes strategy-map-dash {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+.sm-flow-edge-path {
+  stroke-dasharray: 8 4;
+  animation: strategy-map-dash 1s linear infinite;
+}
+
+/* React Flow: tydlig kontrast för zoom/pan (vänster) — undvik vit-knapp på ljus text */
+.strategy-map-flow .react-flow__controls {
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.12),
+    0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+.strategy-map-flow .react-flow__controls-button {
+  background-color: #fafafa;
+  color: #18181b;
+  border-bottom: 1px solid #e4e4e7;
+  fill: #18181b;
+}
+
+.strategy-map-flow .react-flow__controls-button:hover {
+  background-color: #f4f4f5;
+}
+
+.strategy-map-flow .react-flow__controls-button:last-child {
+  border-bottom: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .strategy-map-flow .react-flow__controls {
+    box-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.45),
+      0 0 0 1px rgba(255, 255, 255, 0.08);
+  }
+
+  .strategy-map-flow .react-flow__controls-button {
+    background-color: #27272a;
+    color: #fafafa;
+    border-bottom-color: #3f3f46;
+    fill: #fafafa;
+  }
+
+  .strategy-map-flow .react-flow__controls-button:hover {
+    background-color: #3f3f46;
+  }
+}
+
+.strategy-map-flow .react-flow__minimap {
+  background-color: #f4f4f5 !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .strategy-map-flow .react-flow__minimap {
+    background-color: #18181b !important;
+  }
+}

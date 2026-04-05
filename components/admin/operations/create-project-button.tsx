@@ -4,13 +4,19 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import { ProjectFormDialog } from "./project-form-dialog"
-import type { ObjectiveMin, AdminUserMin, Project } from "@/lib/types/operations"
+import type {
+  ObjectiveMin,
+  AdminUserMin,
+  Project,
+  KeyResultPickerOption,
+} from "@/lib/types/operations"
 
 interface Props {
   objectives: ObjectiveMin[]
   admins: AdminUserMin[]
   project?: Project | null
   defaultObjectiveId?: string | null
+  keyResultOptions?: KeyResultPickerOption[]
   label?: string
 }
 
@@ -19,6 +25,7 @@ export function CreateProjectButton({
   admins,
   project,
   defaultObjectiveId,
+  keyResultOptions = [],
   label = "Create Project",
 }: Props) {
   const [open, setOpen] = useState(false)
@@ -40,6 +47,7 @@ export function CreateProjectButton({
         objectives={objectives}
         admins={admins}
         defaultObjectiveId={defaultObjectiveId}
+        keyResultOptions={keyResultOptions}
       />
     </>
   )

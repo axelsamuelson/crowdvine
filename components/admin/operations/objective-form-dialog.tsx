@@ -31,7 +31,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { createObjective, updateObjective } from "@/lib/actions/operations"
-import type { Objective, AdminUserMin } from "@/lib/types/operations"
+import type { Objective, AdminUserMin, GoalMin } from "@/lib/types/operations"
 
 const PERIODS = [
   "Q1 2026",
@@ -67,6 +67,7 @@ const schema = z.object({
     .nullable()
     .optional(),
   owner_id: z.string().nullable().optional(),
+  goal_id: z.string().nullable().optional(),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -76,6 +77,9 @@ interface Props {
   onOpenChange: (open: boolean) => void
   objective?: Objective | null
   admins: AdminUserMin[]
+  goals?: GoalMin[]
+  /** Pre-filled when creating from a goal detail page */
+  defaultGoalId?: string | null
 }
 
 export function ObjectiveFormDialog({
@@ -83,6 +87,8 @@ export function ObjectiveFormDialog({
   onOpenChange,
   objective,
   admins,
+  goals = [],
+  defaultGoalId = null,
 }: Props) {
   const [loading, setLoading] = useState(false)
   const isEdit = !!objective
@@ -98,6 +104,7 @@ export function ObjectiveFormDialog({
       progress_method: "key_results",
       manual_progress: null,
       owner_id: null,
+      goal_id: null as string | null,
     },
   })
 
@@ -114,6 +121,7 @@ export function ObjectiveFormDialog({
         progress_method: objective.progress_method,
         manual_progress: objective.manual_progress ?? null,
         owner_id: objective.owner_id ?? null,
+        goal_id: objective.goal_id ?? null,
       })
     } else {
       form.reset({
@@ -125,18 +133,23 @@ export function ObjectiveFormDialog({
         progress_method: "key_results",
         manual_progress: null,
         owner_id: null,
+        goal_id: defaultGoalId ?? null,
       })
     }
-  }, [objective, open])
+  }, [objective, open, defaultGoalId])
 
   async function onSubmit(values: FormValues) {
     setLoading(true)
     try {
+      const payload = {
+        ...values,
+        goal_id: values.goal_id || null,
+      }
       if (isEdit && objective) {
-        await updateObjective(objective.id, values)
+        await updateObjective(objective.id, payload)
         toast.success("Objective updated")
       } else {
-        await createObjective(values)
+        await createObjective(payload)
         toast.success("Objective created")
       }
       onOpenChange(false)
@@ -252,6 +265,39 @@ export function ObjectiveFormDialog({
                 )}
               />
             </div>
+
+            {goals.length > 0 && (
+              <FormField
+                control={form.control}
+                name="goal_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Goal</FormLabel>
+                    <Select
+                      onValueChange={(v) =>
+                        field.onChange(v === "__none__" ? null : v)
+                      }
+                      value={field.value ?? "__none__"}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="No goal" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="__none__">No goal</SelectItem>
+                        {goals.map((g) => (
+                          <SelectItem key={g.id} value={g.id}>
+                            {g.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <FormField

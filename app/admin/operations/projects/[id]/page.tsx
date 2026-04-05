@@ -41,6 +41,16 @@ export default async function ProjectDetailPage({ params }: PageProps) {
 
   const objectives = objectivesRes.data ?? []
   const admins = adminsRes.data ?? []
+  const objectiveIds = objectives.map((o) => o.id)
+  let keyResultOptions: { id: string; title: string; objective_id: string }[] = []
+  if (objectiveIds.length > 0) {
+    const { data } = await sb
+      .from("admin_key_results")
+      .select("id, title, objective_id")
+      .in("objective_id", objectiveIds)
+      .order("sort_order")
+    keyResultOptions = data ?? []
+  }
 
   const tasks = (project.tasks ?? []) as Task[]
 
@@ -70,6 +80,14 @@ export default async function ProjectDetailPage({ params }: PageProps) {
       {/* Strategisk tråd */}
       {project.objective && (
         <StrategicBreadcrumb
+          goal={
+            project.objective.goal
+              ? {
+                  id: project.objective.goal.id,
+                  title: project.objective.goal.title,
+                }
+              : null
+          }
           objective={{
             id: project.objective_id!,
             title: project.objective.title,
@@ -107,6 +125,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
             objectives={objectives}
             admins={admins}
             project={project}
+            keyResultOptions={keyResultOptions}
             label="Edit Project"
           />
         </div>

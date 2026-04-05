@@ -100,6 +100,14 @@ export default async function TaskDetailPage({ params }: PageProps) {
 
       {/* Strategisk tråd */}
       <StrategicBreadcrumb
+        goal={
+          task.objective?.goal
+            ? {
+                id: task.objective.goal.id,
+                title: task.objective.goal.title,
+              }
+            : null
+        }
         objective={task.objective ?? null}
         project={
           task.project

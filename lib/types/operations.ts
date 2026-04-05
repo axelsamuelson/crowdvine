@@ -80,11 +80,31 @@ export interface ProjectMin {
 export interface ObjectiveMin {
   id: string
   title: string
+  goal_id?: string | null
+  goal?: GoalMin | null
+}
+
+export type GoalStatus =
+  | "active"
+  | "completed"
+  | "paused"
+  | "cancelled"
+
+export interface GoalMin {
+  id: string
+  title: string
 }
 
 export interface KeyResultMin {
   id: string
   title: string
+}
+
+/** Options for linking a project to a key result (grouped by objective in the form). */
+export interface KeyResultPickerOption {
+  id: string
+  title: string
+  objective_id: string
 }
 
 // ─── Key Result ──────────────────────────────────────────────
@@ -110,6 +130,24 @@ export interface KeyResult {
   owner?: AdminUserMin
 }
 
+// ─── Goal (strategisk nivå ovanför objectives) ────────────────
+
+export interface Goal {
+  id: string
+  title: string
+  description: string | null
+  status: GoalStatus
+  deleted_at: string | null
+  created_at: string
+  updated_at: string
+  created_by?: string | null
+  // Computed (list / detail)
+  progress?: number
+  objective_count?: number
+  objectives?: Objective[]
+  creator?: AdminUserMin
+}
+
 // ─── Objective ───────────────────────────────────────────────
 
 export interface Objective {
@@ -117,6 +155,7 @@ export interface Objective {
   title: string
   description: string | null
   period: string
+  goal_id: string | null
   owner_id: string | null
   status: ObjectiveStatus
   strategy_area: StrategyArea | null
@@ -130,8 +169,13 @@ export interface Objective {
   progress?: number
   project_count?: number
   open_task_count?: number
+  /** Average KR progress (objective detail). */
+  kr_progress_aggregate?: number | null
+  /** Average task-based progress across projects under this objective (detail). */
+  project_delivery_progress?: number | null
   // Joins
   key_results?: KeyResult[]
+  goal?: GoalMin | null
   owner?: AdminUserMin
   creator?: AdminUserMin
 }
@@ -291,11 +335,17 @@ export interface ProjectFilters {
   include_deleted?: boolean
 }
 
+export interface GoalFilters {
+  status?: GoalStatus[]
+  include_deleted?: boolean
+}
+
 export interface ObjectiveFilters {
   status?: ObjectiveStatus[]
   period?: string
   strategy_area?: StrategyArea
   owner_id?: string
+  goal_id?: string
   include_deleted?: boolean
 }
 
@@ -340,6 +390,7 @@ export interface CreateObjectiveData {
   title: string
   description?: string
   period: string
+  goal_id?: string | null
   owner_id?: string | null
   status?: ObjectiveStatus
   strategy_area?: StrategyArea | null
@@ -348,6 +399,16 @@ export interface CreateObjectiveData {
 }
 
 export type UpdateObjectiveData = Partial<CreateObjectiveData>
+
+export interface CreateGoalData {
+  title: string
+  description?: string
+  status?: GoalStatus
+}
+
+export type UpdateGoalData = Partial<CreateGoalData> & {
+  status?: GoalStatus
+}
 
 export interface CreateKeyResultData {
   objective_id: string

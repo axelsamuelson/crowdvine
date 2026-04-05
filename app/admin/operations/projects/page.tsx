@@ -61,6 +61,16 @@ export default async function ProjectsPage({ searchParams }: PageProps) {
 
   const objectives = objectivesRes.data ?? []
   const admins = adminsRes.data ?? []
+  const objectiveIds = objectives.map((o) => o.id)
+  let keyResultOptions: { id: string; title: string; objective_id: string }[] = []
+  if (objectiveIds.length > 0) {
+    const { data } = await sb
+      .from("admin_key_results")
+      .select("id, title, objective_id")
+      .in("objective_id", objectiveIds)
+      .order("sort_order")
+    keyResultOptions = data ?? []
+  }
 
   const sorted = [...projects].sort(
     (a, b) =>
@@ -85,7 +95,11 @@ export default async function ProjectsPage({ searchParams }: PageProps) {
           </div>
         </div>
         <div className="w-full shrink-0 sm:w-auto [&_button]:w-full sm:[&_button]:w-auto">
-          <CreateProjectButton objectives={objectives} admins={admins} />
+          <CreateProjectButton
+            objectives={objectives}
+            admins={admins}
+            keyResultOptions={keyResultOptions}
+          />
         </div>
       </div>
 

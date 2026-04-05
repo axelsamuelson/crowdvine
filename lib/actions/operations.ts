@@ -12,9 +12,11 @@ import type {
   Project,
   Objective,
   KeyResult,
+  Goal,
   TaskFilters,
   ProjectFilters,
   ObjectiveFilters,
+  GoalFilters,
   CreateTaskData,
   UpdateTaskData,
   CreateProjectData,
@@ -23,6 +25,8 @@ import type {
   UpdateObjectiveData,
   CreateKeyResultData,
   UpdateKeyResultData,
+  CreateGoalData,
+  UpdateGoalData,
   TaskStatus,
 } from "@/lib/types/operations"
 
@@ -54,7 +58,7 @@ async function logActivity(
 /** Standard admin_tasks-rad: projekt, objective, assignee, skapare. */
 const ADMIN_TASK_SELECT = `*,
   project:admin_projects(id, name),
-  objective:admin_objectives(id, title),
+  objective:admin_objectives(id, title, goal_id, goal:admin_goals(id, title)),
   assignee:profiles!admin_tasks_assigned_to_fkey(id, email),
   creator:profiles!admin_tasks_created_by_fkey(id, email)`
 
@@ -65,6 +69,9 @@ import {
   computeProjectProgress,
   computeKeyResultProgress,
   computeObjectiveProgress,
+  computeKeyResultsAggregateProgress,
+  computeProjectsDeliveryAggregateProgress,
+  computeGoalProgress,
 } from "@/lib/operations/progress"
 
 // ─── TASKS ───────────────────────────────────────────────────
@@ -207,6 +214,7 @@ export async function createTask(data: CreateTaskData): Promise<Task> {
   revalidatePath("/admin/operations/tasks")
   revalidatePath("/admin/operations/my-work")
   revalidatePath(`/admin/operations/tasks/${task.id}`)
+  revalidatePath("/admin/strategy-map")
 
   return task
 }
@@ -302,6 +310,7 @@ export async function updateTask(
   revalidatePath("/admin/operations/tasks")
   revalidatePath(`/admin/operations/tasks/${id}`)
   revalidatePath("/admin/operations/my-work")
+  revalidatePath("/admin/strategy-map")
 
   return task
 }
@@ -319,6 +328,8 @@ export async function deleteTask(id: string): Promise<void> {
   revalidatePath("/admin/operations/tasks")
   revalidatePath(`/admin/operations/tasks/${id}`)
   revalidatePath("/admin/operations")
+  revalidatePath("/admin/strategy-map")
+  revalidatePath("/admin/operations/my-work")
 }
 
 export async function addComment(
@@ -397,7 +408,7 @@ export async function getProjects(
     .select(
       `
       *,
-      objective:admin_objectives(id, title),
+      objective:admin_objectives(id, title, goal_id, goal:admin_goals(id, title)),
       owner:profiles!admin_projects_owner_id_fkey(id, email),
       creator:profiles!admin_projects_created_by_fkey(id, email)
     `
@@ -461,7 +472,7 @@ export async function getProject(id: string) {
     .select(
       `
       *,
-      objective:admin_objectives(id, title),
+      objective:admin_objectives(id, title, goal_id, goal:admin_goals(id, title)),
       owner:profiles!admin_projects_owner_id_fkey(id, email),
       creator:profiles!admin_projects_created_by_fkey(id, email)
     `
@@ -504,7 +515,7 @@ export async function createProject(
     .select(
       `
       *,
-      objective:admin_objectives(id, title),
+      objective:admin_objectives(id, title, goal_id, goal:admin_goals(id, title)),
       owner:profiles!admin_projects_owner_id_fkey(id, email),
       creator:profiles!admin_projects_created_by_fkey(id, email)
     `
@@ -515,6 +526,10 @@ export async function createProject(
 
   revalidatePath("/admin/operations")
   revalidatePath("/admin/operations/projects")
+  revalidatePath("/admin/strategy-map")
+  if (data.objective_id) {
+    revalidatePath(`/admin/operations/okrs/${data.objective_id}`)
+  }
 
   return project
 }
@@ -543,12 +558,24 @@ export async function updateProject(
 
   revalidatePath("/admin/operations/projects")
   revalidatePath(`/admin/operations/projects/${id}`)
+  revalidatePath("/admin/strategy-map")
+  if (project.objective_id) {
+    revalidatePath(`/admin/operations/okrs/${project.objective_id}`)
+  }
 
   return project
 }
 
 export async function deleteProject(id: string): Promise<void> {
   const sb = getSupabaseAdmin()
+
+  const { data: row } = await sb
+    .from("admin_projects")
+    .select("objective_id")
+    .eq("id", id)
+    .single()
+
+  const objectiveId = row?.objective_id as string | null | undefined
 
   const { error } = await sb
     .from("admin_projects")
@@ -558,7 +585,161 @@ export async function deleteProject(id: string): Promise<void> {
   if (error) throw new Error(error.message)
 
   revalidatePath("/admin/operations/projects")
+  revalidatePath(`/admin/operations/projects/${id}`)
   revalidatePath("/admin/operations")
+  revalidatePath("/admin/strategy-map")
+  if (objectiveId) {
+    revalidatePath(`/admin/operations/okrs/${objectiveId}`)
+  }
+}
+
+// ─── GOALS ───────────────────────────────────────────────────
+
+export async function getGoals(filters: GoalFilters = {}): Promise<Goal[]> {
+  const sb = getSupabaseAdmin()
+
+  let query = sb
+    .from("admin_goals")
+    .select(
+      `
+      *,
+      creator:profiles!admin_goals_created_by_fkey(id, email)
+    `
+    )
+    .order("created_at", { ascending: false })
+
+  if (!filters.include_deleted) {
+    query = query.is("deleted_at", null)
+  }
+
+  if (filters.status?.length) {
+    query = query.in("status", filters.status)
+  }
+
+  const { data: goals, error } = await query
+  if (error) throw new Error(error.message)
+  if (!goals?.length) return []
+
+  return Promise.all(
+    goals.map(async (g) => {
+      const objectives = await getObjectives({ goal_id: g.id })
+      return {
+        ...g,
+        objective_count: objectives.length,
+        progress: computeGoalProgress(objectives),
+      } as Goal
+    })
+  )
+}
+
+export async function getGoal(id: string): Promise<Goal | null> {
+  const sb = getSupabaseAdmin()
+
+  const { data: goal, error } = await sb
+    .from("admin_goals")
+    .select(
+      `
+      *,
+      creator:profiles!admin_goals_created_by_fkey(id, email)
+    `
+    )
+    .eq("id", id)
+    .is("deleted_at", null)
+    .single()
+
+  if (error) {
+    const code = (error as { code?: string })?.code
+    if (code === "PGRST116") return null
+    throw new Error(error.message)
+  }
+
+  const objectives = await getObjectives({ goal_id: id })
+  return {
+    ...goal,
+    objectives,
+    objective_count: objectives.length,
+    progress: computeGoalProgress(objectives),
+  }
+}
+
+export async function createGoal(data: CreateGoalData): Promise<Goal> {
+  const sb = getSupabaseAdmin()
+  const actor_id = await getActorId()
+
+  const { data: goal, error } = await sb
+    .from("admin_goals")
+    .insert({
+      title: data.title,
+      description: data.description ?? null,
+      status: data.status ?? "active",
+      created_by: actor_id,
+    })
+    .select(
+      `
+      *,
+      creator:profiles!admin_goals_created_by_fkey(id, email)
+    `
+    )
+    .single()
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath("/admin/operations/goals")
+  revalidatePath("/admin/strategy-map")
+
+  return {
+    ...goal,
+    objective_count: 0,
+    progress: 0,
+  }
+}
+
+export async function updateGoal(id: string, data: UpdateGoalData): Promise<Goal> {
+  const sb = getSupabaseAdmin()
+
+  const { data: goal, error } = await sb
+    .from("admin_goals")
+    .update(data)
+    .eq("id", id)
+    .select(
+      `
+      *,
+      creator:profiles!admin_goals_created_by_fkey(id, email)
+    `
+    )
+    .single()
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath("/admin/operations/goals")
+  revalidatePath(`/admin/operations/goals/${id}`)
+  revalidatePath("/admin/strategy-map")
+
+  const objectives = await getObjectives({ goal_id: id })
+  return {
+    ...goal,
+    objectives,
+    objective_count: objectives.length,
+    progress: computeGoalProgress(objectives),
+  }
+}
+
+export async function deleteGoal(id: string): Promise<void> {
+  const sb = getSupabaseAdmin()
+
+  await sb.from("admin_objectives").update({ goal_id: null }).eq("goal_id", id)
+
+  const { error } = await sb
+    .from("admin_goals")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id)
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath("/admin/operations/goals")
+  revalidatePath(`/admin/operations/goals/${id}`)
+  revalidatePath("/admin/operations/okrs")
+  revalidatePath("/admin/strategy-map")
 }
 
 // ─── OBJECTIVES ──────────────────────────────────────────────
@@ -574,6 +755,7 @@ export async function getObjectives(
       `
       *,
       key_results:admin_key_results(*),
+      goal:admin_goals(id, title),
       owner:profiles!admin_objectives_owner_id_fkey(id, email),
       creator:profiles!admin_objectives_created_by_fkey(id, email)
     `
@@ -598,6 +780,10 @@ export async function getObjectives(
 
   if (filters.owner_id) {
     query = query.eq("owner_id", filters.owner_id)
+  }
+
+  if (filters.goal_id) {
+    query = query.eq("goal_id", filters.goal_id)
   }
 
   const { data: objectives, error } = await query
@@ -628,7 +814,7 @@ export async function getObjectives(
     return {
       ...obj,
       key_results: krs,
-      progress: computeObjectiveProgress(obj, krs),
+      progress: computeObjectiveProgress(obj, krs, objTasks as Task[]),
       project_count: (projects ?? []).filter(
         (p) => p.objective_id === obj.id
       ).length,
@@ -646,6 +832,7 @@ export async function getObjective(id: string) {
       `
       *,
       key_results:admin_key_results(*),
+      goal:admin_goals(id, title),
       owner:profiles!admin_objectives_owner_id_fkey(id, email),
       creator:profiles!admin_objectives_created_by_fkey(id, email)
     `
@@ -679,14 +866,31 @@ export async function getObjective(id: string) {
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
 
+  const projectIds = (projects ?? []).map((p) => p.id)
+  let projectTasksForDelivery: Pick<Task, "project_id" | "status">[] = []
+  if (projectIds.length > 0) {
+    const { data: pt } = await sb
+      .from("admin_tasks")
+      .select("project_id, status")
+      .in("project_id", projectIds)
+      .is("deleted_at", null)
+    projectTasksForDelivery = (pt ?? []) as Pick<Task, "project_id" | "status">[]
+  }
+
   const krs: KeyResult[] = objective.key_results ?? []
+  const objectiveTasks = (tasks ?? []) as Task[]
 
   return {
     ...objective,
     key_results: krs,
     projects: projects ?? [],
     tasks: tasks ?? [],
-    progress: computeObjectiveProgress(objective, krs),
+    progress: computeObjectiveProgress(objective, krs, objectiveTasks),
+    kr_progress_aggregate: computeKeyResultsAggregateProgress(krs),
+    project_delivery_progress: computeProjectsDeliveryAggregateProgress(
+      projectIds,
+      projectTasksForDelivery
+    ),
   }
 }
 
@@ -703,6 +907,7 @@ export async function createObjective(
       `
       *,
       key_results:admin_key_results(*),
+      goal:admin_goals(id, title),
       owner:profiles!admin_objectives_owner_id_fkey(id, email),
       creator:profiles!admin_objectives_created_by_fkey(id, email)
     `
@@ -713,6 +918,11 @@ export async function createObjective(
 
   revalidatePath("/admin/operations")
   revalidatePath("/admin/operations/okrs")
+  revalidatePath("/admin/operations/goals")
+  revalidatePath("/admin/strategy-map")
+  if (data.goal_id) {
+    revalidatePath(`/admin/operations/goals/${data.goal_id}`)
+  }
 
   return { ...objective, progress: 0 }
 }
@@ -723,6 +933,14 @@ export async function updateObjective(
 ): Promise<Objective> {
   const sb = getSupabaseAdmin()
 
+  const { data: prevRow } = await sb
+    .from("admin_objectives")
+    .select("goal_id")
+    .eq("id", id)
+    .single()
+
+  const prevGoalId = prevRow?.goal_id as string | null | undefined
+
   const { data: objective, error } = await sb
     .from("admin_objectives")
     .update(data)
@@ -731,6 +949,7 @@ export async function updateObjective(
       `
       *,
       key_results:admin_key_results(*),
+      goal:admin_goals(id, title),
       owner:profiles!admin_objectives_owner_id_fkey(id, email),
       creator:profiles!admin_objectives_created_by_fkey(id, email)
     `
@@ -741,12 +960,28 @@ export async function updateObjective(
 
   revalidatePath("/admin/operations/okrs")
   revalidatePath(`/admin/operations/okrs/${id}`)
+  revalidatePath("/admin/operations/goals")
+  revalidatePath("/admin/strategy-map")
+  if (prevGoalId && prevGoalId !== objective.goal_id) {
+    revalidatePath(`/admin/operations/goals/${prevGoalId}`)
+  }
+  if (objective.goal_id) {
+    revalidatePath(`/admin/operations/goals/${objective.goal_id}`)
+  }
 
   return objective
 }
 
 export async function deleteObjective(id: string): Promise<void> {
   const sb = getSupabaseAdmin()
+
+  const { data: prevRow } = await sb
+    .from("admin_objectives")
+    .select("goal_id")
+    .eq("id", id)
+    .single()
+
+  const prevGoalId = prevRow?.goal_id as string | null | undefined
 
   const { error } = await sb
     .from("admin_objectives")
@@ -757,6 +992,11 @@ export async function deleteObjective(id: string): Promise<void> {
 
   revalidatePath("/admin/operations/okrs")
   revalidatePath("/admin/operations")
+  revalidatePath("/admin/strategy-map")
+  if (prevGoalId) {
+    revalidatePath("/admin/operations/goals")
+    revalidatePath(`/admin/operations/goals/${prevGoalId}`)
+  }
 }
 
 // ─── KEY RESULTS ─────────────────────────────────────────────

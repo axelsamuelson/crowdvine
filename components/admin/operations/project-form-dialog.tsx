@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -30,11 +30,13 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { createProject, updateProject } from "@/lib/actions/operations"
 import type {
   Project,
   ObjectiveMin,
   AdminUserMin,
+  KeyResultPickerOption,
 } from "@/lib/types/operations"
 
 const schema = z.object({
@@ -58,6 +60,8 @@ interface Props {
   objectives: ObjectiveMin[]
   admins: AdminUserMin[]
   defaultObjectiveId?: string | null
+  /** Key results grouped by objective; used to link the project to a KR. */
+  keyResultOptions?: KeyResultPickerOption[]
 }
 
 export function ProjectFormDialog({
@@ -67,6 +71,7 @@ export function ProjectFormDialog({
   objectives,
   admins,
   defaultObjectiveId,
+  keyResultOptions = [],
 }: Props) {
   const [loading, setLoading] = useState(false)
   const isEdit = !!project
@@ -113,6 +118,30 @@ export function ProjectFormDialog({
       })
     }
   }, [project, open, defaultObjectiveId])
+
+  const objectiveId = form.watch("objective_id")
+  const keyResultId = form.watch("key_result_id")
+
+  const keyResultsForObjective = useMemo(
+    () =>
+      objectiveId
+        ? keyResultOptions.filter((k) => k.objective_id === objectiveId)
+        : [],
+    [keyResultOptions, objectiveId]
+  )
+
+  useEffect(() => {
+    if (!objectiveId) {
+      if (keyResultId) form.setValue("key_result_id", null)
+      return
+    }
+    const allowed = keyResultOptions
+      .filter((k) => k.objective_id === objectiveId)
+      .map((k) => k.id)
+    if (keyResultId && !allowed.includes(keyResultId)) {
+      form.setValue("key_result_id", null)
+    }
+  }, [objectiveId, keyResultId, keyResultOptions, form])
 
   async function onSubmit(values: FormValues) {
     setLoading(true)
@@ -243,9 +272,10 @@ export function ProjectFormDialog({
                   <FormItem>
                     <FormLabel>Objective</FormLabel>
                     <Select
-                      onValueChange={(v) =>
+                      onValueChange={(v) => {
                         field.onChange(v === "__none__" ? null : v)
-                      }
+                        form.setValue("key_result_id", null)
+                      }}
                       value={field.value ?? "__none__"}
                     >
                       <FormControl>
@@ -298,6 +328,58 @@ export function ProjectFormDialog({
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="key_result_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Key result</FormLabel>
+                  {!objectiveId ? (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 py-1">
+                      Select an objective to link a key result.
+                    </p>
+                  ) : keyResultsForObjective.length === 0 ? (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 py-1">
+                      This objective has no key results yet.
+                    </p>
+                  ) : (
+                    <Select
+                      onValueChange={(v) =>
+                        field.onChange(v === "__none__" ? null : v)
+                      }
+                      value={field.value ?? "__none__"}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Optional" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="__none__">None</SelectItem>
+                        {keyResultsForObjective.map((k) => (
+                          <SelectItem key={k.id} value={k.id}>
+                            {k.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {objectiveId &&
+              keyResultsForObjective.length > 0 &&
+              !keyResultId && (
+                <Alert className="border-blue-200 bg-blue-50/80 text-blue-950 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-100">
+                  <AlertDescription className="text-xs leading-relaxed">
+                    Linking this project to a key result makes it clear which
+                    measurable outcome the work supports.
+                  </AlertDescription>
+                </Alert>
+              )}
 
             <div className="grid grid-cols-2 gap-4">
               <FormField

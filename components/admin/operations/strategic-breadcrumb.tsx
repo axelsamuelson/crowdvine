@@ -8,6 +8,7 @@ interface StrategicLevel {
 }
 
 interface Props {
+  goal?: { id: string; title: string } | null
   objective?: { id: string; title: string } | null
   key_result?: { id: string; title: string } | null
   project?: { id: string; name: string } | null
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function StrategicBreadcrumb({
+  goal,
   objective,
   key_result,
   project,
@@ -23,6 +25,14 @@ export function StrategicBreadcrumb({
   showUnlinkedWarning = true,
 }: Props) {
   const levels: StrategicLevel[] = []
+
+  if (goal) {
+    levels.push({
+      label: "Goal",
+      href: `/admin/operations/goals/${goal.id}`,
+      title: goal.title,
+    })
+  }
 
   if (objective) {
     levels.push({
