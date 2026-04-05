@@ -317,6 +317,7 @@ export async function deleteTask(id: string): Promise<void> {
   if (error) throw new Error(error.message)
 
   revalidatePath("/admin/operations/tasks")
+  revalidatePath(`/admin/operations/tasks/${id}`)
   revalidatePath("/admin/operations")
 }
 

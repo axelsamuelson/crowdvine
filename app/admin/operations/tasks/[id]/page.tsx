@@ -6,9 +6,11 @@ import { TaskStatusBadge } from "@/components/admin/operations/task-status-badge
 import { TaskPriorityBadge } from "@/components/admin/operations/task-priority-badge"
 import { EntityLinkBadge } from "@/components/admin/operations/entity-link-badge"
 import { TaskDetailActions } from "@/components/admin/operations/task-detail-actions"
+import { TaskDetailDelete } from "@/components/admin/operations/task-detail-delete"
 import { TaskComments } from "@/components/admin/operations/task-comments"
 import { CreatedMetaLine } from "@/components/admin/operations/created-meta-line"
 import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -26,6 +28,13 @@ export default async function TaskDetailPage({ params }: PageProps) {
   if (!task) {
     return (
       <div className="space-y-4">
+        <Link
+          href="/admin/operations/tasks"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+        >
+          <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
+          All Tasks
+        </Link>
         <StrategicBreadcrumb current="Task" showUnlinkedWarning={false} />
         <div className="rounded-xl border border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-[#0F0F12] p-4">
           <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -81,6 +90,14 @@ export default async function TaskDetailPage({ params }: PageProps) {
 
   return (
     <div className="space-y-6">
+      <Link
+        href="/admin/operations/tasks"
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+      >
+        <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
+        All Tasks
+      </Link>
+
       {/* Strategisk tråd */}
       <StrategicBreadcrumb
         objective={task.objective ?? null}
@@ -174,6 +191,8 @@ export default async function TaskDetailPage({ params }: PageProps) {
             comments={task.comments}
             current_admin_id={admin?.id ?? ""}
           />
+
+          <TaskDetailDelete taskId={task.id} />
         </div>
       </div>
     </div>
