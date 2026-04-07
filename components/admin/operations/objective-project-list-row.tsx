@@ -53,10 +53,13 @@ export function ObjectiveProjectListRow({
         href={`/admin/operations/projects/${project.id}`}
         className="min-w-0 flex-1 flex items-center justify-between gap-3 text-left"
       >
-        <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+        <span className="min-w-0 truncate text-sm font-medium text-gray-800 dark:text-gray-200">
           {project.name}
         </span>
-        <div className="flex shrink-0 items-center gap-3">
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 sm:gap-3">
+          <span className="tabular-nums text-xs font-medium text-gray-600 dark:text-zinc-400">
+            {taskCount} {taskCount === 1 ? "task" : "tasks"}
+          </span>
           <ProjectStatusBadge status={project.status} />
           {project.due_date && (
             <span className="text-xs text-gray-500 dark:text-gray-400">

@@ -80,6 +80,8 @@ interface Props {
   goals?: GoalMin[]
   /** Pre-filled when creating from a goal detail page */
   defaultGoalId?: string | null
+  /** Called after a successful create (not on edit). */
+  onCreated?: (objective: Objective) => void | Promise<void>
 }
 
 export function ObjectiveFormDialog({
@@ -89,6 +91,7 @@ export function ObjectiveFormDialog({
   admins,
   goals = [],
   defaultGoalId = null,
+  onCreated,
 }: Props) {
   const [loading, setLoading] = useState(false)
   const isEdit = !!objective
@@ -149,8 +152,11 @@ export function ObjectiveFormDialog({
         await updateObjective(objective.id, payload)
         toast.success("Objective updated")
       } else {
-        await createObjective(payload)
-        toast.success("Objective created")
+        const created = await createObjective(payload)
+        await Promise.resolve(onCreated?.(created))
+        if (!onCreated) {
+          toast.success("Objective created")
+        }
       }
       onOpenChange(false)
       form.reset()

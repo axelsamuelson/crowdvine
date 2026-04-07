@@ -701,12 +701,22 @@ function InnerCanvas({
           objectives: entities.objectives,
           projects: entities.projects,
           admins,
+          goals: entities.goals.map((g) => ({ id: g.id, title: g.title })),
+          keyResultOptions: [],
           onTaskUpdated: (task) => {
             setEntities((e) => ({
               ...e,
               tasks: e.tasks.map((t) => (t.id === task.id ? task : t)),
             }))
             setSheetRecord(task)
+          },
+          onObjectiveCreated: (o) =>
+            setEntities((e) => ({ ...e, objectives: [...e.objectives, o] })),
+          onProjectCreated: (p) =>
+            setEntities((e) => ({ ...e, projects: [...e.projects, p] })),
+          onTaskDuplicated: (t) => {
+            setEntities((e) => ({ ...e, tasks: [...e.tasks, t] }))
+            setSheetRecord(t)
           },
         }}
       />

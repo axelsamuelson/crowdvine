@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import {
@@ -43,6 +44,11 @@ interface Props {
   admins: AdminUserMin[]
   showProject?: boolean
   showObjective?: boolean
+  /**
+   * On a project detail page: show the project's objective in this column for every task.
+   * Tasks may still have a stale `objective_id` / objective join from before the project moved.
+   */
+  objectiveDisplayOverride?: { id: string; title: string } | null
 }
 
 export function TaskTable({
@@ -52,6 +58,7 @@ export function TaskTable({
   admins,
   showProject = true,
   showObjective = true,
+  objectiveDisplayOverride = null,
 }: Props) {
   const router = useRouter()
   const today = new Date().toISOString().split("T")[0]
@@ -206,13 +213,29 @@ export function TaskTable({
 
                 {showObjective && (
                   <TableCell className="text-sm text-gray-700 dark:text-gray-300 max-w-[160px]">
-                    <span className="truncate block">
-                      {task.objective?.title ?? (
+                    {objectiveDisplayOverride ? (
+                      objectiveDisplayOverride.title ? (
+                        <Link
+                          href={`/admin/operations/objectives/${objectiveDisplayOverride.id}`}
+                          className="truncate block text-blue-600 hover:underline dark:text-blue-400"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {objectiveDisplayOverride.title}
+                        </Link>
+                      ) : (
                         <span className="text-gray-500 dark:text-gray-400">
                           —
                         </span>
-                      )}
-                    </span>
+                      )
+                    ) : (
+                      <span className="truncate block">
+                        {task.objective?.title ?? (
+                          <span className="text-gray-500 dark:text-gray-400">
+                            —
+                          </span>
+                        )}
+                      </span>
+                    )}
                   </TableCell>
                 )}
 

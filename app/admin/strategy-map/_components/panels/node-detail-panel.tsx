@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useTransition } from "react"
 import Link from "next/link"
 import { toast } from "sonner"
-import { Trash2 } from "lucide-react"
+import { Copy, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
   Sheet,
@@ -26,6 +26,7 @@ import {
   deleteObjective,
   deleteProject,
   deleteTask,
+  duplicateTask,
 } from "@/lib/actions/operations"
 import { GoalStatusBadge } from "@/components/admin/operations/goal-status-badge"
 import { ObjectiveStatusBadge } from "@/components/admin/operations/objective-status-badge"
@@ -35,10 +36,14 @@ import { ProgressBar } from "@/components/admin/operations/progress-bar"
 import type {
   AdminUserMin,
   Goal,
+  GoalMin,
+  KeyResultPickerOption,
   Objective,
   Project,
   Task,
 } from "@/lib/types/operations"
+import { TaskDetailDescriptionBlock } from "@/components/admin/operations/task-detail-description-block"
+import { TaskDetailTitleEditor } from "@/components/admin/operations/task-detail-title-editor"
 import { StrategyMapTaskFields } from "./strategy-map-task-fields"
 import {
   StrategyMapConnectionsCard,
@@ -64,7 +69,12 @@ interface Props {
     objectives: Objective[]
     projects: Project[]
     admins: AdminUserMin[]
+    goals: GoalMin[]
+    keyResultOptions?: KeyResultPickerOption[]
     onTaskUpdated: (task: Task) => void
+    onObjectiveCreated?: (objective: Objective) => void
+    onProjectCreated?: (project: Project) => void
+    onTaskDuplicated?: (task: Task) => void
   }
   /** Vid helskärm: montera Sheet inuti fullscreen-elementet så overlay/fokus fungerar. */
   sheetPortalContainer?: HTMLElement | null
@@ -82,6 +92,7 @@ export function NodeDetailPanel({
 }: Props) {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [dupPending, startDup] = useTransition()
 
   const canDelete =
     Boolean(record) &&
@@ -165,9 +176,18 @@ export function NodeDetailPanel({
           </p>
         ) : (
           <div className="mt-6 space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-zinc-100 leading-snug">
-              {title}
-            </h2>
+            {kind === "task" && taskEditContext ? (
+              <TaskDetailTitleEditor
+                taskId={record.id}
+                initialTitle={(record as Task).title}
+                onSaved={taskEditContext.onTaskUpdated}
+                variant="sheet"
+              />
+            ) : (
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-zinc-100 leading-snug">
+                {title}
+              </h2>
+            )}
 
             {kind === "goal" && (
               <>
@@ -232,10 +252,19 @@ export function NodeDetailPanel({
             {kind === "task" && (
               <>
                 <TaskStatusBadge status={(record as Task).status} />
-                {(record as Task).description && (
-                  <p className="text-sm text-gray-700 dark:text-zinc-300">
-                    {(record as Task).description}
-                  </p>
+                {taskEditContext ? (
+                  <TaskDetailDescriptionBlock
+                    taskId={record.id}
+                    initialDescription={(record as Task).description ?? null}
+                    onSaved={taskEditContext.onTaskUpdated}
+                    variant="sheet"
+                  />
+                ) : (
+                  (record as Task).description && (
+                    <p className="text-sm text-gray-700 dark:text-zinc-300">
+                      {(record as Task).description}
+                    </p>
+                  )
                 )}
                 {((record as Task).assignees?.length ?? 0) > 0 ? (
                   <div className="space-y-1">
@@ -259,7 +288,13 @@ export function NodeDetailPanel({
                     objectives={taskEditContext.objectives}
                     projects={taskEditContext.projects}
                     admins={taskEditContext.admins}
+                    goals={taskEditContext.goals}
+                    keyResultOptions={
+                      taskEditContext.keyResultOptions ?? []
+                    }
                     onTaskUpdated={taskEditContext.onTaskUpdated}
+                    onObjectiveCreated={taskEditContext.onObjectiveCreated}
+                    onProjectCreated={taskEditContext.onProjectCreated}
                   />
                 )}
               </>
@@ -277,6 +312,31 @@ export function NodeDetailPanel({
                   <Link href={href}>Öppna full vy</Link>
                 </Button>
               )}
+
+              {kind === "task" &&
+                record &&
+                taskEditContext?.onTaskDuplicated && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={dupPending}
+                    className="w-full border-gray-200 dark:border-zinc-700"
+                    onClick={() => {
+                      startDup(async () => {
+                        try {
+                          const t = await duplicateTask(record.id)
+                          taskEditContext.onTaskDuplicated!(t)
+                          toast.success("Task duplicerad")
+                        } catch {
+                          toast.error("Kunde inte duplicera")
+                        }
+                      })
+                    }}
+                  >
+                    <Copy className="mr-2 h-4 w-4 shrink-0" aria-hidden />
+                    {dupPending ? "Duplicerar…" : "Duplicera task"}
+                  </Button>
+                )}
 
               {canDelete && onEntityDeleted && (
                 <Button

@@ -268,6 +268,61 @@ export async function createTask(data: CreateTaskData): Promise<Task> {
   return mapAdminTaskRow(full as AdminTaskRow)
 }
 
+/**
+ * Skapar en ny task med samma kopplingar m.m. som källan; titel får suffix " (copy)".
+ * Status sätts till todo; inga kommentarer, subtasks eller beroenden kopieras.
+ */
+export async function duplicateTask(sourceId: string): Promise<Task> {
+  const sb = getSupabaseAdmin()
+
+  const { data: src, error: srcErr } = await sb
+    .from("admin_tasks")
+    .select(
+      "title, description, project_id, objective_id, priority, task_type, due_date, start_date, estimated_hours, assigned_to"
+    )
+    .eq("id", sourceId)
+    .is("deleted_at", null)
+    .single()
+
+  if (srcErr || !src) throw new Error("Task not found")
+
+  const { data: linkRows } = await sb
+    .from("admin_task_assignees")
+    .select("profile_id")
+    .eq("task_id", sourceId)
+
+  let assigneeIds = (linkRows ?? [])
+    .map((r) => r.profile_id as string)
+    .filter(Boolean)
+  if (assigneeIds.length === 0 && src.assigned_to) {
+    assigneeIds = [src.assigned_to as string]
+  }
+  assigneeIds = [...new Set(assigneeIds)]
+
+  const newTitle = `${src.title as string} (copy)`
+
+  let task = await createTask({
+    title: newTitle,
+    description: (src.description as string | null) ?? undefined,
+    project_id: (src.project_id as string | null) ?? null,
+    objective_id: (src.objective_id as string | null) ?? null,
+    parent_task_id: null,
+    assigned_to: assigneeIds[0] ?? null,
+    status: "todo",
+    priority: src.priority as Task["priority"],
+    task_type: (src.task_type as Task["task_type"]) ?? "ops",
+    due_date: (src.due_date as string | null) ?? null,
+    start_date: (src.start_date as string | null) ?? null,
+    estimated_hours: (src.estimated_hours as number | null) ?? null,
+  })
+
+  if (assigneeIds.length > 0) {
+    task = await updateTaskAssignees(task.id, assigneeIds)
+  }
+
+  return task
+}
+
 export async function updateTask(
   id: string,
   data: UpdateTaskData
@@ -1130,6 +1185,15 @@ export async function getObjective(id: string) {
     projectTasksForDelivery = (pt ?? []) as Pick<Task, "project_id" | "status">[]
   }
 
+  /** Tasks per project_id (all tasks under objective's projects), not filtered by task.objective_id. */
+  const projectTaskCounts: Record<string, number> = {}
+  for (const row of projectTasksForDelivery) {
+    const pid = row.project_id as string | null | undefined
+    if (pid) {
+      projectTaskCounts[pid] = (projectTaskCounts[pid] ?? 0) + 1
+    }
+  }
+
   const krs: KeyResult[] = objective.key_results ?? []
   const objectiveTasks = (tasks ?? []) as Task[]
 
@@ -1138,6 +1202,7 @@ export async function getObjective(id: string) {
     key_results: krs,
     projects: projects ?? [],
     tasks: tasks ?? [],
+    projectTaskCounts,
     progress: computeObjectiveProgress(objective, krs, objectiveTasks),
     kr_progress_aggregate: computeKeyResultsAggregateProgress(krs),
     project_delivery_progress: computeProjectsDeliveryAggregateProgress(

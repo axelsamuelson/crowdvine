@@ -1,6 +1,6 @@
 "use client"
 
-import { useTransition } from "react"
+import { useState, useTransition } from "react"
 import { toast } from "sonner"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -8,11 +8,22 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { ObjectiveFormDialog } from "@/components/admin/operations/objective-form-dialog"
+import { ProjectFormDialog } from "@/components/admin/operations/project-form-dialog"
 import { updateTask, updateTaskAssignees } from "@/lib/actions/operations"
-import type { AdminUserMin, Objective, Project, Task } from "@/lib/types/operations"
+import type {
+  AdminUserMin,
+  GoalMin,
+  KeyResultPickerOption,
+  Objective,
+  ObjectiveMin,
+  Project,
+  Task,
+} from "@/lib/types/operations"
 
 const fieldClass =
   "h-9 text-sm rounded-lg border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-zinc-900/40 text-gray-900 dark:text-zinc-100"
@@ -22,7 +33,15 @@ type Props = {
   objectives: Objective[]
   projects: Project[]
   admins: AdminUserMin[]
+  goals: GoalMin[]
+  keyResultOptions?: KeyResultPickerOption[]
   onTaskUpdated: (task: Task) => void
+  onObjectiveCreated?: (objective: Objective) => void
+  onProjectCreated?: (project: Project) => void
+}
+
+function toObjectiveMins(objectives: Objective[]): ObjectiveMin[] {
+  return objectives.map((o) => ({ id: o.id, title: o.title }))
 }
 
 export function StrategyMapTaskFields({
@@ -30,9 +49,15 @@ export function StrategyMapTaskFields({
   objectives,
   projects,
   admins,
+  goals,
+  keyResultOptions = [],
   onTaskUpdated,
+  onObjectiveCreated,
+  onProjectCreated,
 }: Props) {
   const [pending, start] = useTransition()
+  const [createObjectiveOpen, setCreateObjectiveOpen] = useState(false)
+  const [createProjectOpen, setCreateProjectOpen] = useState(false)
 
   const projectsForObjective = projects.filter(
     (p) =>
@@ -91,6 +116,24 @@ export function StrategyMapTaskFields({
                 {o.title}
               </SelectItem>
             ))}
+            {onObjectiveCreated ? (
+              <>
+                <SelectSeparator className="bg-gray-200 dark:bg-zinc-700" />
+                <div className="p-1">
+                  <button
+                    type="button"
+                    className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-2 pl-2 pr-8 text-left text-xs text-gray-700 outline-none hover:bg-gray-100 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                    onPointerDown={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                    }}
+                    onClick={() => setCreateObjectiveOpen(true)}
+                  >
+                    + Skapa nytt objective…
+                  </button>
+                </div>
+              </>
+            ) : null}
           </SelectContent>
         </Select>
       </div>
@@ -128,8 +171,31 @@ export function StrategyMapTaskFields({
                 {p.name}
               </SelectItem>
             ))}
+            {onProjectCreated ? (
+              <>
+                <SelectSeparator className="bg-gray-200 dark:bg-zinc-700" />
+                <div className="p-1">
+                  <button
+                    type="button"
+                    className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-2 pl-2 pr-8 text-left text-xs text-gray-700 outline-none hover:bg-gray-100 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                    onPointerDown={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                    }}
+                    onClick={() => setCreateProjectOpen(true)}
+                  >
+                    + Skapa nytt projekt…
+                  </button>
+                </div>
+              </>
+            ) : null}
           </SelectContent>
         </Select>
+        {!task.objective_id && onProjectCreated ? (
+          <p className="text-[11px] text-gray-500 dark:text-zinc-500">
+            Välj objective först om projektet ska kopplas till ett visst mål.
+          </p>
+        ) : null}
       </div>
 
       <div className="space-y-2">
@@ -186,6 +252,59 @@ export function StrategyMapTaskFields({
           })}
         </ul>
       </div>
+
+      {onObjectiveCreated ? (
+        <ObjectiveFormDialog
+          open={createObjectiveOpen}
+          onOpenChange={setCreateObjectiveOpen}
+          admins={admins}
+          goals={goals}
+          onCreated={async (o) => {
+            onObjectiveCreated(o)
+            try {
+              let project_id = task.project_id
+              if (project_id) {
+                const pr = projects.find((x) => x.id === project_id)
+                if (pr?.objective_id && pr.objective_id !== o.id) {
+                  project_id = null
+                }
+              }
+              const t = await updateTask(task.id, {
+                objective_id: o.id,
+                project_id,
+              })
+              onTaskUpdated(t)
+              toast.success("Objective skapat och kopplat till tasken")
+            } catch {
+              toast.success("Objective skapat — välj det i listan")
+            }
+          }}
+        />
+      ) : null}
+
+      {onProjectCreated ? (
+        <ProjectFormDialog
+          open={createProjectOpen}
+          onOpenChange={setCreateProjectOpen}
+          objectives={toObjectiveMins(objectives)}
+          admins={admins}
+          defaultObjectiveId={task.objective_id ?? null}
+          keyResultOptions={keyResultOptions}
+          onCreated={async (p) => {
+            onProjectCreated(p)
+            try {
+              const t = await updateTask(task.id, {
+                project_id: p.id,
+                objective_id: p.objective_id ?? task.objective_id,
+              })
+              onTaskUpdated(t)
+              toast.success("Projekt skapat och kopplat till tasken")
+            } catch {
+              toast.success("Projekt skapat — välj det i listan")
+            }
+          }}
+        />
+      ) : null}
     </div>
   )
 }

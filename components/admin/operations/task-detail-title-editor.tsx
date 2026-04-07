@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Check, Pencil, X } from "lucide-react"
 import { updateTask } from "@/lib/actions/operations"
+import type { Task } from "@/lib/types/operations"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
@@ -12,9 +13,14 @@ import { cn } from "@/lib/utils"
 export function TaskDetailTitleEditor({
   taskId,
   initialTitle,
+  onSaved,
+  variant = "page",
 }: {
   taskId: string
   initialTitle: string
+  /** When set (e.g. strategy map), called with updated task instead of router.refresh only. */
+  onSaved?: (task: Task) => void
+  variant?: "page" | "sheet"
 }) {
   const router = useRouter()
   const [title, setTitle] = useState(initialTitle)
@@ -40,11 +46,12 @@ export function TaskDetailTitleEditor({
     }
     setSaving(true)
     try {
-      await updateTask(taskId, { title: next })
+      const updated = await updateTask(taskId, { title: next })
       setTitle(next)
       setEditing(false)
       toast.success("Saved")
-      router.refresh()
+      onSaved?.(updated)
+      if (!onSaved) router.refresh()
     } catch {
       toast.error("Failed to save")
       setDraft(title)
@@ -58,6 +65,11 @@ export function TaskDetailTitleEditor({
     setEditing(false)
   }
 
+  const titleClass =
+    variant === "sheet"
+      ? "text-base font-semibold sm:text-lg"
+      : "text-xl font-semibold sm:text-2xl"
+
   return (
     <div className="flex min-w-0 items-start gap-2">
       {editing ? (
@@ -68,8 +80,9 @@ export function TaskDetailTitleEditor({
             onChange={(e) => setDraft(e.target.value)}
             disabled={saving}
             className={cn(
-              "min-w-0 flex-1 text-xl font-semibold sm:text-2xl",
-              "h-auto min-h-10 py-2 rounded-lg border-gray-200 dark:border-[#1F1F23]",
+              "min-w-0 flex-1",
+              titleClass,
+              "h-auto min-h-9 py-2 rounded-lg border-gray-200 dark:border-[#1F1F23]",
               "bg-white dark:bg-zinc-900/40 text-gray-900 dark:text-zinc-100"
             )}
             onKeyDown={(e) => {
@@ -80,13 +93,19 @@ export function TaskDetailTitleEditor({
               if (e.key === "Escape") cancel()
             }}
           />
-          <div className="flex shrink-0 gap-1 pt-0.5">
+          <div
+            className={cn(
+              "flex shrink-0 gap-1",
+              variant === "sheet" ? "pt-0" : "pt-0.5"
+            )}
+          >
             <Button
               type="button"
               size="icon"
               variant="default"
               className={cn(
-                "size-9 shrink-0 border-0 shadow-sm",
+                "shrink-0 border-0 shadow-sm",
+                variant === "sheet" ? "size-8" : "size-9",
                 "bg-emerald-600 text-white hover:bg-emerald-700",
                 "dark:bg-emerald-500 dark:text-white dark:hover:bg-emerald-400",
                 "focus-visible:ring-2 focus-visible:ring-emerald-500/50 focus-visible:ring-offset-2",
@@ -103,7 +122,8 @@ export function TaskDetailTitleEditor({
               size="icon"
               variant="outline"
               className={cn(
-                "size-9 shrink-0 border-gray-300 bg-white text-gray-700",
+                "shrink-0 border-gray-300 bg-white text-gray-700",
+                variant === "sheet" ? "size-8" : "size-9",
                 "hover:bg-gray-50 hover:text-gray-900",
                 "dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200",
                 "dark:hover:bg-zinc-800 dark:hover:text-white"
@@ -118,14 +138,33 @@ export function TaskDetailTitleEditor({
         </>
       ) : (
         <>
-          <h1 className="min-w-0 flex-1 break-words text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl">
-            {title}
-          </h1>
+          {variant === "page" ? (
+            <h1
+              className={cn(
+                "min-w-0 flex-1 break-words text-gray-900 dark:text-white",
+                titleClass
+              )}
+            >
+              {title}
+            </h1>
+          ) : (
+            <h2
+              className={cn(
+                "min-w-0 flex-1 break-words text-gray-900 dark:text-white",
+                titleClass
+              )}
+            >
+              {title}
+            </h2>
+          )}
           <Button
             type="button"
             size="icon"
             variant="ghost"
-            className="size-9 shrink-0 text-gray-500 hover:text-gray-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+            className={cn(
+              "shrink-0 text-gray-500 hover:text-gray-900 dark:text-zinc-400 dark:hover:text-zinc-100",
+              variant === "sheet" ? "size-8" : "size-9"
+            )}
             aria-label="Edit title"
             onClick={() => {
               setDraft(title)

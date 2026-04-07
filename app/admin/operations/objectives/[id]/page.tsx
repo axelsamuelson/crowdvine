@@ -30,10 +30,16 @@ const OBJECTIVE_TAB_TRIGGER_CLASS =
 
 interface PageProps {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ tab?: string }>
 }
 
-export default async function ObjectiveDetailPage({ params }: PageProps) {
+export default async function ObjectiveDetailPage({
+  params,
+  searchParams,
+}: PageProps) {
   const { id } = await params
+  const { tab: tabParam } = await searchParams
+  const defaultTab = tabParam === "tasks" ? "tasks" : "projects"
 
   const objective = await getObjective(id).catch(() => null)
   if (!objective) notFound()
@@ -71,6 +77,9 @@ export default async function ObjectiveDetailPage({ params }: PageProps) {
   }
   const tasks = (objective.tasks ?? []) as Task[]
   const projects = objective.projects ?? []
+  const unassignedTaskCount = tasks.filter(
+    (t) => t.project_id == null || t.project_id === ""
+  ).length
 
   return (
     <div className="space-y-6">
@@ -147,7 +156,7 @@ export default async function ObjectiveDetailPage({ params }: PageProps) {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="projects">
+      <Tabs defaultValue={defaultTab} key={defaultTab}>
         <TabsList className="h-auto min-h-10 w-full min-w-0 flex-wrap justify-start gap-1 rounded-xl border border-gray-200 bg-gray-100 p-1 dark:border-zinc-700 dark:bg-zinc-900 sm:inline-flex sm:w-auto sm:flex-nowrap">
           <TabsTrigger value="projects" className={OBJECTIVE_TAB_TRIGGER_CLASS}>
             Projects ({projects.length})
@@ -167,9 +176,8 @@ export default async function ObjectiveDetailPage({ params }: PageProps) {
               status: project.status,
               due_date: project.due_date,
             }))}
-            taskProjectIds={tasks
-              .map((t) => t.project_id)
-              .filter((id): id is string => id != null && id !== "")}
+            projectTaskCounts={objective.projectTaskCounts ?? {}}
+            unassignedTaskCount={unassignedTaskCount}
             objectives={objectives}
             admins={admins}
             keyResultOptions={keyResultOptions}

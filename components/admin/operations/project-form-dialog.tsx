@@ -62,6 +62,8 @@ interface Props {
   defaultObjectiveId?: string | null
   /** Key results grouped by objective; used to link the project to a KR. */
   keyResultOptions?: KeyResultPickerOption[]
+  /** Called after a successful create (not on edit). */
+  onCreated?: (project: Project) => void | Promise<void>
 }
 
 export function ProjectFormDialog({
@@ -72,6 +74,7 @@ export function ProjectFormDialog({
   admins,
   defaultObjectiveId,
   keyResultOptions = [],
+  onCreated,
 }: Props) {
   const [loading, setLoading] = useState(false)
   const isEdit = !!project
@@ -150,8 +153,11 @@ export function ProjectFormDialog({
         await updateProject(project.id, values)
         toast.success("Project updated")
       } else {
-        await createProject(values)
-        toast.success("Project created")
+        const created = await createProject(values)
+        await Promise.resolve(onCreated?.(created))
+        if (!onCreated) {
+          toast.success("Project created")
+        }
       }
       onOpenChange(false)
       form.reset()

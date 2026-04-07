@@ -4,6 +4,7 @@ import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { ObjectiveProjectListRow } from "@/components/admin/operations/objective-project-list-row"
+import { ObjectiveUnassignedTasksRow } from "@/components/admin/operations/objective-unassigned-tasks-row"
 import { CreateProjectButton } from "@/components/admin/operations/create-project-button"
 import { moveProjectsToObjective } from "@/lib/actions/operations"
 import type {
@@ -33,8 +34,10 @@ type ProjectRow = {
 interface Props {
   objectiveId: string
   projects: ProjectRow[]
-  /** Tasks on this objective (used to count tasks per project). */
-  taskProjectIds: string[]
+  /** Task counts per project (by project_id; matches project detail page). */
+  projectTaskCounts: Record<string, number>
+  /** Tasks with no project_id among objective-linked tasks (Tasks tab list). */
+  unassignedTaskCount: number
   objectives: ObjectiveMin[]
   admins: AdminUserMin[]
   keyResultOptions: KeyResultPickerOption[]
@@ -43,7 +46,8 @@ interface Props {
 export function ObjectiveProjectsPanel({
   objectiveId,
   projects,
-  taskProjectIds,
+  projectTaskCounts,
+  unassignedTaskCount,
   objectives,
   admins,
   keyResultOptions,
@@ -59,16 +63,17 @@ export function ObjectiveProjectsPanel({
   )
 
   const taskCountByProject = useMemo(() => {
-    const m = new Map<string, number>()
-    for (const pid of taskProjectIds) {
-      m.set(pid, (m.get(pid) ?? 0) + 1)
-    }
-    return m
-  }, [taskProjectIds])
+    return new Map(
+      Object.entries(projectTaskCounts).map(([id, n]) => [id, n] as const)
+    )
+  }, [projectTaskCounts])
 
   const allSelected =
     projects.length > 0 && selected.size === projects.length
-  const someSelected = selected.size > 0 && selected.size < projects.length
+  const someSelected =
+    selected.size > 0 && selected.size < projects.length
+
+  const listEmpty = projects.length === 0 && unassignedTaskCount === 0
 
   function toggleAll(checked: boolean) {
     if (checked) {
@@ -128,18 +133,19 @@ export function ObjectiveProjectsPanel({
       </div>
 
       <div className="rounded-xl border border-gray-200 dark:border-[#1F1F23] overflow-hidden">
-        {projects.length === 0 ? (
+        {listEmpty ? (
           <p className="text-sm text-gray-500 dark:text-gray-400 py-8 text-center">
             No projects linked
           </p>
         ) : (
           <>
-            <div
-              className={cn(
-                "flex flex-col gap-3 border-b border-gray-100 bg-gray-50/80 px-4 py-3 dark:border-[#1F1F23] dark:bg-zinc-900/40",
-                "sm:flex-row sm:flex-wrap sm:items-center"
-              )}
-            >
+            {projects.length > 0 ? (
+              <div
+                className={cn(
+                  "flex flex-col gap-3 border-b border-gray-100 bg-gray-50/80 px-4 py-3 dark:border-[#1F1F23] dark:bg-zinc-900/40",
+                  "sm:flex-row sm:flex-wrap sm:items-center"
+                )}
+              >
                 <div className="flex items-center gap-2">
                   <Checkbox
                     checked={
@@ -218,21 +224,31 @@ export function ObjectiveProjectsPanel({
                     </div>
                   </>
                 )}
-            </div>
+              </div>
+            ) : null}
 
-            <div className="divide-y divide-gray-100 dark:divide-[#1F1F23]">
-              {projects.map((project) => (
-                <ObjectiveProjectListRow
-                  key={project.id}
-                  project={project}
-                  objectiveId={objectiveId}
-                  taskCount={taskCountByProject.get(project.id) ?? 0}
-                  selectable
-                  selected={selected.has(project.id)}
-                  onSelectedChange={(on) => toggleOne(project.id, on)}
-                />
-              ))}
-            </div>
+            {projects.length > 0 ? (
+              <div className="divide-y divide-gray-100 dark:divide-[#1F1F23]">
+                {projects.map((project) => (
+                  <ObjectiveProjectListRow
+                    key={project.id}
+                    project={project}
+                    objectiveId={objectiveId}
+                    taskCount={taskCountByProject.get(project.id) ?? 0}
+                    selectable
+                    selected={selected.has(project.id)}
+                    onSelectedChange={(on) => toggleOne(project.id, on)}
+                  />
+                ))}
+              </div>
+            ) : null}
+            {unassignedTaskCount > 0 ? (
+              <ObjectiveUnassignedTasksRow
+                objectiveId={objectiveId}
+                taskCount={unassignedTaskCount}
+                showTopSeparator={projects.length > 0}
+              />
+            ) : null}
           </>
         )}
       </div>

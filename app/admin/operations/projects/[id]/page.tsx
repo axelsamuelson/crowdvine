@@ -224,6 +224,14 @@ export default async function ProjectDetailPage({ params }: PageProps) {
             objectives={objectives}
             admins={admins}
             showProject={false}
+            objectiveDisplayOverride={
+              project.objective_id && project.objective
+                ? {
+                    id: project.objective_id,
+                    title: project.objective.title,
+                  }
+                : null
+            }
           />
         </TabsContent>
 

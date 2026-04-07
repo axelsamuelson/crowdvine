@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import { Check, Pencil, X } from "lucide-react"
 import { updateTask } from "@/lib/actions/operations"
+import type { Task } from "@/lib/types/operations"
+import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
@@ -11,60 +14,183 @@ import { cn } from "@/lib/utils"
 export function TaskDetailDescriptionBlock({
   taskId,
   initialDescription,
+  onSaved,
+  variant = "page",
 }: {
   taskId: string
   initialDescription: string | null
+  onSaved?: (task: Task) => void
+  variant?: "page" | "sheet"
 }) {
   const router = useRouter()
+  const [description, setDescription] = useState(initialDescription ?? "")
+  const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(initialDescription ?? "")
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    setDraft(initialDescription ?? "")
+    const v = initialDescription ?? ""
+    setDescription(v)
+    setDraft(v)
   }, [initialDescription, taskId])
 
-  async function saveIfChanged() {
-    const next = draft.trim() === "" ? null : draft
-    const current = initialDescription ?? null
-    if (next === current) return
+  function normalized(s: string) {
+    const t = s.trim()
+    return t === "" ? null : t
+  }
 
+  async function save() {
+    const next = normalized(draft)
+    const current = normalized(description)
+    if (next === current) {
+      setEditing(false)
+      return
+    }
     setSaving(true)
     try {
-      await updateTask(taskId, { description: next })
+      const updated = await updateTask(taskId, { description: next })
+      setDescription(next ?? "")
+      setDraft(next ?? "")
+      setEditing(false)
       toast.success("Saved")
-      router.refresh()
+      onSaved?.(updated)
+      if (!onSaved) router.refresh()
     } catch {
       toast.error("Failed to save")
-      setDraft(initialDescription ?? "")
+      setDraft(description)
     } finally {
       setSaving(false)
     }
   }
 
+  function cancel() {
+    setDraft(description)
+    setEditing(false)
+  }
+
+  const wrap = cn(
+    "rounded-xl border border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-[#0F0F12]",
+    variant === "sheet" ? "p-3 rounded-lg" : "p-4"
+  )
+
+  const iconSize = variant === "sheet" ? "size-8" : "size-9"
+
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-[#0F0F12] p-4 space-y-2">
-      <Label
-        htmlFor={`task-desc-${taskId}`}
-        className="text-sm font-medium text-gray-700 dark:text-gray-300"
-      >
-        Description
-      </Label>
-      <Textarea
-        id={`task-desc-${taskId}`}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={() => void saveIfChanged()}
-        disabled={saving}
-        placeholder="Optional — saves when you leave the field"
-        className={cn(
-          "min-h-[140px] resize-y py-2 text-sm",
-          "rounded-lg border-gray-200 dark:border-[#1F1F23]",
-          "bg-white dark:bg-zinc-900/40 text-gray-900 dark:text-zinc-100"
+    <div className={cn(wrap, "space-y-2")}>
+      <div className="flex min-w-0 items-start gap-2">
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <Label
+            htmlFor={editing ? `task-desc-${taskId}` : undefined}
+            className="text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
+            Description
+          </Label>
+          {!editing && (
+            <div
+              className={cn(
+                "text-sm text-gray-800 dark:text-zinc-200",
+                "whitespace-pre-wrap break-words"
+              )}
+            >
+              {description.trim() ? (
+                description
+              ) : (
+                <span className="text-gray-500 dark:text-zinc-500">
+                  No description
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+        {!editing && (
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className={cn(
+              "shrink-0 self-start text-gray-500 hover:text-gray-900 dark:text-zinc-400 dark:hover:text-zinc-100",
+              iconSize
+            )}
+            aria-label="Edit description"
+            onClick={() => {
+              setDraft(description)
+              setEditing(true)
+            }}
+          >
+            <Pencil className="size-4" />
+          </Button>
         )}
-      />
-      <p className="text-[11px] text-gray-500 dark:text-gray-500">
-        Clear the field and blur to remove the description.
-      </p>
+      </div>
+
+      {editing && (
+        <div className="flex min-w-0 items-start gap-2">
+          <Textarea
+            id={`task-desc-${taskId}`}
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            disabled={saving}
+            placeholder="Optional"
+            onKeyDown={(e) => {
+              if (e.key === "Escape") cancel()
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault()
+                void save()
+              }
+            }}
+            className={cn(
+              "min-w-0 flex-1 resize-y py-2 text-sm",
+              variant === "sheet" ? "min-h-[120px]" : "min-h-[160px]",
+              "rounded-lg border-gray-200 dark:border-[#1F1F23]",
+              "bg-white dark:bg-zinc-900/40 text-gray-900 dark:text-zinc-100"
+            )}
+          />
+          <div className="flex shrink-0 flex-col gap-1">
+            <Button
+              type="button"
+              size="icon"
+              variant="default"
+              className={cn(
+                "shrink-0 border-0 shadow-sm",
+                iconSize,
+                "bg-emerald-600 text-white hover:bg-emerald-700",
+                "dark:bg-emerald-500 dark:text-white dark:hover:bg-emerald-400",
+                "focus-visible:ring-2 focus-visible:ring-emerald-500/50 focus-visible:ring-offset-2",
+                "dark:focus-visible:ring-offset-[#0F0F12]"
+              )}
+              disabled={saving}
+              aria-label="Save description"
+              onClick={() => void save()}
+            >
+              <Check className="size-4 stroke-[2.5]" aria-hidden />
+            </Button>
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              className={cn(
+                "shrink-0 border-gray-300 bg-white text-gray-700",
+                iconSize,
+                "hover:bg-gray-50 hover:text-gray-900",
+                "dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200",
+                "dark:hover:bg-zinc-800 dark:hover:text-white"
+              )}
+              disabled={saving}
+              aria-label="Cancel"
+              onClick={cancel}
+            >
+              <X className="size-4" aria-hidden />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {editing && (
+        <p className="text-[11px] text-gray-500 dark:text-gray-500">
+          Save with the checkmark, or ⌘/Ctrl+Enter. Empty + save removes the
+          description.
+        </p>
+      )}
     </div>
   )
 }
