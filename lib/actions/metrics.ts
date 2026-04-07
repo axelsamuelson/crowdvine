@@ -73,12 +73,16 @@ export async function refreshObjectiveMetrics(
   })
   if (error) throw error
   revalidatePath("/admin/operations/goals")
-  revalidatePath("/admin/operations/okrs")
+  revalidatePath("/admin/operations/objectives")
   revalidatePath("/admin/strategy-map")
   return getMetricsForObjective(objectiveId)
 }
 
-export async function refreshGoalMetrics(goalId: string): Promise<void> {
+/**
+ * Kör metrics-RPC för alla objectives under målet. Ingen revalidatePath —
+ * säker att anropa under RSC-render (t.ex. goal-detaljsidan före läsning).
+ */
+export async function refreshGoalMetricsData(goalId: string): Promise<void> {
   const sb = getSupabaseAdmin()
   const { data: objs, error: oErr } = await sb
     .from("admin_objectives")
@@ -93,9 +97,14 @@ export async function refreshGoalMetrics(goalId: string): Promise<void> {
     })
     if (error) throw error
   }
+}
+
+/** Anropas från klient (knapp) efter mutation — inkluderar revalidatePath. */
+export async function refreshGoalMetrics(goalId: string): Promise<void> {
+  await refreshGoalMetricsData(goalId)
   revalidatePath(`/admin/operations/goals/${goalId}`)
   revalidatePath("/admin/operations/goals")
-  revalidatePath("/admin/operations/okrs")
+  revalidatePath("/admin/operations/objectives")
   revalidatePath("/admin/strategy-map")
 }
 
@@ -116,6 +125,6 @@ export async function refreshAllMetrics(): Promise<void> {
     if (rpcErr) throw rpcErr
   }
   revalidatePath("/admin/operations/goals")
-  revalidatePath("/admin/operations/okrs")
+  revalidatePath("/admin/operations/objectives")
   revalidatePath("/admin/strategy-map")
 }

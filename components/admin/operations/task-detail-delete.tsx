@@ -19,9 +19,11 @@ import { deleteTask } from "@/lib/actions/operations"
 
 interface Props {
   taskId: string
+  /** Om satt: efter radering till projektets sida (annars tasks-listan). */
+  projectId?: string | null
 }
 
-export function TaskDetailDelete({ taskId }: Props) {
+export function TaskDetailDelete({ taskId, projectId = null }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
 
@@ -29,7 +31,11 @@ export function TaskDetailDelete({ taskId }: Props) {
     try {
       await deleteTask(taskId)
       toast.success("Task deleted")
-      router.push("/admin/operations/tasks")
+      const href =
+        projectId != null && projectId !== ""
+          ? `/admin/operations/projects/${projectId}`
+          : "/admin/operations/tasks"
+      router.push(href)
       router.refresh()
     } catch {
       toast.error("Failed to delete task")

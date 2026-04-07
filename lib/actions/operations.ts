@@ -641,7 +641,7 @@ export async function createProject(
   revalidatePath("/admin/operations/projects")
   revalidatePath("/admin/strategy-map")
   if (data.objective_id) {
-    revalidatePath(`/admin/operations/okrs/${data.objective_id}`)
+    revalidatePath(`/admin/operations/objectives/${data.objective_id}`)
   }
 
   return project
@@ -673,10 +673,95 @@ export async function updateProject(
   revalidatePath(`/admin/operations/projects/${id}`)
   revalidatePath("/admin/strategy-map")
   if (project.objective_id) {
-    revalidatePath(`/admin/operations/okrs/${project.objective_id}`)
+    revalidatePath(`/admin/operations/objectives/${project.objective_id}`)
   }
 
   return project
+}
+
+/**
+ * Flyttar valda projekt till ett annat objective (från objective-detaljsidan).
+ * Nollar key_result_id på projekten. Uppdaterar objective_id på tillhörande tasks.
+ */
+export async function moveProjectsToObjective(
+  projectIds: string[],
+  fromObjectiveId: string,
+  toObjectiveId: string
+): Promise<void> {
+  if (!fromObjectiveId || !toObjectiveId) {
+    throw new Error("Missing objective")
+  }
+  if (fromObjectiveId === toObjectiveId) {
+    throw new Error("Choose a different objective")
+  }
+
+  const ids = [...new Set(projectIds.filter(Boolean))]
+  if (ids.length === 0) {
+    throw new Error("No projects selected")
+  }
+
+  const sb = getSupabaseAdmin()
+
+  const { data: dest, error: destErr } = await sb
+    .from("admin_objectives")
+    .select("id")
+    .eq("id", toObjectiveId)
+    .is("deleted_at", null)
+    .maybeSingle()
+
+  if (destErr) throw new Error(destErr.message)
+  if (!dest) throw new Error("Target objective not found")
+
+  const { data: rows, error: fetchErr } = await sb
+    .from("admin_projects")
+    .select("id, objective_id")
+    .in("id", ids)
+    .is("deleted_at", null)
+
+  if (fetchErr) throw new Error(fetchErr.message)
+  if (!rows?.length) throw new Error("No projects found")
+
+  const foundIds = new Set(rows.map((r) => r.id as string))
+  for (const id of ids) {
+    if (!foundIds.has(id)) {
+      throw new Error("One or more projects were not found")
+    }
+  }
+  for (const r of rows) {
+    if ((r.objective_id as string | null) !== fromObjectiveId) {
+      throw new Error("One or more projects do not belong to this objective")
+    }
+  }
+
+  const { error: updErr } = await sb
+    .from("admin_projects")
+    .update({
+      objective_id: toObjectiveId,
+      key_result_id: null,
+    })
+    .in("id", ids)
+    .eq("objective_id", fromObjectiveId)
+    .is("deleted_at", null)
+
+  if (updErr) throw new Error(updErr.message)
+
+  const { error: taskErr } = await sb
+    .from("admin_tasks")
+    .update({ objective_id: toObjectiveId })
+    .in("project_id", ids)
+    .is("deleted_at", null)
+
+  if (taskErr) throw new Error(taskErr.message)
+
+  revalidatePath(`/admin/operations/objectives/${fromObjectiveId}`)
+  revalidatePath(`/admin/operations/objectives/${toObjectiveId}`)
+  revalidatePath("/admin/operations/projects")
+  revalidatePath("/admin/operations/tasks")
+  revalidatePath("/admin/operations")
+  revalidatePath("/admin/strategy-map")
+  for (const pid of ids) {
+    revalidatePath(`/admin/operations/projects/${pid}`)
+  }
 }
 
 export async function deleteProject(id: string): Promise<void> {
@@ -702,7 +787,62 @@ export async function deleteProject(id: string): Promise<void> {
   revalidatePath("/admin/operations")
   revalidatePath("/admin/strategy-map")
   if (objectiveId) {
-    revalidatePath(`/admin/operations/okrs/${objectiveId}`)
+    revalidatePath(`/admin/operations/objectives/${objectiveId}`)
+  }
+}
+
+/**
+ * Soft-deletes all non-deleted tasks under the project, then the project.
+ * If `expectedObjectiveId` is set (OKR-sidan), verifies the project belongs to it.
+ * Om den utelämnas (projektsidan) raderas projektet utan den kontrollen.
+ */
+export async function deleteProjectAndTasks(
+  projectId: string,
+  expectedObjectiveId?: string
+): Promise<void> {
+  const sb = getSupabaseAdmin()
+
+  const { data: proj, error: fetchErr } = await sb
+    .from("admin_projects")
+    .select("id, objective_id")
+    .eq("id", projectId)
+    .is("deleted_at", null)
+    .single()
+
+  if (fetchErr || !proj) throw new Error("Project not found")
+  if (
+    expectedObjectiveId != null &&
+    expectedObjectiveId !== "" &&
+    proj.objective_id !== expectedObjectiveId
+  ) {
+    throw new Error("Project does not belong to this objective")
+  }
+
+  const now = new Date().toISOString()
+
+  const { error: terr } = await sb
+    .from("admin_tasks")
+    .update({ deleted_at: now })
+    .eq("project_id", projectId)
+    .is("deleted_at", null)
+
+  if (terr) throw new Error(terr.message)
+
+  const { error: perr } = await sb
+    .from("admin_projects")
+    .update({ deleted_at: now })
+    .eq("id", projectId)
+
+  if (perr) throw new Error(perr.message)
+
+  revalidatePath("/admin/operations/projects")
+  revalidatePath(`/admin/operations/projects/${projectId}`)
+  revalidatePath("/admin/operations/tasks")
+  revalidatePath("/admin/operations")
+  revalidatePath("/admin/operations/my-work")
+  revalidatePath("/admin/strategy-map")
+  if (proj.objective_id) {
+    revalidatePath(`/admin/operations/objectives/${proj.objective_id}`)
   }
 }
 
@@ -851,7 +991,7 @@ export async function deleteGoal(id: string): Promise<void> {
 
   revalidatePath("/admin/operations/goals")
   revalidatePath(`/admin/operations/goals/${id}`)
-  revalidatePath("/admin/operations/okrs")
+  revalidatePath("/admin/operations/objectives")
   revalidatePath("/admin/strategy-map")
 }
 
@@ -1030,7 +1170,7 @@ export async function createObjective(
   if (error) throw new Error(error.message)
 
   revalidatePath("/admin/operations")
-  revalidatePath("/admin/operations/okrs")
+  revalidatePath("/admin/operations/objectives")
   revalidatePath("/admin/operations/goals")
   revalidatePath("/admin/strategy-map")
   if (data.goal_id) {
@@ -1071,8 +1211,8 @@ export async function updateObjective(
 
   if (error) throw new Error(error.message)
 
-  revalidatePath("/admin/operations/okrs")
-  revalidatePath(`/admin/operations/okrs/${id}`)
+  revalidatePath("/admin/operations/objectives")
+  revalidatePath(`/admin/operations/objectives/${id}`)
   revalidatePath("/admin/operations/goals")
   revalidatePath("/admin/strategy-map")
   if (prevGoalId && prevGoalId !== objective.goal_id) {
@@ -1103,8 +1243,11 @@ export async function deleteObjective(id: string): Promise<void> {
 
   if (error) throw new Error(error.message)
 
-  revalidatePath("/admin/operations/okrs")
+  revalidatePath("/admin/operations/objectives")
+  revalidatePath(`/admin/operations/objectives/${id}`)
   revalidatePath("/admin/operations")
+  revalidatePath("/admin/operations/projects")
+  revalidatePath("/admin/operations/tasks")
   revalidatePath("/admin/strategy-map")
   if (prevGoalId) {
     revalidatePath("/admin/operations/goals")
@@ -1127,7 +1270,7 @@ export async function createKeyResult(
 
   if (error) throw new Error(error.message)
 
-  revalidatePath(`/admin/operations/okrs/${data.objective_id}`)
+  revalidatePath(`/admin/operations/objectives/${data.objective_id}`)
 
   return { ...kr, progress: computeKeyResultProgress(kr) }
 }
@@ -1147,8 +1290,8 @@ export async function updateKeyResult(
 
   if (error) throw new Error(error.message)
 
-  revalidatePath(`/admin/operations/okrs/${kr.objective_id}`)
-  revalidatePath("/admin/operations/okrs")
+  revalidatePath(`/admin/operations/objectives/${kr.objective_id}`)
+  revalidatePath("/admin/operations/objectives")
 
   return { ...kr, progress: computeKeyResultProgress(kr) }
 }
@@ -1169,7 +1312,7 @@ export async function deleteKeyResult(id: string): Promise<void> {
 
   if (error) throw new Error(error.message)
 
-  if (kr) revalidatePath(`/admin/operations/okrs/${kr.objective_id}`)
+  if (kr) revalidatePath(`/admin/operations/objectives/${kr.objective_id}`)
 }
 
 // ─── MY WORK ─────────────────────────────────────────────────

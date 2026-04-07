@@ -75,6 +75,8 @@ export interface TaskMin {
 export interface ProjectMin {
   id: string
   name: string
+  /** För filtrering på task-sidan m.m. */
+  objective_id?: string | null
 }
 
 export interface ObjectiveMin {

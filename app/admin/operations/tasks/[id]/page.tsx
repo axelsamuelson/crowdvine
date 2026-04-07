@@ -6,9 +6,12 @@ import { TaskStatusBadge } from "@/components/admin/operations/task-status-badge
 import { TaskPriorityBadge } from "@/components/admin/operations/task-priority-badge"
 import { EntityLinkBadge } from "@/components/admin/operations/entity-link-badge"
 import { TaskDetailActions } from "@/components/admin/operations/task-detail-actions"
+import { TaskDetailTitleEditor } from "@/components/admin/operations/task-detail-title-editor"
+import { TaskDetailDescriptionBlock } from "@/components/admin/operations/task-detail-description-block"
 import { TaskDetailDelete } from "@/components/admin/operations/task-detail-delete"
 import { TaskComments } from "@/components/admin/operations/task-comments"
 import { CreatedMetaLine } from "@/components/admin/operations/created-meta-line"
+import { DetailBreadcrumbTitle } from "@/components/admin/detail-breadcrumb-title"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 
@@ -69,7 +72,7 @@ export default async function TaskDetailPage({ params }: PageProps) {
   const [projectsRes, objectivesRes, adminsRes] = await Promise.all([
     sb
       .from("admin_projects")
-      .select("id, name")
+      .select("id, name, objective_id")
       .is("deleted_at", null)
       .order("name"),
     sb
@@ -90,6 +93,7 @@ export default async function TaskDetailPage({ params }: PageProps) {
 
   return (
     <div className="space-y-6">
+      <DetailBreadcrumbTitle title={task.title} />
       <Link
         href="/admin/operations/tasks"
         className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-zinc-400 dark:hover:text-zinc-100"
@@ -115,13 +119,12 @@ export default async function TaskDetailPage({ params }: PageProps) {
             : null
         }
         current={task.title}
+        currentLevel="task"
       />
 
       {/* Header */}
       <div className="min-w-0 space-y-2">
-        <h1 className="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl break-words">
-          {task.title}
-        </h1>
+        <TaskDetailTitleEditor taskId={task.id} initialTitle={task.title} />
         <div className="flex flex-wrap items-center gap-2">
           <TaskStatusBadge status={task.status} />
           <TaskPriorityBadge priority={task.priority} />
@@ -145,18 +148,6 @@ export default async function TaskDetailPage({ params }: PageProps) {
         </div>
 
         <div className="order-2 min-w-0 space-y-6 lg:order-1 lg:col-span-2">
-          {/* Description */}
-          {task.description && (
-            <div className="rounded-xl border border-gray-200 dark:border-[#1F1F23] p-4 bg-white dark:bg-[#0F0F12]">
-              <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Description
-              </h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
-                {task.description}
-              </p>
-            </div>
-          )}
-
           {/* Subtasks */}
           {task.subtasks.length > 0 && (
             <div className="rounded-xl border border-gray-200 dark:border-[#1F1F23] p-4 bg-white dark:bg-[#0F0F12]">
@@ -193,6 +184,11 @@ export default async function TaskDetailPage({ params }: PageProps) {
             </div>
           )}
 
+          <TaskDetailDescriptionBlock
+            taskId={task.id}
+            initialDescription={task.description}
+          />
+
           {/* Comments */}
           <TaskComments
             task_id={task.id}
@@ -200,7 +196,10 @@ export default async function TaskDetailPage({ params }: PageProps) {
             current_admin_id={admin?.id ?? ""}
           />
 
-          <TaskDetailDelete taskId={task.id} />
+          <TaskDetailDelete
+            taskId={task.id}
+            projectId={task.project?.id ?? task.project_id}
+          />
         </div>
       </div>
     </div>

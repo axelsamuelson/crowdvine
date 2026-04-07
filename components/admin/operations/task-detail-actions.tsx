@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import {
@@ -38,6 +38,26 @@ export function TaskDetailActions({
 }: Props) {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
+  const [objectiveId, setObjectiveId] = useState<string | null>(
+    task.objective_id ?? null
+  )
+  const [projectId, setProjectId] = useState<string | null>(
+    task.project_id ?? null
+  )
+
+  useEffect(() => {
+    setObjectiveId(task.objective_id ?? null)
+    setProjectId(task.project_id ?? null)
+  }, [task.objective_id, task.project_id, task.id])
+
+  const filteredProjects = useMemo(() => {
+    if (objectiveId == null) return projects
+    return projects.filter(
+      (p) =>
+        (p.objective_id ?? null) === objectiveId ||
+        (projectId != null && p.id === projectId)
+    )
+  }, [projects, objectiveId, projectId])
 
   async function handleUpdate(
     field: string,
@@ -46,6 +66,47 @@ export function TaskDetailActions({
     setSaving(true)
     try {
       await updateTask(task.id, { [field]: value })
+      toast.success("Saved")
+      router.refresh()
+    } catch {
+      toast.error("Failed to save")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleObjectiveSelect(v: string) {
+    const newObjectiveId = v === "__none__" ? null : v
+    const currentProj =
+      projectId != null ? projects.find((p) => p.id === projectId) : null
+    const mustClearProject =
+      currentProj != null &&
+      newObjectiveId != null &&
+      (currentProj.objective_id ?? null) !== newObjectiveId
+
+    setSaving(true)
+    try {
+      await updateTask(task.id, {
+        objective_id: newObjectiveId,
+        ...(mustClearProject ? { project_id: null } : {}),
+      })
+      setObjectiveId(newObjectiveId)
+      if (mustClearProject) setProjectId(null)
+      toast.success("Saved")
+      router.refresh()
+    } catch {
+      toast.error("Failed to save")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleProjectSelect(v: string) {
+    const newProjectId = v === "__none__" ? null : v
+    setSaving(true)
+    try {
+      await updateTask(task.id, { project_id: newProjectId })
+      setProjectId(newProjectId)
       toast.success("Saved")
       router.refresh()
     } catch {
@@ -179,49 +240,13 @@ export function TaskDetailActions({
         />
       </div>
 
-      {/* Project */}
-      <div className="space-y-1.5">
-        <Label className="text-xs text-gray-600 dark:text-gray-400">Project</Label>
-        <div className="flex items-center gap-1">
-          <Select
-            defaultValue={task.project_id ?? "__none__"}
-            onValueChange={(v) =>
-              handleUpdate("project_id", v === "__none__" ? null : v)
-            }
-            disabled={saving}
-          >
-            <SelectTrigger className={`${fieldClass} flex-1`}>
-              <SelectValue placeholder="No project" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__">No project</SelectItem>
-              {projects.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {task.project_id && (
-            <Link
-              href={`/admin/operations/projects/${task.project_id}`}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-            >
-              <ExternalLink className="h-4 w-4" />
-            </Link>
-          )}
-        </div>
-      </div>
-
-      {/* Objective */}
+      {/* Objective first — project list filters to this objective */}
       <div className="space-y-1.5">
         <Label className="text-xs text-gray-600 dark:text-gray-400">Objective</Label>
         <div className="flex items-center gap-1">
           <Select
-            defaultValue={task.objective_id ?? "__none__"}
-            onValueChange={(v) =>
-              handleUpdate("objective_id", v === "__none__" ? null : v)
-            }
+            value={objectiveId ?? "__none__"}
+            onValueChange={(v) => void handleObjectiveSelect(v)}
             disabled={saving}
           >
             <SelectTrigger className={`${fieldClass} flex-1`}>
@@ -236,9 +261,46 @@ export function TaskDetailActions({
               ))}
             </SelectContent>
           </Select>
-          {task.objective_id && (
+          {objectiveId && (
             <Link
-              href={`/admin/operations/okrs/${task.objective_id}`}
+              href={`/admin/operations/objectives/${objectiveId}`}
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <ExternalLink className="h-4 w-4" />
+            </Link>
+          )}
+        </div>
+      </div>
+
+      {/* Project — only projects under the selected objective (plus current if mismatch) */}
+      <div className="space-y-1.5">
+        <Label className="text-xs text-gray-600 dark:text-gray-400">Project</Label>
+        {objectiveId ? (
+          <p className="text-[11px] text-gray-500 dark:text-gray-500 pb-0.5">
+            Only projects linked to this objective are shown.
+          </p>
+        ) : null}
+        <div className="flex items-center gap-1">
+          <Select
+            value={projectId ?? "__none__"}
+            onValueChange={(v) => void handleProjectSelect(v)}
+            disabled={saving}
+          >
+            <SelectTrigger className={`${fieldClass} flex-1`}>
+              <SelectValue placeholder="No project" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">No project</SelectItem>
+              {filteredProjects.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {projectId && (
+            <Link
+              href={`/admin/operations/projects/${projectId}`}
               className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
             >
               <ExternalLink className="h-4 w-4" />

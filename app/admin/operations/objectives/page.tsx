@@ -78,7 +78,7 @@ export default async function ObjectivesPage({ searchParams }: PageProps) {
         </div>
         <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:w-auto sm:shrink-0 [&_button]:w-full sm:[&_button]:w-auto">
           <Link
-            href="/admin/operations/okrs/settings"
+            href="/admin/operations/objectives/settings"
             className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-800 hover:bg-gray-50 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-200 dark:hover:bg-zinc-800"
           >
             <Settings className="h-4 w-4 shrink-0" aria-hidden />
@@ -101,7 +101,7 @@ export default async function ObjectivesPage({ searchParams }: PageProps) {
         {objectives.map((obj) => (
           <Link
             key={obj.id}
-            href={`/admin/operations/okrs/${obj.id}`}
+            href={`/admin/operations/objectives/${obj.id}`}
             className="block rounded-xl border border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-[#0F0F12] p-5 hover:border-gray-300 dark:hover:border-zinc-600 transition-colors"
           >
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4">

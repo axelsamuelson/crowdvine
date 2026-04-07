@@ -1,15 +1,20 @@
 import Link from "next/link"
 import { ArrowLeft, SlidersHorizontal } from "lucide-react"
 import { listMetricExcludedProfiles } from "@/lib/actions/metrics-exclusions"
+import { getWeeklyDigestSettings } from "@/lib/actions/operations-digest-settings"
 import { MetricsExclusionsSettings } from "@/components/admin/operations/metrics-exclusions-settings"
+import { OperationsWeeklyDigestSettings } from "@/components/admin/operations/operations-weekly-digest-settings"
 
-export default async function OkrsMetricsSettingsPage() {
-  const rows = await listMetricExcludedProfiles()
+export default async function ObjectivesMetricsSettingsPage() {
+  const [rows, digest] = await Promise.all([
+    listMetricExcludedProfiles(),
+    getWeeklyDigestSettings(),
+  ])
 
   return (
     <div className="space-y-6">
       <Link
-        href="/admin/operations/okrs"
+        href="/admin/operations/objectives"
         className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-800 hover:text-gray-950 dark:text-zinc-300 dark:hover:text-white"
       >
         <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
@@ -27,9 +32,15 @@ export default async function OkrsMetricsSettingsPage() {
           <p className="max-w-xl text-sm text-gray-700 dark:text-zinc-300">
             Exkludera användare från metrics som matar goals och objectives
             (events, registreringar och order kopplade till deras konto).
+            Veckovis e-post med Operations-aktivitet kan styras nedan.
           </p>
         </div>
       </div>
+
+      <OperationsWeeklyDigestSettings
+        initialEnabled={digest.enabled}
+        lastSentAt={digest.last_sent_at}
+      />
 
       <MetricsExclusionsSettings initialRows={rows} />
     </div>

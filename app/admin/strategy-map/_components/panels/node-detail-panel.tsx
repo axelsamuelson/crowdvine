@@ -126,7 +126,7 @@ export function NodeDetailPanel({
     kind === "goal" && record
       ? `/admin/operations/goals/${record.id}`
       : kind === "objective" && record
-        ? `/admin/operations/okrs/${record.id}`
+        ? `/admin/operations/objectives/${record.id}`
         : kind === "project" && record
           ? `/admin/operations/projects/${record.id}`
           : kind === "task" && record

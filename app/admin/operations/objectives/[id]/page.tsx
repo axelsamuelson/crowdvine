@@ -5,14 +5,14 @@ import { ObjectiveStatusBadge } from "@/components/admin/operations/objective-st
 import { ProgressBar } from "@/components/admin/operations/progress-bar"
 import { TaskTable } from "@/components/admin/operations/task-table"
 import { CreateTaskButton } from "@/components/admin/operations/create-task-button"
-import { CreateProjectButton } from "@/components/admin/operations/create-project-button"
-import { ProjectStatusBadge } from "@/components/admin/operations/project-status-badge"
 import { CreateObjectiveButton } from "@/components/admin/operations/create-objective-button"
 import { CreatedMetaLine } from "@/components/admin/operations/created-meta-line"
 import { ObjectiveOutcomeDeliveryHint } from "@/components/admin/operations/objective-outcome-delivery-hint"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import Link from "next/link"
-import type { Task, ProjectStatus } from "@/lib/types/operations"
+import type { Task } from "@/lib/types/operations"
+import { ObjectiveProjectsPanel } from "@/components/admin/operations/objective-projects-panel"
+import { DetailBreadcrumbTitle } from "@/components/admin/detail-breadcrumb-title"
+import { ObjectiveDetailDelete } from "@/components/admin/operations/objective-detail-delete"
 
 const STRATEGY_COLORS: Record<string, string> = {
   Growth:
@@ -74,6 +74,7 @@ export default async function ObjectiveDetailPage({ params }: PageProps) {
 
   return (
     <div className="space-y-6">
+      <DetailBreadcrumbTitle title={objective.title} />
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 space-y-2">
@@ -104,12 +105,19 @@ export default async function ObjectiveDetailPage({ params }: PageProps) {
             showUnknownIfNoCreator={Boolean(objective.created_by)}
           />
         </div>
-        <div className="w-full shrink-0 sm:w-auto [&_button]:w-full sm:[&_button]:w-auto">
-          <CreateObjectiveButton
-            admins={admins}
-            goals={goalOptions}
-            objective={objective}
-            label="Edit Objective"
+        <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-start">
+          <div className="w-full sm:w-auto [&_button]:w-full sm:[&_button]:w-auto">
+            <CreateObjectiveButton
+              admins={admins}
+              goals={goalOptions}
+              objective={objective}
+              label="Edit Objective"
+            />
+          </div>
+          <ObjectiveDetailDelete
+            objectiveId={objective.id}
+            objectiveTitle={objective.title}
+            goalId={objective.goal_id}
           />
         </div>
       </div>
@@ -151,45 +159,21 @@ export default async function ObjectiveDetailPage({ params }: PageProps) {
 
         {/* Projects */}
         <TabsContent value="projects" className="mt-4 space-y-4 min-w-0">
-          <div className="flex justify-stretch sm:justify-end [&_button]:w-full sm:[&_button]:w-auto">
-            <CreateProjectButton
-              objectives={objectives}
-              admins={admins}
-              defaultObjectiveId={objective.id}
-              keyResultOptions={keyResultOptions}
-              label="Add Project"
-            />
-          </div>
-
-          <div className="rounded-xl border border-gray-200 dark:border-[#1F1F23] overflow-hidden">
-            {projects.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400 py-8 text-center">
-                No projects linked
-              </p>
-            ) : (
-              <div className="divide-y divide-gray-100 dark:divide-[#1F1F23]">
-                {projects.map((project: { id: string; name: string; status: ProjectStatus; due_date?: string | null }) => (
-                  <Link
-                    key={project.id}
-                    href={`/admin/operations/projects/${project.id}`}
-                    className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 dark:hover:bg-zinc-900/40 transition-colors"
-                  >
-                    <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                      {project.name}
-                    </span>
-                    <div className="flex items-center gap-3">
-                      <ProjectStatusBadge status={project.status} />
-                      {project.due_date && (
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {project.due_date}
-                        </span>
-                      )}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
+          <ObjectiveProjectsPanel
+            objectiveId={objective.id}
+            projects={projects.map((project) => ({
+              id: project.id,
+              name: project.name,
+              status: project.status,
+              due_date: project.due_date,
+            }))}
+            taskProjectIds={tasks
+              .map((t) => t.project_id)
+              .filter((id): id is string => id != null && id !== "")}
+            objectives={objectives}
+            admins={admins}
+            keyResultOptions={keyResultOptions}
+          />
         </TabsContent>
 
         {/* Tasks */}

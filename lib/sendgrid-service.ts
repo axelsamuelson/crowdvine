@@ -43,6 +43,8 @@ interface EmailData {
   html: string;
   text?: string;
   from?: string;
+  /** Neutral headers/categories (not \"urgent\" approval-mail metadata). */
+  emailKind?: "default" | "operations_digest";
 }
 
 interface OrderConfirmationData {
@@ -93,6 +95,8 @@ class SendGridService {
       return false;
     }
 
+    const isDigest = data.emailKind === "operations_digest";
+
     const msg = {
       to: data.to,
       from: {
@@ -102,17 +106,19 @@ class SendGridService {
       subject: data.subject,
       html: data.html,
       text: data.text || this.stripHtml(data.html),
-      // Add headers for better deliverability
-      headers: {
-        "X-Mailer": "PACT Wines Platform",
-        "X-Priority": "1", // High priority
-        "X-MSMail-Priority": "High",
-        Importance: "High",
-        "List-Unsubscribe": "<mailto:unsubscribe@pactwines.com>",
-        "X-Mailgun-Tag": "approval-email",
-        "X-Custom-Header": "urgent-delivery",
-      },
-      // Add tracking settings
+      headers: isDigest
+        ? {
+            "X-Mailer": "CrowdVine Operations",
+          }
+        : {
+            "X-Mailer": "PACT Wines Platform",
+            "X-Priority": "1", // High priority
+            "X-MSMail-Priority": "High",
+            Importance: "High",
+            "List-Unsubscribe": "<mailto:unsubscribe@pactwines.com>",
+            "X-Mailgun-Tag": "approval-email",
+            "X-Custom-Header": "urgent-delivery",
+          },
       trackingSettings: {
         clickTracking: {
           enable: true,
@@ -123,22 +129,27 @@ class SendGridService {
           substitutionTag: "%open-track%",
         },
       },
-      // Add spam score reduction
-      mailSettings: {
-        spamCheck: {
-          enable: true,
-          threshold: 3, // Lower threshold for better delivery
-          postToUrl: "https://pactwines.com/api/spam-webhook",
-        },
-        footer: {
-          enable: false,
-        },
-        sandboxMode: {
-          enable: false, // Make sure sandbox mode is off
-        },
-      },
-      // Add categories for better routing
-      categories: ["approval-email", "urgent", "hotmail-optimized"],
+      mailSettings: isDigest
+        ? {
+            footer: { enable: false },
+            sandboxMode: { enable: false },
+          }
+        : {
+            spamCheck: {
+              enable: true,
+              threshold: 3, // Lower threshold for better delivery
+              postToUrl: "https://pactwines.com/api/spam-webhook",
+            },
+            footer: {
+              enable: false,
+            },
+            sandboxMode: {
+              enable: false, // Make sure sandbox mode is off
+            },
+          },
+      categories: isDigest
+        ? ["operations-weekly-digest"]
+        : ["approval-email", "urgent", "hotmail-optimized"],
     };
 
     console.log("📧 Attempting to send email via SendGrid:", {

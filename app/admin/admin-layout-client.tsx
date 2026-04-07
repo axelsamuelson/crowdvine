@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Sidebar } from "@/components/admin/sidebar";
 import { AdminTopNav } from "@/components/admin/admin-top-nav";
+import { AdminBreadcrumbDetailProvider } from "@/components/admin/admin-breadcrumb-detail-context";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 
@@ -161,6 +162,7 @@ export function AdminLayoutClient({
   }, []);
 
   return (
+    <AdminBreadcrumbDetailProvider>
     <div className="flex h-dvh max-h-dvh min-h-0 w-full bg-white pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] dark:bg-[#0F0F12]">
       <Sidebar
         userEmail={userEmail}
@@ -195,5 +197,6 @@ export function AdminLayoutClient({
         </div>
       </div>
     </div>
+    </AdminBreadcrumbDetailProvider>
   );
 }

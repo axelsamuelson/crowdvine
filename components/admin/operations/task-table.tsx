@@ -81,6 +81,7 @@ export function TaskTable({
     try {
       await deleteTask(deleteId)
       toast.success("Task deleted")
+      router.refresh()
     } catch {
       toast.error("Failed to delete task")
     } finally {

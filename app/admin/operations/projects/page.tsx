@@ -146,7 +146,7 @@ export default async function ProjectsPage({ searchParams }: PageProps) {
                 <TableCell className="text-sm text-gray-700 dark:text-gray-300 max-w-[180px]">
                   {project.objective ? (
                     <Link
-                      href={`/admin/operations/okrs/${project.objective_id}`}
+                      href={`/admin/operations/objectives/${project.objective_id}`}
                       className="hover:underline truncate block"
                     >
                       {project.objective.title}

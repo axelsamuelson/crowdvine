@@ -1,4 +1,23 @@
 const nextConfig = {
+  async redirects() {
+    return [
+      {
+        source: "/admin/operations/okrs",
+        destination: "/admin/operations/objectives",
+        permanent: true,
+      },
+      {
+        source: "/admin/operations/okrs/settings",
+        destination: "/admin/operations/objectives/settings",
+        permanent: true,
+      },
+      {
+        source: "/admin/operations/okrs/:id",
+        destination: "/admin/operations/objectives/:id",
+        permanent: true,
+      },
+    ];
+  },
   /* Vercel configuration */
   experimental: {
     // Enable experimental features for better performance

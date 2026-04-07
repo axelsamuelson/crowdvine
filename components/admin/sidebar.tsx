@@ -99,7 +99,7 @@ const navigationGroups: NavGroup[] = [
     icon: ListTodo,
     items: [
       { name: "Goals", href: "/admin/operations/goals", icon: Flag },
-      { name: "Objectives", href: "/admin/operations/okrs", icon: Target },
+      { name: "Objectives", href: "/admin/operations/objectives", icon: Target },
       { name: "Projects", href: "/admin/operations/projects", icon: FolderKanban },
       { name: "Tasks", href: "/admin/operations/tasks", icon: ListTodo },
       { name: "Strategy map", href: "/admin/strategy-map", icon: Waypoints },

@@ -8,6 +8,8 @@ import { TaskTable } from "@/components/admin/operations/task-table"
 import { CreateTaskButton } from "@/components/admin/operations/create-task-button"
 import { CreateProjectButton } from "@/components/admin/operations/create-project-button"
 import { CreatedMetaLine } from "@/components/admin/operations/created-meta-line"
+import { ProjectDeleteWithTasksControl } from "@/components/admin/operations/project-delete-with-tasks-control"
+import { DetailBreadcrumbTitle } from "@/components/admin/detail-breadcrumb-title"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Link from "next/link"
 import { ExternalLink } from "lucide-react"
@@ -77,6 +79,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
 
   return (
     <div className="space-y-6">
+      <DetailBreadcrumbTitle title={project.name} />
       {/* Strategisk tråd */}
       {project.objective && (
         <StrategicBreadcrumb
@@ -93,6 +96,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
             title: project.objective.title,
           }}
           current={project.name}
+          currentLevel="project"
           showUnlinkedWarning={false}
         />
       )}
@@ -120,13 +124,28 @@ export default async function ProjectDetailPage({ params }: PageProps) {
             showUnknownIfNoCreator={Boolean(project.created_by)}
           />
         </div>
-        <div className="w-full shrink-0 sm:w-auto [&_button]:w-full sm:[&_button]:w-auto">
-          <CreateProjectButton
-            objectives={objectives}
-            admins={admins}
-            project={project}
-            keyResultOptions={keyResultOptions}
-            label="Edit Project"
+        <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-start">
+          <div className="w-full sm:w-auto [&_button]:w-full sm:[&_button]:w-auto">
+            <CreateProjectButton
+              objectives={objectives}
+              admins={admins}
+              project={project}
+              keyResultOptions={keyResultOptions}
+              label="Edit Project"
+            />
+          </div>
+          <ProjectDeleteWithTasksControl
+            variant="button"
+            className="w-full sm:w-auto"
+            projectId={project.id}
+            projectName={project.name}
+            taskCount={tasks.length}
+            afterDelete={{
+              mode: "redirect",
+              href: project.objective_id
+                ? `/admin/operations/objectives/${project.objective_id}`
+                : "/admin/operations/projects",
+            }}
           />
         </div>
       </div>
@@ -163,7 +182,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         <div className="flex flex-col gap-1 text-sm text-gray-600 dark:text-gray-400 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
           <span className="shrink-0">Linked to objective:</span>
           <Link
-            href={`/admin/operations/okrs/${project.objective_id}`}
+            href={`/admin/operations/objectives/${project.objective_id}`}
             className="flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
           >
             {project.objective.title}
@@ -177,13 +196,13 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         <TabsList className="h-auto min-h-10 w-full min-w-0 flex-wrap justify-start gap-1 bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800 rounded-xl p-1 sm:inline-flex sm:flex-nowrap">
           <TabsTrigger
             value="tasks"
-            className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm text-xs font-medium shrink-0"
+            className="rounded-lg px-3 py-2 text-xs font-medium shrink-0 text-gray-600 hover:text-gray-900 dark:text-zinc-400 dark:hover:text-zinc-200 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-gray-200/90 dark:data-[state=active]:bg-zinc-700 dark:data-[state=active]:text-white dark:data-[state=active]:ring-zinc-500/40"
           >
             Tasks ({tasks.length})
           </TabsTrigger>
           <TabsTrigger
             value="details"
-            className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm text-xs font-medium shrink-0"
+            className="rounded-lg px-3 py-2 text-xs font-medium shrink-0 text-gray-600 hover:text-gray-900 dark:text-zinc-400 dark:hover:text-zinc-200 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-gray-200/90 dark:data-[state=active]:bg-zinc-700 dark:data-[state=active]:text-white dark:data-[state=active]:ring-zinc-500/40"
           >
             Details
           </TabsTrigger>

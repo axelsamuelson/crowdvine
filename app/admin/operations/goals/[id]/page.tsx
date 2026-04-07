@@ -4,7 +4,7 @@ import { getGoal } from "@/lib/actions/operations"
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
 import {
   getMetricsForObjectives,
-  refreshGoalMetrics,
+  refreshGoalMetricsData,
 } from "@/lib/actions/metrics"
 import { GoalStatusBadge } from "@/components/admin/operations/goal-status-badge"
 import { ProgressBar } from "@/components/admin/operations/progress-bar"
@@ -16,6 +16,7 @@ import { CreatedMetaLine } from "@/components/admin/operations/created-meta-line
 import { MetricIndicator } from "@/components/admin/operations/metric-indicator"
 import { RefreshGoalMetricsButton } from "@/components/admin/operations/refresh-goal-metrics-button"
 import { ArrowLeft } from "lucide-react"
+import { DetailBreadcrumbTitle } from "@/components/admin/detail-breadcrumb-title"
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -26,7 +27,7 @@ export default async function GoalDetailPage({ params }: PageProps) {
   const goal = await getGoal(id)
   if (!goal) notFound()
 
-  await refreshGoalMetrics(goal.id)
+  await refreshGoalMetricsData(goal.id)
 
   const objectives = goal.objectives ?? []
   const metricsByObjective = await getMetricsForObjectives(
@@ -52,6 +53,7 @@ export default async function GoalDetailPage({ params }: PageProps) {
 
   return (
     <div className="space-y-6">
+      <DetailBreadcrumbTitle title={goal.title} />
       <Link
         href="/admin/operations/goals"
         className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-zinc-400 dark:hover:text-zinc-100"
@@ -114,7 +116,7 @@ export default async function GoalDetailPage({ params }: PageProps) {
             {objectives.map((obj) => (
               <Link
                 key={obj.id}
-                href={`/admin/operations/okrs/${obj.id}`}
+                href={`/admin/operations/objectives/${obj.id}`}
                 className="block rounded-xl border border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-[#0F0F12] p-4 hover:border-gray-300 dark:hover:border-zinc-600 transition-colors"
               >
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">

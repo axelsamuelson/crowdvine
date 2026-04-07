@@ -96,7 +96,7 @@ export default async function OperationsDashboardPage() {
       value: dashboard.stats.active_objectives,
       icon: Target,
       iconColor: "text-emerald-500",
-      href: "/admin/operations/okrs",
+      href: "/admin/operations/objectives",
     },
   ]
 
@@ -289,7 +289,7 @@ export default async function OperationsDashboardPage() {
           {
             label: "View objectives",
             description: "Strategic goals and KRs",
-            href: "/admin/operations/okrs",
+            href: "/admin/operations/objectives",
             icon: Target,
           },
         ].map((link) => {

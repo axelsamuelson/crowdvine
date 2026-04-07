@@ -91,8 +91,8 @@ export async function addMetricExcludedProfile(
   if (error) throw new Error(error.message)
 
   await refreshAllMetrics()
-  revalidatePath("/admin/operations/okrs")
-  revalidatePath("/admin/operations/okrs/settings")
+  revalidatePath("/admin/operations/objectives")
+  revalidatePath("/admin/operations/objectives/settings")
   revalidatePath("/admin/operations/goals")
   revalidatePath("/admin/strategy-map")
 }
@@ -112,8 +112,8 @@ export async function removeMetricExcludedProfile(
   if (error) throw new Error(error.message)
 
   await refreshAllMetrics()
-  revalidatePath("/admin/operations/okrs")
-  revalidatePath("/admin/operations/okrs/settings")
+  revalidatePath("/admin/operations/objectives")
+  revalidatePath("/admin/operations/objectives/settings")
   revalidatePath("/admin/operations/goals")
   revalidatePath("/admin/strategy-map")
 }
