@@ -34,57 +34,9 @@ export function getOrphanNodeIds(
   return orphans
 }
 
-/** Endast mellan tasks under samma projekt/objective (påverkar inte objective↔project). */
-const TASK_VERTICAL_GAP = 36
-
 /**
- * After Dagre, re-position tasks that share the same project or objective parent
- * so they form a vertical column (centered under the parent) instead of a row.
- */
-function stackTasksVerticallyUnderParents(laidOut: Node[], edges: Edge[]): void {
-  const byId = new Map(laidOut.map((n) => [n.id, n]))
-  const byParent = new Map<string, string[]>()
-
-  for (const e of edges) {
-    if (!e.target.startsWith("task:")) continue
-    const src = e.source
-    if (!src.startsWith("project:") && !src.startsWith("objective:")) continue
-    const list = byParent.get(src) ?? []
-    list.push(e.target)
-    byParent.set(src, list)
-  }
-
-  for (const [parentNodeId, taskIds] of byParent) {
-    const unique = [...new Set(taskIds)]
-    if (unique.length === 0) continue
-
-    const parent = byId.get(parentNodeId)
-    if (!parent) continue
-
-    const pDim = NODE_DIMS[kindFromNodeId(parentNodeId)]
-    const parentCenterX = parent.position.x + pDim.width / 2
-    const startY = parent.position.y + pDim.height + TASK_VERTICAL_GAP
-
-    const taskNodes = unique
-      .map((id) => byId.get(id))
-      .filter((n): n is Node => Boolean(n))
-      .sort((a, b) => {
-        if (a.position.y !== b.position.y) return a.position.y - b.position.y
-        return a.position.x - b.position.x
-      })
-
-    let y = startY
-    for (const t of taskNodes) {
-      const tDim = NODE_DIMS[kindFromNodeId(t.id)]
-      t.position.x = parentCenterX - tDim.width / 2
-      t.position.y = y
-      y += tDim.height + TASK_VERTICAL_GAP
-    }
-  }
-}
-
-/**
- * Dagre TB layout for connected subgraph; orphan nodes in a column to the right.
+ * Dagre LR layout: goal → objectives → projects → tasks (vänster till höger).
+ * Syskon i samma nivå staplas vertikalt (nodesep). Orphan-noder i kolumn längst till höger.
  */
 export function applyDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
   if (nodes.length === 0) return []
@@ -96,13 +48,14 @@ export function applyDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
   const g = new dagre.graphlib.Graph()
   g.setDefaultEdgeLabel(() => ({}))
   g.setGraph({
-    rankdir: "TB",
-    /* Horisontellt: syskon-objectives / syskon-projekt närmare varandra */
-    nodesep: 28,
-    /* Vertikalt mellan nivåer; lågt värde = objective och project närmare varandra */
-    ranksep: 18,
-    marginx: 28,
-    marginy: 28,
+    rankdir: "LR",
+    /* Vertikal separation mellan syskon i samma kolumn (t.ex. flera objectives) */
+    nodesep: 14,
+    /* Horisontellt mellan nivåer: goal | objectives | projects | tasks */
+    ranksep: 28,
+    marginx: 16,
+    marginy: 16,
+    edgesep: 12,
   })
 
   for (const node of activeNodes) {
@@ -141,16 +94,7 @@ export function applyDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
     maxY = Math.max(maxY, y + h)
   }
 
-  /** Dagre places sibling tasks side-by-side; stack them vertically under each parent. */
-  stackTasksVerticallyUnderParents(laidOut, edges)
-
-  for (const node of laidOut) {
-    const dim = NODE_DIMS[kindFromNodeId(node.id)]
-    maxX = Math.max(maxX, node.position.x + dim.width)
-    maxY = Math.max(maxY, node.position.y + dim.height)
-  }
-
-  const orphanStartX = maxX + 64
+  const orphanStartX = maxX + 48
   const orphanColW = NODE_DIMS.objective.width
   const orphanRowGap = 28
   orphanList.forEach((node, i) => {

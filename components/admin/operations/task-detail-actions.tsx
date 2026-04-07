@@ -12,7 +12,8 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { updateTask } from "@/lib/actions/operations"
+import { Checkbox } from "@/components/ui/checkbox"
+import { updateTask, updateTaskAssignees } from "@/lib/actions/operations"
 import type {
   TaskDetail,
   ProjectMin,
@@ -105,28 +106,63 @@ export function TaskDetailActions({
         </Select>
       </div>
 
-      {/* Assignee */}
-      <div className="space-y-1.5">
-        <Label className="text-xs text-gray-600 dark:text-gray-400">Assignee</Label>
-        <Select
-          defaultValue={task.assigned_to ?? "__none__"}
-          onValueChange={(v) =>
-            handleUpdate("assigned_to", v === "__none__" ? null : v)
-          }
-          disabled={saving}
-        >
-          <SelectTrigger className={fieldClass}>
-            <SelectValue placeholder="Unassigned" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__">Unassigned</SelectItem>
-            {admins.map((a) => (
-              <SelectItem key={a.id} value={a.id}>
-                {a.email}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {/* Assignees (multi) */}
+      <div className="space-y-2">
+        <Label className="text-xs text-gray-600 dark:text-gray-400">
+          Assignees
+        </Label>
+        <p className="text-[11px] text-gray-500 dark:text-gray-500">
+          First selected is primary for legacy filters. Toggle to add or remove.
+        </p>
+        <ul className="space-y-2 max-h-52 overflow-y-auto pr-1">
+          {admins.map((a) => {
+            const isChecked =
+              task.assignees && task.assignees.length > 0
+                ? task.assignees.some((x) => x.id === a.id)
+                : task.assigned_to === a.id
+            return (
+              <li key={a.id} className="flex items-center gap-2">
+                <Checkbox
+                  id={`td-assign-${task.id}-${a.id}`}
+                  checked={isChecked}
+                  disabled={saving}
+                  onCheckedChange={(v) => {
+                    const on = v === true
+                    setSaving(true)
+                    void (async () => {
+                      try {
+                        const set = new Set(
+                          (
+                            task.assignees?.length
+                              ? task.assignees.map((x) => x.id)
+                              : task.assigned_to
+                                ? [task.assigned_to]
+                                : []
+                          ).filter(Boolean) as string[]
+                        )
+                        if (on) set.add(a.id)
+                        else set.delete(a.id)
+                        await updateTaskAssignees(task.id, [...set])
+                        toast.success("Saved")
+                        router.refresh()
+                      } catch {
+                        toast.error("Failed to save")
+                      } finally {
+                        setSaving(false)
+                      }
+                    })()
+                  }}
+                />
+                <label
+                  htmlFor={`td-assign-${task.id}-${a.id}`}
+                  className="text-xs text-gray-800 dark:text-gray-200 cursor-pointer"
+                >
+                  {a.email}
+                </label>
+              </li>
+            )
+          })}
+        </ul>
       </div>
 
       {/* Due date */}

@@ -1,11 +1,13 @@
 import { getGoals, getObjectives } from "@/lib/actions/operations"
+import { getMetricsForObjectives } from "@/lib/actions/metrics"
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
+import { MetricIndicator } from "@/components/admin/operations/metric-indicator"
 import { ObjectiveStatusBadge } from "@/components/admin/operations/objective-status-badge"
 import { ProgressBar } from "@/components/admin/operations/progress-bar"
 import { CreateObjectiveButton } from "@/components/admin/operations/create-objective-button"
 import { CreatedMetaLine } from "@/components/admin/operations/created-meta-line"
 import Link from "next/link"
-import { Target } from "lucide-react"
+import { Settings, Target } from "lucide-react"
 import type { ObjectiveStatus, StrategyArea } from "@/lib/types/operations"
 
 interface PageProps {
@@ -53,6 +55,9 @@ export default async function ObjectivesPage({ searchParams }: PageProps) {
 
   const admins = adminsRes.data ?? []
   const goalOptions = goals.map((g) => ({ id: g.id, title: g.title }))
+  const metricsByObjective = await getMetricsForObjectives(
+    objectives.map((o) => o.id),
+  )
 
   return (
     <div className="space-y-6">
@@ -71,7 +76,14 @@ export default async function ObjectivesPage({ searchParams }: PageProps) {
             </p>
           </div>
         </div>
-        <div className="w-full shrink-0 sm:w-auto [&_button]:w-full sm:[&_button]:w-auto">
+        <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:w-auto sm:shrink-0 [&_button]:w-full sm:[&_button]:w-auto">
+          <Link
+            href="/admin/operations/okrs/settings"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-800 hover:bg-gray-50 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-200 dark:hover:bg-zinc-800"
+          >
+            <Settings className="h-4 w-4 shrink-0" aria-hidden />
+            Settings
+          </Link>
           <CreateObjectiveButton admins={admins} goals={goalOptions} />
         </div>
       </div>
@@ -117,6 +129,21 @@ export default async function ObjectivesPage({ searchParams }: PageProps) {
                   <p className="text-sm text-gray-600 dark:text-zinc-400 line-clamp-2">
                     {obj.description}
                   </p>
+                )}
+
+                {(metricsByObjective.get(obj.id) ?? []).length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {(metricsByObjective.get(obj.id) ?? []).map((m) => (
+                      <MetricIndicator
+                        key={m.slug}
+                        label={m.label}
+                        current={m.current_value}
+                        target={m.target_value}
+                        unit={m.unit}
+                        progress={m.progress}
+                      />
+                    ))}
+                  </div>
                 )}
 
                 <ProgressBar value={obj.progress ?? 0} />

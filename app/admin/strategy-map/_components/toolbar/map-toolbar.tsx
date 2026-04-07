@@ -12,7 +12,9 @@ import {
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import {
+  Expand,
   Maximize2,
+  Shrink,
   Target,
   FolderKanban,
   CheckSquare,
@@ -50,10 +52,19 @@ interface Props {
   value: MapToolbarState
   onChange: (next: MapToolbarState) => void
   onFitView: () => void
+  onToggleFullscreen?: () => void
+  isFullscreen?: boolean
   className?: string
 }
 
-export function MapToolbar({ value, onChange, onFitView, className }: Props) {
+export function MapToolbar({
+  value,
+  onChange,
+  onFitView,
+  onToggleFullscreen,
+  isFullscreen = false,
+  className,
+}: Props) {
   const patch = (partial: Partial<MapToolbarState>) =>
     onChange({ ...value, ...partial })
 
@@ -183,18 +194,41 @@ export function MapToolbar({ value, onChange, onFitView, className }: Props) {
           </Label>
         </div>
 
-        <button
-          type="button"
-          className={cn(
-            "inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-medium transition-colors",
-            "border-zinc-300 bg-white text-zinc-900 hover:bg-zinc-50",
-            "dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-50 dark:hover:bg-zinc-700"
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            className={cn(
+              "inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-medium transition-colors",
+              "border-zinc-300 bg-white text-zinc-900 hover:bg-zinc-50",
+              "dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-50 dark:hover:bg-zinc-700"
+            )}
+            onClick={onFitView}
+          >
+            <Maximize2 className="h-3.5 w-3.5 shrink-0" />
+            Fit view
+          </button>
+          {onToggleFullscreen && (
+            <button
+              type="button"
+              className={cn(
+                "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-colors",
+                "border-zinc-300 bg-white text-zinc-900 hover:bg-zinc-50",
+                "dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-50 dark:hover:bg-zinc-700",
+                isFullscreen &&
+                  "border-indigo-500 bg-indigo-50 text-indigo-900 dark:border-indigo-500 dark:bg-indigo-950/60 dark:text-indigo-100"
+              )}
+              onClick={onToggleFullscreen}
+              aria-label={isFullscreen ? "Lämna helskärm" : "Helskärm"}
+              title={isFullscreen ? "Lämna helskärm" : "Helskärm"}
+            >
+              {isFullscreen ? (
+                <Shrink className="h-4 w-4 shrink-0" aria-hidden />
+              ) : (
+                <Expand className="h-4 w-4 shrink-0" aria-hidden />
+              )}
+            </button>
           )}
-          onClick={onFitView}
-        >
-          <Maximize2 className="h-3.5 w-3.5 shrink-0" />
-          Fit view
-        </button>
+        </div>
       </div>
     </div>
   )

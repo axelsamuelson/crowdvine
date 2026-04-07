@@ -217,6 +217,8 @@ export interface Task {
   objective_id: string | null
   parent_task_id: string | null
   assigned_to: string | null
+  /** All people assigned (junction); `assignee` / `assigned_to` reflect primary. */
+  assignees?: AdminUserMin[]
   created_by: string
   status: TaskStatus
   priority: TaskPriority
@@ -408,6 +410,50 @@ export interface CreateGoalData {
 
 export type UpdateGoalData = Partial<CreateGoalData> & {
   status?: GoalStatus
+}
+
+// ─── Objective metrics (live DB-backed) ─────────────────────
+
+export type MetricQueryType =
+  | "count"
+  | "ratio"
+  | "average"
+  | "sum"
+  | "custom"
+
+export type MetricPeriodType =
+  | "all_time"
+  | "last_7_days"
+  | "last_30_days"
+  | "last_90_days"
+  | "current_month"
+  | "custom"
+
+export interface ObjectiveMetricRow {
+  id: string
+  objective_id: string
+  slug: string
+  label: string
+  unit: string
+  query_type: MetricQueryType
+  query_config: Record<string, unknown>
+  target_value: number | null
+  current_value: number
+  refreshed_at: string
+  period_type: MetricPeriodType
+  period_start: string | null
+  period_end: string | null
+  created_at: string
+}
+
+export interface MetricResult {
+  slug: string
+  label: string
+  unit: string
+  current_value: number
+  target_value: number | null
+  progress: number
+  refreshed_at: string
 }
 
 export interface CreateKeyResultData {

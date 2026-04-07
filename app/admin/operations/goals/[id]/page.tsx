@@ -2,6 +2,10 @@ import { notFound } from "next/navigation"
 import Link from "next/link"
 import { getGoal } from "@/lib/actions/operations"
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
+import {
+  getMetricsForObjectives,
+  refreshGoalMetrics,
+} from "@/lib/actions/metrics"
 import { GoalStatusBadge } from "@/components/admin/operations/goal-status-badge"
 import { ProgressBar } from "@/components/admin/operations/progress-bar"
 import { CreateGoalButton } from "@/components/admin/operations/create-goal-button"
@@ -9,6 +13,8 @@ import { CreateObjectiveButton } from "@/components/admin/operations/create-obje
 import { ObjectiveStatusBadge } from "@/components/admin/operations/objective-status-badge"
 import { GoalDetailDelete } from "@/components/admin/operations/goal-detail-delete"
 import { CreatedMetaLine } from "@/components/admin/operations/created-meta-line"
+import { MetricIndicator } from "@/components/admin/operations/metric-indicator"
+import { RefreshGoalMetricsButton } from "@/components/admin/operations/refresh-goal-metrics-button"
 import { ArrowLeft } from "lucide-react"
 
 interface PageProps {
@@ -19,6 +25,13 @@ export default async function GoalDetailPage({ params }: PageProps) {
   const { id } = await params
   const goal = await getGoal(id)
   if (!goal) notFound()
+
+  await refreshGoalMetrics(goal.id)
+
+  const objectives = goal.objectives ?? []
+  const metricsByObjective = await getMetricsForObjectives(
+    objectives.map((o) => o.id),
+  )
 
   const sb = getSupabaseAdmin()
   const [allGoalsRes, adminsRes] = await Promise.all([
@@ -36,7 +49,6 @@ export default async function GoalDetailPage({ params }: PageProps) {
 
   const goalOptions = allGoalsRes.data ?? []
   const admins = adminsRes.data ?? []
-  const objectives = goal.objectives ?? []
 
   return (
     <div className="space-y-6">
@@ -84,6 +96,7 @@ export default async function GoalDetailPage({ params }: PageProps) {
             defaultGoalId={goal.id}
             label="Add Objective"
           />
+          <RefreshGoalMetricsButton goalId={goal.id} />
           <GoalDetailDelete goalId={goal.id} />
         </div>
       </div>
@@ -121,6 +134,20 @@ export default async function GoalDetailPage({ params }: PageProps) {
                       </p>
                     )}
                     <ProgressBar value={obj.progress ?? 0} size="sm" />
+                    {(metricsByObjective.get(obj.id) ?? []).length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {(metricsByObjective.get(obj.id) ?? []).map((m) => (
+                          <MetricIndicator
+                            key={m.slug}
+                            label={m.label}
+                            current={m.current_value}
+                            target={m.target_value}
+                            unit={m.unit}
+                            progress={m.progress}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div className="text-right shrink-0">
                     <span className="text-lg font-semibold text-gray-900 dark:text-white">

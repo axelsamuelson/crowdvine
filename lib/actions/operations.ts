@@ -29,6 +29,11 @@ import type {
   UpdateGoalData,
   TaskStatus,
 } from "@/lib/types/operations"
+import {
+  ADMIN_TASK_SELECT,
+  mapAdminTaskRow,
+  type AdminTaskRow,
+} from "@/lib/operations/admin-task-select"
 
 // ─── Helpers ─────────────────────────────────────────────────
 
@@ -55,12 +60,31 @@ async function logActivity(
   })
 }
 
-/** Standard admin_tasks-rad: projekt, objective, assignee, skapare. */
-const ADMIN_TASK_SELECT = `*,
-  project:admin_projects(id, name),
-  objective:admin_objectives(id, title, goal_id, goal:admin_goals(id, title)),
-  assignee:profiles!admin_tasks_assigned_to_fkey(id, email),
-  creator:profiles!admin_tasks_created_by_fkey(id, email)`
+async function replaceTaskAssignees(
+  sb: ReturnType<typeof getSupabaseAdmin>,
+  taskId: string,
+  profileIds: string[]
+): Promise<void> {
+  const unique = [...new Set(profileIds)].filter(Boolean)
+  await sb.from("admin_task_assignees").delete().eq("task_id", taskId)
+  if (unique.length === 0) return
+  const { error } = await sb.from("admin_task_assignees").insert(
+    unique.map((profile_id) => ({ task_id: taskId, profile_id }))
+  )
+  if (error) throw new Error(error.message)
+}
+
+async function taskIdsWithAssigneeProfile(
+  sb: ReturnType<typeof getSupabaseAdmin>,
+  profileId: string
+): Promise<string[]> {
+  const { data } = await sb
+    .from("admin_task_assignees")
+    .select("task_id")
+    .eq("profile_id", profileId)
+  const ids = (data ?? []).map((r) => r.task_id as string)
+  return [...new Set(ids)]
+}
 
 // ─── Progress-beräkning ──────────────────────────────────────
 
@@ -93,7 +117,14 @@ export async function getTasks(filters: TaskFilters = {}): Promise<Task[]> {
   }
 
   if (filters.assigned_to) {
-    query = query.eq("assigned_to", filters.assigned_to)
+    const viaJunction = await taskIdsWithAssigneeProfile(sb, filters.assigned_to)
+    if (viaJunction.length > 0) {
+      query = query.or(
+        `assigned_to.eq.${filters.assigned_to},id.in.(${viaJunction.join(",")})`
+      )
+    } else {
+      query = query.eq("assigned_to", filters.assigned_to)
+    }
   }
 
   if (filters.project_id) {
@@ -127,7 +158,7 @@ export async function getTasks(filters: TaskFilters = {}): Promise<Task[]> {
   const { data, error } = await query
 
   if (error) throw new Error(error.message)
-  return data ?? []
+  return (data ?? []).map((row) => mapAdminTaskRow(row as AdminTaskRow))
 }
 
 export async function getTask(id: string): Promise<TaskDetail> {
@@ -180,8 +211,10 @@ export async function getTask(id: string): Promise<TaskDetail> {
     )
     .eq("task_id", id)
 
+  const base = mapAdminTaskRow(task as AdminTaskRow)
+
   return {
-    ...task,
+    ...base,
     dependencies: deps ?? [],
     comments: task.comments ?? [],
     activity: (task.activity ?? []).sort(
@@ -189,7 +222,9 @@ export async function getTask(id: string): Promise<TaskDetail> {
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     ),
     entity_links: task.entity_links ?? [],
-    subtasks: task.subtasks ?? [],
+    subtasks: (task.subtasks ?? []).map((s) =>
+      mapAdminTaskRow(s as AdminTaskRow)
+    ),
   }
 }
 
@@ -208,6 +243,20 @@ export async function createTask(data: CreateTaskData): Promise<Task> {
 
   if (error) throw new Error(error.message)
 
+  await replaceTaskAssignees(
+    sb,
+    task.id,
+    task.assigned_to ? [task.assigned_to as string] : []
+  )
+
+  const { data: full, error: refetchErr } = await sb
+    .from("admin_tasks")
+    .select(ADMIN_TASK_SELECT)
+    .eq("id", task.id)
+    .single()
+
+  if (refetchErr) throw new Error(refetchErr.message)
+
   await logActivity(task.id, actor_id, "created")
 
   revalidatePath("/admin/operations")
@@ -216,7 +265,7 @@ export async function createTask(data: CreateTaskData): Promise<Task> {
   revalidatePath(`/admin/operations/tasks/${task.id}`)
   revalidatePath("/admin/strategy-map")
 
-  return task
+  return mapAdminTaskRow(full as AdminTaskRow)
 }
 
 export async function updateTask(
@@ -245,14 +294,28 @@ export async function updateTask(
     updates.completed_at = null
   }
 
-  const { data: task, error } = await sb
+  const { error } = await sb
     .from("admin_tasks")
     .update(updates)
     .eq("id", id)
-    .select(ADMIN_TASK_SELECT)
-    .single()
 
   if (error) throw new Error(error.message)
+
+  if ("assigned_to" in data) {
+    await replaceTaskAssignees(
+      sb,
+      id,
+      data.assigned_to ? [data.assigned_to as string] : []
+    )
+  }
+
+  const { data: task, error: fetchErr } = await sb
+    .from("admin_tasks")
+    .select(ADMIN_TASK_SELECT)
+    .eq("id", id)
+    .single()
+
+  if (fetchErr) throw new Error(fetchErr.message)
 
   // Logga ändringar
   if (current) {
@@ -312,7 +375,57 @@ export async function updateTask(
   revalidatePath("/admin/operations/my-work")
   revalidatePath("/admin/strategy-map")
 
-  return task
+  return mapAdminTaskRow(task as AdminTaskRow)
+}
+
+export async function updateTaskAssignees(
+  taskId: string,
+  profileIds: string[]
+): Promise<Task> {
+  const sb = getSupabaseAdmin()
+  const actor_id = await getActorId()
+
+  const { data: prevLinks } = await sb
+    .from("admin_task_assignees")
+    .select("profile_id")
+    .eq("task_id", taskId)
+
+  const oldS =
+    (prevLinks ?? [])
+      .map((r) => r.profile_id as string)
+      .sort()
+      .join(",") || null
+
+  const unique = [...new Set(profileIds)].filter(Boolean)
+  await replaceTaskAssignees(sb, taskId, unique)
+
+  const { error: uerr } = await sb
+    .from("admin_tasks")
+    .update({ assigned_to: unique[0] ?? null })
+    .eq("id", taskId)
+
+  if (uerr) throw new Error(uerr.message)
+
+  const newS = unique.length ? [...unique].sort().join(",") : null
+  if (oldS !== newS) {
+    await logActivity(taskId, actor_id, "assignees_updated", oldS, newS)
+  }
+
+  const { data: task, error } = await sb
+    .from("admin_tasks")
+    .select(ADMIN_TASK_SELECT)
+    .eq("id", taskId)
+    .single()
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath("/admin/operations")
+  revalidatePath("/admin/operations/tasks")
+  revalidatePath(`/admin/operations/tasks/${taskId}`)
+  revalidatePath("/admin/operations/my-work")
+  revalidatePath("/admin/strategy-map")
+
+  return mapAdminTaskRow(task as AdminTaskRow)
 }
 
 export async function deleteTask(id: string): Promise<void> {
@@ -1070,17 +1183,29 @@ export async function getMyWork() {
 
   const sb = getSupabaseAdmin()
 
-  const { data: tasks, error } = await sb
+  const viaJunction = await taskIdsWithAssigneeProfile(sb, actor_id)
+  let taskQuery = sb
     .from("admin_tasks")
     .select(ADMIN_TASK_SELECT)
-    .eq("assigned_to", actor_id)
     .is("deleted_at", null)
     .not("status", "in", '("done","cancelled")')
-    .order("due_date", { ascending: true, nullsFirst: false })
+
+  if (viaJunction.length > 0) {
+    taskQuery = taskQuery.or(
+      `assigned_to.eq.${actor_id},id.in.(${viaJunction.join(",")})`
+    )
+  } else {
+    taskQuery = taskQuery.eq("assigned_to", actor_id)
+  }
+
+  const { data: tasks, error } = await taskQuery.order("due_date", {
+    ascending: true,
+    nullsFirst: false,
+  })
 
   if (error) throw new Error(error.message)
 
-  const all = tasks ?? []
+  const all = (tasks ?? []).map((row) => mapAdminTaskRow(row as AdminTaskRow))
 
   return {
     overdue: all.filter((t) => t.due_date && t.due_date < today),
@@ -1102,13 +1227,19 @@ export async function getOperationsDashboard() {
     .toISOString()
     .split("T")[0]
 
+  const viaJunction = await taskIdsWithAssigneeProfile(sb, actor_id)
+  const myWorkOr =
+    viaJunction.length > 0
+      ? `assigned_to.eq.${actor_id},id.in.(${viaJunction.join(",")})`
+      : null
+
   const [
     { count: openTasks },
     { count: overdueTasks },
     { count: reviewTasks },
     { count: activeProjects },
     { count: activeObjectives },
-    { data: myTasks },
+    myTasksRes,
     { data: blockedTasks },
   ] = await Promise.all([
     sb
@@ -1137,15 +1268,17 @@ export async function getOperationsDashboard() {
       .select("*", { count: "exact", head: true })
       .is("deleted_at", null)
       .eq("status", "active"),
-    sb
-      .from("admin_tasks")
-      .select(ADMIN_TASK_SELECT)
-      .eq("assigned_to", actor_id)
-      .is("deleted_at", null)
-      .not("status", "in", '("done","cancelled")')
-      .gte("due_date", today)
-      .lte("due_date", nextWeek)
-      .order("due_date", { ascending: true }),
+    (() => {
+      let q = sb
+        .from("admin_tasks")
+        .select(ADMIN_TASK_SELECT)
+        .is("deleted_at", null)
+        .not("status", "in", '("done","cancelled")')
+        .gte("due_date", today)
+        .lte("due_date", nextWeek)
+      q = myWorkOr ? q.or(myWorkOr) : q.eq("assigned_to", actor_id)
+      return q.order("due_date", { ascending: true })
+    })(),
     sb
       .from("admin_tasks")
       .select(ADMIN_TASK_SELECT)
@@ -1163,7 +1296,11 @@ export async function getOperationsDashboard() {
       active_projects: activeProjects ?? 0,
       active_objectives: activeObjectives ?? 0,
     },
-    my_tasks_this_week: myTasks ?? [],
-    blocked_tasks: blockedTasks ?? [],
+    my_tasks_this_week: (myTasksRes.data ?? []).map((row) =>
+      mapAdminTaskRow(row as AdminTaskRow)
+    ),
+    blocked_tasks: (blockedTasks ?? []).map((row) =>
+      mapAdminTaskRow(row as AdminTaskRow)
+    ),
   }
 }

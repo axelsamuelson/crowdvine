@@ -17,7 +17,8 @@
     "playwright:install": "playwright install chromium",
     "crawl:smoke": "tsx scripts/crawl-smoke-test.ts",
     "extraction:test-haiku": "tsx scripts/menu-extraction-test-haiku.ts",
-    "seed:v3": "tsx scripts/seed-v3-framework.ts"
+    "seed:v3": "tsx scripts/seed-v3-framework.ts",
+    "seed:v3:goals": "tsx scripts/seed-v3-goals.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",

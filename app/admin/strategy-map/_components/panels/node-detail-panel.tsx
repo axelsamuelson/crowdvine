@@ -32,7 +32,18 @@ import { ObjectiveStatusBadge } from "@/components/admin/operations/objective-st
 import { ProjectStatusBadge } from "@/components/admin/operations/project-status-badge"
 import { TaskStatusBadge } from "@/components/admin/operations/task-status-badge"
 import { ProgressBar } from "@/components/admin/operations/progress-bar"
-import type { Goal, Objective, Project, Task } from "@/lib/types/operations"
+import type {
+  AdminUserMin,
+  Goal,
+  Objective,
+  Project,
+  Task,
+} from "@/lib/types/operations"
+import { StrategyMapTaskFields } from "./strategy-map-task-fields"
+import {
+  StrategyMapConnectionsCard,
+  type StrategyMapConnectionItem,
+} from "./strategy-map-connections-card"
 import type { GraphEntityKind } from "../utils/validate-connection"
 
 export type StrategyMapEntityDeletedPayload = {
@@ -45,9 +56,18 @@ interface Props {
   onOpenChange: (open: boolean) => void
   kind: GraphEntityKind | null
   record: Goal | Objective | Project | Task | null
-  summaryLines?: string[]
+  connectionItems?: StrategyMapConnectionItem[]
   /** Uppdaterar lokal kartdata efter soft-delete (strategy map). */
   onEntityDeleted?: (payload: StrategyMapEntityDeletedPayload) => void
+  /** Redigera task: objective, projekt, flera assignees (strategy map). */
+  taskEditContext?: {
+    objectives: Objective[]
+    projects: Project[]
+    admins: AdminUserMin[]
+    onTaskUpdated: (task: Task) => void
+  }
+  /** Vid helskärm: montera Sheet inuti fullscreen-elementet så overlay/fokus fungerar. */
+  sheetPortalContainer?: HTMLElement | null
 }
 
 export function NodeDetailPanel({
@@ -55,8 +75,10 @@ export function NodeDetailPanel({
   onOpenChange,
   kind,
   record,
-  summaryLines = [],
+  connectionItems = [],
   onEntityDeleted,
+  taskEditContext,
+  sheetPortalContainer,
 }: Props) {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -122,6 +144,7 @@ export function NodeDetailPanel({
     <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
+        portalContainer={sheetPortalContainer}
         className={cn(
           "w-full sm:max-w-md overflow-y-auto border-gray-200 bg-white text-gray-900",
           "dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-100",
@@ -214,26 +237,35 @@ export function NodeDetailPanel({
                     {(record as Task).description}
                   </p>
                 )}
-                {(record as Task).assignee?.email && (
+                {((record as Task).assignees?.length ?? 0) > 0 ? (
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-gray-600 dark:text-zinc-400">
+                      Ansvariga
+                    </p>
+                    <ul className="text-xs text-gray-700 dark:text-zinc-300 list-disc pl-4 space-y-0.5">
+                      {(record as Task).assignees!.map((a) => (
+                        <li key={a.id}>{a.email}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (record as Task).assignee?.email ? (
                   <p className="text-xs text-gray-600 dark:text-zinc-400">
-                    Assignee: {(record as Task).assignee!.email}
+                    Ansvarig: {(record as Task).assignee!.email}
                   </p>
+                ) : null}
+                {taskEditContext && (
+                  <StrategyMapTaskFields
+                    task={record as Task}
+                    objectives={taskEditContext.objectives}
+                    projects={taskEditContext.projects}
+                    admins={taskEditContext.admins}
+                    onTaskUpdated={taskEditContext.onTaskUpdated}
+                  />
                 )}
               </>
             )}
 
-            {summaryLines.length > 0 && (
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-1 dark:border-zinc-700 dark:bg-zinc-900/60">
-                <p className="text-xs font-medium text-gray-700 dark:text-zinc-300">
-                  Kopplingar
-                </p>
-                <ul className="text-xs text-gray-700 dark:text-zinc-300 list-disc pl-4 space-y-0.5">
-                  {summaryLines.map((line, i) => (
-                    <li key={i}>{line}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            <StrategyMapConnectionsCard items={connectionItems} />
 
             <div className="flex flex-col gap-2 pt-1">
               {href && (

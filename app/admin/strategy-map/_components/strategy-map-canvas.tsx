@@ -23,7 +23,13 @@ import {
   updateProject,
   updateTask,
 } from "@/lib/actions/operations"
-import type { Goal, Objective, Project, Task } from "@/lib/types/operations"
+import type {
+  AdminUserMin,
+  Goal,
+  Objective,
+  Project,
+  Task,
+} from "@/lib/types/operations"
 import { GoalNode } from "./nodes/goal-node"
 import { ObjectiveNode } from "./nodes/objective-node"
 import { ProjectNode } from "./nodes/project-node"
@@ -39,6 +45,13 @@ import {
   nodeTitle,
 } from "./utils/filter-entities"
 import {
+  applySubtreeFocus,
+  type StrategyMapSubtreeFocus,
+} from "./utils/subtree-focus"
+import {
+  StrategyMapFocusProvider,
+} from "./strategy-map-focus-context"
+import {
   isValidConnection,
   parseNodeId,
 } from "./utils/validate-connection"
@@ -52,6 +65,7 @@ import {
   NodeDetailPanel,
   type StrategyMapEntityDeletedPayload,
 } from "./panels/node-detail-panel"
+import type { StrategyMapConnectionItem } from "./panels/strategy-map-connections-card"
 import {
   StrategyMapHighlightProvider,
   useStrategyMapHighlightActions,
@@ -192,7 +206,13 @@ function unlinkGoalObjective(
   }
 }
 
-function InnerCanvas({ initial }: { initial: StrategyMapInitialData }) {
+function InnerCanvas({
+  initial,
+  admins,
+}: {
+  initial: StrategyMapInitialData
+  admins: AdminUserMin[]
+}) {
   const [entities, setEntities] = useState<StrategyMapEntities>(() => ({
     goals: initial.goals ?? [],
     objectives: initial.objectives,
@@ -211,12 +231,87 @@ function InnerCanvas({ initial }: { initial: StrategyMapInitialData }) {
     null
   )
   const rfRef = useRef<ReactFlowInstance | null>(null)
+  const fullscreenRef = useRef<HTMLDivElement | null>(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const { setHighlightFromNode } = useStrategyMapHighlightActions()
 
-  const filtered = useMemo(
-    () => filterEntitiesForToolbar(entities, toolbar),
-    [entities, toolbar]
+  useEffect(() => {
+    const onFsChange = () => {
+      setIsFullscreen(document.fullscreenElement === fullscreenRef.current)
+    }
+    document.addEventListener("fullscreenchange", onFsChange)
+    return () => document.removeEventListener("fullscreenchange", onFsChange)
+  }, [])
+
+  useEffect(() => {
+    if (!isFullscreen) return
+    const id = window.requestAnimationFrame(() => {
+      rfRef.current?.fitView({ padding: 0.12, duration: 250 })
+    })
+    return () => window.cancelAnimationFrame(id)
+  }, [isFullscreen])
+
+  const toggleFullscreen = useCallback(async () => {
+    const el = fullscreenRef.current
+    if (!el) return
+    try {
+      if (!document.fullscreenElement) {
+        await el.requestFullscreen()
+      } else {
+        await document.exitFullscreen()
+      }
+    } catch {
+      toast.error("Kunde inte växla helskärm (stöds inte eller nekades)")
+    }
+  }, [])
+
+  const [subtreeFocus, setSubtreeFocus] = useState<StrategyMapSubtreeFocus | null>(
+    null
   )
+
+  const toggleObjectiveFocus = useCallback((id: string) => {
+    setSubtreeFocus((prev) =>
+      prev?.kind === "objective" && prev.id === id
+        ? null
+        : { kind: "objective", id }
+    )
+  }, [])
+
+  const toggleProjectFocus = useCallback((id: string) => {
+    setSubtreeFocus((prev) =>
+      prev?.kind === "project" && prev.id === id ? null : { kind: "project", id }
+    )
+  }, [])
+
+  const clearSubtreeFocus = useCallback(() => setSubtreeFocus(null), [])
+
+  const focusContextValue = useMemo(
+    () => ({
+      focus: subtreeFocus,
+      toggleObjectiveFocus,
+      toggleProjectFocus,
+      clearFocus: clearSubtreeFocus,
+    }),
+    [subtreeFocus, toggleObjectiveFocus, toggleProjectFocus, clearSubtreeFocus]
+  )
+
+  const afterSubtreeFocus = useMemo(
+    () => applySubtreeFocus(entities, subtreeFocus),
+    [entities, subtreeFocus]
+  )
+
+  const filtered = useMemo(
+    () => filterEntitiesForToolbar(afterSubtreeFocus, toolbar),
+    [afterSubtreeFocus, toolbar]
+  )
+
+  useEffect(() => {
+    if (!subtreeFocus) return
+    const id = window.requestAnimationFrame(() => {
+      rfRef.current?.fitView({ padding: 0.15, duration: 280 })
+    })
+    return () => window.cancelAnimationFrame(id)
+  }, [subtreeFocus])
 
   const searchQ = toolbar.search.trim().toLowerCase()
 
@@ -358,42 +453,94 @@ function InnerCanvas({ initial }: { initial: StrategyMapInitialData }) {
     [entities]
   )
 
-  const summaryLines = useMemo(() => {
+  const connectionItems = useMemo((): StrategyMapConnectionItem[] => {
     if (!sheetRecord || !sheetKind) return []
-    const lines: string[] = []
+    const items: StrategyMapConnectionItem[] = []
     if (sheetKind === "goal") {
       const g = sheetRecord as Goal
       entities.objectives
         .filter((o) => o.goal_id === g.id)
-        .forEach((o) => lines.push(`Objective: ${o.title}`))
+        .forEach((o) =>
+          items.push({
+            id: `obj-${o.id}`,
+            category: "objective",
+            label: "Objective",
+            title: o.title,
+          })
+        )
     } else if (sheetKind === "objective") {
       const o = sheetRecord as Objective
-      const ps = entities.projects.filter((p) => p.objective_id === o.id)
-      const ts = entities.tasks.filter(
-        (t) => t.objective_id === o.id && !t.project_id
-      )
-      ps.forEach((p) => lines.push(`Project: ${p.name}`))
-      ts.forEach((t) => lines.push(`Task (direkt): ${t.title}`))
+      entities.projects
+        .filter((p) => p.objective_id === o.id)
+        .forEach((p) =>
+          items.push({
+            id: `proj-${p.id}`,
+            category: "project",
+            label: "Projekt",
+            title: p.name,
+          })
+        )
+      entities.tasks
+        .filter((t) => t.objective_id === o.id && !t.project_id)
+        .forEach((t) =>
+          items.push({
+            id: `task-${t.id}`,
+            category: "task",
+            label: "Task (direkt)",
+            title: t.title,
+          })
+        )
     } else if (sheetKind === "project") {
       const p = sheetRecord as Project
       if (p.objective_id) {
         const o = entities.objectives.find((x) => x.id === p.objective_id)
-        if (o) lines.push(`Objective: ${o.title}`)
+        if (o) {
+          items.push({
+            id: `obj-${o.id}`,
+            category: "objective",
+            label: "Objective",
+            title: o.title,
+          })
+        }
       }
       const n = entities.tasks.filter((t) => t.project_id === p.id).length
-      lines.push(`${n} task(s) i projektet`)
+      items.push({
+        id: `task-count-${p.id}`,
+        category: "aggregate",
+        label: "Tasks",
+        title:
+          n === 0
+            ? "Inga tasks kopplade till projektet"
+            : n === 1
+              ? "1 kopplad task"
+              : `${n} kopplade tasks`,
+      })
     } else {
       const t = sheetRecord as Task
       if (t.objective_id) {
         const o = entities.objectives.find((x) => x.id === t.objective_id)
-        if (o) lines.push(`Objective: ${o.title}`)
+        if (o) {
+          items.push({
+            id: `obj-${o.id}`,
+            category: "objective",
+            label: "Objective",
+            title: o.title,
+          })
+        }
       }
       if (t.project_id) {
         const p = entities.projects.find((x) => x.id === t.project_id)
-        if (p) lines.push(`Project: ${p.name}`)
+        if (p) {
+          items.push({
+            id: `proj-${p.id}`,
+            category: "project",
+            label: "Projekt",
+            title: p.name,
+          })
+        }
       }
     }
-    return lines
+    return items
   }, [sheetRecord, sheetKind, entities])
 
   const onNodeMouseEnter = useCallback(
@@ -461,15 +608,45 @@ function InnerCanvas({ initial }: { initial: StrategyMapInitialData }) {
 
   return (
     <EdgeDeleteProvider onEdgeDeleteClick={onEdgeDeleteClick}>
-      <div className="flex h-[calc(100dvh-8rem)] min-h-[480px] w-full flex-col gap-3">
+      <StrategyMapFocusProvider value={focusContextValue}>
+      <div
+        ref={fullscreenRef}
+        className={
+          isFullscreen
+            ? "flex h-screen min-h-0 w-full flex-col gap-3 bg-zinc-100 p-3 dark:bg-zinc-950"
+            : "flex h-[calc(100dvh-8rem)] min-h-[480px] w-full flex-col gap-3"
+        }
+      >
+        {subtreeFocus && (
+          <div
+            className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm text-indigo-950 dark:border-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-100"
+            role="status"
+          >
+            <span>
+              Filtrerad vy: endast{" "}
+              {subtreeFocus.kind === "objective"
+                ? "detta objective och kopplade projekt/tasks"
+                : "detta projekt och kopplade tasks (samt objective & mål)"}
+            </span>
+            <button
+              type="button"
+              onClick={clearSubtreeFocus}
+              className="shrink-0 rounded-lg border border-indigo-300 bg-white px-2.5 py-1 text-xs font-medium text-indigo-900 hover:bg-indigo-100 dark:border-indigo-600 dark:bg-indigo-900 dark:text-indigo-100 dark:hover:bg-indigo-800"
+            >
+              Visa allt
+            </button>
+          </div>
+        )}
         <MapToolbar
           value={toolbar}
           onChange={setToolbar}
           onFitView={() =>
             rfRef.current?.fitView({ padding: 0.2, duration: 300 })
           }
+          onToggleFullscreen={toggleFullscreen}
+          isFullscreen={isFullscreen}
         />
-        <div className="strategy-map-flow relative flex-1 min-h-0 rounded-xl border border-zinc-200 bg-zinc-100/90 dark:border-zinc-700 dark:bg-zinc-950/80">
+        <div className="strategy-map-flow relative min-h-0 flex-1 rounded-xl border border-zinc-200 bg-zinc-100/90 dark:border-zinc-700 dark:bg-zinc-950/80">
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -508,13 +685,30 @@ function InnerCanvas({ initial }: { initial: StrategyMapInitialData }) {
         </div>
       </div>
 
+      </StrategyMapFocusProvider>
+
       <NodeDetailPanel
         open={sheetOpen}
         onOpenChange={setSheetOpen}
         kind={sheetKind}
         record={sheetRecord}
-        summaryLines={summaryLines}
+        connectionItems={connectionItems}
         onEntityDeleted={handleEntityDeletedFromPanel}
+        sheetPortalContainer={
+          isFullscreen ? fullscreenRef.current ?? null : null
+        }
+        taskEditContext={{
+          objectives: entities.objectives,
+          projects: entities.projects,
+          admins,
+          onTaskUpdated: (task) => {
+            setEntities((e) => ({
+              ...e,
+              tasks: e.tasks.map((t) => (t.id === task.id ? task : t)),
+            }))
+            setSheetRecord(task)
+          },
+        }}
       />
 
       <AlertDialog
@@ -542,13 +736,15 @@ function InnerCanvas({ initial }: { initial: StrategyMapInitialData }) {
 
 export function StrategyMapCanvas({
   initial,
+  admins,
 }: {
   initial: StrategyMapInitialData
+  admins: AdminUserMin[]
 }) {
   return (
     <ReactFlowProvider>
       <StrategyMapHighlightProvider>
-        <InnerCanvas initial={initial} />
+        <InnerCanvas initial={initial} admins={admins} />
       </StrategyMapHighlightProvider>
     </ReactFlowProvider>
   )

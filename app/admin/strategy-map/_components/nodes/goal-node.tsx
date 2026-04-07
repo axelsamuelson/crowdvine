@@ -56,7 +56,7 @@ function GoalNodeInner({ id, data, selected }: NodeProps<GoalNodeData>) {
       </Card>
       <Handle
         type="source"
-        position={Position.Bottom}
+        position={Position.Right}
         className="!size-2.5 !border-2 !border-violet-500 !bg-white dark:!bg-zinc-900"
         isConnectable
       />

@@ -3,18 +3,16 @@ import { getGoals, getObjective } from "@/lib/actions/operations"
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
 import { ObjectiveStatusBadge } from "@/components/admin/operations/objective-status-badge"
 import { ProgressBar } from "@/components/admin/operations/progress-bar"
-import { KeyResultRow } from "@/components/admin/operations/key-result-row"
 import { TaskTable } from "@/components/admin/operations/task-table"
 import { CreateTaskButton } from "@/components/admin/operations/create-task-button"
 import { CreateProjectButton } from "@/components/admin/operations/create-project-button"
 import { ProjectStatusBadge } from "@/components/admin/operations/project-status-badge"
-import { AddKeyResultButton } from "@/components/admin/operations/add-key-result-button"
 import { CreateObjectiveButton } from "@/components/admin/operations/create-objective-button"
 import { CreatedMetaLine } from "@/components/admin/operations/created-meta-line"
 import { ObjectiveOutcomeDeliveryHint } from "@/components/admin/operations/objective-outcome-delivery-hint"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Link from "next/link"
-import type { Task, KeyResult, ProjectStatus } from "@/lib/types/operations"
+import type { Task, ProjectStatus } from "@/lib/types/operations"
 
 const STRATEGY_COLORS: Record<string, string> = {
   Growth:
@@ -26,6 +24,9 @@ const STRATEGY_COLORS: Record<string, string> = {
   Product:
     "border-purple-300 text-purple-700 bg-purple-50 dark:border-purple-700 dark:text-purple-400 dark:bg-purple-950/50",
 }
+
+const OBJECTIVE_TAB_TRIGGER_CLASS =
+  "shrink-0 rounded-lg px-3 py-2 text-xs font-medium text-gray-600 shadow-none ring-offset-0 transition-colors hover:text-gray-900 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm dark:text-zinc-400 dark:hover:text-zinc-200 dark:data-[state=active]:bg-white dark:data-[state=active]:text-gray-900"
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -138,45 +139,15 @@ export default async function ObjectiveDetailPage({ params }: PageProps) {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="key_results">
-        <TabsList className="h-auto min-h-10 w-full min-w-0 flex-wrap justify-start gap-1 bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800 rounded-xl p-1 sm:inline-flex sm:flex-nowrap">
-          <TabsTrigger
-            value="key_results"
-            className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm text-xs font-medium shrink-0"
-          >
-            Key Results ({objective.key_results?.length ?? 0})
-          </TabsTrigger>
-          <TabsTrigger
-            value="projects"
-            className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm text-xs font-medium shrink-0"
-          >
+      <Tabs defaultValue="projects">
+        <TabsList className="h-auto min-h-10 w-full min-w-0 flex-wrap justify-start gap-1 rounded-xl border border-gray-200 bg-gray-100 p-1 dark:border-zinc-700 dark:bg-zinc-900 sm:inline-flex sm:w-auto sm:flex-nowrap">
+          <TabsTrigger value="projects" className={OBJECTIVE_TAB_TRIGGER_CLASS}>
             Projects ({projects.length})
           </TabsTrigger>
-          <TabsTrigger
-            value="tasks"
-            className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm text-xs font-medium shrink-0"
-          >
+          <TabsTrigger value="tasks" className={OBJECTIVE_TAB_TRIGGER_CLASS}>
             Tasks ({tasks.length})
           </TabsTrigger>
         </TabsList>
-
-        {/* Key Results */}
-        <TabsContent value="key_results" className="mt-4 space-y-4 min-w-0">
-          <div className="flex justify-stretch sm:justify-end [&_button]:w-full sm:[&_button]:w-auto">
-            <AddKeyResultButton objective_id={objective.id} />
-          </div>
-
-          <div className="rounded-xl border border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-[#0F0F12] px-3 sm:px-4 min-w-0">
-            {(!objective.key_results || objective.key_results.length === 0) && (
-              <p className="text-sm text-gray-500 dark:text-gray-400 py-8 text-center">
-                No key results yet
-              </p>
-            )}
-            {(objective.key_results ?? []).map((kr: KeyResult) => (
-              <KeyResultRow key={kr.id} kr={kr} />
-            ))}
-          </div>
-        </TabsContent>
 
         {/* Projects */}
         <TabsContent value="projects" className="mt-4 space-y-4 min-w-0">

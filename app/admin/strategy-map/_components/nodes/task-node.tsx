@@ -25,14 +25,19 @@ function initials(email: string | undefined): string {
 function TaskNodeInner({ id, data, selected }: NodeProps<TaskNodeData>) {
   const t = data.record
   const { isDimmed } = useStrategyMapHighlight(id)
-  const email = t.assignee?.email
+  const assignees =
+    t.assignees && t.assignees.length > 0
+      ? t.assignees
+      : t.assignee
+        ? [t.assignee]
+        : []
   const dimmed = isDimmed || Boolean(data.searchDimmed)
 
   return (
     <>
       <Handle
         type="target"
-        position={Position.Top}
+        position={Position.Left}
         className="!size-2.5 !border-2 !border-emerald-400 !bg-white dark:!bg-zinc-900"
         isConnectable
       />
@@ -58,15 +63,30 @@ function TaskNodeInner({ id, data, selected }: NodeProps<TaskNodeData>) {
               {t.title}
             </p>
             <TaskStatusBadge status={t.status} />
-            <div className="flex items-center gap-2 pt-0.5">
-              <Avatar className="h-6 w-6 text-[10px]">
-                <AvatarFallback className="bg-emerald-200/80 text-emerald-900 dark:bg-emerald-800 dark:text-emerald-100">
-                  {initials(email)}
-                </AvatarFallback>
-              </Avatar>
-              {email && (
+            <div className="flex items-center gap-1.5 pt-0.5 min-w-0">
+              <div className="flex -space-x-1.5 shrink-0">
+                {assignees.slice(0, 3).map((a) => (
+                  <Avatar
+                    key={a.id}
+                    className="h-6 w-6 text-[10px] ring-2 ring-emerald-50 dark:ring-emerald-950"
+                    title={a.email}
+                  >
+                    <AvatarFallback className="bg-emerald-200/80 text-emerald-900 dark:bg-emerald-800 dark:text-emerald-100">
+                      {initials(a.email)}
+                    </AvatarFallback>
+                  </Avatar>
+                ))}
+                {assignees.length > 3 && (
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-200/90 text-[9px] font-semibold text-emerald-900 ring-2 ring-emerald-50 dark:bg-emerald-800 dark:text-emerald-100 dark:ring-emerald-950">
+                    +{assignees.length - 3}
+                  </div>
+                )}
+              </div>
+              {assignees[0] && (
                 <span className="truncate text-[10px] text-zinc-600 dark:text-zinc-300">
-                  {email}
+                  {assignees.length > 1
+                    ? `${assignees.length} ansvariga`
+                    : assignees[0].email}
                 </span>
               )}
             </div>
