@@ -10,8 +10,9 @@ function bearerToken(req: Request): string | null {
 
 /**
  * @modelcontextprotocol/sdk streamable HTTP transport returns 406 unless Accept is strict.
- * Remote clients (e.g. Claude connectors) often send */* or omit text/event-stream, which
- * breaks negotiation even though they can handle SSE + JSON. Append MCP-required types.
+ * Remote clients (e.g. Claude connectors) often send a catch-all Accept or omit
+ * text/event-stream, which breaks negotiation even though they can handle SSE + JSON.
+ * Append MCP-required types.
  */
 function withStreamableHttpCompatibleHeaders(req: Request): Request {
   const method = req.method.toUpperCase();
