@@ -109,6 +109,45 @@ export async function handleMcpRequest(req: Request): Promise<Response> {
     return new Response(null, { status: 200, headers: MCP_CORS_HEADERS });
   }
 
+  /**
+   * SDK GET/SSE path often never flushes bytes on Vercel serverless (0-byte timeout).
+   * Remote connectors (e.g. Claude) may probe GET first — serve an immediate response.
+   * All JSON-RPC traffic stays on POST (enableJsonResponse).
+   */
+  if (method === "GET") {
+    const accept = (req.headers.get("accept") ?? "").toLowerCase();
+    if (!accept.includes("text/event-stream")) {
+      return Response.json(
+        {
+          ok: true,
+          service: "pact-okr-mcp",
+          hint: "POST JSON-RPC to this URL; use Accept: text/event-stream for SSE probe.",
+        },
+        { status: 200, headers: MCP_CORS_HEADERS },
+      );
+    }
+
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(
+          encoder.encode(": pact-okr streamable-http reachable\n\n"),
+        );
+        controller.close();
+      },
+    });
+
+    return new Response(stream, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+        ...MCP_CORS_HEADERS,
+      },
+    });
+  }
+
   const mcp = createPactMcpServer();
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
