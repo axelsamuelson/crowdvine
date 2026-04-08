@@ -1,4 +1,12 @@
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import { authenticateMcpBearer } from "./auth/authenticate-mcp-request";
+import { checkJsonRpcOAuthScopes } from "./auth/jsonrpc-scope";
+import {
+  getMcpAuthMode,
+  mcpAuthIsConfigured,
+  oauthConfigReady,
+} from "./auth/mcp-auth-config";
+import { wwwAuthenticateBearer } from "./auth/www-authenticate";
 import { createPactMcpServer } from "./server";
 import { checkMcpRateLimit } from "./utils/rate-limit";
 
@@ -6,6 +14,23 @@ function bearerToken(req: Request): string | null {
   const h = req.headers.get("authorization");
   if (!h?.toLowerCase().startsWith("bearer ")) return null;
   return h.slice(7).trim() || null;
+}
+
+function mcpDisabledBody(): string {
+  const mode = getMcpAuthMode();
+  if (mode === "oauth") {
+    return (
+      "MCP disabled: set AUTH0_DOMAIN and AUTH0_AUDIENCE (and MCP_AUTH_MODE=oauth).\n"
+    );
+  }
+  if (mode === "dual") {
+    return (
+      "MCP disabled: dual mode requires MCP_API_KEY and AUTH0_DOMAIN + AUTH0_AUDIENCE.\n"
+    );
+  }
+  return (
+    "MCP disabled: set MCP_API_KEY in .env.local (or the host environment) and restart next dev.\n"
+  );
 }
 
 /**
@@ -70,35 +95,95 @@ function withStreamableHttpCompatibleHeaders(req: Request): Request {
   return new Request(req.url, init);
 }
 
+function withExtraHeaders(
+  base: Record<string, string>,
+  extra: Record<string, string | undefined>,
+): Record<string, string> {
+  const out = { ...base };
+  for (const [k, v] of Object.entries(extra)) {
+    if (v !== undefined) out[k] = v;
+  }
+  return out;
+}
+
 /**
  * Streamable HTTP MCP endpoint. Stateless (ingen session) så det fungerar på Vercel serverless.
  */
 export async function handleMcpRequest(req: Request): Promise<Response> {
   const method = req.method.toUpperCase();
 
-  // CORS preflight: no Authorization header — must not require Bearer or preflight fails.
   if (method === "OPTIONS") {
     return new Response(null, { status: 204, headers: MCP_CORS_HEADERS });
   }
 
-  const expected = process.env.MCP_API_KEY?.trim();
-  if (!expected) {
+  if (!mcpAuthIsConfigured()) {
+    return new Response(mcpDisabledBody(), {
+      status: 503,
+      headers: MCP_CORS_HEADERS,
+    });
+  }
+
+  const includeMeta = oauthConfigReady();
+  const rawBearer = bearerToken(req);
+
+  const auth = await authenticateMcpBearer(rawBearer);
+  if (!auth.ok) {
+    const desc =
+      auth.reason === "missing"
+        ? "Bearer access token required"
+        : auth.message;
+    const www = wwwAuthenticateBearer({
+      error: "invalid_token",
+      description: desc,
+      req,
+      includeResourceMetadata: includeMeta,
+    });
     return new Response(
-      "MCP disabled: set MCP_API_KEY in .env.local (or the host environment) and restart next dev.\n",
-      { status: 503, headers: MCP_CORS_HEADERS },
+      auth.reason === "missing"
+        ? "Unauthorized: missing Authorization: Bearer token.\n"
+        : `Unauthorized: ${auth.message}\n`,
+      {
+        status: 401,
+        headers: withExtraHeaders(MCP_CORS_HEADERS, {
+          "WWW-Authenticate": www,
+        }),
+      },
     );
   }
 
-  const token = bearerToken(req);
-  if (!token || token !== expected) {
-    return new Response(
-      "Unauthorized: Bearer token missing or does not match MCP_API_KEY. " +
-        "curl uses your shell ($MCP_API_KEY), not .env.local — run export MCP_API_KEY='…same as .env.local…' or paste the token in the header.\n",
-      { status: 401, headers: MCP_CORS_HEADERS },
-    );
+  const { rateLimitKey, oauthScopes } = auth.ctx;
+
+  if (method === "POST" && oauthScopes) {
+    const clone = req.clone();
+    const text = await clone.text();
+    if (text) {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        parsed = undefined;
+      }
+      if (parsed !== undefined) {
+        const scopeCheck = checkJsonRpcOAuthScopes(parsed, oauthScopes);
+        if (!scopeCheck.ok) {
+          const www = wwwAuthenticateBearer({
+            error: "insufficient_scope",
+            description: scopeCheck.message,
+            req,
+            includeResourceMetadata: includeMeta,
+          });
+          return new Response(`${scopeCheck.message}\n`, {
+            status: 403,
+            headers: withExtraHeaders(MCP_CORS_HEADERS, {
+              "WWW-Authenticate": www,
+            }),
+          });
+        }
+      }
+    }
   }
 
-  if (!checkMcpRateLimit(token)) {
+  if (!checkMcpRateLimit(rateLimitKey)) {
     return new Response("Too Many Requests\n", {
       status: 429,
       headers: MCP_CORS_HEADERS,
@@ -109,11 +194,6 @@ export async function handleMcpRequest(req: Request): Promise<Response> {
     return new Response(null, { status: 200, headers: MCP_CORS_HEADERS });
   }
 
-  /**
-   * SDK GET/SSE path often never flushes bytes on Vercel serverless (0-byte timeout).
-   * Remote connectors (e.g. Claude) may probe GET first — serve an immediate response.
-   * All JSON-RPC traffic stays on POST (enableJsonResponse).
-   */
   if (method === "GET") {
     const accept = (req.headers.get("accept") ?? "").toLowerCase();
     if (!accept.includes("text/event-stream")) {
@@ -151,7 +231,6 @@ export async function handleMcpRequest(req: Request): Promise<Response> {
   const mcp = createPactMcpServer();
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
-    // JSON responses work better with strict HTTP clients than long-lived SSE on serverless.
     enableJsonResponse: true,
   });
 
@@ -164,5 +243,9 @@ export async function handleMcpRequest(req: Request): Promise<Response> {
   for (const [k, v] of Object.entries(MCP_CORS_HEADERS)) {
     if (!out.has(k)) out.set(k, v);
   }
-  return new Response(res.body, { status: res.status, statusText: res.statusText, headers: out });
+  return new Response(res.body, {
+    status: res.status,
+    statusText: res.statusText,
+    headers: out,
+  });
 }
