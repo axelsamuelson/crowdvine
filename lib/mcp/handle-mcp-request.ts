@@ -9,6 +9,48 @@ function bearerToken(req: Request): string | null {
 }
 
 /**
+ * @modelcontextprotocol/sdk streamable HTTP transport returns 406 unless Accept is strict.
+ * Remote clients (e.g. Claude connectors) often send */* or omit text/event-stream, which
+ * breaks negotiation even though they can handle SSE + JSON. Append MCP-required types.
+ */
+function withStreamableHttpCompatibleHeaders(req: Request): Request {
+  const method = req.method.toUpperCase();
+  if (method === "DELETE") return req;
+
+  const accept = req.headers.get("accept") ?? "";
+  const lower = accept.toLowerCase();
+
+  let needPatch = false;
+  if (method === "GET") {
+    needPatch = !lower.includes("text/event-stream");
+  } else if (method === "POST") {
+    needPatch =
+      !lower.includes("application/json") ||
+      !lower.includes("text/event-stream");
+  }
+
+  if (!needPatch) return req;
+
+  const headers = new Headers(req.headers);
+  const extra =
+    method === "GET"
+      ? "text/event-stream"
+      : "application/json, text/event-stream";
+  headers.set("accept", accept.trim() ? `${accept}, ${extra}` : extra);
+
+  const init: RequestInit = {
+    method: req.method,
+    headers,
+  };
+  if (req.body !== null) {
+    init.body = req.body;
+    init.duplex = "half";
+  }
+
+  return new Request(req.url, init);
+}
+
+/**
  * Streamable HTTP MCP endpoint. Stateless (ingen session) så det fungerar på Vercel serverless.
  */
 export async function handleMcpRequest(req: Request): Promise<Response> {
@@ -39,5 +81,5 @@ export async function handleMcpRequest(req: Request): Promise<Response> {
   });
 
   await mcp.connect(transport);
-  return transport.handleRequest(req);
+  return transport.handleRequest(withStreamableHttpCompatibleHeaders(req));
 }
