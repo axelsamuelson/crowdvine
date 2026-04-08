@@ -7,6 +7,8 @@ import { X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { OpusLandingView } from "@/components/invite-landing/opus-landing-view";
+import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
+import { trackInvitationValidationClientFailure } from "@/lib/analytics/invitation-client-helpers";
 
 export type InvitationPageType = "consumer" | "producer" | "business";
 
@@ -70,11 +72,15 @@ export default function InviteBothSignupPage() {
       if (data.success) {
         setInvitation(data.invitation);
       } else {
+        trackInvitationValidationClientFailure(
+          String(data.error || "Invalid invitation code"),
+        );
         toast.error(data.error || "Invalid invitation code");
         router.push("/access-request");
       }
     } catch (error) {
       console.error("Error validating invitation:", error);
+      trackInvitationValidationClientFailure("network_error");
       toast.error("Failed to validate invitation");
       router.push("/access-request");
     } finally {
@@ -221,6 +227,13 @@ export default function InviteBothSignupPage() {
       onSubmit={handleSubmit}
       submitting={submitting}
       welcomeName={signupSuccess ? registeredName : null}
+      onSignupStarted={() =>
+        void AnalyticsTracker.trackEvent({
+          eventType: "invitation_signup_started",
+          eventCategory: "invitation",
+          metadata: { surface: "ib_mixed" },
+        })
+      }
     />
   );
 }

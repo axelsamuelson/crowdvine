@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { addImpactPoints } from "@/lib/membership/points-engine";
 import { clearCartId } from "@/src/lib/cookies";
+import { logUserEventServer } from "@/lib/analytics/log-user-event-server";
 
 /**
  * POST /api/invitations/redeem
@@ -482,6 +483,16 @@ export async function POST(request: NextRequest) {
       );
       // Don't fail the request
     }
+
+    void logUserEventServer({
+      userId: authData.user.id,
+      eventType: "invitation_signup_completed",
+      eventCategory: "invitation",
+      metadata: {
+        invitation_id: invitation.id,
+        initial_level: initialLevel,
+      },
+    });
 
     // Create session for auto sign-in (admin.createUser doesn't return session)
     console.log("[INVITE-REDEEM] Creating session for auto sign-in");

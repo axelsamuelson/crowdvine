@@ -10,6 +10,7 @@ import { CreateProjectButton } from "@/components/admin/operations/create-projec
 import { CreatedMetaLine } from "@/components/admin/operations/created-meta-line"
 import { ProjectDeleteWithTasksControl } from "@/components/admin/operations/project-delete-with-tasks-control"
 import { DetailBreadcrumbTitle } from "@/components/admin/detail-breadcrumb-title"
+import { ProjectDetailTitleEditor } from "@/components/admin/operations/project-detail-title-editor"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Link from "next/link"
 import { ExternalLink } from "lucide-react"
@@ -104,9 +105,10 @@ export default async function ProjectDetailPage({ params }: PageProps) {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 space-y-2">
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl break-words">
-            {project.name}
-          </h1>
+          <ProjectDetailTitleEditor
+            projectId={project.id}
+            initialName={project.name}
+          />
           <div className="flex flex-wrap items-center gap-2">
             <ProjectStatusBadge status={project.status} />
             <span className="text-sm text-gray-500 dark:text-gray-400 capitalize">

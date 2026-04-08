@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import type { Product } from "@/lib/shopify/types";
 import { BrowseProductCard } from "@/components/invite-shop/browse-product-card";
 import { InviteProductModal } from "@/components/invite-shop/invite-product-modal";
 import { ProductGrid } from "@/app/shop/components/product-grid";
 import { Loader2 } from "lucide-react";
+import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 
 /**
  * Shows the wine product grid inline on the business invite page.
@@ -21,6 +22,7 @@ export function InviteWinesSection() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedHandle, setSelectedHandle] = useState<string | null>(null);
+  const shopViewTracked = useRef(false);
 
   useEffect(() => {
     if (!code) return;
@@ -41,6 +43,16 @@ export function InviteWinesSection() {
       .catch(() => setProducts([]))
       .finally(() => setLoading(false));
   }, [code]);
+
+  useEffect(() => {
+    if (loading || products.length === 0 || shopViewTracked.current) return;
+    shopViewTracked.current = true;
+    void AnalyticsTracker.trackEvent({
+      eventType: "invite_shop_viewed",
+      eventCategory: "navigation",
+      metadata: { productCount: products.length, codeLength: code?.length ?? 0 },
+    });
+  }, [loading, products.length, code]);
 
   if (loading) {
     return (

@@ -3,6 +3,7 @@
 import { CartItem } from "@/lib/shopify/types";
 import { Button } from "../ui/button";
 import { useCart } from "./cart-context";
+import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 
 export function DeleteItemButton({ item }: { item: CartItem }) {
   const { updateItem } = useCart();
@@ -14,6 +15,11 @@ export function DeleteItemButton({ item }: { item: CartItem }) {
       className="-mr-1 -mb-1 opacity-70"
       onSubmit={(e) => {
         e.preventDefault();
+        void AnalyticsTracker.trackEvent({
+          eventType: "remove_from_cart",
+          eventCategory: "cart",
+          metadata: { lineId, merchandiseId },
+        });
         updateItem(lineId, merchandiseId, 0, "delete");
       }}
     >

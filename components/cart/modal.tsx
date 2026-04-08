@@ -18,6 +18,7 @@ import { Cart } from "../../lib/shopify/types";
 import { CartValidationDisplay } from "./cart-validation-display";
 import type { ProducerValidation } from "@/lib/checkout-validation";
 import { CartValidationHeader } from "./CartValidationHeader";
+import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 
 const CartContainer = ({
   children,
@@ -125,8 +126,20 @@ export default function CartModal() {
   const [validations, setValidations] = useState<ProducerValidation[]>([]);
   const [isValidating, setIsValidating] = useState(false);
   const serializedCart = useRef(cart ? serializeCart(cart) : undefined);
+  const wasOpenRef = useRef(false);
 
   useBodyScrollLock(isOpen);
+
+  useEffect(() => {
+    if (isOpen && !wasOpenRef.current) {
+      void AnalyticsTracker.trackEvent({
+        eventType: "cart_opened",
+        eventCategory: "cart",
+        metadata: {},
+      });
+    }
+    wasOpenRef.current = isOpen;
+  }, [isOpen]);
 
   // Validate cart whenever it changes (with debounce)
   useEffect(() => {

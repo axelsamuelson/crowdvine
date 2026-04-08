@@ -13,6 +13,7 @@ import type { Task } from "@/lib/types/operations"
 import { ObjectiveProjectsPanel } from "@/components/admin/operations/objective-projects-panel"
 import { DetailBreadcrumbTitle } from "@/components/admin/detail-breadcrumb-title"
 import { ObjectiveDetailDelete } from "@/components/admin/operations/objective-detail-delete"
+import { ObjectiveDetailTitleEditor } from "@/components/admin/operations/objective-detail-title-editor"
 
 const STRATEGY_COLORS: Record<string, string> = {
   Growth:
@@ -100,9 +101,10 @@ export default async function ObjectiveDetailPage({
             )}
             <ObjectiveStatusBadge status={objective.status} />
           </div>
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl break-words">
-            {objective.title}
-          </h1>
+          <ObjectiveDetailTitleEditor
+            objectiveId={objective.id}
+            initialTitle={objective.title}
+          />
           {objective.owner && (
             <p className="text-sm text-gray-500 dark:text-gray-400">
               Owner: {objective.owner.email}

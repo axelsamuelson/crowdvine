@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { getTimeUntilReset } from "@/lib/membership/invite-quota";
 import { buildInviteUrl, getBaseUrlForInvite } from "@/lib/invitation-path";
+import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { ArrowLeft, Link as LinkIcon, Trash2, Users } from "lucide-react";
 
 type Invitation = {
@@ -157,10 +158,17 @@ export default function ProfileInvitePage() {
     }
   };
 
-  const copyText = async (text: string, label: string) => {
+  const copyText = async (text: string, label: string, invitationId?: string) => {
     try {
       await navigator.clipboard.writeText(text);
       toast.success(`${label} copied`);
+      if (invitationId && label === "Link") {
+        void AnalyticsTracker.trackEvent({
+          eventType: "invitation_shared",
+          eventCategory: "invitation",
+          metadata: { invitation_id: invitationId },
+        });
+      }
     } catch {
       toast.error("Could not copy");
     }
@@ -310,7 +318,9 @@ export default function ProfileInvitePage() {
                               variant="outline"
                               size="icon"
                               className="h-9 w-9 rounded-full"
-                              onClick={() => copyText(inv.signupUrl!, "Link")}
+                              onClick={() =>
+                                copyText(inv.signupUrl!, "Link", inv.id)
+                              }
                               aria-label="Copy link"
                             >
                               <LinkIcon className="h-4 w-4" />

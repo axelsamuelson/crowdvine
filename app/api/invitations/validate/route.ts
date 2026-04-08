@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { logUserEventServer } from "@/lib/analytics/log-user-event-server";
 
 /**
  * POST /api/invitations/validate
@@ -11,6 +12,12 @@ export async function POST(request: Request) {
     const { code } = await request.json();
 
     if (!code) {
+      void logUserEventServer({
+        userId: null,
+        eventType: "invitation_code_invalid",
+        eventCategory: "invitation",
+        metadata: { reason: "missing_code", source: "validate_api" },
+      });
       return NextResponse.json(
         { success: false, error: "Invitation code required" },
         { status: 400 },
@@ -52,6 +59,12 @@ export async function POST(request: Request) {
     }
 
     if (!invitation) {
+      void logUserEventServer({
+        userId: null,
+        eventType: "invitation_code_invalid",
+        eventCategory: "invitation",
+        metadata: { reason: "not_found", source: "validate_api" },
+      });
       return NextResponse.json(
         { success: false, error: "Invalid invitation code" },
         { status: 404 },
@@ -60,6 +73,12 @@ export async function POST(request: Request) {
 
     // Check if invitation is active
     if (!invitation.is_active) {
+      void logUserEventServer({
+        userId: null,
+        eventType: "invitation_code_invalid",
+        eventCategory: "invitation",
+        metadata: { reason: "inactive", source: "validate_api" },
+      });
       return NextResponse.json(
         { success: false, error: "This invitation has been deactivated" },
         { status: 400 },
@@ -69,6 +88,12 @@ export async function POST(request: Request) {
     // Check if expired
     const expiresAt = new Date(invitation.expires_at);
     if (expiresAt < new Date()) {
+      void logUserEventServer({
+        userId: null,
+        eventType: "invitation_code_expired",
+        eventCategory: "invitation",
+        metadata: { source: "validate_api" },
+      });
       return NextResponse.json(
         { success: false, error: "This invitation has expired" },
         { status: 400 },
@@ -77,6 +102,12 @@ export async function POST(request: Request) {
 
     // Check if already used (based on used_at)
     if (invitation.used_at) {
+      void logUserEventServer({
+        userId: null,
+        eventType: "invitation_code_invalid",
+        eventCategory: "invitation",
+        metadata: { reason: "already_used", source: "validate_api" },
+      });
       return NextResponse.json(
         { success: false, error: "This invitation has already been used" },
         { status: 400 },

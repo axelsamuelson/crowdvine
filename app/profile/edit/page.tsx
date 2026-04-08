@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
@@ -102,6 +103,11 @@ export default function EditProfilePage() {
       });
       if (res.ok) {
         toast.success("Profile updated!");
+        void AnalyticsTracker.trackEvent({
+          eventType: "profile_updated",
+          eventCategory: "account",
+          metadata: { source: "profile_edit_page" },
+        });
         router.push("/profile");
       } else {
         toast.error("Failed to update profile");

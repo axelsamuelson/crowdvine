@@ -57,6 +57,7 @@ import { MiniProgress } from "@/components/ui/progress-components";
 import { getTimeUntilReset } from "@/lib/membership/invite-quota";
 import { MembershipLevel, getVoucherProgress, getVoucherDiscountPercent } from "@/lib/membership/points-engine";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { formatPrice } from "@/lib/shopify/utils";
 import { MetallicMembershipCard, MembershipCardHorizontal } from "@/components/invite-landing/metallic-membership-card";
 import "@/app/profile/profile-membership-card.css";
@@ -141,6 +142,18 @@ function ProfilePageContent() {
   const [membershipData, setMembershipData] = useState<MembershipData | null>(
     null,
   );
+  const membershipTierTracked = useRef(false);
+
+  useEffect(() => {
+    if (!membershipData?.membership?.level || membershipTierTracked.current)
+      return;
+    membershipTierTracked.current = true;
+    void AnalyticsTracker.trackEvent({
+      eventType: "membership_tier_viewed",
+      eventCategory: "account",
+      metadata: { level: membershipData.membership.level },
+    });
+  }, [membershipData]);
   const [ipEvents, setIpEvents] = useState<any[]>([]);
   // Payment methods removed - using new payment flow
   const [reservations, setReservations] = useState<any[]>([]);
@@ -715,6 +728,11 @@ function ProfilePageContent() {
 
       if (res.ok) {
         toast.success("Profile updated!");
+        void AnalyticsTracker.trackEvent({
+          eventType: "profile_updated",
+          eventCategory: "account",
+          metadata: { source: "profile_page" },
+        });
         setEditing(false);
         fetchProfile();
       } else {

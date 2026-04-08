@@ -51,6 +51,7 @@ import {
   ShareBottlesDialog,
   type ShareAllocation,
 } from "@/components/checkout/share-bottles-dialog";
+import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 
 interface UserProfile {
   id: string;
@@ -98,6 +99,9 @@ function CheckoutContent() {
   const [selectedRewards, setSelectedRewards] = useState<UserReward[]>([]);
   const [useRewards, setUseRewards] = useState(false);
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  const stepRef = useRef(step);
+  stepRef.current = step;
+  const checkoutCompletedRef = useRef(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [shareAllocation, setShareAllocation] = useState<ShareAllocation | null>(
     null,
@@ -139,6 +143,25 @@ function CheckoutContent() {
 
   const searchParams = useSearchParams();
   const formRef = useRef<HTMLFormElement | null>(null);
+
+  useEffect(() => {
+    void AnalyticsTracker.trackEvent({
+      eventType: "checkout_step_viewed",
+      eventCategory: "checkout",
+      metadata: { step },
+    });
+  }, [step]);
+
+  useEffect(() => {
+    return () => {
+      if (checkoutCompletedRef.current) return;
+      void AnalyticsTracker.trackEvent({
+        eventType: "checkout_abandoned",
+        eventCategory: "checkout",
+        metadata: { step: stepRef.current },
+      });
+    };
+  }, []);
 
   // Define all fetch functions BEFORE useEffects to avoid hoisting issues
   const fetchCart = useCallback(async () => {
@@ -583,9 +606,15 @@ function CheckoutContent() {
         }
 
         toast.success("Reservation placed successfully!");
+        checkoutCompletedRef.current = true;
         window.location.href = redirectUrl || "/checkout/success";
       } else {
         setIsPlacingOrder(false); // Hide modal on error
+        void AnalyticsTracker.trackEvent({
+          eventType: "payment_failed",
+          eventCategory: "checkout",
+          metadata: { phase: "confirm", status: response.status },
+        });
         const contentType = response.headers.get("content-type") || "";
         let errorMessage = "Failed to place reservation";
 
@@ -613,6 +642,11 @@ function CheckoutContent() {
       }
     } catch (error) {
       setIsPlacingOrder(false); // Hide modal on error
+      void AnalyticsTracker.trackEvent({
+        eventType: "payment_failed",
+        eventCategory: "checkout",
+        metadata: { phase: "confirm", status: 0, network: true },
+      });
       console.error("Error placing reservation:", error);
       toast.error("Failed to place reservation");
     }

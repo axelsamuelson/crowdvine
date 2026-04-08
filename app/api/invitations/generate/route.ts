@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentUser } from "@/lib/auth";
 import { getAppUrl, getB2BAppUrl } from "@/lib/app-url";
 import { getInviteUrl } from "@/lib/invitation-path";
+import { logUserEventServer } from "@/lib/analytics/log-user-event-server";
 
 function generateInvitationCode(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -94,6 +95,16 @@ export async function POST(request: Request) {
         { status: 500 },
       );
     }
+
+    void logUserEventServer({
+      userId: user.id,
+      eventType: "invitation_generated",
+      eventCategory: "invitation",
+      metadata: {
+        invitation_id: invitation.id,
+        invitation_type: invitationType,
+      },
+    });
 
     // Increment quota usage (best-effort)
     await sb

@@ -24,6 +24,7 @@ import { PageLayout } from "@/components/layout/page-layout";
 import { SidebarLinks } from "@/components/layout/sidebar/product-sidebar-links";
 import { getColorHex } from "@/lib/utils";
 import { ScorePickerDrawer } from "@/components/wine-tasting/score-picker-drawer";
+import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 
 interface Wine {
   id: string;
@@ -93,6 +94,17 @@ export default function TastingPage() {
   // When guest selects a wine in the table, we ignore server updates until admin changes wine again
   const guestHasOverriddenWineRef = useRef(false);
   const lastServerWineIndexRef = useRef(0);
+  const tastingOpenTracked = useRef(false);
+
+  useEffect(() => {
+    if (!code?.trim() || tastingOpenTracked.current) return;
+    tastingOpenTracked.current = true;
+    void AnalyticsTracker.trackEvent({
+      eventType: "tasting_flow_opened",
+      eventCategory: "engagement",
+      metadata: { codeLength: code.trim().length },
+    });
+  }, [code]);
 
   useEffect(() => {
     setImageDimensions(null);

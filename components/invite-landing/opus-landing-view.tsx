@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { LenisProvider } from "./lenis-provider";
 import { CustomCursor } from "./custom-cursor";
 import { HeroSection } from "./sections/hero-section";
@@ -32,6 +33,8 @@ export interface OpusLandingViewProps {
   isProducerOnly?: boolean;
   /** Optional extra content (e.g. links) rendered below the form. */
   extraContent?: React.ReactNode;
+  /** Fires once when the user first edits a signup field (analytics). */
+  onSignupStarted?: () => void;
 }
 
 /**
@@ -50,9 +53,31 @@ export function OpusLandingView({
   welcomeName,
   isProducerOnly = false,
   extraContent,
+  onSignupStarted,
 }: OpusLandingViewProps) {
   const isBusinessOnly =
     allowedTypes.length === 1 && allowedTypes[0] === "business";
+  const signupStartedRef = useRef(false);
+
+  const handleFormChange = (data: Partial<InvitationFormData>) => {
+    onFormChange(data);
+    if (!signupStartedRef.current && onSignupStarted) {
+      const merged = { ...formData, ...data };
+      const touched = Boolean(
+        merged.full_name?.trim() ||
+          merged.email?.trim() ||
+          merged.password ||
+          merged.password_confirm ||
+          merged.producer_name?.trim() ||
+          merged.producer_country_code ||
+          merged.producer_region,
+      );
+      if (touched) {
+        signupStartedRef.current = true;
+        onSignupStarted();
+      }
+    }
+  };
 
   return (
     <div className="invite-opus-page custom-cursor bg-background min-h-screen">
@@ -71,7 +96,7 @@ export function OpusLandingView({
             welcomeName={welcomeName}
             isProducerOnly={isProducerOnly}
             formData={formData}
-            onFormChange={onFormChange}
+            onFormChange={handleFormChange}
             onSubmit={onSubmit}
             submitting={submitting}
             showDirtyWineLogo={isBusinessOnly}

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Instrument_Serif } from "next/font/google";
+import { InvitationLinkOpenedTracker } from "@/components/analytics/invitation-link-opened-tracker";
 import "../../i/[code]/invite-opus.css";
 
 const instrumentSerif = Instrument_Serif({
@@ -37,5 +38,10 @@ export default function ProducerInviteLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <div className={instrumentSerif.variable}>{children}</div>;
+  return (
+    <div className={instrumentSerif.variable}>
+      <InvitationLinkOpenedTracker surface="p_producer" />
+      {children}
+    </div>
+  );
 }

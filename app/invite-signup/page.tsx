@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle, XCircle, Loader2, UserPlus } from "lucide-react";
+import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
+import { trackInvitationValidationClientFailure } from "@/lib/analytics/invitation-client-helpers";
 
 function InviteSignupContent() {
   const router = useRouter();
@@ -21,12 +23,25 @@ function InviteSignupContent() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [inviteValid, setInviteValid] = useState<boolean | null>(null);
+  const linkOpenedTracked = useRef(false);
+  const signupStartedTracked = useRef(false);
 
   useEffect(() => {
     const inviteParam = searchParams.get("invite");
 
     if (inviteParam) {
       setInviteCode(inviteParam);
+      if (!linkOpenedTracked.current) {
+        linkOpenedTracked.current = true;
+        void AnalyticsTracker.trackEvent({
+          eventType: "invitation_link_opened",
+          eventCategory: "invitation",
+          metadata: {
+            surface: "invite_signup_query",
+            codeLength: inviteParam.trim().length,
+          },
+        });
+      }
       validateInvite(inviteParam);
     } else {
       setInviteValid(false);
@@ -52,9 +67,9 @@ function InviteSignupContent() {
           .catch(() => ({ error: "Network error" }));
         console.error("Invitation validation error:", errorData);
         setInviteValid(false);
-        setError(
-          `Invitation validation failed: ${errorData.error || errorData.message || "Unknown error"}`,
-        );
+        const msg = `Invitation validation failed: ${errorData.error || errorData.message || "Unknown error"}`;
+        trackInvitationValidationClientFailure(msg);
+        setError(msg);
         return;
       }
 
@@ -66,12 +81,16 @@ function InviteSignupContent() {
         console.log("Invitation code is valid");
       } else {
         setInviteValid(false);
+        trackInvitationValidationClientFailure(
+          String(result.error || "Invalid or expired invitation code"),
+        );
         setError(result.error || "Invalid or expired invitation code");
         console.log("Invitation validation failed:", result.error);
       }
     } catch (error) {
       console.error("Invitation validation network error:", error);
       setInviteValid(false);
+      trackInvitationValidationClientFailure("network_error");
       setError(
         `Failed to validate invitation code: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
@@ -245,6 +264,15 @@ function InviteSignupContent() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  onFocus={() => {
+                    if (signupStartedTracked.current) return;
+                    signupStartedTracked.current = true;
+                    void AnalyticsTracker.trackEvent({
+                      eventType: "invitation_signup_started",
+                      eventCategory: "invitation",
+                      metadata: { surface: "invite_signup_page" },
+                    });
+                  }}
                   placeholder="Enter your email address"
                   required
                   className="mt-1"

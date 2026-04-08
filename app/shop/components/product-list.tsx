@@ -139,6 +139,7 @@ export default async function ProductList({
       selectedProducers={producers}
       collectionHandle={collection}
       wineSourceSlugs={wineSourceSlugs}
+      searchQuery={query ?? ""}
     />
   );
 }

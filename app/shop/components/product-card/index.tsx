@@ -107,7 +107,17 @@ function ScrollProbe() {
 }
 
 
-export const ProductCard = memo(({ product, index = 0 }: { product: Product; index?: number }) => {
+export const ProductCard = memo(
+  ({
+    product,
+    index = 0,
+    listSearchQuery,
+  }: {
+    product: Product;
+    index?: number;
+    /** When set (shop search active), PDP clicks log search_result_clicked. */
+    listSearchQuery?: string;
+  }) => {
   const hasNoOptions = product.options.length === 0;
   const hasOneOptionWithOneValue =
     product.options.length === 1 && product.options[0].values.length === 1;
@@ -663,6 +673,19 @@ export const ProductCard = memo(({ product, index = 0 }: { product: Product; ind
           style={{ touchAction: 'pan-y', overscrollBehavior: 'auto' }}
           aria-label={`View details for ${product.title}, price ${product.priceRange.minVariantPrice}`}
           prefetch
+          onClick={() => {
+            const q = listSearchQuery?.trim();
+            if (!q) return;
+            void AnalyticsTracker.trackEvent({
+              eventType: "search_result_clicked",
+              eventCategory: "search",
+              metadata: {
+                productId: product.id,
+                handle: product.handle,
+                queryLength: q.length,
+              },
+            });
+          }}
         >
           <Suspense fallback={null}>
             <ProductImage product={product} priority={index < 3} index={index} />

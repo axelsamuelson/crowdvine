@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Product, Collection } from "@/lib/shopify/types";
 import { ProductCard } from "./product-card";
 import ResultsControls from "./results-controls";
@@ -17,6 +17,8 @@ interface ProductListContentProps {
   collectionHandle?: string;
   /** Map wine id -> price source slugs that have an offer for that wine. Used for competitor filter. */
   wineSourceSlugs?: Record<string, string[]>;
+  /** Shop search query from URL (?q=), for analytics. */
+  searchQuery?: string;
 }
 
 // Normalize color string for comparison: "Red & White", "Red/White", "red-&-white" → canonical form
@@ -140,8 +142,10 @@ export function ProductListContent({
   selectedProducers = [],
   collectionHandle,
   wineSourceSlugs = {},
+  searchQuery = "",
 }: ProductListContentProps & { collectionHandle?: string }) {
   const { setProducts, setOriginalProducts, setAvailableSourceSlugs } = useProducts();
+  const lastSearchTracked = useRef<string | null>(null);
 
   // Tell the sidebar which "Buy at" sources have at least one wine in this list (hide empty options)
   useEffect(() => {
@@ -186,6 +190,35 @@ export function ProductListContent({
     setProducts(filteredProducts);
   }, [products, filteredProducts, setProducts, setOriginalProducts]);
 
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (!q || lastSearchTracked.current === q) return;
+    lastSearchTracked.current = q;
+    void AnalyticsTracker.trackEvent({
+      eventType: "search_submitted",
+      eventCategory: "search",
+      metadata: { queryLength: q.length },
+    });
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const parts: string[] = [];
+    if (colorFilters.length) parts.push(`color:${colorFilters.length}`);
+    if (grapeFilters.length) parts.push(`grape:${grapeFilters.length}`);
+    if (sourceFilters.length) parts.push(`source:${sourceFilters.length}`);
+    if (selectedProducers.length)
+      parts.push(`producer:${selectedProducers.length}`);
+    if (parts.length === 0) return;
+    const t = window.setTimeout(() => {
+      void AnalyticsTracker.trackEvent({
+        eventType: "filter_used",
+        eventCategory: "navigation",
+        metadata: { summary: parts.join("|") },
+      });
+    }, 800);
+    return () => window.clearTimeout(t);
+  }, [colorFilters, grapeFilters, sourceFilters, selectedProducers]);
+
   // Track product list viewed event
   useEffect(() => {
     // Check if viewing a collection (producer filter)
@@ -203,7 +236,7 @@ export function ProductListContent({
       ),
     );
     
-    AnalyticsTracker.trackEvent({
+    void AnalyticsTracker.trackEvent({
       eventType: "product_list_viewed",
       eventCategory: "navigation",
       metadata: { 
@@ -216,6 +249,21 @@ export function ProductListContent({
         producerIds,
       }
     });
+
+    if (isCollectionPage && collectionHandle) {
+      void AnalyticsTracker.trackEvent({
+        eventType: "collection_viewed",
+        eventCategory: "navigation",
+        metadata: { collectionHandle },
+      });
+    }
+    if (selectedProducers.length > 0) {
+      void AnalyticsTracker.trackEvent({
+        eventType: "producer_viewed",
+        eventCategory: "navigation",
+        metadata: { producerCount: selectedProducers.length },
+      });
+    }
   }, [filteredProducts.length, products.length, colorFilters.length, grapeFilters.length, sourceFilters.length, selectedProducers.length, collectionHandle]);
 
   return (
@@ -229,7 +277,12 @@ export function ProductListContent({
       {filteredProducts.length > 0 ? (
         <ProductGrid>
           {filteredProducts.map((product, index) => (
-            <ProductCard key={product.id} product={product} index={index} />
+            <ProductCard
+              key={product.id}
+              product={product}
+              index={index}
+              listSearchQuery={searchQuery}
+            />
           ))}
         </ProductGrid>
       ) : (
