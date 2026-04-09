@@ -1,5 +1,6 @@
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { authenticateMcpBearer } from "./auth/authenticate-mcp-request";
+import { logMcpAuthDebugRequest } from "./auth/mcp-auth-debug";
 import { checkJsonRpcOAuthScopes } from "./auth/jsonrpc-scope";
 import {
   getMcpAuthMode,
@@ -125,6 +126,8 @@ export async function handleMcpRequest(req: Request): Promise<Response> {
 
   const includeMeta = oauthConfigReady();
   const rawBearer = bearerToken(req);
+
+  logMcpAuthDebugRequest(req, rawBearer);
 
   const auth = await authenticateMcpBearer(rawBearer);
   if (!auth.ok) {

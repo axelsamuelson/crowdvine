@@ -2,6 +2,7 @@ import {
   getMcpAuthMode,
   oauthConfigReady,
 } from "./mcp-auth-config";
+import { logMcpAuthDebugBearerContext } from "./mcp-auth-debug";
 import { verifyAuth0AccessToken } from "./verify-access-token";
 
 export type McpAuthenticatedContext = {
@@ -18,6 +19,8 @@ export type AuthenticateMcpBearerResult =
 export async function authenticateMcpBearer(
   bearerToken: string | null,
 ): Promise<AuthenticateMcpBearerResult> {
+  logMcpAuthDebugBearerContext(bearerToken);
+
   const mode = getMcpAuthMode();
 
   if (!bearerToken) {

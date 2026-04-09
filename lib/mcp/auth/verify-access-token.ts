@@ -55,6 +55,18 @@ export async function verifyAuth0AccessToken(
       token: { sub, scopes, payload },
     };
   } catch (e) {
+    const rawDomain = process.env.AUTH0_DOMAIN?.trim();
+    const normalizedDomain = rawDomain
+      ? rawDomain.replace(/^https?:\/\//, "").replace(/\/$/, "")
+      : "";
+    console.error("[MCP Auth Debug] JWT validation failed:", {
+      errorMessage: e instanceof Error ? e.message : String(e),
+      errorName: e instanceof Error ? e.name : "unknown",
+      expectedIssuer: normalizedDomain
+        ? `https://${normalizedDomain}/`
+        : "(AUTH0_DOMAIN missing)",
+      expectedAudience: process.env.AUTH0_AUDIENCE ?? "***MISSING***",
+    });
     return {
       ok: false,
       message: e instanceof Error ? e.message : String(e),
