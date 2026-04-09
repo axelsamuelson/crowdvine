@@ -39,7 +39,7 @@ function mcpDisabledBody(): string {
  * text/event-stream, which breaks negotiation even though they can handle SSE + JSON.
  * Append MCP-required types.
  */
-const MCP_CORS_HEADERS: Record<string, string> = {
+export const MCP_CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS, HEAD",
   "Access-Control-Allow-Headers":
