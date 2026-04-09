@@ -62,12 +62,17 @@ import { formatPrice } from "@/lib/shopify/utils";
 import { MetallicMembershipCard, MembershipCardHorizontal } from "@/components/invite-landing/metallic-membership-card";
 import "@/app/profile/profile-membership-card.css";
 
-/** Card variant for metallic membership card (excludes requester/admin). */
-const CARD_LEVELS: Exclude<MembershipLevel, "requester" | "admin">[] = [
-  "basic", "brons", "silver", "guld", "privilege",
+/** Card variant for metallic membership card (excludes requester). */
+const CARD_LEVELS: Exclude<MembershipLevel, "requester">[] = [
+  "basic",
+  "brons",
+  "silver",
+  "guld",
+  "privilege",
 ];
-function toCardLevel(level: MembershipLevel): Exclude<MembershipLevel, "requester" | "admin"> {
-  if (CARD_LEVELS.includes(level as any)) return level as Exclude<MembershipLevel, "requester" | "admin">;
+function toCardLevel(level: MembershipLevel): Exclude<MembershipLevel, "requester"> {
+  if (CARD_LEVELS.includes(level as (typeof CARD_LEVELS)[number]))
+    return level as Exclude<MembershipLevel, "requester">;
   return "basic";
 }
 
@@ -139,6 +144,8 @@ function ProfilePageContent() {
   const [searchActiveIndex, setSearchActiveIndex] = useState(0);
   const searchWrapRef = useRef<HTMLDivElement | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  /** Staff admin (profiles) — not membership tier */
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
   const [membershipData, setMembershipData] = useState<MembershipData | null>(
     null,
   );
@@ -236,6 +243,7 @@ function ProfilePageContent() {
   useEffect(() => {
     Promise.all([
       fetchProfile(),
+      fetchAdminAccess(),
       fetchMembershipData(),
       fetchIPEvents(),
       // fetchPaymentMethods removed - using new payment flow
@@ -478,6 +486,18 @@ function ProfilePageContent() {
     }
   };
 
+  const fetchAdminAccess = async () => {
+    try {
+      const res = await fetch("/api/me/admin");
+      if (res.ok) {
+        const data = await res.json();
+        setIsPlatformAdmin(!!data.isAdmin);
+      }
+    } catch {
+      setIsPlatformAdmin(false);
+    }
+  };
+
   const fetchMembershipData = async () => {
     try {
       const res = await fetch("/api/user/membership");
@@ -610,13 +630,12 @@ function ProfilePageContent() {
   const generateInvitation = async () => {
     setGeneratingInvite(true);
     try {
-      // Check if user is admin to use admin endpoint with level selection
-      const isAdmin = membershipData?.membership.level === "admin";
-      const endpoint = isAdmin
+      // Staff admins use admin invite API (start level selection)
+      const endpoint = isPlatformAdmin
         ? "/api/admin/invitations/generate"
         : "/api/invitations/generate";
 
-      const body = isAdmin
+      const body = isPlatformAdmin
         ? { expiresInDays: 30, initialLevel: selectedLevel }
         : { expiresInDays: 30 };
 
@@ -632,7 +651,7 @@ function ProfilePageContent() {
         // Add new invitation to the list
         setInvitations((prev) => [data.invitation, ...prev]);
         toast.success(
-          `Invitation code generated!${isAdmin ? ` (Start level: ${selectedLevel})` : ""}`,
+          `Invitation code generated!${isPlatformAdmin ? ` (Start level: ${selectedLevel})` : ""}`,
         );
 
         // Refresh membership data to update quota

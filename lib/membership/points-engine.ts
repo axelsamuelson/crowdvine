@@ -13,8 +13,37 @@ export type MembershipLevel =
   | "brons"
   | "silver"
   | "guld"
-  | "privilege"
-  | "admin";
+  | "privilege";
+
+/** Ordered ladder (excludes requester — not on IP ladder). */
+export const MEMBERSHIP_LADDER_LEVELS: MembershipLevel[] = [
+  "basic",
+  "brons",
+  "silver",
+  "guld",
+  "privilege",
+];
+
+/**
+ * Map DB / legacy values to a valid membership tier.
+ * `admin` was removed as a membership level — use profiles.role for staff admin.
+ */
+export function normalizeMembershipLevel(
+  level: string | null | undefined,
+): MembershipLevel {
+  const v = (level ?? "requester").toLowerCase();
+  if (v === "admin") return "privilege";
+  const allowed: MembershipLevel[] = [
+    "requester",
+    "basic",
+    "brons",
+    "silver",
+    "guld",
+    "privilege",
+  ];
+  if (allowed.includes(v as MembershipLevel)) return v as MembershipLevel;
+  return "requester";
+}
 export type IPEventType =
   | "invite_signup"
   | "invite_reservation"
@@ -61,11 +90,12 @@ export const VOUCHER_DISCOUNT_PERCENT: Record<MembershipLevel, number> = {
   silver: 10,
   guld: 12,
   privilege: 15,
-  admin: 15,
 };
 
-export function getVoucherDiscountPercent(level: MembershipLevel): number {
-  return VOUCHER_DISCOUNT_PERCENT[level] ?? 0;
+export function getVoucherDiscountPercent(
+  level: string | MembershipLevel,
+): number {
+  return VOUCHER_DISCOUNT_PERCENT[normalizeMembershipLevel(level)] ?? 0;
 }
 
 // Level Thresholds
@@ -85,7 +115,6 @@ export const INVITE_QUOTAS: Record<MembershipLevel, number> = {
   silver: 12,
   guld: 50,
   privilege: 100,
-  admin: 999999,
 };
 
 /**
@@ -305,7 +334,6 @@ function getLevelDisplayName(level: MembershipLevel): string {
     silver: "Premium",
     guld: "Priority",
     privilege: "Privilege",
-    admin: "Admin",
   };
 
   return levelNames[level] || level.charAt(0).toUpperCase() + level.slice(1);
@@ -314,13 +342,14 @@ function getLevelDisplayName(level: MembershipLevel): string {
 /**
  * Get level name and threshold info
  */
-export function getLevelInfo(level: MembershipLevel) {
-  const thresholds = LEVEL_THRESHOLDS[level as keyof typeof LEVEL_THRESHOLDS];
-  const quota = INVITE_QUOTAS[level];
+export function getLevelInfo(level: string | MembershipLevel) {
+  const L = normalizeMembershipLevel(level);
+  const thresholds = LEVEL_THRESHOLDS[L as keyof typeof LEVEL_THRESHOLDS];
+  const quota = INVITE_QUOTAS[L];
 
   return {
-    level,
-    name: getLevelDisplayName(level),
+    level: L,
+    name: getLevelDisplayName(L),
     minPoints: thresholds?.min || 0,
     maxPoints: thresholds?.max || Infinity,
     inviteQuota: quota,
@@ -332,14 +361,17 @@ export function getLevelInfo(level: MembershipLevel) {
  */
 export function getNextLevelInfo(
   currentPoints: number,
-  currentLevel: MembershipLevel,
+  currentLevel: string | MembershipLevel,
 ) {
-  if (currentLevel === "admin") {
-    return null; // Admin is max level
-  }
-
-  const levels: MembershipLevel[] = ["basic", "brons", "silver", "guld", "privilege"];
-  const currentIndex = levels.indexOf(currentLevel);
+  const L = normalizeMembershipLevel(currentLevel);
+  const levels: MembershipLevel[] = [
+    "basic",
+    "brons",
+    "silver",
+    "guld",
+    "privilege",
+  ];
+  const currentIndex = levels.indexOf(L);
 
   if (currentIndex === -1 || currentIndex === levels.length - 1) {
     return null;

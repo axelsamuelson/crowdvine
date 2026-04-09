@@ -6,7 +6,7 @@ import { INVITE_QUOTAS } from "@/lib/membership/points-engine";
 import { LogoSvg } from "@/components/layout/header/logo-svg";
 import { PactLogo } from "./pact-logo";
 
-const MEMBERSHIP_LEVELS: Exclude<MembershipLevel, "requester" | "admin">[] = [
+const MEMBERSHIP_LEVELS: Exclude<MembershipLevel, "requester">[] = [
   "basic",
   "brons",
   "silver",
@@ -15,7 +15,7 @@ const MEMBERSHIP_LEVELS: Exclude<MembershipLevel, "requester" | "admin">[] = [
 ];
 
 const MEMBERSHIP_CONFIG: Record<
-  Exclude<MembershipLevel, "requester" | "admin">,
+  Exclude<MembershipLevel, "requester">,
   { name: string; description: string }
 > = {
   basic: {
@@ -41,7 +41,7 @@ const MEMBERSHIP_CONFIG: Record<
 };
 
 interface MetallicMembershipCardProps {
-  variant: Exclude<MembershipLevel, "requester" | "admin">;
+  variant: Exclude<MembershipLevel, "requester">;
   /** When set, shows member name with engraving animation. */
   memberName?: string | null;
   /** When true, use PACT logo instead of host-based logo. For consumer invitations. */

@@ -19,6 +19,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
 import { UserEventsCard } from "./user-events-card";
+import {
+  getLevelInfo,
+  normalizeMembershipLevel,
+} from "@/lib/membership/points-engine";
 
 interface UserProfile {
   id: string;
@@ -185,28 +189,19 @@ export default function UserDetailPage({
   };
 
   const getLevelColor = (level: string) => {
+    const m = normalizeMembershipLevel(level);
     const colors: Record<string, { bg: string; text: string }> = {
+      requester: { bg: "bg-gray-200 dark:bg-zinc-700", text: "text-gray-900 dark:text-zinc-100" },
       basic: { bg: "bg-slate-200 dark:bg-slate-700", text: "text-slate-900 dark:text-slate-100" },
       brons: { bg: "bg-indigo-200 dark:bg-indigo-800/60", text: "text-indigo-950 dark:text-indigo-100" },
       silver: { bg: "bg-emerald-200 dark:bg-emerald-800/60", text: "text-emerald-950 dark:text-emerald-100" },
       guld: { bg: "bg-[#E4CAA0]/30 dark:bg-amber-900/50", text: "text-gray-900 dark:text-amber-100" },
       privilege: { bg: "bg-rose-200 dark:bg-rose-900/50", text: "text-rose-950 dark:text-rose-100" },
-      admin: { bg: "bg-purple-200 dark:bg-purple-800/60", text: "text-purple-950 dark:text-purple-100" },
     };
-    return colors[level] || colors.basic;
+    return colors[m] || colors.basic;
   };
 
-  const getLevelDisplayName = (level: string) => {
-    const names: Record<string, string> = {
-      basic: "Basic",
-      brons: "Plus",
-      silver: "Premium",
-      guld: "Priority",
-      privilege: "Privilege",
-      admin: "Admin",
-    };
-    return names[level] || level;
-  };
+  const getLevelDisplayName = (level: string) => getLevelInfo(level).name;
 
   if (loading) {
     return (

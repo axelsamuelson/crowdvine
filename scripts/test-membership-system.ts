@@ -152,7 +152,7 @@ async function testMembershipSystem() {
   console.log("─".repeat(50));
   console.log("\n🎉 Membership system is ready!\n");
   console.log("Next steps:");
-  console.log("1. Set admin users to 'admin' level");
+  console.log("1. Set staff admin on profiles (role/roles), not membership level");
   console.log("2. Test profile page in browser");
   console.log("3. Test invite generation");
   console.log("4. Monitor IP accrual on real invites");

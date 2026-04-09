@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { isPlatformAdminProfile } from "@/lib/auth/platform-admin-profile";
 
 export async function middleware(req: NextRequest) {
   try {
@@ -101,20 +103,50 @@ async function runMiddleware(req: NextRequest) {
   const isB2BDomain = onB2BProduction || (onLocalhost && forceB2B);
 
   if (!isPublic) {
-    // Check for admin authentication first (for admin routes)
     const adminAuthCookie = req.cookies.get("admin-auth")?.value;
-    const adminEmailCookie = req.cookies.get("admin-email")?.value;
+    const adminEmailCookie = req.cookies.get("admin-email")?.value?.trim();
     const isAdminPath = pathname.startsWith("/admin");
 
-    if (isAdminPath && adminAuthCookie === "true" && adminEmailCookie) {
-      console.log("✅ MIDDLEWARE: Admin access detected, allowing:", pathname);
-      return res;
-    }
-
-    // dirtywine.se: no login required – allow access without auth (admin paths still require admin cookie above)
+    // dirtywine.se: no login required – allow access without auth (admin handled below)
     if (onB2BProduction && !isAdminPath) {
       console.log("✅ MIDDLEWARE: dirtywine.se – allowing without login:", pathname);
       return res;
+    }
+
+    // /admin: must match profiles (role / roles). Do not trust admin-auth cookies alone — they outlive demotions.
+    if (isAdminPath) {
+      if (user) {
+        const { data: adminProfile } = await supabase
+          .from("profiles")
+          .select("role, roles")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (!isPlatformAdminProfile(adminProfile)) {
+          console.log(
+            "🚫 MIDDLEWARE: /admin denied — session user is not platform admin",
+          );
+          return NextResponse.redirect(new URL("/", req.url));
+        }
+        return res;
+      }
+      // Legacy: /api/admin/auth sets cookies only; browser may not have Supabase session yet
+      if (adminAuthCookie === "true" && adminEmailCookie) {
+        try {
+          const sbAdmin = getSupabaseAdmin();
+          const { data: p } = await sbAdmin
+            .from("profiles")
+            .select("role, roles")
+            .eq("email", adminEmailCookie)
+            .maybeSingle();
+          if (isPlatformAdminProfile(p)) {
+            return res;
+          }
+        } catch (e) {
+          console.error("MIDDLEWARE: /admin cookie verify failed:", e);
+        }
+      }
+      console.log("🚫 MIDDLEWARE: /admin — no valid platform admin session");
+      return NextResponse.redirect(new URL("/admin-auth/login", req.url));
     }
 
     // pactwines.com (and localhost without ?b2b=1): require login
@@ -136,9 +168,11 @@ async function runMiddleware(req: NextRequest) {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role, portal_access")
+      .select("role, roles, portal_access")
       .eq("id", user.id)
       .maybeSingle();
+
+    const isPlatformAdmin = isPlatformAdminProfile(profile);
 
     console.log("🔍 MIDDLEWARE: User membership check:", {
       userId: user.id,
@@ -150,7 +184,7 @@ async function runMiddleware(req: NextRequest) {
 
     // localhost with ?b2b=1: require business access (dirtywine.se allows all without login)
     if (onLocalhost && forceB2B) {
-      const isAdmin = profile?.role === "admin";
+      const isAdmin = isPlatformAdmin;
       const portalAccess =
         profile?.portal_access && Array.isArray(profile.portal_access)
           ? profile.portal_access
@@ -168,7 +202,7 @@ async function runMiddleware(req: NextRequest) {
     if (
       membership?.level === "requester" &&
       profile?.role !== "producer" &&
-      profile?.role !== "admin" &&
+      !isPlatformAdmin &&
       !pathname.startsWith("/access-pending")
     ) {
       console.log(
@@ -180,7 +214,7 @@ async function runMiddleware(req: NextRequest) {
 
     // If no membership exists, redirect to access-request
     // Producers/admins should not be blocked by membership gating.
-    if (!membership && profile?.role !== "producer" && profile?.role !== "admin") {
+    if (!membership && profile?.role !== "producer" && !isPlatformAdmin) {
       console.log(
         "🚫 MIDDLEWARE: No membership found, redirecting to access-request",
       );
@@ -193,13 +227,6 @@ async function runMiddleware(req: NextRequest) {
       "✅ MIDDLEWARE: Access granted, allowing request to:",
       pathname,
     );
-
-    // Check admin-only routes
-    if (pathname.startsWith("/admin")) {
-      if (membership?.level !== "admin" && profile?.role !== "admin") {
-        return NextResponse.redirect(new URL("/", req.url));
-      }
-    }
   }
 
   return res;

@@ -54,6 +54,10 @@ import {
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  type MembershipLevel,
+  normalizeMembershipLevel,
+} from "@/lib/membership/points-engine";
 
 interface User {
   id: string;
@@ -259,29 +263,28 @@ export default function UsersAdmin() {
   };
 
   const getMembershipBadge = (level: string) => {
-    const colors: Record<string, string> = {
-      admin: "bg-purple-600 dark:bg-purple-700 text-white",
+    const m = normalizeMembershipLevel(level);
+    const colors: Record<MembershipLevel, string> = {
+      requester: "bg-gray-300 dark:bg-zinc-700 text-gray-700 dark:text-zinc-200",
       privilege: "bg-[#2F0E15] dark:bg-rose-900/80 text-white",
       guld: "bg-[#E4CAA0] dark:bg-amber-900/50 text-gray-900 dark:text-amber-100",
       silver: "bg-emerald-800 dark:bg-emerald-700 text-white",
       brons: "bg-indigo-700 dark:bg-indigo-600 text-white",
       basic: "bg-slate-600 dark:bg-slate-600 text-white",
-      requester: "bg-gray-300 dark:bg-zinc-700 text-gray-700 dark:text-zinc-200",
     };
 
-    const labels: Record<string, string> = {
-      admin: "Admin",
+    const labels: Record<MembershipLevel, string> = {
+      requester: "Requester",
       privilege: "Privilege",
       guld: "Priority",
       silver: "Premium",
       brons: "Plus",
       basic: "Basic",
-      requester: "Requester",
     };
 
     return (
-      <Badge className={colors[level] ?? colors.basic}>
-        {labels[level] ?? level}
+      <Badge className={colors[m] ?? colors.basic}>
+        {labels[m] ?? m}
       </Badge>
     );
   };
@@ -375,7 +378,9 @@ export default function UsersAdmin() {
                 Search and filter
               </p>
               <p className="text-2xl font-semibold text-gray-900 dark:text-zinc-50">
-                {filteredUsers.length} users
+                {filteredUsers.length === users.length
+                  ? `${users.length} user${users.length !== 1 ? "s" : ""}`
+                  : `${filteredUsers.length} of ${users.length} users`}
               </p>
             </div>
             <div className="p-4 flex flex-wrap gap-4">
@@ -704,11 +709,11 @@ export default function UsersAdmin() {
                   <SelectItem value="silver">Premium (12 invites/month)</SelectItem>
                   <SelectItem value="guld">Priority (50 invites/month)</SelectItem>
                   <SelectItem value="privilege">Privilege (100 invites/month)</SelectItem>
-                  <SelectItem value="admin">Admin (Unlimited)</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 Requester = No platform access. Basic and above = Full access.
+                Staff admin is set under User types (Admin), not membership level.
               </p>
             </div>
             <div className="flex gap-3 pt-4">

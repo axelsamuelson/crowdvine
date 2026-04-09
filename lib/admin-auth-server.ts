@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { isPlatformAdminProfile } from "@/lib/auth/platform-admin-profile";
 
 export interface AdminUser {
   id: string;
@@ -21,16 +22,14 @@ export async function getCurrentAdmin(): Promise<AdminUser | null> {
       return null;
     }
 
-    // Verify admin exists in database
     const supabase = getSupabaseAdmin();
     const { data: adminProfile } = await supabase
       .from("profiles")
-      .select("id, email, role")
+      .select("id, email, role, roles")
       .eq("email", adminEmailCookie.value)
-      .eq("role", "admin")
-      .single();
+      .maybeSingle();
 
-    if (!adminProfile) {
+    if (!adminProfile || !isPlatformAdminProfile(adminProfile)) {
       return null;
     }
 

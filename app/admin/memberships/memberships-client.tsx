@@ -30,7 +30,6 @@ interface MembershipsClientProps {
     silver: Perk[];
     guld: Perk[];
     privilege: Perk[];
-    admin: Perk[];
   };
   levelThresholds: any;
   inviteQuotas: any;
@@ -44,7 +43,6 @@ const getLevelName = (level: string) => {
     silver: "Premium",
     brons: "Plus",
     basic: "Basic",
-    admin: "Admin",
   };
   return levelMap[level] || level.charAt(0).toUpperCase() + level.slice(1);
 };
@@ -71,10 +69,6 @@ const getLevelColors = (level: string) => {
       badge: "bg-gradient-to-br from-slate-600 to-slate-800",
       text: "text-white",
     },
-    admin: {
-      badge: "bg-gradient-to-br from-purple-700 to-purple-950",
-      text: "text-white",
-    },
   };
   return colorMap[level] || colorMap.basic;
 };
@@ -87,7 +81,6 @@ const getDefaultDiscount = (level: string): number => {
     silver: 5,
     brons: 3,
     basic: 0,
-    admin: 15,
   };
   return discountMap[level] || 0;
 };
@@ -103,7 +96,7 @@ export function MembershipsClient({
   const [saving, setSaving] = useState(false);
   const [perksByLevel, setPerksByLevel] = useState(initialPerksByLevel);
 
-  const levels = ["basic", "brons", "silver", "guld", "privilege", "admin"];
+  const levels = ["basic", "brons", "silver", "guld", "privilege"];
 
   const getCurrentDiscount = (level: string): number => {
     const perks = perksByLevel[level as keyof typeof perksByLevel] || [];

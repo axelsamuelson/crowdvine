@@ -1,28 +1,22 @@
-# Quick Fix: Set Admin Level
+# Quick Fix: Staff admin vs membership tier (uppdaterad)
 
-Du är inloggad som admin (profiles.role = 'admin') men din membership level är 'silver'.
+**Föråldrad:** Tidigare rekommenderades `user_memberships.level = 'admin'`. Det är **inte längre giltigt**.
 
-## Fix: Kör detta i Supabase SQL Editor
+Staff som ska nå `/admin` ska ha **plattformsroll** på `profiles`:
+
+- `profiles.role = 'admin'`, och/eller
+- `profiles.roles` innehåller `'admin'`
+
+Medlemsnivå (`user_memberships.level`) följer bara stegen basic → brons → silver → guld → privilege (ev. requester). Eventuella gamla rader med `level = 'admin'` migreras till `privilege` via migration `113_retire_membership_level_admin.sql`.
+
+## Verifiera i Supabase SQL Editor
 
 ```sql
--- Set BOTH admin users to admin level
-UPDATE user_memberships
-SET
-  level = 'admin',
-  invite_quota_monthly = 999999,
-  level_assigned_at = NOW(),
-  updated_at = NOW()
-WHERE user_id IN (
-  SELECT id FROM auth.users
-  WHERE email IN ('admin@pactwines.com', 'ave.samuelson@gmail.com')
-);
-
--- Verifiera att det funkade
 SELECT
   u.email,
-  p.role as profile_role,
-  m.level as membership_level,
-  m.impact_points,
+  p.role AS profile_role,
+  p.roles AS profile_roles,
+  m.level AS membership_level,
   m.invite_quota_monthly
 FROM user_memberships m
 JOIN auth.users u ON u.id = m.user_id
@@ -30,19 +24,4 @@ JOIN profiles p ON p.id = m.user_id
 WHERE u.email IN ('admin@pactwines.com', 'ave.samuelson@gmail.com');
 ```
 
-## Resultat
-
-Efter detta ska du se:
-
-- Level badge: "A" med svart bakgrund och guld-border
-- Impact Points: (dina nuvarande IP)
-- Perks: Unlimited invites, pallet hosting, producer contact
-- Invite quota: Obegränsat
-
-## Varför Hände Detta?
-
-Migration 035 beräknade level baserat på invitation history (IP points), inte på `profiles.role`.
-
-För admins måste level sättas manuellt till 'admin' efter migration.
-
-Detta är by design - admin level är en manuell assignment, inte poäng-baserad.
+Om `profile_role` inte är `admin` (och `profile_roles` saknar `admin`), uppdatera **profiles** — inte membership-nivån — för att ge åtkomst till admin-UI.

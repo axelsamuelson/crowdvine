@@ -1,5 +1,8 @@
 import { cn } from "@/lib/utils";
-import { MembershipLevel } from "@/lib/membership/points-engine";
+import {
+  MembershipLevel,
+  normalizeMembershipLevel,
+} from "@/lib/membership/points-engine";
 
 interface LevelBadgeProps {
   level: MembershipLevel;
@@ -51,13 +54,6 @@ const levelConfig = {
     text: "text-white",
     shimmer: true,
   },
-  admin: {
-    name: "Admin",
-    gradient: "from-black to-gray-900",
-    border: "border-[#FFD700]",
-    text: "text-white",
-    shimmer: true,
-  },
 };
 
 const sizeClasses = {
@@ -89,7 +85,8 @@ export function LevelBadge({
   showLabel = true,
   className,
 }: LevelBadgeProps) {
-  const config = levelConfig[level];
+  const safeLevel = normalizeMembershipLevel(level);
+  const config = levelConfig[safeLevel];
   const sizes = sizeClasses[size];
 
   return (

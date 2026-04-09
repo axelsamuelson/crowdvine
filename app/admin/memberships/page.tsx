@@ -25,7 +25,6 @@ export default async function MembershipsPage() {
     silver: perks?.filter((p) => p.level === "silver") || [],
     guld: perks?.filter((p) => p.level === "guld") || [],
     privilege: perks?.filter((p) => p.level === "privilege") || [],
-    admin: perks?.filter((p) => p.level === "admin") || [],
   };
 
   // Fetch progression rewards (v2)

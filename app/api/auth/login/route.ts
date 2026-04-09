@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { isPlatformAdminProfile } from "@/lib/auth/platform-admin-profile";
 
 /**
  * POST /api/auth/login
@@ -58,9 +59,8 @@ export async function POST(request: Request) {
     const supabaseAdmin = getSupabaseAdmin();
     const { data: profile } = await supabaseAdmin
       .from("profiles")
-      .select("id, email, role")
+      .select("id, email, role, roles")
       .eq("id", data.user.id)
-      .eq("role", "admin")
       .maybeSingle();
 
     const response = NextResponse.json({
@@ -71,8 +71,7 @@ export async function POST(request: Request) {
       },
     });
 
-    // If user is admin, set admin cookies so they don't need to log in again via admin login
-    if (profile && profile.role === "admin") {
+    if (profile && isPlatformAdminProfile(profile)) {
       response.cookies.set("admin-auth", "true", {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",

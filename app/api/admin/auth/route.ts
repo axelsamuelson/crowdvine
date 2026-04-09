@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { isPlatformAdminProfile } from "@/lib/auth/platform-admin-profile";
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,15 +29,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user has admin role in profiles table
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("id, email, role")
+      .select("id, email, role, roles")
       .eq("id", authData.user.id)
-      .eq("role", "admin")
-      .single();
+      .maybeSingle();
 
-    if (profileError || !profile) {
+    if (profileError || !profile || !isPlatformAdminProfile(profile)) {
       return NextResponse.json(
         { error: "Admin access required" },
         { status: 403 },

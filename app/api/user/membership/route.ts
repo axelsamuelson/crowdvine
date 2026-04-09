@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentUser } from "@/lib/auth";
-import { getLevelInfo, getNextLevelInfo } from "@/lib/membership/points-engine";
+import {
+  getLevelInfo,
+  getNextLevelInfo,
+  normalizeMembershipLevel,
+} from "@/lib/membership/points-engine";
 import {
   getAvailableInvites,
   checkAndResetQuotaIfNeeded,
@@ -40,11 +44,13 @@ export async function GET() {
       );
     }
 
-    // Get perks for current level
+    const displayLevel = normalizeMembershipLevel(membership.level);
+
+    // Get perks for current tier (admin is not a tier — map to privilege for lookup)
     const { data: perks, error: perksError } = await sb
       .from("membership_perks")
       .select("*")
-      .eq("level", membership.level)
+      .eq("level", displayLevel)
       .eq("is_active", true)
       .order("sort_order");
 
@@ -54,15 +60,15 @@ export async function GET() {
     const inviteInfo = await getAvailableInvites(user.id);
 
     // Get level info
-    const currentLevelInfo = getLevelInfo(membership.level);
+    const currentLevelInfo = getLevelInfo(displayLevel);
     const nextLevelInfo = getNextLevelInfo(
       membership.impact_points,
-      membership.level,
+      displayLevel,
     );
 
     return NextResponse.json({
       membership: {
-        level: membership.level,
+        level: displayLevel,
         impactPoints: membership.impact_points,
         levelAssignedAt: membership.level_assigned_at,
         createdAt: membership.created_at,

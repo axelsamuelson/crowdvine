@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { normalizeMembershipLevel } from "@/lib/membership/points-engine";
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,7 +13,9 @@ export async function GET(request: NextRequest) {
     // Use admin client to get all users with profiles
     const adminSupabase = getSupabaseAdmin();
 
-    // Fetch ALL auth users (listUsers defaults to 50 per page; paginate to get all)
+    // Fetch ALL auth users (GoTrue defaults to 50 if pagination opts are wrong;
+    // @supabase/supabase-js expects numeric `page` + `perPage`, not per_page strings.)
+    const PER_PAGE = 1000;
     const allAuthUsers: Array<{
       id: string;
       email?: string;
@@ -25,8 +28,8 @@ export async function GET(request: NextRequest) {
     while (hasMore) {
       const { data, error: listUsersError } =
         await adminSupabase.auth.admin.listUsers({
-          page: String(page),
-          per_page: "1000",
+          page,
+          perPage: PER_PAGE,
         });
 
       if (listUsersError) {
@@ -39,7 +42,7 @@ export async function GET(request: NextRequest) {
 
       const users = data?.users ?? [];
       allAuthUsers.push(...users);
-      hasMore = users.length === 1000;
+      hasMore = users.length === PER_PAGE;
       page += 1;
     }
 
@@ -126,7 +129,9 @@ export async function GET(request: NextRequest) {
           producer_id: profile?.producer_id || null,
           last_active_at: lastActiveMap.get(authUser.id) || null,
           // Membership data
-          membership_level: membership?.level || "requester",
+          membership_level: normalizeMembershipLevel(
+            membership?.level ?? "requester",
+          ),
           impact_points: membership?.impact_points || 0,
           invite_quota: membership?.invite_quota_monthly || 0,
           invites_used: membership?.invites_used_this_month || 0,
@@ -512,12 +517,13 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
-    // Update membership level if provided
+    // Update membership level if provided (admin is not a membership tier — use Role)
     if (updates.membership_level) {
+      const level = normalizeMembershipLevel(updates.membership_level);
       const { error: membershipError } = await adminSupabase
         .from("user_memberships")
         .update({
-          level: updates.membership_level,
+          level,
         })
         .eq("user_id", userId);
 

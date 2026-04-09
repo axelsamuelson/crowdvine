@@ -9,7 +9,7 @@ import { getCurrentUser } from "@/lib/auth";
  */
 export async function PATCH(
   request: Request,
-  { params }: { params: { level: string } },
+  { params }: { params: Promise<{ level: string }> },
 ) {
   try {
     const user = await getCurrentUser();
@@ -18,6 +18,15 @@ export async function PATCH(
     }
 
     const { level } = await params;
+    if (level.toLowerCase() === "admin") {
+      return NextResponse.json(
+        {
+          error:
+            "Invalid level: staff admin is set on profiles, not membership tier",
+        },
+        { status: 400 },
+      );
+    }
     const body = await request.json();
     const { discount, inviteQuota } = body;
 

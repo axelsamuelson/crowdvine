@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { getLevelInfo } from "@/lib/membership/points-engine";
+import {
+  getLevelInfo,
+  normalizeMembershipLevel,
+} from "@/lib/membership/points-engine";
 
 export async function GET(
   _request: Request,
@@ -26,11 +29,12 @@ export async function GET(
       );
     }
 
-    const levelInfo = getLevelInfo(membership.level);
+    const displayLevel = normalizeMembershipLevel(membership.level);
+    const levelInfo = getLevelInfo(displayLevel);
 
     return NextResponse.json({
       membership: {
-        level: membership.level,
+        level: displayLevel,
         impactPoints: membership.impact_points,
         levelAssignedAt: membership.level_assigned_at,
       },

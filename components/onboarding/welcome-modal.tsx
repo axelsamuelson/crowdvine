@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LogoSvg } from "@/components/layout/header/logo-svg";
+import { normalizeMembershipLevel } from "@/lib/membership/points-engine";
 import { PriceComparisonVisual } from "./price-comparison-visual";
 
 interface WelcomeModalProps {
@@ -23,7 +24,7 @@ interface WelcomeModalProps {
   onClose: () => void;
 }
 
-type MembershipLevel = "basic" | "brons" | "silver" | "guld" | "privilege" | "admin";
+type MembershipLevel = "basic" | "brons" | "silver" | "guld" | "privilege";
 
 interface MembershipConfig {
   displayName: string;
@@ -74,14 +75,6 @@ const membershipLevels: Record<MembershipLevel, MembershipConfig> = {
     nextLevel: null,
     pointsToNext: null,
     description: "Maximum invite quota, top priority, and exclusive benefits",
-  },
-  admin: {
-    displayName: "Admin",
-    color: "text-purple-900",
-    bgColor: "bg-purple-100",
-    nextLevel: null,
-    pointsToNext: null,
-    description: "Platform administrator with full access and control",
   },
 };
 
@@ -337,6 +330,12 @@ const getSteps = (membershipLevel: MembershipLevel) => {
   ];
 };
 
+function welcomeModalTier(raw: string): MembershipLevel {
+  const n = normalizeMembershipLevel(raw);
+  if (n === "requester") return "basic";
+  return n;
+}
+
 export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState(0);
@@ -361,9 +360,9 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
         if (response.ok) {
           const data = await response.json();
           console.log("🎓 [Modal] Membership data:", data);
-          const level = data.membership?.level?.toLowerCase() || "basic";
+          const level = data.membership?.level || "basic";
           console.log("🎓 [Modal] Using membership level:", level);
-          setMembershipLevel(level as MembershipLevel);
+          setMembershipLevel(welcomeModalTier(level));
         } else {
           console.error(
             "🎓 [Modal] Failed to fetch membership, defaulting to basic",
