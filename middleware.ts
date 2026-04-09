@@ -45,17 +45,13 @@ async function runMiddleware(req: NextRequest) {
     (p) => pathname === p || pathname.startsWith(`${p}/`),
   );
 
-  // RFC 9728 metadata for MCP — not under /api/*, so it must bypass the session gate.
-  // (/api/mcp and /api/mcp/messages are already skipped via pathname.startsWith("/api/").)
-  const isMcpProtectedResourceMetadata =
-    pathname === "/.well-known/oauth-protected-resource/api/mcp" ||
-    pathname.startsWith("/.well-known/oauth-protected-resource/api/mcp/");
-
-  // Skip statik / webhooks / API routes
+  // OAuth discovery (RFC 8414, RFC 9728) and MCP API — bypass Supabase session / membership gate.
+  // /.well-known/* includes oauth-authorization-server and oauth-protected-resource/...
+  // /api/* includes /api/mcp and /api/mcp/messages.
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api/") ||
-    isMcpProtectedResourceMetadata ||
+    pathname.startsWith("/.well-known/") ||
     pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|ico)$/)
   )
     return NextResponse.next();
