@@ -7,8 +7,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { calculatePercentages, formatCurrency } from "@/lib/price-breakdown";
-import { cn } from "@/lib/utils";
+import {
+  calculateListCompositionPercentages,
+  calculatePercentages,
+  formatCurrency,
+} from "@/lib/price-breakdown";
 
 export interface PriceBreakdownProps {
   costAmount: number; // Base cost in SEK (after exchange)
@@ -16,11 +19,15 @@ export interface PriceBreakdownProps {
   shipping?: number; // Shipping per bottle in SEK (optional)
   margin: number; // Margin amount in SEK
   vat: number; // VAT in SEK
-  totalPrice: number; // Final price in SEK
-  marginPercentage: number; // Current margin %
-  originalMarginPercentage: number; // Original margin %
+  totalPrice: number; // Final price in SEK (member price when discounted)
+  marginPercentage: number; // Business margin % (before member discount)
+  originalMarginPercentage: number; // Same as business margin for B2C
   hasMemberDiscount: boolean; // If user is member
-  memberDiscountPercent?: number; // Member discount on margin
+  memberDiscountPercent?: number; // Member discount % on gross (B2C)
+  /** Positive SEK; shown as a separate line from margin (B2C). */
+  memberDiscountAmount?: number;
+  /** List price inkl. moms; used for stacked bar composition when discounted. */
+  listTotalInclVat?: number;
   /** When "inline", render breakdown content only (no popover), for use in product page white box */
   variant?: "popover" | "inline";
 }
@@ -31,7 +38,6 @@ const SEGMENT_COLORS = {
   alcoholTax: "bg-muted-foreground/35",
   shipping: "bg-muted-foreground/30",
   margin: "bg-muted-foreground/50",
-  marginDiscounted: "bg-foreground/70",
   vat: "bg-muted-foreground/20",
 } as const;
 
@@ -64,33 +70,71 @@ function getDisplayPercentages(
   return components.map((c) => Math.max(0, c.percentage));
 }
 
+type BarSegment = { label: string; amount: number; percentage: number };
+
+type TableRow = {
+  label: string;
+  amount: number;
+  rowPercent: number;
+  displayAmount?: string;
+};
+
 function PriceBreakdownContent({
   totalPrice,
   hasMemberDiscount,
   memberDiscountPercent = 0,
-  components,
-}: PriceBreakdownProps & { components: Array<{ label: string; amount: number; percentage: number; color: string; isDiscounted?: boolean }> }) {
-  const displayPcts = getDisplayPercentages(components);
-  const total = displayPcts.reduce((s, p) => s + p, 0);
-  const widthPcts = total > 0 ? displayPcts.map((p) => (p / total) * 100) : displayPcts.map(() => 25);
+  memberDiscountAmount = 0,
+  listTotalInclVat,
+  marginPercentage,
+  barSegments,
+  tableRows,
+}: Pick<
+  PriceBreakdownProps,
+  | "totalPrice"
+  | "hasMemberDiscount"
+  | "memberDiscountPercent"
+  | "memberDiscountAmount"
+  | "listTotalInclVat"
+  | "marginPercentage"
+> & {
+  barSegments: BarSegment[];
+  tableRows: TableRow[];
+}) {
+  const displayPcts = getDisplayPercentages(
+    barSegments.map((s) => ({
+      label: s.label,
+      amount: s.amount,
+      percentage: s.percentage,
+      color: "",
+    })),
+  );
+  const totalPct = displayPcts.reduce((s, p) => s + p, 0);
+  const widthPcts =
+    totalPct > 0
+      ? displayPcts.map((p) => (p / totalPct) * 100)
+      : displayPcts.map(() => 25);
 
-  // Check if shipping exists in components (hydration-safe - components are already calculated)
-  const hasShipping = components.some((c) => c.label === "Shipping");
+  const hasShipping = barSegments.some((c) => c.label === "Shipping");
+  const barCaption =
+    hasMemberDiscount && listTotalInclVat
+      ? "Strip = share of list price; amount on the right is your member price."
+      : null;
 
   return (
     <div className="space-y-3 min-w-0 overflow-clip">
       <p className="text-sm text-muted-foreground">
-        This is how the price is made up: bottle cost, alcohol tax{hasShipping ? ", shipping" : ""}, margin and VAT. Member discount is applied to the margin.
+        This is how the price is made up: bottle cost, alcohol tax
+        {hasShipping ? ", shipping" : ""}, business margin, VAT
+        {hasMemberDiscount && memberDiscountAmount
+          ? ", and a separate member discount on the list price (same as shop)."
+          : "."}
       </p>
 
-      {/* Stacked bar with total price to the right */}
       <div className="flex items-center gap-4">
         <div className="flex-1 rounded-full h-3 overflow-hidden flex bg-muted/50">
-        {components.map((component, index) => {
-          const isMargin = component.label === "Margin";
-          const segmentBg = isMargin && hasMemberDiscount
-            ? SEGMENT_COLORS.marginDiscounted
-            : isMargin
+          {barSegments.map((component, index) => {
+            const isMargin = component.label === "Margin";
+            const segmentBg = isMargin
               ? SEGMENT_COLORS.margin
               : component.label === "Bottle cost"
                 ? SEGMENT_COLORS.cost
@@ -99,59 +143,162 @@ function PriceBreakdownContent({
                   : component.label === "Shipping"
                     ? SEGMENT_COLORS.shipping
                     : SEGMENT_COLORS.vat;
-          const widthPct = widthPcts[index];
-          return (
-            <div
-              key={index}
-              className={`h-full transition-all duration-300 min-w-[2px] ${segmentBg}`}
-              style={{ width: `${widthPct}%` }}
-              title={`${component.label}: ${formatCurrency(component.amount)}`}
-            />
-          );
-        })}
+            const widthPct = widthPcts[index];
+            return (
+              <div
+                key={component.label}
+                className={`h-full transition-all duration-300 min-w-[2px] ${segmentBg}`}
+                style={{ width: `${widthPct}%` }}
+                title={`${component.label}: ${formatCurrency(component.amount)}`}
+              />
+            );
+          })}
         </div>
         <div className="text-lg font-semibold tabular-nums shrink-0">
           {formatCurrency(totalPrice)}
         </div>
       </div>
+      {barCaption && (
+        <p className="text-xs text-muted-foreground -mt-1">{barCaption}</p>
+      )}
 
-      {/* Labels to the left - one per row */}
       <div className="space-y-2">
-        {components.map((component, index) => {
-          const percentage = pct(component.amount, totalPrice);
+        {tableRows.map((row) => {
+          const amountStr = row.displayAmount ?? formatCurrency(row.amount);
           return (
             <div
-              key={index}
+              key={row.label}
               className="flex items-center justify-between gap-4"
             >
               <div className="flex items-center gap-2 min-w-0 flex-1">
-                <span className="text-muted-foreground text-sm" title={component.label}>
-                  {component.label}
-                  {component.isDiscounted && memberDiscountPercent > 0 && (
-                    <span className="text-muted-foreground"> -{memberDiscountPercent}%</span>
+                <span className="text-muted-foreground text-sm" title={row.label}>
+                  {row.label}
+                  {row.label === "Margin" && marginPercentage > 0 && (
+                    <span className="text-muted-foreground">
+                      {" "}
+                      ({Math.round(marginPercentage)}%)
+                    </span>
                   )}
+                  {row.label === "Member discount" &&
+                    memberDiscountPercent > 0 && (
+                      <span className="text-muted-foreground">
+                        {" "}
+                        (−{memberDiscountPercent}%)
+                      </span>
+                    )}
                 </span>
               </div>
               <div className="flex items-center gap-3 shrink-0">
-                <span className="text-foreground font-semibold text-sm tabular-nums" title={formatCurrency(component.amount)}>
-                  {formatCurrency(component.amount)}
+                <span
+                  className="text-foreground font-semibold text-sm tabular-nums"
+                  title={amountStr}
+                >
+                  {amountStr}
                 </span>
                 <span className="text-muted-foreground text-xs tabular-nums">
-                  {percentage}%
+                  {row.rowPercent}%
                 </span>
               </div>
             </div>
           );
         })}
       </div>
-
-      {hasMemberDiscount && (
-        <p className="text-xs text-muted-foreground">
-          Member discount applied to the margin.
-        </p>
-      )}
     </div>
   );
+}
+
+function buildBreakdownRows(
+  props: PriceBreakdownProps,
+  listBarPct: ReturnType<typeof calculateListCompositionPercentages> | null,
+  denomPct: ReturnType<typeof calculatePercentages>,
+): { barSegments: BarSegment[]; tableRows: TableRow[] } {
+  const {
+    costAmount,
+    alcoholTax,
+    shipping,
+    margin,
+    vat,
+    totalPrice,
+    hasMemberDiscount,
+    memberDiscountAmount = 0,
+    memberDiscountPercent = 0,
+  } = props;
+
+  const barFromList = listBarPct != null;
+  const bp = barFromList
+    ? listBarPct
+    : {
+        cost: denomPct.cost,
+        alcoholTax: denomPct.alcoholTax,
+        margin: denomPct.margin,
+        vat: denomPct.vat,
+        memberDiscount: 0,
+      };
+
+  const barSegments: BarSegment[] = [
+    { label: "Bottle cost", amount: costAmount, percentage: bp.cost },
+    { label: "Alcohol tax", amount: alcoholTax, percentage: bp.alcoholTax },
+    ...(shipping && shipping > 0
+      ? [
+          {
+            label: "Shipping",
+            amount: shipping,
+            percentage: barFromList
+              ? ((shipping / (props.listTotalInclVat ?? totalPrice)) * 100)
+              : denomPct.shipping ?? 0,
+          },
+        ]
+      : []),
+    { label: "VAT", amount: vat, percentage: bp.vat },
+    { label: "Margin", amount: margin, percentage: bp.margin },
+  ];
+
+  const pctOfMember = (x: number) =>
+    Math.round((x / totalPrice) * 100);
+
+  const tableRows: TableRow[] = [
+    {
+      label: "Bottle cost",
+      amount: costAmount,
+      rowPercent: pctOfMember(costAmount),
+    },
+    {
+      label: "Alcohol tax",
+      amount: alcoholTax,
+      rowPercent: pctOfMember(alcoholTax),
+    },
+    ...(shipping && shipping > 0
+      ? [
+          {
+            label: "Shipping",
+            amount: shipping,
+            rowPercent: pctOfMember(shipping),
+          },
+        ]
+      : []),
+    {
+      label: "Margin",
+      amount: margin,
+      rowPercent: pctOfMember(margin),
+    },
+    ...(hasMemberDiscount && memberDiscountAmount > 0
+      ? [
+          {
+            label: "Member discount",
+            amount: -memberDiscountAmount,
+            rowPercent: Math.round((-memberDiscountAmount / totalPrice) * 100),
+            displayAmount: `−${formatCurrency(memberDiscountAmount)}`,
+          },
+        ]
+      : []),
+    {
+      label: "VAT",
+      amount: vat,
+      rowPercent: pctOfMember(vat),
+    },
+  ];
+
+  return { barSegments, tableRows };
 }
 
 export function PriceBreakdown({
@@ -165,12 +312,13 @@ export function PriceBreakdown({
   originalMarginPercentage,
   hasMemberDiscount,
   memberDiscountPercent = 0,
+  memberDiscountAmount = 0,
+  listTotalInclVat,
   variant = "popover",
 }: PriceBreakdownProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  // Calculate percentages for visual bars
-  const percentages = calculatePercentages({
+  const breakdownLike = {
     cost: costAmount,
     alcoholTax,
     shipping: shipping ?? 0,
@@ -179,66 +327,55 @@ export function PriceBreakdown({
     total: totalPrice,
     marginPercentage,
     originalMarginPercentage,
-  });
+    memberDiscountAmount:
+      hasMemberDiscount && memberDiscountAmount > 0
+        ? memberDiscountAmount
+        : undefined,
+    listTotalInclVat,
+  };
 
-  /* Order: Bottle cost, Alcohol tax, Shipping (if exists), VAT, Margin (Margin always rightmost) */
-  const components = [
+  const denomPct = calculatePercentages(breakdownLike);
+
+  const listBarPct =
+    hasMemberDiscount &&
+    memberDiscountAmount > 0 &&
+    listTotalInclVat != null &&
+    listTotalInclVat > 0
+      ? calculateListCompositionPercentages(breakdownLike)
+      : null;
+
+  const { barSegments, tableRows } = buildBreakdownRows(
     {
-      label: "Bottle cost",
-      amount: costAmount,
-      percentage: percentages.cost,
-      color: "",
-      isDiscounted: false,
+      costAmount,
+      alcoholTax,
+      shipping,
+      margin,
+      vat,
+      totalPrice,
+      marginPercentage,
+      originalMarginPercentage,
+      hasMemberDiscount,
+      memberDiscountPercent,
+      memberDiscountAmount,
+      listTotalInclVat,
     },
-    {
-      label: "Alcohol tax",
-      amount: alcoholTax,
-      percentage: percentages.alcoholTax,
-      color: "",
-      isDiscounted: false,
-    },
-    ...(shipping && shipping > 0
-      ? [
-          {
-            label: "Shipping",
-            amount: shipping,
-            percentage: percentages.shipping ?? 0,
-            color: "",
-            isDiscounted: false,
-          },
-        ]
-      : []),
-    {
-      label: "VAT",
-      amount: vat,
-      percentage: percentages.vat,
-      color: "",
-      isDiscounted: false,
-    },
-    {
-      label: "Margin",
-      amount: margin,
-      percentage: percentages.margin,
-      color: "",
-      isDiscounted: hasMemberDiscount,
-    },
-  ];
+    listBarPct,
+    denomPct,
+  );
+
+  const contentProps = {
+    totalPrice,
+    hasMemberDiscount,
+    memberDiscountPercent,
+    memberDiscountAmount,
+    listTotalInclVat,
+    marginPercentage,
+    barSegments,
+    tableRows,
+  };
 
   if (variant === "inline") {
-    return (
-      <PriceBreakdownContent
-        costAmount={costAmount}
-        alcoholTax={alcoholTax}
-        margin={margin}
-        vat={vat}
-        totalPrice={totalPrice}
-        hasMemberDiscount={hasMemberDiscount}
-        memberDiscountPercent={memberDiscountPercent}
-        marginPercentage={marginPercentage}
-        originalMarginPercentage={originalMarginPercentage}
-        components={components}
-      />
-    );
+    return <PriceBreakdownContent {...contentProps} />;
   }
 
   return (
@@ -258,18 +395,7 @@ export function PriceBreakdown({
         side="bottom"
         sideOffset={8}
       >
-        <PriceBreakdownContent
-          costAmount={costAmount}
-          alcoholTax={alcoholTax}
-          margin={margin}
-          vat={vat}
-          totalPrice={totalPrice}
-          hasMemberDiscount={hasMemberDiscount}
-          memberDiscountPercent={memberDiscountPercent}
-          marginPercentage={marginPercentage}
-          originalMarginPercentage={originalMarginPercentage}
-          components={components}
-        />
+        <PriceBreakdownContent {...contentProps} />
       </PopoverContent>
     </Popover>
   );

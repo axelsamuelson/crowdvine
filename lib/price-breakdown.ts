@@ -63,6 +63,10 @@ export interface PriceBreakdownResult {
   total: number;
   marginPercentage: number;
   originalMarginPercentage: number;
+  /** B2C: SEK saved vs list price (member discount on gross, same as shop cards). */
+  memberDiscountAmount?: number;
+  /** B2C list price inkl. moms before member discount (for reference). */
+  listTotalInclVat?: number;
 }
 
 /**
@@ -159,72 +163,53 @@ export function calculateB2BPriceBreakdown(
 }
 
 /**
- * Calculate detailed price breakdown for a wine by working backwards from final price
- * @param wine - Wine pricing data from database
- * @param memberDiscountPercent - Member discount percentage (0-100)
- * @returns Detailed price breakdown in SEK
+ * Decompose B2C retail price inkl. moms into cost, alcohol tax, margin, VAT
+ * using the business margin % (no member discount — list price is the anchor).
  */
-export function calculatePriceBreakdown(
-  wine: WinePricingData,
-  memberDiscountPercent: number = 0,
-): PriceBreakdownResult {
-  // Start with the final calculated price (in SEK) - using same rounding as API
-  const totalPrice = Math.ceil(wine.base_price_cents / 100);
+function decomposeRetailPriceInclVat(
+  totalInclVat: number,
+  wine: Pick<
+    WinePricingData,
+    "alcohol_tax_cents" | "margin_percentage"
+  >,
+): Pick<
+  PriceBreakdownResult,
+  "cost" | "alcoholTax" | "margin" | "vat" | "total"
+> {
+  const marginPercent = wine.margin_percentage;
 
-  // Store original margin percentage for display
-  const originalMarginPercentage = wine.margin_percentage;
-
-  // Apply member discount to margin percentage
-  const marginPercent =
-    wine.margin_percentage * (1 - memberDiscountPercent / 100);
-
-  // Convert alcohol tax from öre to SEK and round up
   const alcoholTax = Math.ceil((wine.alcohol_tax_cents / 100) * 100) / 100;
 
-  // Work backwards from total price
-  // Total = (Cost + Margin + Alcohol Tax) * 1.25 (VAT)
-  // So: Cost + Margin + Alcohol Tax = Total / 1.25
-  const priceBeforeVat = totalPrice / 1.25;
+  const priceBeforeVat = totalInclVat / 1.25;
+  const vat = Math.ceil((totalInclVat - priceBeforeVat) * 100) / 100;
 
-  // VAT = Total - Price before VAT, round up
-  const vat = Math.ceil((totalPrice - priceBeforeVat) * 100) / 100;
+  const costInSek = Math.ceil(
+    ((priceBeforeVat - alcoholTax) / (1 + marginPercent / 100)) * 100,
+  ) / 100;
 
-  // Now we need to solve: Cost + Margin + Alcohol Tax = Price before VAT
-  // Where Margin = Cost * (marginPercent / 100)
-  // So: Cost + (Cost * marginPercent/100) + Alcohol Tax = Price before VAT
-  // Rearranging: Cost * (1 + marginPercent/100) = Price before VAT - Alcohol Tax
-  // So: Cost = (Price before VAT - Alcohol Tax) / (1 + marginPercent/100)
-
-  const costInSek = Math.ceil(((priceBeforeVat - alcoholTax) / (1 + marginPercent / 100)) * 100) / 100;
-
-  // Calculate margin amount and round up
   const margin = Math.ceil((costInSek * (marginPercent / 100)) * 100) / 100;
 
-  // Calculate total as sum of components to ensure consistency, round up
-  let calculatedTotal = Math.ceil((costInSek + alcoholTax + margin + vat) * 100) / 100;
-  
-  // If there's a difference between calculated total and expected totalPrice,
-  // add the difference to bottle cost to ensure they match exactly
-  const expectedTotal = totalPrice;
+  let calculatedTotal = Math.ceil(
+    (costInSek + alcoholTax + margin + vat) * 100,
+  ) / 100;
+
+  const expectedTotal = totalInclVat;
   const diff = expectedTotal - calculatedTotal;
   if (Math.abs(diff) >= 0.01) {
-    // Add difference to cost (round up to ensure we don't lose precision)
     const adjustedCost = Math.ceil((costInSek + diff) * 100) / 100;
-    // Recalculate total with adjusted cost - this should now match expectedTotal exactly
-    calculatedTotal = Math.ceil((adjustedCost + alcoholTax + margin + vat) * 100) / 100;
-    // Final check: if there's still a tiny difference due to rounding, adjust cost one more time
+    calculatedTotal = Math.ceil(
+      (adjustedCost + alcoholTax + margin + vat) * 100,
+    ) / 100;
     const finalDiff = expectedTotal - calculatedTotal;
     if (Math.abs(finalDiff) >= 0.01) {
       const finalCost = Math.ceil((adjustedCost + finalDiff) * 100) / 100;
-      calculatedTotal = expectedTotal; // Set total directly to expected to ensure exact match
+      calculatedTotal = expectedTotal;
       return {
         cost: finalCost,
         alcoholTax,
         margin,
         vat,
         total: calculatedTotal,
-        marginPercentage: marginPercent,
-        originalMarginPercentage,
       };
     }
     return {
@@ -233,8 +218,6 @@ export function calculatePriceBreakdown(
       margin,
       vat,
       total: calculatedTotal,
-      marginPercentage: marginPercent,
-      originalMarginPercentage,
     };
   }
 
@@ -244,8 +227,62 @@ export function calculatePriceBreakdown(
     margin,
     vat,
     total: calculatedTotal,
-    marginPercentage: marginPercent,
+  };
+}
+
+/**
+ * Member discount on B2C list price — matches {@link MemberPrice} / shop cards:
+ * ceil(listPrice * (1 - discount/100)) after float normalization.
+ */
+export function memberDiscountedTotalInclVat(
+  listPriceInclVat: number,
+  memberDiscountPercent: number,
+): number {
+  if (memberDiscountPercent <= 0) return listPriceInclVat;
+  const raw = listPriceInclVat * (1 - memberDiscountPercent / 100);
+  return Math.ceil(Number.parseFloat(raw.toFixed(2)));
+}
+
+/**
+ * Calculate detailed price breakdown for a wine by working backwards from final price
+ * @param wine - Wine pricing data from database
+ * @param memberDiscountPercent - Member discount percentage (0-100), applied to gross like shop
+ * @returns Detailed price breakdown in SEK
+ */
+export function calculatePriceBreakdown(
+  wine: WinePricingData,
+  memberDiscountPercent: number = 0,
+): PriceBreakdownResult {
+  const listTotalInclVat = Math.ceil(wine.base_price_cents / 100);
+  const originalMarginPercentage = wine.margin_percentage;
+
+  const base = decomposeRetailPriceInclVat(listTotalInclVat, wine);
+
+  if (memberDiscountPercent <= 0) {
+    return {
+      ...base,
+      marginPercentage: originalMarginPercentage,
+      originalMarginPercentage,
+      listTotalInclVat,
+    };
+  }
+
+  const discountedTotal = memberDiscountedTotalInclVat(
+    listTotalInclVat,
+    memberDiscountPercent,
+  );
+  const memberDiscountAmount = listTotalInclVat - discountedTotal;
+
+  return {
+    cost: base.cost,
+    alcoholTax: base.alcoholTax,
+    margin: base.margin,
+    vat: base.vat,
+    total: discountedTotal,
+    marginPercentage: originalMarginPercentage,
     originalMarginPercentage,
+    memberDiscountAmount,
+    listTotalInclVat,
   };
 }
 
@@ -301,96 +338,38 @@ export function calculatePercentages(breakdown: PriceBreakdownResult) {
     shipping: breakdown.shipping ? (breakdown.shipping / total) * 100 : 0,
     margin: (breakdown.margin / total) * 100,
     vat: (breakdown.vat / total) * 100,
+    memberDiscount: breakdown.memberDiscountAmount
+      ? (breakdown.memberDiscountAmount / total) * 100
+      : 0,
   };
 }
 
 /**
- * Synchronous version working backwards from final price
- * @param wine - Wine pricing data from database
- * @param memberDiscountPercent - Member discount percentage (0-100)
- * @returns Detailed price breakdown in SEK
+ * Stacked bar segments for B2C with member discount: shares of **list** price (sum 100%).
+ * The displayed total next to the bar is still the discounted total.
+ */
+export function calculateListCompositionPercentages(breakdown: PriceBreakdownResult) {
+  const p = breakdown.listTotalInclVat ?? breakdown.total;
+  if (p <= 0) {
+    return { cost: 0, alcoholTax: 0, margin: 0, vat: 0, memberDiscount: 0 };
+  }
+  return {
+    cost: (breakdown.cost / p) * 100,
+    alcoholTax: (breakdown.alcoholTax / p) * 100,
+    margin: (breakdown.margin / p) * 100,
+    vat: (breakdown.vat / p) * 100,
+    memberDiscount: breakdown.memberDiscountAmount
+      ? (breakdown.memberDiscountAmount / p) * 100
+      : 0,
+  };
+}
+
+/**
+ * Synchronous version — same as {@link calculatePriceBreakdown}.
  */
 export function calculatePriceBreakdownSync(
   wine: WinePricingData,
   memberDiscountPercent: number = 0,
 ): PriceBreakdownResult {
-  // Start with the final calculated price (in SEK) - using same rounding as API
-  const totalPrice = Math.ceil(wine.base_price_cents / 100);
-
-  // Store original margin percentage for display
-  const originalMarginPercentage = wine.margin_percentage;
-
-  // Apply member discount to margin percentage
-  const marginPercent =
-    wine.margin_percentage * (1 - memberDiscountPercent / 100);
-
-  // Convert alcohol tax from öre to SEK and round up
-  const alcoholTax = Math.ceil((wine.alcohol_tax_cents / 100) * 100) / 100;
-
-  // Work backwards from total price
-  // Total = (Cost + Margin + Alcohol Tax) * 1.25 (VAT)
-  // So: Cost + Margin + Alcohol Tax = Total / 1.25
-  const priceBeforeVat = totalPrice / 1.25;
-
-  // VAT = Total - Price before VAT, round up
-  const vat = Math.ceil((totalPrice - priceBeforeVat) * 100) / 100;
-
-  // Now we need to solve: Cost + Margin + Alcohol Tax = Price before VAT
-  // Where Margin = Cost * (marginPercent / 100)
-  // So: Cost + (Cost * marginPercent/100) + Alcohol Tax = Price before VAT
-  // Rearranging: Cost * (1 + marginPercent/100) = Price before VAT - Alcohol Tax
-  // So: Cost = (Price before VAT - Alcohol Tax) / (1 + marginPercent/100)
-
-  const costInSek = Math.ceil(((priceBeforeVat - alcoholTax) / (1 + marginPercent / 100)) * 100) / 100;
-
-  // Calculate margin amount and round up
-  const margin = Math.ceil((costInSek * (marginPercent / 100)) * 100) / 100;
-
-  // Calculate total as sum of components to ensure consistency, round up
-  let calculatedTotal = Math.ceil((costInSek + alcoholTax + margin + vat) * 100) / 100;
-  
-  // If there's a difference between calculated total and expected totalPrice,
-  // add the difference to bottle cost to ensure they match exactly
-  const expectedTotal = totalPrice;
-  const diff = expectedTotal - calculatedTotal;
-  if (Math.abs(diff) >= 0.01) {
-    // Add difference to cost (round up to ensure we don't lose precision)
-    const adjustedCost = Math.ceil((costInSek + diff) * 100) / 100;
-    // Recalculate total with adjusted cost - this should now match expectedTotal exactly
-    calculatedTotal = Math.ceil((adjustedCost + alcoholTax + margin + vat) * 100) / 100;
-    // Final check: if there's still a tiny difference due to rounding, adjust cost one more time
-    const finalDiff = expectedTotal - calculatedTotal;
-    if (Math.abs(finalDiff) >= 0.01) {
-      const finalCost = Math.ceil((adjustedCost + finalDiff) * 100) / 100;
-      calculatedTotal = expectedTotal; // Set total directly to expected to ensure exact match
-      return {
-        cost: finalCost,
-        alcoholTax,
-        margin,
-        vat,
-        total: calculatedTotal,
-        marginPercentage: marginPercent,
-        originalMarginPercentage,
-      };
-    }
-    return {
-      cost: adjustedCost,
-      alcoholTax,
-      margin,
-      vat,
-      total: calculatedTotal,
-      marginPercentage: marginPercent,
-      originalMarginPercentage,
-    };
-  }
-
-  return {
-    cost: costInSek,
-    alcoholTax,
-    margin,
-    vat,
-    total: calculatedTotal,
-    marginPercentage: marginPercent,
-    originalMarginPercentage,
-  };
+  return calculatePriceBreakdown(wine, memberDiscountPercent);
 }

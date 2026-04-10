@@ -74,6 +74,7 @@ export function PriceWithBreakdown({ product }: PriceWithBreakdownProps) {
         currencyCode={product.priceRange.minVariantPrice.currencyCode}
         className="text-lg font-semibold lg:text-xl 2xl:text-2xl"
         showBadge={true}
+        calculatedTotalPrice={breakdown?.total}
         priceExclVatOverride={
           product.priceBreakdown?.b2bPriceExclVat ??
           (product as any).b2bPriceExclVat
@@ -86,11 +87,13 @@ export function PriceWithBreakdown({ product }: PriceWithBreakdownProps) {
             alcoholTax={breakdown.alcoholTax}
             margin={breakdown.margin}
             vat={breakdown.vat}
-            totalPrice={Number(product.priceRange.minVariantPrice.amount)}
+            totalPrice={breakdown.total}
             marginPercentage={breakdown.marginPercentage}
             originalMarginPercentage={breakdown.originalMarginPercentage}
             hasMemberDiscount={hasMemberDiscount}
             memberDiscountPercent={discountPercentage}
+            memberDiscountAmount={breakdown.memberDiscountAmount}
+            listTotalInclVat={breakdown.listTotalInclVat}
           />
         </div>
       )}

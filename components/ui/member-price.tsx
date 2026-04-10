@@ -85,11 +85,14 @@ export function MemberPrice({
 
     const levelName = level ? MEMBERSHIP_LEVEL_NAMES[level.toLowerCase()] ?? "" : "";
 
-    // For discount display, we need the original price before discount
-    // Since calculatedTotalPrice is already discounted, we need to calculate original
-    const originalPrice = showExclVat && priceExclVatOverride
-      ? priceExclVatOverride
-      : (typeof amount === "string" ? parseFloat(amount) : amount);
+    // List / pre-discount price for strikethrough: always the storefront list amount on B2C.
+    // (calculatedTotalPrice is already the member price; priceExclVatOverride is not the list inkl. moms.)
+    const originalPrice =
+      showExclVat && priceExclVatOverride != null
+        ? priceExclVatOverride
+        : typeof amount === "string"
+          ? parseFloat(amount)
+          : amount;
 
     const priceBlock = (
       <div className="flex flex-col md:flex-row md:items-baseline md:gap-2 gap-0.5">

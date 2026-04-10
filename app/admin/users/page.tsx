@@ -400,10 +400,10 @@ export default function UsersAdmin() {
               <div className="w-44">
                 <Label htmlFor="role" className="text-xs font-medium text-gray-900 dark:text-zinc-100 mb-1.5 block">Role</Label>
                 <Select value={roleFilter} onValueChange={setRoleFilter}>
-                  <SelectTrigger className="h-9 text-sm bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-zinc-100">
+                  <SelectTrigger className="h-9 w-full min-w-0 text-sm border-gray-200 dark:border-zinc-600">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-[#1F1F23] border-gray-200 dark:border-zinc-700 z-[100]" sideOffset={4}>
+                  <SelectContent className="z-[200]" sideOffset={4}>
                     <SelectItem value="all">All Roles</SelectItem>
                     <SelectItem value="user">User</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
@@ -544,36 +544,44 @@ export default function UsersAdmin() {
                     )}
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-1.5">
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => openEditDialog(user)}
-                        className="border-gray-300 dark:border-zinc-600 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-zinc-800"
+                        className="h-8 rounded-lg border-gray-200 bg-white px-2.5 text-xs font-medium text-gray-800 shadow-none hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900 dark:border-zinc-600 dark:bg-zinc-800/90 dark:text-zinc-100 dark:hover:border-zinc-500 dark:hover:bg-zinc-700 dark:hover:text-white [&_svg]:!size-3.5"
                       >
-                        <Edit className="w-4 h-4 mr-1" />
+                        <Edit className="mr-1" />
                         Edit
                       </Button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button size="sm" variant="destructive">
-                            <Trash2 className="w-4 h-4 mr-1" />
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 rounded-lg border-red-200/90 bg-white px-2.5 text-xs font-medium text-red-700 shadow-none hover:border-red-300 hover:bg-red-50 hover:text-red-800 dark:border-red-900/60 dark:bg-zinc-800/90 dark:text-red-400 dark:hover:border-red-800 dark:hover:bg-red-950/45 dark:hover:text-red-300 [&_svg]:!size-3.5"
+                          >
+                            <Trash2 className="mr-1" />
                             Delete
                           </Button>
                         </AlertDialogTrigger>
-                        <AlertDialogContent className="bg-white dark:bg-[#1F1F23] border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-white">
+                        <AlertDialogContent className="border-gray-200 bg-white text-gray-900 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100">
                           <AlertDialogHeader>
-                            <AlertDialogTitle className="text-gray-900 dark:text-white">Delete User</AlertDialogTitle>
-                            <AlertDialogDescription className="text-gray-500 dark:text-gray-400">
+                            <AlertDialogTitle className="text-gray-900 dark:text-zinc-50">
+                              Delete User
+                            </AlertDialogTitle>
+                            <AlertDialogDescription className="text-gray-600 dark:text-zinc-400">
                               Are you sure you want to delete {user.email}? This
                               action cannot be undone.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel className="text-gray-700 dark:text-gray-300 border-gray-300 dark:border-zinc-600">Cancel</AlertDialogCancel>
+                          <AlertDialogFooter className="gap-2 sm:gap-2">
+                            <AlertDialogCancel className="mt-0 rounded-lg border-gray-200 bg-white font-medium text-gray-800 hover:bg-gray-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700">
+                              Cancel
+                            </AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() => deleteUser(user.id)}
-                              className="bg-red-600 hover:bg-red-700"
+                              className="rounded-lg bg-red-600 font-medium text-white hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-500"
                             >
                               Delete
                             </AlertDialogAction>
@@ -598,9 +606,11 @@ export default function UsersAdmin() {
 
       {/* Edit User Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="bg-white dark:bg-[#1F1F23] border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-white">
+        <DialogContent className="border-gray-200 bg-white text-gray-900 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100">
           <DialogHeader>
-            <DialogTitle className="text-gray-900 dark:text-white">Edit User</DialogTitle>
+            <DialogTitle className="text-gray-900 dark:text-zinc-50">
+              Edit User
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -671,10 +681,10 @@ export default function UsersAdmin() {
                     })
                   }
                 >
-                  <SelectTrigger className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-white mt-1">
+                  <SelectTrigger className="mt-1 w-full border-gray-200 dark:border-zinc-600">
                     <SelectValue placeholder="Select producer" />
                   </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-[#1F1F23] border-gray-200 dark:border-zinc-700">
+                  <SelectContent className="z-[300]">
                     <SelectItem value="__none__">No producer linked</SelectItem>
                     {producers.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
@@ -697,10 +707,10 @@ export default function UsersAdmin() {
                   setEditForm({ ...editForm, membership_level: value })
                 }
               >
-                <SelectTrigger className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-white mt-1">
+                <SelectTrigger className="mt-1 w-full border-gray-200 dark:border-zinc-600">
                   <SelectValue placeholder="Select membership level" />
                 </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-[#1F1F23] border-gray-200 dark:border-zinc-700">
+                <SelectContent className="z-[300]">
                   <SelectItem value="requester">
                     Requester (No Access)
                   </SelectItem>
@@ -720,11 +730,14 @@ export default function UsersAdmin() {
               <Button
                 variant="outline"
                 onClick={() => setIsEditDialogOpen(false)}
-                className="flex-1 border-gray-300 dark:border-zinc-600 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-zinc-800"
+                className="flex-1 rounded-lg border-gray-200 bg-white font-medium text-gray-800 hover:bg-gray-50 hover:text-gray-900 dark:border-zinc-600 dark:bg-zinc-800/80 dark:text-zinc-100 dark:hover:bg-zinc-700 dark:hover:text-white"
               >
                 Cancel
               </Button>
-              <Button onClick={handleEditSubmit} className="flex-1">
+              <Button
+                onClick={handleEditSubmit}
+                className="flex-1 rounded-lg bg-zinc-900 font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+              >
                 Save Changes
               </Button>
             </div>

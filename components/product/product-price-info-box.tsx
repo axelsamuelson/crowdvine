@@ -52,6 +52,8 @@ export function ProductPriceInfoBox({ product }: ProductPriceInfoBoxProps) {
         originalMarginPercentage={breakdown.originalMarginPercentage}
         hasMemberDiscount={hasMemberDiscount}
         memberDiscountPercent={discountPercentage}
+        memberDiscountAmount={breakdown.memberDiscountAmount}
+        listTotalInclVat={breakdown.listTotalInclVat}
         variant="inline"
       />
     </div>
