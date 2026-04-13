@@ -329,6 +329,8 @@ export interface TaskFilters {
   due_after?: string
   search?: string
   include_deleted?: boolean
+  /** When true, include rows with parent_task_id (subtasks). Default: only root tasks. */
+  include_child_tasks?: boolean
 }
 
 export interface ProjectFilters {

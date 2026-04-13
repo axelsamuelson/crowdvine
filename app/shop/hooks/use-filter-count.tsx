@@ -17,6 +17,7 @@ export function useFilterCount() {
     "fsource",
     parseAsArrayOf(parseAsString).withDefault([]),
   );
+  const [searchQ] = useQueryState("q", parseAsString);
 
   // Count active filters
   let count = 0;
@@ -38,6 +39,10 @@ export function useFilterCount() {
 
   // Count collection filter (if not on "all" products)
   if (params.collection && params.collection !== undefined) {
+    count += 1;
+  }
+
+  if (searchQ && searchQ.trim().length > 0) {
     count += 1;
   }
 

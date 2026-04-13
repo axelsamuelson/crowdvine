@@ -88,6 +88,72 @@ async function fetchB2BStockAndShippingFromPallets(
   return { stockMap, shippingMap };
 }
 
+/** Escape `%`, `_`, `\` for use inside PostgreSQL ILIKE patterns (PostgREST). */
+function escapeForIlikePattern(s: string): string {
+  return s.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+}
+
+/**
+ * PostgREST `.or("a,b,c")` splits on commas at the top level — commas inside the
+ * pattern would break the clause. Normalize so the ILIKE value never contains commas.
+ */
+function normalizeShopSearchInput(raw: string): string {
+  return raw
+    .trim()
+    .replace(/,/g, " ")
+    .replace(/\s+/g, " ");
+}
+
+/**
+ * Wrap a filter value in double quotes so spaces (e.g. `%le bouc%`) are not parsed as
+ * separate tokens — otherwise PGRST100 "failed to parse logic tree".
+ */
+function quotePostgrestOrValue(val: string): string {
+  return `"${val.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+}
+
+function supabaseErrorToMessage(err: {
+  message?: string;
+  details?: string;
+  hint?: string;
+  code?: string;
+}): string {
+  return (
+    [err.message, err.details, err.hint, err.code].filter(Boolean).join(" | ") ||
+    "Supabase request failed"
+  );
+}
+
+type SupabaseOrBuilder = { or: (clause: string) => SupabaseOrBuilder };
+
+/**
+ * Full catalog: wine fields + joined producer name (`producers!inner` is on the same query).
+ */
+function applyWineCatalogSearch<Q extends SupabaseOrBuilder>(
+  qb: Q,
+  rawSearch: string | undefined,
+): Q {
+  const t = normalizeShopSearchInput(rawSearch ?? "");
+  if (!t) return qb;
+  const p = quotePostgrestOrValue(`%${escapeForIlikePattern(t)}%`);
+  return qb.or(
+    `wine_name.ilike.${p},handle.ilike.${p},description.ilike.${p},grape_varieties.ilike.${p},producers.name.ilike.${p}`,
+  ) as Q;
+}
+
+/** Collection (single producer): wine fields + producer name (same row’s `producers(name)` embed). */
+function applyWineCollectionSearch<Q extends SupabaseOrBuilder>(
+  qb: Q,
+  rawSearch: string | undefined,
+): Q {
+  const t = normalizeShopSearchInput(rawSearch ?? "");
+  if (!t) return qb;
+  const p = quotePostgrestOrValue(`%${escapeForIlikePattern(t)}%`);
+  return qb.or(
+    `wine_name.ilike.${p},handle.ilike.${p},description.ilike.${p},grape_varieties.ilike.${p},producers.name.ilike.${p}`,
+  ) as Q;
+}
+
 function convertToFullUrl(path: string | null | undefined): string {
   if (!path) return getAppUrl() + DEFAULT_WINE_IMAGE_PATH;
 
@@ -146,6 +212,8 @@ export async function fetchProductsData(params?: {
   limit?: number;
   sortKey?: string;
   reverse?: boolean;
+  /** Case-insensitive match on title, handle, description, grapes, producer (shop `?q=`). */
+  searchQuery?: string;
   /** When false (pactwines.com), all wines availableForSale. When true (dirtywine.se), B2B stock applies. */
   isB2BSite?: boolean;
 }): Promise<ProductData[]> {
@@ -185,6 +253,8 @@ export async function fetchProductsData(params?: {
     .eq("is_live", true)
     .eq("producers.is_live", true);
 
+  query = applyWineCatalogSearch(query, params?.searchQuery);
+
   switch (sortKey) {
     case "PRICE":
       query = query.order("base_price_cents", { ascending: !reverse });
@@ -207,7 +277,10 @@ export async function fetchProductsData(params?: {
       description_html, created_at, producers!inner(name)
     `;
     if (/is_live|column.*does not exist|producers\.is_live/i.test(msg)) {
-      query = sb.from("wines").select(fallbackSelect).eq("is_live", true);
+      query = applyWineCatalogSearch(
+        sb.from("wines").select(fallbackSelect).eq("is_live", true),
+        params?.searchQuery,
+      );
       switch (sortKey) {
         case "PRICE":
           query = query.order("base_price_cents", { ascending: !reverse });
@@ -224,7 +297,10 @@ export async function fetchProductsData(params?: {
     if (result.error) {
       const msg2 = result.error.message ?? "";
       if (/is_live|column.*does not exist/i.test(msg2)) {
-        query = sb.from("wines").select(fallbackSelect);
+        query = applyWineCatalogSearch(
+          sb.from("wines").select(fallbackSelect),
+          params?.searchQuery,
+        );
         switch (sortKey) {
           case "PRICE":
             query = query.order("base_price_cents", { ascending: !reverse });
@@ -239,7 +315,9 @@ export async function fetchProductsData(params?: {
         result = await query.limit(limit);
       }
     }
-    if (result.error) throw result.error;
+    if (result.error) {
+      throw new Error(supabaseErrorToMessage(result.error));
+    }
   }
 
   const rawData = (result.data ?? []) as any[];
@@ -430,6 +508,8 @@ export async function fetchCollectionProductsData(
   collectionId: string,
   params?: {
     limit?: number;
+    /** Case-insensitive match on title, handle, description, grapes (shop `?q=`). */
+    searchQuery?: string;
     /** When false (pactwines.com), all wines availableForSale. When true (dirtywine.se), B2B stock applies. */
     isB2BSite?: boolean;
   },
@@ -441,7 +521,17 @@ export async function fetchCollectionProductsData(
     const calculations = await getAllWineBoxCalculations();
     if (calculations.length === 0) return [];
 
-    return calculations.slice(0, limit).map((calc) => ({
+    const q = params?.searchQuery?.trim().toLowerCase();
+    let calcs = calculations;
+    if (q) {
+      calcs = calculations.filter(
+        (c) =>
+          c.name.toLowerCase().includes(q) ||
+          (c.description && c.description.toLowerCase().includes(q)),
+      );
+    }
+
+    return calcs.slice(0, limit).map((calc) => ({
       id: calc.wineBoxId,
       title: calc.name,
       description: calc.description,
@@ -526,23 +616,28 @@ export async function fetchCollectionProductsData(
       producer_id,
       producers(name)
     `;
-  let collResult = await sb
-    .from("wines")
-    .select(collSelect)
-    .eq("is_live", true)
-    .eq("producer_id", collectionId)
-    .limit(limit);
+  let collQuery = applyWineCollectionSearch(
+    sb
+      .from("wines")
+      .select(collSelect)
+      .eq("is_live", true)
+      .eq("producer_id", collectionId),
+    params?.searchQuery,
+  );
+  let collResult = await collQuery.limit(limit);
 
   if (collResult.error) {
     const msg = collResult.error.message ?? "";
     if (/is_live|column.*does not exist/i.test(msg)) {
-      collResult = await sb
-        .from("wines")
-        .select(collSelect)
-        .eq("producer_id", collectionId)
-        .limit(limit);
+      collQuery = applyWineCollectionSearch(
+        sb.from("wines").select(collSelect).eq("producer_id", collectionId),
+        params?.searchQuery,
+      );
+      collResult = await collQuery.limit(limit);
     }
-    if (collResult.error) throw collResult.error;
+    if (collResult.error) {
+      throw new Error(supabaseErrorToMessage(collResult.error));
+    }
   }
 
   const collData = collResult.data ?? [];

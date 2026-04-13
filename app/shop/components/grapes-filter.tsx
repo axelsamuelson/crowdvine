@@ -26,6 +26,11 @@ export function GrapesFilter({
 
   const count = active.length;
 
+  const listContainerClass =
+    mode === "overlay"
+      ? ""
+      : "max-h-24 lg:max-h-28 overflow-y-auto pr-1";
+
   // Only show if there are grapes to filter on
   if (!availableGrapes || availableGrapes.length === 0) return null;
 
@@ -48,7 +53,7 @@ export function GrapesFilter({
         )}
       </div>
 
-      <div className="max-h-24 lg:max-h-28 overflow-y-auto pr-1">
+      <div className={listContainerClass}>
         <div className="flex flex-col gap-0.5">
           {availableGrapes.map((g) => {
             const isOn = active.includes(g);

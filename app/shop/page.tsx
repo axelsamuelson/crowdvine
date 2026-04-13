@@ -17,8 +17,9 @@ export const dynamic = "force-dynamic";
 export default async function ShopPage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
+  const sp = await searchParams;
   return (
     <>
       <Suspense
@@ -32,7 +33,7 @@ export default async function ShopPage({
       >
         <ProductList
           collection={storeCatalog.rootCategoryId}
-          searchParams={searchParams}
+          searchParams={sp}
         />
       </Suspense>
     </>

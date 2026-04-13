@@ -19,6 +19,7 @@ import { useFilterCount } from "../hooks/use-filter-count";
 import { useProducts } from "../providers/products-provider";
 import { ResultsCount } from "./results-count";
 import { SortDropdown } from "./sort-dropdown";
+import { ShopFilterSearch } from "./shop-filter-search";
 import Link from "next/link";
 
 interface MobileFiltersProps {
@@ -91,9 +92,10 @@ export function MobileFilters({ collections, priceSources = [], className }: Mob
             </Button>
           </DrawerHeader>
           <div className="overflow-y-auto flex-1 px-4 pb-4 space-y-6">
+            <ShopFilterSearch />
             <CategoryFilter collections={collections} mode="drawer" />
-            <GrapesFilter products={originalProducts} mode="drawer" />
             <CompetitorFilter sources={priceSources} mode="drawer" />
+            <GrapesFilter products={originalProducts} mode="drawer" />
             <ColorFilter products={originalProducts} />
           </div>
         </DrawerContent>

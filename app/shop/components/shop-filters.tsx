@@ -9,6 +9,7 @@ import { CategoryFilter } from "./category-filter";
 import { ColorFilter } from "./color-filter";
 import { GrapesFilter } from "./grapes-filter";
 import { CompetitorFilter, type PriceSourceForFilter } from "./competitor-filter";
+import { ShopFilterSearch } from "./shop-filter-search";
 import { useProducts } from "../providers/products-provider";
 import { useFilterCount } from "../hooks/use-filter-count";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -56,19 +57,20 @@ export function DesktopFilters({
               </Link>
             </Button>
           </div>
+          <ShopFilterSearch className="pl-2 pr-2 xl:pr-4" />
           <Suspense fallback={null}>
             <CategoryFilter
               collections={collections}
               mode="sidebar"
               onSeeAll={openSeeAll}
             />
-            <GrapesFilter
-              products={originalProducts}
+            <CompetitorFilter
+              sources={priceSources}
               mode="sidebar"
               onSeeAll={openSeeAll}
             />
-            <CompetitorFilter
-              sources={priceSources}
+            <GrapesFilter
+              products={originalProducts}
               mode="sidebar"
               onSeeAll={openSeeAll}
             />
@@ -113,10 +115,11 @@ export function DesktopFilters({
 
             <div className="flex-1 min-h-0 overflow-y-auto px-6 py-6">
               <Suspense fallback={null}>
+                <ShopFilterSearch className="mb-6 max-w-md" />
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
                   <CategoryFilter collections={collections} mode="overlay" />
-                  <GrapesFilter products={originalProducts} mode="overlay" />
                   <CompetitorFilter sources={priceSources} mode="overlay" />
+                  <GrapesFilter products={originalProducts} mode="overlay" />
                   <ColorFilter products={originalProducts} />
                 </div>
               </Suspense>

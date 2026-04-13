@@ -74,6 +74,16 @@ interface TrackEventParams {
   referrer?: string;
 }
 
+function isLikelyNetworkFailure(e: unknown): boolean {
+  if (!(e instanceof TypeError)) return false;
+  const m = e.message || "";
+  return (
+    m === "Failed to fetch" ||
+    m === "Load failed" ||
+    /networkerror|failed to fetch/i.test(m)
+  );
+}
+
 export class AnalyticsTracker {
   private static getSessionId(): string {
     if (typeof window === "undefined") return "";
@@ -93,31 +103,55 @@ export class AnalyticsTracker {
     pageUrl,
     referrer,
   }: TrackEventParams): Promise<void> {
+    if (typeof window === "undefined") return;
+
+    let supabase;
     try {
-      const supabase = getSupabaseBrowserClient();
+      supabase = getSupabaseBrowserClient();
+    } catch {
+      return;
+    }
+
+    let userId: string | null = null;
+    try {
       const {
         data: { user },
       } = await supabase.auth.getUser();
+      userId = user?.id ?? null;
+    } catch (e) {
+      if (!isLikelyNetworkFailure(e) && process.env.NODE_ENV === "development") {
+        console.warn("[analytics] auth.getUser:", e);
+      }
+    }
 
-      const eventData = {
-        user_id: user?.id || null,
-        session_id: this.getSessionId(),
-        event_type: eventType,
-        event_category: eventCategory,
-        event_metadata: metadata,
-        page_url:
-          pageUrl ||
-          (typeof window !== "undefined" ? window.location.href : ""),
-        referrer:
-          referrer ||
-          (typeof window !== "undefined" ? document.referrer : ""),
-        user_agent:
-          typeof navigator !== "undefined" ? navigator.userAgent : "",
-      };
+    const eventData = {
+      user_id: userId,
+      session_id: this.getSessionId(),
+      event_type: eventType,
+      event_category: eventCategory,
+      event_metadata: metadata,
+      page_url: pageUrl || window.location.href,
+      referrer: referrer || document.referrer,
+      user_agent: navigator.userAgent,
+    };
 
-      await supabase.from("user_events").insert(eventData);
-    } catch (error) {
-      console.error("Analytics tracking error:", error);
+    try {
+      const { error } = await supabase.from("user_events").insert(eventData);
+      if (error) {
+        const m = error.message || "";
+        if (
+          process.env.NODE_ENV === "development" &&
+          m &&
+          !/failed to fetch|fetch/i.test(m)
+        ) {
+          console.warn("[analytics] user_events insert:", m);
+        }
+      }
+    } catch (e) {
+      if (isLikelyNetworkFailure(e)) return;
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[analytics] user_events:", e);
+      }
     }
   }
 

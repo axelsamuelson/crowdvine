@@ -51,6 +51,7 @@ export async function getProducts(params?: {
     sortKey: sortKey as "RELEVANCE" | "PRICE" | "CREATED_AT" | "CREATED",
     reverse: params?.reverse,
     isB2BSite,
+    searchQuery: params?.query,
   });
   return data as Product[];
 }
@@ -102,6 +103,7 @@ export async function getCollectionProducts(params: {
   const data = await fetchCollectionProductsData((collection as any).id, {
     limit: params?.limit,
     isB2BSite,
+    searchQuery: params?.query,
   });
   return data as Product[];
 }

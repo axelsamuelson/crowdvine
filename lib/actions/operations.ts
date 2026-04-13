@@ -112,6 +112,10 @@ export async function getTasks(filters: TaskFilters = {}): Promise<Task[]> {
     query = query.is("deleted_at", null)
   }
 
+  if (!filters.include_child_tasks) {
+    query = query.is("parent_task_id", null)
+  }
+
   if (filters.status?.length) {
     query = query.in("status", filters.status)
   }
@@ -213,6 +217,18 @@ export async function getTask(id: string): Promise<TaskDetail> {
 
   const base = mapAdminTaskRow(task as AdminTaskRow)
 
+  const rawSubtasks = (task.subtasks ?? []) as AdminTaskRow[]
+  const subtasks = rawSubtasks
+    .filter((s) => !s.deleted_at)
+    .map((s) => mapAdminTaskRow(s))
+    .sort((a, b) => {
+      const so = (a.sort_order ?? 0) - (b.sort_order ?? 0)
+      if (so !== 0) return so
+      return (
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      )
+    })
+
   return {
     ...base,
     dependencies: deps ?? [],
@@ -222,9 +238,7 @@ export async function getTask(id: string): Promise<TaskDetail> {
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     ),
     entity_links: task.entity_links ?? [],
-    subtasks: (task.subtasks ?? []).map((s) =>
-      mapAdminTaskRow(s as AdminTaskRow)
-    ),
+    subtasks,
   }
 }
 
@@ -232,12 +246,45 @@ export async function createTask(data: CreateTaskData): Promise<Task> {
   const sb = getSupabaseAdmin()
   const actor_id = await getActorId()
 
+  let project_id: string | null | undefined = data.project_id
+  let objective_id: string | null | undefined = data.objective_id
+
+  if (data.parent_task_id && (project_id === undefined || objective_id === undefined)) {
+    const { data: parent } = await sb
+      .from("admin_tasks")
+      .select("project_id, objective_id")
+      .eq("id", data.parent_task_id)
+      .is("deleted_at", null)
+      .maybeSingle()
+    if (parent) {
+      if (project_id === undefined) {
+        project_id = (parent.project_id as string | null) ?? null
+      }
+      if (objective_id === undefined) {
+        objective_id = (parent.objective_id as string | null) ?? null
+      }
+    }
+  }
+
+  const insertRow = {
+    title: data.title,
+    description: data.description ?? null,
+    project_id: project_id ?? null,
+    objective_id: objective_id ?? null,
+    parent_task_id: data.parent_task_id ?? null,
+    assigned_to: data.assigned_to ?? null,
+    status: data.status ?? "todo",
+    priority: data.priority ?? "medium",
+    task_type: data.task_type ?? "ops",
+    due_date: data.due_date ?? null,
+    start_date: data.start_date ?? null,
+    estimated_hours: data.estimated_hours ?? null,
+    created_by: actor_id,
+  }
+
   const { data: task, error } = await sb
     .from("admin_tasks")
-    .insert({
-      ...data,
-      created_by: actor_id,
-    })
+    .insert(insertRow)
     .select(ADMIN_TASK_SELECT)
     .single()
 
@@ -264,8 +311,27 @@ export async function createTask(data: CreateTaskData): Promise<Task> {
   revalidatePath("/admin/operations/my-work")
   revalidatePath(`/admin/operations/tasks/${task.id}`)
   revalidatePath("/admin/strategy-map")
+  if (data.parent_task_id) {
+    revalidatePath(`/admin/operations/tasks/${data.parent_task_id}`)
+  }
 
   return mapAdminTaskRow(full as AdminTaskRow)
+}
+
+/** Checklist-rad under en parent task (samma rad som admin_tasks med parent_task_id). */
+export async function addSubtask(
+  parentTaskId: string,
+  title: string
+): Promise<Task> {
+  const t = title.trim()
+  if (!t) throw new Error("Titel krävs")
+  return createTask({
+    title: t,
+    parent_task_id: parentTaskId,
+    status: "todo",
+    priority: "medium",
+    task_type: "ops",
+  })
 }
 
 /**
@@ -430,7 +496,12 @@ export async function updateTask(
   revalidatePath("/admin/operations/my-work")
   revalidatePath("/admin/strategy-map")
 
-  return mapAdminTaskRow(task as AdminTaskRow)
+  const mapped = mapAdminTaskRow(task as AdminTaskRow)
+  if (mapped.parent_task_id) {
+    revalidatePath(`/admin/operations/tasks/${mapped.parent_task_id}`)
+  }
+
+  return mapped
 }
 
 export async function updateTaskAssignees(
@@ -486,6 +557,12 @@ export async function updateTaskAssignees(
 export async function deleteTask(id: string): Promise<void> {
   const sb = getSupabaseAdmin()
 
+  const { data: before } = await sb
+    .from("admin_tasks")
+    .select("parent_task_id")
+    .eq("id", id)
+    .maybeSingle()
+
   const { error } = await sb
     .from("admin_tasks")
     .update({ deleted_at: new Date().toISOString() })
@@ -498,6 +575,10 @@ export async function deleteTask(id: string): Promise<void> {
   revalidatePath("/admin/operations")
   revalidatePath("/admin/strategy-map")
   revalidatePath("/admin/operations/my-work")
+  const pid = before?.parent_task_id as string | null | undefined
+  if (pid) {
+    revalidatePath(`/admin/operations/tasks/${pid}`)
+  }
 }
 
 export async function addComment(

@@ -16,6 +16,8 @@ const WRITE_TOOLS = new Set<string>([
   "update_task",
   "delete_task",
   "batch_create_tasks",
+  "create_subtask",
+  "set_subtask_done",
 ]);
 
 /** @returns true if the tool mutates data and needs mcp:write */
