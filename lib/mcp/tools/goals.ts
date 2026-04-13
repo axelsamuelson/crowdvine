@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { getMcpActorProfileId } from "../utils/actor";
+import { nestAdminTasksWithSubtasks } from "../utils/nest-admin-tasks";
 import { mcpJsonResult, mcpErrorResult } from "../utils/tool-result";
 import { mcpWriteTool } from "../utils/write-tool";
 
@@ -62,7 +63,8 @@ export function registerGoalTools(server: McpServer, sb: SupabaseClient) {
   server.registerTool(
     "get_goal",
     {
-      description: "Hämta ett specifikt goal med alla dess kopplade objectives.",
+      description:
+        "Hämta ett specifikt goal med kopplade objectives. Varje objective inkluderar `tasks` som träd (toppnivå med `subtasks` för delsteg).",
       inputSchema: {
         goal_id: z.string().describe("Goal UUID"),
       },
@@ -94,10 +96,37 @@ export function registerGoalTools(server: McpServer, sb: SupabaseClient) {
 
         if (oErr) return mcpErrorResult(oErr.message);
 
+        const objList = objectives ?? [];
+        const objectiveIds = objList.map((o) => o.id as string);
+        const tasksByObjectiveId = new Map<string, Record<string, unknown>[]>();
+
+        if (objectiveIds.length > 0) {
+          const { data: goalTasks, error: gtErr } = await sb
+            .from("admin_tasks")
+            .select("*")
+            .in("objective_id", objectiveIds)
+            .is("deleted_at", null)
+            .order("created_at", { ascending: false });
+
+          if (gtErr) return mcpErrorResult(gtErr.message);
+
+          for (const t of goalTasks ?? []) {
+            const oid = t.objective_id as string;
+            const list = tasksByObjectiveId.get(oid) ?? [];
+            list.push(t);
+            tasksByObjectiveId.set(oid, list);
+          }
+        }
+
         return mcpJsonResult({
           ...goal,
-          objectives: objectives ?? [],
-          objective_count: (objectives ?? []).length,
+          objectives: objList.map((o) => ({
+            ...o,
+            tasks: nestAdminTasksWithSubtasks(
+              tasksByObjectiveId.get(o.id as string) ?? [],
+            ),
+          })),
+          objective_count: objList.length,
         });
       } catch (e) {
         return mcpErrorResult(e instanceof Error ? e.message : String(e));

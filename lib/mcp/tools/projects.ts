@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { getMcpActorProfileId } from "../utils/actor";
+import { nestAdminTasksWithSubtasks } from "../utils/nest-admin-tasks";
 import { mcpJsonResult, mcpErrorResult } from "../utils/tool-result";
 import { mcpWriteTool } from "../utils/write-tool";
 
@@ -41,7 +42,8 @@ export function registerProjectTools(server: McpServer, sb: SupabaseClient) {
   server.registerTool(
     "get_project",
     {
-      description: "Hämta ett projekt med alla dess tasks.",
+      description:
+        "Hämta ett projekt med tasks som träd: toppnivåtasks med `subtasks`-array (delsteg), sorterade nyast först.",
       inputSchema: {
         project_id: z.string(),
       },
@@ -68,7 +70,7 @@ export function registerProjectTools(server: McpServer, sb: SupabaseClient) {
 
         return mcpJsonResult({
           ...withProjectTitle(project),
-          tasks: tasks ?? [],
+          tasks: nestAdminTasksWithSubtasks(tasks ?? []),
         });
       } catch (e) {
         return mcpErrorResult(e instanceof Error ? e.message : String(e));

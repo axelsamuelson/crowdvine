@@ -3,6 +3,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { getMcpActorProfileId } from "../utils/actor";
 import { mcpJsonResult, mcpErrorResult } from "../utils/tool-result";
+import {
+  assertValidSubtaskParent,
+  assertValidTaskParentUpdate,
+} from "../utils/task-parent";
 import { mcpWriteTool } from "../utils/write-tool";
 
 const taskPrioritySchema = z.enum(["low", "medium", "high", "urgent"]);
@@ -51,7 +55,8 @@ export function registerTaskTools(server: McpServer, sb: SupabaseClient) {
   server.registerTool(
     "create_task",
     {
-      description: "Skapa en ny task, kopplad till projekt och/eller objective.",
+      description:
+        "Skapa en ny task kopplad till projekt och/eller objective. Använd valfri parent_task_id (UUID) för att skapa ett delsteg/subtask under en befintlig toppnivå-task; project_id och objective_id ärvs då från föräldern om de utelämnas.",
       inputSchema: {
         title: z.string(),
         description: z.string().optional(),
@@ -61,7 +66,7 @@ export function registerTaskTools(server: McpServer, sb: SupabaseClient) {
           .string()
           .optional()
           .describe(
-            "Om satt skapas ett delsteg; project_id/objective_id ärvs från föräldern om de utelämnas.",
+            "UUID för parent task. Skapar denna task som delsteg under en befintlig (toppnivå-)task.",
           ),
         status: z.string().optional().default("todo"),
         priority: taskPrioritySchema.optional(),
@@ -85,23 +90,14 @@ export function registerTaskTools(server: McpServer, sb: SupabaseClient) {
           const actor = await getMcpActorProfileId(sb);
           let proj: string | null | undefined = project_id;
           let obj: string | null | undefined = objective_id;
-          if (
-            parent_task_id &&
-            (project_id === undefined || objective_id === undefined)
-          ) {
-            const { data: parent } = await sb
-              .from("admin_tasks")
-              .select("project_id, objective_id")
-              .eq("id", parent_task_id)
-              .is("deleted_at", null)
-              .maybeSingle();
-            if (parent) {
-              if (project_id === undefined) {
-                proj = (parent.project_id as string | null) ?? null;
-              }
-              if (objective_id === undefined) {
-                obj = (parent.objective_id as string | null) ?? null;
-              }
+
+          if (parent_task_id) {
+            const parent = await assertValidSubtaskParent(sb, parent_task_id);
+            if (project_id === undefined) {
+              proj = parent.project_id;
+            }
+            if (objective_id === undefined) {
+              obj = parent.objective_id;
             }
           }
 
@@ -130,14 +126,20 @@ export function registerTaskTools(server: McpServer, sb: SupabaseClient) {
     "update_task",
     {
       description:
-        "Uppdatera en task eller ett delsteg (titel, status, prioritet, kopplingar, parent_task_id).",
+        "Uppdatera en task eller delsteg (titel, status, prioritet, kopplingar). Sätt parent_task_id till en annan tasks UUID för att göra denna task till delsteg under den parenten, eller sätt till null för att frikoppla från förälder. Endast en nivå delsteg (parent måste vara toppnivå-task).",
       inputSchema: {
         task_id: z.string(),
         title: z.string().optional(),
         description: z.string().optional(),
         project_id: z.string().nullable().optional(),
         objective_id: z.string().nullable().optional(),
-        parent_task_id: z.string().nullable().optional(),
+        parent_task_id: z
+          .string()
+          .nullable()
+          .optional()
+          .describe(
+            "Ny förälder (toppnivå-task) eller null för att ta bort delsteg-koppling.",
+          ),
         status: z.string().optional(),
         priority: z.string().optional(),
       },
@@ -170,6 +172,13 @@ export function registerTaskTools(server: McpServer, sb: SupabaseClient) {
           if (Object.keys(patch).length === 0) {
             throw new Error("No fields to update");
           }
+          if (rest.parent_task_id !== undefined) {
+            await assertValidTaskParentUpdate(
+              sb,
+              task_id,
+              rest.parent_task_id,
+            );
+          }
           const { data, error } = await sb
             .from("admin_tasks")
             .update(patch)
@@ -198,6 +207,12 @@ export function registerTaskTools(server: McpServer, sb: SupabaseClient) {
         args as Record<string, unknown>,
         async () => {
           const { task_id } = args;
+          const { error: detachErr } = await sb
+            .from("admin_tasks")
+            .update({ parent_task_id: null })
+            .eq("parent_task_id", task_id)
+            .is("deleted_at", null);
+          if (detachErr) throw new Error(detachErr.message);
           const { error } = await sb
             .from("admin_tasks")
             .update({ deleted_at: new Date().toISOString() })
@@ -213,36 +228,76 @@ export function registerTaskTools(server: McpServer, sb: SupabaseClient) {
     title: z.string(),
     description: z.string().optional(),
     status: z.string().optional().default("todo"),
-    priority: z.string().optional(),
+    priority: taskPrioritySchema.optional(),
+    parent_task_id: z
+      .string()
+      .optional()
+      .describe("Override: delsteg under denna parent-task (toppnivå)."),
   });
 
   server.registerTool(
     "batch_create_tasks",
     {
-      description: "Skapa flera tasks på en gång under samma projekt.",
+      description:
+        "Skapa flera tasks på en gång. Valfri parent_task_id på batch-nivå blir standard förälder för alla rader; varje objekt i tasks kan sätta egen parent_task_id som override. project_id/objective_id ärvs från parent när de utelämnas. Subtasks stöds (en nivå).",
       inputSchema: {
         project_id: z.string().optional(),
         objective_id: z.string().optional(),
+        parent_task_id: z
+          .string()
+          .optional()
+          .describe("Standard-parent (UUID) för alla tasks i listan om inte override per rad."),
         tasks: z.array(batchTaskItemSchema).min(1),
       },
     },
     async (args) => {
-      const { project_id, objective_id, tasks } = args;
+      const { project_id, objective_id, parent_task_id: batchParentId, tasks } =
+        args;
       return mcpWriteTool(
         sb,
         "batch_create_tasks",
         args as Record<string, unknown>,
         async () => {
           const actor = await getMcpActorProfileId(sb);
-          const rows = tasks.map((t) => ({
-            title: t.title,
-            description: t.description ?? null,
-            project_id: project_id ?? null,
-            objective_id: objective_id ?? null,
-            status: t.status ?? "todo",
-            priority: (t.priority as string | undefined) ?? "medium",
-            created_by: actor,
-          }));
+          const parentCache = new Map<string, Awaited<
+            ReturnType<typeof assertValidSubtaskParent>
+          >>();
+
+          async function parentFor(effParentId: string) {
+            const cached = parentCache.get(effParentId);
+            if (cached) return cached;
+            const p = await assertValidSubtaskParent(sb, effParentId);
+            parentCache.set(effParentId, p);
+            return p;
+          }
+
+          const rows = await Promise.all(
+            tasks.map(async (t) => {
+              const effParent =
+                t.parent_task_id ?? batchParentId ?? undefined;
+              let proj: string | null | undefined =
+                project_id !== undefined ? project_id : undefined;
+              let obj: string | null | undefined =
+                objective_id !== undefined ? objective_id : undefined;
+
+              if (effParent) {
+                const parent = await parentFor(effParent);
+                if (project_id === undefined) proj = parent.project_id;
+                if (objective_id === undefined) obj = parent.objective_id;
+              }
+
+              return {
+                title: t.title,
+                description: t.description ?? null,
+                project_id: proj ?? null,
+                objective_id: obj ?? null,
+                parent_task_id: effParent ?? null,
+                status: t.status ?? "todo",
+                priority: t.priority ?? "medium",
+                created_by: actor,
+              };
+            }),
+          );
           const { data, error } = await sb
             .from("admin_tasks")
             .insert(rows)
@@ -273,20 +328,15 @@ export function registerTaskTools(server: McpServer, sb: SupabaseClient) {
         args as Record<string, unknown>,
         async () => {
           const actor = await getMcpActorProfileId(sb);
-          const { data: parent } = await sb
-            .from("admin_tasks")
-            .select("project_id, objective_id")
-            .eq("id", parent_task_id)
-            .is("deleted_at", null)
-            .maybeSingle();
+          const parent = await assertValidSubtaskParent(sb, parent_task_id);
           const { data, error } = await sb
             .from("admin_tasks")
             .insert({
               title,
               description: description ?? null,
               parent_task_id,
-              project_id: (parent?.project_id as string | null) ?? null,
-              objective_id: (parent?.objective_id as string | null) ?? null,
+              project_id: parent.project_id,
+              objective_id: parent.objective_id,
               status: "todo",
               priority: "medium",
               created_by: actor,

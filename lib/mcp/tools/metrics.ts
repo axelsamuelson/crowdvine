@@ -1,6 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { nestAdminTasksWithSubtasks } from "../utils/nest-admin-tasks";
 import { mcpJsonResult, mcpErrorResult } from "../utils/tool-result";
 
 type FunnelRow = {
@@ -142,7 +143,7 @@ export function registerMetricsTools(server: McpServer, sb: SupabaseClient) {
     "get_full_strategy",
     {
       description:
-        "Hämta hela OKR-strukturen: alla goals med objectives, projects och tasks i en trädstruktur.",
+        "Hämta hela OKR-strukturen: goals → objectives → projects → tasks. Varje projects tasks-lista är nästlad med `subtasks` (delsteg) under toppnivåtasks.",
       inputSchema: {
         include_completed: z.boolean().optional().default(false),
       },
@@ -229,13 +230,17 @@ export function registerMetricsTools(server: McpServer, sb: SupabaseClient) {
                 (proj) => ({
                   ...proj,
                   title: proj.name,
-                  tasks: tasksByProject.get(proj.id as string) ?? [],
+                  tasks: nestAdminTasksWithSubtasks(
+                    tasksByProject.get(proj.id as string) ?? [],
+                  ),
                 }),
               );
               return {
                 ...obj,
                 projects,
-                orphan_tasks: tasksByObjective.get(obj.id as string) ?? [],
+                orphan_tasks: nestAdminTasksWithSubtasks(
+                  tasksByObjective.get(obj.id as string) ?? [],
+                ),
               };
             },
           );
@@ -251,10 +256,14 @@ export function registerMetricsTools(server: McpServer, sb: SupabaseClient) {
               (proj) => ({
                 ...proj,
                 title: proj.name,
-                tasks: tasksByProject.get(proj.id as string) ?? [],
+                tasks: nestAdminTasksWithSubtasks(
+                  tasksByProject.get(proj.id as string) ?? [],
+                ),
               }),
             ),
-            orphan_tasks: tasksByObjective.get(obj.id as string) ?? [],
+            orphan_tasks: nestAdminTasksWithSubtasks(
+              tasksByObjective.get(obj.id as string) ?? [],
+            ),
           })),
         });
       } catch (e) {

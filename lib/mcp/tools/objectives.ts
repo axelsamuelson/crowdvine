@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { getMcpActorProfileId } from "../utils/actor";
+import { nestAdminTasksWithSubtasks } from "../utils/nest-admin-tasks";
 import { mcpJsonResult, mcpErrorResult } from "../utils/tool-result";
 import { mcpWriteTool } from "../utils/write-tool";
 
@@ -49,7 +50,7 @@ export function registerObjectiveTools(server: McpServer, sb: SupabaseClient) {
     "get_objective",
     {
       description:
-        "Hämta ett specifikt objective med kopplade projects, tasks och metrics.",
+        "Hämta ett specifikt objective med kopplade projects, metrics och tasks som träd (toppnivå med `subtasks` för delsteg).",
       inputSchema: {
         objective_id: z.string(),
       },
@@ -101,7 +102,7 @@ export function registerObjectiveTools(server: McpServer, sb: SupabaseClient) {
             ...p,
             title: p.name,
           })),
-          tasks: tasks ?? [],
+          tasks: nestAdminTasksWithSubtasks(tasks ?? []),
           metrics: metrics ?? [],
         });
       } catch (e) {
