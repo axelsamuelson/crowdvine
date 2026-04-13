@@ -16,11 +16,16 @@ export function TaskDetailDescriptionBlock({
   initialDescription,
   onSaved,
   variant = "page",
+  heading = "Description",
+  emptyText = "No description",
 }: {
   taskId: string
   initialDescription: string | null
   onSaved?: (task: Task) => void
-  variant?: "page" | "sheet"
+  /** `embedded`: inuti överblick-kort, utan egen ram. */
+  variant?: "page" | "sheet" | "embedded"
+  heading?: string
+  emptyText?: string
 }) {
   const router = useRouter()
   const [description, setDescription] = useState(initialDescription ?? "")
@@ -69,34 +74,45 @@ export function TaskDetailDescriptionBlock({
   }
 
   const wrap = cn(
-    "rounded-xl border border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-[#0F0F12]",
-    variant === "sheet" ? "p-3 rounded-lg" : "p-4"
+    variant === "embedded"
+      ? "border-0 border-t border-zinc-100 bg-transparent px-5 pb-5 pt-4 shadow-none dark:border-zinc-800 sm:px-6"
+      : cn(
+          "border border-gray-200/90 bg-white dark:border-[#1F1F23] dark:bg-[#0F0F12]",
+          variant === "sheet"
+            ? "rounded-lg p-3"
+            : "rounded-2xl p-4 shadow-sm dark:shadow-none sm:p-5",
+        ),
   )
 
-  const iconSize = variant === "sheet" ? "size-8" : "size-9"
+  const iconSize =
+    variant === "sheet" || variant === "embedded" ? "size-8" : "size-9"
 
   return (
-    <div className={cn(wrap, "space-y-2")}>
+    <div className={cn(wrap, "space-y-3")}>
       <div className="flex min-w-0 items-start gap-2">
-        <div className="min-w-0 flex-1 space-y-1.5">
+        <div className="min-w-0 flex-1 space-y-2">
           <Label
             htmlFor={editing ? `task-desc-${taskId}` : undefined}
-            className="text-sm font-medium text-gray-700 dark:text-gray-300"
+            className={cn(
+              variant === "sheet"
+                ? "text-sm font-medium text-gray-700 dark:text-gray-300"
+                : "text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-500",
+            )}
           >
-            Description
+            {heading}
           </Label>
           {!editing && (
             <div
               className={cn(
                 "text-sm text-gray-800 dark:text-zinc-200",
-                "whitespace-pre-wrap break-words"
+                "whitespace-pre-wrap break-words",
               )}
             >
               {description.trim() ? (
                 description
               ) : (
                 <span className="text-gray-500 dark:text-zinc-500">
-                  No description
+                  {emptyText}
                 </span>
               )}
             </div>
@@ -140,7 +156,11 @@ export function TaskDetailDescriptionBlock({
             }}
             className={cn(
               "min-w-0 flex-1 resize-y py-2 text-sm",
-              variant === "sheet" ? "min-h-[120px]" : "min-h-[160px]",
+              variant === "sheet"
+                ? "min-h-[120px]"
+                : variant === "embedded"
+                  ? "min-h-[120px]"
+                  : "min-h-[160px]",
               "rounded-lg border-gray-200 dark:border-[#1F1F23]",
               "bg-white dark:bg-zinc-900/40 text-gray-900 dark:text-zinc-100"
             )}

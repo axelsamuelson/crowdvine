@@ -3,7 +3,7 @@ import { getProject } from "@/lib/actions/operations"
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
 import { ProjectStatusBadge } from "@/components/admin/operations/project-status-badge"
 import { ProgressBar } from "@/components/admin/operations/progress-bar"
-import { StrategicBreadcrumb } from "@/components/admin/operations/strategic-breadcrumb"
+import { StrategicHierarchyChain } from "@/components/admin/operations/strategic-hierarchy-chain"
 import { TaskTable } from "@/components/admin/operations/task-table"
 import { CreateTaskButton } from "@/components/admin/operations/create-task-button"
 import { CreateProjectButton } from "@/components/admin/operations/create-project-button"
@@ -81,9 +81,9 @@ export default async function ProjectDetailPage({ params }: PageProps) {
   return (
     <div className="space-y-6">
       <DetailBreadcrumbTitle title={project.name} />
-      {/* Strategisk tråd */}
+      {/* Strategisk kedja */}
       {project.objective && (
-        <StrategicBreadcrumb
+        <StrategicHierarchyChain
           goal={
             project.objective.goal
               ? {

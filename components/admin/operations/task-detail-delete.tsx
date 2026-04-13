@@ -44,19 +44,19 @@ export function TaskDetailDelete({ taskId, projectId = null }: Props) {
 
   return (
     <>
-      <div className="rounded-xl border border-red-200 dark:border-red-900/40 bg-red-50/80 dark:bg-red-950/20 p-4">
-        <p className="text-xs text-red-800/90 dark:text-red-300/90 mb-3">
-          Remove this task from the list. The task is soft-deleted and can be
-          recovered if needed.
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-red-200/80 bg-red-50/60 px-3 py-2 dark:border-red-900/35 dark:bg-red-950/15">
+        <p className="min-w-0 flex-1 text-[11px] leading-snug text-red-800/85 dark:text-red-300/85">
+          Soft-delete — kan återställas vid behov.
         </p>
         <Button
           type="button"
           variant="outline"
-          className="w-full border-red-300 bg-red-600 text-white hover:bg-red-700 hover:text-white dark:border-red-800 dark:bg-red-700 dark:hover:bg-red-600"
+          size="sm"
+          className="h-8 shrink-0 gap-1.5 border-red-300/90 bg-red-600 px-2.5 text-xs font-medium text-white hover:bg-red-700 hover:text-white dark:border-red-800 dark:bg-red-700 dark:hover:bg-red-600"
           onClick={() => setOpen(true)}
         >
-          <Trash2 className="mr-2 h-4 w-4" aria-hidden />
-          Delete task
+          <Trash2 className="h-3.5 w-3.5" aria-hidden />
+          Ta bort
         </Button>
       </div>
 

@@ -64,6 +64,7 @@ export type StrategyArea =
 export interface AdminUserMin {
   id: string
   email: string
+  full_name?: string | null
 }
 
 export interface TaskMin {

@@ -28,7 +28,7 @@ import { Unlink, Trash2, Pencil } from "lucide-react"
 import { TaskStatusBadge } from "./task-status-badge"
 import { TaskPriorityBadge } from "./task-priority-badge"
 import { TaskFormDialog } from "./task-form-dialog"
-import { formatOpsDateTimeSv } from "./created-meta-line"
+import { formatOpsDateTimeSv } from "@/lib/ops-datetime"
 import { deleteTask } from "@/lib/actions/operations"
 import type {
   Task,

@@ -3,7 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin"
 import { ProjectStatusBadge } from "@/components/admin/operations/project-status-badge"
 import { ProgressBar } from "@/components/admin/operations/progress-bar"
 import { CreateProjectButton } from "@/components/admin/operations/create-project-button"
-import { formatOpsDateTimeSv } from "@/components/admin/operations/created-meta-line"
+import { formatOpsDateTimeSv } from "@/lib/ops-datetime"
 import {
   Table,
   TableBody,
