@@ -43,12 +43,16 @@ export function RelatedTasksCard({
       !!task.due_date &&
       task.due_date < today &&
       task.status !== "done" &&
-      task.status !== "cancelled"
+      task.status !== "cancelled" &&
+      task.status !== "paused"
     )
   }
 
   const openTasks = tasks.filter(
-    (t) => t.status !== "done" && t.status !== "cancelled"
+    (t) =>
+      t.status !== "done" &&
+      t.status !== "cancelled" &&
+      t.status !== "paused",
   )
   const doneTasks = tasks.filter((t) => t.status === "done")
 
@@ -113,7 +117,9 @@ export function RelatedTasksCard({
                     className={`text-sm font-medium truncate ${
                       task.status === "done" || task.status === "cancelled"
                         ? "line-through text-gray-500 dark:text-gray-400"
-                        : "text-gray-900 dark:text-gray-100"
+                        : task.status === "paused"
+                          ? "text-gray-500 dark:text-zinc-400"
+                          : "text-gray-900 dark:text-gray-100"
                     }`}
                   >
                     {task.title}

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
+import { CartService } from "@/src/lib/cart-service";
 
 /**
  * POST /api/cart/add-quantity
@@ -195,101 +195,15 @@ export async function POST(request: Request) {
 
     console.log("🛒 [ADD-QUANTITY] Successfully added/updated item");
 
-    // Get updated cart with all items
-    const { data: cartItems, error: fetchError } = await supabase
-      .from("cart_items")
-      .select(
-        `
-        id,
-        quantity,
-        source,
-        wines (
-          id,
-          handle,
-          wine_name,
-          vintage,
-          label_image_path,
-          base_price_cents,
-          color
-        )
-      `,
-      )
-      .eq("cart_id", dbCartId)
-      .order("created_at", { ascending: false });
-
-    if (fetchError) {
-      console.error("🛒 [ADD-QUANTITY] Error fetching cart:", fetchError);
+    const cart = await CartService.getCart();
+    if (!cart) {
       return NextResponse.json(
-        { error: "Failed to fetch cart" },
+        { error: "Failed to load cart" },
         { status: 500 },
       );
     }
 
-    // Build cart response
-    const lines = (cartItems || []).map((item) => {
-      const selectedOptions = item.wines.color
-        ? [{ name: "Color", value: item.wines.color }]
-        : [];
-
-      return {
-        id: item.id,
-        quantity: item.quantity,
-        source: item.source || "producer", // Default to producer for backwards compatibility
-        cost: {
-          totalAmount: {
-            amount: Math.round(
-              (item.wines.base_price_cents * item.quantity) / 100,
-            ).toString(),
-            currencyCode: "SEK",
-          },
-        },
-        merchandise: {
-          id: item.wines.id,
-          title: `${item.wines.wine_name} ${item.wines.vintage}`,
-          selectedOptions,
-          product: {
-            id: item.wines.id,
-            title: `${item.wines.wine_name} ${item.wines.vintage}`,
-            handle: item.wines.handle,
-            featuredImage: {
-              url: item.wines.label_image_path || DEFAULT_WINE_IMAGE_PATH,
-              altText: `${item.wines.wine_name} ${item.wines.vintage}`,
-            },
-            priceRange: {
-              minVariantPrice: {
-                amount: (item.wines.base_price_cents / 100).toString(),
-                currencyCode: "SEK",
-              },
-            },
-          },
-        },
-      };
-    });
-
-    const subtotal = lines.reduce(
-      (sum, line) => sum + parseFloat(line.cost.totalAmount.amount),
-      0,
-    );
-
-    const cart = {
-      id: dbCartId,
-      checkoutUrl: "/checkout",
-      cost: {
-        subtotalAmount: {
-          amount: Math.round(subtotal).toString(),
-          currencyCode: "SEK",
-        },
-        totalAmount: {
-          amount: Math.round(subtotal).toString(),
-          currencyCode: "SEK",
-        },
-        totalTaxAmount: { amount: "0", currencyCode: "SEK" },
-      },
-      totalQuantity: lines.reduce((sum, line) => sum + line.quantity, 0),
-      lines,
-    };
-
-    console.log("🛒 [ADD-QUANTITY] Cart built:", {
+    console.log("🛒 [ADD-QUANTITY] Cart loaded:", {
       items: cart.lines.length,
       totalQuantity: cart.totalQuantity,
       total: cart.cost.totalAmount.amount,
@@ -297,7 +211,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      cart: cart,
+      cart,
     });
   } catch (error) {
     console.error("🛒 [ADD-QUANTITY] Error:", error);

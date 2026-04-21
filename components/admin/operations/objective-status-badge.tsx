@@ -16,6 +16,11 @@ const config: Record<ObjectiveStatus, { label: string; className: string }> = {
     className:
       "border-blue-300 text-blue-700 bg-blue-50 dark:border-blue-700 dark:text-blue-400 dark:bg-blue-950/50",
   },
+  paused: {
+    label: "Paused",
+    className:
+      "border-zinc-400 text-zinc-600 bg-zinc-100 dark:border-zinc-500 dark:text-zinc-300 dark:bg-zinc-800/60",
+  },
   completed: {
     label: "Completed",
     className:

@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ChevronRight, Unlink } from "lucide-react"
+import { Unlink } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { StrategicBreadcrumbCurrentLevel } from "./strategic-breadcrumb"
 
@@ -70,8 +70,7 @@ interface Props {
 }
 
 /**
- * Kompakt horisontell kedja Goal → Objective → (KR) → Project → nuvarande nivå.
- * Matchar admin operations (border, `#0F0F12` dark), minimal vertikal yta.
+ * Vertikal kedja: Goal → Objective → (KR) → Project → nuvarande nivå, staplad.
  */
 export function StrategicHierarchyChain({
   goal,
@@ -163,17 +162,18 @@ export function StrategicHierarchyChain({
     <nav
       aria-label="Strategisk kedja"
       className={cn(
-        "overflow-hidden",
+        "min-w-0",
         embedded
           ? "border-0 bg-transparent px-0 py-0.5"
-          : "rounded-lg border border-gray-200 bg-white px-2 py-1.5 dark:border-zinc-800 dark:bg-[#0F0F12]",
+          : "overflow-x-clip rounded-lg border border-gray-200 bg-white px-3 py-3 dark:border-zinc-800 dark:bg-[#0F0F12]",
       )}
     >
-      <ol className="flex flex-wrap items-center gap-x-1 gap-y-1">
-        {steps.map((step, index) => {
+      <ol className="flex flex-col gap-3">
+        {steps.map((step) => {
           const styles = variantStyles[step.variant]
           const titleClass = cn(
-            "min-w-0 max-w-[min(100vw-4rem,28rem)] truncate text-xs leading-tight text-gray-900 dark:text-zinc-100",
+            "block min-w-0 text-xs leading-snug text-gray-900 dark:text-zinc-100",
+            "whitespace-normal break-words",
             step.isCurrent && "font-semibold",
             !step.isCurrent &&
               step.href &&
@@ -181,43 +181,34 @@ export function StrategicHierarchyChain({
           )
 
           return (
-            <li
-              key={step.key}
-              className="flex min-w-0 max-w-full items-baseline gap-1.5"
-            >
-              {index > 0 && (
-                <span
-                  className="flex shrink-0 items-center text-gray-300 dark:text-zinc-600"
-                  aria-hidden
-                >
-                  <ChevronRight className="h-3.5 w-3.5" strokeWidth={2} />
-                </span>
-              )}
+            <li key={step.key} className="flex min-w-0 gap-2.5">
               <span
                 className={cn(
-                  "mt-[1px] h-1.5 w-1.5 shrink-0 rounded-full",
+                  "mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full",
                   styles.dot,
                   step.isCurrent && "h-2 w-2",
                 )}
                 aria-hidden
               />
-              <span
-                className={cn(
-                  "shrink-0 text-[9px] font-bold uppercase tracking-wide",
-                  styles.label,
-                )}
-              >
-                {step.label}
-              </span>
-              {step.href ? (
-                <Link href={step.href} className={titleClass} title={step.title}>
-                  {step.title}
-                </Link>
-              ) : (
-                <span className={titleClass} title={step.title}>
-                  {step.title}
+              <div className="min-w-0 flex-1 space-y-0.5">
+                <span
+                  className={cn(
+                    "block text-[9px] font-bold uppercase tracking-wide",
+                    styles.label,
+                  )}
+                >
+                  {step.label}
                 </span>
-              )}
+                {step.href ? (
+                  <Link href={step.href} className={titleClass} title={step.title}>
+                    {step.title}
+                  </Link>
+                ) : (
+                  <span className={titleClass} title={step.title}>
+                    {step.title}
+                  </span>
+                )}
+              </div>
             </li>
           )
         })}

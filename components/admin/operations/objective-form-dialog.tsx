@@ -54,18 +54,24 @@ const schema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
   period: z.string().min(1, "Period is required"),
-  status: z.enum(["draft", "active", "completed", "archived"]),
+  status: z.enum(["draft", "active", "paused", "completed", "archived"]),
   strategy_area: z
     .enum(["Growth", "Quality", "Operations", "Product"])
     .nullable()
     .optional(),
-  progress_method: z.enum(["manual", "key_results", "tasks"]),
+  progress_method: z.enum(["manual", "key_results", "tasks", "insights"]),
   manual_progress: z.coerce
     .number()
     .min(0)
     .max(100)
     .nullable()
     .optional(),
+  /** When progress_method = insights: target count (1–500). */
+  insights_target: z.preprocess((v) => {
+    if (v === "" || v === undefined || v === null) return null
+    const n = Number(v)
+    return Number.isFinite(n) ? n : null
+  }, z.union([z.number().int().min(1).max(500), z.null()])),
   owner_id: z.string().nullable().optional(),
   goal_id: z.string().nullable().optional(),
 })
@@ -106,6 +112,7 @@ export function ObjectiveFormDialog({
       strategy_area: null,
       progress_method: "key_results",
       manual_progress: null,
+      insights_target: 5,
       owner_id: null,
       goal_id: null as string | null,
     },
@@ -123,6 +130,10 @@ export function ObjectiveFormDialog({
         strategy_area: objective.strategy_area ?? null,
         progress_method: objective.progress_method,
         manual_progress: objective.manual_progress ?? null,
+        insights_target:
+          objective.progress_method === "insights"
+            ? (objective.insights_target ?? 5)
+            : 5,
         owner_id: objective.owner_id ?? null,
         goal_id: objective.goal_id ?? null,
       })
@@ -135,6 +146,7 @@ export function ObjectiveFormDialog({
         strategy_area: null,
         progress_method: "key_results",
         manual_progress: null,
+        insights_target: 5,
         owner_id: null,
         goal_id: defaultGoalId ?? null,
       })
@@ -144,9 +156,25 @@ export function ObjectiveFormDialog({
   async function onSubmit(values: FormValues) {
     setLoading(true)
     try {
+      if (
+        values.progress_method === "insights" &&
+        (values.insights_target == null || values.insights_target < 1)
+      ) {
+        toast.error("Set how many insights are required (1–500)")
+        setLoading(false)
+        return
+      }
       const payload = {
         ...values,
         goal_id: values.goal_id || null,
+        manual_progress:
+          values.progress_method === "manual"
+            ? values.manual_progress ?? null
+            : null,
+        insights_target:
+          values.progress_method === "insights"
+            ? values.insights_target ?? null
+            : null,
       }
       if (isEdit && objective) {
         await updateObjective(objective.id, payload)
@@ -262,6 +290,7 @@ export function ObjectiveFormDialog({
                       <SelectContent>
                         <SelectItem value="draft">Draft</SelectItem>
                         <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="paused">Paused</SelectItem>
                         <SelectItem value="completed">Completed</SelectItem>
                         <SelectItem value="archived">Archived</SelectItem>
                       </SelectContent>
@@ -389,12 +418,46 @@ export function ObjectiveFormDialog({
                       </SelectItem>
                       <SelectItem value="tasks">Based on Tasks</SelectItem>
                       <SelectItem value="manual">Manual</SelectItem>
+                      <SelectItem value="insights">Insights</SelectItem>
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Insights: add unique notes on the objective; progress reaches
+                    100% when the target count is reached (objective can become
+                    completed automatically).
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            {progressMethod === "insights" && (
+              <FormField
+                control={form.control}
+                name="insights_target"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Required unique insights</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={500}
+                        placeholder="5"
+                        {...field}
+                        value={field.value ?? ""}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value ? parseInt(e.target.value, 10) : null,
+                          )
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             {progressMethod === "manual" && (
               <FormField

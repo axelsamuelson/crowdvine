@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { logMcpAudit } from "./audit";
+import { inferMcpRowCount } from "./payload-metrics";
 import { mcpErrorResult, mcpJsonResult } from "./tool-result";
 
 export async function mcpWriteTool<T>(
@@ -12,10 +13,13 @@ export async function mcpWriteTool<T>(
   try {
     const data = await fn();
     await logMcpAudit(sb, toolName, params, "success");
-    return mcpJsonResult(data);
+    return mcpJsonResult(data, {
+      tool: toolName,
+      rowCount: inferMcpRowCount(data),
+    });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     await logMcpAudit(sb, toolName, params, "error", msg);
-    return mcpErrorResult(msg);
+    return mcpErrorResult(msg, toolName);
   }
 }

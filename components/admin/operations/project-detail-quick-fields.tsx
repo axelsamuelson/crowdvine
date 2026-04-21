@@ -10,53 +10,66 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { updateTask } from "@/lib/actions/operations"
-import type { TaskPriority, TaskStatus } from "@/lib/types/operations"
+import { updateProject } from "@/lib/actions/operations"
+import type { ProjectPriority, ProjectStatus } from "@/lib/types/operations"
 import { cn } from "@/lib/utils"
 import { taskDetailPrimaryLabelClass } from "@/components/admin/operations/task-detail-primary-label"
 
-const statusTriggerClass: Record<TaskStatus, string> = {
-  todo:
+const statusTriggerClass: Record<ProjectStatus, string> = {
+  planned:
     "border-gray-300 text-gray-600 bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:bg-gray-900/50",
-  in_progress:
+  active:
     "border-blue-300 text-blue-700 bg-blue-50 dark:border-blue-700 dark:text-blue-400 dark:bg-blue-950/50",
-  blocked:
-    "border-red-300 text-red-700 bg-red-50 dark:border-red-700 dark:text-red-400 dark:bg-red-950/50",
-  review:
+  on_hold:
     "border-amber-300 text-amber-700 bg-amber-50 dark:border-amber-700 dark:text-amber-400 dark:bg-amber-950/50",
   paused:
     "border-zinc-400 text-zinc-600 bg-zinc-100 dark:border-zinc-500 dark:text-zinc-300 dark:bg-zinc-800/50",
-  done:
+  completed:
     "border-green-300 text-green-700 bg-green-50 dark:border-green-700 dark:text-green-400 dark:bg-green-950/50",
-  cancelled:
+  archived:
     "border-gray-200 text-gray-400 bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:bg-gray-900/30",
 }
 
-const priorityTriggerClass: Record<TaskPriority, string> = {
+const priorityTriggerClass: Record<ProjectPriority, string> = {
   low:
     "border-gray-300 text-gray-500 bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:bg-gray-900/50",
   medium:
     "border-blue-300 text-blue-600 bg-blue-50 dark:border-blue-700 dark:text-blue-400 dark:bg-blue-950/50",
   high:
     "border-orange-300 text-orange-700 bg-orange-50 dark:border-orange-700 dark:text-orange-400 dark:bg-orange-950/50",
-  urgent:
+  critical:
     "border-red-300 text-red-700 bg-red-50 dark:border-red-700 dark:text-red-400 dark:bg-red-950/50",
 }
 
+const STATUSES: ProjectStatus[] = [
+  "planned",
+  "active",
+  "on_hold",
+  "paused",
+  "completed",
+  "archived",
+]
+
+const PRIORITIES: ProjectPriority[] = ["low", "medium", "high", "critical"]
+
 interface Props {
-  taskId: string
-  status: TaskStatus
-  priority: TaskPriority
+  projectId: string
+  status: ProjectStatus
+  priority: ProjectPriority
 }
 
-export function TaskDetailQuickFields({ taskId, status, priority }: Props) {
+export function ProjectDetailQuickFields({
+  projectId,
+  status,
+  priority,
+}: Props) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
 
   function patch(field: "status" | "priority", value: string) {
     startTransition(async () => {
       try {
-        await updateTask(taskId, { [field]: value })
+        await updateProject(projectId, { [field]: value })
         toast.success("Sparat")
         router.refresh()
       } catch {
@@ -65,14 +78,14 @@ export function TaskDetailQuickFields({ taskId, status, priority }: Props) {
     })
   }
 
-  const st = statusTriggerClass[status] ?? statusTriggerClass.todo
+  const st = statusTriggerClass[status] ?? statusTriggerClass.planned
   const pr = priorityTriggerClass[priority] ?? priorityTriggerClass.medium
 
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
       <div className="flex min-w-0 items-center gap-1.5">
         <span
-          id={`task-status-label-${taskId}`}
+          id={`project-status-label-${projectId}`}
           className={cn("shrink-0", taskDetailPrimaryLabelClass)}
         >
           Status
@@ -83,29 +96,27 @@ export function TaskDetailQuickFields({ taskId, status, priority }: Props) {
           disabled={pending}
         >
           <SelectTrigger
-            aria-labelledby={`task-status-label-${taskId}`}
+            aria-labelledby={`project-status-label-${projectId}`}
             className={cn(
-              "h-7 w-auto min-w-[5.75rem] gap-0.5 rounded-md border px-2 py-0 text-[11px] font-medium leading-tight shadow-none focus:ring-1 [&_svg]:size-3.5",
+              "h-7 w-auto min-w-[6.25rem] gap-0.5 rounded-md border px-2 py-0 text-[11px] font-medium leading-tight shadow-none focus:ring-1 [&_svg]:size-3.5",
               st,
             )}
           >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="todo">Todo</SelectItem>
-            <SelectItem value="in_progress">In Progress</SelectItem>
-            <SelectItem value="blocked">Blocked</SelectItem>
-            <SelectItem value="review">Review</SelectItem>
-            <SelectItem value="paused">Paused</SelectItem>
-            <SelectItem value="done">Done</SelectItem>
-            <SelectItem value="cancelled">Cancelled</SelectItem>
+            {STATUSES.map((s) => (
+              <SelectItem key={s} value={s}>
+                {s.replace("_", " ")}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
 
       <div className="flex min-w-0 items-center gap-1.5">
         <span
-          id={`task-priority-label-${taskId}`}
+          id={`project-priority-label-${projectId}`}
           className={cn("shrink-0", taskDetailPrimaryLabelClass)}
         >
           Prioritet
@@ -116,7 +127,7 @@ export function TaskDetailQuickFields({ taskId, status, priority }: Props) {
           disabled={pending}
         >
           <SelectTrigger
-            aria-labelledby={`task-priority-label-${taskId}`}
+            aria-labelledby={`project-priority-label-${projectId}`}
             className={cn(
               "h-7 w-auto min-w-[5rem] gap-0.5 rounded-md border px-2 py-0 text-[11px] font-medium leading-tight shadow-none focus:ring-1 [&_svg]:size-3.5",
               pr,
@@ -125,10 +136,11 @@ export function TaskDetailQuickFields({ taskId, status, priority }: Props) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="low">Low</SelectItem>
-            <SelectItem value="medium">Medium</SelectItem>
-            <SelectItem value="high">High</SelectItem>
-            <SelectItem value="urgent">Urgent</SelectItem>
+            {PRIORITIES.map((p) => (
+              <SelectItem key={p} value={p}>
+                {p}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

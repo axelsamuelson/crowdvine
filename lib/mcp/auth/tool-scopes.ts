@@ -16,6 +16,7 @@ const WRITE_TOOLS = new Set<string>([
   "update_task",
   "delete_task",
   "batch_create_tasks",
+  "batch_update_task_sort",
   "create_subtask",
   "set_subtask_done",
 ]);

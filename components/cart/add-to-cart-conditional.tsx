@@ -1,6 +1,6 @@
 "use client";
 
-import { AddToCart } from "./add-to-cart";
+import { AddToCartCase } from "./AddToCartCase";
 import { AddToCartWithSource } from "./add-to-cart-with-source";
 import { Product } from "@/lib/shopify/types";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
@@ -11,7 +11,7 @@ interface AddToCartConditionalProps {
 }
 
 /**
- * Conditionally renders AddToCartWithSource (B2B) or AddToCart (B2C)
+ * Conditionally renders AddToCartWithSource (B2B) or AddToCartCase (B2C)
  * based on whether we're on dirtywine.se (B2B) or pactwines.com (B2C)
  */
 export function AddToCartConditional({
@@ -24,5 +24,5 @@ export function AddToCartConditional({
     return <AddToCartWithSource product={product} className={className} />;
   }
 
-  return <AddToCart product={product} className={className} />;
+  return <AddToCartCase product={product} className={className} />;
 }

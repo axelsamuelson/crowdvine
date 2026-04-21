@@ -2,21 +2,15 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
+/**
+ * Wrapper utan overflow-x-auto: annars blir den en nästlad scrollport som fångar mushjulet.
+ * Bred tabell (min-w på `<table>`) scrollar horisontellt via admin-layoutens `main` (overflow-auto).
+ */
 const Table = React.forwardRef<
   HTMLTableElement,
-  React.HTMLAttributes<HTMLTableElement> & {
-    /** If true, wrapper gets overflow-auto (captures scroll). Default false so page scroll works when hovering table. */
-    scrollContainer?: boolean;
-  }
->(({ className, scrollContainer = false, ...props }, ref) => (
-  <div
-    className={cn(
-      "relative w-full min-w-0",
-      scrollContainer
-        ? "overflow-x-auto overflow-y-visible overscroll-x-contain overscroll-y-auto [-webkit-overflow-scrolling:touch] [touch-action:pan-x_pan-y]"
-        : "overflow-visible touch-pan-y",
-    )}
-  >
+  React.HTMLAttributes<HTMLTableElement>
+>(({ className, ...props }, ref) => (
+  <div className="relative w-full min-w-0 overflow-visible">
     <table
       ref={ref}
       className={cn("w-full caption-bottom text-sm", className)}

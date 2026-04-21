@@ -35,6 +35,7 @@ const COLUMNS: { status: TaskStatus; label: string }[] = [
   { status: "in_progress", label: "In Progress" },
   { status: "blocked", label: "Blocked" },
   { status: "review", label: "Review" },
+  { status: "paused", label: "Paused" },
   { status: "done", label: "Done" },
 ]
 
@@ -45,6 +46,8 @@ const COLUMN_HEADER_COLORS: Record<TaskStatus, string> = {
   blocked: "border-red-300 text-red-700 dark:border-red-700 dark:text-red-400",
   review:
     "border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-400",
+  paused:
+    "border-zinc-400 text-zinc-600 dark:border-zinc-500 dark:text-zinc-300",
   done: "border-green-300 text-green-700 dark:border-green-700 dark:text-green-400",
   cancelled:
     "border-gray-200 text-gray-400 dark:border-gray-700 dark:text-gray-400",
@@ -58,6 +61,7 @@ function buildColumnMap(tasks: Task[]): ColumnMap {
     in_progress: [],
     blocked: [],
     review: [],
+    paused: [],
     done: [],
     cancelled: [],
   }
@@ -140,7 +144,8 @@ export function TaskBoard({ tasks }: Props) {
       !!task.due_date &&
       task.due_date < today &&
       task.status !== "done" &&
-      task.status !== "cancelled"
+      task.status !== "cancelled" &&
+      task.status !== "paused"
     )
   }
 

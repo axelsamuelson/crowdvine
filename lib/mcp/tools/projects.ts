@@ -2,6 +2,8 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { getMcpActorProfileId } from "../utils/actor";
+import { MCP_ADMIN_TASK_SELECT_LIST } from "../utils/mcp-admin-task-select";
+import { MCP_STRATEGY_PROJECT_COLUMNS } from "../utils/mcp-strategy-selects";
 import { nestAdminTasksWithSubtasks } from "../utils/nest-admin-tasks";
 import { mcpJsonResult, mcpErrorResult } from "../utils/tool-result";
 import { mcpWriteTool } from "../utils/write-tool";
@@ -25,16 +27,23 @@ export function registerProjectTools(server: McpServer, sb: SupabaseClient) {
       try {
         let q = sb
           .from("admin_projects")
-          .select("*")
+          .select(MCP_STRATEGY_PROJECT_COLUMNS)
           .is("deleted_at", null)
           .order("created_at", { ascending: false });
         if (objective_id) q = q.eq("objective_id", objective_id);
         if (status) q = q.eq("status", status);
         const { data, error } = await q;
-        if (error) return mcpErrorResult(error.message);
-        return mcpJsonResult((data ?? []).map((p) => withProjectTitle(p)));
+        if (error) return mcpErrorResult(error.message, "list_projects");
+        const rows = (data ?? []).map((p) => withProjectTitle(p));
+        return mcpJsonResult(rows, {
+          tool: "list_projects",
+          rowCount: rows.length,
+        });
       } catch (e) {
-        return mcpErrorResult(e instanceof Error ? e.message : String(e));
+        return mcpErrorResult(
+          e instanceof Error ? e.message : String(e),
+          "list_projects",
+        );
       }
     },
   );
@@ -43,37 +52,49 @@ export function registerProjectTools(server: McpServer, sb: SupabaseClient) {
     "get_project",
     {
       description:
-        "Hämta ett projekt med tasks som träd: toppnivåtasks med `subtasks`-array (delsteg), sorterade nyast först.",
+        "Ett projekt. tasks endast om include_tasks=true (default false).",
       inputSchema: {
         project_id: z.string(),
+        include_tasks: z.boolean().optional().default(false),
       },
     },
-    async ({ project_id }) => {
+    async ({ project_id, include_tasks: includeTasks = false }) => {
       try {
         const { data: project, error: pErr } = await sb
           .from("admin_projects")
-          .select("*")
+          .select(MCP_STRATEGY_PROJECT_COLUMNS)
           .eq("id", project_id)
           .is("deleted_at", null)
           .single();
 
-        if (pErr) return mcpErrorResult(pErr.message);
+        if (pErr) return mcpErrorResult(pErr.message, "get_project");
 
-        const { data: tasks, error: tErr } = await sb
-          .from("admin_tasks")
-          .select("*")
-          .eq("project_id", project_id)
-          .is("deleted_at", null)
-          .order("created_at", { ascending: false });
+        let nestedTasks: ReturnType<typeof nestAdminTasksWithSubtasks> = [];
+        if (includeTasks) {
+          const { data: tasks, error: tErr } = await sb
+            .from("admin_tasks")
+            .select(MCP_ADMIN_TASK_SELECT_LIST)
+            .eq("project_id", project_id)
+            .is("deleted_at", null)
+            .order("created_at", { ascending: false });
+          if (tErr) return mcpErrorResult(tErr.message, "get_project");
+          nestedTasks = nestAdminTasksWithSubtasks(tasks ?? []);
+        }
 
-        if (tErr) return mcpErrorResult(tErr.message);
-
-        return mcpJsonResult({
+        const payload = {
           ...withProjectTitle(project),
-          tasks: nestAdminTasksWithSubtasks(tasks ?? []),
+          include_tasks: includeTasks,
+          ...(includeTasks ? { tasks: nestedTasks } : {}),
+        };
+        return mcpJsonResult(payload, {
+          tool: "get_project",
+          rowCount: includeTasks ? nestedTasks.length : undefined,
         });
       } catch (e) {
-        return mcpErrorResult(e instanceof Error ? e.message : String(e));
+        return mcpErrorResult(
+          e instanceof Error ? e.message : String(e),
+          "get_project",
+        );
       }
     },
   );

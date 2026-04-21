@@ -72,6 +72,7 @@ export function TaskFilters({ projects, objectives, admins }: Props) {
           <SelectItem value="in_progress">In Progress</SelectItem>
           <SelectItem value="blocked">Blocked</SelectItem>
           <SelectItem value="review">Review</SelectItem>
+          <SelectItem value="paused">Paused</SelectItem>
           <SelectItem value="done">Done</SelectItem>
           <SelectItem value="cancelled">Cancelled</SelectItem>
         </SelectContent>

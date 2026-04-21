@@ -117,7 +117,7 @@ export default async function TaskDetailPage({ params }: PageProps) {
       </div>
 
       {/* Överblick: skapad → titel → beskrivning → Detaljer + kedja */}
-      <section className="overflow-hidden rounded-2xl border border-gray-200/90 bg-white shadow-sm dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:shadow-none">
+      <section className="overflow-clip rounded-2xl border border-gray-200/90 bg-white shadow-sm dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:shadow-none">
         <div className="px-5 pt-4 sm:px-6 sm:pt-5">
           <CreatedMetaLine
             taskDetailPrimaryLabels

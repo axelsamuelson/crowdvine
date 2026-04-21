@@ -4,6 +4,7 @@ const TASK_WEIGHTS: Record<string, number | null> = {
   todo: 0,
   in_progress: 0.3,
   review: 0.7,
+  paused: 0,
   done: 1,
   cancelled: null,
   blocked: 0.1,
@@ -38,9 +39,13 @@ export function computeKeyResultProgress(kr: KeyResult): number {
 export type ObjectiveLinkedTask = Pick<Task, "status"> & { project_id?: string | null }
 
 export function computeObjectiveProgress(
-  objective: Objective,
+  objective: Pick<
+    Objective,
+    "progress_method" | "manual_progress" | "insights_target"
+  >,
   keyResults: KeyResult[],
-  objectiveTasks: ObjectiveLinkedTask[] = []
+  objectiveTasks: ObjectiveLinkedTask[] = [],
+  insightCount = 0,
 ): number {
   if (objective.progress_method === "manual") {
     return objective.manual_progress ?? 0
@@ -55,6 +60,12 @@ export function computeObjectiveProgress(
       0
     )
     return Math.round(total / keyResults.length)
+  }
+  if (objective.progress_method === "insights") {
+    const target = objective.insights_target ?? 0
+    if (target <= 0) return 0
+    const n = Math.max(0, insightCount)
+    return Math.min(100, Math.round((n / target) * 100))
   }
   if (keyResults.length === 0) return 0
   const total = keyResults.reduce(

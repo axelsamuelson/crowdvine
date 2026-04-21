@@ -11,6 +11,7 @@ import type {
   EntityLink,
   Project,
   Objective,
+  ObjectiveInsight,
   KeyResult,
   Goal,
   TaskFilters,
@@ -702,7 +703,10 @@ export async function getProjects(
       (t) => t.project_id === project.id
     )
     const openTasks = projectTasks.filter(
-      (t) => t.status !== "done" && t.status !== "cancelled"
+      (t) =>
+        t.status !== "done" &&
+        t.status !== "cancelled" &&
+        t.status !== "paused",
     )
     return {
       ...project,
@@ -732,20 +736,32 @@ export async function getProject(id: string) {
 
   if (error) throw new Error(error.message)
 
-  const { data: tasks } = await sb
+  const { data: tasksRaw } = await sb
     .from("admin_tasks")
     .select(ADMIN_TASK_SELECT)
     .eq("project_id", id)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
 
-  const openTasks = (tasks ?? []).filter(
-    (t) => t.status !== "done" && t.status !== "cancelled"
+  const tasks = [...(tasksRaw ?? [])].sort((a, b) => {
+    const pa = a.status === "paused" ? 1 : 0
+    const pb = b.status === "paused" ? 1 : 0
+    if (pa !== pb) return pa - pb
+    const tb = new Date(b.created_at).getTime()
+    const ta = new Date(a.created_at).getTime()
+    return tb - ta
+  })
+
+  const openTasks = tasks.filter(
+    (t) =>
+      t.status !== "done" &&
+      t.status !== "cancelled" &&
+      t.status !== "paused",
   )
 
   return {
     ...project,
-    tasks: tasks ?? [],
+    tasks,
     progress: computeProjectProgress((tasks ?? []) as Task[]),
     task_count: tasks?.length ?? 0,
     open_task_count: openTasks.length,
@@ -1194,16 +1210,38 @@ export async function getObjectives(
     .in("objective_id", objectiveIds)
     .is("deleted_at", null)
 
+  const { data: insightRows } = await sb
+    .from("admin_objective_insights")
+    .select("objective_id")
+    .in("objective_id", objectiveIds)
+
+  const insightCountByObjective = new Map<string, number>()
+  for (const row of insightRows ?? []) {
+    const oid = row.objective_id as string
+    insightCountByObjective.set(
+      oid,
+      (insightCountByObjective.get(oid) ?? 0) + 1,
+    )
+  }
+
   return (objectives ?? []).map((obj) => {
     const krs: KeyResult[] = obj.key_results ?? []
     const objTasks = (tasks ?? []).filter((t) => t.objective_id === obj.id)
     const openTasks = objTasks.filter(
-      (t) => t.status !== "done" && t.status !== "cancelled"
+      (t) =>
+        t.status !== "done" &&
+        t.status !== "cancelled" &&
+        t.status !== "paused",
     )
     return {
       ...obj,
       key_results: krs,
-      progress: computeObjectiveProgress(obj, krs, objTasks as Task[]),
+      progress: computeObjectiveProgress(
+        obj as Objective,
+        krs,
+        objTasks as Task[],
+        insightCountByObjective.get(obj.id) ?? 0,
+      ),
       project_count: (projects ?? []).filter(
         (p) => p.objective_id === obj.id
       ).length,
@@ -1278,13 +1316,35 @@ export async function getObjective(id: string) {
   const krs: KeyResult[] = objective.key_results ?? []
   const objectiveTasks = (tasks ?? []) as Task[]
 
+  const { data: insightRows } = await sb
+    .from("admin_objective_insights")
+    .select("id, objective_id, body, created_at, created_by")
+    .eq("objective_id", id)
+    .order("created_at", { ascending: false })
+
+  const insights = (insightRows ?? []) as ObjectiveInsight[]
+  const insightCount = insights.length
+
+  const projectsSorted = [...(projects ?? [])].sort((a, b) => {
+    const pa = a.status === "paused" ? 1 : 0
+    const pb = b.status === "paused" ? 1 : 0
+    if (pa !== pb) return pa - pb
+    return String(a.name ?? "").localeCompare(String(b.name ?? ""), "sv")
+  })
+
   return {
     ...objective,
     key_results: krs,
-    projects: projects ?? [],
+    projects: projectsSorted,
     tasks: tasks ?? [],
     projectTaskCounts,
-    progress: computeObjectiveProgress(objective, krs, objectiveTasks),
+    insights,
+    progress: computeObjectiveProgress(
+      objective as Objective,
+      krs,
+      objectiveTasks,
+      insightCount,
+    ),
     kr_progress_aggregate: computeKeyResultsAggregateProgress(krs),
     project_delivery_progress: computeProjectsDeliveryAggregateProgress(
       projectIds,
@@ -1369,6 +1429,88 @@ export async function updateObjective(
   }
 
   return objective
+}
+
+export async function addObjectiveInsight(
+  objectiveId: string,
+  body: string,
+): Promise<ObjectiveInsight> {
+  const sb = getSupabaseAdmin()
+  const actor_id = await getActorId()
+  const trimmed = body.trim()
+  if (trimmed.length < 2) {
+    throw new Error("Insight text is too short")
+  }
+
+  const { data: row, error } = await sb
+    .from("admin_objective_insights")
+    .insert({
+      objective_id: objectiveId,
+      body: trimmed,
+      created_by: actor_id,
+    })
+    .select("id, objective_id, body, created_at, created_by")
+    .single()
+
+  if (error) {
+    if (error.code === "23505") {
+      throw new Error("An insight with the same text already exists for this objective")
+    }
+    throw new Error(error.message)
+  }
+
+  const { data: obj } = await sb
+    .from("admin_objectives")
+    .select("insights_target, status")
+    .eq("id", objectiveId)
+    .single()
+
+  const target = (obj?.insights_target as number | null) ?? 0
+  const status = obj?.status as string | undefined
+  const { count } = await sb
+    .from("admin_objective_insights")
+    .select("id", { count: "exact", head: true })
+    .eq("objective_id", objectiveId)
+
+  if (
+    target > 0 &&
+    (count ?? 0) >= target &&
+    status === "active"
+  ) {
+    await sb
+      .from("admin_objectives")
+      .update({ status: "completed", updated_at: new Date().toISOString() })
+      .eq("id", objectiveId)
+      .eq("status", "active")
+  }
+
+  revalidatePath("/admin/operations/objectives")
+  revalidatePath(`/admin/operations/objectives/${objectiveId}`)
+  revalidatePath("/admin/operations/goals")
+  revalidatePath("/admin/strategy-map")
+
+  return row as ObjectiveInsight
+}
+
+export async function removeObjectiveInsight(
+  insightId: string,
+  objectiveId: string,
+): Promise<void> {
+  const sb = getSupabaseAdmin()
+  await getActorId()
+
+  const { error } = await sb
+    .from("admin_objective_insights")
+    .delete()
+    .eq("id", insightId)
+    .eq("objective_id", objectiveId)
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath("/admin/operations/objectives")
+  revalidatePath(`/admin/operations/objectives/${objectiveId}`)
+  revalidatePath("/admin/operations/goals")
+  revalidatePath("/admin/strategy-map")
 }
 
 export async function deleteObjective(id: string): Promise<void> {
@@ -1477,7 +1619,7 @@ export async function getMyWork() {
     .from("admin_tasks")
     .select(ADMIN_TASK_SELECT)
     .is("deleted_at", null)
-    .not("status", "in", '("done","cancelled")')
+    .not("status", "in", '("done","cancelled","paused")')
 
   if (viaJunction.length > 0) {
     taskQuery = taskQuery.or(
@@ -1535,13 +1677,13 @@ export async function getOperationsDashboard() {
       .from("admin_tasks")
       .select("*", { count: "exact", head: true })
       .is("deleted_at", null)
-      .not("status", "in", '("done","cancelled")'),
+      .not("status", "in", '("done","cancelled","paused")'),
     sb
       .from("admin_tasks")
       .select("*", { count: "exact", head: true })
       .is("deleted_at", null)
       .lt("due_date", today)
-      .not("status", "in", '("done","cancelled")'),
+      .not("status", "in", '("done","cancelled","paused")'),
     sb
       .from("admin_tasks")
       .select("*", { count: "exact", head: true })
@@ -1562,7 +1704,7 @@ export async function getOperationsDashboard() {
         .from("admin_tasks")
         .select(ADMIN_TASK_SELECT)
         .is("deleted_at", null)
-        .not("status", "in", '("done","cancelled")')
+        .not("status", "in", '("done","cancelled","paused")')
         .gte("due_date", today)
         .lte("due_date", nextWeek)
       q = myWorkOr ? q.or(myWorkOr) : q.eq("assigned_to", actor_id)

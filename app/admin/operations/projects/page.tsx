@@ -72,11 +72,15 @@ export default async function ProjectsPage({ searchParams }: PageProps) {
     keyResultOptions = data ?? []
   }
 
-  const sorted = [...projects].sort(
-    (a, b) =>
+  const sorted = [...projects].sort((a, b) => {
+    const pa = a.status === "paused" ? 1 : 0
+    const pb = b.status === "paused" ? 1 : 0
+    if (pa !== pb) return pa - pb
+    return (
       PRIORITY_ORDER[a.priority as ProjectPriority] -
       PRIORITY_ORDER[b.priority as ProjectPriority]
-  )
+    )
+  })
 
   return (
     <div className="space-y-6">
@@ -104,7 +108,7 @@ export default async function ProjectsPage({ searchParams }: PageProps) {
       </div>
 
       <div className="rounded-xl border border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-[#0F0F12] min-w-0">
-        <Table scrollContainer className="min-w-[880px]">
+        <Table className="min-w-[880px]">
           <TableHeader>
             <TableRow className="bg-gray-50 dark:bg-zinc-900/70 border-b border-gray-200 dark:border-zinc-800">
               <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">Name</TableHead>

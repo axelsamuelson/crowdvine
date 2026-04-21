@@ -2,6 +2,12 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { getMcpActorProfileId } from "../utils/actor";
+import { MCP_ADMIN_TASK_SELECT_LIST } from "../utils/mcp-admin-task-select";
+import {
+  MCP_KEY_RESULT_BRIEF_COLUMNS,
+  MCP_STRATEGY_GOAL_COLUMNS,
+  MCP_STRATEGY_OBJECTIVE_COLUMNS,
+} from "../utils/mcp-strategy-selects";
 import { nestAdminTasksWithSubtasks } from "../utils/nest-admin-tasks";
 import { mcpJsonResult, mcpErrorResult } from "../utils/tool-result";
 import { mcpWriteTool } from "../utils/write-tool";
@@ -42,20 +48,26 @@ export function registerGoalTools(server: McpServer, sb: SupabaseClient) {
       try {
         let q = sb
           .from("admin_goals")
-          .select("*")
+          .select(MCP_STRATEGY_GOAL_COLUMNS)
           .is("deleted_at", null)
           .order("created_at", { ascending: false });
         if (status) q = q.eq("status", status);
         const { data: goals, error } = await q;
-        if (error) return mcpErrorResult(error.message);
+        if (error) return mcpErrorResult(error.message, "list_goals");
         const counts = await objectiveCountsByGoalId(sb);
         const enriched = (goals ?? []).map((g) => ({
           ...g,
           objective_count: counts[g.id as string] ?? 0,
         }));
-        return mcpJsonResult(enriched);
+        return mcpJsonResult(enriched, {
+          tool: "list_goals",
+          rowCount: enriched.length,
+        });
       } catch (e) {
-        return mcpErrorResult(e instanceof Error ? e.message : String(e));
+        return mcpErrorResult(
+          e instanceof Error ? e.message : String(e),
+          "list_goals",
+        );
       }
     },
   );
@@ -64,51 +76,51 @@ export function registerGoalTools(server: McpServer, sb: SupabaseClient) {
     "get_goal",
     {
       description:
-        "Hämta ett specifikt goal med kopplade objectives. Varje objective inkluderar `tasks` som träd (toppnivå med `subtasks` för delsteg).",
+        "Ett goal + objectives (+ KRs). tasks endast om include_tasks=true (default false).",
       inputSchema: {
         goal_id: z.string().describe("Goal UUID"),
+        include_tasks: z
+          .boolean()
+          .optional()
+          .default(false)
+          .describe("Sant = hämta och nästla tasks per objective."),
       },
     },
-    async ({ goal_id }) => {
+    async ({ goal_id, include_tasks: includeTasks = false }) => {
       try {
         const { data: goal, error: gErr } = await sb
           .from("admin_goals")
-          .select("*")
+          .select(MCP_STRATEGY_GOAL_COLUMNS)
           .eq("id", goal_id)
           .is("deleted_at", null)
           .single();
 
-        if (gErr) return mcpErrorResult(gErr.message);
-        if (!goal) return mcpErrorResult("Goal not found");
+        if (gErr) return mcpErrorResult(gErr.message, "get_goal");
+        if (!goal) return mcpErrorResult("Goal not found", "get_goal");
 
+        const goalObjectiveSelect = `${MCP_STRATEGY_OBJECTIVE_COLUMNS}, key_results:admin_key_results(${MCP_KEY_RESULT_BRIEF_COLUMNS}), goal:admin_goals(id, title)`;
         const { data: objectives, error: oErr } = await sb
           .from("admin_objectives")
-          .select(
-            `
-            *,
-            key_results:admin_key_results(*),
-            goal:admin_goals(id, title)
-          `,
-          )
+          .select(goalObjectiveSelect)
           .eq("goal_id", goal_id)
           .is("deleted_at", null)
           .order("created_at", { ascending: false });
 
-        if (oErr) return mcpErrorResult(oErr.message);
+        if (oErr) return mcpErrorResult(oErr.message, "get_goal");
 
         const objList = objectives ?? [];
         const objectiveIds = objList.map((o) => o.id as string);
         const tasksByObjectiveId = new Map<string, Record<string, unknown>[]>();
 
-        if (objectiveIds.length > 0) {
+        if (includeTasks && objectiveIds.length > 0) {
           const { data: goalTasks, error: gtErr } = await sb
             .from("admin_tasks")
-            .select("*")
+            .select(MCP_ADMIN_TASK_SELECT_LIST)
             .in("objective_id", objectiveIds)
             .is("deleted_at", null)
             .order("created_at", { ascending: false });
 
-          if (gtErr) return mcpErrorResult(gtErr.message);
+          if (gtErr) return mcpErrorResult(gtErr.message, "get_goal");
 
           for (const t of goalTasks ?? []) {
             const oid = t.objective_id as string;
@@ -118,18 +130,30 @@ export function registerGoalTools(server: McpServer, sb: SupabaseClient) {
           }
         }
 
-        return mcpJsonResult({
+        const payload = {
           ...goal,
+          include_tasks: includeTasks,
           objectives: objList.map((o) => ({
             ...o,
-            tasks: nestAdminTasksWithSubtasks(
-              tasksByObjectiveId.get(o.id as string) ?? [],
-            ),
+            ...(includeTasks
+              ? {
+                  tasks: nestAdminTasksWithSubtasks(
+                    tasksByObjectiveId.get(o.id as string) ?? [],
+                  ),
+                }
+              : {}),
           })),
           objective_count: objList.length,
+        };
+        return mcpJsonResult(payload, {
+          tool: "get_goal",
+          rowCount: objList.length,
         });
       } catch (e) {
-        return mcpErrorResult(e instanceof Error ? e.message : String(e));
+        return mcpErrorResult(
+          e instanceof Error ? e.message : String(e),
+          "get_goal",
+        );
       }
     },
   );

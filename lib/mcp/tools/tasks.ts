@@ -4,6 +4,10 @@ import { z } from "zod";
 import { getMcpActorProfileId } from "../utils/actor";
 import { mcpJsonResult, mcpErrorResult } from "../utils/tool-result";
 import {
+  MCP_ADMIN_TASK_SELECT_DETAIL,
+  MCP_ADMIN_TASK_SELECT_LIST,
+} from "../utils/mcp-admin-task-select";
+import {
   assertValidSubtaskParent,
   assertValidTaskParentUpdate,
 } from "../utils/task-parent";
@@ -11,31 +15,63 @@ import { mcpWriteTool } from "../utils/write-tool";
 
 const taskPrioritySchema = z.enum(["low", "medium", "high", "urgent"]);
 
+/** Default page size; capped by LIST_TASKS_MAX_LIMIT. */
+const LIST_TASKS_DEFAULT_LIMIT = 100;
+const LIST_TASKS_MAX_LIMIT = 500;
+
 export function registerTaskTools(server: McpServer, sb: SupabaseClient) {
   server.registerTool(
     "list_tasks",
     {
       description:
-        "Lista tasks. Som standard endast toppnivåtasks (inga delsteg); sätt parent_task_id för delsteg under en task, eller include_subtasks för allt.",
+        "Lista tasks (toppnivå om inget parent_task_id). Paginerat: default limit 100, max 500; använd offset + has_more.",
       inputSchema: {
         project_id: z.string().optional(),
         objective_id: z.string().optional(),
         parent_task_id: z
           .string()
           .optional()
-          .describe("Endast tasks vars parent_task_id matchar (delsteg under en task)."),
+          .describe("Filter: delsteg under denna parent."),
         include_subtasks: z
           .boolean()
           .optional()
-          .describe("Om true, inkludera även rader med parent_task_id (flat lista)."),
+          .describe("true = flat lista inkl. delsteg."),
         status: z.string().optional(),
+        limit: z
+          .number()
+          .int()
+          .positive()
+          .max(LIST_TASKS_MAX_LIMIT)
+          .optional()
+          .describe(`Antal rader (default ${LIST_TASKS_DEFAULT_LIMIT}, max ${LIST_TASKS_MAX_LIMIT}).`),
+        offset: z
+          .number()
+          .int()
+          .min(0)
+          .optional()
+          .describe("Radoffset för nästa sida (default 0)."),
       },
     },
-    async ({ project_id, objective_id, parent_task_id, include_subtasks, status }) => {
+    async ({
+      project_id,
+      objective_id,
+      parent_task_id,
+      include_subtasks,
+      status,
+      limit: limitArg,
+      offset: offsetArg,
+    }) => {
       try {
+        const effectiveLimit = Math.min(
+          Math.max(1, limitArg ?? LIST_TASKS_DEFAULT_LIMIT),
+          LIST_TASKS_MAX_LIMIT,
+        );
+        const offset = Math.max(0, offsetArg ?? 0);
+        const fetchSize = effectiveLimit + 1;
+
         let q = sb
           .from("admin_tasks")
-          .select("*")
+          .select(MCP_ADMIN_TASK_SELECT_LIST)
           .is("deleted_at", null)
           .order("created_at", { ascending: false });
         if (project_id) q = q.eq("project_id", project_id);
@@ -43,11 +79,57 @@ export function registerTaskTools(server: McpServer, sb: SupabaseClient) {
         if (parent_task_id) q = q.eq("parent_task_id", parent_task_id);
         else if (!include_subtasks) q = q.is("parent_task_id", null);
         if (status) q = q.eq("status", status);
-        const { data, error } = await q;
-        if (error) return mcpErrorResult(error.message);
-        return mcpJsonResult(data ?? []);
+
+        const to = offset + fetchSize - 1;
+        const { data: raw, error } = await q.range(offset, to);
+        if (error) return mcpErrorResult(error.message, "list_tasks");
+        const rows = raw ?? [];
+        const has_more = rows.length > effectiveLimit;
+        const tasks = has_more ? rows.slice(0, effectiveLimit) : rows;
+
+        return mcpJsonResult(
+          {
+            tasks,
+            limit: effectiveLimit,
+            offset,
+            has_more,
+          },
+          { tool: "list_tasks", rowCount: tasks.length },
+        );
       } catch (e) {
-        return mcpErrorResult(e instanceof Error ? e.message : String(e));
+        return mcpErrorResult(
+          e instanceof Error ? e.message : String(e),
+          "list_tasks",
+        );
+      }
+    },
+  );
+
+  server.registerTool(
+    "get_task",
+    {
+      description:
+        "En task by id (inkl. description). Preferera framför list_tasks när du redan har UUID.",
+      inputSchema: {
+        task_id: z.string().describe("UUID för admin_tasks"),
+      },
+    },
+    async ({ task_id }) => {
+      try {
+        const { data, error } = await sb
+          .from("admin_tasks")
+          .select(MCP_ADMIN_TASK_SELECT_DETAIL)
+          .eq("id", task_id)
+          .is("deleted_at", null)
+          .maybeSingle();
+        if (error) return mcpErrorResult(error.message, "get_task");
+        if (!data) return mcpErrorResult("Task not found", "get_task");
+        return mcpJsonResult(data, { tool: "get_task", rowCount: 1 });
+      } catch (e) {
+        return mcpErrorResult(
+          e instanceof Error ? e.message : String(e),
+          "get_task",
+        );
       }
     },
   );
@@ -56,18 +138,13 @@ export function registerTaskTools(server: McpServer, sb: SupabaseClient) {
     "create_task",
     {
       description:
-        "Skapa en ny task kopplad till projekt och/eller objective. Använd valfri parent_task_id (UUID) för att skapa ett delsteg/subtask under en befintlig toppnivå-task; project_id och objective_id ärvs då från föräldern om de utelämnas.",
+        "Skapa task. Valfri parent_task_id = delsteg; project/objective ärvs från parent om utelämnat.",
       inputSchema: {
         title: z.string(),
         description: z.string().optional(),
         project_id: z.string().optional(),
         objective_id: z.string().optional(),
-        parent_task_id: z
-          .string()
-          .optional()
-          .describe(
-            "UUID för parent task. Skapar denna task som delsteg under en befintlig (toppnivå-)task.",
-          ),
+        parent_task_id: z.string().optional().describe("Parent UUID (toppnivå-task) för delsteg."),
         status: z.string().optional().default("todo"),
         priority: taskPrioritySchema.optional(),
       },
@@ -113,7 +190,7 @@ export function registerTaskTools(server: McpServer, sb: SupabaseClient) {
               priority: priority ?? "medium",
               created_by: actor,
             })
-            .select("*")
+            .select(MCP_ADMIN_TASK_SELECT_LIST)
             .single();
           if (error) throw new Error(error.message);
           return data;
@@ -126,7 +203,7 @@ export function registerTaskTools(server: McpServer, sb: SupabaseClient) {
     "update_task",
     {
       description:
-        "Uppdatera en task eller delsteg (titel, status, prioritet, kopplingar). Sätt parent_task_id till en annan tasks UUID för att göra denna task till delsteg under den parenten, eller sätt till null för att frikoppla från förälder. Endast en nivå delsteg (parent måste vara toppnivå-task).",
+        "Patcha en task (fält du skickar). parent_task_id = ny parent eller null = lossa. Max en delstegsnivå.",
       inputSchema: {
         task_id: z.string(),
         title: z.string().optional(),
@@ -137,9 +214,7 @@ export function registerTaskTools(server: McpServer, sb: SupabaseClient) {
           .string()
           .nullable()
           .optional()
-          .describe(
-            "Ny förälder (toppnivå-task) eller null för att ta bort delsteg-koppling.",
-          ),
+          .describe("Parent UUID eller null."),
         status: z.string().optional(),
         priority: z.string().optional(),
       },
@@ -183,10 +258,76 @@ export function registerTaskTools(server: McpServer, sb: SupabaseClient) {
             .from("admin_tasks")
             .update(patch)
             .eq("id", task_id)
-            .select("*")
+            .select(MCP_ADMIN_TASK_SELECT_LIST)
             .single();
           if (error) throw new Error(error.message);
           return data;
+        },
+      );
+    },
+  );
+
+  const batchSortItemSchema = z
+    .object({
+      task_id: z.string(),
+      sort_order: z.number().int().optional(),
+      status_sort_order: z.number().int().optional(),
+    })
+    .refine(
+      (row) =>
+        row.sort_order !== undefined || row.status_sort_order !== undefined,
+      { message: "Each item needs sort_order and/or status_sort_order" },
+    );
+
+  server.registerTool(
+    "batch_update_task_sort",
+    {
+      description:
+        "Uppdatera sort_order/status_sort_order för flera tasks i ett anrop. Svar: ok + updated_task_ids.",
+      inputSchema: {
+        items: z.array(batchSortItemSchema).min(1).max(200),
+      },
+    },
+    async (args) => {
+      const { items } = args;
+      return mcpWriteTool(
+        sb,
+        "batch_update_task_sort",
+        args as Record<string, unknown>,
+        async () => {
+          const ids = items.map((i) => i.task_id);
+          const unique = new Set(ids);
+          if (unique.size !== ids.length) {
+            throw new Error("Duplicate task_id in items");
+          }
+          const { data: found, error: findErr } = await sb
+            .from("admin_tasks")
+            .select("id")
+            .in("id", ids)
+            .is("deleted_at", null);
+          if (findErr) throw new Error(findErr.message);
+          const foundSet = new Set((found ?? []).map((r) => r.id as string));
+          const missing = ids.filter((id) => !foundSet.has(id));
+          if (missing.length > 0) {
+            const sample = missing.slice(0, 5).join(", ");
+            throw new Error(
+              `Unknown or deleted task(s): ${sample}${missing.length > 5 ? "…" : ""}`,
+            );
+          }
+          for (const it of items) {
+            const patch: Record<string, unknown> = {};
+            if (it.sort_order !== undefined) patch.sort_order = it.sort_order;
+            if (it.status_sort_order !== undefined) {
+              patch.status_sort_order = it.status_sort_order;
+            }
+            const { error: upErr } = await sb
+              .from("admin_tasks")
+              .update(patch)
+              .eq("id", it.task_id)
+              .is("deleted_at", null);
+            if (upErr) throw new Error(upErr.message);
+          }
+          return { ok: true as const, updated_task_ids: ids };
         },
       );
     },
@@ -229,24 +370,18 @@ export function registerTaskTools(server: McpServer, sb: SupabaseClient) {
     description: z.string().optional(),
     status: z.string().optional().default("todo"),
     priority: taskPrioritySchema.optional(),
-    parent_task_id: z
-      .string()
-      .optional()
-      .describe("Override: delsteg under denna parent-task (toppnivå)."),
+    parent_task_id: z.string().optional().describe("Override parent UUID."),
   });
 
   server.registerTool(
     "batch_create_tasks",
     {
       description:
-        "Skapa flera tasks på en gång. Valfri parent_task_id på batch-nivå blir standard förälder för alla rader; varje objekt i tasks kan sätta egen parent_task_id som override. project_id/objective_id ärvs från parent när de utelämnas. Subtasks stöds (en nivå).",
+        "Skapa flera tasks. Batch-parent_task_id + per-rad override; project/objective ärvs från parent vid behov.",
       inputSchema: {
         project_id: z.string().optional(),
         objective_id: z.string().optional(),
-        parent_task_id: z
-          .string()
-          .optional()
-          .describe("Standard-parent (UUID) för alla tasks i listan om inte override per rad."),
+        parent_task_id: z.string().optional().describe("Default parent UUID för alla rader."),
         tasks: z.array(batchTaskItemSchema).min(1),
       },
     },
@@ -301,7 +436,7 @@ export function registerTaskTools(server: McpServer, sb: SupabaseClient) {
           const { data, error } = await sb
             .from("admin_tasks")
             .insert(rows)
-            .select("*");
+            .select(MCP_ADMIN_TASK_SELECT_LIST);
           if (error) throw new Error(error.message);
           return { created: data ?? [] };
         },
@@ -313,7 +448,7 @@ export function registerTaskTools(server: McpServer, sb: SupabaseClient) {
     "create_subtask",
     {
       description:
-        "Skapa ett delsteg under en befintlig task (checklista). Ärver project/objective från föräldern om de inte anges.",
+        "Delsteg under parent_task_id (samma som create_task+parent).",
       inputSchema: {
         parent_task_id: z.string(),
         title: z.string(),
@@ -341,7 +476,7 @@ export function registerTaskTools(server: McpServer, sb: SupabaseClient) {
               priority: "medium",
               created_by: actor,
             })
-            .select("*")
+            .select(MCP_ADMIN_TASK_SELECT_LIST)
             .single();
           if (error) throw new Error(error.message);
           return data;
@@ -354,7 +489,7 @@ export function registerTaskTools(server: McpServer, sb: SupabaseClient) {
     "set_subtask_done",
     {
       description:
-        "Sätt ett delsteg (eller valfri task) till klart (done) eller ångra (todo). När alla delsteg under samma förälder är done uppdateras föräldern automatiskt till done (databastrigger).",
+        "Sätt task/delsteg till done/todo; trigger kan uppdatera parent när alla delsteg är klara.",
       inputSchema: {
         subtask_id: z.string(),
         done: z.boolean(),
@@ -376,7 +511,7 @@ export function registerTaskTools(server: McpServer, sb: SupabaseClient) {
             .from("admin_tasks")
             .update(patch)
             .eq("id", subtask_id)
-            .select("*")
+            .select(MCP_ADMIN_TASK_SELECT_LIST)
             .single();
           if (error) throw new Error(error.message);
           return data;

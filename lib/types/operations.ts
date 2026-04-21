@@ -3,6 +3,7 @@ export type TaskStatus =
   | "in_progress"
   | "blocked"
   | "review"
+  | "paused"
   | "done"
   | "cancelled"
 
@@ -20,6 +21,7 @@ export type ProjectStatus =
   | "planned"
   | "active"
   | "on_hold"
+  | "paused"
   | "completed"
   | "archived"
 
@@ -28,6 +30,7 @@ export type ProjectPriority = "low" | "medium" | "high" | "critical"
 export type ObjectiveStatus =
   | "draft"
   | "active"
+  | "paused"
   | "completed"
   | "archived"
 
@@ -35,6 +38,7 @@ export type ObjectiveProgressMethod =
   | "manual"
   | "key_results"
   | "tasks"
+  | "insights"
 
 export type KeyResultType = "numeric" | "milestone" | "binary"
 
@@ -151,6 +155,16 @@ export interface Goal {
   creator?: AdminUserMin
 }
 
+// ─── Objective insights (progress_method = insights) ────────
+
+export interface ObjectiveInsight {
+  id: string
+  objective_id: string
+  body: string
+  created_at: string
+  created_by?: string | null
+}
+
 // ─── Objective ───────────────────────────────────────────────
 
 export interface Objective {
@@ -164,6 +178,8 @@ export interface Objective {
   strategy_area: StrategyArea | null
   progress_method: ObjectiveProgressMethod
   manual_progress: number | null
+  /** When progress_method = insights: target count of unique insights for 100%. */
+  insights_target?: number | null
   deleted_at: string | null
   created_at: string
   updated_at: string
@@ -176,6 +192,8 @@ export interface Objective {
   kr_progress_aggregate?: number | null
   /** Average task-based progress across projects under this objective (detail). */
   project_delivery_progress?: number | null
+  /** Detail: rows for progress_method insights. */
+  insights?: ObjectiveInsight[]
   // Joins
   key_results?: KeyResult[]
   goal?: GoalMin | null
@@ -403,6 +421,7 @@ export interface CreateObjectiveData {
   strategy_area?: StrategyArea | null
   progress_method?: ObjectiveProgressMethod
   manual_progress?: number | null
+  insights_target?: number | null
 }
 
 export type UpdateObjectiveData = Partial<CreateObjectiveData>

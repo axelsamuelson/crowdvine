@@ -4,6 +4,7 @@ import React, { Suspense, memo, useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { Product } from "@/lib/shopify/types";
 import { AddToCart, AddToCartButton } from "@/components/cart/add-to-cart";
+import { ShopWineCasePicker } from "@/components/cart/shop-wine-case-sheet";
 import { formatPrice, priceExclVat } from "@/lib/shopify/utils";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { VariantSelector } from "../variant-selector";
@@ -129,12 +130,19 @@ export const ProductCard = memo(
     hasNoOptions || hasOneOptionWithOneValue || justHasColorOption;
 
   // Check if this is a wine box product
-  const isWineBox = (product as any).productType === "wine-box";
+  const productType = (product as { productType?: string }).productType;
+  const isWineBox = productType === "wine-box";
   const discountInfo = (product as any).discountInfo;
 
   const { addItem } = useCart();
   const showExclVat = useB2BPriceMode();
   const [isTouched, setIsTouched] = useState(false);
+
+  const shopCaseWineCta =
+    !showExclVat &&
+    !isWineBox &&
+    productType === "wine" &&
+    Boolean(product.producerId);
 
   // Keep overlay visible until another product card is activated
   useEffect(() => {
@@ -778,21 +786,38 @@ export const ProductCard = memo(
                   />
                 </div>
               </div>
-              <Button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleAddToCart();
-                }}
-                disabled={!getBaseProductVariant()}
-                className="w-full bg-black hover:bg-black/90 text-white border-black rounded-md"
-                size="sm"
-              >
-                <div className="flex items-center justify-center gap-1.5">
-                  <span className="text-xs">Add to cart</span>
-                  <CirclePlus className="size-3.5" />
-                </div>
-              </Button>
+              {shopCaseWineCta ? (
+                <Suspense
+                  fallback={
+                    <Button
+                      type="button"
+                      disabled
+                      className="w-full bg-black hover:bg-black/90 text-white border-black rounded-md"
+                      size="sm"
+                    >
+                      <span className="text-xs">Add case</span>
+                    </Button>
+                  }
+                >
+                  <ShopWineCasePicker product={product} size="sm" className="w-full" />
+                </Suspense>
+              ) : (
+                <Button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleAddToCart();
+                  }}
+                  disabled={!getBaseProductVariant()}
+                  className="w-full bg-black hover:bg-black/90 text-white border-black rounded-md"
+                  size="sm"
+                >
+                  <div className="flex items-center justify-center gap-1.5">
+                    <span className="text-xs">Add to cart</span>
+                    <CirclePlus className="size-3.5" />
+                  </div>
+                </Button>
+              )}
             </div>
           </div>
         )}
@@ -838,21 +863,38 @@ export const ProductCard = memo(
                   />
                 </div>
               </div>
-              <Button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleAddToCart();
-                }}
-                disabled={!getBaseProductVariant()}
-                className="w-full bg-black hover:bg-black/90 text-white border-black rounded-md"
-                size="sm"
-              >
-                <div className="flex items-center justify-center gap-1.5">
-                  <span className="text-xs">Add to cart</span>
-                  <CirclePlus className="size-3.5" />
-                </div>
-              </Button>
+              {shopCaseWineCta ? (
+                <Suspense
+                  fallback={
+                    <Button
+                      type="button"
+                      disabled
+                      className="w-full bg-black hover:bg-black/90 text-white border-black rounded-md"
+                      size="sm"
+                    >
+                      <span className="text-xs">Add case</span>
+                    </Button>
+                  }
+                >
+                  <ShopWineCasePicker product={product} size="sm" className="w-full" />
+                </Suspense>
+              ) : (
+                <Button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleAddToCart();
+                  }}
+                  disabled={!getBaseProductVariant()}
+                  className="w-full bg-black hover:bg-black/90 text-white border-black rounded-md"
+                  size="sm"
+                >
+                  <div className="flex items-center justify-center gap-1.5">
+                    <span className="text-xs">Add to cart</span>
+                    <CirclePlus className="size-3.5" />
+                  </div>
+                </Button>
+              )}
             </div>
           </div>
         )}
@@ -941,11 +983,15 @@ export const ProductCard = memo(
                       />
                     }
                   >
-                    <AddToCart
-                      size="sm"
-                      product={product}
-                      className="w-full"
-                    />
+                    {shopCaseWineCta ? (
+                      <ShopWineCasePicker product={product} size="sm" className="w-full" />
+                    ) : (
+                      <AddToCart
+                        size="sm"
+                        product={product}
+                        className="w-full"
+                      />
+                    )}
                   </Suspense>
                 </div>
               </>
@@ -961,11 +1007,19 @@ export const ProductCard = memo(
                       />
                     }
                   >
-                    <AddToCart
-                      product={product}
-                      size="sm"
-                      className="bg-black hover:bg-black/90 text-white border-black rounded-md w-full"
-                    />
+                    {shopCaseWineCta ? (
+                      <ShopWineCasePicker
+                        product={product}
+                        size="sm"
+                        className="bg-black hover:bg-black/90 text-white border-black rounded-md w-full"
+                      />
+                    ) : (
+                      <AddToCart
+                        product={product}
+                        size="sm"
+                        className="bg-black hover:bg-black/90 text-white border-black rounded-md w-full"
+                      />
+                    )}
                   </Suspense>
                 </div>
                 <div className="min-w-0">

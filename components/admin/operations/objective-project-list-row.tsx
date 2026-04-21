@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { Pause } from "lucide-react"
 import { ProjectStatusBadge } from "@/components/admin/operations/project-status-badge"
 import { ProjectDeleteWithTasksControl } from "@/components/admin/operations/project-delete-with-tasks-control"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -29,11 +30,14 @@ export function ObjectiveProjectListRow({
   selected?: boolean
   onSelectedChange?: (selected: boolean) => void
 }) {
+  const isPaused = project.status === "paused"
+
   return (
     <div
       className={cn(
         "flex items-center justify-between gap-3 px-4 py-3",
-        "hover:bg-gray-50 dark:hover:bg-zinc-900/40 transition-colors"
+        "hover:bg-gray-50 dark:hover:bg-zinc-900/40 transition-colors",
+        isPaused && "opacity-55 saturate-[0.65] dark:opacity-60",
       )}
     >
       {selectable && onSelectedChange ? (
@@ -53,8 +57,16 @@ export function ObjectiveProjectListRow({
         href={`/admin/operations/projects/${project.id}`}
         className="min-w-0 flex-1 flex items-center justify-between gap-3 text-left"
       >
-        <span className="min-w-0 truncate text-sm font-medium text-gray-800 dark:text-gray-200">
-          {project.name}
+        <span className="flex min-w-0 items-center gap-2">
+          {isPaused ? (
+            <Pause
+              className="h-3.5 w-3.5 shrink-0 fill-current text-zinc-500 dark:text-zinc-400"
+              aria-hidden
+            />
+          ) : null}
+          <span className="min-w-0 truncate text-sm font-medium text-gray-800 dark:text-gray-200">
+            {project.name}
+          </span>
         </span>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 sm:gap-3">
           <span className="tabular-nums text-xs font-medium text-gray-600 dark:text-zinc-400">

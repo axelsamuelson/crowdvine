@@ -9,11 +9,12 @@ import { CreateObjectiveButton } from "@/components/admin/operations/create-obje
 import { CreatedMetaLine } from "@/components/admin/operations/created-meta-line"
 import { ObjectiveOutcomeDeliveryHint } from "@/components/admin/operations/objective-outcome-delivery-hint"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import type { Task } from "@/lib/types/operations"
+import type { Project, Task } from "@/lib/types/operations"
 import { ObjectiveProjectsPanel } from "@/components/admin/operations/objective-projects-panel"
 import { DetailBreadcrumbTitle } from "@/components/admin/detail-breadcrumb-title"
 import { ObjectiveDetailDelete } from "@/components/admin/operations/objective-detail-delete"
 import { ObjectiveDetailTitleEditor } from "@/components/admin/operations/objective-detail-title-editor"
+import { ObjectiveInsightsPanel } from "@/components/admin/operations/objective-insights-panel"
 
 const STRATEGY_COLORS: Record<string, string> = {
   Growth:
@@ -157,6 +158,14 @@ export default async function ObjectiveDetailPage({
         )}
       </div>
 
+      {objective.progress_method === "insights" ? (
+        <ObjectiveInsightsPanel
+          objectiveId={objective.id}
+          initialInsights={objective.insights ?? []}
+          insightsTarget={objective.insights_target ?? 1}
+        />
+      ) : null}
+
       {/* Tabs */}
       <Tabs defaultValue={defaultTab} key={defaultTab}>
         <TabsList className="h-auto min-h-10 w-full min-w-0 flex-wrap justify-start gap-1 rounded-xl border border-gray-200 bg-gray-100 p-1 dark:border-zinc-700 dark:bg-zinc-900 sm:inline-flex sm:w-auto sm:flex-nowrap">
@@ -172,7 +181,7 @@ export default async function ObjectiveDetailPage({
         <TabsContent value="projects" className="mt-4 space-y-4 min-w-0">
           <ObjectiveProjectsPanel
             objectiveId={objective.id}
-            projects={projects.map((project) => ({
+            projects={projects.map((project: Project) => ({
               id: project.id,
               name: project.name,
               status: project.status,

@@ -1,6 +1,9 @@
+import { getCurrentUser } from "../../lib/auth";
+import { getMemberDiscountPercentForUserId } from "../../lib/membership/server-member-discount";
+import { memberDiscountedTotalInclVat } from "../../lib/price-breakdown";
 import { supabaseServer } from "../../lib/supabase-server";
-import { getOrSetCartId, clearCartId } from "./cookies";
 import type { Cart, CartItem } from "../../lib/shopify/types";
+import { getOrSetCartId, clearCartId } from "./cookies";
 
 export class CartService {
   private static async ensureCart() {
@@ -108,6 +111,11 @@ export class CartService {
         return emptyCart;
       }
 
+      const user = await getCurrentUser();
+      const memberDiscountPercent = user
+        ? await getMemberDiscountPercentForUserId(user.id)
+        : 0;
+
       const lines: CartItem[] = cartItems.map((item) => {
         // Build selectedOptions from wine color
         const selectedOptions = item.wines.color
@@ -120,16 +128,20 @@ export class CartService {
           : (item.wines as any).producers?.name 
           || undefined;
 
+        const unitListSek = Math.ceil(item.wines.base_price_cents / 100);
+        const unitMemberSek = memberDiscountedTotalInclVat(
+          unitListSek,
+          memberDiscountPercent,
+        );
+        const lineTotalSek = unitMemberSek * item.quantity;
+
         return {
           id: item.id,
           quantity: item.quantity,
           source: (item as any).source || "producer", // Default to producer for backwards compatibility
           cost: {
             totalAmount: {
-              amount: (
-                (item.wines.base_price_cents * item.quantity) /
-                100
-              ).toString(),
+              amount: lineTotalSek.toString(),
               currencyCode: "SEK",
             },
           },
@@ -153,9 +165,7 @@ export class CartService {
                   title: "750 ml",
                   availableForSale: true,
                   price: {
-                    amount: Math.round(
-                      item.wines.base_price_cents / 100,
-                    ).toString(),
+                    amount: unitMemberSek.toString(),
                     currencyCode: "SEK",
                   },
                   selectedOptions,
@@ -163,15 +173,11 @@ export class CartService {
               ],
               priceRange: {
                 minVariantPrice: {
-                  amount: Math.round(
-                    item.wines.base_price_cents / 100,
-                  ).toString(),
+                  amount: unitMemberSek.toString(),
                   currencyCode: "SEK",
                 },
                 maxVariantPrice: {
-                  amount: Math.round(
-                    item.wines.base_price_cents / 100,
-                  ).toString(),
+                  amount: unitMemberSek.toString(),
                   currencyCode: "SEK",
                 },
               },
@@ -258,56 +264,42 @@ export class CartService {
       const sb = await supabaseServer();
       console.log("🔧 Supabase client obtained");
 
-      // Use upsert to either insert or update in a single operation
-      console.log("🔧 Attempting upsert...");
-      const { error: upsertError } = await sb.from("cart_items").upsert(
-        {
-          cart_id: cartId,
-          wine_id: wineId,
-          quantity: sb.raw(`COALESCE(quantity, 0) + ${quantity}`),
-        },
-        {
-          onConflict: "cart_id,wine_id",
-          ignoreDuplicates: false,
-        },
-      );
+      // Read–modify–write (no sb.raw / SQL fragments — those are not supported on this client).
+      const { data: existingItem, error: selectError } = await sb
+        .from("cart_items")
+        .select("id, quantity")
+        .eq("cart_id", cartId)
+        .eq("wine_id", wineId)
+        .maybeSingle();
 
-      if (upsertError) {
-        console.log("🔧 Upsert failed, trying fallback method:", upsertError);
-        // Fallback to manual check and update if upsert fails
-        const { data: existingItem } = await sb
+      if (selectError) {
+        console.error("🔧 Failed to read cart item:", selectError);
+        throw new Error("Failed to read cart item");
+      }
+
+      if (existingItem) {
+        console.log("🔧 Found existing item, updating quantity");
+        const { error: updateError } = await sb
           .from("cart_items")
-          .select("id, quantity")
-          .eq("cart_id", cartId)
-          .eq("wine_id", wineId)
-          .single();
+          .update({ quantity: existingItem.quantity + quantity })
+          .eq("id", existingItem.id);
 
-        if (existingItem) {
-          console.log("🔧 Found existing item, updating quantity");
-          const { error: updateError } = await sb
-            .from("cart_items")
-            .update({ quantity: existingItem.quantity + quantity })
-            .eq("id", existingItem.id);
-
-          if (updateError) {
-            console.error("🔧 Update error:", updateError);
-            throw new Error("Failed to update cart item");
-          }
-        } else {
-          console.log("🔧 No existing item, inserting new");
-          const { error: insertError } = await sb.from("cart_items").insert({
-            cart_id: cartId,
-            wine_id: wineId,
-            quantity,
-          });
-
-          if (insertError) {
-            console.error("🔧 Insert error:", insertError);
-            throw new Error("Failed to add cart item");
-          }
+        if (updateError) {
+          console.error("🔧 Update error:", updateError);
+          throw new Error("Failed to update cart item");
         }
       } else {
-        console.log("🔧 Upsert successful");
+        console.log("🔧 No existing item, inserting new");
+        const { error: insertError } = await sb.from("cart_items").insert({
+          cart_id: cartId,
+          wine_id: wineId,
+          quantity,
+        });
+
+        if (insertError) {
+          console.error("🔧 Insert error:", insertError);
+          throw new Error("Failed to add cart item");
+        }
       }
 
       // Return updated cart

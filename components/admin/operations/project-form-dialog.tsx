@@ -42,7 +42,14 @@ import type {
 const schema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
-  status: z.enum(["planned", "active", "on_hold", "completed", "archived"]),
+  status: z.enum([
+    "planned",
+    "active",
+    "on_hold",
+    "paused",
+    "completed",
+    "archived",
+  ]),
   priority: z.enum(["low", "medium", "high", "critical"]),
   objective_id: z.string().nullable().optional(),
   key_result_id: z.string().nullable().optional(),
@@ -233,6 +240,7 @@ export function ProjectFormDialog({
                         <SelectItem value="planned">Planned</SelectItem>
                         <SelectItem value="active">Active</SelectItem>
                         <SelectItem value="on_hold">On Hold</SelectItem>
+                        <SelectItem value="paused">Paused</SelectItem>
                         <SelectItem value="completed">Completed</SelectItem>
                         <SelectItem value="archived">Archived</SelectItem>
                       </SelectContent>

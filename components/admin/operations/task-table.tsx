@@ -24,7 +24,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Unlink, Trash2, Pencil } from "lucide-react"
+import { Unlink, Trash2, Pencil, Pause } from "lucide-react"
+import { cn } from "@/lib/utils"
 import { TaskStatusBadge } from "./task-status-badge"
 import { TaskPriorityBadge } from "./task-priority-badge"
 import { TaskFormDialog } from "./task-form-dialog"
@@ -49,6 +50,8 @@ interface Props {
    * Tasks may still have a stale `objective_id` / objective join from before the project moved.
    */
   objectiveDisplayOverride?: { id: string; title: string } | null
+  /** Projekt-sida: visa hela tasktiteln utan truncate. */
+  wrapTaskTitles?: boolean
 }
 
 export function TaskTable({
@@ -59,6 +62,7 @@ export function TaskTable({
   showProject = true,
   showObjective = true,
   objectiveDisplayOverride = null,
+  wrapTaskTitles = false,
 }: Props) {
   const router = useRouter()
   const today = new Date().toISOString().split("T")[0]
@@ -101,14 +105,15 @@ export function TaskTable({
       !!task.due_date &&
       task.due_date < today &&
       task.status !== "done" &&
-      task.status !== "cancelled"
+      task.status !== "cancelled" &&
+      task.status !== "paused"
     )
   }
 
   return (
     <>
       <div className="rounded-xl border border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-[#0F0F12] min-w-0">
-        <Table scrollContainer className="min-w-[920px]">
+        <Table className="min-w-[920px]">
           <TableHeader>
             <TableRow className="bg-gray-50 dark:bg-zinc-900/70 border-b border-gray-200 dark:border-zinc-800">
               <TableHead className="w-10 text-xs font-medium text-gray-600 dark:text-zinc-400">
@@ -149,7 +154,11 @@ export function TaskTable({
             {tasks.map((task) => (
               <TableRow
                 key={task.id}
-                className="cursor-pointer border-b border-gray-100 dark:border-zinc-800/50 hover:bg-gray-50 dark:hover:bg-zinc-800/50"
+                className={cn(
+                  "cursor-pointer border-b border-gray-100 dark:border-zinc-800/50 hover:bg-gray-50 dark:hover:bg-zinc-800/50",
+                  task.status === "paused" &&
+                    "opacity-55 saturate-[0.65] dark:opacity-60",
+                )}
                 onClick={() =>
                   router.push(`/admin/operations/tasks/${task.id}`)
                 }
@@ -162,14 +171,36 @@ export function TaskTable({
                   />
                 </TableCell>
 
-                <TableCell className="font-medium max-w-[260px]">
-                  <div className="flex items-center gap-2">
+                <TableCell
+                  className={
+                    wrapTaskTitles
+                      ? "min-w-0 max-w-[min(100vw-6rem,52rem)] font-medium"
+                      : "font-medium max-w-[260px]"
+                  }
+                >
+                  <div className="flex items-start gap-2">
+                    {task.status === "paused" ? (
+                      <span
+                        title="Paused"
+                        className="mt-0.5 shrink-0 text-zinc-500 dark:text-zinc-400"
+                      >
+                        <Pause className="h-3.5 w-3.5 fill-current" aria-hidden />
+                      </span>
+                    ) : null}
                     {!task.project_id && (
-                      <span title="Not linked to a project" className="flex-shrink-0">
+                      <span title="Not linked to a project" className="mt-0.5 flex-shrink-0">
                         <Unlink className="h-3 w-3 text-amber-500 dark:text-amber-400" />
                       </span>
                     )}
-                    <span className="truncate text-gray-900 dark:text-gray-100">{task.title}</span>
+                    <span
+                      className={
+                        wrapTaskTitles
+                          ? "whitespace-normal break-words text-gray-900 dark:text-gray-100"
+                          : "truncate text-gray-900 dark:text-gray-100"
+                      }
+                    >
+                      {task.title}
+                    </span>
                   </div>
                 </TableCell>
 

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
+import { CartService } from "@/src/lib/cart-service";
 
 export async function POST(request: Request) {
   try {
@@ -131,108 +131,16 @@ export async function POST(request: Request) {
 
     console.log("🔧 Item added/updated successfully");
 
-    // Get updated cart with wine details in a single query
-    const { data: cartItems, error: fetchError } = await supabase
-      .from("cart_items")
-      .select(
-        `
-        id,
-        quantity,
-        source,
-        wines (
-          id,
-          handle,
-          wine_name,
-          vintage,
-          label_image_path,
-          base_price_cents,
-          color,
-          producer_id,
-          producers (
-            name
-          )
-        )
-      `,
-      )
-      .eq("cart_id", dbCartId)
-      .order("created_at", { ascending: false });
-
-    if (fetchError) {
-      console.error("🔧 Error fetching cart items:", fetchError);
+    const cart = await CartService.getCart();
+    if (!cart) {
       return NextResponse.json(
-        { error: "Failed to fetch cart" },
+        { error: "Failed to load cart" },
         { status: 500 },
       );
     }
 
-    console.log("🔧 Cart items fetched:", cartItems?.length || 0);
-
-    // Build cart response
-    const lines = (cartItems || []).map((item) => {
-      const selectedOptions = item.wines.color
-        ? [{ name: "Color", value: item.wines.color }]
-        : [];
-      
-      // Get producer name - producers can be array or object
-      const producerName = Array.isArray(item.wines.producers)
-        ? item.wines.producers[0]?.name
-        : item.wines.producers?.name;
-
-      return {
-        id: item.id,
-        quantity: item.quantity,
-        source: (item as any).source || "producer", // Default to producer for backwards compatibility
-        cost: {
-          totalAmount: {
-            amount: Math.round(
-              (item.wines.base_price_cents * item.quantity) / 100,
-            ).toString(),
-            currencyCode: "SEK",
-          },
-        },
-        merchandise: {
-          id: item.wines.id,
-          title: `${item.wines.wine_name} ${item.wines.vintage}`,
-          selectedOptions,
-          product: {
-            id: item.wines.id,
-            title: `${item.wines.wine_name} ${item.wines.vintage}`,
-            handle: item.wines.handle,
-            producerName: producerName,
-            featuredImage: {
-              url: item.wines.label_image_path || DEFAULT_WINE_IMAGE_PATH,
-              altText: `${item.wines.wine_name} ${item.wines.vintage}`,
-            },
-          },
-        },
-      };
-    });
-
-    const subtotal = lines.reduce(
-      (sum, line) => sum + parseFloat(line.cost.totalAmount.amount),
-      0,
-    );
-
-    const cart = {
-      id: dbCartId,
-      checkoutUrl: "/checkout",
-      cost: {
-        subtotalAmount: {
-          amount: Math.round(subtotal).toString(),
-          currencyCode: "SEK",
-        },
-        totalAmount: {
-          amount: Math.round(subtotal).toString(),
-          currencyCode: "SEK",
-        },
-        totalTaxAmount: { amount: "0", currencyCode: "SEK" },
-      },
-      totalQuantity: lines.reduce((sum, line) => sum + line.quantity, 0),
-      lines,
-    };
-
     console.log(
-      "🔧 Cart built with",
+      "🔧 Cart loaded with",
       cart.lines.length,
       "items, total quantity:",
       cart.totalQuantity,
@@ -240,7 +148,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      cart: cart,
+      cart,
     });
   } catch (error) {
     console.error("🔧 Simple add API error:", error);
