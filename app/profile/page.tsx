@@ -2,79 +2,28 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { PageLayout } from "@/components/layout/page-layout";
-import { SocialProfileHeader } from "@/components/profile/social-profile-header";
-import { SocialProfileTabs } from "@/components/profile/social-profile-tabs";
 import { B2BProfileLayout } from "@/components/profile/b2b-profile-layout";
+import { ReferralInviteCard } from "@/components/profile/referral-invite-card";
 import { LevelBadge } from "@/components/membership/level-badge";
-import { PerksGrid, LockedPerks } from "@/components/membership/perks-grid";
 import { IPTimeline } from "@/components/membership/ip-timeline";
 import { LevelProgress } from "@/components/membership/level-progress";
-import { InviteQuotaDisplay } from "@/components/membership/invite-quota-display";
-import { ProgressionBuffDisplay } from "@/components/membership/progression-buff-display";
 import {
   GoldCelebration,
   useGoldCelebration,
 } from "@/components/membership/gold-celebration";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  CreditCard, 
-  Plus, 
-  Edit, 
-  Save, 
-  X,
-  UserPlus,
-  Copy,
-  Check,
-  Wifi,
-  WifiOff,
-  Package,
-  Settings,
-  Search,
-  TrendingUp,
-  ArrowRight,
-} from "lucide-react";
+import { Package, Settings, TrendingUp } from "lucide-react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { buildInviteUrl, getBaseUrlForInvite } from "@/lib/invitation-path";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
 // PaymentMethodCard removed - using new payment flow
-import { MiniProgress } from "@/components/ui/progress-components";
-import { getTimeUntilReset } from "@/lib/membership/invite-quota";
 import { MembershipLevel, getVoucherProgress, getVoucherDiscountPercent } from "@/lib/membership/points-engine";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { formatPrice } from "@/lib/shopify/utils";
-import { MetallicMembershipCard, MembershipCardHorizontal } from "@/components/invite-landing/metallic-membership-card";
-import "@/app/profile/profile-membership-card.css";
-
-/** Card variant for metallic membership card (excludes requester). */
-const CARD_LEVELS: Exclude<MembershipLevel, "requester">[] = [
-  "basic",
-  "brons",
-  "silver",
-  "guld",
-  "privilege",
-];
-function toCardLevel(level: MembershipLevel): Exclude<MembershipLevel, "requester"> {
-  if (CARD_LEVELS.includes(level as (typeof CARD_LEVELS)[number]))
-    return level as Exclude<MembershipLevel, "requester">;
-  return "basic";
-}
+import { cn } from "@/lib/utils";
 
 interface UserProfile {
   id: string;
@@ -85,6 +34,8 @@ interface UserProfile {
   city?: string;
   postal_code?: string;
   country?: string;
+  avatar_image_path?: string | null;
+  created_at?: string;
 }
 
 interface MembershipData {
@@ -129,23 +80,7 @@ interface PaymentMethod {
 }
 
 function ProfilePageContent() {
-  const router = useRouter();
-
-  type SearchResultUser = { id: string; full_name?: string; description?: string; avatar_image_path?: string | null };
-  type SearchResultWine = { id: string; name: string; handle: string; producerName: string; color?: string | null; imageUrl?: string | null; priceCents?: number | null };
-  type SearchResultProducer = { id: string; name: string; region?: string | null; handle: string; logoUrl?: string | null };
-  type SearchResults = { users: SearchResultUser[]; wines: SearchResultWine[]; producers: SearchResultProducer[] };
-
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const [searchResults, setSearchResults] = useState<SearchResults>({ users: [], wines: [], producers: [] });
-  const [searchActiveIndex, setSearchActiveIndex] = useState(0);
-  const searchWrapRef = useRef<HTMLDivElement | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  /** Staff admin (profiles) — not membership tier */
-  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
   const [membershipData, setMembershipData] = useState<MembershipData | null>(
     null,
   );
@@ -164,37 +99,30 @@ function ProfilePageContent() {
   const [ipEvents, setIpEvents] = useState<any[]>([]);
   // Payment methods removed - using new payment flow
   const [reservations, setReservations] = useState<any[]>([]);
-  const [invitations, setInvitations] = useState<any[]>([]);
+
+  const orderStats = useMemo(() => {
+    let bottles = 0;
+    const producers = new Set<string>();
+    for (const r of reservations) {
+      for (const it of r.items || []) {
+        bottles += Number(it.quantity) || 0;
+        if (it.producer_name) producers.add(String(it.producer_name));
+      }
+    }
+    return { bottles, uniqueProducers: producers.size };
+  }, [reservations]);
+
   const [loading, setLoading] = useState(true);
   const [unauthorized, setUnauthorized] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [editing, setEditing] = useState(false);
-  const [generatingInvite, setGeneratingInvite] = useState(false);
-  const [copiedCode, setCopiedCode] = useState(false);
-  const [copiedUrl, setCopiedUrl] = useState(false);
-  const [selectedLevel, setSelectedLevel] = useState<MembershipLevel>("basic");
-  const [editForm, setEditForm] = useState({
-    full_name: "",
-    phone: "",
-    address: "",
-    city: "",
-    postal_code: "",
-    country: "Sweden",
+
+  const [dashTab, setDashTab] = useState<"orders" | "activity" | "perks">(
+    "orders",
+  );
+  const [referralInfo, setReferralInfo] = useState({
+    inviteUrl: "",
+    invitedCount: 0,
+    activatedCount: 0,
   });
-
-  // v2: Progression buffs state
-  const [progressionBuffs, setProgressionBuffs] = useState<any[]>([]);
-  const [totalBuffPercentage, setTotalBuffPercentage] = useState(0);
-
-  // Social profile state
-  const [activeTab, setActiveTab] = useState("reservations");
-  const [followersCount, setFollowersCount] = useState(0);
-  const [followingCount, setFollowingCount] = useState(0);
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
-  const [suggestedUsers, setSuggestedUsers] = useState<any[]>([]);
-  const [loadingSuggestions, setLoadingSuggestions] = useState(true);
-  const [suggestionsError, setSuggestionsError] = useState<string | null>(null);
 
   type LastViewedProduct = {
     id: string;
@@ -243,15 +171,10 @@ function ProfilePageContent() {
   useEffect(() => {
     Promise.all([
       fetchProfile(),
-      fetchAdminAccess(),
       fetchMembershipData(),
       fetchIPEvents(),
-      // fetchPaymentMethods removed - using new payment flow
       fetchReservations(),
-      fetchInvitations(),
-      fetchProgressionBuffs(), // v2: fetch progression buffs
-      fetchSuggestedUsers(),
-      fetchFollowStats(),
+      fetchReferralLink(),
     ]).finally(() => setLoading(false));
 
     // Payment method setup check removed - using new payment flow
@@ -279,101 +202,15 @@ function ProfilePageContent() {
     };
   }, []);
 
-  const searchSectioned = useMemo(() => {
-    type Item = {
-      key: string;
-      href: string;
-      title: string;
-      subtitle?: string;
-      imageUrl?: string | null;
-      badge?: string;
-    };
-
-    const users: Item[] = (searchResults.users || []).map((u) => ({
-      key: `user-${u.id}`,
-      href: `/profile/${u.id}`,
-      title: u.full_name || "User",
-      subtitle: u.description || undefined,
-      imageUrl: u.avatar_image_path || undefined,
-      badge: "User",
-    }));
-
-    const wines: Item[] = (searchResults.wines || []).map((w) => ({
-      key: `wine-${w.id}`,
-      href: `/product/${w.handle}`,
-      title: w.name,
-      subtitle: w.producerName,
-      imageUrl: w.imageUrl || undefined,
-      badge: w.color || "Wine",
-    }));
-
-    const producers: Item[] = (searchResults.producers || []).map((pr) => ({
-      key: `producer-${pr.id}`,
-      href: `/shop/${pr.handle}`,
-      title: pr.name,
-      subtitle: pr.region || undefined,
-      imageUrl: pr.logoUrl || undefined,
-      badge: "Producer",
-    }));
-
-    const flat: Item[] = [...users, ...wines, ...producers];
-
-    return { users, wines, producers, flat };
-  }, [searchResults]);
-
-  const flattenedSearchItems = searchSectioned.flat;
-
-
   useEffect(() => {
-    if (!searchOpen) return;
-    const onDown = (e: MouseEvent) => {
-      const el = searchWrapRef.current;
-      if (!el) return;
-      if (e.target instanceof Node && !el.contains(e.target)) {
-        setSearchOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
-  }, [searchOpen]);
-
-  useEffect(() => {
-    const q = searchQuery.trim();
-    if (q.length < 2) {
-      setSearchResults({ users: [], wines: [], producers: [] });
-      setSearchError(null);
-      return;
+    if (!membershipData) return;
+    if (typeof window === "undefined") return;
+    const justUpgraded = localStorage.getItem("just_upgraded_to_gold") === "true";
+    if (justUpgraded) {
+      checkAndShowCelebration(membershipData.membership.level, true);
+      localStorage.removeItem("just_upgraded_to_gold");
     }
-
-    const t = window.setTimeout(async () => {
-      try {
-        setSearchLoading(true);
-        setSearchError(null);
-        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
-        if (!res.ok) {
-          setSearchError('Search failed');
-          setSearchResults({ users: [], wines: [], producers: [] });
-          return;
-        }
-        const data = await res.json();
-        setSearchResults({
-          users: Array.isArray(data.users) ? data.users : [],
-          wines: Array.isArray(data.wines) ? data.wines : [],
-          producers: Array.isArray(data.producers) ? data.producers : [],
-        });
-        setSearchActiveIndex(0);
-      } catch {
-        setSearchError('Search failed');
-        setSearchResults({ users: [], wines: [], producers: [] });
-      } finally {
-        setSearchLoading(false);
-      }
-    }, 250);
-
-    return () => window.clearTimeout(t);
-  }, [searchQuery, searchOpen]);
-
-
+  }, [membershipData, checkAndShowCelebration]);
 
   // Real-time subscription for invitations and IP updates
   useEffect(() => {
@@ -395,8 +232,7 @@ function ProfilePageContent() {
         (payload) => {
           console.log("Invitation change:", payload);
 
-          // Refresh invitations when any change occurs
-          fetchInvitations();
+          void fetchReferralLink();
 
           // If an invitation was used, show toast and refresh IP
           if (payload.eventType === "UPDATE" && payload.new?.used_at) {
@@ -422,10 +258,8 @@ function ProfilePageContent() {
         (payload) => {
           console.log("New IP event:", payload);
 
-          // Refresh IP events, membership data, and progression buffs
           fetchIPEvents();
           fetchMembershipData();
-          fetchProgressionBuffs(); // v2: check for new buffs
         },
       )
       .subscribe();
@@ -434,14 +268,6 @@ function ProfilePageContent() {
       supabase.removeChannel(invitationChannel);
       supabase.removeChannel(ipEventsChannel);
     };
-  }, [profile?.id]);
-
-  // Followers/following counts (placeholder until API is wired)
-  useEffect(() => {
-    if (profile?.id) {
-      setFollowersCount(0);
-      setFollowingCount(0);
-    }
   }, [profile?.id]);
 
   const fetchProfile = async () => {
@@ -455,46 +281,30 @@ function ProfilePageContent() {
         const data = await res.json();
         if (data.profile) {
           setProfile(data.profile);
-      setEditForm({
-            full_name: data.profile.full_name || "",
-            phone: data.profile.phone || "",
-            address: data.profile.address || "",
-            city: data.profile.city || "",
-            postal_code: data.profile.postal_code || "",
-            country: data.profile.country || "Sweden",
-          });
         }
       } else {
-        setLoadError("Failed to load profile");
+        console.error("Failed to load profile");
       }
     } catch (error) {
-      setLoadError("Failed to load profile");
       console.error("Error fetching profile:", error);
     }
   };
 
-  const fetchFollowStats = async () => {
+  const fetchReferralLink = async () => {
     try {
-      const res = await fetch("/api/user/follow/stats");
+      const res = await fetch("/api/user/referral");
       if (res.ok) {
-        const data = await res.json();
-        setFollowersCount(data.followers || 0);
-        setFollowingCount(data.following || 0);
+        const j = await res.json();
+        setReferralInfo({
+          inviteUrl: typeof j.inviteUrl === "string" ? j.inviteUrl : "",
+          invitedCount:
+            typeof j.invitedCount === "number" ? j.invitedCount : 0,
+          activatedCount:
+            typeof j.activatedCount === "number" ? j.activatedCount : 0,
+        });
       }
-    } catch (error) {
-      console.error("Error fetching follow stats:", error);
-    }
-  };
-
-  const fetchAdminAccess = async () => {
-    try {
-      const res = await fetch("/api/me/admin");
-      if (res.ok) {
-        const data = await res.json();
-        setIsPlatformAdmin(!!data.isAdmin);
-      }
-    } catch {
-      setIsPlatformAdmin(false);
+    } catch (e) {
+      console.error("Error fetching referral link:", e);
     }
   };
 
@@ -537,233 +347,6 @@ function ProfilePageContent() {
     }
   };
 
-  const fetchInvitations = async () => {
-    try {
-      const res = await fetch("/api/user/invitations");
-      if (res.ok) {
-        const data = await res.json();
-        const all = [...(data.active || []), ...(data.used || [])];
-        if (all.length > 0) {
-          // Build signupUrl for each invitation if not present
-          const enrichedInvitations = all.map((inv: any) => {
-            if (inv.code && !inv.signupUrl) {
-              const allowed = inv.allowed_types ?? (inv.invitation_type ? [inv.invitation_type] : ["consumer"]);
-              inv.signupUrl = buildInviteUrl(inv.code, allowed);
-              const baseUrl = getBaseUrlForInvite(allowed);
-              const cleanCode = inv.code.trim().replace(/\s+/g, "");
-              inv.codeSignupUrl = `${baseUrl}/c/${cleanCode}`;
-
-              console.log("🔗 Built signup URL:", {
-                code: inv.code,
-                cleanCode,
-                signupUrl: inv.signupUrl,
-                hasSpace: inv.signupUrl.includes(" "),
-              });
-            }
-            return inv;
-          });
-
-          setInvitations(enrichedInvitations);
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching invitations:", error);
-    }
-  };
-
-  const fetchSuggestedUsers = async () => {
-    try {
-      setLoadingSuggestions(true);
-      // cache-bust so it can rotate over time
-      const res = await fetch(`/api/user/suggestions?t=${Date.now()}`);
-      if (res.ok) {
-        const data = await res.json();
-        const users = Array.isArray(data.users) ? data.users : [];
-        // Safety: never show people you already follow
-        const filtered = users.filter((u: any) => !u?.isFollowing);
-        setSuggestedUsers(filtered);
-        setSuggestionsError(null);
-      } else {
-        setSuggestionsError("Failed to load suggestions");
-      }
-    } catch (error) {
-      console.error("Error fetching suggestions:", error);
-      setSuggestionsError("Failed to load suggestions");
-    } finally {
-      setLoadingSuggestions(false);
-    }
-  };
-
-  // Refresh suggestions sometimes
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      fetchSuggestedUsers();
-    }, 60_000);
-    return () => window.clearInterval(id);
-  }, []);
-
-
-  // v2: Fetch progression buffs
-  const fetchProgressionBuffs = async () => {
-    try {
-      const res = await fetch("/api/user/progression-buffs");
-      if (res.ok) {
-        const data = await res.json();
-        setProgressionBuffs(data.buffs || []);
-        setTotalBuffPercentage(data.totalPercentage || 0);
-
-        // Check for Gold celebration (if just upgraded)
-        if (membershipData) {
-          const justUpgraded =
-            localStorage.getItem("just_upgraded_to_gold") === "true";
-          if (justUpgraded) {
-            checkAndShowCelebration(membershipData.membership.level, true);
-            localStorage.removeItem("just_upgraded_to_gold");
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching progression buffs:", error);
-    }
-  };
-
-  const generateInvitation = async () => {
-    setGeneratingInvite(true);
-    try {
-      // Staff admins use admin invite API (start level selection)
-      const endpoint = isPlatformAdmin
-        ? "/api/admin/invitations/generate"
-        : "/api/invitations/generate";
-
-      const body = isPlatformAdmin
-        ? { expiresInDays: 30, initialLevel: selectedLevel }
-        : { expiresInDays: 30 };
-
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-
-        // Add new invitation to the list
-        setInvitations((prev) => [data.invitation, ...prev]);
-        toast.success(
-          `Invitation code generated!${isPlatformAdmin ? ` (Start level: ${selectedLevel})` : ""}`,
-        );
-
-        // Refresh membership data to update quota
-        fetchMembershipData();
-      } else {
-        const error = await res.json();
-        console.error("[PROFILE] Invitation generation failed:", {
-          status: res.status,
-          error,
-          endpoint,
-        });
-
-        const errorMsg = error.details
-          ? `${error.error}: ${error.details}`
-          : error.error || "Failed to generate invitation";
-
-        toast.error(errorMsg);
-      }
-    } catch (error) {
-      toast.error("Failed to generate invitation");
-    } finally {
-      setGeneratingInvite(false);
-    }
-  };
-
-  const copyCode = () => {
-    if (invitation?.code) {
-      navigator.clipboard.writeText(invitation.code);
-      setCopiedCode(true);
-      toast.success("Code copied!");
-      setTimeout(() => setCopiedCode(false), 2000);
-    }
-  };
-
-  const copyUrl = () => {
-    if (invitation?.signupUrl) {
-      navigator.clipboard.writeText(invitation.signupUrl);
-      setCopiedUrl(true);
-      toast.success("Link copied!");
-      setTimeout(() => setCopiedUrl(false), 2000);
-    }
-  };
-
-  // handleAddPaymentMethod removed - using new payment flow
-
-  const deleteInvitation = async (invitationId: string) => {
-    if (
-      !confirm(
-        "Are you sure you want to delete this invitation? It will no longer be usable.",
-      )
-    ) {
-      return;
-    }
-
-    try {
-      const res = await fetch(`/api/user/invitations/${invitationId}`, {
-        method: "DELETE",
-      });
-
-      if (res.ok) {
-        setInvitations((prev) => prev.filter((inv) => inv.id !== invitationId));
-        toast.success("Invitation deleted");
-
-        // Refresh membership data to update quota
-        fetchMembershipData();
-      } else {
-        const error = await res.json();
-        console.error("[PROFILE] Invitation deletion failed:", {
-          status: res.status,
-          error,
-          invitationId,
-        });
-
-        const errorMsg = error.details
-          ? `${error.error}: ${error.details}`
-          : error.error || "Failed to delete invitation";
-
-        toast.error(errorMsg);
-      }
-    } catch (error) {
-      console.error("[PROFILE] Delete invitation exception:", error);
-      toast.error("Failed to delete invitation");
-    }
-  };
-
-  const saveProfile = async () => {
-    try {
-      const res = await fetch("/api/user/profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editForm),
-      });
-
-      if (res.ok) {
-        toast.success("Profile updated!");
-        void AnalyticsTracker.trackEvent({
-          eventType: "profile_updated",
-          eventCategory: "account",
-          metadata: { source: "profile_page" },
-        });
-        setEditing(false);
-        fetchProfile();
-      } else {
-        toast.error("Failed to update profile");
-      }
-    } catch (error) {
-      toast.error("Failed to update profile");
-    }
-  };
-
-  const resetsIn = getTimeUntilReset();
-
   if (loading) {
     return (
       <PageLayout>
@@ -796,48 +379,6 @@ function ProfilePageContent() {
       </PageLayout>
     );
   }
-
-  const toggleFollowUser = async (targetId: string, currentlyFollowing: boolean) => {
-    try {
-      const res = await fetch("/api/user/follow", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          targetId,
-          action: currentlyFollowing ? "unfollow" : "follow",
-        }),
-      });
-      if (res.ok) {
-        // If you just followed someone, remove them from suggestions
-        if (!currentlyFollowing) {
-          setSuggestedUsers((prev) => prev.filter((u) => u.id !== targetId));
-          // Pull in a fresh set so the list feels alive
-          fetchSuggestedUsers();
-        } else {
-          // If you unfollowed via this UI (rare), keep them but mark as not-following
-          setSuggestedUsers((prev) =>
-            prev.map((u) => (u.id === targetId ? { ...u, isFollowing: false } : u)),
-          );
-        }
-        // Update local counters if viewing own profile (simplistic)
-        if (currentlyFollowing) {
-          setFollowingCount((c) => Math.max(0, c - 1));
-        } else {
-          setFollowingCount((c) => c + 1);
-        }
-      } else {
-        toast.error("Could not update follow");
-      }
-    } catch (error) {
-      console.error("toggleFollowUser error", error);
-      toast.error("Could not update follow");
-    }
-  };
-
-  const handleSettings = () => {
-    // Open existing settings modal
-    setSettingsModalOpen(true);
-  };
 
   if (!profile || !membershipData) {
     return (
@@ -876,9 +417,10 @@ function ProfilePageContent() {
       })
     : undefined;
 
-  const tabs = [
-    { id: "reservations", label: "Reservations", count: reservations.length },
-    { id: "activity", label: "Activity", count: undefined },
+  const dashTabs = [
+    { id: "orders" as const, label: "Orders", count: reservations.length },
+    { id: "activity" as const, label: "Activity" },
+    { id: "perks" as const, label: "Perks" },
   ];
 
   const reservationsTabContent = (
@@ -1038,405 +580,292 @@ function ProfilePageContent() {
 
   return (
     <PageLayout>
-      <div className="w-full max-w-7xl mx-auto p-4 md:p-sides">
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(300px,350px)] gap-6 md:gap-8">
-          <div className="space-y-6">
-            {/* Social Profile Header - NEW DESIGN */}
-            <SocialProfileHeader
-              userId={profile.id}
-              userName={userName}
-              userHandle={profile?.handle}
-              avatarUrl={avatarUrl}
-              bio={profile?.description}
-              joinedDate={joinedDate}
-              followersCount={followersCount}
-              followingCount={followingCount}
-              isFollowing={isFollowing}
-              isOwnProfile={true}
-              onFollow={() => toggleFollowUser(profile.id, false)}
-              onUnfollow={() => toggleFollowUser(profile.id, true)}
-              onSettings={handleSettings}
-              membershipLevel={membershipData.membership.level}
-              membershipLabel={membershipData.levelInfo.name}
-              suggestedUsers={suggestedUsers}
-              suggestionsLoading={loadingSuggestions}
-              suggestionsError={suggestionsError}
-              onFollowSuggestedUser={(id) => toggleFollowUser(id, false)}
-            />
-
-            {/* Medlemskort: horisontellt på mobil mellan header och tabbar */}
-            <section className="profile-membership-card profile-membership-card-horizontal lg:hidden" aria-label="Medlemskort">
-              <MembershipCardHorizontal
-                variant={toCardLevel(membershipData.membership.level)}
-                memberName={userName ?? undefined}
-                usePactLogo
-              />
-            </section>
-
-            {/* Profile Tabs */}
-            <div className="border-t border-border">
-              <SocialProfileTabs
-                tabs={tabs}
-                activeTab={activeTab}
-                onTabChange={setActiveTab}
-              />
-                    </div>
-
-            {/* Tab Content */}
-            <div className="mt-6">
-          {activeTab === "reservations" ? reservationsTabContent : null}
-          {activeTab === "activity" && (
-            <div className="space-y-4">
-              {/* Perks link */}
-              <section className="flex justify-end">
-                <Link
-                  href="/profile/perks"
-                  className="inline-flex items-center gap-2 rounded-full bg-black px-4 py-2 text-sm font-medium text-white hover:bg-black/90 transition-colors"
-                >
-                  <span>My Perks</span>
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </section>
-
-              {/* Progress: next membership level */}
-              <section className="space-y-3">
-                <h2 className="text-base md:text-lg font-light text-gray-900">
-                  Medlemskapsnivå
-                </h2>
-                <div className="bg-white rounded-xl border border-gray-200/50 p-4 md:p-5 shadow-sm">
-                  {membershipData.nextLevel ? (
-                    <LevelProgress
-                      currentPoints={membershipData.membership.impactPoints}
-                      currentLevelMin={membershipData.levelInfo.minPoints}
-                      nextLevelMin={membershipData.nextLevel.minPoints}
-                      nextLevelName={membershipData.nextLevel.name}
-                      activeBuffPercentage={0}
-                    />
-                  ) : (
-                    <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100/50 border border-gray-200">
-                      <div className="flex items-center gap-2">
-                        <TrendingUp className="h-5 w-5 text-gray-600" />
-                        <span className="text-sm font-medium text-gray-700">Max nivå</span>
-                      </div>
-                      <span className="text-sm font-semibold text-gray-900">
-                        {membershipData.membership.impactPoints} IP
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </section>
-
-              {/* Progress: order voucher (extra discount) */}
-              <section className="space-y-3">
-                <h2 className="text-base md:text-lg font-light text-gray-900">
-                  Voucher-rabatt
-                </h2>
-                <div className="bg-white rounded-xl border border-gray-200/50 p-4 md:p-5 shadow-sm">
-                  {(() => {
-                    const v = getVoucherProgress(membershipData.membership.impactPoints);
-                    const voucherDiscountPercent = getVoucherDiscountPercent(membershipData.membership.level);
-                    return (
-                      <div className="space-y-3">
-                        <div className="relative">
-                          <div className="h-3 bg-gray-200 rounded-full overflow-hidden shadow-inner">
-                            <div
-                              className="h-full bg-gradient-to-r from-amber-500 to-amber-600 transition-all duration-500 ease-out rounded-full"
-                              style={{ width: `${v.progressPercent}%` }}
-                            />
-                          </div>
-                          <div className="flex justify-between items-center mt-2">
-                            <span className="text-sm font-medium text-gray-900">
-                              {v.progressInCycle} / {v.pointsPerVoucher} IP
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              {v.pointsToNextVoucher} IP kvar till nästa voucher
-                            </span>
-                          </div>
-                        </div>
-                        <p className="text-xs text-gray-600">
-                          Samla {v.pointsPerVoucher} Impact Points för en voucher som ger extra rabatt på en beställning.
-                          Voucher-rabatten är högre ju högre medlemskapsnivå du har.
-                        </p>
-                        <p className="text-sm font-medium text-gray-900">
-                          Din voucher-rabatt: {voucherDiscountPercent}% ({membershipData.levelInfo.name})
-                        </p>
-                        {v.vouchersEarned > 0 && (
-                          <p className="text-xs font-medium text-amber-700">
-                            Du har tjänat {v.vouchersEarned} voucher{v.vouchersEarned !== 1 ? "s" : ""} hittills.
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>
-              </section>
-
-              <section className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-base md:text-lg lg:text-xl font-light text-gray-900">
-                    Recent Activity
-                  </h2>
-                  {ipEvents.length > 0 && (
-                    <Link
-                      href="/profile/activity"
-                      className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
-                    >
-                      View all
-                    </Link>
-                  )}
-                      </div>
-                <div className="bg-white rounded-xl border border-gray-200/50 p-4 md:p-6 shadow-sm">
-                  <IPTimeline events={ipEvents} />
-                    </div>
-              </section>
-                    </div>
+      <div className="mx-auto w-full max-w-3xl px-4 pb-12 pt-2 md:px-sides xl:max-w-7xl xl:grid xl:grid-cols-[minmax(0,1fr)_280px] xl:gap-10">
+        <div className="min-w-0 space-y-8">
+          <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-4">
+              <Avatar className="h-16 w-16 border-2 border-border sm:h-20 sm:w-20">
+                {avatarUrl ? (
+                  <AvatarImage src={avatarUrl} alt={userName} className="object-cover" />
+                ) : (
+                  <AvatarFallback className="bg-primary/10 text-lg text-primary">
+                    {userName
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .slice(0, 2)
+                      .toUpperCase()}
+                  </AvatarFallback>
                 )}
+              </Avatar>
+              <div className="min-w-0">
+                <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+                  {userName}
+                </h1>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <LevelBadge
+                    level={membershipData.membership.level}
+                    size="md"
+                    showLabel
+                  />
+                </div>
+                {joinedDate ? (
+                  <p className="mt-1 text-sm text-muted-foreground">Joined {joinedDate}</p>
+                ) : null}
               </div>
-                </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-2 self-start">
+              <Button variant="outline" size="sm" className="rounded-full" asChild>
+                <Link href="/profile/edit" className="gap-2">
+                  <Settings className="h-4 w-4" />
+                  Settings
+                </Link>
+              </Button>
+            </div>
+          </header>
 
-          {/* Right Sidebar */}
-          <div className="space-y-4">
-            {/* Medlemskort på desktop – vertikalt i sidofältet */}
-            <section className="profile-membership-card hidden lg:block" aria-label="Medlemskort">
-              <MetallicMembershipCard
-                variant={toCardLevel(membershipData.membership.level)}
-                memberName={userName ?? undefined}
-                usePactLogo
-              />
-            </section>
-
-            {/* Search */}
-            <div ref={searchWrapRef} className="relative rounded-xl border border-border bg-white p-4 shadow-sm">
-              <div className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 bg-white">
-                <Search className="w-4 h-4 text-muted-foreground" />
-                <input
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setSearchOpen(true);
-                  }}
-                  onFocus={() => setSearchOpen(true)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") {
-                      setSearchOpen(false);
-                      return;
-                    }
-                    if (e.key === "ArrowDown") {
-                      e.preventDefault();
-                      setSearchOpen(true);
-                      setSearchActiveIndex((i) =>
-                        Math.min(flattenedSearchItems.length - 1, i + 1),
-                      );
-                      return;
-                    }
-                    if (e.key === "ArrowUp") {
-                      e.preventDefault();
-                      setSearchActiveIndex((i) => Math.max(0, i - 1));
-                      return;
-                    }
-                    if (e.key === "Enter") {
-                      const item = flattenedSearchItems[searchActiveIndex];
-                      if (item) {
-                        e.preventDefault();
-                        setSearchOpen(false);
-                        router.push(item.href);
-                      }
-                    }
-                  }}
-                  type="text"
-                  placeholder="Search users, wines, producers"
-                  className="w-full bg-transparent text-sm focus:outline-none"
-                />
-              </div>
-
-              {searchOpen && searchQuery.trim().length >= 2 && (
-                <div className="absolute left-4 right-4 top-[calc(100%-8px)] z-50 mt-2 overflow-hidden rounded-xl border border-border bg-white shadow-lg">
-                  <div className="max-h-[380px] overflow-auto py-2">
-                    {searchLoading ? (
-                      <div className="px-3 py-2 text-xs text-muted-foreground">
-                        Searching...
-                      </div>
-                    ) : searchError ? (
-                      <div className="px-3 py-2 text-xs text-red-600">
-                        {searchError}
-                      </div>
-                    ) : flattenedSearchItems.length === 0 ? (
-                      <div className="px-3 py-2 text-xs text-muted-foreground">
-                        No results.
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {(() => {
-                          let cursor = 0;
-
-                          const renderSection = (
-                            label: string,
-                            items: typeof searchSectioned.users,
-                          ) => {
-                            if (!items || items.length === 0) return null;
-                            const startIndex = cursor;
-                            cursor += items.length;
-
-                  return (
-                              <div className="px-2">
-                                <div className="px-2 pb-1 pt-2 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-                                  {label}
-                                </div>
-                                <div className="space-y-1">
-                                  {items.map((item, localIdx) => {
-                                    const idx = startIndex + localIdx;
-                  return (
-                                      <Link
-                                        key={item.key}
-                                        href={item.href}
-                                        onClick={() => setSearchOpen(false)}
-                                        className={`flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-muted/30 ${
-                                          idx === searchActiveIndex
-                                            ? "bg-muted/30"
-                                            : ""
-                                        }`}
-                                      >
-                                        <div className="relative h-9 w-9 flex-shrink-0 overflow-hidden rounded-md border bg-muted">
-                                          {item.imageUrl ? (
-                                            <Image
-                                              src={item.imageUrl}
-                                              alt={item.title}
-                                              fill
-                                              sizes="36px"
-                                              className="object-cover"
-                                            />
-                                          ) : null}
-                      </div>
-                                        <div className="min-w-0 flex-1">
-                                          <div className="flex items-center justify-between gap-3">
-                                            <p className="truncate text-sm font-semibold text-foreground">
-                                              {item.title}
-                                            </p>
-                                            {item.badge ? (
-                                              <span className="shrink-0 whitespace-nowrap rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
-                                                {item.badge}
-                                              </span>
-                                            ) : null}
-                                          </div>
-                                          {item.subtitle ? (
-                                            <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                                              {item.subtitle}
-                                            </p>
-                                          ) : null}
-                    </div>
-                                      </Link>
-                                    );
-                                  })}
-                      </div>
-                </div>
-                  );
-                          };
-
-                          const sections = [
-                            renderSection("Users", searchSectioned.users),
-                            renderSection("Wines", searchSectioned.wines),
-                            renderSection("Producers", searchSectioned.producers),
-                          ].filter(Boolean);
-
-                return (
-                            <div className="divide-y divide-border">
-                              {sections}
-                </div>
-                );
-              })()}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <button
+              type="button"
+              onClick={() => setDashTab("orders")}
+              className={cn(
+                "rounded-xl border bg-card p-4 text-left shadow-sm transition hover:border-foreground/20",
+                dashTab === "orders" && "ring-2 ring-foreground/10",
+              )}
+            >
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Bottles ordered
+              </p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">{orderStats.bottles}</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setDashTab("orders")}
+              className={cn(
+                "rounded-xl border bg-card p-4 text-left shadow-sm transition hover:border-foreground/20",
+                dashTab === "orders" && "ring-2 ring-foreground/10",
+              )}
+            >
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Producers
+              </p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">
+                {orderStats.uniqueProducers}
+              </p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setDashTab("activity")}
+              className={cn(
+                "rounded-xl border bg-card p-4 text-left shadow-sm transition hover:border-foreground/20",
+                dashTab === "activity" && "ring-2 ring-foreground/10",
+              )}
+            >
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Impact points
+              </p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">
+                {membershipData.membership.impactPoints}
+              </p>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDashTab("orders");
+                document.getElementById("referral")?.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="rounded-xl border bg-card p-4 text-left shadow-sm transition hover:border-foreground/20"
+            >
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Invited
+              </p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">
+                {referralInfo.invitedCount}
+              </p>
+            </button>
           </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
 
-            {/* Suggestions (desktop/sidebar) */}
-            <div className="hidden lg:block rounded-xl border border-border bg-white p-4 shadow-sm space-y-3">
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="text-sm font-semibold text-foreground">
-                  Other PACTers to follow
-                </h3>
-                <Link
-                  href="/profile/suggestions"
-                  className="text-xs text-muted-foreground hover:text-foreground hover:underline underline-offset-4"
-                >
-                  Show all
-                </Link>
-              </div>
-              <div className="space-y-1">
-                {loadingSuggestions && (
-                  <div className="px-2 py-2 text-xs text-muted-foreground">Loading...</div>
-                )}
-                {suggestionsError && (
-                  <div className="px-2 py-2 text-xs text-red-600">{suggestionsError}</div>
-                )}
-                {!loadingSuggestions &&
-                  !suggestionsError &&
-                  suggestedUsers.length === 0 && (
-                    <div className="px-2 py-2 text-xs text-muted-foreground">
-                      No suggestions right now.
-                  </div>
-                )}
+          <ReferralInviteCard
+            inviteUrl={referralInfo.inviteUrl}
+            invitedCount={referralInfo.invitedCount}
+            activatedCount={referralInfo.activatedCount}
+          />
 
-                {suggestedUsers.map((u) => {
-                  const avatarUrl = u.avatar_image_path
-                    ? u.avatar_image_path.startsWith("http")
-                      ? u.avatar_image_path
-                      : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${u.avatar_image_path}`
-                    : undefined;
-
-                  return (
-                    <div
-                      key={u.id}
-                      className="-mx-2 flex items-start justify-between gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-muted/30"
-                    >
-                      <div className="flex items-start gap-2 min-w-0">
-                        <Avatar className="h-9 w-9">
-                          <AvatarImage src={avatarUrl} alt={u.full_name || "User"} />
-                          <AvatarFallback className="text-xs">
-                            {u.full_name
-                              ? u.full_name
-                                  .split(" ")
-                                  .map((n: string) => n[0])
-                                  .join("")
-                                  .slice(0, 2)
-                                  .toUpperCase()
-                              : "U"}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0">
-                          <Link
-                            href={`/profile/${u.id}`}
-                            className="block truncate text-sm font-semibold text-foreground hover:underline"
-                          >
-                            {u.full_name || "User"}
-                          </Link>
-                          {u.description ? (
-                            <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
-                              {u.description}
-                            </p>
-                          ) : null}
-                            </div>
-                          </div>
-
-                          <Button
-                            size="sm"
-                        className="rounded-full bg-black text-white hover:bg-white hover:text-black hover:border-black"
-                        onClick={() => toggleFollowUser(u.id, false)}
-                          >
-                        Follow
-                          </Button>
-                        </div>
-                  );
-                })}
-                      </div>
-                  </div>
-
+          <div className="border-b border-border">
+            <div className="flex overflow-x-auto scrollbar-hide">
+              {dashTabs.map((tab) => {
+                const isActive = tab.id === dashTab;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setDashTab(tab.id)}
+                    className={cn(
+                      "relative min-w-fit flex-1 whitespace-nowrap px-4 py-3 text-sm font-medium transition-colors hover:bg-muted/50",
+                      isActive ? "font-semibold text-foreground" : "text-muted-foreground",
+                    )}
+                  >
+                    <span className="relative inline-block">
+                      {tab.label}
+                      {"count" in tab && tab.count !== undefined ? (
+                        <span className="ml-1 text-muted-foreground">({tab.count})</span>
+                      ) : null}
+                      {isActive ? (
+                        <span className="absolute -bottom-3 left-0 right-0 h-0.5 rounded-full bg-primary" />
+                      ) : null}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
-      </div>
 
+          <div className="mt-2">
+            {dashTab === "orders" ? reservationsTabContent : null}
+            {dashTab === "activity" ? (
+              <div className="space-y-4">
+                <section className="flex justify-end">
+                  <Link
+                    href="/profile/activity"
+                    className="text-sm text-muted-foreground hover:text-foreground"
+                  >
+                    Open full activity log
+                  </Link>
+                </section>
+                <section className="space-y-3">
+                  <h2 className="text-base font-medium text-foreground">Membership level</h2>
+                  <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                    {membershipData.nextLevel ? (
+                      <LevelProgress
+                        currentPoints={membershipData.membership.impactPoints}
+                        currentLevelMin={membershipData.levelInfo.minPoints}
+                        nextLevelMin={membershipData.nextLevel.minPoints}
+                        nextLevelName={membershipData.nextLevel.name}
+                        activeBuffPercentage={0}
+                      />
+                    ) : (
+                      <div className="flex items-center justify-between gap-3 rounded-xl border bg-muted/30 p-3">
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="h-5 w-5 text-muted-foreground" />
+                          <span className="text-sm font-medium">Top tier</span>
+                        </div>
+                        <span className="text-sm font-semibold tabular-nums">
+                          {membershipData.membership.impactPoints} IP
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </section>
+                <section className="space-y-3">
+                  <h2 className="text-base font-medium text-foreground">Voucher progress</h2>
+                  <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                    {(() => {
+                      const v = getVoucherProgress(membershipData.membership.impactPoints);
+                      const voucherDiscountPercent = getVoucherDiscountPercent(
+                        membershipData.membership.level,
+                      );
+                      return (
+                        <div className="space-y-3">
+                          <div className="relative">
+                            <div className="h-3 overflow-hidden rounded-full bg-muted">
+                              <div
+                                className="h-full rounded-full bg-gradient-to-r from-amber-500 to-amber-600 transition-all duration-500"
+                                style={{ width: `${v.progressPercent}%` }}
+                              />
+                            </div>
+                            <div className="mt-2 flex items-center justify-between text-sm">
+                              <span className="font-medium tabular-nums">
+                                {v.progressInCycle} / {v.pointsPerVoucher} IP
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {v.pointsToNextVoucher} IP to next voucher
+                              </span>
+                            </div>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Collect {v.pointsPerVoucher} Impact Points for an extra order discount.
+                            Your voucher discount rate is tied to your tier ({membershipData.levelInfo.name}).
+                          </p>
+                          <p className="text-sm font-medium">
+                            Current voucher discount: {voucherDiscountPercent}%
+                          </p>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </section>
+                <section className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-base font-medium text-foreground">Recent activity</h2>
+                    {ipEvents.length > 0 ? (
+                      <Link
+                        href="/profile/activity"
+                        className="text-sm text-muted-foreground hover:text-foreground"
+                      >
+                        View all
+                      </Link>
+                    ) : null}
+                  </div>
+                  <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                    <IPTimeline events={ipEvents} />
+                  </div>
+                </section>
+              </div>
+            ) : null}
+            {dashTab === "perks" ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-base font-semibold text-foreground">Your perks</h2>
+                  <Link
+                    href="/profile/perks"
+                    className="text-sm text-muted-foreground hover:text-foreground"
+                  >
+                    Full perks page
+                  </Link>
+                </div>
+                <div className="rounded-xl border border-border bg-card divide-y">
+                  {(membershipData.perks || []).length === 0 ? (
+                    <p className="p-4 text-sm text-muted-foreground">No perks listed for your tier.</p>
+                  ) : (
+                    (membershipData.perks || []).map((perk) => (
+                      <div
+                        key={`${perk.perk_type}-${perk.description}`}
+                        className="flex items-start justify-between gap-3 px-4 py-3"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground">{perk.description}</p>
+                          <p className="text-xs capitalize text-muted-foreground">
+                            {perk.perk_type.replace(/_/g, " ")}
+                          </p>
+                        </div>
+                        {perk.perk_value && perk.perk_value !== "true" ? (
+                          <span className="shrink-0 rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">
+                            {perk.perk_value}
+                          </span>
+                        ) : null}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        <aside className="mt-10 hidden min-w-0 space-y-4 xl:mt-0 xl:block">
+          <div className="rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">Tip</p>
+            <p className="mt-2 leading-snug">
+              Use your personal invite link above to grow the community. Full search and discovery
+              still live under{" "}
+              <Link href="/shop" className="underline underline-offset-2">
+                Shop
+              </Link>
+              .
+            </p>
+          </div>
+        </aside>
+      </div>
       {/* Gold Celebration Modal (v2) */}
       <GoldCelebration
         show={showCelebration}

@@ -23,6 +23,8 @@ interface Invitation {
   allowed_types?: InvitationPageType[];
   can_change_account_type?: boolean;
   used_at?: string | null;
+  /** Reusable /i personal link — never "consumed" as single-use */
+  is_personal_link?: boolean;
   profiles?: {
     email: string;
     full_name?: string;
@@ -185,8 +187,12 @@ export default function InviteSignupPage() {
     );
   }
 
-  const isExpired = new Date(invitation.expires_at) < new Date();
-  const isUsed = !!invitation.used_at;
+  const isPersonal = !!invitation.is_personal_link;
+  const isExpired =
+    !!invitation.expires_at &&
+    !isPersonal &&
+    new Date(invitation.expires_at) < new Date();
+  const isUsed = !!invitation.used_at && !isPersonal;
 
   if (isExpired || isUsed) {
     return (

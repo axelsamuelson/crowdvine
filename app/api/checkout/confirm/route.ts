@@ -15,6 +15,7 @@ import {
   applyProgressionBuffs,
   checkAndAwardProgressionRewards,
 } from "@/lib/membership/progression-rewards";
+import { tryActivateReferralOnFirstOrder } from "@/lib/referral/activate-referral-on-first-order";
 
 export async function POST(request: Request) {
   try {
@@ -607,6 +608,18 @@ export async function POST(request: Request) {
           0,
         );
         console.log(`🍾 [PROGRESSION] Total bottles in order: ${totalBottles}`);
+
+        const referralActivation = await tryActivateReferralOnFirstOrder({
+          sb: sbAdmin,
+          userId: currentUser.id,
+          reservationId: reservation.id,
+          totalBottles,
+        });
+        if (referralActivation.activated) {
+          console.log(
+            "✅ [REFERRAL] Activated personal-link referral (first qualifying order in window)",
+          );
+        }
 
         // 3. Award IP for own order (handles both regular ≥6 and large ≥12)
         const ownOrderResult = await awardPointsForOwnOrder(

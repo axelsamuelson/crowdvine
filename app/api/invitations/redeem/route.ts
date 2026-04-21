@@ -50,17 +50,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if expired
-    if (new Date(invitation.expires_at) < new Date()) {
-      console.log("[INVITE-REDEEM] Invitation expired");
-      return NextResponse.json(
-        { error: "This invitation has expired" },
-        { status: 400 },
-      );
+    const isPersonal = !!(invitation as { is_personal_link?: boolean })
+      .is_personal_link;
+
+    // Check if expired (reusable personal links use a far-future expires_at)
+    if (!isPersonal && invitation.expires_at) {
+      if (new Date(invitation.expires_at) < new Date()) {
+        console.log("[INVITE-REDEEM] Invitation expired");
+        return NextResponse.json(
+          { error: "This invitation has expired" },
+          { status: 400 },
+        );
+      }
     }
 
-    // Check if already used
-    if (invitation.used_at) {
+    // Check if already used (single-use codes only)
+    if (!isPersonal && invitation.used_at) {
       console.log("[INVITE-REDEEM] Invitation already used");
       return NextResponse.json(
         { error: "This invitation has already been used" },
@@ -162,6 +167,7 @@ export async function POST(request: NextRequest) {
       role: "user",
       roles: profileRoles,
       portal_access: portalAccess,
+      invite_code_used: String(invitation_code).trim(),
     });
 
     if (profileError) {
@@ -192,6 +198,17 @@ export async function POST(request: NextRequest) {
       }
     } else {
       console.log("[INVITE-REDEEM] STEP-2 SUCCESS - Profile created");
+    }
+
+    if (invitation.created_by && isPersonal) {
+      const { error: rsErr } = await sb.from("referral_signups").insert({
+        inviter_id: invitation.created_by,
+        invitee_id: userId,
+        personal_invite_code: String(invitation_code).trim().toUpperCase(),
+      });
+      if (rsErr && rsErr.code !== "23505") {
+        console.error("[INVITE-REDEEM] referral_signups insert:", rsErr);
+      }
     }
 
     // Clear cart cookie to ensure new user gets empty cart
@@ -465,23 +482,29 @@ export async function POST(request: NextRequest) {
 
     console.log("[INVITE-REDEEM] IP Award Status:", ipAwardStatus);
 
-    // Update invitation with real user ID and mark as used
-    console.log("[INVITE-REDEEM] Marking invitation as used with real user ID");
-    const { error: invitationUpdateError } = await sb
-      .from("invitation_codes")
-      .update({
-        used_at: new Date().toISOString(),
-        used_by: authData.user.id,
-        is_active: false,
-      })
-      .eq("id", invitation.id);
+    // Update invitation with real user ID and mark as used (single-use only)
+    if (!isPersonal) {
+      console.log("[INVITE-REDEEM] Marking invitation as used with real user ID");
+      const { error: invitationUpdateError } = await sb
+        .from("invitation_codes")
+        .update({
+          used_at: new Date().toISOString(),
+          used_by: authData.user.id,
+          is_active: false,
+        })
+        .eq("id", invitation.id);
 
-    if (invitationUpdateError) {
-      console.error(
-        "[INVITE-REDEEM] Failed to update invitation:",
-        invitationUpdateError,
+      if (invitationUpdateError) {
+        console.error(
+          "[INVITE-REDEEM] Failed to update invitation:",
+          invitationUpdateError,
+        );
+        // Don't fail the request
+      }
+    } else {
+      console.log(
+        "[INVITE-REDEEM] Personal invite pool — leaving master invitation row active",
       );
-      // Don't fail the request
     }
 
     void logUserEventServer({
