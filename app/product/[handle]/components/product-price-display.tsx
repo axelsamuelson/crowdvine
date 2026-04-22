@@ -49,6 +49,7 @@ export function ProductPriceDisplay({ product, className }: ProductPriceDisplayP
           b2bMarginPercentage={product.priceBreakdown?.b2bMarginPercentage}
           calculatedTotalPrice={priceExclVat}
           forceShowExclVat={true}
+          vatExcludedShortLabel="excl. VAT"
         />
       );
     } else {
@@ -61,6 +62,7 @@ export function ProductPriceDisplay({ product, className }: ProductPriceDisplayP
           showBadge={true}
           calculatedTotalPrice={breakdown.total}
           forceShowExclVat={false}
+          vatExcludedShortLabel="excl. VAT"
         />
       );
     }
@@ -83,6 +85,7 @@ export function ProductPriceDisplay({ product, className }: ProductPriceDisplayP
       }
       b2bMarginPercentage={product.priceBreakdown?.b2bMarginPercentage}
       forceShowExclVat={isB2B}
+      vatExcludedShortLabel="excl. VAT"
     />
   );
 }

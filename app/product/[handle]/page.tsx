@@ -20,6 +20,7 @@ import Link from "next/link";
 import { SidebarLinks } from "@/components/layout/sidebar/product-sidebar-links";
 import { AddToCart, AddToCartButton } from "@/components/cart/add-to-cart";
 import { AddToCartConditional } from "@/components/cart/add-to-cart-conditional";
+import { PalletStatusBar } from "@/components/pdp/pallet-status-bar";
 import { storeCatalog } from "@/lib/shopify/constants";
 import Prose from "@/components/prose";
 import { formatPrice } from "@/lib/shopify/utils";
@@ -295,6 +296,9 @@ export default async function ProductPage(props: {
                 {/* Add to Cart placed under producer name inside the white box */}
                 <div className="col-span-full w-full mt-4">
                   <AddToCartConditional product={product} className="w-full" />
+                </div>
+                <div className="col-span-full w-full mt-3">
+                  <PalletStatusBar productHandle={product.handle} />
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

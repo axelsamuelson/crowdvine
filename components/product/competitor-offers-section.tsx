@@ -86,7 +86,7 @@ function CompetitorOfferRow({ offer }: { offer: CompetitorOffer }) {
       </span>
       <div className="flex items-center gap-3">
         {offer.rating != null ? (
-          <span className="text-sm text-muted-foreground" title="Betyg från källan">
+          <span className="text-sm text-muted-foreground" title="Rating from source">
             {Number(offer.rating).toFixed(1)}
           </span>
         ) : null}

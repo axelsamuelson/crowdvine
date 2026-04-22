@@ -265,3 +265,44 @@ export async function getPalletStatus(palletId: string) {
     throw error;
   }
 }
+
+/** Same status filter as checkPalletCompletion when counting bottles toward fill. */
+export const ORDER_RESERVATION_STATUSES_FOR_PALLET_FILL = [
+  "placed",
+  "approved",
+  "partly_approved",
+  "pending_payment",
+  "confirmed",
+] as const;
+
+/**
+ * Sum bottle quantities from order_reservation_items for reservations on this pallet
+ * (same pattern as checkPalletCompletion).
+ */
+export async function sumReservedBottlesOnPallet(
+  palletId: string,
+): Promise<number> {
+  const supabase = getSupabaseAdmin();
+
+  const { data: reservations, error: reservationsError } = await supabase
+    .from("order_reservations")
+    .select("id")
+    .eq("pallet_id", palletId)
+    .in("status", [...ORDER_RESERVATION_STATUSES_FOR_PALLET_FILL]);
+
+  if (reservationsError || !reservations?.length) {
+    return 0;
+  }
+
+  let totalBottles = 0;
+  for (const reservation of reservations) {
+    const { data: items } = await supabase
+      .from("order_reservation_items")
+      .select("quantity")
+      .eq("reservation_id", reservation.id);
+
+    totalBottles +=
+      items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+  }
+  return totalBottles;
+}

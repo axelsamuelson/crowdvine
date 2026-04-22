@@ -1,6 +1,8 @@
 import { getCurrentUser } from "../../lib/auth";
 import { getMemberDiscountPercentForUserId } from "../../lib/membership/server-member-discount";
 import { memberDiscountedTotalInclVat } from "../../lib/price-breakdown";
+import { resolvePalletEarlyBirdContext } from "../../lib/pallet-early-bird-context";
+import { applyPalletDiscount } from "../../lib/pallet-discount";
 import { supabaseServer } from "../../lib/supabase-server";
 import type { Cart, CartItem } from "../../lib/shopify/types";
 import { getOrSetCartId, clearCartId } from "./cookies";
@@ -116,6 +118,19 @@ export class CartService {
         ? await getMemberDiscountPercentForUserId(user.id)
         : 0;
 
+      const wineIdsForPallet = cartItems
+        .map((item) => {
+          const w = item.wines as { id: string };
+          return w.id;
+        })
+        .filter((id): id is string => Boolean(id));
+
+      const palletEarlyBird = await resolvePalletEarlyBirdContext(
+        wineIdsForPallet,
+        user?.id ?? null,
+      );
+      const palletTier = palletEarlyBird.discountTier;
+
       const lines: CartItem[] = cartItems.map((item) => {
         // Build selectedOptions from wine color
         const selectedOptions = item.wines.color
@@ -133,7 +148,19 @@ export class CartService {
           unitListSek,
           memberDiscountPercent,
         );
-        const lineTotalSek = unitMemberSek * item.quantity;
+        const lineTotalMember = unitMemberSek * item.quantity;
+        // Pallet early-bird discount is applied multiplicatively on top of member price,
+        // not additively. A 200 SEK member price with 20% early-bird = 160 SEK, not
+        // 200 * (1 - memberPct - 0.20).
+        const lineTotalSek =
+          palletTier > 0
+            ? applyPalletDiscount(lineTotalMember, palletTier)
+            : lineTotalMember;
+
+        const discountLabel =
+          palletTier > 0
+            ? `Early-bird · ${palletTier}% off`
+            : undefined;
 
         return {
           id: item.id,
@@ -145,6 +172,7 @@ export class CartService {
               currencyCode: "SEK",
             },
           },
+          ...(discountLabel !== undefined ? { discountLabel } : {}),
           merchandise: {
             id: item.wines.id,
             title: `${item.wines.wine_name} ${item.wines.vintage}`,

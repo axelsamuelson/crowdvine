@@ -23,7 +23,6 @@ import { PaymentMethodSelectorB2B } from "@/components/checkout/payment-method-s
 import { ZoneDetails } from "@/components/checkout/zone-details";
 import { PalletDetails } from "@/components/checkout/pallet-details";
 import { ReservationLoadingModal } from "@/components/checkout/reservation-loading-modal";
-import { MemberPrice } from "@/components/ui/member-price";
 import { ProgressionBuffDisplay } from "@/components/membership/progression-buff-display";
 import { toast } from "sonner";
 import {
@@ -687,14 +686,9 @@ function CheckoutContent() {
   const hasProducerItems = isB2BSite ? producerItems.length > 0 : (cart?.lines?.length || 0) > 0;
   const hasWarehouseItems = isB2BSite && warehouseItems.length > 0;
 
-  // Calculate bottle cost and discount
-  const bottleCost = cart?.lines
-    ? cart.lines.reduce((total, line) => {
-        const pricePerBottle = parseFloat(
-          line.merchandise.product.priceRange.minVariantPrice.amount,
-        );
-        return total + pricePerBottle * line.quantity;
-      }, 0)
+  // Merchandise total from cart (matches per-line line.cost.totalAmount, incl. member + pallet early-bird)
+  const bottleCost = cart
+    ? parseFloat(cart.cost.totalAmount.amount)
     : 0;
 
   // Old rewards discount (being deprecated)
@@ -1021,11 +1015,9 @@ function CheckoutContent() {
                           </span>
                         </div>
                         {producerItems.map((line) => {
-                          const pricePerBottle = parseFloat(
-                            line.merchandise.product.priceRange.minVariantPrice
-                              .amount,
+                          const totalForLine = parseFloat(
+                            line.cost.totalAmount.amount,
                           );
-                          const totalForLine = pricePerBottle * line.quantity;
 
                           return (
                             <div
@@ -1035,14 +1027,20 @@ function CheckoutContent() {
                               <span className="text-gray-600 min-w-0 truncate">
                                 {line.merchandise.title} × {line.quantity}
                               </span>
-                              <MemberPrice
-                                amount={totalForLine}
-                                currencyCode={
-                                  line.merchandise.product.priceRange
-                                    .minVariantPrice.currencyCode
-                                }
-                                className="text-gray-900 font-medium text-sm whitespace-nowrap"
-                              />
+                              <div className="flex shrink-0 flex-col items-end gap-1">
+                                <span className="text-gray-900 font-medium text-sm whitespace-nowrap">
+                                  {new Intl.NumberFormat("sv-SE", {
+                                    style: "currency",
+                                    currency: line.cost.totalAmount.currencyCode,
+                                    maximumFractionDigits: 0,
+                                  }).format(totalForLine)}
+                                </span>
+                                {line.discountLabel && (
+                                  <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-md bg-amber-100 text-amber-700 font-medium w-fit">
+                                    {line.discountLabel}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           );
                         })}
@@ -1062,11 +1060,9 @@ function CheckoutContent() {
                           </span>
                         </div>
                         {warehouseItems.map((line) => {
-                          const pricePerBottle = parseFloat(
-                            line.merchandise.product.priceRange.minVariantPrice
-                              .amount,
+                          const totalForLine = parseFloat(
+                            line.cost.totalAmount.amount,
                           );
-                          const totalForLine = pricePerBottle * line.quantity;
 
                           return (
                             <div
@@ -1076,14 +1072,20 @@ function CheckoutContent() {
                               <span className="text-gray-600 min-w-0 truncate">
                                 {line.merchandise.title} × {line.quantity}
                               </span>
-                              <MemberPrice
-                                amount={totalForLine}
-                                currencyCode={
-                                  line.merchandise.product.priceRange
-                                    .minVariantPrice.currencyCode
-                                }
-                                className="text-gray-900 font-medium text-sm whitespace-nowrap"
-                              />
+                              <div className="flex shrink-0 flex-col items-end gap-1">
+                                <span className="text-gray-900 font-medium text-sm whitespace-nowrap">
+                                  {new Intl.NumberFormat("sv-SE", {
+                                    style: "currency",
+                                    currency: line.cost.totalAmount.currencyCode,
+                                    maximumFractionDigits: 0,
+                                  }).format(totalForLine)}
+                                </span>
+                                {line.discountLabel && (
+                                  <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-md bg-amber-100 text-amber-700 font-medium w-fit">
+                                    {line.discountLabel}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           );
                         })}

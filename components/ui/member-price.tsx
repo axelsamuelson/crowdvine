@@ -5,7 +5,7 @@ import { formatPrice, priceExclVat } from "@/lib/shopify/utils";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { calculateB2BPriceWithDiscount } from "@/lib/price-breakdown";
 
-/** Visningsnamn för medlemskapsnivå (samma som level-badge / points-engine) */
+/** Display names for membership tier (aligned with level-badge / points-engine). */
 const MEMBERSHIP_LEVEL_NAMES: Record<string, string> = {
   basic: "Basic",
   brons: "Plus",
@@ -32,6 +32,8 @@ interface MemberPriceProps {
   compactOnMobile?: boolean;
   /** In white box: on mobile badge to the right of price, on desktop badge below price */
   badgeRightOnMobile?: boolean;
+  /** Shown under price when excl. VAT applies (B2B). Default "exkl. moms"; set e.g. "excl. VAT" on English PDP. */
+  vatExcludedShortLabel?: string;
 }
 
 export function MemberPrice({
@@ -45,14 +47,15 @@ export function MemberPrice({
   forceShowExclVat,
   compactOnMobile = false,
   badgeRightOnMobile = false,
+  vatExcludedShortLabel,
 }: MemberPriceProps) {
   const { discountPercentage, level, loading } = useMembership();
   const isB2BMode = useB2BPriceMode();
   // Use forceShowExclVat if provided, otherwise use B2B mode
   // On B2C (pactwines.com): no VAT label under price
-  // On B2B (dirtywine.se): show "exkl. moms"
+  // On B2B (dirtywine.se): show VAT qualifier under price
   const showExclVat = forceShowExclVat !== undefined ? forceShowExclVat : isB2BMode;
-  const vatLabel = showExclVat ? "exkl. moms" : "";
+  const vatLabel = showExclVat ? (vatExcludedShortLabel ?? "exkl. moms") : "";
   const showVatLabel = showExclVat;
 
   if (loading) {

@@ -134,6 +134,11 @@ export function CartItemCard({ item, onCloseCart }: CartItemProps) {
             <span className="2xl:text-lg font-semibold">
               {formatPrice(displayAmount, item.cost.totalAmount.currencyCode)}
             </span>
+            {item.discountLabel ? (
+              <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-md bg-amber-100 text-amber-700 font-medium w-fit">
+                {item.discountLabel}
+              </span>
+            ) : null}
             {showExclVat && (
               <span className="text-[10px] font-normal text-muted-foreground">
                 exkl. moms

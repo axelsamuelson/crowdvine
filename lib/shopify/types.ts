@@ -256,6 +256,7 @@ export type CartItem = {
   cost: {
     totalAmount: Money;
   };
+  discountLabel?: string;
   merchandise: {
     id: string;
     title: string;
