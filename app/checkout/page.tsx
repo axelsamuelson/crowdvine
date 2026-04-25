@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ReservationLoadingModal } from "@/components/checkout/reservation-loading-modal";
 import { ProgressionBuffDisplay } from "@/components/membership/progression-buff-display";
 import { toast } from "sonner";
@@ -733,6 +734,12 @@ function CheckoutContent() {
         )
       : null;
 
+  const deliveryOptionShippingLabel = useMemo(() => {
+    if (!shippingCost) return "—";
+    if (shippingCost.totalShippingCostCents === 0) return "Free";
+    return formatCheckoutKr(shippingCost.totalShippingCostCents / 100);
+  }, [shippingCost]);
+
   // Check if we're on B2B site (dirtywine.se)
   const isB2BSite = useB2BPriceMode();
 
@@ -896,11 +903,6 @@ function CheckoutContent() {
     openProfileModalForPostalCode();
   }, [openProfileModalForPostalCode, postalCodeDraft]);
 
-  const showZonePicker = useMemo(
-    () => (zoneInfo.availableDeliveryZones?.length ?? 0) > 1,
-    [zoneInfo.availableDeliveryZones],
-  );
-
   const showPalletPicker = useMemo(
     () => (zoneInfo.pallets?.length ?? 0) > 1,
     [zoneInfo.pallets],
@@ -937,29 +939,6 @@ function CheckoutContent() {
       };
     }, [selectedPallet]);
 
-  const handleSelectDeliveryZone = useCallback(
-    (zoneId: string) => {
-      const z = zoneInfo.availableDeliveryZones?.find((zz) => zz.id === zoneId);
-      if (!z) return;
-      const pallets = zoneInfo.pallets ?? [];
-      const matching = pallets.filter((p) => p.deliveryZoneName === z.name);
-      const candidates = matching.length > 0 ? matching : pallets;
-      const nextPallet =
-        candidates.length > 0
-          ? [...candidates].sort((a, b) => b.currentBottles - a.currentBottles)[0]
-          : null;
-      if (nextPallet) {
-        setSelectedPallet(nextPallet);
-      }
-      setZoneInfo((prev) => ({
-        ...prev,
-        selectedDeliveryZoneId: z.id,
-        deliveryZone: z.name,
-      }));
-    },
-    [zoneInfo.availableDeliveryZones, zoneInfo.pallets],
-  );
-
   const handleSelectPallet = useCallback(
     (palletId: string) => {
       const p = zoneInfo.pallets?.find((x) => x.id === palletId);
@@ -969,6 +948,9 @@ function CheckoutContent() {
     },
     [zoneInfo.pallets],
   );
+
+  // TODO: When more delivery zones are supported, switch carrier
+  // text based on zone (Bring for Stockholm, others for other zones).
 
   // IMPORTANT: keep these conditional returns AFTER all hooks above to preserve hook order
   if (loading) {
@@ -1394,35 +1376,6 @@ function CheckoutContent() {
                       </p>
                     ) : null}
 
-                    {showZonePicker && !zoneLoading && hasZoneSelected ? (
-                      <div className="space-y-1.5">
-                        <Label
-                          className="text-xs text-muted-foreground"
-                          htmlFor="checkout-delivery-zone"
-                        >
-                          Delivery zone
-                        </Label>
-                        <Select
-                          value={zoneInfo.selectedDeliveryZoneId ?? ""}
-                          onValueChange={handleSelectDeliveryZone}
-                        >
-                          <SelectTrigger
-                            id="checkout-delivery-zone"
-                            className="h-9 w-full"
-                          >
-                            <SelectValue placeholder="Select zone" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {zoneInfo.availableDeliveryZones?.map((z) => (
-                              <SelectItem key={z.id} value={z.id}>
-                                {z.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    ) : null}
-
                     {hasProducerItems && hasZoneSelected && !zoneLoading && showPalletPicker ? (
                       <div className="space-y-1.5">
                         <Label
@@ -1471,14 +1424,57 @@ function CheckoutContent() {
                     !zoneLoading &&
                     Boolean(zoneInfo.selectedDeliveryZoneId) &&
                     selectedPallet != null ? (
-                      <div className="space-y-3 border-t border-border pt-3">
-                        <div>
-                          <p className="text-xs text-muted-foreground">
-                            Estimated delivery
-                          </p>
+                      <div className="space-y-4 border-t border-border pt-3">
+                        <div className="space-y-2">
                           <p className="text-sm font-medium text-foreground">
-                            {deliveryEstimateLabel}
+                            Delivery options
                           </p>
+                          <RadioGroup
+                            value="bring"
+                            className="grid gap-0"
+                            aria-label="Delivery options"
+                          >
+                            <div className="rounded-md border border-border bg-background px-3 py-4 shadow-sm">
+                              <div className="flex items-start gap-3">
+                                <RadioGroupItem
+                                  value="bring"
+                                  id="checkout-delivery-bring"
+                                  className="mt-0.5 h-[18px] w-[18px] shrink-0 border-2 border-foreground bg-background text-foreground shadow-none data-[state=checked]:border-foreground data-[state=checked]:bg-background [&>span>svg]:h-2 [&>span>svg]:w-2 [&>span>svg]:fill-foreground [&>span>svg]:text-foreground"
+                                />
+                                <div className="min-w-0 flex-1">
+                                  <Label
+                                    htmlFor="checkout-delivery-bring"
+                                    className="cursor-default text-sm font-semibold leading-tight text-foreground"
+                                  >
+                                    Home delivery via Bring
+                                  </Label>
+                                  <p className="mt-0.5 text-sm text-muted-foreground">
+                                    Estimated delivery: {deliveryEstimateLabel}
+                                  </p>
+                                  <div className="mt-3 rounded-md border border-sky-200/80 bg-sky-50/60 px-3 py-2.5 dark:border-sky-900/40 dark:bg-sky-950/30">
+                                    <p className="text-xs leading-snug text-muted-foreground">
+                                      Signature and age verification required at
+                                      delivery
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex shrink-0 flex-row items-center gap-2.5 pl-1">
+                                  <span className="text-sm font-semibold tabular-nums text-foreground whitespace-nowrap">
+                                    {deliveryOptionShippingLabel}
+                                  </span>
+                                  {/* eslint-disable-next-line @next/next/no-img-element -- static brand SVG from /public */}
+                                  <img
+                                    src="/bring-logo.svg"
+                                    alt=""
+                                    width={96}
+                                    height={36}
+                                    className="h-8 w-auto max-w-[120px] shrink-0 object-contain object-right"
+                                    aria-hidden
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </RadioGroup>
                         </div>
 
                         <div>
