@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Check, Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 type Friend = {
   id: string;
@@ -93,9 +94,10 @@ export function ShareBottlesDialog({
         }
         const data = await res.json();
         setFriends((data?.users || []) as Friend[]);
-      } catch (e: any) {
+      } catch (e: unknown) {
         console.error("[ShareBottles] Failed to load friends:", e);
-        toast.error(e?.message || "Failed to load friends");
+        const msg = e instanceof Error ? e.message : "Failed to load friends";
+        toast.error(msg);
       } finally {
         setLoading(false);
       }
@@ -203,13 +205,21 @@ export function ShareBottlesDialog({
 
         {step === 1 && (
           <div className="space-y-4">
-            <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2">
-              <Search className="h-4 w-4 text-gray-400" />
+            <div className="relative w-full">
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden
+              />
               <Input
+                type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search people you follow"
-                className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-0"
+                className={cn(
+                  "h-9 rounded-md border border-border bg-popover pl-9 text-sm text-foreground shadow-sm placeholder:text-muted-foreground",
+                )}
+                aria-label="Search people you follow"
+                autoComplete="off"
               />
             </div>
 

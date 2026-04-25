@@ -173,6 +173,10 @@ export type Product = {
   b2bPriceExclVat?: number;
   /** B2B stock quantity (wines). Null/0 = out of stock. Used for stock badges. */
   b2bStock?: number | null;
+  /** Pre-discount list unit price (SEK) for crowdvine cart lines; used in checkout. */
+  originalUnitPriceSek?: number;
+  /** True when line has member discount, early-bird, etc. (crowdvine cart). */
+  hasDiscount?: boolean;
 };
 
 export type ProductSortKey =

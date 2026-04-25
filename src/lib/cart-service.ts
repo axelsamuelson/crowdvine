@@ -196,6 +196,10 @@ export class CartService {
             ? `Early-bird · ${palletTier}% off`
             : undefined;
 
+        const hasDiscount =
+          (discountLabel !== undefined && discountLabel.length > 0) ||
+          memberDiscountPercent > 0;
+
         return {
           id: row.id,
           quantity: row.quantity,
@@ -256,6 +260,8 @@ export class CartService {
                 width: 600,
                 height: 600,
               },
+              originalUnitPriceSek: unitListSek,
+              hasDiscount,
               images: [
                 {
                   id: `${wine.id}-img`,
