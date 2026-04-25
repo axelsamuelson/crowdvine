@@ -37,7 +37,7 @@ export function ShopFilterSearch({ className }: { className?: string }) {
   };
 
   return (
-    <div className={cn("relative", className)}>
+    <div className={cn("relative w-full", className)}>
       <Search
         className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
         aria-hidden
@@ -51,7 +51,8 @@ export function ShopFilterSearch({ className }: { className?: string }) {
         onChange={(e) => setDraft(e.target.value)}
         placeholder="Search wines or producers…"
         className={cn(
-          "h-9 border-input bg-background pl-9 text-sm shadow-sm",
+          // Force a light search surface in both B2C and B2B themes.
+          "h-9 rounded-md border border-border/60 bg-[#f3f4f6] dark:bg-[#f3f4f6] pl-9 text-sm text-gray-900 dark:text-gray-900 placeholder:text-muted-foreground dark:placeholder:text-muted-foreground shadow-none",
           draft.length > 0 ? "pr-9" : "pr-3",
         )}
         aria-label="Search shop"

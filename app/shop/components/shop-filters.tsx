@@ -57,7 +57,7 @@ export function DesktopFilters({
               </Link>
             </Button>
           </div>
-          <ShopFilterSearch className="pl-2 pr-2 xl:pr-4" />
+          <ShopFilterSearch />
           <Suspense fallback={null}>
             <CategoryFilter
               collections={collections}
