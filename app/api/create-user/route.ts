@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { signupLimiter, getClientIdentifier } from "@/lib/rate-limiter";
 import { clearCartId } from "@/src/lib/cookies";
+import { awardPactPointsWelcomeBonus } from "@/lib/membership/pact-points-engine";
 
 // Helper function to get invite quota based on membership level
 function getQuotaForLevel(level: string): number {
@@ -337,6 +338,18 @@ export async function POST(request: NextRequest) {
         }
       } else {
         console.log("3e2. Membership already exists, skipping creation");
+      }
+
+      // PACT Points welcome bonus (idempotent). Never block signup on failure.
+      try {
+        if (authUserId) {
+          const res = await awardPactPointsWelcomeBonus(authUserId);
+          if (!res.success) {
+            console.error("[CREATE USER] awardPactPointsWelcomeBonus:", res.error);
+          }
+        }
+      } catch (e) {
+        console.error("[CREATE USER] awardPactPointsWelcomeBonus unexpected:", e);
       }
     }
 

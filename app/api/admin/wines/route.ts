@@ -9,6 +9,7 @@ import { calculateB2BPriceExclVat } from "@/lib/price-breakdown";
  * GET /api/admin/wines
  * List all wines for admin (e.g. wine tasting session setup).
  * Query: for_invoice=1 – return warehouse (B2B) price per wine (b2b_price_excl_vat in SEK), same logic as tasting summary / dirtywine.se.
+ * Query: b2b_in_stock=1 (with for_invoice=1) – only wines with B2B lager (b2b_stock > 0 and/or remaining pallet bottles).
  */
 export async function GET(request: NextRequest) {
   try {
@@ -36,6 +37,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const forInvoice = searchParams.get("for_invoice") === "1";
+    const b2bInStockOnly = searchParams.get("b2b_in_stock") === "1";
 
     const sb = getSupabaseAdmin();
     const selectFields = `
@@ -68,7 +70,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const rawWines = (wines ?? []) as any[];
+    let rawWines = (wines ?? []) as any[];
 
     if (!forInvoice || rawWines.length === 0) {
       return NextResponse.json(rawWines);
@@ -136,6 +138,15 @@ export async function GET(request: NextRequest) {
       });
     } catch {
       /* table may not exist */
+    }
+
+    if (forInvoice && b2bInStockOnly) {
+      rawWines = rawWines.filter((w: any) => {
+        const stock = w.b2b_stock;
+        const fromColumn = typeof stock === "number" ? stock > 0 : Number(stock) > 0;
+        const fromPallet = b2bShippingMap.has(w.id);
+        return fromColumn || fromPallet;
+      });
     }
 
     const result = rawWines.map((w: any) => {

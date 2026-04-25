@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { BookingsTabNav } from "@/components/admin/bookings/bookings-tab-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Calendar,
   Wine,
@@ -21,7 +21,6 @@ import {
 export default function BookingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialTab = searchParams.get("tab") === "dirty-wine" ? "dirty-wine" : "pact";
 
   const [bookings, setBookings] = useState<any[]>([]);
   const [reservations, setReservations] = useState<any[]>([]);
@@ -35,11 +34,12 @@ export default function BookingsPage() {
     fetchBookings();
   }, []);
 
+  // Legacy: ?tab=dirty-wine → canonical path (no intermediate query-only state)
   useEffect(() => {
-    if (initialTab === "dirty-wine") {
+    if (searchParams.get("tab") === "dirty-wine") {
       router.replace("/admin/bookings/dirty-wine");
     }
-  }, [initialTab, router]);
+  }, [searchParams, router]);
 
   const fetchBookings = async () => {
     try {
@@ -193,13 +193,6 @@ export default function BookingsPage() {
     }
   };
 
-  const handleTabChange = (value: string) => {
-    const url = new URL(window.location.href);
-    url.searchParams.set("tab", value === "dirty-wine" ? "dirty-wine" : "pact");
-    url.searchParams.delete("_");
-    window.history.replaceState({}, "", url.toString());
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -242,25 +235,9 @@ export default function BookingsPage() {
         </div>
       </div>
 
-      <Tabs value={initialTab} onValueChange={handleTabChange}>
-        <TabsList className="bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800 rounded-xl p-1">
-          <TabsTrigger
-            value="pact"
-            className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm text-xs font-medium"
-          >
-            PACT
-          </TabsTrigger>
-          <TabsTrigger value="dirty-wine" asChild>
-            <Link
-              href="/admin/bookings/dirty-wine"
-              className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm text-xs font-medium px-4 py-2"
-            >
-              Dirty Wine
-            </Link>
-          </TabsTrigger>
-        </TabsList>
+      <BookingsTabNav />
 
-        <TabsContent value="pact" className="mt-6 space-y-6">
+      <div className="mt-6 space-y-6">
           {/* Summary Stats – dashboard card style */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
@@ -507,8 +484,7 @@ export default function BookingsPage() {
               )}
             </div>
           </div>
-        </TabsContent>
-      </Tabs>
+      </div>
     </div>
   );
 }

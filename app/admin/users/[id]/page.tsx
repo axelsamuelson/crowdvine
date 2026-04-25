@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -39,6 +39,7 @@ interface Membership {
   invite_quota_monthly: number;
   invites_used_this_month: number;
   created_at: string;
+  founding_member_since?: string | null;
 }
 
 interface Reservation {
@@ -115,6 +116,20 @@ export default function UserDetailPage({
   const [accountSource, setAccountSource] = useState<AccountSourcePayload | null>(
     null,
   );
+  const [resetting, setResetting] = useState(false);
+  const [resetConfirm, setResetConfirm] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+  const resetConfirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+
+  useEffect(() => {
+    return () => {
+      if (resetConfirmTimerRef.current) {
+        clearTimeout(resetConfirmTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     fetchUserData(userId);
@@ -188,6 +203,51 @@ export default function UserDetailPage({
     }
   };
 
+  const handleResetImpactPoints = async () => {
+    setResetError(null);
+    setResetting(true);
+    try {
+      const res = await fetch(
+        `/api/admin/users/${userId}/reset-impact-points`,
+        { method: "POST" },
+      );
+      const data: unknown = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        const msg =
+          data &&
+          typeof data === "object" &&
+          "error" in data &&
+          typeof (data as { error: unknown }).error === "string"
+            ? (data as { error: string }).error
+            : "Reset failed";
+        setResetError(msg);
+        return;
+      }
+
+      if (
+        data &&
+        typeof data === "object" &&
+        "success" in data &&
+        (data as { success: unknown }).success === true
+      ) {
+        setMembership((prev) =>
+          prev ? { ...prev, impact_points: 0 } : prev,
+        );
+        if (resetConfirmTimerRef.current) {
+          clearTimeout(resetConfirmTimerRef.current);
+        }
+        setResetConfirm(true);
+        resetConfirmTimerRef.current = setTimeout(() => {
+          setResetConfirm(false);
+          resetConfirmTimerRef.current = null;
+        }, 2000);
+      }
+    } finally {
+      setResetting(false);
+    }
+  };
+
   const getLevelColor = (level: string) => {
     const m = normalizeMembershipLevel(level);
     const colors: Record<string, { bg: string; text: string }> = {
@@ -197,6 +257,10 @@ export default function UserDetailPage({
       silver: { bg: "bg-emerald-200 dark:bg-emerald-800/60", text: "text-emerald-950 dark:text-emerald-100" },
       guld: { bg: "bg-[#E4CAA0]/30 dark:bg-amber-900/50", text: "text-gray-900 dark:text-amber-100" },
       privilege: { bg: "bg-rose-200 dark:bg-rose-900/50", text: "text-rose-950 dark:text-rose-100" },
+      founding_member: {
+        bg: "bg-amber-100 border border-amber-400",
+        text: "text-amber-900",
+      },
     };
     return colors[m] || colors.basic;
   };
@@ -529,12 +593,51 @@ export default function UserDetailPage({
                     Member since{" "}
                     {new Date(membership.created_at).toLocaleDateString()}
                   </p>
+                  {normalizeMembershipLevel(membership.level) ===
+                  "founding_member" ? (
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Founding Member since{" "}
+                      {membership.founding_member_since
+                        ? new Date(
+                            membership.founding_member_since,
+                          ).toLocaleDateString()
+                        : "Recently granted"}
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between text-gray-900 dark:text-white">
-                    <span className="text-gray-500 dark:text-gray-400">Impact Points</span>
-                    <span className="font-medium">{membership.impact_points}</span>
+                  <div className="flex justify-between items-start gap-2 text-gray-900 dark:text-white">
+                    <span className="text-gray-500 dark:text-gray-400 shrink-0">
+                      Impact Points
+                    </span>
+                    <div className="flex flex-col items-end gap-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">
+                          {membership.impact_points}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => void handleResetImpactPoints()}
+                          disabled={
+                            resetting || membership.impact_points === 0
+                          }
+                          className="text-xs font-medium text-destructive underline underline-offset-2 decoration-border hover:opacity-70 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          {resetting ? "Resetting..." : "Reset to 0"}
+                        </button>
+                      </div>
+                      {resetConfirm ? (
+                        <span className="text-xs text-green-600 dark:text-green-400">
+                          Reset ✓
+                        </span>
+                      ) : null}
+                      {resetError ? (
+                        <span className="text-xs text-destructive">
+                          {resetError}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                   <div className="flex justify-between text-gray-900 dark:text-white">
                     <span className="text-gray-500 dark:text-gray-400">Monthly Quota</span>

@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import {
   MembershipLevel,
+  getLevelDisplayName,
   normalizeMembershipLevel,
 } from "@/lib/membership/points-engine";
 
@@ -11,48 +12,58 @@ interface LevelBadgeProps {
   className?: string;
 }
 
-const levelConfig = {
+const levelConfig: Record<
+  MembershipLevel,
+  {
+    gradient: string;
+    border: string;
+    text: string;
+    shimmer: boolean;
+    letter?: string;
+  }
+> = {
   requester: {
-    name: "Requester",
     gradient: "from-gray-400 to-gray-600",
     border: "border-gray-400",
     text: "text-gray-700",
     shimmer: false,
   },
   basic: {
-    name: "Basic",
     gradient: "from-slate-600 to-slate-800",
     border: "border-slate-600",
     text: "text-white",
     shimmer: false,
   },
   brons: {
-    name: "Plus",
     gradient: "from-indigo-700 to-indigo-950",
     border: "border-indigo-700",
     text: "text-white",
     shimmer: true,
   },
   silver: {
-    name: "Premium",
     gradient: "from-emerald-700 to-emerald-950",
     border: "border-emerald-700",
     text: "text-white",
     shimmer: true,
   },
   guld: {
-    name: "Priority",
     gradient: "from-[#E4CAA0] to-[#c9a86c]",
     border: "border-[#E4CAA0]",
     text: "text-gray-900",
     shimmer: true,
   },
   privilege: {
-    name: "Privilege",
     gradient: "from-[#2F0E15] to-[#1a080b]",
     border: "border-[#2F0E15]",
     text: "text-white",
     shimmer: true,
+  },
+  founding_member: {
+    gradient: "linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%)",
+    border: "#C0A060",
+    text: "text-white",
+    shimmer: true,
+    letter: "F",
   },
 };
 
@@ -87,6 +98,10 @@ export function LevelBadge({
 }: LevelBadgeProps) {
   const safeLevel = normalizeMembershipLevel(level);
   const config = levelConfig[safeLevel];
+  const displayName = getLevelDisplayName(safeLevel);
+  const isCssGradient = config.gradient.includes("linear-gradient");
+  const isCssBorder =
+    config.border.startsWith("#") || config.border.startsWith("rgb");
   const sizes = sizeClasses[size];
 
   return (
@@ -96,11 +111,15 @@ export function LevelBadge({
         <div
           className={cn(
             "rounded-full flex items-center justify-center font-bold border-2 bg-gradient-to-br relative overflow-hidden",
-            config.gradient,
-            config.border,
+            !isCssGradient ? config.gradient : undefined,
+            !isCssBorder ? config.border : undefined,
             config.text,
             sizes.badge,
           )}
+          style={{
+            ...(isCssGradient ? { backgroundImage: config.gradient } : {}),
+            ...(isCssBorder ? { borderColor: config.border } : {}),
+          }}
         >
           {/* Shimmer Effect for Premium Levels */}
           {config.shimmer && (
@@ -117,7 +136,7 @@ export function LevelBadge({
 
           {/* Level Initial */}
           <span className={cn("relative z-10 font-extrabold", sizes.text)}>
-            {config.name[0]}
+            {config.letter ?? displayName[0]}
           </span>
         </div>
 
@@ -126,8 +145,9 @@ export function LevelBadge({
           <div
             className={cn(
               "absolute inset-0 rounded-full blur-xl opacity-20 -z-10",
-              config.gradient,
+              !isCssGradient ? config.gradient : undefined,
             )}
+            style={isCssGradient ? { backgroundImage: config.gradient } : undefined}
           />
         )}
       </div>
@@ -135,7 +155,7 @@ export function LevelBadge({
       {/* Label */}
       {showLabel && (
         <div className="text-center">
-          <p className="text-sm font-medium text-gray-900">{config.name}</p>
+          <p className="text-sm font-medium text-gray-900">{displayName}</p>
           <p className="text-xs text-gray-500">Member</p>
         </div>
       )}

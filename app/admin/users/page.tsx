@@ -108,6 +108,12 @@ export default function UsersAdmin() {
   const [producers, setProducers] = useState<Producer[]>([]);
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [activityCheckLoading, setActivityCheckLoading] = useState(false);
+  const [activityCheckSummary, setActivityCheckSummary] = useState<{
+    checked: number;
+    retained: number;
+    degraded: number;
+  } | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -147,6 +153,39 @@ export default function UsersAdmin() {
       console.error("Error fetching users:", error);
       toast.error("Failed to fetch users");
       setLoading(false);
+    }
+  };
+
+  const runActivityCheck = async () => {
+    try {
+      setActivityCheckLoading(true);
+      setActivityCheckSummary(null);
+      const res = await fetch("/api/admin/founding-member-activity", {
+        method: "POST",
+      });
+      const data: unknown = await res.json().catch(() => null);
+      const obj =
+        data && typeof data === "object"
+          ? (data as Partial<{
+              checked: number;
+              retained: number;
+              degraded: number;
+            }>)
+          : null;
+      if (!res.ok || !obj) {
+        throw new Error("Failed to run activity check");
+      }
+      setActivityCheckSummary({
+        checked: Number(obj.checked ?? 0),
+        retained: Number(obj.retained ?? 0),
+        degraded: Number(obj.degraded ?? 0),
+      });
+      toast.success("Activity check completed");
+    } catch (e) {
+      console.error("Activity check failed:", e);
+      toast.error("Activity check failed");
+    } finally {
+      setActivityCheckLoading(false);
     }
   };
 
@@ -267,6 +306,8 @@ export default function UsersAdmin() {
     const colors: Record<MembershipLevel, string> = {
       requester: "bg-gray-300 dark:bg-zinc-700 text-gray-700 dark:text-zinc-200",
       privilege: "bg-[#2F0E15] dark:bg-rose-900/80 text-white",
+      founding_member:
+        "bg-amber-100 text-amber-900 border border-amber-400",
       guld: "bg-[#E4CAA0] dark:bg-amber-900/50 text-gray-900 dark:text-amber-100",
       silver: "bg-emerald-800 dark:bg-emerald-700 text-white",
       brons: "bg-indigo-700 dark:bg-indigo-600 text-white",
@@ -276,6 +317,7 @@ export default function UsersAdmin() {
     const labels: Record<MembershipLevel, string> = {
       requester: "Requester",
       privilege: "Privilege",
+      founding_member: "Founding Member",
       guld: "Priority",
       silver: "Premium",
       brons: "Plus",
@@ -366,10 +408,30 @@ export default function UsersAdmin() {
     <div className="space-y-4">
       {/* Single card – same structure as /admin dashboard (e.g. Platform overview) */}
       <div className="bg-white dark:bg-[#0F0F12] rounded-xl p-6 flex flex-col border border-gray-200 dark:border-[#1F1F23]">
-        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 text-left flex items-center gap-2">
-          <Users className="w-3.5 h-3.5 text-zinc-900 dark:text-zinc-50" />
-          Users
-        </h2>
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white text-left flex items-center gap-2">
+            <Users className="w-3.5 h-3.5 text-zinc-900 dark:text-zinc-50" />
+            Users
+          </h2>
+          <div className="flex items-center gap-3">
+            {activityCheckSummary && (
+              <span className="text-xs text-gray-600 dark:text-zinc-400">
+                Checked {activityCheckSummary.checked} · Retained{" "}
+                {activityCheckSummary.retained} · Degraded{" "}
+                {activityCheckSummary.degraded}
+              </span>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={runActivityCheck}
+              disabled={activityCheckLoading}
+              className="border-gray-200 dark:border-zinc-600"
+            >
+              {activityCheckLoading ? "Running…" : "Run activity check"}
+            </Button>
+          </div>
+        </div>
         <div className="flex-1">
           {/* Inner box: filters – same style as dashboard inner boxes */}
           <div className="w-full bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800 rounded-xl mb-4">
@@ -719,6 +781,7 @@ export default function UsersAdmin() {
                   <SelectItem value="silver">Premium (12 invites/month)</SelectItem>
                   <SelectItem value="guld">Priority (50 invites/month)</SelectItem>
                   <SelectItem value="privilege">Privilege (100 invites/month)</SelectItem>
+                  <SelectItem value="founding_member">Founding Member</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-gray-500 dark:text-gray-400">

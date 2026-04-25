@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,29 +10,43 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Package, Plus, Search } from "lucide-react";
+import { toast } from "sonner";
 import InvoiceGenerator from "@/components/admin/invoice-generator";
+import type { DirtyWineOrderRow } from "@/lib/types/dirty-wine-order";
 
-export type OrderType = "online" | "offline";
-
-export interface DirtyWineOrder {
-  id: string;
-  type: OrderType;
-  orderId: string;
-  date: string;
-  customer: string;
-  email: string;
-  totalCents: number;
-  status: string;
-  createdAt: string;
-}
+export type { DirtyWineOrderType as OrderType } from "@/lib/types/dirty-wine-order";
+export type DirtyWineOrder = DirtyWineOrderRow;
 
 export function DirtyWineContent() {
   const [activeTab, setActiveTab] = useState("orders");
-  const [orders, setOrders] = useState<DirtyWineOrder[]>([]);
+  const [orders, setOrders] = useState<DirtyWineOrderRow[]>([]);
+  const [ordersRefresh, setOrdersRefresh] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [typeFilter, setTypeFilter] = useState<"all" | OrderType>("all");
+  const [typeFilter, setTypeFilter] = useState<"all" | DirtyWineOrderRow["type"]>("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [editingOrder, setEditingOrder] = useState<DirtyWineOrderRow | null>(null);
+
+  const handleOfflineRowClick = useCallback(async (order: DirtyWineOrderRow) => {
+    if (order.type !== "offline") return;
+    let inv = order.invoiceData;
+    if (!inv) {
+      const res = await fetch(`/api/admin/bookings/dirty-wine-orders/${order.id}`);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(typeof data.error === "string" ? data.error : "Kunde inte läsa order.");
+        return;
+      }
+      inv = data.order?.invoiceData;
+      if (!inv) {
+        toast.error("Fakturadata saknas för denna order.");
+        return;
+      }
+    }
+    setEditingOrder({ ...order, invoiceData: inv });
+    setActiveTab("invoice");
+  }, []);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -53,7 +67,7 @@ export function DirtyWineContent() {
       }
     };
     fetchOrders();
-  }, []);
+  }, [ordersRefresh]);
 
   const filteredOrders = orders.filter((order) => {
     const matchesType =
@@ -74,37 +88,37 @@ export function DirtyWineContent() {
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800 rounded-xl p-1 grid w-full grid-cols-2 max-w-md">
+      <TabsList className="grid w-full max-w-md grid-cols-2 rounded-xl border border-border bg-muted p-1 text-muted-foreground dark:border-zinc-700 dark:bg-zinc-900">
         <TabsTrigger
           value="orders"
-          className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm text-xs font-medium"
+          className="rounded-lg text-xs font-medium text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm dark:text-zinc-400 dark:data-[state=active]:bg-zinc-800 dark:data-[state=active]:text-zinc-100"
         >
           Ordrar
         </TabsTrigger>
         <TabsTrigger
           value="invoice"
-          className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm text-xs font-medium"
+          className="rounded-lg text-xs font-medium text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm dark:text-zinc-400 dark:data-[state=active]:bg-zinc-800 dark:data-[state=active]:text-zinc-100"
         >
           Skapa faktura
         </TabsTrigger>
       </TabsList>
 
       <TabsContent value="orders" className="mt-6">
-        <div className="bg-white dark:bg-[#0F0F12] rounded-xl p-6 flex flex-col border border-gray-200 dark:border-[#1F1F23]">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <Package className="w-3.5 h-3.5 text-zinc-900 dark:text-zinc-50" />
+        <div className="flex flex-col rounded-xl border border-gray-200 bg-white p-6 text-gray-900 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100">
+          <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-foreground dark:text-zinc-100">
+            <Package className="h-3.5 w-3.5 shrink-0 text-foreground dark:text-zinc-100" aria-hidden />
             Ordrar
           </h2>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-            <p className="text-xs text-gray-500 dark:text-zinc-400">
+          <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-muted-foreground dark:text-zinc-400">
               Online-ordrar från dirtywine.se och offline-ordrar i samma tabell
             </p>
             <div className="flex flex-wrap items-center gap-2">
               <Select
                 value={typeFilter}
-                onValueChange={(v) => setTypeFilter(v as "all" | OrderType)}
+                onValueChange={(v) => setTypeFilter(v as "all" | DirtyWineOrderRow["type"])}
               >
-                <SelectTrigger className="w-[140px] rounded-lg border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 text-xs h-9">
+                <SelectTrigger className="h-9 w-[140px] rounded-lg border-gray-200 bg-white text-xs text-gray-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100">
                   <SelectValue placeholder="Typ" />
                 </SelectTrigger>
                 <SelectContent>
@@ -114,29 +128,29 @@ export function DirtyWineContent() {
                 </SelectContent>
               </Select>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-zinc-400" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground dark:text-zinc-400" />
                 <input
                   type="text"
                   placeholder="Sök..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 pr-4 py-2 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm w-[180px] bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 placeholder:text-gray-500 dark:placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-zinc-100 focus:ring-offset-0"
+                  className="w-[180px] rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-4 text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-0 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:ring-zinc-400"
                 />
               </div>
               <Button
                 size="sm"
-                className="rounded-lg text-xs font-medium h-9 bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900 hover:opacity-90"
+                className="h-9 rounded-lg bg-gray-900 text-xs font-medium text-white hover:bg-gray-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
               >
                 <Plus className="h-3.5 w-3.5 mr-2" />
                 Offline-ordre
               </Button>
             </div>
           </div>
-          <div className="w-full bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800 rounded-xl overflow-hidden">
+          <div className="w-full overflow-hidden rounded-xl border border-gray-200 bg-gray-50 dark:border-zinc-700 dark:bg-[#1C1C1F]">
             {loading ? (
-              <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-300 dark:border-zinc-600 border-t-gray-900 dark:border-t-zinc-100 mx-auto" />
-                <p className="mt-2 text-xs text-gray-500 dark:text-zinc-400">
+              <div className="py-12 text-center">
+                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-gray-900 dark:border-zinc-700 dark:border-t-zinc-100" />
+                <p className="mt-2 text-xs text-muted-foreground dark:text-zinc-400">
                   Laddar ordrar...
                 </p>
               </div>
@@ -144,80 +158,102 @@ export function DirtyWineContent() {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-gray-100 dark:border-zinc-800">
-                      <th className="text-left p-3 text-xs font-medium text-gray-600 dark:text-zinc-400">
+                    <tr className="border-b border-gray-200 bg-gray-50 dark:border-zinc-700 dark:bg-zinc-800">
+                      <th className="p-3 text-left text-xs font-medium text-muted-foreground dark:text-zinc-400">
                         Typ
                       </th>
-                      <th className="text-left p-3 text-xs font-medium text-gray-600 dark:text-zinc-400">
+                      <th className="p-3 text-left text-xs font-medium text-muted-foreground dark:text-zinc-400">
                         Order ID
                       </th>
-                      <th className="text-left p-3 text-xs font-medium text-gray-600 dark:text-zinc-400">
+                      <th className="p-3 text-left text-xs font-medium text-muted-foreground dark:text-zinc-400">
                         Datum
                       </th>
-                      <th className="text-left p-3 text-xs font-medium text-gray-600 dark:text-zinc-400">
+                      <th className="p-3 text-left text-xs font-medium text-muted-foreground dark:text-zinc-400">
                         Kund
                       </th>
-                      <th className="text-left p-3 text-xs font-medium text-gray-600 dark:text-zinc-400">
+                      <th className="p-3 text-left text-xs font-medium text-muted-foreground dark:text-zinc-400">
                         E-post
                       </th>
-                      <th className="text-right p-3 text-xs font-medium text-gray-600 dark:text-zinc-400">
+                      <th className="p-3 text-right text-xs font-medium text-muted-foreground dark:text-zinc-400">
                         Totalt
                       </th>
-                      <th className="text-left p-3 text-xs font-medium text-gray-600 dark:text-zinc-400">
+                      <th className="p-3 text-left text-xs font-medium text-muted-foreground dark:text-zinc-400">
                         Status
                       </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredOrders.map((order) => (
-                      <tr
-                        key={order.id}
-                        className="border-b border-gray-100 dark:border-zinc-800 last:border-0 hover:bg-gray-100 dark:hover:bg-zinc-800/50 transition-colors"
-                      >
-                        <td className="p-3">
-                          <span
-                            className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${
-                              order.type === "online"
-                                ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
-                                : "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
-                            }`}
-                          >
-                            {order.type === "online" ? "Online" : "Offline"}
-                          </span>
-                        </td>
-                        <td className="p-3 font-mono text-xs text-gray-900 dark:text-zinc-100">
-                          {order.orderId}
-                        </td>
-                        <td className="p-3 text-xs text-gray-600 dark:text-zinc-400">
-                          {new Date(order.date).toLocaleDateString("sv-SE")}
-                        </td>
-                        <td className="p-3 text-xs font-medium text-gray-900 dark:text-zinc-100">
-                          {order.customer}
-                        </td>
-                        <td className="p-3 text-xs text-gray-600 dark:text-zinc-400">
-                          {order.email}
-                        </td>
-                        <td className="p-3 text-right text-xs font-medium text-gray-900 dark:text-zinc-100">
-                          {formatPrice(order.totalCents)}
-                        </td>
-                        <td className="p-3 text-xs text-gray-600 dark:text-zinc-400">
-                          {order.status}
-                        </td>
-                      </tr>
-                    ))}
+                    {filteredOrders.map((order) => {
+                      const rowCells = (
+                        <>
+                          <td className="p-3">
+                            <span
+                              className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${
+                                order.type === "online"
+                                  ? "bg-blue-500/20 text-blue-100 ring-1 ring-blue-400/40"
+                                  : "bg-amber-500/20 text-amber-100 ring-1 ring-amber-400/40"
+                              }`}
+                            >
+                              {order.type === "online" ? "Online" : "Offline"}
+                            </span>
+                          </td>
+                          <td className="p-3 font-mono text-xs text-foreground dark:text-zinc-100">{order.orderId}</td>
+                          <td className="p-3 text-xs text-muted-foreground dark:text-zinc-400">
+                            {new Date(order.date).toLocaleDateString("sv-SE")}
+                          </td>
+                          <td className="p-3 text-xs font-medium text-foreground dark:text-zinc-100">{order.customer}</td>
+                          <td className="p-3 text-xs text-muted-foreground dark:text-zinc-400">{order.email}</td>
+                          <td className="p-3 text-right text-xs font-medium tabular-nums text-foreground dark:text-zinc-100">
+                            {formatPrice(order.totalCents)}
+                          </td>
+                          <td className="p-3 text-xs text-muted-foreground dark:text-zinc-400">{order.status}</td>
+                        </>
+                      );
+
+                      if (order.type === "online") {
+                        return (
+                          <Tooltip key={order.id}>
+                            <TooltipTrigger asChild>
+                              <tr className="border-b border-gray-200 bg-white transition-colors last:border-0 cursor-default dark:border-zinc-700 dark:bg-zinc-900">
+                                {rowCells}
+                              </tr>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs border border-gray-200 bg-white text-gray-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100">
+                              Online-ordrar kan inte redigeras
+                            </TooltipContent>
+                          </Tooltip>
+                        );
+                      }
+
+                      return (
+                        <tr
+                          key={order.id}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => void handleOfflineRowClick(order)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              void handleOfflineRowClick(order);
+                            }
+                          }}
+                          className="border-b border-gray-200 bg-white transition-colors last:border-0 hover:bg-gray-100 cursor-pointer dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800"
+                        >
+                          {rowCells}
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
             ) : (
-              <div className="text-center py-12 px-4">
-                <Package className="h-14 w-14 mx-auto mb-4 text-gray-400 dark:text-zinc-500" />
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100 mb-1">
-                  Inga ordrar
-                </h3>
-                <p className="text-xs text-gray-500 dark:text-zinc-400 max-w-md mx-auto mb-4">
+              <div className="px-4 py-12 text-center">
+                <Package className="mx-auto mb-4 h-14 w-14 text-muted-foreground dark:text-zinc-500" />
+                <h3 className="mb-1 text-sm font-semibold text-foreground dark:text-zinc-100">Inga ordrar</h3>
+                <p className="mx-auto mb-4 max-w-md text-xs text-muted-foreground dark:text-zinc-400">
                   {typeFilter !== "all" || searchTerm
                     ? "Inga ordrar matchar filter/sökning."
-                    : "Online-ordrar från dirtywine.se eller offline-ordrar visas här."}
+                    : "Online-ordrar från dirtywine.se (kommande) och offline-ordrar du sparar under Skapa faktura → Spara som order (offline) visas här."}
                 </p>
                 {typeFilter !== "all" || searchTerm ? (
                   <Button
@@ -226,12 +262,12 @@ export function DirtyWineContent() {
                       setTypeFilter("all");
                       setSearchTerm("");
                     }}
-                    className="rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700"
+                    className="rounded-lg border-gray-200 text-xs font-medium text-gray-700 hover:bg-gray-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800/50"
                   >
                     Rensa filter
                   </Button>
                 ) : (
-                  <Button className="rounded-lg text-xs font-medium h-9 bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900 hover:opacity-90">
+                  <Button className="h-9 rounded-lg bg-gray-900 text-xs font-medium text-white hover:bg-gray-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200">
                     <Plus className="h-3.5 w-3.5 mr-2" />
                     Skapa offline-ordrar
                   </Button>
@@ -243,9 +279,36 @@ export function DirtyWineContent() {
       </TabsContent>
 
       <TabsContent value="invoice" className="mt-6">
-        <div className="bg-white dark:bg-[#0F0F12] rounded-xl p-6 border border-gray-200 dark:border-[#1F1F23]">
-          <InvoiceGenerator />
-        </div>
+        {editingOrder ? (
+          <div className="mb-4 flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-700 dark:bg-zinc-800">
+            <p className="text-sm text-gray-900 dark:text-zinc-100">
+              Redigerar order {editingOrder.orderId} · {editingOrder.customer}
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9 shrink-0 rounded-lg border-gray-200 text-xs font-medium dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+              onClick={() => setEditingOrder(null)}
+            >
+              Avbryt
+            </Button>
+          </div>
+        ) : null}
+        <InvoiceGenerator
+          key={editingOrder ? `order-${editingOrder.id}` : "new-invoice"}
+          initialInvoice={editingOrder?.invoiceData}
+          offlineOrderId={editingOrder?.id}
+          onOrderUpdated={() => {
+            setEditingOrder(null);
+            setOrdersRefresh((n) => n + 1);
+            setActiveTab("orders");
+          }}
+          onOfflineOrderCreated={() => {
+            setOrdersRefresh((n) => n + 1);
+            setActiveTab("orders");
+          }}
+        />
       </TabsContent>
     </Tabs>
   );

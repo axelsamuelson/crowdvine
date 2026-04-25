@@ -7,6 +7,7 @@ import { useFormStatus } from "react-dom";
 import { useCart } from "./cart-context";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
 import { Loader } from "../ui/loader";
 import { CartItemCard } from "./cart-item";
 import { formatPrice, priceExclVat } from "@/lib/shopify/utils";
@@ -43,6 +44,35 @@ const CartItems = ({
   const showExclVat = useB2BPriceMode();
   const totalAmount = cart ? parseFloat(cart.cost.totalAmount.amount) : 0;
   const displayTotal = showExclVat ? priceExclVat(totalAmount) : totalAmount;
+  const [pactPointsBalance, setPactPointsBalance] = useState<number | null>(null);
+
+  useEffect(() => {
+    const run = async () => {
+      try {
+        const res = await fetch("/api/user/membership");
+        if (res.status === 401) {
+          setPactPointsBalance(null);
+          return;
+        }
+        if (!res.ok) return;
+        const data: unknown = await res.json();
+        const balance =
+          data &&
+          typeof data === "object" &&
+          "pactPoints" in data &&
+          (data as { pactPoints?: unknown }).pactPoints &&
+          typeof (data as { pactPoints: { balance?: unknown } }).pactPoints
+            .balance === "number"
+            ? (data as { pactPoints: { balance: number } }).pactPoints.balance
+            : 0;
+        setPactPointsBalance(balance);
+      } catch {
+        // fail open: cart must never break
+        setPactPointsBalance(null);
+      }
+    };
+    void run();
+  }, []);
 
   if (!cart) return <></>;
 
@@ -83,6 +113,16 @@ const CartItems = ({
 
       <CartContainer>
         <div className="py-4 text-sm text-foreground/50 shrink-0">
+          {typeof pactPointsBalance === "number" && pactPointsBalance > 0 ? (
+            <div className="flex items-center justify-between border-t border-border py-2 mt-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium">PACT Points</span>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {pactPointsBalance} available · use at checkout
+              </span>
+            </div>
+          ) : null}
           <div className="flex justify-between items-center pb-1 mb-3 border-b border-muted-foreground/20">
             <p>Shipping</p>
             <p className="text-right">Calculated at checkout</p>

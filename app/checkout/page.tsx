@@ -6,9 +6,8 @@ import Link from "next/link";
 import type { Cart } from "@/lib/shopify/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Slider } from "@/components/ui/slider";
 import {
   Select,
   SelectContent,
@@ -107,6 +106,8 @@ function CheckoutContent() {
   );
   const [shareFriendIds, setShareFriendIds] = useState<string[] | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"card" | "invoice">("card");
+  const [pactPointsBalance, setPactPointsBalance] = useState(0);
+  const [redeemPoints, setRedeemPoints] = useState(0);
 
   // v2: Progression buffs state
   const [progressionBuffs, setProgressionBuffs] = useState<any[]>([]);
@@ -225,11 +226,37 @@ function CheckoutContent() {
     }
   }, []);
 
+  const fetchPactPointsBalance = useCallback(async () => {
+    try {
+      const res = await fetch("/api/user/membership");
+      if (res.status === 401) {
+        setPactPointsBalance(0);
+        return;
+      }
+      if (!res.ok) return;
+      const data: unknown = await res.json();
+      const balance =
+        data &&
+        typeof data === "object" &&
+        "pactPoints" in data &&
+        (data as { pactPoints?: unknown }).pactPoints &&
+        typeof (data as { pactPoints: { balance?: unknown } }).pactPoints
+          .balance === "number"
+          ? (data as { pactPoints: { balance: number } }).pactPoints.balance
+          : 0;
+      setPactPointsBalance(balance);
+    } catch {
+      // never break checkout
+      setPactPointsBalance(0);
+    }
+  }, []);
+
   useEffect(() => {
     fetchCart();
     fetchProfile();
     fetchUserRewards();
     fetchProgressionBuffs(); // v2: fetch progression buffs
+    fetchPactPointsBalance();
 
     // Check if returning from Stripe payment method setup
     const urlParams = new URLSearchParams(window.location.search);
@@ -239,7 +266,13 @@ function CheckoutContent() {
       const cleanUrl = window.location.pathname;
       window.history.replaceState({}, "", cleanUrl);
     }
-  }, [fetchCart, fetchProfile, fetchUserRewards, fetchProgressionBuffs]);
+  }, [
+    fetchCart,
+    fetchProfile,
+    fetchUserRewards,
+    fetchProgressionBuffs,
+    fetchPactPointsBalance,
+  ]);
 
   // Initial zone matching when cart and profile are loaded
   useEffect(() => {
@@ -589,6 +622,10 @@ function CheckoutContent() {
       );
     }
 
+    if (Number.isFinite(redeemPoints) && redeemPoints > 0) {
+      formData.append("pact_points_redeem", String(Math.floor(redeemPoints)));
+    }
+
     try {
       const response = await fetch("/api/checkout/confirm", {
         method: "POST",
@@ -600,11 +637,16 @@ function CheckoutContent() {
         const contentType = response.headers.get("content-type") || "";
         let redirectUrl: string | null = null;
         if (contentType.includes("application/json")) {
-          const data = await response.json().catch(() => null);
-          redirectUrl = data?.redirectUrl || null;
+          const data: unknown = await response.json().catch(() => null);
+          if (data && typeof data === "object") {
+            const d = data as Record<string, unknown>;
+            redirectUrl =
+              typeof d.redirectUrl === "string" ? d.redirectUrl : null;
+          }
         }
 
         toast.success("Reservation placed successfully!");
+
         checkoutCompletedRef.current = true;
         window.location.href = redirectUrl || "/checkout/success";
       } else {
@@ -709,6 +751,19 @@ function CheckoutContent() {
   const total =
     subtotal + (shippingCost ? shippingCost.totalShippingCostSek : 0);
 
+  const maxRedemption = Math.min(
+    pactPointsBalance,
+    Math.floor(Math.max(0, total) * 0.5),
+  );
+  const totalAfterPactPoints = Math.max(0, total - redeemPoints);
+
+  useEffect(() => {
+    if (!Number.isFinite(maxRedemption)) return;
+    if (redeemPoints > maxRedemption) {
+      setRedeemPoints(maxRedemption);
+    }
+  }, [maxRedemption, redeemPoints]);
+
   // Filter available rewards (membership system - no bottle rewards anymore)
   const availableRewards: UserReward[] = [];
 
@@ -735,6 +790,13 @@ function CheckoutContent() {
         : "No pallet selected",
       subtle: !shippingCost,
     });
+    if (redeemPoints > 0) {
+      lines.push({
+        label: "PACT Points",
+        value: `-${Math.round(redeemPoints)} ${currencyCode}`,
+        accent: true,
+      });
+    }
     if (progressionBuffDiscountAmount > 0) {
       lines.push({
         label: `Progress bonus (${totalBuffPercentage.toFixed(1)}%)`,
@@ -754,6 +816,7 @@ function CheckoutContent() {
     currencyCode,
     formatShippingCost,
     progressionBuffDiscountAmount,
+    redeemPoints,
     rewardsDiscountAmount,
     selectedRewards.length,
     shippingCost,
@@ -1108,6 +1171,43 @@ function CheckoutContent() {
                         </span>
                       </div>
 
+                      {pactPointsBalance > 0 ? (
+                        <div className="rounded-lg bg-muted/40 p-3 mb-3">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-sm font-medium">Use PACT Points</span>
+                            <span className="text-xs text-muted-foreground">
+                              {pactPointsBalance} available
+                            </span>
+                          </div>
+                          <Slider
+                            value={[redeemPoints]}
+                            onValueChange={([v]) => setRedeemPoints(v)}
+                            max={maxRedemption}
+                            step={10}
+                            className="my-2"
+                          />
+                          <div className="flex items-center justify-between text-xs">
+                            <button
+                              type="button"
+                              onClick={() => setRedeemPoints(0)}
+                              className="text-muted-foreground underline"
+                            >
+                              Use none
+                            </button>
+                            <span className="font-medium">
+                              {redeemPoints} points = {redeemPoints} kr off
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setRedeemPoints(maxRedemption)}
+                              className="text-muted-foreground underline"
+                            >
+                              Use all
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
+
                       {progressionBuffDiscountAmount > 0 && (
                         <div className="flex justify-between mb-2">
                           <span className="text-amber-700">
@@ -1131,10 +1231,19 @@ function CheckoutContent() {
                         </div>
                       )}
 
+                      {redeemPoints > 0 ? (
+                        <div className="flex justify-between mb-2">
+                          <span className="text-amber-700">PACT Points</span>
+                          <span className="font-medium text-amber-700">
+                            -{redeemPoints} kr
+                          </span>
+                        </div>
+                      ) : null}
+
                       <div className="flex justify-between items-center border-t border-gray-200 pt-4 mt-2">
                         <span className="text-lg font-medium">Total</span>
                         <span className="text-xl font-medium">
-                          {Math.round(total)} {currencyCode}
+                          {Math.round(totalAfterPactPoints)} {currencyCode}
                         </span>
                       </div>
 
@@ -1776,7 +1885,7 @@ function CheckoutContent() {
 
     <AppleStickyPriceFooter
       totalLabel="Total"
-      totalValue={`${Math.round(total)} ${currencyCode}`}
+      totalValue={`${Math.round(totalAfterPactPoints)} ${currencyCode}`}
       lines={stickyLines}
       ctaLabel={
         step === 1

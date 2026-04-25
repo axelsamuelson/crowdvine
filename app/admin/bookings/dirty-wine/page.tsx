@@ -1,8 +1,6 @@
 import { getCurrentAdmin } from "@/lib/admin-auth-server";
 import { redirect } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { BookingsTabNav } from "@/components/admin/bookings/bookings-tab-nav";
 import { DirtyWineContent } from "./dirty-wine-content";
 
 export const metadata = {
@@ -18,26 +16,14 @@ export default async function DirtyWinePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button
-          variant="outline"
-          size="icon"
-          asChild
-          className="rounded-lg border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800/50"
-        >
-          <Link href="/admin/bookings?tab=pact">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Dirty Wine · B2B
-          </h1>
-          <p className="text-sm text-gray-600 dark:text-zinc-400 mt-1">
-            Ordrar från dirtywine.se, offline-ordrar och fakturor
-          </p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Bookings</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Dirty Wine · B2B — ordrar från dirtywine.se, offline-ordrar och fakturor
+        </p>
       </div>
+
+      <BookingsTabNav />
 
       <DirtyWineContent />
     </div>

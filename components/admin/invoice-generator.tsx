@@ -23,13 +23,14 @@ import {
   deleteInvoiceDraft,
   type InvoiceDraftMeta,
 } from "@/lib/invoice-drafts";
-import { FileDown, FileUp, FilePlus2, ChevronDown, Trash2 } from "lucide-react";
+import { FileDown, FileUp, FilePlus2, ChevronDown, Trash2, ClipboardList } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { computeInvoiceGrandTotal } from "@/lib/invoice-total";
 import type { InvoiceRecipient } from "@/app/api/admin/invoice-recipients/route";
 import type { InvoiceSenderDefaults } from "@/app/api/admin/invoice-sender-defaults/route";
 
-function applySenderDefaultsToInvoice(
-  defaults: InvoiceSenderDefaults | null,
-): Pick<
+type SenderDefaultsFields = Pick<
   InvoiceData,
   | "companyName"
   | "companyLogo"
@@ -46,7 +47,9 @@ function applySenderDefaultsToInvoice(
   | "accountNumber"
   | "paymentTerms"
   | "footer"
-> {
+>;
+
+function applySenderDefaultsToInvoice(defaults: InvoiceSenderDefaults | null): Partial<SenderDefaultsFields> {
   if (!defaults) return {};
   return {
     companyName: defaults.company_name ?? "",
@@ -67,7 +70,19 @@ function applySenderDefaultsToInvoice(
   };
 }
 
-export default function InvoiceGenerator() {
+interface InvoiceGeneratorProps {
+  /** After a manual invoice is saved as an offline order, parent can switch tab / refetch. */
+  onOfflineOrderCreated?: () => void;
+  /** Pre-fill form when opening an existing DB order (Dirty Wine). */
+  initialInvoice?: InvoiceData;
+  /** When set, "Spara som order" PATCHes this row instead of POSTing a new one. */
+  offlineOrderId?: string;
+  /** Called after a successful PATCH to an existing offline order. */
+  onOrderUpdated?: () => void;
+}
+
+export default function InvoiceGenerator(props?: InvoiceGeneratorProps) {
+  const { onOfflineOrderCreated, initialInvoice, offlineOrderId, onOrderUpdated } = props ?? {};
   const [activeTab, setActiveTab] = useState("edit");
   const invoiceRef = useRef<HTMLDivElement>(null);
   const [senderDefaults, setSenderDefaults] = useState<InvoiceSenderDefaults | null>(null);
@@ -104,7 +119,7 @@ export default function InvoiceGenerator() {
     shippingHandlingAmount: 0,
     items: [],
     notes: "",
-    taxRate: 0,
+    taxRate: 25,
     currency: "SEK",
     footer: "Thank you for your business!",
     discountType: "percentage",
@@ -114,6 +129,7 @@ export default function InvoiceGenerator() {
 
   const [draftId, setDraftId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<InvoiceDraftMeta[]>([]);
+  const [savingOrder, setSavingOrder] = useState(false);
   const [dirtyWineLogoUrl, setDirtyWineLogoUrl] = useState<string | null>(null);
   const [recipients, setRecipients] = useState<InvoiceRecipient[]>([]);
   const [selectedRecipientId, setSelectedRecipientId] = useState<string | null>(null);
@@ -140,6 +156,14 @@ export default function InvoiceGenerator() {
       return { ...prev, ...applied };
     });
   }, [senderDefaults]);
+
+  useEffect(() => {
+    if (!initialInvoice) return;
+    setInvoiceData(initialInvoice);
+    setDraftId(null);
+    setSelectedRecipientId(null);
+    setActiveTab("edit");
+  }, [initialInvoice]);
 
   const applyRecipient = (r: InvoiceRecipient) => {
     const toName = [r.company_name, r.contact_name].filter(Boolean).join(" – ") || "";
@@ -177,6 +201,51 @@ export default function InvoiceGenerator() {
     const id = saveInvoiceDraft(invoiceData, draftId ?? undefined);
     setDraftId(id);
     refreshDrafts();
+  };
+
+  const handleSaveAsOfflineOrder = async () => {
+    if (!invoiceData.invoiceNumber?.trim()) {
+      toast.error("Ange fakturanummer.");
+      return;
+    }
+    if (!invoiceData.items?.length) {
+      toast.error("Lägg till minst en fakturarad.");
+      return;
+    }
+    if (!invoiceData.toName?.trim() && !invoiceData.toEmail?.trim()) {
+      toast.error("Fyll i kundnamn eller e-post under Kund (fakturera till).");
+      return;
+    }
+    setSavingOrder(true);
+    try {
+      const isUpdate = Boolean(offlineOrderId);
+      const res = await fetch(
+        isUpdate
+          ? `/api/admin/bookings/dirty-wine-orders/${offlineOrderId}`
+          : "/api/admin/bookings/dirty-wine-orders",
+        {
+          method: isUpdate ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ invoice: invoiceData }),
+        },
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(typeof data.error === "string" ? data.error : "Kunde inte spara order.");
+        return;
+      }
+      if (isUpdate) {
+        toast.success("Order uppdaterad.");
+        onOrderUpdated?.();
+      } else {
+        toast.success("Order sparad som offline (manuell faktura).");
+        onOfflineOrderCreated?.();
+      }
+    } catch {
+      toast.error("Nätverksfel – försök igen.");
+    } finally {
+      setSavingOrder(false);
+    }
   };
 
   const handleLoadDraft = (id: string) => {
@@ -223,7 +292,7 @@ export default function InvoiceGenerator() {
       shippingHandlingAmount: 0,
       items: [],
       notes: "",
-      taxRate: 0,
+      taxRate: 25,
       currency: "SEK",
       footer: applied.footer ?? "Thank you for your business!",
       discountType: "percentage",
@@ -250,9 +319,9 @@ export default function InvoiceGenerator() {
         }
         return item;
       });
-      setInvoiceData({ ...invoiceData, [field]: value, items: updatedItems });
+      setInvoiceData({ ...invoiceData, [field]: value, items: updatedItems } as InvoiceData);
     } else {
-      setInvoiceData({ ...invoiceData, [field]: value });
+      setInvoiceData({ ...invoiceData, [field]: value } as InvoiceData);
     }
   };
 
@@ -314,7 +383,7 @@ export default function InvoiceGenerator() {
         {
           id: uuidv4(),
           description,
-          quantity: 1,
+          quantity: 6,
           price: Math.round(price * 100) / 100,
           currency: invoiceData.currency,
           exchangeRate: 1,
@@ -401,9 +470,7 @@ export default function InvoiceGenerator() {
     return calculateTotalExclVAT() * (invoiceData.taxRate / 100);
   };
 
-  const calculateTotal = () => {
-    return calculateTotalExclVAT() + calculateTax();
-  };
+  const calculateTotal = () => computeInvoiceGrandTotal(invoiceData);
 
   const downloadPdf = async () => {
     if (invoiceRef.current) {
@@ -451,20 +518,37 @@ export default function InvoiceGenerator() {
     if (r) applyRecipient(r);
   };
 
+  const invoiceToolbarBtn =
+    "h-9 shrink-0 gap-2 rounded-lg px-3.5 text-xs font-medium [&_svg]:size-4 [&_svg]:shrink-0";
+
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6">
-      <div className="flex flex-wrap items-center gap-2 mb-4">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm">
-              <FileUp className="h-4 w-4 mr-2" />
-              Öppna utkast
-              <ChevronDown className="h-4 w-4 ml-1" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-72 max-h-[280px] overflow-y-auto">
+    <div className="w-full max-w-7xl space-y-6">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <div
+          className="flex flex-wrap items-center gap-1 rounded-xl border border-border bg-muted/50 p-1 shadow-sm dark:border-zinc-700 dark:bg-[#1C1C1F]"
+          role="group"
+          aria-label="Utkast"
+        >
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  invoiceToolbarBtn,
+                  "border-border bg-background shadow-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100",
+                )}
+              >
+                <FileUp className="opacity-90" aria-hidden />
+                Öppna utkast
+                <ChevronDown className="opacity-70" aria-hidden />
+              </Button>
+            </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="start"
+            className="w-72 max-h-[280px] overflow-y-auto dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+          >
             {drafts.length === 0 ? (
-              <div className="py-4 px-3 text-sm text-muted-foreground text-center">
+              <div className="py-4 px-3 text-center text-sm text-muted-foreground dark:text-zinc-400">
                 Inga sparade utkast
               </div>
             ) : (
@@ -490,23 +574,70 @@ export default function InvoiceGenerator() {
             )}
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button variant="outline" size="sm" onClick={handleSaveDraft}>
-          <FileDown className="h-4 w-4 mr-2" />
-          {draftId ? "Uppdatera utkast" : "Spara som utkast"}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleSaveDraft}
+            className={cn(
+              invoiceToolbarBtn,
+              "border-border bg-background shadow-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100",
+            )}
+          >
+            <FileDown className="opacity-90" aria-hidden />
+            {draftId ? "Uppdatera utkast" : "Spara som utkast"}
+          </Button>
+        </div>
+
+        <Button
+          type="button"
+          variant="default"
+          onClick={handleSaveAsOfflineOrder}
+          disabled={savingOrder}
+          className={cn(
+            invoiceToolbarBtn,
+            "border border-primary/30 bg-primary/25 px-4 font-semibold text-primary shadow-sm ring-1 ring-border/20",
+            "hover:bg-primary/35 hover:shadow-md disabled:opacity-60",
+            "dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:ring-zinc-700/50 dark:hover:bg-zinc-700",
+          )}
+        >
+          <ClipboardList aria-hidden />
+          {savingOrder ? "Sparar…" : offlineOrderId ? "Uppdatera order" : "Spara som order"}
+          {!offlineOrderId ? (
+            <span className="hidden font-normal opacity-80 sm:inline">(offline)</span>
+          ) : null}
         </Button>
-        <Button variant="ghost" size="sm" onClick={handleNewInvoice}>
-          <FilePlus2 className="h-4 w-4 mr-2" />
+
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={handleNewInvoice}
+          className={cn(
+            invoiceToolbarBtn,
+            "px-3 text-muted-foreground hover:bg-muted hover:text-foreground dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100",
+          )}
+        >
+          <FilePlus2 aria-hidden />
           Ny faktura
         </Button>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-6">
-          <TabsTrigger value="edit">Edit Invoice</TabsTrigger>
-          <TabsTrigger value="preview">Preview</TabsTrigger>
+        <TabsList className="grid w-full max-w-md grid-cols-2 rounded-xl border border-border bg-muted p-1 text-muted-foreground dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-400">
+          <TabsTrigger
+            value="edit"
+            className="rounded-lg text-xs font-medium text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm dark:text-zinc-400 dark:data-[state=active]:bg-[#1C1C1F] dark:data-[state=active]:text-zinc-100 dark:data-[state=active]:shadow-sm"
+          >
+            Redigera faktura
+          </TabsTrigger>
+          <TabsTrigger
+            value="preview"
+            className="rounded-lg text-xs font-medium text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm dark:text-zinc-400 dark:data-[state=active]:bg-[#1C1C1F] dark:data-[state=active]:text-zinc-100 dark:data-[state=active]:shadow-sm"
+          >
+            Förhandsgranska
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="edit">
+        <TabsContent value="edit" className="mt-6">
           <InvoiceForm
             invoiceData={invoiceData}
             handleInvoiceChange={handleInvoiceChange}
@@ -529,8 +660,8 @@ export default function InvoiceGenerator() {
           />
         </TabsContent>
 
-        <TabsContent value="preview">
-          <Card className="p-6">
+        <TabsContent value="preview" className="mt-6">
+          <Card className="rounded-xl border border-border bg-card p-6 text-card-foreground shadow-sm dark:border-zinc-700 dark:bg-[#1C1C1F] dark:text-zinc-100">
             <div ref={invoiceRef}>
               <InvoicePreview
                 invoiceData={invoiceData}
@@ -547,8 +678,10 @@ export default function InvoiceGenerator() {
                 calculateTotal={calculateTotal}
               />
             </div>
-            <div className="mt-6 flex justify-end">
-              <Button onClick={downloadPdf}>Download PDF</Button>
+            <div className="mt-6 flex justify-end border-t border-border pt-6 dark:border-zinc-700">
+              <Button onClick={downloadPdf} className="h-9 rounded-lg text-xs font-medium">
+                Ladda ner PDF
+              </Button>
             </div>
           </Card>
         </TabsContent>

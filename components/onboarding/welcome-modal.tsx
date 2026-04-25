@@ -24,7 +24,13 @@ interface WelcomeModalProps {
   onClose: () => void;
 }
 
-type MembershipLevel = "basic" | "brons" | "silver" | "guld" | "privilege";
+type WelcomeModalMembershipLevel =
+  | "basic"
+  | "brons"
+  | "silver"
+  | "guld"
+  | "privilege"
+  | "founding_member";
 
 interface MembershipConfig {
   displayName: string;
@@ -35,7 +41,7 @@ interface MembershipConfig {
   description: string;
 }
 
-const membershipLevels: Record<MembershipLevel, MembershipConfig> = {
+const membershipLevels: Record<WelcomeModalMembershipLevel, MembershipConfig> = {
   basic: {
     displayName: "Basic",
     color: "text-slate-900",
@@ -76,9 +82,18 @@ const membershipLevels: Record<MembershipLevel, MembershipConfig> = {
     pointsToNext: null,
     description: "Maximum invite quota, top priority, and exclusive benefits",
   },
+  founding_member: {
+    displayName: "Founding Member",
+    color: "text-amber-950",
+    bgColor: "bg-[#1a1a2e] border border-[#C0A060]",
+    nextLevel: null,
+    pointsToNext: null,
+    description:
+      "Founding member pricing, top invite quota, and thanks for believing in PACT early",
+  },
 };
 
-const getSteps = (membershipLevel: MembershipLevel) => {
+const getSteps = (membershipLevel: WelcomeModalMembershipLevel) => {
   const levelConfig = membershipLevels[membershipLevel];
 
   return [
@@ -261,12 +276,15 @@ const getSteps = (membershipLevel: MembershipLevel) => {
             <>
               <div className="space-y-3">
                 <p className="text-sm font-medium text-foreground text-center">
-                  Earn Impact Points by:
+                  Earn PACT Points by:
                 </p>
                 <div className="space-y-2 text-sm text-muted-foreground text-center">
-                  <p>
-                    Inviting friends • Making reservations • Participating in
-                    pallets
+                  <p>Buying wine — 1+ points per bottle, more at higher tiers</p>
+                  <p>Inviting friends — 30 points when they order</p>
+                  <p>Reviewing wines — 10 points after delivery</p>
+                  <p>Setting your delivery zone — 5 points (one-time bonus)</p>
+                  <p className="pt-2 font-medium text-foreground">
+                    Plus 50 PACT Points welcome bonus to start!
                   </p>
                 </div>
               </div>
@@ -282,7 +300,7 @@ const getSteps = (membershipLevel: MembershipLevel) => {
                   </span>
                 </div>
                 <p className="text-xs text-center text-muted-foreground mt-2">
-                  {levelConfig.pointsToNext} Impact Points to unlock{" "}
+                  {levelConfig.pointsToNext} points to unlock{" "}
                   {levelConfig.nextLevel}
                 </p>
               </div>
@@ -330,17 +348,18 @@ const getSteps = (membershipLevel: MembershipLevel) => {
   ];
 };
 
-function welcomeModalTier(raw: string): MembershipLevel {
+function welcomeModalTier(raw: string): WelcomeModalMembershipLevel {
   const n = normalizeMembershipLevel(raw);
   if (n === "requester") return "basic";
-  return n;
+  if (n === "founding_member") return "founding_member";
+  return n as WelcomeModalMembershipLevel;
 }
 
 export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState(0);
   const [membershipLevel, setMembershipLevel] =
-    useState<MembershipLevel>("basic");
+    useState<WelcomeModalMembershipLevel>("basic");
   const [loading, setLoading] = useState(true);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);

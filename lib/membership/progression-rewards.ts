@@ -34,6 +34,9 @@ export function getLevelSegment(
   currentIP: number,
   currentLevel: MembershipLevel,
 ): string | null {
+  if (currentLevel === "founding_member") {
+    return null;
+  }
   // Determine which segment user is in
   if (currentLevel === "basic" && currentIP >= 0 && currentIP <= 4) {
     return "basic-bronze";

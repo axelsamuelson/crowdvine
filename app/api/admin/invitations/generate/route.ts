@@ -45,8 +45,14 @@ export async function POST(request: NextRequest) {
       bodyType === "producer" || bodyType === "business" ? bodyType : "consumer";
     const allowedTypes = [invitationType];
 
-    // Validate initial level
-    const validLevels: MembershipLevel[] = ["basic", "brons", "silver", "guld", "privilege"];
+    // founding_member is assigned by platform (e.g. first-N buyers), not invite initial_level.
+    const validLevels: MembershipLevel[] = [
+      "basic",
+      "brons",
+      "silver",
+      "guld",
+      "privilege",
+    ];
     if (!validLevels.includes(initialLevel as MembershipLevel)) {
       return NextResponse.json(
         {

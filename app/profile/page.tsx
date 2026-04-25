@@ -1,17 +1,26 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { PageLayout } from "@/components/layout/page-layout";
 import { B2BProfileLayout } from "@/components/profile/b2b-profile-layout";
 import { ReferralInviteCard } from "@/components/profile/referral-invite-card";
 import { LevelBadge } from "@/components/membership/level-badge";
-import { IPTimeline } from "@/components/membership/ip-timeline";
-import { LevelProgress } from "@/components/membership/level-progress";
+import { PactPointsTimeline, type PactPointsEvent } from "@/components/membership/pact-points-timeline";
+import { Progress } from "@/components/ui/progress";
 import {
   GoldCelebration,
   useGoldCelebration,
 } from "@/components/membership/gold-celebration";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Package, Settings, TrendingUp } from "lucide-react";
 import Link from "next/link";
@@ -19,7 +28,7 @@ import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
 // PaymentMethodCard removed - using new payment flow
-import { MembershipLevel, getVoucherProgress, getVoucherDiscountPercent } from "@/lib/membership/points-engine";
+import { getLevelDisplayName, MembershipLevel } from "@/lib/membership/points-engine";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { formatPrice } from "@/lib/shopify/utils";
@@ -43,6 +52,16 @@ interface MembershipData {
     level: MembershipLevel;
     impactPoints: number;
     levelAssignedAt: string;
+    foundingMemberSince?: string | null;
+  };
+  pactPoints: {
+    balance: number;
+    lifetime: number;
+    rolling12Months: number;
+    currentTier: MembershipLevel;
+    nextTier: MembershipLevel | null;
+    pointsToNextTier: number | null;
+    nextTierThreshold: number | null;
   };
   levelInfo: {
     level: MembershipLevel;
@@ -79,11 +98,22 @@ interface PaymentMethod {
   expiry_year?: number;
 }
 
+interface MilestoneVoucher {
+  id: string;
+  code: string;
+  discount_percentage: number;
+  expires_at: string | null;
+  used: boolean;
+}
+
 function ProfilePageContent() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [membershipData, setMembershipData] = useState<MembershipData | null>(
     null,
   );
+  const [foundingSpotsRemaining, setFoundingSpotsRemaining] = useState<
+    number | null
+  >(null);
   const membershipTierTracked = useRef(false);
 
   useEffect(() => {
@@ -96,7 +126,7 @@ function ProfilePageContent() {
       metadata: { level: membershipData.membership.level },
     });
   }, [membershipData]);
-  const [ipEvents, setIpEvents] = useState<any[]>([]);
+  const [pactEvents, setPactEvents] = useState<PactPointsEvent[]>([]);
   // Payment methods removed - using new payment flow
   const [reservations, setReservations] = useState<any[]>([]);
 
@@ -137,7 +167,6 @@ function ProfilePageContent() {
   };
 
   const [lastViewedProducts, setLastViewedProducts] = useState<LastViewedProduct[]>([]);
-
   // v2: Gold celebration hook
   const { showCelebration, checkAndShowCelebration, closeCelebration } =
     useGoldCelebration();
@@ -172,7 +201,7 @@ function ProfilePageContent() {
     Promise.all([
       fetchProfile(),
       fetchMembershipData(),
-      fetchIPEvents(),
+      fetchPactEvents(),
       fetchReservations(),
       fetchReferralLink(),
     ]).finally(() => setLoading(false));
@@ -236,29 +265,29 @@ function ProfilePageContent() {
 
           // If an invitation was used, show toast and refresh IP
           if (payload.eventType === "UPDATE" && payload.new?.used_at) {
-            toast.success("Your invite was just used! +1 IP awarded");
+            toast.success("Your invite was just used! +1 point awarded");
             fetchMembershipData();
-            fetchIPEvents();
+            fetchPactEvents();
           }
         },
       )
       .subscribe();
 
-    // Subscribe to IP events (for real-time activity feed)
-    const ipEventsChannel = supabase
-      .channel(`ip-events:${profile.id}`)
+    // Subscribe to PACT Points events (for real-time activity feed)
+    const pactEventsChannel = supabase
+      .channel(`pact-points-events:${profile.id}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
-          table: "impact_point_events",
+          table: "pact_points_events",
           filter: `user_id=eq.${profile.id}`,
         },
         (payload) => {
-          console.log("New IP event:", payload);
+          console.log("New PACT Points event:", payload);
 
-          fetchIPEvents();
+          fetchPactEvents();
           fetchMembershipData();
         },
       )
@@ -266,7 +295,7 @@ function ProfilePageContent() {
 
     return () => {
       supabase.removeChannel(invitationChannel);
-      supabase.removeChannel(ipEventsChannel);
+      supabase.removeChannel(pactEventsChannel);
     };
   }, [profile?.id]);
 
@@ -320,15 +349,34 @@ function ProfilePageContent() {
     }
   };
 
-  const fetchIPEvents = async () => {
+  useEffect(() => {
+    if (membershipData?.membership.level !== "founding_member") {
+      setFoundingSpotsRemaining(null);
+      return;
+    }
+    fetch("/api/founding-member/spots-remaining")
+      .then((res) => res.json())
+      .then((data) => {
+        const spots =
+          data && typeof data === "object" && "spotsRemaining" in data
+            ? (data as { spotsRemaining: unknown }).spotsRemaining
+            : null;
+        setFoundingSpotsRemaining(
+          typeof spots === "number" ? spots : Number(spots ?? 0),
+        );
+      })
+      .catch(() => setFoundingSpotsRemaining(null));
+  }, [membershipData?.membership.level]);
+
+  const fetchPactEvents = async () => {
     try {
-      const res = await fetch("/api/user/membership/events?limit=10");
+      const res = await fetch("/api/user/pact-points/events?limit=10");
       if (res.ok) {
         const data = await res.json();
-        setIpEvents(data.events || []);
+        setPactEvents(Array.isArray(data.events) ? data.events : []);
       }
     } catch (error) {
-      console.error("Error fetching IP events:", error);
+      console.error("Error fetching PACT Points events:", error);
     }
   };
 
@@ -416,6 +464,13 @@ function ProfilePageContent() {
         year: "numeric",
       })
     : undefined;
+
+  const foundingSinceLabel = membershipData.membership.foundingMemberSince
+    ? new Date(membershipData.membership.foundingMemberSince).toLocaleDateString(
+        "en-US",
+        { month: "long", day: "numeric", year: "numeric" },
+      )
+    : "Recently granted";
 
   const dashTabs = [
     { id: "orders" as const, label: "Orders", count: reservations.length },
@@ -609,6 +664,22 @@ function ProfilePageContent() {
                     showLabel
                   />
                 </div>
+                {membershipData.membership.level === "founding_member" ? (
+                  <div className="mt-3 w-full max-w-sm rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-1">
+                    <p className="text-sm font-medium text-amber-900">
+                      Founding Member
+                    </p>
+                    <p className="text-xs text-amber-700">
+                      Member since {foundingSinceLabel}
+                    </p>
+                    <p className="text-xs text-amber-700">
+                      {typeof foundingSpotsRemaining === "number" &&
+                      foundingSpotsRemaining > 0
+                        ? `${foundingSpotsRemaining} of 100 founding spots remaining`
+                        : "All 100 founding spots have been claimed"}
+                    </p>
+                  </div>
+                ) : null}
                 {joinedDate ? (
                   <p className="mt-1 text-sm text-muted-foreground">Joined {joinedDate}</p>
                 ) : null}
@@ -657,15 +728,20 @@ function ProfilePageContent() {
               type="button"
               onClick={() => setDashTab("activity")}
               className={cn(
-                "rounded-xl border bg-card p-4 text-left shadow-sm transition hover:border-foreground/20",
+                "rounded-md bg-popover border border-border px-4 py-3 text-left transition hover:border-foreground/20",
                 dashTab === "activity" && "ring-2 ring-foreground/10",
               )}
             >
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Impact points
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                  PACT Points
+                </p>
+              </div>
+              <p className="mt-1 text-2xl font-semibold tabular-nums leading-none">
+                {membershipData.pactPoints?.balance ?? 0}
               </p>
-              <p className="mt-1 text-2xl font-semibold tabular-nums">
-                {membershipData.membership.impactPoints}
+              <p className="mt-1 text-[10px] text-muted-foreground">
+                {membershipData.pactPoints?.lifetime ?? 0} earned all time
               </p>
             </button>
             <button
@@ -723,7 +799,7 @@ function ProfilePageContent() {
           <div className="mt-2">
             {dashTab === "orders" ? reservationsTabContent : null}
             {dashTab === "activity" ? (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <section className="flex justify-end">
                   <Link
                     href="/profile/activity"
@@ -733,71 +809,148 @@ function ProfilePageContent() {
                   </Link>
                 </section>
                 <section className="space-y-3">
-                  <h2 className="text-base font-medium text-foreground">Membership level</h2>
-                  <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-                    {membershipData.nextLevel ? (
-                      <LevelProgress
-                        currentPoints={membershipData.membership.impactPoints}
-                        currentLevelMin={membershipData.levelInfo.minPoints}
-                        nextLevelMin={membershipData.nextLevel.minPoints}
-                        nextLevelName={membershipData.nextLevel.name}
-                        activeBuffPercentage={0}
-                      />
-                    ) : (
-                      <div className="flex items-center justify-between gap-3 rounded-xl border bg-muted/30 p-3">
-                        <div className="flex items-center gap-2">
-                          <TrendingUp className="h-5 w-5 text-muted-foreground" />
-                          <span className="text-sm font-medium">Top tier</span>
-                        </div>
-                        <span className="text-sm font-semibold tabular-nums">
-                          {membershipData.membership.impactPoints} IP
-                        </span>
-                      </div>
-                    )}
+                  <div className="rounded-md bg-popover border border-border px-4 py-3">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                      PACT Points
+                    </p>
+                    <p className="text-2xl font-semibold tabular-nums leading-none mt-1">
+                      {membershipData.pactPoints.balance}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-2">
+                      {membershipData.pactPoints.lifetime} earned all time
+                    </p>
                   </div>
                 </section>
                 <section className="space-y-3">
-                  <h2 className="text-base font-medium text-foreground">Voucher progress</h2>
-                  <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                  <h2 className="text-base font-semibold text-foreground">
+                    Membership level
+                  </h2>
+                  <div className="rounded-md bg-popover border border-border px-4 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <LevelBadge
+                          level={membershipData.pactPoints.currentTier}
+                          size="sm"
+                          showLabel={false}
+                        />
+                        <span className="text-sm font-semibold truncate">
+                          {getLevelDisplayName(membershipData.pactPoints.currentTier)}
+                        </span>
+                      </div>
+                      <span className="text-sm font-medium tabular-nums shrink-0">
+                        {membershipData.pactPoints.rolling12Months} pts
+                      </span>
+                    </div>
+
+                    {membershipData.pactPoints.nextTier &&
+                    membershipData.pactPoints.nextTierThreshold ? (
+                      <div className="mt-3">
+                        <div className="h-1 rounded-full bg-border overflow-hidden">
+                          <div
+                            className="h-full bg-foreground"
+                            style={{
+                              width: `${Math.max(
+                                0,
+                                Math.min(
+                                  100,
+                                  (membershipData.pactPoints.rolling12Months /
+                                    Math.max(
+                                      1,
+                                      membershipData.pactPoints.nextTierThreshold,
+                                    )) *
+                                    100,
+                                ),
+                              )}%`,
+                            }}
+                          />
+                        </div>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          {membershipData.pactPoints.pointsToNextTier ?? 0} points to{" "}
+                          {getLevelDisplayName(membershipData.pactPoints.nextTier)}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-xs text-muted-foreground">
+                        Top tier reached
+                      </p>
+                    )}
+
+                    <p className="text-[10px] text-muted-foreground mt-2">
+                      Based on last 12 months
+                    </p>
+                  </div>
+                </section>
+                <section className="space-y-3">
+                  <h2 className="text-base font-semibold text-foreground">
+                    How to earn PACT Points
+                  </h2>
+                  <div className="rounded-md bg-popover border border-border px-4 py-3">
+                    <p className="text-sm font-semibold mb-3">
+                      Earn 1 point per bottle, multiplied by your tier
+                    </p>
+
                     {(() => {
-                      const v = getVoucherProgress(membershipData.membership.impactPoints);
-                      const voucherDiscountPercent = getVoucherDiscountPercent(
-                        membershipData.membership.level,
-                      );
+                      const current = membershipData.pactPoints.currentTier;
+                      const tiers: Array<{ key: MembershipLevel; label: string; value: string }> = [
+                        { key: "basic", label: getLevelDisplayName("basic"), value: "1×" },
+                        { key: "brons", label: getLevelDisplayName("brons"), value: "1.5×" },
+                        { key: "silver", label: getLevelDisplayName("silver"), value: "2×" },
+                        { key: "guld", label: getLevelDisplayName("guld"), value: "3×" },
+                        { key: "privilege", label: getLevelDisplayName("privilege"), value: "4×" },
+                        { key: "founding_member", label: getLevelDisplayName("founding_member"), value: "5×" },
+                      ];
                       return (
-                        <div className="space-y-3">
-                          <div className="relative">
-                            <div className="h-3 overflow-hidden rounded-full bg-muted">
-                              <div
-                                className="h-full rounded-full bg-gradient-to-r from-amber-500 to-amber-600 transition-all duration-500"
-                                style={{ width: `${v.progressPercent}%` }}
-                              />
-                            </div>
-                            <div className="mt-2 flex items-center justify-between text-sm">
-                              <span className="font-medium tabular-nums">
-                                {v.progressInCycle} / {v.pointsPerVoucher} IP
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                {v.pointsToNextVoucher} IP to next voucher
-                              </span>
-                            </div>
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            Collect {v.pointsPerVoucher} Impact Points for an extra order discount.
-                            Your voucher discount rate is tied to your tier ({membershipData.levelInfo.name}).
-                          </p>
-                          <p className="text-sm font-medium">
-                            Current voucher discount: {voucherDiscountPercent}%
-                          </p>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mb-3">
+                          {tiers.map((t) => {
+                            const isCurrent = t.key === current;
+                            return (
+                              <div key={t.key} className="flex justify-between text-xs">
+                                <span
+                                  className={cn(
+                                    isCurrent
+                                      ? "font-medium"
+                                      : "text-muted-foreground",
+                                  )}
+                                >
+                                  {t.label}
+                                </span>
+                                <span className="tabular-nums font-medium">
+                                  {t.value}
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
                       );
                     })()}
+
+                    <Separator className="my-3" />
+
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">
+                      Other ways to earn
+                    </p>
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-xs">
+                        <span>Invite a friend who orders</span>
+                        <span className="tabular-nums font-medium">+30</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span>Review after delivery</span>
+                        <span className="tabular-nums font-medium">+10</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span>Set delivery zone</span>
+                        <span className="tabular-nums font-medium">+5</span>
+                      </div>
+                    </div>
                   </div>
                 </section>
                 <section className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-base font-medium text-foreground">Recent activity</h2>
-                    {ipEvents.length > 0 ? (
+                    <h2 className="text-base font-semibold text-foreground">
+                      Recent activity
+                    </h2>
+                    {pactEvents.length > 0 ? (
                       <Link
                         href="/profile/activity"
                         className="text-sm text-muted-foreground hover:text-foreground"
@@ -806,8 +959,8 @@ function ProfilePageContent() {
                       </Link>
                     ) : null}
                   </div>
-                  <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-                    <IPTimeline events={ipEvents} />
+                  <div className="rounded-md bg-popover border border-border px-4 py-3">
+                    <PactPointsTimeline events={pactEvents} />
                   </div>
                 </section>
               </div>

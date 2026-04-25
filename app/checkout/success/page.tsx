@@ -170,15 +170,15 @@ function CheckoutConfirmationContent() {
       if (response.ok) {
         const result = await response.json();
         console.log("📧 Order confirmation email sent successfully:", result);
-        toast.success("Confirmation email sent!");
+        // Quiet success: don't distract after checkout.
       } else {
         const errorText = await response.text();
         console.error("📧 Failed to send order confirmation email:", errorText);
-        toast.error("Failed to send confirmation email");
+        // Fail open: email delivery issues must not look like checkout failed.
       }
     } catch (error) {
       console.error("📧 Error sending order confirmation email:", error);
-      toast.error("Error sending confirmation email");
+      // Fail open: do not show user-facing error toasts here.
     }
   };
 

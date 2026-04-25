@@ -46,6 +46,9 @@ type MembershipData = {
     impactPoints: number;
     levelAssignedAt: string;
   };
+  pactPoints?: {
+    balance: number;
+  };
   levelInfo: {
     level: string;
     name: string;
@@ -292,9 +295,9 @@ export default function ProfilePerksPage() {
               </div>
 
               <div className="text-right">
-                <p className="text-xs text-muted-foreground">Impact Points</p>
+                <p className="text-xs text-muted-foreground">PACT Points</p>
                 <p className="text-base font-semibold text-foreground">
-                  {data.membership.impactPoints} IP
+                  {data.pactPoints?.balance ?? data.membership.impactPoints} points
                 </p>
               </div>
             </div>
@@ -305,9 +308,9 @@ export default function ProfilePerksPage() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>
-                    {data.membership.impactPoints} / {progress.next} IP
+                        {data.membership.impactPoints} / {progress.next} points
                   </span>
-                  <span>{progress.remaining} IP to go</span>
+                      <span>{progress.remaining} points to go</span>
                 </div>
                 <Progress value={progress.pct} className="h-2" />
                 <div className="flex items-center justify-between">
@@ -372,7 +375,7 @@ export default function ProfilePerksPage() {
                     <div className="rounded-lg border border-border bg-muted/20 p-3">
                       <p className="text-xs text-muted-foreground">
                         Next up: <span className="font-semibold text-foreground">{data.nextLevel.name}</span>
-                        {" "}— {data.nextLevel.pointsNeeded} IP to unlock.
+                        {" "}— {data.nextLevel.pointsNeeded} points to unlock.
                       </p>
                     </div>
 

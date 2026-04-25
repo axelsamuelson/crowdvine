@@ -15,20 +15,21 @@ import {
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-interface IPEvent {
+interface PactPointsEvent {
   id: string;
   event_type: string;
-  points_earned: number;
-  description: string;
+  points_delta: number;
+  description?: string | null;
   created_at: string;
-  related_user_email?: string;
-  related_user_name?: string;
+  bottle_count?: number | null;
+  related_user_id?: string | null;
+  related_order_id?: string | null;
 }
 
 type FilterType = "all" | "invites" | "orders" | "milestones";
 
 export default function ActivityPage() {
-  const [events, setEvents] = useState<IPEvent[]>([]);
+  const [events, setEvents] = useState<PactPointsEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>("all");
 
@@ -38,7 +39,7 @@ export default function ActivityPage() {
 
   const fetchEvents = async () => {
     try {
-      const res = await fetch("/api/user/membership/events");
+      const res = await fetch("/api/user/pact-points/events");
       if (res.ok) {
         const data = await res.json();
         setEvents(data.events || []);
@@ -54,22 +55,58 @@ export default function ActivityPage() {
     if (filter === "all") return true;
     if (filter === "invites") return event.event_type.includes("invite");
     if (filter === "orders") return event.event_type === "own_order";
-    if (filter === "milestones") return event.event_type === "pallet_milestone";
+    if (filter === "milestones")
+      return (
+        event.event_type === "migration_from_ip" ||
+        event.event_type === "migration_from_voucher" ||
+        event.event_type === "manual_adjustment"
+      );
     return true;
   });
 
   const getEventIcon = (eventType: string) => {
     if (eventType.includes("invite")) return UserPlus;
     if (eventType === "own_order") return Package;
-    if (eventType === "pallet_milestone") return TrendingUp;
+    if (eventType.startsWith("migration_")) return TrendingUp;
     return Award;
   };
 
   const getEventColor = (eventType: string) => {
     if (eventType.includes("invite")) return "text-blue-600 bg-blue-50";
     if (eventType === "own_order") return "text-green-600 bg-green-50";
-    if (eventType === "pallet_milestone") return "text-purple-600 bg-purple-50";
+    if (eventType.startsWith("migration_")) return "text-purple-600 bg-purple-50";
     return "text-gray-600 bg-gray-50";
+  };
+
+  const labelFor = (event: PactPointsEvent) => {
+    switch (event.event_type) {
+      case "own_order":
+        return typeof event.bottle_count === "number"
+          ? `Order (${event.bottle_count} bottles)`
+          : "Order";
+      case "welcome_bonus":
+        return "Welcome bonus";
+      case "invite_friend_first_order":
+        return "Friend's first order";
+      case "review_after_delivery":
+        return "Review submitted";
+      case "zone_set":
+        return "Set delivery zone";
+      case "redemption":
+        return "Used at checkout";
+      case "expiration":
+        return "Points expired";
+      case "migration_from_ip":
+        return "Migrated from Impact Points";
+      case "migration_from_voucher":
+        return "Migrated from voucher";
+      case "manual_adjustment":
+        return "Adjustment";
+      case "founding_member_grant":
+        return "Founding Member welcome";
+      default:
+        return event.event_type.replace(/_/g, " ");
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -103,10 +140,10 @@ export default function ActivityPage() {
             </Link>
 
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Impact Point Activity
+              PACT Points Activity
             </h1>
             <p className="text-gray-600">
-              Track your journey and see how you've earned Impact Points
+              Track your journey and see how you've earned PACT Points
             </p>
           </div>
 
@@ -172,7 +209,7 @@ export default function ActivityPage() {
               </h3>
               <p className="text-gray-600 mb-6">
                 {filter === "all"
-                  ? "Start earning Impact Points by inviting friends, making orders, or reaching milestones."
+                  ? "Start earning PACT Points by ordering, inviting friends, or setting your delivery zone."
                   : `No ${filter} events yet. Try a different filter.`}
               </p>
               {filter !== "all" && (
@@ -186,6 +223,9 @@ export default function ActivityPage() {
               {filteredEvents.map((event, index) => {
                 const Icon = getEventIcon(event.event_type);
                 const colorClass = getEventColor(event.event_type);
+                const delta = Number(event.points_delta) || 0;
+                const isPositive = delta > 0;
+                const abs = Math.abs(delta);
 
                 return (
                   <div
@@ -206,19 +246,19 @@ export default function ActivityPage() {
                           <div className="flex items-start justify-between gap-4 mb-2">
                             <div>
                               <h3 className="font-semibold text-gray-900 mb-1">
-                                {event.description}
+                                {event.description || labelFor(event)}
                               </h3>
-                              {event.related_user_name && (
-                                <p className="text-sm text-gray-600">
-                                  {event.related_user_name} (
-                                  {event.related_user_email})
-                                </p>
-                              )}
                             </div>
 
                             <div className="flex-shrink-0 text-right">
-                              <div className="inline-flex items-center px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm font-semibold">
-                                +{event.points_earned} IP
+                              <div
+                                className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${
+                                  isPositive
+                                    ? "bg-green-50 text-green-700"
+                                    : "bg-gray-100 text-gray-600"
+                                }`}
+                              >
+                                {isPositive ? `+${abs} pts` : `−${abs} pts`}
                               </div>
                             </div>
                           </div>
@@ -229,7 +269,7 @@ export default function ActivityPage() {
                               {formatDate(event.created_at)}
                             </div>
                             <div className="capitalize">
-                              {event.event_type.replace("_", " ")}
+                              {labelFor(event)}
                             </div>
                           </div>
                         </div>

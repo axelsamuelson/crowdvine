@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { addImpactPoints } from "@/lib/membership/points-engine";
 import { clearCartId } from "@/src/lib/cookies";
 import { logUserEventServer } from "@/lib/analytics/log-user-event-server";
 
@@ -349,138 +348,8 @@ export async function POST(request: NextRequest) {
       "[INVITE-REDEEM] All manual creation steps completed successfully",
     );
 
-    // Award +1 IP to inviter (user who created the invitation)
-    let ipAwardStatus = {
-      success: false,
-      pointsBefore: 0,
-      pointsAfter: 0,
-      eventLogged: false,
-    };
-
-    if (invitation.created_by) {
-      console.log(
-        "[INVITE-REDEEM] Step 5: Awarding +1 IP to inviter:",
-        invitation.created_by,
-      );
-      console.log("[INVITE-REDEEM] New user ID:", authData.user.id);
-
-      try {
-        // Update inviter's impact points directly
-        const { data: currentPoints, error: fetchError } = await sb
-          .from("user_memberships")
-          .select("impact_points, level")
-          .eq("user_id", invitation.created_by)
-          .single();
-
-        if (fetchError) {
-          console.error(
-            "[INVITE-REDEEM] STEP-5A FAILED - Failed to fetch inviter membership:",
-            {
-              error: fetchError,
-              code: fetchError.code,
-              message: fetchError.message,
-              inviterId: invitation.created_by,
-            },
-          );
-        } else if (!currentPoints) {
-          console.error(
-            "[INVITE-REDEEM] STEP-5A FAILED - No membership found for inviter:",
-            invitation.created_by,
-          );
-        } else {
-          console.log(
-            "[INVITE-REDEEM] STEP-5A SUCCESS - Inviter membership found:",
-            {
-              inviterId: invitation.created_by,
-              currentPoints: currentPoints.impact_points,
-              level: currentPoints.level,
-            },
-          );
-
-          ipAwardStatus.pointsBefore = currentPoints.impact_points;
-          const newPoints = (currentPoints.impact_points || 0) + 1;
-          ipAwardStatus.pointsAfter = newPoints;
-
-          const { error: updateError } = await sb
-            .from("user_memberships")
-            .update({
-              impact_points: newPoints,
-            })
-            .eq("user_id", invitation.created_by);
-
-          if (updateError) {
-            console.error(
-              "[INVITE-REDEEM] STEP-5B FAILED - Failed to update inviter points:",
-              {
-                error: updateError,
-                code: updateError.code,
-                message: updateError.message,
-              },
-            );
-          } else {
-            console.log(
-              "[INVITE-REDEEM] STEP-5B SUCCESS - Inviter points updated:",
-              currentPoints.impact_points,
-              "→",
-              newPoints,
-            );
-            ipAwardStatus.success = true;
-
-            // Verify the update actually happened
-            const { data: verifyPoints } = await sb
-              .from("user_memberships")
-              .select("impact_points")
-              .eq("user_id", invitation.created_by)
-              .single();
-
-            console.log(
-              "[INVITE-REDEEM] VERIFICATION - Points after update:",
-              verifyPoints?.impact_points,
-            );
-          }
-
-          // Log the IP event
-          const { data: insertedEvent, error: eventError } = await sb
-            .from("impact_point_events")
-            .insert({
-              user_id: invitation.created_by,
-              event_type: "invite_signup",
-              points_earned: 1,
-              related_user_id: authData.user.id,
-              description: `Friend signed up using invite code`,
-            })
-            .select()
-            .single();
-
-          if (eventError) {
-            console.error(
-              "[INVITE-REDEEM] STEP-5C FAILED - Failed to log IP event:",
-              {
-                error: eventError,
-                code: eventError.code,
-                message: eventError.message,
-                details: eventError.details,
-              },
-            );
-          } else {
-            console.log(
-              "[INVITE-REDEEM] STEP-5C SUCCESS - IP event logged:",
-              insertedEvent.id,
-            );
-            ipAwardStatus.eventLogged = true;
-          }
-        }
-      } catch (ipError) {
-        console.error("[INVITE-REDEEM] STEP-5 UNEXPECTED ERROR:", ipError);
-        // Don't fail the request
-      }
-    } else {
-      console.warn(
-        "[INVITE-REDEEM] No created_by in invitation - skipping IP award",
-      );
-    }
-
-    console.log("[INVITE-REDEEM] IP Award Status:", ipAwardStatus);
+    // NOTE: Inviter rewards now happen on invitee's first order, not signup.
+    // See awardPactPointsForInviteFirstOrder in checkout/confirm.
 
     // Update invitation with real user ID and mark as used (single-use only)
     if (!isPersonal) {
@@ -579,10 +448,13 @@ export async function POST(request: NextRequest) {
         initial_level: initialLevel,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[INVITE-REDEEM] Unexpected error:", error);
     return NextResponse.json(
-      { error: error.message || "Internal server error" },
+      {
+        error:
+          error instanceof Error ? error.message : "Internal server error",
+      },
       { status: 500 },
     );
   }

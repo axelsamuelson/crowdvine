@@ -10,14 +10,33 @@ import {
   awardPointsForInviteSecondOrder,
   checkPalletMilestone,
   awardPointsForPalletMilestone,
+  getBaseIPForBottles,
+  normalizeMembershipLevel,
 } from "@/lib/membership/points-engine";
+import {
+  awardPactPointsForInviteFirstOrder,
+  awardPactPointsForOwnOrder,
+  calculateMaxRedemption,
+  getRedeemableBalance,
+  redeemPactPoints,
+} from "@/lib/membership/pact-points-engine";
+import {
+  applyFoundingMemberDoubleIP,
+  checkAndGrantFoundingMember,
+} from "@/lib/membership/founding-member";
 import {
   applyProgressionBuffs,
   checkAndAwardProgressionRewards,
 } from "@/lib/membership/progression-rewards";
+import { checkAndMintMilestoneVouchers } from "@/lib/membership/milestone-vouchers";
 import { tryActivateReferralOnFirstOrder } from "@/lib/referral/activate-referral-on-first-order";
 
 export async function POST(request: Request) {
+  let voucherApplied = false;
+  let voucherDiscountCents = 0;
+  let pactPointsRedeemed = 0;
+  let pactPointsRedeemedCents = 0;
+
   try {
     console.log("=== CHECKOUT CONFIRM START ===");
 
@@ -30,6 +49,8 @@ export async function POST(request: Request) {
     } else {
       // Handle form data
       const formData = await request.formData();
+      const voucherCodeField = formData.get("voucher_code");
+      const pactPointsRedeemField = formData.get("pact_points_redeem");
       body = {
         address: {
           fullName: formData.get("fullName"),
@@ -43,6 +64,16 @@ export async function POST(request: Request) {
         selectedDeliveryZoneId: formData.get("selectedDeliveryZoneId"),
         selectedPalletId: formData.get("selectedPalletId"),
         shareBottles: formData.get("shareBottles"),
+        voucher_code:
+          typeof voucherCodeField === "string" ? voucherCodeField : undefined,
+        pact_points_redeem:
+          typeof pactPointsRedeemField === "string"
+            ? Number(pactPointsRedeemField)
+            : pactPointsRedeemField instanceof File
+              ? undefined
+              : pactPointsRedeemField != null
+                ? Number(String(pactPointsRedeemField))
+                : undefined,
         // paymentMethodId removed - using new payment flow
       };
     }
@@ -464,6 +495,123 @@ export async function POST(request: Request) {
 
     console.log("Bookings created");
 
+    const voucherCodeRaw =
+      body && typeof body === "object" && "voucher_code" in body
+        ? (body as { voucher_code?: unknown }).voucher_code
+        : undefined;
+    const voucher_code =
+      typeof voucherCodeRaw === "string" && voucherCodeRaw.trim() !== ""
+        ? voucherCodeRaw.trim()
+        : undefined;
+
+    const pactPointsRedeemRaw =
+      body && typeof body === "object" && "pact_points_redeem" in body
+        ? (body as { pact_points_redeem?: unknown }).pact_points_redeem
+        : undefined;
+    const pact_points_redeem =
+      typeof pactPointsRedeemRaw === "number"
+        ? pactPointsRedeemRaw
+        : typeof pactPointsRedeemRaw === "string"
+          ? Number(pactPointsRedeemRaw)
+          : 0;
+
+    if (voucher_code && user?.id) {
+      try {
+        // List-price subtotal (pre member / early-bird) for voucher eligibility — matches milestone mint comment.
+        const { data: listPriceRows, error: listPriceError } = await sbAdmin
+          .from("cart_items")
+          .select("quantity, wines ( base_price_cents )")
+          .eq("cart_id", cart.id);
+
+        let listPriceTotalCents = 0;
+        if (!listPriceError && listPriceRows?.length) {
+          for (const row of listPriceRows) {
+            const wine = row.wines as { base_price_cents: number | null } | null;
+            const unit = wine?.base_price_cents;
+            if (typeof unit === "number" && unit > 0) {
+              listPriceTotalCents += unit * row.quantity;
+            }
+          }
+        }
+        if (listPriceTotalCents <= 0) {
+          listPriceTotalCents = Math.round(
+            parseFloat(String(cart.cost.totalAmount.amount)) * 100,
+          );
+        }
+
+        const { data: rpcData, error: rpcError } = await sbAdmin.rpc(
+          "use_discount_code",
+          {
+            p_code: voucher_code,
+            p_user_id: user.id,
+            p_order_amount_cents: listPriceTotalCents,
+          },
+        );
+
+        if (rpcError) {
+          console.error("[Checkout API] use_discount_code RPC error:", rpcError);
+        } else {
+          const rows = Array.isArray(rpcData) ? rpcData : rpcData != null ? [rpcData] : [];
+          const row = rows[0] as
+            | {
+                success?: boolean;
+                discount_amount_cents?: number;
+                error_message?: string | null;
+              }
+            | undefined;
+
+          if (row?.success === true) {
+            voucherApplied = true;
+            voucherDiscountCents = Number(row.discount_amount_cents) || 0;
+            console.log(
+              "[Checkout API] Voucher applied, discount cents:",
+              voucherDiscountCents,
+            );
+          } else if (row && row.success === false && row.error_message) {
+            console.log(
+              "[Checkout API] Voucher not applied:",
+              row.error_message,
+            );
+          }
+        }
+      } catch (voucherErr) {
+        console.error("[Checkout API] use_discount_code failed:", voucherErr);
+      }
+    }
+
+    // Optional: redeem PACT Points (new system). Never block checkout on failure.
+    if (currentUser?.id && Number.isFinite(pact_points_redeem) && pact_points_redeem > 0) {
+      try {
+        const orderTotalSek = parseFloat(String(cart.cost.totalAmount.amount)) || 0;
+        const availablePoints = await getRedeemableBalance(currentUser.id);
+        const maxRedeemable = calculateMaxRedemption(orderTotalSek, availablePoints);
+        const requested = Math.floor(pact_points_redeem);
+        const toRedeem = Math.min(requested, maxRedeemable);
+
+        if (toRedeem > 0) {
+          const redeemResult = await redeemPactPoints(
+            currentUser.id,
+            toRedeem,
+            reservation.id,
+          );
+
+          if (redeemResult.success) {
+            pactPointsRedeemed = toRedeem;
+            pactPointsRedeemedCents = toRedeem * 100;
+            voucherApplied = true;
+            voucherDiscountCents += pactPointsRedeemedCents;
+            console.log(
+              `✅ [PACT] Redeemed ${toRedeem} PACT Points. New balance: ${redeemResult.newBalance}`,
+            );
+          } else {
+            console.error("[PACT] redeemPactPoints failed:", redeemResult.error);
+          }
+        }
+      } catch (pactRedeemErr) {
+        console.error("[PACT] redeem flow error:", pactRedeemErr);
+      }
+    }
+
     // Update reservation with zone information
     if (zones.pickupZoneId || finalDeliveryZoneId) {
       const { error: updateError } = await sb
@@ -591,6 +739,34 @@ export async function POST(request: Request) {
           currentUser.id,
         );
 
+        try {
+          const foundingMemberResult = await checkAndGrantFoundingMember(
+            currentUser.id,
+            reservation.id,
+          );
+          if (foundingMemberResult.granted) {
+            console.log(
+              `🏆 [FOUNDING] Granted Founding Member to ${currentUser.id}. Spots remaining: ${foundingMemberResult.spotsRemaining}`,
+            );
+          }
+        } catch (fmErr) {
+          console.error("[FOUNDING] checkAndGrantFoundingMember:", fmErr);
+        }
+
+        let currentLevel = "basic";
+        try {
+          const { data: levelRow } = await sbAdmin
+            .from("user_memberships")
+            .select("level")
+            .eq("user_id", currentUser.id)
+            .maybeSingle();
+          if (levelRow?.level) {
+            currentLevel = levelRow.level;
+          }
+        } catch (lvlErr) {
+          console.error("[FOUNDING] reload membership level:", lvlErr);
+        }
+
         // 1. Apply and mark progression buffs as used (before clearing cart)
         const buffResult = await applyProgressionBuffs(
           currentUser.id,
@@ -621,36 +797,50 @@ export async function POST(request: Request) {
           );
         }
 
-        // 3. Award IP for own order (handles both regular ≥6 and large ≥12)
-        const ownOrderResult = await awardPointsForOwnOrder(
+        // 3. Award PACT Points for own order (tier multiplier handled in pact-points-engine)
+        const ownOrderResult = await awardPactPointsForOwnOrder(
           currentUser.id,
           totalBottles,
           reservation.id,
+          normalizeMembershipLevel(currentLevel),
         );
-
-        if (ownOrderResult.success && ownOrderResult.newTotal > 0) {
+        if (ownOrderResult.success && ownOrderResult.pointsAwarded > 0) {
           console.log(
-            `✅ [PROGRESSION] Awarded IP for own order. New total: ${ownOrderResult.newTotal} IP`,
+            `✅ [PACT] Awarded ${ownOrderResult.pointsAwarded} PACT Points. New balance: ${ownOrderResult.newBalance}`,
           );
-
-          // 4. Check and award progression rewards at new IP milestone
-          const sbAdmin = getSupabaseAdmin();
-          const { data: membership } = await sbAdmin
-            .from("user_memberships")
-            .select("level, impact_points")
-            .eq("user_id", currentUser.id)
-            .single();
-
-          if (membership) {
-            await checkAndAwardProgressionRewards(
-              currentUser.id,
-              membership.impact_points,
-              membership.level,
-            );
-          }
         }
 
-        // 5. Check if user was invited and this is their second order
+        try {
+          if (normalizeMembershipLevel(currentLevel) === "founding_member") {
+            const { data: fmRow, error: fmReadErr } = await sbAdmin
+              .from("user_memberships")
+              .select("founding_member_bottles_h1, founding_member_bottles_h2")
+              .eq("user_id", currentUser.id)
+              .single();
+            if (fmReadErr) throw fmReadErr;
+            const now = new Date();
+            const isH1 = now.getMonth() < 6;
+            const h1 = Number(fmRow?.founding_member_bottles_h1 ?? 0);
+            const h2 = Number(fmRow?.founding_member_bottles_h2 ?? 0);
+            if (isH1) {
+              const { error: upErr } = await sbAdmin
+                .from("user_memberships")
+                .update({ founding_member_bottles_h1: h1 + totalBottles })
+                .eq("user_id", currentUser.id);
+              if (upErr) throw upErr;
+            } else {
+              const { error: upErr } = await sbAdmin
+                .from("user_memberships")
+                .update({ founding_member_bottles_h2: h2 + totalBottles })
+                .eq("user_id", currentUser.id);
+              if (upErr) throw upErr;
+            }
+          }
+        } catch (bottleTrackErr) {
+          console.error("[FOUNDING] bottle half-year counter:", bottleTrackErr);
+        }
+
+        // 5. Check if user was invited and this is their first qualifying order
         const { data: inviterInfo } = await sbAdmin
           .from("user_memberships")
           .select("invited_by")
@@ -658,38 +848,45 @@ export async function POST(request: Request) {
           .single();
 
         if (inviterInfo?.invited_by) {
-          const secondOrderResult = await awardPointsForInviteSecondOrder(
-            inviterInfo.invited_by,
-            currentUser.id,
-            reservation.id,
-          );
+          try {
+            const qualifyingStatuses = [
+              "pending_producer_approval",
+              "approved",
+              "partly_approved",
+              "confirmed",
+            ] as const;
 
-          if (secondOrderResult.success && secondOrderResult.newTotal > 0) {
-            console.log(
-              `✅ [PROGRESSION] Awarded inviter IP for friend's 2nd order`,
-            );
-          }
-        }
+            const { count: priorOrdersRaw, error: priorOrdersError } = await sbAdmin
+              .from("order_reservations")
+              .select("id", { count: "exact", head: true })
+              .eq("user_id", currentUser.id)
+              .in("status", [...qualifyingStatuses])
+              .neq("id", reservation.id);
 
-        // 6. Check pallet milestones (3, 6, 12 unique pallets)
-        if (palletId) {
-          const palletCount = await checkPalletMilestone(currentUser.id);
-          console.log(
-            `📦 [PROGRESSION] User has participated in ${palletCount} unique pallets`,
-          );
-
-          // Award milestone IP if reached 3, 6, or 12
-          if ([3, 6, 12].includes(palletCount)) {
-            const milestoneResult = await awardPointsForPalletMilestone(
-              currentUser.id,
-              palletCount,
-            );
-
-            if (milestoneResult.success && milestoneResult.newTotal > 0) {
-              console.log(
-                `🎉 [PROGRESSION] Pallet milestone ${palletCount} reached! New total: ${milestoneResult.newTotal} IP`,
-              );
+            if (priorOrdersError) {
+              console.error("[PACT] inviter first-order check:", priorOrdersError);
+            } else {
+              const priorOrders = priorOrdersRaw ?? 0;
+              if (priorOrders === 0) {
+                const inviterReward = await awardPactPointsForInviteFirstOrder(
+                  inviterInfo.invited_by,
+                  currentUser.id,
+                  reservation.id,
+                );
+                if (inviterReward.success) {
+                  console.log(
+                    `✅ [PACT] Awarded inviter PACT Points for invitee's first order. New balance: ${inviterReward.newBalance}`,
+                  );
+                } else {
+                  console.error(
+                    "[PACT] awardPactPointsForInviteFirstOrder:",
+                    inviterReward.error,
+                  );
+                }
+              }
             }
+          } catch (inviterPactErr) {
+            console.error("[PACT] inviter reward flow:", inviterPactErr);
           }
         }
       } catch (progressionError) {
@@ -758,6 +955,11 @@ export async function POST(request: Request) {
       success: true,
       reservationId: reservation.id,
       redirectUrl: successUrl,
+      voucherApplied,
+      ...(voucherApplied ? { voucherDiscountCents } : {}),
+      ...(pactPointsRedeemed > 0
+        ? { pactPointsRedeemed, pactPointsRedeemedCents }
+        : {}),
     });
   } catch (error) {
     console.error("=== CHECKOUT CONFIRM ERROR ===");
