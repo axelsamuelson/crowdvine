@@ -12,6 +12,7 @@ import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { ColorSwatch } from "@/components/ui/color-picker";
 import { useProductImages } from "../products/variant-selector";
 import { Factory, Warehouse } from "lucide-react";
+import { BoostBadge } from "@/components/producer/boost-badge";
 
 type MerchandiseSearchParams = {
   [key: string]: string;
@@ -54,9 +55,6 @@ export function CartItemCard({ item, onCloseCart }: CartItemProps) {
   // Check if image is available
   const hasImage = renderImage && renderImage.url;
   
-  // Debug producerName
-  console.log("Cart item render - producerName:", item.merchandise.product.producerName);
-
   return (
     <div className="bg-popover rounded-lg p-2">
       <div className="flex flex-row gap-6">
@@ -107,12 +105,15 @@ export function CartItemCard({ item, onCloseCart }: CartItemProps) {
             <span className="2xl:text-lg font-semibold">
               {item.merchandise.product.title}
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {item.merchandise.product.producerName && (
                 <span className="text-sm text-muted-foreground">
                   {item.merchandise.product.producerName}
                 </span>
               )}
+              {item.merchandise.product.producerBoostActive === true ? (
+                <BoostBadge />
+              ) : null}
               {item.source && (
                 <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md bg-muted text-muted-foreground">
                   {item.source === "producer" ? (

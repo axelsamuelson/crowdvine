@@ -16,10 +16,14 @@ import {
 import {
   awardPactPointsForInviteFirstOrder,
   awardPactPointsForOwnOrder,
-  calculateMaxRedemption,
   getRedeemableBalance,
   redeemPactPoints,
 } from "@/lib/membership/pact-points-engine";
+import {
+  allocatePactRedemptionPoints,
+  calculateBoostAwareMaxRedemption,
+} from "@/lib/membership/pact-points-redemption-math";
+import type { CartItem } from "@/lib/shopify/types";
 import {
   applyFoundingMemberDoubleIP,
   checkAndGrantFoundingMember,
@@ -582,26 +586,49 @@ export async function POST(request: Request) {
     // Optional: redeem PACT Points (new system). Never block checkout on failure.
     if (currentUser?.id && Number.isFinite(pact_points_redeem) && pact_points_redeem > 0) {
       try {
-        const orderTotalSek = parseFloat(String(cart.cost.totalAmount.amount)) || 0;
+        const lineAmount = (line: CartItem) =>
+          parseFloat(String(line.cost.totalAmount.amount)) || 0;
+        const isBoosted = (line: CartItem) =>
+          line.merchandise.product.producerBoostActive === true;
+
+        const boostedLineTotal = cart.lines
+          .filter(isBoosted)
+          .reduce((sum, line) => sum + lineAmount(line), 0);
+        const nonBoostedLineTotal = cart.lines
+          .filter((line) => !isBoosted(line))
+          .reduce((sum, line) => sum + lineAmount(line), 0);
+
         const availablePoints = await getRedeemableBalance(currentUser.id);
-        const maxRedeemable = calculateMaxRedemption(orderTotalSek, availablePoints);
+        const { maxPoints: maxRedeemable } = calculateBoostAwareMaxRedemption(
+          boostedLineTotal,
+          nonBoostedLineTotal,
+          availablePoints,
+        );
         const requested = Math.floor(pact_points_redeem);
         const toRedeem = Math.min(requested, maxRedeemable);
 
         if (toRedeem > 0) {
+          const alloc = allocatePactRedemptionPoints(
+            toRedeem,
+            boostedLineTotal,
+            nonBoostedLineTotal,
+          );
+          const totalPointsUsed = alloc.pointsBoosted + alloc.pointsNonBoosted;
+          const totalSekDiscount = alloc.sekDiscount;
+
           const redeemResult = await redeemPactPoints(
             currentUser.id,
-            toRedeem,
+            totalPointsUsed,
             reservation.id,
           );
 
           if (redeemResult.success) {
-            pactPointsRedeemed = toRedeem;
-            pactPointsRedeemedCents = toRedeem * 100;
+            pactPointsRedeemed = totalPointsUsed;
+            pactPointsRedeemedCents = Math.round(totalSekDiscount * 100);
             voucherApplied = true;
             voucherDiscountCents += pactPointsRedeemedCents;
             console.log(
-              `✅ [PACT] Redeemed ${toRedeem} PACT Points. New balance: ${redeemResult.newBalance}`,
+              `✅ [PACT] Redeemed ${totalPointsUsed} PACT Points (${totalSekDiscount} SEK off). New balance: ${redeemResult.newBalance}`,
             );
           } else {
             console.error("[PACT] redeemPactPoints failed:", redeemResult.error);

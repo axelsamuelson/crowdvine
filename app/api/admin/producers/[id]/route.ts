@@ -50,6 +50,8 @@ export async function PUT(
     if (body.pickup_zone_id !== undefined)
       updateData.pickup_zone_id = body.pickup_zone_id || null;
     if (body.is_live !== undefined) updateData.is_live = !!body.is_live;
+    if (body.boost_active !== undefined)
+      updateData.boost_active = !!body.boost_active;
 
     const { data: producer, error } = await supabase
       .from("producers")

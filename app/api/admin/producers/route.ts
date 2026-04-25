@@ -74,6 +74,8 @@ export async function POST(request: NextRequest) {
         pickup_zone_id: body.pickup_zone_id || null,
         owner_id: null, // Set by admin
         status: "active",
+        is_live: body.is_live !== false,
+        boost_active: body.boost_active === true,
       })
       .select()
       .single();

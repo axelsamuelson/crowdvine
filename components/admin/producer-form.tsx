@@ -44,6 +44,7 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
     logo_image_path: producer?.logo_image_path || "",
     pickup_zone_id: producer?.pickup_zone_id || "",
     is_live: producer?.is_live ?? true,
+    boost_active: producer?.boost_active === true,
   });
 
   const [error, setError] = useState("");
@@ -320,6 +321,24 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
             />
           </div>
         )}
+
+        <div className="flex items-center justify-between rounded-xl border border-gray-200 dark:border-zinc-800 p-4 bg-gray-50 dark:bg-zinc-900/70">
+          <div>
+            <Label htmlFor="boost_active" className="text-sm font-medium text-gray-900 dark:text-zinc-100">
+              Boost Active
+            </Label>
+            <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
+              When enabled, PACT Points redeemed against this producer&apos;s wines are worth 2× at checkout.
+            </p>
+          </div>
+          <Switch
+            id="boost_active"
+            checked={formData.boost_active === true}
+            onCheckedChange={(checked) =>
+              setFormData((prev) => ({ ...prev, boost_active: !!checked }))
+            }
+          />
+        </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">

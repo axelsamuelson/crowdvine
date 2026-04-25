@@ -45,6 +45,11 @@ const CartItems = ({
   const totalAmount = cart ? parseFloat(cart.cost.totalAmount.amount) : 0;
   const displayTotal = showExclVat ? priceExclVat(totalAmount) : totalAmount;
   const [pactPointsBalance, setPactPointsBalance] = useState<number | null>(null);
+  const hasBoostedProducerInCart = Boolean(
+    cart?.lines?.some(
+      (line) => line.merchandise.product.producerBoostActive === true,
+    ),
+  );
 
   useEffect(() => {
     const run = async () => {
@@ -119,7 +124,10 @@ const CartItems = ({
                 <span className="text-xs font-medium">PACT Points</span>
               </div>
               <span className="text-xs text-muted-foreground">
-                {pactPointsBalance} available · use at checkout
+                {pactPointsBalance} available
+                {hasBoostedProducerInCart
+                  ? " · 2× value on boosted producers"
+                  : " · use at checkout"}
               </span>
             </div>
           ) : null}

@@ -19,6 +19,8 @@ export interface Producer {
   pickup_zone_id?: string;
   /** When true, producer and their wines appear on the website. When false, hidden from shop/collections/search. */
   is_live?: boolean;
+  /** When true, PACT Points redeem at 2× SEK value against this producer's wines at checkout. */
+  boost_active?: boolean;
 }
 
 export interface CreateProducerData {
@@ -34,6 +36,7 @@ export interface CreateProducerData {
   logo_image_path: string;
   pickup_zone_id?: string;
   is_live?: boolean;
+  boost_active?: boolean;
 }
 
 export async function getProducers() {
@@ -79,6 +82,7 @@ export async function createProducer(data: CreateProducerData) {
       owner_id: user?.id || null,
       status: "active", // Set default status
       is_live: data.is_live ?? true,
+      boost_active: data.boost_active === true,
     })
     .select()
     .single();

@@ -186,7 +186,7 @@ export async function GET(
         terroir,
         vinification,
         abv,
-        producers!inner(name, region)
+        producers!inner(name, region, boost_active)
       `;
 
   let result = await sb
@@ -202,7 +202,7 @@ export async function GET(
         base_price_cents, cost_amount, cost_currency, exchange_rate,
         alcohol_tax_cents, margin_percentage, b2b_margin_percentage, b2b_stock,
         label_image_path, producer_id, description, description_html,
-        producers!inner(name)
+        producers!inner(name, boost_active)
       `;
     result = await sb
       .from("wines")
@@ -390,7 +390,12 @@ export async function GET(
     : true;
 
   const specs: Record<string, string> = {};
-  const producerRegion = (i.producers as { name?: string; region?: string } | null)?.region;
+  const producerEmbed = i.producers as {
+    name?: string;
+    region?: string;
+    boost_active?: boolean;
+  } | null;
+  const producerRegion = producerEmbed?.region;
   if (producerRegion?.trim()) specs["Region"] = producerRegion.trim();
   if (i.appellation?.trim()) specs["Appellation"] = i.appellation.trim();
   if (i.terroir?.trim()) specs["Terroir"] = i.terroir.trim();
@@ -410,7 +415,8 @@ export async function GET(
     productType: "wine",
     categoryId: i.producer_id,
     producerId: i.producer_id,
-    producerName: i.producers?.name || "Unknown Producer",
+    producerName: producerEmbed?.name || "Unknown Producer",
+    producerBoostActive: producerEmbed?.boost_active === true,
     options: [
       // Add grape varieties as an option
       {

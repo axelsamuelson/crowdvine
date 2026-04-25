@@ -7,6 +7,38 @@ import { supabaseServer } from "../../lib/supabase-server";
 import type { Cart, CartItem } from "../../lib/shopify/types";
 import { getOrSetCartId, clearCartId } from "./cookies";
 
+type CartWineProducer = {
+  id?: string;
+  name?: string | null;
+  boost_active?: boolean | null;
+};
+
+type CartWineRow = {
+  id: string;
+  handle: string;
+  wine_name: string;
+  vintage: string;
+  label_image_path: string | null;
+  base_price_cents: number;
+  color: string | null;
+  producer_id: string;
+  producers: CartWineProducer | CartWineProducer[] | null;
+};
+
+type CartItemRow = {
+  id: string;
+  quantity: number;
+  source?: string | null;
+  wines: CartWineRow | null;
+};
+
+function producerFromWine(
+  wine: CartWineRow | null,
+): CartWineProducer | null {
+  if (!wine?.producers) return null;
+  return Array.isArray(wine.producers) ? wine.producers[0] ?? null : wine.producers;
+}
+
 export class CartService {
   private static async ensureCart() {
     console.log("🔧 ensureCart called");
@@ -79,16 +111,15 @@ export class CartService {
             color,
             producer_id,
             producers (
-              name
+              id,
+              name,
+              boost_active
             )
           )
         `,
         )
         .eq("cart_id", ensureCartId)
         .order("created_at", { ascending: false });
-      
-      console.log("🔧 Cart items fetched, sample:", cartItems?.[0]);
-      console.log("🔧 Sample producers data:", (cartItems?.[0]?.wines as any)?.producers);
 
       if (error) {
         console.error("🔧 Failed to get cart items:", error);
@@ -120,8 +151,8 @@ export class CartService {
 
       const wineIdsForPallet = cartItems
         .map((item) => {
-          const w = item.wines as { id: string };
-          return w.id;
+          const w = (item as CartItemRow).wines;
+          return w?.id ?? "";
         })
         .filter((id): id is string => Boolean(id));
 
@@ -132,23 +163,26 @@ export class CartService {
       const palletTier = palletEarlyBird.discountTier;
 
       const lines: CartItem[] = cartItems.map((item) => {
+        const row = item as CartItemRow;
+        const wine = row.wines;
+        if (!wine) {
+          throw new Error("Cart item missing wine row");
+        }
         // Build selectedOptions from wine color
-        const selectedOptions = item.wines.color
-          ? [{ name: "Color", value: item.wines.color }]
+        const selectedOptions = wine.color
+          ? [{ name: "Color", value: wine.color }]
           : [];
 
-        // Get producer name - wines.producers returns an array
-        const producerName = Array.isArray((item.wines as any).producers) 
-          ? (item.wines as any).producers[0]?.name 
-          : (item.wines as any).producers?.name 
-          || undefined;
+        const producerData = producerFromWine(wine);
+        const producerName = producerData?.name ?? undefined;
+        const producerBoostActive = producerData?.boost_active === true;
 
-        const unitListSek = Math.ceil(item.wines.base_price_cents / 100);
+        const unitListSek = Math.ceil(wine.base_price_cents / 100);
         const unitMemberSek = memberDiscountedTotalInclVat(
           unitListSek,
           memberDiscountPercent,
         );
-        const lineTotalMember = unitMemberSek * item.quantity;
+        const lineTotalMember = unitMemberSek * row.quantity;
         // Pallet early-bird discount is applied multiplicatively on top of member price,
         // not additively. A 200 SEK member price with 20% early-bird = 160 SEK, not
         // 200 * (1 - memberPct - 0.20).
@@ -163,9 +197,14 @@ export class CartService {
             : undefined;
 
         return {
-          id: item.id,
-          quantity: item.quantity,
-          source: (item as any).source || "producer", // Default to producer for backwards compatibility
+          id: row.id,
+          quantity: row.quantity,
+          source:
+            row.source === "warehouse"
+              ? "warehouse"
+              : row.source === "producer"
+                ? "producer"
+                : "producer",
           cost: {
             totalAmount: {
               amount: lineTotalSek.toString(),
@@ -174,14 +213,15 @@ export class CartService {
           },
           ...(discountLabel !== undefined ? { discountLabel } : {}),
           merchandise: {
-            id: item.wines.id,
-            title: `${item.wines.wine_name} ${item.wines.vintage}`,
+            id: wine.id,
+            title: `${wine.wine_name} ${wine.vintage}`,
             selectedOptions,
             product: {
-              id: item.wines.id,
-              title: `${item.wines.wine_name} ${item.wines.vintage}`,
-              handle: item.wines.handle,
+              id: wine.id,
+              title: `${wine.wine_name} ${wine.vintage}`,
+              handle: wine.handle,
               producerName: producerName,
+              producerBoostActive,
               description: "",
               descriptionHtml: "",
               productType: "wine",
@@ -189,7 +229,7 @@ export class CartService {
               options: [],
               variants: [
                 {
-                  id: `${item.wines.id}-default`,
+                  id: `${wine.id}-default`,
                   title: "750 ml",
                   availableForSale: true,
                   price: {
@@ -210,22 +250,22 @@ export class CartService {
                 },
               },
               featuredImage: {
-                id: `${item.wines.id}-img`,
-                url: item.wines.label_image_path,
-                altText: item.wines.wine_name,
+                id: `${wine.id}-img`,
+                url: wine.label_image_path,
+                altText: wine.wine_name,
                 width: 600,
                 height: 600,
               },
               images: [
                 {
-                  id: `${item.wines.id}-img`,
-                  url: item.wines.label_image_path,
-                  altText: item.wines.wine_name,
+                  id: `${wine.id}-img`,
+                  url: wine.label_image_path,
+                  altText: wine.wine_name,
                   width: 600,
                   height: 600,
                 },
               ],
-              seo: { title: item.wines.wine_name, description: "" },
+              seo: { title: wine.wine_name, description: "" },
               tags: [],
               availableForSale: true,
               currencyCode: "SEK",

@@ -158,6 +158,8 @@ export type Product = {
   images: Image[];
   availableForSale: boolean;
   producerName?: string;
+  /** When true, PACT Points redeem at higher SEK value against this wine's lines (see checkout). */
+  producerBoostActive?: boolean;
   priceBreakdown?: {
     costAmount: number;
     exchangeRate: number;

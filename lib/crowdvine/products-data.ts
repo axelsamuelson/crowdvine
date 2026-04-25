@@ -105,11 +105,14 @@ function normalizeShopSearchInput(raw: string): string {
 }
 
 /**
- * Wrap a filter value in double quotes so spaces (e.g. `%le bouc%`) are not parsed as
- * separate tokens — otherwise PGRST100 "failed to parse logic tree".
+ * Build a PostgREST `ilike` value for `.or(...)`.
+ *
+ * Note: Using double quotes around the value (e.g. `ilike."%foo%"`) can trigger
+ * PGRST100 parse errors. Supabase/PostgREST will URL-encode spaces safely, so we
+ * pass the raw pattern (with commas already normalized out).
  */
-function quotePostgrestOrValue(val: string): string {
-  return `"${val.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+function postgrestIlikeValue(val: string): string {
+  return val;
 }
 
 function supabaseErrorToMessage(err: {
@@ -124,7 +127,15 @@ function supabaseErrorToMessage(err: {
   );
 }
 
-type SupabaseOrBuilder = { or: (clause: string) => SupabaseOrBuilder };
+type SupabaseOrBuilder = {
+  or: (
+    clause: string,
+    options?: {
+      /** PostgREST: apply OR clause against a related table */
+      foreignTable?: string;
+    },
+  ) => SupabaseOrBuilder;
+};
 
 /**
  * Full catalog: wine fields + joined producer name (`producers!inner` is on the same query).
@@ -135,10 +146,20 @@ function applyWineCatalogSearch<Q extends SupabaseOrBuilder>(
 ): Q {
   const t = normalizeShopSearchInput(rawSearch ?? "");
   if (!t) return qb;
-  const p = quotePostgrestOrValue(`%${escapeForIlikePattern(t)}%`);
+  const p = postgrestIlikeValue(`%${escapeForIlikePattern(t)}%`);
   return qb.or(
-    `wine_name.ilike.${p},handle.ilike.${p},description.ilike.${p},grape_varieties.ilike.${p},producers.name.ilike.${p}`,
+    `wine_name.ilike.${p},handle.ilike.${p},description.ilike.${p},grape_varieties.ilike.${p}`,
   ) as Q;
+}
+
+function applyProducerNameSearch<Q extends SupabaseOrBuilder>(
+  qb: Q,
+  rawSearch: string | undefined,
+): Q {
+  const t = normalizeShopSearchInput(rawSearch ?? "");
+  if (!t) return qb;
+  const p = postgrestIlikeValue(`%${escapeForIlikePattern(t)}%`);
+  return qb.or(`name.ilike.${p}`, { foreignTable: "producers" }) as Q;
 }
 
 /** Collection (single producer): wine fields + producer name (same row’s `producers(name)` embed). */
@@ -148,10 +169,19 @@ function applyWineCollectionSearch<Q extends SupabaseOrBuilder>(
 ): Q {
   const t = normalizeShopSearchInput(rawSearch ?? "");
   if (!t) return qb;
-  const p = quotePostgrestOrValue(`%${escapeForIlikePattern(t)}%`);
+  const p = postgrestIlikeValue(`%${escapeForIlikePattern(t)}%`);
   return qb.or(
-    `wine_name.ilike.${p},handle.ilike.${p},description.ilike.${p},grape_varieties.ilike.${p},producers.name.ilike.${p}`,
+    `wine_name.ilike.${p},handle.ilike.${p},description.ilike.${p},grape_varieties.ilike.${p}`,
   ) as Q;
+}
+
+function applyProducerNameSearchForCollection<Q extends SupabaseOrBuilder>(
+  qb: Q,
+  rawSearch: string | undefined,
+): Q {
+  // In a single-producer collection, producer-name search is still useful
+  // (e.g. if the shop UI uses the same query state everywhere).
+  return applyProducerNameSearch(qb, rawSearch);
 }
 
 function convertToFullUrl(path: string | null | undefined): string {
@@ -179,6 +209,8 @@ export interface ProductData {
   categoryId: string;
   producerId: string;
   producerName: string;
+  /** PACT Points checkout boost (from producers.boost_active). */
+  producerBoostActive?: boolean;
   options: Array<{ id: string; name: string; values: Array<{ id: string; name: string } | string> }>;
   variants: Array<{
     id: string;
@@ -244,75 +276,131 @@ export async function fetchProductsData(params?: {
       description,
       description_html,
       created_at,
-      producers!inner(name, is_live)
+      producers!inner(name, is_live, boost_active)
     `;
 
-  let query = sb
-    .from("wines")
-    .select(winesSelect)
-    .eq("is_live", true)
-    .eq("producers.is_live", true);
+  const applySort = <Q extends { order: any }>(q: Q): Q => {
+    switch (sortKey) {
+      case "PRICE":
+        return q.order("base_price_cents", { ascending: !reverse });
+      case "CREATED_AT":
+      case "CREATED":
+        return q.order("created_at", { ascending: !reverse });
+      default:
+        return q.order("created_at", { ascending: false });
+    }
+  };
 
-  query = applyWineCatalogSearch(query, params?.searchQuery);
+  const baseQuery = () =>
+    sb
+      .from("wines")
+      .select(winesSelect)
+      .eq("is_live", true)
+      .eq("producers.is_live", true);
 
-  switch (sortKey) {
-    case "PRICE":
-      query = query.order("base_price_cents", { ascending: !reverse });
-      break;
-    case "CREATED_AT":
-    case "CREATED":
-      query = query.order("created_at", { ascending: !reverse });
-      break;
-    default:
-      query = query.order("created_at", { ascending: false });
+  const hasSearch = Boolean(normalizeShopSearchInput(params?.searchQuery ?? ""));
+
+  let result: { data: any[] | null; error: any | null };
+  if (!hasSearch) {
+    result = await applySort(baseQuery()).limit(limit);
+  } else {
+    // PostgREST cannot express a single OR group spanning both the root table and an embedded
+    // relation (producers) in one `.or(...)` clause. We run two queries and merge.
+    const wineResult = await applySort(
+      applyWineCatalogSearch(baseQuery(), params?.searchQuery),
+    ).limit(limit);
+    const producerResult = await applySort(
+      applyProducerNameSearch(baseQuery(), params?.searchQuery),
+    ).limit(limit);
+
+    if (wineResult.error) {
+      result = wineResult;
+    } else if (producerResult.error) {
+      result = producerResult;
+    } else {
+      const seen = new Set<string>();
+      const merged: any[] = [];
+      for (const row of [...(wineResult.data ?? []), ...(producerResult.data ?? [])]) {
+        const id = String((row as any)?.id ?? "");
+        if (!id || seen.has(id)) continue;
+        seen.add(id);
+        merged.push(row);
+        if (merged.length >= limit) break;
+      }
+      result = { data: merged, error: null };
+    }
   }
 
-  let result = await query.limit(limit);
   if (result.error) {
     const msg = result.error.message ?? "";
     const fallbackSelect = `
       id, wine_name, vintage, grape_varieties, color, handle, base_price_cents,
       cost_amount, cost_currency, exchange_rate, alcohol_tax_cents, margin_percentage,
       b2b_margin_percentage, b2b_stock, label_image_path, producer_id, description,
-      description_html, created_at, producers!inner(name)
+      description_html, created_at, producers!inner(name, boost_active)
     `;
     if (/is_live|column.*does not exist|producers\.is_live/i.test(msg)) {
-      query = applyWineCatalogSearch(
-        sb.from("wines").select(fallbackSelect).eq("is_live", true),
-        params?.searchQuery,
-      );
-      switch (sortKey) {
-        case "PRICE":
-          query = query.order("base_price_cents", { ascending: !reverse });
-          break;
-        case "CREATED_AT":
-        case "CREATED":
-          query = query.order("created_at", { ascending: !reverse });
-          break;
-        default:
-          query = query.order("created_at", { ascending: false });
+      const fbBase = () => sb.from("wines").select(fallbackSelect).eq("is_live", true);
+      const fbHasSearch = hasSearch;
+      if (!fbHasSearch) {
+        result = await applySort(fbBase()).limit(limit);
+      } else {
+        const wineResult = await applySort(
+          applyWineCatalogSearch(fbBase(), params?.searchQuery),
+        ).limit(limit);
+        const producerResult = await applySort(
+          applyProducerNameSearch(fbBase(), params?.searchQuery),
+        ).limit(limit);
+
+        if (wineResult.error) {
+          result = wineResult;
+        } else if (producerResult.error) {
+          result = producerResult;
+        } else {
+          const seen = new Set<string>();
+          const merged: any[] = [];
+          for (const row of [...(wineResult.data ?? []), ...(producerResult.data ?? [])]) {
+            const id = String((row as any)?.id ?? "");
+            if (!id || seen.has(id)) continue;
+            seen.add(id);
+            merged.push(row);
+            if (merged.length >= limit) break;
+          }
+          result = { data: merged, error: null };
+        }
       }
-      result = await query.limit(limit);
     }
     if (result.error) {
       const msg2 = result.error.message ?? "";
       if (/is_live|column.*does not exist/i.test(msg2)) {
-        query = applyWineCatalogSearch(
-          sb.from("wines").select(fallbackSelect),
-          params?.searchQuery,
-        );
-        switch (sortKey) {
-          case "PRICE":
-            query = query.order("base_price_cents", { ascending: !reverse });
-            break;
-          case "CREATED_AT":
-          case "CREATED":
-            query = query.order("created_at", { ascending: !reverse });
-            break;
-          default:
-            query = query.order("created_at", { ascending: false });
+        const fbBase = () => sb.from("wines").select(fallbackSelect);
+        if (!hasSearch) {
+          result = await applySort(fbBase()).limit(limit);
+        } else {
+          const wineResult = await applySort(
+            applyWineCatalogSearch(fbBase(), params?.searchQuery),
+          ).limit(limit);
+          const producerResult = await applySort(
+            applyProducerNameSearch(fbBase(), params?.searchQuery),
+          ).limit(limit);
+
+          if (wineResult.error) {
+            result = wineResult;
+          } else if (producerResult.error) {
+            result = producerResult;
+          } else {
+            const seen = new Set<string>();
+            const merged: any[] = [];
+            for (const row of [...(wineResult.data ?? []), ...(producerResult.data ?? [])]) {
+              const id = String((row as any)?.id ?? "");
+              if (!id || seen.has(id)) continue;
+              seen.add(id);
+              merged.push(row);
+              if (merged.length >= limit) break;
+            }
+            result = { data: merged, error: null };
+          }
         }
-        result = await query.limit(limit);
       }
     }
     if (result.error) {
@@ -400,6 +488,7 @@ export async function fetchProductsData(params?: {
       categoryId: i.producer_id,
       producerId: i.producer_id,
       producerName: i.producers?.name || "Unknown Producer",
+      producerBoostActive: (i.producers as { boost_active?: boolean } | null)?.boost_active === true,
       options: [
         {
           id: "grape-varieties",
@@ -614,7 +703,7 @@ export async function fetchCollectionProductsData(
       b2b_stock,
       label_image_path,
       producer_id,
-      producers(name)
+      producers(name, boost_active)
     `;
   let collQuery = applyWineCollectionSearch(
     sb
@@ -652,11 +741,13 @@ export async function fetchCollectionProductsData(
 
   const { data: producerData } = await sb
     .from("producers")
-    .select("name")
+    .select("name, boost_active")
     .eq("id", collectionId)
     .single();
 
   const producerName = producerData?.name;
+  const collectionProducerBoostActive =
+    (producerData as { boost_active?: boolean } | null)?.boost_active === true;
 
   const collWineIds = collData.map((w: any) => w.id) || [];
   const { stockMap: collB2bStockMap, shippingMap: collB2bShippingMap } =
@@ -690,6 +781,9 @@ export async function fetchCollectionProductsData(
       categoryId: i.producer_id,
       producerId: i.producer_id,
       producerName: producerName || i.producers?.name || `Producer ${collectionId.substring(0, 8)}`,
+      producerBoostActive:
+        collectionProducerBoostActive ||
+        (i.producers as { boost_active?: boolean } | null)?.boost_active === true,
       options: [
         {
           id: "grape-varieties",

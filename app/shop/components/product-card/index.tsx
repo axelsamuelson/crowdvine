@@ -14,6 +14,7 @@ import { ArrowRightIcon, CirclePlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { MemberPrice } from "@/components/ui/member-price";
 import { StockBadge } from "@/components/product/stock-badge";
+import { BoostBadge } from "@/components/producer/boost-badge";
 import { useCart } from "@/components/cart/cart-context";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { ColorSwatch } from "@/components/ui/color-picker";
@@ -714,6 +715,11 @@ export const ProductCard = memo(
                 {product.producerName}
               </p>
             )}
+            {product.producerBoostActive === true ? (
+              <div className="mt-0.5">
+                <BoostBadge />
+              </div>
+            ) : null}
             <StockBadge
               b2bStock={(product as any).b2bStock}
               availableForSale={product.availableForSale}
@@ -916,6 +922,11 @@ export const ProductCard = memo(
                   {product.producerName}
                 </p>
               )}
+              {product.producerBoostActive === true ? (
+                <div className="mt-1">
+                  <BoostBadge />
+                </div>
+              ) : null}
               {wineColor && (
                 <div className="mt-1">
                   <ColorSwatch

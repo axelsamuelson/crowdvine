@@ -487,7 +487,7 @@ export function AddToCartCase({
   }, []);
 
   const mixedCaseSheet = (
-      <Sheet open={sheetOpen} onOpenChange={handleSheetOpenChange}>
+      <Sheet modal={false} open={sheetOpen} onOpenChange={handleSheetOpenChange}>
         <SheetContent
           side={sheetSide}
           className={cn(
@@ -701,6 +701,15 @@ function MixedCaseWineListPanel({
   /** Close the mixed-case sheet (list view). */
   onCloseMixedCase?: () => void;
 }) {
+  const selectedCaseTotalCents = useMemo(
+    () =>
+      wines.reduce(
+        (sum, w) => sum + (quantities[w.id] ?? 0) * w.base_price_cents,
+        0,
+      ),
+    [wines, quantities],
+  );
+
   const listBody = (
     <>
       {loadingWines ? (
@@ -721,24 +730,33 @@ function MixedCaseWineListPanel({
             return (
               <li
                 key={w.id}
-                className="flex items-stretch gap-2 overflow-hidden rounded-lg border border-border"
+                className="flex items-stretch gap-2 rounded-lg border border-border"
               >
-                <button
-                  type="button"
+                <div
+                  role="button"
+                  tabIndex={0}
                   className={cn(
                     "flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-md px-2 py-2.5 text-left outline-none ring-offset-background transition-colors",
                     "focus-visible:ring-2 focus-visible:ring-ring",
-                    "hover:bg-[color:var(--color-background-secondary,hsl(var(--secondary)))] active:scale-[0.99] motion-reduce:active:scale-100",
+                    "hover:bg-[color:var(--color-background-secondary,hsl(var(--secondary)))]",
                   )}
+                  aria-label={`${w.wine_name} ${w.vintage} — wine details`}
                   onClick={() => onOpenDetail(w.id)}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter" && e.key !== " ") return;
+                    e.preventDefault();
+                    onOpenDetail(w.id);
+                  }}
                 >
+                  {/* pointer-events-none so wheel scroll hits the scroll parent, not inert media/text nodes */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={w.image_url}
                     alt=""
-                    className="size-14 shrink-0 rounded object-cover bg-muted"
+                    draggable={false}
+                    className="pointer-events-none size-14 shrink-0 rounded object-cover bg-muted"
                   />
-                  <div className="min-w-0 flex-1 py-0.5">
+                  <div className="pointer-events-none min-w-0 flex-1 py-0.5">
                     <p className="text-sm font-medium leading-snug">
                       {w.wine_name}{" "}
                       <span className="text-muted-foreground font-normal">
@@ -753,10 +771,10 @@ function MixedCaseWineListPanel({
                     </p>
                   </div>
                   <ChevronRight
-                    className="size-5 shrink-0 text-[color:var(--color-text-secondary,hsl(var(--muted-foreground)))]"
+                    className="pointer-events-none size-5 shrink-0 text-[color:var(--color-text-secondary,hsl(var(--muted-foreground)))]"
                     aria-hidden
                   />
-                </button>
+                </div>
                 <div className="flex shrink-0 items-center pr-2">
                   <MixedCaseQuantityStepper
                     wineId={w.id}
@@ -808,6 +826,15 @@ function MixedCaseWineListPanel({
           <p className="mt-3 text-sm font-semibold tabular-nums">
             {totalSelected}/6 bottles selected
           </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Total{" "}
+            <span className="font-semibold tabular-nums text-foreground">
+              {formatPrice(
+                String(Math.ceil(selectedCaseTotalCents / 100)),
+                "SEK",
+              )}
+            </span>
+          </p>
           {showTapRowHint ? (
             <p
               className="mt-2 text-xs text-muted-foreground"
@@ -817,13 +844,17 @@ function MixedCaseWineListPanel({
             </p>
           ) : null}
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">{listBody}</div>
+        <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-6 py-4">
+          {listBody}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">{listBody}</div>
+    <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-6 py-4">
+      {listBody}
+    </div>
   );
 }
 

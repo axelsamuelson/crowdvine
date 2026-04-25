@@ -14,6 +14,12 @@ export const PACT_POINTS_ZONE_SET_REWARD = 5;
 export const PACT_POINTS_EXPIRY_DAYS = 365;
 export const PACT_POINTS_MAX_REDEMPTION_PERCENT = 50;
 
+export {
+  PACT_POINTS_BOOST_MULTIPLIER,
+  allocatePactRedemptionPoints,
+  calculateBoostAwareMaxRedemption,
+} from "./pact-points-redemption-math";
+
 export const TIER_POINTS_MULTIPLIER: Record<MembershipLevel, number> = {
   requester: 1,
   basic: 1,

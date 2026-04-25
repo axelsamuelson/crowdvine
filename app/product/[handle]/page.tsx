@@ -36,6 +36,7 @@ import { DesktopGalleryWrapper } from "./components/desktop-gallery-wrapper";
 import { WineBoxDiscountInfo } from "@/components/products/wine-box-discount-info";
 import { ProductViewTracker } from "./components/product-view-tracker";
 import { StockBadge } from "@/components/product/stock-badge";
+import { BoostBadge } from "@/components/producer/boost-badge";
 import { CartSourceProviderConditional } from "@/components/cart/cart-source-provider-conditional";
 import { CompetitorOffersSection } from "@/components/product/competitor-offers-section";
 import { WineSpecsList } from "@/components/product/wine-specs-list";
@@ -263,6 +264,11 @@ export default async function ProductPage(props: {
                       {product.producerName}
                     </p>
                   )}
+                  {product.producerBoostActive === true ? (
+                    <div className="mb-2">
+                      <BoostBadge />
+                    </div>
+                  ) : null}
                   <StockBadge
                     b2bStock={product.b2bStock}
                     availableForSale={product.availableForSale}

@@ -50,6 +50,10 @@ import {
   type ShareAllocation,
 } from "@/components/checkout/share-bottles-dialog";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
+import {
+  allocatePactRedemptionPoints,
+  calculateBoostAwareMaxRedemption,
+} from "@/lib/membership/pact-points-redemption-math";
 
 interface UserProfile {
   id: string;
@@ -751,11 +755,46 @@ function CheckoutContent() {
   const total =
     subtotal + (shippingCost ? shippingCost.totalShippingCostSek : 0);
 
-  const maxRedemption = Math.min(
-    pactPointsBalance,
-    Math.floor(Math.max(0, total) * 0.5),
+  const { boostedLineTotal, nonBoostedLineTotal } = useMemo(() => {
+    if (!cart?.lines?.length) {
+      return { boostedLineTotal: 0, nonBoostedLineTotal: 0 };
+    }
+    let boosted = 0;
+    let nonBoosted = 0;
+    for (const line of cart.lines) {
+      const amt = parseFloat(line.cost.totalAmount.amount) || 0;
+      if (line.merchandise.product.producerBoostActive === true) {
+        boosted += amt;
+      } else {
+        nonBoosted += amt;
+      }
+    }
+    return { boostedLineTotal: boosted, nonBoostedLineTotal: nonBoosted };
+  }, [cart?.lines]);
+
+  const maxRedemption = useMemo(
+    () =>
+      calculateBoostAwareMaxRedemption(
+        boostedLineTotal,
+        nonBoostedLineTotal,
+        pactPointsBalance,
+      ).maxPoints,
+    [boostedLineTotal, nonBoostedLineTotal, pactPointsBalance],
   );
-  const totalAfterPactPoints = Math.max(0, total - redeemPoints);
+
+  const pactPointsSekOff = useMemo(
+    () =>
+      allocatePactRedemptionPoints(
+        redeemPoints,
+        boostedLineTotal,
+        nonBoostedLineTotal,
+      ).sekDiscount,
+    [redeemPoints, boostedLineTotal, nonBoostedLineTotal],
+  );
+
+  const hasBoostedProducerInOrder = boostedLineTotal > 0;
+
+  const totalAfterPactPoints = Math.max(0, total - pactPointsSekOff);
 
   useEffect(() => {
     if (!Number.isFinite(maxRedemption)) return;
@@ -793,7 +832,7 @@ function CheckoutContent() {
     if (redeemPoints > 0) {
       lines.push({
         label: "PACT Points",
-        value: `-${Math.round(redeemPoints)} ${currencyCode}`,
+        value: `-${Math.round(pactPointsSekOff)} ${currencyCode}`,
         accent: true,
       });
     }
@@ -817,6 +856,7 @@ function CheckoutContent() {
     formatShippingCost,
     progressionBuffDiscountAmount,
     redeemPoints,
+    pactPointsSekOff,
     rewardsDiscountAmount,
     selectedRewards.length,
     shippingCost,
@@ -1195,7 +1235,7 @@ function CheckoutContent() {
                               Use none
                             </button>
                             <span className="font-medium">
-                              {redeemPoints} points = {redeemPoints} kr off
+                              {redeemPoints} points = {Math.round(pactPointsSekOff)} kr off
                             </span>
                             <button
                               type="button"
@@ -1205,6 +1245,11 @@ function CheckoutContent() {
                               Use all
                             </button>
                           </div>
+                          {hasBoostedProducerInOrder ? (
+                            <p className="text-[10px] text-violet-700 mt-1">
+                              Worth 2× against boosted producers in this order
+                            </p>
+                          ) : null}
                         </div>
                       ) : null}
 
@@ -1235,7 +1280,7 @@ function CheckoutContent() {
                         <div className="flex justify-between mb-2">
                           <span className="text-amber-700">PACT Points</span>
                           <span className="font-medium text-amber-700">
-                            -{redeemPoints} kr
+                            -{Math.round(pactPointsSekOff)} kr
                           </span>
                         </div>
                       ) : null}
