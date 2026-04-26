@@ -26,6 +26,12 @@ import { getPickupZones, PalletZone } from "@/lib/actions/zones";
 type CountryOption = { code: string; name: string };
 type RegionOption = { value: string; label: string; country_code: string | null };
 
+type ShippingRegionOption = {
+  id: string;
+  name: string;
+  country_code: string;
+};
+
 interface ProducerFormProps {
   producer?: Producer;
 }
@@ -43,6 +49,8 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
     short_description: producer?.short_description || "",
     logo_image_path: producer?.logo_image_path || "",
     pickup_zone_id: producer?.pickup_zone_id || "",
+    shipping_region_id: producer?.shipping_region_id ?? "",
+    is_pallet_zone: producer?.is_pallet_zone === true,
     is_live: producer?.is_live ?? true,
     boost_active: producer?.boost_active === true,
   });
@@ -52,6 +60,9 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
   const [pickupZones, setPickupZones] = useState<PalletZone[]>([]);
   const [countries, setCountries] = useState<CountryOption[]>([]);
   const [regions, setRegions] = useState<RegionOption[]>([]);
+  const [shippingRegions, setShippingRegions] = useState<
+    ShippingRegionOption[]
+  >([]);
   const [isPickupZone, setIsPickupZone] = useState(!!producer?.pickup_zone_id);
   const [geocoding, setGeocoding] = useState(false);
   const [geocodeSuccess, setGeocodeSuccess] = useState(false);
@@ -102,6 +113,25 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
     loadRegions();
   }, [formData.country_code]);
 
+  useEffect(() => {
+    const loadShippingRegions = async () => {
+      try {
+        const res = await fetch("/api/admin/shipping-regions");
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          regions?: ShippingRegionOption[];
+        };
+        const list = data.regions ?? [];
+        setShippingRegions(
+          [...list].sort((a, b) => a.name.localeCompare(b.name)),
+        );
+      } catch (err) {
+        console.error("Failed to load shipping regions:", err);
+      }
+    };
+    loadShippingRegions();
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -151,7 +181,15 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
         formData.pickup_zone_id = "";
       }
 
-      console.log("📝 Submitting producer data:", formData);
+      const payload = {
+        ...formData,
+        shipping_region_id: formData.shipping_region_id?.trim()
+          ? formData.shipping_region_id.trim()
+          : null,
+        is_pallet_zone: formData.is_pallet_zone === true,
+      };
+
+      console.log("📝 Submitting producer data:", payload);
 
       // Use API routes instead of Server Actions for better error handling in production
       if (producer) {
@@ -159,13 +197,19 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
         const response = await fetch(`/api/admin/producers/${producer.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
+          body: JSON.stringify(payload),
         });
 
         if (!response.ok) {
           const errorData = await response.json();
           console.error("❌ Update failed:", errorData);
-          throw new Error(errorData.error || "Failed to update producer");
+          const msg =
+            typeof errorData.message === "string" && errorData.message.trim()
+              ? errorData.message
+              : typeof errorData.error === "string"
+                ? errorData.error
+                : "Failed to update producer";
+          throw new Error(msg);
         }
 
         const result = await response.json();
@@ -175,7 +219,7 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
         const response = await fetch("/api/admin/producers", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
+          body: JSON.stringify(payload),
         });
 
         if (!response.ok) {
@@ -528,6 +572,57 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
               onChange={(e) => handleChange("logo_image_path", e.target.value)}
               placeholder="https://example.com/image.jpg"
               className="border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="shipping_region_id" className="text-gray-700 dark:text-zinc-300">
+              Shipping region
+            </Label>
+            <Select
+              value={formData.shipping_region_id || "__none__"}
+              onValueChange={(v) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  shipping_region_id: v === "__none__" ? "" : v,
+                }))
+              }
+            >
+              <SelectTrigger
+                id="shipping_region_id"
+                className="w-full border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
+              >
+                <SelectValue placeholder="Not assigned" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Not assigned</SelectItem>
+                {shippingRegions.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>
+                    {r.name} ({r.country_code})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-gray-500 dark:text-zinc-400">
+              Optional. Groups this producer for pallet automation (Phase 2.1).
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between rounded-xl border border-gray-200 dark:border-zinc-800 p-4 bg-gray-50 dark:bg-zinc-900/70">
+            <div>
+              <Label htmlFor="is_pallet_zone" className="text-sm font-medium text-gray-900 dark:text-zinc-100">
+                Can handle full pallet
+              </Label>
+              <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
+                This producer can physically receive and ship a full pallet. The producer with the most orders becomes the pickup point.
+              </p>
+            </div>
+            <Switch
+              id="is_pallet_zone"
+              checked={formData.is_pallet_zone === true}
+              onCheckedChange={(checked) =>
+                setFormData((prev) => ({ ...prev, is_pallet_zone: !!checked }))
+              }
             />
           </div>
 

@@ -161,21 +161,27 @@ class SendGridService {
     });
 
     try {
-      const result = await sgMail.send(msg);
+      const result = await sgMail.send(
+        msg as Parameters<typeof sgMail.send>[0],
+      );
       console.log(`✅ Email sent successfully to ${data.to}`);
       console.log("SendGrid response:", result);
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("❌ SendGrid error:", error);
-      if (error.response) {
-        console.error("SendGrid response status:", error.response?.status);
+      const errRec = error as {
+        response?: { status?: number; body?: unknown };
+        message?: string;
+      };
+      if (errRec.response) {
+        console.error("SendGrid response status:", errRec.response.status);
         console.error(
           "SendGrid response body:",
-          JSON.stringify(error.response?.body, null, 2),
+          JSON.stringify(errRec.response.body, null, 2),
         );
       }
-      if (error.message) {
-        console.error("SendGrid error message:", error.message);
+      if (errRec.message) {
+        console.error("SendGrid error message:", errRec.message);
       }
       return false;
     }
@@ -451,3 +457,47 @@ Producers And Consumers Together
 }
 
 export const sendGridService = new SendGridService();
+
+function escapeHtmlBasic(input: string): string {
+  return input
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+export async function sendPaymentConfirmedEmail({
+  to,
+  reservationId,
+  amountSek,
+  palletName,
+}: {
+  to: string;
+  reservationId: string;
+  amountSek: number;
+  palletName: string;
+}): Promise<boolean> {
+  const subject = "Payment confirmed — your PACT order is on its way";
+  const safePallet = escapeHtmlBasic(palletName);
+  const text = `Great news! Your payment of ${amountSek} kr has been confirmed for reservation ${reservationId}. Your wines will be delivered via Bring Home Delivery once the pallet ships.\n\nPallet: ${palletName}`;
+  const html = `<p>Great news! Your payment of <strong>${amountSek} kr</strong> has been confirmed for reservation <strong>${escapeHtmlBasic(reservationId)}</strong>.</p><p>Your wines will be delivered via Bring Home Delivery once the pallet ships.</p><p>Pallet: <strong>${safePallet}</strong></p>`;
+  return sendGridService.sendEmail({ to, subject, html, text });
+}
+
+export async function sendPaymentFailedEmail({
+  to,
+  reservationId,
+  reason,
+  profilePaymentUrl,
+}: {
+  to: string;
+  reservationId: string;
+  reason: string;
+  profilePaymentUrl: string;
+}): Promise<boolean> {
+  const subject = "Action required — payment failed for your PACT order";
+  const safeReason = escapeHtmlBasic(reason);
+  const text = `We tried to charge your card for reservation ${reservationId} but the payment failed: ${reason}.\nPlease update your payment method at ${profilePaymentUrl}.\nYour reservation is held for 7 days.`;
+  const html = `<p>We tried to charge your card for reservation <strong>${escapeHtmlBasic(reservationId)}</strong> but the payment failed: ${safeReason}.</p><p>Please <a href="${profilePaymentUrl}">update your payment method</a>.</p><p>Your reservation is held for 7 days.</p>`;
+  return sendGridService.sendEmail({ to, subject, html, text });
+}

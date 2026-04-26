@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import {
+  cleanupEmptyPalletsAfterReservationChange,
+  releaseBookingsForReservationPallet,
+  updatePickupProducerForPallet,
+} from "@/lib/pallet-auto-management";
 
 export async function PATCH(
   request: NextRequest,
@@ -11,15 +16,48 @@ export async function PATCH(
     const supabase = getSupabaseAdmin();
 
     const body = await request.json();
-    const { items, ...reservationData } = body;
+    const { items, ...reservationData } = body as Record<string, unknown> & {
+      items?: unknown;
+    };
 
     console.log("Updating reservation:", id, "with data:", reservationData);
 
-    // Update the reservation
+    const { data: existingSnap, error: snapErr } = await supabase
+      .from("order_reservations")
+      .select("pallet_id, delivery_zone_id, shipping_region_id, status")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (snapErr || !existingSnap) {
+      console.error("Reservation snapshot error:", snapErr);
+      return NextResponse.json(
+        { error: "Reservation not found" },
+        { status: 404 },
+      );
+    }
+
+    const nextStatusRaw = reservationData.status;
+    const nextStatus =
+      typeof nextStatusRaw === "string" ? nextStatusRaw.toLowerCase() : "";
+    const terminalAdminStatuses = new Set(["cancelled", "rejected", "declined"]);
+    const clearingPallet = terminalAdminStatuses.has(nextStatus);
+
+    const cleanupSnapshot = {
+      pallet_id: (existingSnap.pallet_id as string | null) ?? null,
+      delivery_zone_id: (existingSnap.delivery_zone_id as string | null) ?? null,
+      shipping_region_id:
+        (existingSnap.shipping_region_id as string | null) ?? null,
+    };
+
+    if (clearingPallet && cleanupSnapshot.pallet_id) {
+      await releaseBookingsForReservationPallet(id, cleanupSnapshot.pallet_id);
+    }
+
     const { data: updatedReservation, error: reservationError } = await supabase
       .from("order_reservations")
       .update({
         ...reservationData,
+        ...(clearingPallet ? { pallet_id: null } : {}),
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)
@@ -32,6 +70,14 @@ export async function PATCH(
         { error: "Failed to update reservation" },
         { status: 500 },
       );
+    }
+
+    if (clearingPallet) {
+      await cleanupEmptyPalletsAfterReservationChange(cleanupSnapshot);
+    }
+
+    if (clearingPallet && cleanupSnapshot.pallet_id) {
+      await updatePickupProducerForPallet(cleanupSnapshot.pallet_id);
     }
 
     // Update reservation items

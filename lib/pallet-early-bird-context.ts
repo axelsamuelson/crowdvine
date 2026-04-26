@@ -1,6 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { determineZones, type DeliveryAddress } from "@/lib/zone-matching";
-import { sumReservedBottlesOnPallet } from "@/lib/pallet-completion";
+import { getPalletFillData } from "@/lib/pallet-fill-count";
 import { getPalletDiscountTier, type DiscountTier } from "@/lib/pallet-discount";
 import {
   STOCKHOLM_FALLBACK_GEO_ADDRESS,
@@ -173,8 +173,11 @@ export async function resolvePalletEarlyBirdContext(
       };
     }
 
-    const bottlesFilled = await sumReservedBottlesOnPallet(palletRow.id);
-    const bottleCapacity = Number(palletRow.bottle_capacity) || 0;
+    const fill = await getPalletFillData(
+      palletRow.id,
+      Number(palletRow.bottle_capacity) || 0,
+    );
+    const { bottlesFilled, bottleCapacity } = fill;
     return {
       bottlesFilled,
       discountTier: getPalletDiscountTier(bottlesFilled),
@@ -207,8 +210,11 @@ export async function resolvePalletEarlyBirdContext(
     };
   }
 
-  const bottlesFilled = await sumReservedBottlesOnPallet(palletRow.id);
-  const bottleCapacity = Number(palletRow.bottle_capacity) || 0;
+  const fill = await getPalletFillData(
+    palletRow.id,
+    Number(palletRow.bottle_capacity) || 0,
+  );
+  const { bottlesFilled, bottleCapacity } = fill;
   return {
     bottlesFilled,
     discountTier: getPalletDiscountTier(bottlesFilled),

@@ -1,6 +1,203 @@
 import { NextRequest, NextResponse } from "next/server";
+import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { getAppUrl } from "@/lib/app-url";
+
+async function handlePaymentIntentSucceededWebhook(
+  paymentIntent: Stripe.PaymentIntent,
+): Promise<void> {
+  const reservationIdRaw = paymentIntent.metadata?.reservation_id;
+  if (!reservationIdRaw || typeof reservationIdRaw !== "string") {
+    console.log(
+      `[Stripe Webhook] payment_intent.succeeded pi=${paymentIntent.id} missing reservation_id in metadata; not a reservation charge`,
+    );
+    return;
+  }
+  const reservationId = reservationIdRaw.trim();
+  console.log(
+    `[Stripe Webhook] payment_intent.succeeded reservation_id=${reservationId} pi=${paymentIntent.id}`,
+  );
+
+  const supabase = getSupabaseAdmin();
+
+  const { error: updateError } = await supabase
+    .from("order_reservations")
+    .update({
+      payment_status: "paid",
+      payment_intent_id: paymentIntent.id,
+      status: "confirmed",
+    })
+    .eq("id", reservationId);
+
+  if (updateError) {
+    console.error(
+      `[Stripe Webhook] reservation_id=${reservationId} failed to mark paid:`,
+      updateError,
+    );
+    return;
+  }
+
+  const { confirmPendingRedemption } = await import(
+    "@/lib/membership/pact-points-engine"
+  );
+  const confirmResult = await confirmPendingRedemption(reservationId);
+  if (!confirmResult.success) {
+    console.error(
+      `[Stripe Webhook] reservation_id=${reservationId} confirmPendingRedemption:`,
+      confirmResult.error,
+    );
+  }
+
+  const { data: resRow } = await supabase
+    .from("order_reservations")
+    .select("user_id, pallet_id")
+    .eq("id", reservationId)
+    .maybeSingle();
+
+  const userId =
+    resRow && typeof resRow.user_id === "string" ? resRow.user_id : null;
+  const palletId =
+    resRow && typeof resRow.pallet_id === "string" ? resRow.pallet_id : null;
+
+  let palletName = "Your pallet";
+  if (palletId) {
+    const { data: pal } = await supabase
+      .from("pallets")
+      .select("name")
+      .eq("id", palletId)
+      .maybeSingle();
+    if (pal?.name && typeof pal.name === "string" && pal.name.trim() !== "") {
+      palletName = pal.name.trim();
+    }
+  }
+
+  let toEmail: string | null = null;
+  if (userId) {
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("email")
+      .eq("id", userId)
+      .maybeSingle();
+    const em = prof?.email;
+    if (typeof em === "string" && em.includes("@")) {
+      toEmail = em.trim();
+    }
+  }
+
+  if (toEmail) {
+    const { sendPaymentConfirmedEmail } = await import("@/lib/sendgrid-service");
+    const amountSek = Math.round((paymentIntent.amount ?? 0) / 100);
+    const sent = await sendPaymentConfirmedEmail({
+      to: toEmail,
+      reservationId,
+      amountSek,
+      palletName,
+    });
+    if (!sent) {
+      console.warn(
+        `[Stripe Webhook] reservation_id=${reservationId} payment confirmed email not sent`,
+      );
+    }
+  } else {
+    console.warn(
+      `[Stripe Webhook] reservation_id=${reservationId} no profile email for payment confirmation`,
+    );
+  }
+
+  console.log(
+    `[Stripe Webhook] payment_intent.succeeded done reservation_id=${reservationId}`,
+  );
+}
+
+async function handlePaymentIntentPaymentFailedWebhook(
+  paymentIntent: Stripe.PaymentIntent,
+): Promise<void> {
+  const reservationIdRaw = paymentIntent.metadata?.reservation_id;
+  if (!reservationIdRaw || typeof reservationIdRaw !== "string") {
+    console.log(
+      `[Stripe Webhook] payment_intent.payment_failed pi=${paymentIntent.id} missing reservation_id in metadata; skipping`,
+    );
+    return;
+  }
+  const reservationId = reservationIdRaw.trim();
+  const reason =
+    paymentIntent.last_payment_error?.message ?? "Payment failed";
+
+  console.log(
+    `[Stripe Webhook] payment_intent.payment_failed reservation_id=${reservationId} pi=${paymentIntent.id} reason=${reason}`,
+  );
+
+  const supabase = getSupabaseAdmin();
+
+  const { data: prior, error: priorErr } = await supabase
+    .from("order_reservations")
+    .select("payment_attempts, user_id")
+    .eq("id", reservationId)
+    .maybeSingle();
+
+  if (priorErr) {
+    console.error(
+      `[Stripe Webhook] reservation_id=${reservationId} read attempts failed:`,
+      priorErr,
+    );
+  }
+
+  const nextAttempts = (prior?.payment_attempts ?? 0) + 1;
+
+  const { error: updateError } = await supabase
+    .from("order_reservations")
+    .update({
+      payment_status: "failed",
+      payment_failed_reason: reason.slice(0, 2000),
+      payment_attempts: nextAttempts,
+      payment_last_attempt_at: new Date().toISOString(),
+    })
+    .eq("id", reservationId);
+
+  if (updateError) {
+    console.error(
+      `[Stripe Webhook] reservation_id=${reservationId} failed to persist payment_failed:`,
+      updateError,
+    );
+    return;
+  }
+
+  const userId =
+    prior && typeof prior.user_id === "string" ? prior.user_id : null;
+  let toEmail: string | null = null;
+  if (userId) {
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("email")
+      .eq("id", userId)
+      .maybeSingle();
+    const em = prof?.email;
+    if (typeof em === "string" && em.includes("@")) {
+      toEmail = em.trim();
+    }
+  }
+
+  if (toEmail) {
+    const { sendPaymentFailedEmail } = await import("@/lib/sendgrid-service");
+    const profilePaymentUrl = `${getAppUrl()}/profile`;
+    const sent = await sendPaymentFailedEmail({
+      to: toEmail,
+      reservationId,
+      reason,
+      profilePaymentUrl,
+    });
+    if (!sent) {
+      console.warn(
+        `[Stripe Webhook] reservation_id=${reservationId} payment failed email not sent`,
+      );
+    }
+  } else {
+    console.warn(
+      `[Stripe Webhook] reservation_id=${reservationId} no profile email for payment failure`,
+    );
+  }
+}
 
 export async function POST(request: NextRequest) {
   if (!stripe) {
@@ -72,7 +269,6 @@ export async function POST(request: NextRequest) {
               `❌ [Stripe Webhook] Error updating reservation ${session.metadata.reservation_id}:`,
               updateError,
             );
-            throw updateError;
           }
 
           console.log(
@@ -130,62 +326,27 @@ export async function POST(request: NextRequest) {
       }
 
       case "payment_intent.succeeded": {
-        const paymentIntent = event.data.object;
-        console.log(
-          `✅ [Stripe Webhook] Payment succeeded: ${paymentIntent.id}`,
-        );
-
-        // This is a backup handler in case checkout.session.completed doesn't fire
-        if (paymentIntent.metadata?.reservation_id) {
-          const supabase = getSupabaseAdmin();
-
-          const { error: updateError } = await supabase
-            .from("order_reservations")
-            .update({
-              status: "confirmed",
-              payment_status: "paid",
-            })
-            .eq("payment_intent_id", paymentIntent.id);
-
-          if (updateError) {
-            console.error(
-              `❌ [Stripe Webhook] Error updating reservation for payment intent ${paymentIntent.id}:`,
-              updateError,
-            );
-          } else {
-            console.log(
-              `✅ [Stripe Webhook] Reservation updated for payment intent ${paymentIntent.id}`,
-            );
-          }
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        try {
+          await handlePaymentIntentSucceededWebhook(paymentIntent);
+        } catch (e) {
+          console.error(
+            `[Stripe Webhook] payment_intent.succeeded handler error pi=${paymentIntent.id}:`,
+            e,
+          );
         }
         break;
       }
 
       case "payment_intent.payment_failed": {
-        const paymentIntent = event.data.object;
-        console.log(`❌ [Stripe Webhook] Payment failed: ${paymentIntent.id}`);
-
-        // Mark reservation as failed
-        if (paymentIntent.metadata?.reservation_id) {
-          const supabase = getSupabaseAdmin();
-
-          const { error: updateError } = await supabase
-            .from("order_reservations")
-            .update({
-              payment_status: "failed",
-            })
-            .eq("payment_intent_id", paymentIntent.id);
-
-          if (updateError) {
-            console.error(
-              `❌ [Stripe Webhook] Error updating failed payment for reservation:`,
-              updateError,
-            );
-          } else {
-            console.log(
-              `✅ [Stripe Webhook] Reservation marked as failed for payment intent ${paymentIntent.id}`,
-            );
-          }
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        try {
+          await handlePaymentIntentPaymentFailedWebhook(paymentIntent);
+        } catch (e) {
+          console.error(
+            `[Stripe Webhook] payment_intent.payment_failed handler error pi=${paymentIntent.id}:`,
+            e,
+          );
         }
         break;
       }
@@ -288,11 +449,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
     console.error(`❌ [Stripe Webhook] Error processing webhook:`, error);
-    return NextResponse.json(
-      { error: "Webhook processing failed", details: message },
-      { status: 500 },
-    );
+    return NextResponse.json({ received: true });
   }
 }

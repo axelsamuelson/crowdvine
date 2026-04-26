@@ -33,6 +33,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { clearZoneCache } from "@/lib/zone-matching";
+import { deliveryEstimateLabelFromFillPercent } from "@/lib/pallet-delivery-estimate-label";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { calculateCartShippingCost } from "@/lib/shipping-calculations";
 import type { PalletInfo } from "@/lib/zone-matching";
@@ -136,17 +137,10 @@ function CheckoutContent() {
       centerLon: number;
       radiusKm: number;
     }>;
-    pallets?: Array<{
-      id: string;
-      name: string;
-      currentBottles: number;
-      maxBottles: number;
-      remainingBottles: number;
-      pickupZoneName: string;
-      deliveryZoneName: string;
-      costCents: number;
-    }>;
+    pallets?: PalletInfo[];
     usingFallbackAddress?: boolean;
+    zoneError?: "NO_DELIVERY_ZONE" | null;
+    zoneErrorMessage?: string;
   }>({ pickupZone: null, deliveryZone: null, selectedDeliveryZoneId: null });
 
   const formRef = useRef<HTMLFormElement | null>(null);
@@ -405,10 +399,15 @@ function CheckoutContent() {
         // No complete address - cannot determine zones
         console.log("⚠️ No complete address - cannot determine zones");
         setZoneInfo({
-          ...zoneInfo,
-          usingFallbackAddress: false,
           pickupZone: null,
+          pickupZoneId: null,
           deliveryZone: null,
+          selectedDeliveryZoneId: null,
+          availableDeliveryZones: [],
+          pallets: [],
+          usingFallbackAddress: false,
+          zoneError: null,
+          zoneErrorMessage: undefined,
         });
         setZoneLoading(false);
         return;
@@ -433,11 +432,64 @@ function CheckoutContent() {
       });
 
       if (zoneResponse.ok) {
-        const zoneData = await zoneResponse.json();
+        const rawJson: unknown = await zoneResponse.json();
         const hasCompleteAddress =
           deliveryAddress.postcode &&
           deliveryAddress.city &&
           deliveryAddress.countryCode;
+
+        const zd =
+          rawJson && typeof rawJson === "object"
+            ? (rawJson as Record<string, unknown>)
+            : null;
+
+        if (zd?.error === "NO_DELIVERY_ZONE") {
+          const msg =
+            typeof zd.message === "string" && zd.message.trim()
+              ? zd.message
+              : "We don't deliver to your area yet.";
+          console.log("✅ Zone response: no delivery zone", { msg, zd });
+          setZoneInfo({
+            pickupZone:
+              typeof zd.pickupZoneName === "string" ? zd.pickupZoneName : null,
+            pickupZoneId:
+              typeof zd.pickupZoneId === "string"
+                ? zd.pickupZoneId
+                : zd.pickupZoneId === null
+                  ? null
+                  : undefined,
+            deliveryZone: null,
+            selectedDeliveryZoneId: null,
+            availableDeliveryZones: [],
+            pallets: [],
+            usingFallbackAddress: isUsingFallback,
+            zoneError: "NO_DELIVERY_ZONE",
+            zoneErrorMessage: msg,
+          });
+          setSelectedPallet(null);
+          return;
+        }
+
+        if (!zd) {
+          return;
+        }
+
+        type ZonesApiOk = {
+          pickupZoneId?: string | null;
+          deliveryZoneId?: string | null;
+          pickupZoneName?: string | null;
+          deliveryZoneName?: string | null;
+          availableDeliveryZones?: Array<{
+            id: string;
+            name: string;
+            centerLat: number;
+            centerLon: number;
+            radiusKm: number;
+          }>;
+          pallets?: PalletInfo[];
+        };
+
+        const zoneData = zd as ZonesApiOk;
 
         console.log("✅ Zone response received:", {
           zoneData,
@@ -450,8 +502,8 @@ function CheckoutContent() {
         });
 
         // Auto-select the best delivery zone (closest/smallest radius)
-        let selectedDeliveryZoneId = zoneData.deliveryZoneId;
-        let selectedDeliveryZoneName = zoneData.deliveryZoneName;
+        let selectedDeliveryZoneId = zoneData.deliveryZoneId ?? null;
+        let selectedDeliveryZoneName = zoneData.deliveryZoneName ?? null;
 
         if (
           zoneData.availableDeliveryZones &&
@@ -490,13 +542,15 @@ function CheckoutContent() {
         });
         
         setZoneInfo({
-          pickupZone: zoneData.pickupZoneName,
-          pickupZoneId: zoneData.pickupZoneId,
+          pickupZone: zoneData.pickupZoneName ?? null,
+          pickupZoneId: zoneData.pickupZoneId ?? null,
           deliveryZone: selectedDeliveryZoneName,
           selectedDeliveryZoneId: selectedDeliveryZoneId,
           availableDeliveryZones: zoneData.availableDeliveryZones || [],
           pallets: zoneData.pallets || [],
           usingFallbackAddress: isUsingFallback,
+          zoneError: null,
+          zoneErrorMessage: undefined,
         });
 
         // Auto-select the best pallet
@@ -569,6 +623,15 @@ function CheckoutContent() {
     const hasCompleteAddress =
       profile?.address && profile?.city && profile?.postal_code;
       
+    if (zoneInfo.zoneError === "NO_DELIVERY_ZONE") {
+      setIsPlacingOrder(false);
+      toast.error(
+        zoneInfo.zoneErrorMessage?.trim() ||
+          "We don't deliver to your area yet.",
+      );
+      return;
+    }
+
     if (hasCompleteAddress && !zoneInfo.selectedDeliveryZoneId) {
       setIsPlacingOrder(false);
       toast.error(
@@ -1157,13 +1220,21 @@ function CheckoutContent() {
         };
       }
       const fp = (f / cap) * 100;
-      const label: string =
-        fp < 50 ? "2-4 weeks" : fp < 80 ? "1-2 weeks" : "Within 1 week";
+      const st = String(selectedPallet.status ?? "").toLowerCase();
+      if (st === "shipping_ordered") {
+        return {
+          filledBottles: f,
+          totalCapacity: cap,
+          fillPercent: fp,
+          deliveryEstimateLabel:
+            "Shipping ordered · Estimated delivery 7-14 days" as const,
+        };
+      }
       return {
         filledBottles: f,
         totalCapacity: cap,
         fillPercent: fp,
-        deliveryEstimateLabel: label,
+        deliveryEstimateLabel: deliveryEstimateLabelFromFillPercent(fp),
       };
     }, [selectedPallet]);
 
@@ -1595,7 +1666,15 @@ function CheckoutContent() {
                       </div>
                     ) : null}
 
+                    {!zoneLoading && zoneInfo.zoneError === "NO_DELIVERY_ZONE" ? (
+                      <p className="text-sm text-destructive mt-2">
+                        We don&apos;t deliver to your area yet. We&apos;re
+                        expanding soon — check back later.
+                      </p>
+                    ) : null}
+
                     {!zoneLoading &&
+                    zoneInfo.zoneError !== "NO_DELIVERY_ZONE" &&
                     !zoneInfo.deliveryZone &&
                     !zoneInfo.usingFallbackAddress &&
                     profile?.postal_code ? (
@@ -1723,6 +1802,12 @@ function CheckoutContent() {
                             />
                           </div>
                         </div>
+                        {selectedPallet.current_pickup_producer?.name ? (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Collected from:{" "}
+                            {selectedPallet.current_pickup_producer.name}
+                          </p>
+                        ) : null}
                       </div>
                     ) : null}
                   </div>
@@ -1767,17 +1852,6 @@ function CheckoutContent() {
 
                     {hasProducerItems && selectedPallet ? (
                       <>
-                        {paymentMode === "setup_intent" ? (
-                          <p className="mb-3 text-sm text-muted-foreground">
-                            Your card will be saved and charged only when the
-                            pallet is full.
-                          </p>
-                        ) : null}
-                        {paymentMode === "payment_intent" ? (
-                          <p className="mb-3 text-sm text-muted-foreground">
-                            Your bottles will ship within 7-14 days.
-                          </p>
-                        ) : null}
                         <StripePaymentSection
                           palletId={selectedPallet.id}
                           cartTotalSek={finalAmountAfterVoucher}

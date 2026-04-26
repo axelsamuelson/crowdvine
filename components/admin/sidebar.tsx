@@ -28,6 +28,7 @@ import {
   UserCheck,
   Waypoints,
   Flag,
+  Globe2,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -84,6 +85,7 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: "Pallets", href: "/admin/pallets", icon: Package },
       { name: "Zones", href: "/admin/zones", icon: MapPin },
+      { name: "Shipping regions", href: "/admin/shipping-regions", icon: Globe2 },
     ],
   },
   {

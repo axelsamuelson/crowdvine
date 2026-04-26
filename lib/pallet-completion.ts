@@ -1,4 +1,12 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { sumReservedBottlesOnPallet } from "@/lib/pallet-fill-count";
+
+export {
+  PALLET_FILL_STATUSES,
+  ORDER_RESERVATION_STATUSES_FOR_PALLET_FILL,
+  getPalletFillData,
+  sumReservedBottlesOnPallet,
+} from "@/lib/pallet-fill-count";
 
 /**
  * Check if a pallet has reached completion (100% capacity)
@@ -12,7 +20,6 @@ export async function checkPalletCompletion(
   const supabase = getSupabaseAdmin();
 
   try {
-    // Get pallet capacity and current status
     const { data: pallet, error: palletError } = await supabase
       .from("pallets")
       .select("bottle_capacity, status, is_complete")
@@ -32,47 +39,19 @@ export async function checkPalletCompletion(
       return false;
     }
 
-    // Skip if already complete
     if (pallet.is_complete) {
       console.log(`✅ [Pallet Completion] Pallet ${palletId} already complete`);
       return false;
     }
 
-    // Count reserved bottles for this pallet
-    // Note: quantity is stored in order_reservation_items, not order_reservations
-    const { data: reservations, error: reservationsError } = await supabase
-      .from("order_reservations")
-      .select("id, status")
-      .eq("pallet_id", palletId)
-      .in("status", ["placed", "approved", "partly_approved", "pending_payment", "confirmed"]); // Include all active statuses
-
-    if (reservationsError) {
-      console.error(
-        `❌ [Pallet Completion] Error fetching reservations for pallet ${palletId}:`,
-        reservationsError,
-      );
-      return false;
-    }
-
-    // Count bottles from order_reservation_items for each reservation
-    let totalBottles = 0;
-    for (const reservation of reservations || []) {
-      const { data: items } = await supabase
-        .from("order_reservation_items")
-        .select("quantity")
-        .eq("reservation_id", reservation.id);
-
-      totalBottles +=
-        items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
-    }
-    const capacity = pallet.bottle_capacity;
+    const capacity = Number(pallet.bottle_capacity) || 0;
+    const totalBottles = await sumReservedBottlesOnPallet(palletId);
     const percentage = capacity > 0 ? (totalBottles / capacity) * 100 : 0;
 
     console.log(
       `📊 [Pallet Completion] Pallet ${palletId}: ${totalBottles}/${capacity} bottles (${percentage.toFixed(1)}%)`,
     );
 
-    // Check if pallet is full or over capacity
     if (totalBottles >= capacity) {
       console.log(
         `🎉 [Pallet Completion] Pallet ${palletId} is complete! Triggering completion...`,
@@ -88,7 +67,7 @@ export async function checkPalletCompletion(
           `❌ [Pallet Completion] Failed to complete pallet ${palletId}:`,
           error,
         );
-        throw error; // Re-throw to see error in API response
+        throw error;
       }
     }
 
@@ -103,20 +82,16 @@ export async function checkPalletCompletion(
   }
 }
 
-/**
- * Mark pallet as complete and trigger payment notifications
- */
 async function completePallet(palletId: string): Promise<void> {
   const supabase = getSupabaseAdmin();
 
   try {
-    const paymentDeadline = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+    const paymentDeadline = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     console.log(
       `📧 [Pallet Completion] Step 1: Updating reservations for pallet ${palletId}`,
     );
 
-    // FIRST: Update all pending reservations to have payment deadline and set status to pending_payment
     const { error: reservationUpdateError } = await supabase
       .from("order_reservations")
       .update({
@@ -132,28 +107,16 @@ async function completePallet(palletId: string): Promise<void> {
         reservationUpdateError,
       );
       throw reservationUpdateError;
-    } else {
-      console.log(
-        `✅ [Pallet Completion] Updated payment deadline for all pending reservations in pallet ${palletId}`,
-      );
     }
-
     console.log(
-      `📧 [Pallet Completion] Step 2: Triggering payment notifications for pallet ${palletId}`,
+      `✅ [Pallet Completion] Updated payment deadline for all pending reservations in pallet ${palletId}`,
     );
 
-    // TODO: In Fas 2.3, replace this with auto-charge logic via saved payment methods
-    // for orders with payment_mode = 'setup_intent'. For payment_intent orders,
-    // payment is already complete.
-    console.log(
-      `ℹ️ [Pallet Completion] Skipping payment notifications (deprecated payment link flow) for pallet ${palletId}`,
-    );
+    // Charge is no longer triggered by pallet completion.
+    // Payment is triggered when admin marks the pallet as
+    // 'shipping_ordered' via POST /api/admin/pallets/[id]/order-shipping
+    // See lib/reservation-auto-charge.ts for the charge logic.
 
-    console.log(
-      `✅ [Pallet Completion] Step 3: All payment notifications sent successfully`,
-    );
-
-    // THIRD: Only mark pallet as complete AFTER everything else succeeds
     const { error: updateError } = await supabase
       .from("pallets")
       .update({
@@ -180,38 +143,14 @@ async function completePallet(palletId: string): Promise<void> {
       `❌ [Pallet Completion] Error completing pallet ${palletId}:`,
       error,
     );
-    // Don't mark as complete if there was an error
     throw error;
   }
 }
 
-/**
- * Trigger payment notifications for all pending reservations in a completed pallet
- */
-async function triggerPaymentNotifications(palletId: string): Promise<void> {
-  try {
-    // Import here to avoid circular dependencies
-    const { triggerPaymentNotifications } = await import(
-      "@/lib/email/pallet-complete"
-    );
-    await triggerPaymentNotifications(palletId);
-  } catch (error) {
-    console.error(
-      `❌ [Pallet Completion] Error triggering payment notifications for pallet ${palletId}:`,
-      error,
-    );
-    throw error;
-  }
-}
-
-/**
- * Get pallet completion status and statistics
- */
 export async function getPalletStatus(palletId: string) {
   const supabase = getSupabaseAdmin();
 
   try {
-    // Get pallet info
     const { data: pallet, error: palletError } = await supabase
       .from("pallets")
       .select("*")
@@ -222,7 +161,6 @@ export async function getPalletStatus(palletId: string) {
       throw new Error(`Pallet ${palletId} not found`);
     }
 
-    // Get reservation counts by status
     const { data: reservations, error: reservationsError } = await supabase
       .from("order_reservations")
       .select("status, quantity")
@@ -268,45 +206,4 @@ export async function getPalletStatus(palletId: string) {
     );
     throw error;
   }
-}
-
-/** Same status filter as checkPalletCompletion when counting bottles toward fill. */
-export const ORDER_RESERVATION_STATUSES_FOR_PALLET_FILL = [
-  "placed",
-  "approved",
-  "partly_approved",
-  "pending_payment",
-  "confirmed",
-] as const;
-
-/**
- * Sum bottle quantities from order_reservation_items for reservations on this pallet
- * (same pattern as checkPalletCompletion).
- */
-export async function sumReservedBottlesOnPallet(
-  palletId: string,
-): Promise<number> {
-  const supabase = getSupabaseAdmin();
-
-  const { data: reservations, error: reservationsError } = await supabase
-    .from("order_reservations")
-    .select("id")
-    .eq("pallet_id", palletId)
-    .in("status", [...ORDER_RESERVATION_STATUSES_FOR_PALLET_FILL]);
-
-  if (reservationsError || !reservations?.length) {
-    return 0;
-  }
-
-  let totalBottles = 0;
-  for (const reservation of reservations) {
-    const { data: items } = await supabase
-      .from("order_reservation_items")
-      .select("quantity")
-      .eq("reservation_id", reservation.id);
-
-    totalBottles +=
-      items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
-  }
-  return totalBottles;
 }

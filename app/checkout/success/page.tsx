@@ -73,44 +73,91 @@ function CheckoutConfirmationContent() {
   );
   const [loading, setLoading] = useState(true);
 
-  const reservationId = searchParams.get("reservationId");
+  const reservationIdParam = searchParams.get("reservationId");
+  const checkoutGroupIdParam = searchParams.get("checkoutGroupId");
   const message = searchParams.get("message");
+  const [resolvedReservationId, setResolvedReservationId] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     if (message) {
       toast.success(decodeURIComponent(message));
     }
 
-    if (reservationId) {
-      fetchReservationDetails();
-    } else {
+    let cancelled = false;
+
+    async function resolveAndFetch() {
+      if (reservationIdParam) {
+        setResolvedReservationId(reservationIdParam);
+        return;
+      }
+      if (checkoutGroupIdParam) {
+        try {
+          const res = await fetch(
+            `/api/user/reservations/by-checkout-group/${encodeURIComponent(checkoutGroupIdParam)}`,
+          );
+          if (!res.ok) {
+            toast.error("Failed to resolve reservation");
+            setLoading(false);
+            return;
+          }
+          const data = (await res.json()) as { reservationId?: string };
+          if (!cancelled && data.reservationId) {
+            setResolvedReservationId(data.reservationId);
+          } else if (!cancelled) {
+            toast.error("Reservation not found");
+            setLoading(false);
+          }
+        } catch {
+          if (!cancelled) {
+            toast.error("Failed to resolve reservation");
+            setLoading(false);
+          }
+        }
+        return;
+      }
       setLoading(false);
     }
+
+    void resolveAndFetch();
 
     // Clear cart cache when success page loads
     localStorage.removeItem("cart-cache");
     localStorage.removeItem("cart-cache-time");
-  }, [reservationId, message]);
 
-  const fetchReservationDetails = async () => {
-    try {
-      const response = await fetch(`/api/user/reservations/${reservationId}`);
-      if (response.ok) {
-        const data = await response.json();
-        setReservation(data);
+    return () => {
+      cancelled = true;
+    };
+  }, [reservationIdParam, checkoutGroupIdParam, message]);
 
-        // Send order confirmation email
-        await sendOrderConfirmationEmail(data);
-      } else {
+  useEffect(() => {
+    if (!resolvedReservationId) return;
+
+    const fetchReservationDetails = async () => {
+      try {
+        const response = await fetch(
+          `/api/user/reservations/${resolvedReservationId}`,
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setReservation(data);
+
+          // Send order confirmation email
+          await sendOrderConfirmationEmail(data);
+        } else {
+          toast.error("Failed to fetch reservation details");
+        }
+      } catch (error) {
+        console.error("Error fetching reservation:", error);
         toast.error("Failed to fetch reservation details");
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Error fetching reservation:", error);
-      toast.error("Failed to fetch reservation details");
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    void fetchReservationDetails();
+  }, [resolvedReservationId]);
 
   const sendOrderConfirmationEmail = async (
     reservationData: ReservationDetails,

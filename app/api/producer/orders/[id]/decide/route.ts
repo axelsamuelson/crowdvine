@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentUser } from "@/lib/auth";
+import {
+  cleanupEmptyPalletsAfterReservationChange,
+  releaseBookingsForReservationPallet,
+  updatePickupProducerForPallet,
+} from "@/lib/pallet-auto-management";
 
 type ItemDecision = {
   orderItemId: string;
@@ -37,7 +42,9 @@ export async function POST(
 
     const { data: reservation, error: reservationError } = await sb
       .from("order_reservations")
-      .select("id, producer_id, status")
+      .select(
+        "id, producer_id, status, pallet_id, delivery_zone_id, shipping_region_id",
+      )
       .eq("id", id)
       .maybeSingle();
 
@@ -88,6 +95,8 @@ export async function POST(
     }
 
     const now = new Date().toISOString();
+    const originalPalletId =
+      (reservation.pallet_id as string | null | undefined) ?? null;
 
     // Apply updates per item
     for (const d of decisions) {
@@ -142,6 +151,21 @@ export async function POST(
       else nextStatus = "partly_approved";
     }
 
+    const cleanupSnapshot =
+      nextStatus === "declined"
+        ? {
+            pallet_id: (reservation.pallet_id as string | null) ?? null,
+            delivery_zone_id:
+              (reservation.delivery_zone_id as string | null) ?? null,
+            shipping_region_id:
+              (reservation.shipping_region_id as string | null) ?? null,
+          }
+        : null;
+
+    if (cleanupSnapshot?.pallet_id) {
+      await releaseBookingsForReservationPallet(id, cleanupSnapshot.pallet_id);
+    }
+
     const { data: updatedReservation, error: resUpdErr } = await sb
       .from("order_reservations")
       .update({
@@ -150,6 +174,7 @@ export async function POST(
         producer_approved_by: nextStatus === "approved" || nextStatus === "partly_approved" ? user.id : null,
         producer_rejected_at: nextStatus === "declined" ? now : null,
         producer_rejected_by: nextStatus === "declined" ? user.id : null,
+        ...(nextStatus === "declined" ? { pallet_id: null } : {}),
       })
       .eq("id", id)
       .select("id, status")
@@ -159,15 +184,22 @@ export async function POST(
       return NextResponse.json({ error: resUpdErr.message }, { status: 500 });
     }
 
+    if (cleanupSnapshot) {
+      await cleanupEmptyPalletsAfterReservationChange(cleanupSnapshot);
+    }
+
+    if (originalPalletId) {
+      await updatePickupProducerForPallet(originalPalletId);
+    }
+
     return NextResponse.json({
       success: true,
       order: updatedReservation,
     });
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error?.message || "Unknown error" },
-      { status: 500 },
-    );
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 

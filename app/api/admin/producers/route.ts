@@ -58,6 +58,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const shippingRegionId =
+      typeof body.shipping_region_id === "string" &&
+      body.shipping_region_id.trim()
+        ? body.shipping_region_id.trim()
+        : null;
+
     const { data: producer, error } = await supabase
       .from("producers")
       .insert({
@@ -72,6 +78,8 @@ export async function POST(request: NextRequest) {
         short_description: body.short_description || "",
         logo_image_path: body.logo_image_path || "",
         pickup_zone_id: body.pickup_zone_id || null,
+        shipping_region_id: shippingRegionId,
+        is_pallet_zone: body.is_pallet_zone === true,
         owner_id: null, // Set by admin
         status: "active",
         is_live: body.is_live !== false,

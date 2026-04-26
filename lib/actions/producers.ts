@@ -17,6 +17,10 @@ export interface Producer {
   short_description: string;
   logo_image_path: string;
   pickup_zone_id?: string;
+  /** Optional pallet automation grouping (Phase 2.1). */
+  shipping_region_id?: string | null;
+  /** When true, producer can physically handle a full pallet (pickup point candidate). */
+  is_pallet_zone?: boolean;
   /** When true, producer and their wines appear on the website. When false, hidden from shop/collections/search. */
   is_live?: boolean;
   /** When true, PACT Points redeem at 2× SEK value against this producer's wines at checkout. */
@@ -35,9 +39,13 @@ export interface CreateProducerData {
   short_description: string;
   logo_image_path: string;
   pickup_zone_id?: string;
+  shipping_region_id?: string | null;
+  is_pallet_zone?: boolean;
   is_live?: boolean;
   boost_active?: boolean;
 }
+
+export type UpdateProducerData = Partial<CreateProducerData>;
 
 export async function getProducers() {
   // Use admin client for read operations in admin
@@ -79,6 +87,11 @@ export async function createProducer(data: CreateProducerData) {
     .from("producers")
     .insert({
       ...data,
+      pickup_zone_id: data.pickup_zone_id || null,
+      shipping_region_id: data.shipping_region_id?.trim()
+        ? data.shipping_region_id.trim()
+        : null,
+      is_pallet_zone: data.is_pallet_zone === true,
       owner_id: user?.id || null,
       status: "active", // Set default status
       is_live: data.is_live ?? true,
@@ -98,10 +111,7 @@ export async function createProducer(data: CreateProducerData) {
   return producer;
 }
 
-export async function updateProducer(
-  id: string,
-  data: Partial<CreateProducerData>,
-) {
+export async function updateProducer(id: string, data: UpdateProducerData) {
   // Use admin client for admin operations
   const sb = getSupabaseAdmin();
 

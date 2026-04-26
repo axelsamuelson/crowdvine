@@ -4,6 +4,8 @@ import {
   resolvePalletEarlyBirdContext,
   resolveWineIdForProductHandle,
 } from "@/lib/pallet-early-bird-context";
+import { deliveryEstimateLabelFromFillPercent } from "@/lib/pallet-delivery-estimate-label";
+import { computePalletFillPercentForDisplay } from "@/lib/pallet-fill-count";
 
 /** Pallzon = `resolveDeliveryAddressForUser` → `profiles.postal_code`, `city`, `country` (samma som `/profile/edit`). */
 const SETTINGS_URL = "/profile/edit" as const;
@@ -11,16 +13,6 @@ const SETTINGS_URL = "/profile/edit" as const;
 const MEANINGFUL_FILL_RATE_BOTTLES_PER_HOUR = 0.25;
 const MIN_PALLET_AGE_HOURS_FOR_ETA = 2;
 const FILL_PERCENT_FOR_ETA = 40;
-
-function computeFillPercent(
-  bottlesFilled: number,
-  bottleCapacity: number,
-): number {
-  if (bottleCapacity <= 0) return 0;
-  return (
-    Math.round(Math.min(100, (bottlesFilled / bottleCapacity) * 1000)) / 10
-  );
-}
 
 function computeEstimatedDays(
   bottlesFilled: number,
@@ -58,6 +50,7 @@ function emptyOk(body: {
     fillPercent: 0,
     discountTier: 0 as const,
     estimatedDays: null,
+    estimatedDelivery: deliveryEstimateLabelFromFillPercent(0),
     userZoneName: body.userZoneName,
     settingsUrl: SETTINGS_URL,
   });
@@ -83,7 +76,12 @@ export async function GET(request: NextRequest) {
 
     const bottlesFilled = ctx.bottlesFilled;
     const bottleCapacity = ctx.bottleCapacity;
-    const fillPercent = computeFillPercent(bottlesFilled, bottleCapacity);
+    const fillPercent = computePalletFillPercentForDisplay(
+      bottlesFilled,
+      bottleCapacity,
+    );
+    const estimatedDelivery =
+      deliveryEstimateLabelFromFillPercent(fillPercent);
 
     const discountTier = ctx.discountTier;
     const estimatedDays = computeEstimatedDays(
@@ -101,6 +99,7 @@ export async function GET(request: NextRequest) {
       fillPercent,
       discountTier,
       estimatedDays,
+      estimatedDelivery,
       userZoneName,
       settingsUrl: SETTINGS_URL,
     });

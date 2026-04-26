@@ -3,6 +3,12 @@ import { CartService } from "@/src/lib/cart-service";
 import { supabaseServer, getCurrentUser } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { determineZones } from "@/lib/zone-matching";
+import {
+  findOrCreatePalletForRegion,
+  resolveShippingRegionForCart,
+  updatePickupProducerForPallet,
+  type CartLine,
+} from "@/lib/pallet-auto-management";
 import { isB2BHost } from "@/lib/b2b-site";
 import { headers } from "next/headers";
 import {
@@ -24,6 +30,7 @@ import {
   calculateBoostAwareMaxRedemption,
 } from "@/lib/membership/pact-points-redemption-math";
 import type { CartItem } from "@/lib/shopify/types";
+import type { CartItem as SixBottleCartItem } from "@/lib/checkout-validation";
 import {
   applyFoundingMemberDoubleIP,
   checkAndGrantFoundingMember,
@@ -36,6 +43,53 @@ import { checkAndMintMilestoneVouchers } from "@/lib/membership/milestone-vouche
 import { tryActivateReferralOnFirstOrder } from "@/lib/referral/activate-referral-on-first-order";
 import { stripe } from "@/lib/stripe";
 import { calculateCartShippingCost } from "@/lib/shipping-calculations";
+
+type ProducerGroup = {
+  producerId: string;
+  lines: CartItem[];
+  subtotalSek: number;
+};
+
+function sumLineAmountsSek(lines: readonly CartItem[]): number {
+  return lines.reduce((sum, line) => {
+    const v = parseFloat(String(line.cost.totalAmount.amount));
+    return sum + (Number.isFinite(v) ? v : 0);
+  }, 0);
+}
+
+/**
+ * Allocate a discount pool in öre across producer groups.
+ * Weight = each group's merchandise subtotal; denominator = sum(subtotals) + shipping (SEK → öre).
+ * Each share is floored; remainder öre goes to the group with the largest subtotal (ties → lowest index).
+ */
+function splitDiscountPoolOreByCheckoutWeights(
+  subtotalsSek: readonly number[],
+  shippingSek: number,
+  poolOre: number,
+): number[] {
+  const n = subtotalsSek.length;
+  if (n === 0) return [];
+  const grossOre = subtotalsSek.map((s) =>
+    Math.max(0, Math.round((Number.isFinite(s) ? s : 0) * 100)),
+  );
+  const sumSub = subtotalsSek.reduce(
+    (a, b) => a + (Number.isFinite(b) ? b : 0),
+    0,
+  );
+  const ship = Number.isFinite(shippingSek) ? shippingSek : 0;
+  const checkoutOre = Math.round((sumSub + ship) * 100);
+  if (poolOre <= 0 || checkoutOre <= 0) return grossOre.map(() => 0);
+
+  const floors = grossOre.map((g) => Math.floor((poolOre * g) / checkoutOre));
+  const remainder = poolOre - floors.reduce((a, b) => a + b, 0);
+  let idxMax = 0;
+  for (let i = 1; i < n; i++) {
+    if (grossOre[i] > grossOre[idxMax]) idxMax = i;
+  }
+  const out = [...floors];
+  out[idxMax] += remainder;
+  return out;
+}
 
 export async function POST(request: Request) {
   let voucherApplied = false;
@@ -153,7 +207,9 @@ export async function POST(request: Request) {
     // SERVER-SIDE VALIDATION: 6-bottle rule
     console.log("🔍 [Checkout API] Validating 6-bottle rule...");
     const { validateSixBottleRule } = await import("@/lib/checkout-validation");
-    const validation = await validateSixBottleRule(cart.lines as any);
+    const validation = await validateSixBottleRule(
+      cart.lines as unknown as SixBottleCartItem[],
+    );
 
     if (!validation.isValid) {
       console.error(
@@ -193,16 +249,15 @@ export async function POST(request: Request) {
     // Get payment method type (only for warehouse orders on B2B sites)
     const paymentMethodType = isB2BSite ? ((body.paymentMethodType as "card" | "invoice") || "card") : "card";
 
-    // Producer approval flow: this reservation must belong to a single producer.
-    // (Only required for producer orders, not warehouse orders)
+    // Producer grouping: B2B keeps single-producer validation; B2C can split checkout by producer.
     let producerIdForReservation: string | null = null;
-    
+    const producerGroupsForB2C: ProducerGroup[] = [];
+    const wineProducerByWineId = new Map<string, string>();
+
     if (hasProducerItems) {
       const producerWineIds = Array.from(
         new Set(
-          producerItems
-            .map((l: any) => String(l?.merchandise?.id))
-            .filter(Boolean),
+          producerItems.map((l) => String(l?.merchandise?.id)).filter(Boolean),
         ),
       );
 
@@ -219,22 +274,58 @@ export async function POST(request: Request) {
         );
       }
 
-      const uniqueProducerIds = Array.from(
-        new Set((cartWines || []).map((w: any) => w?.producer_id).filter(Boolean)),
-      );
-
-      if (uniqueProducerIds.length !== 1) {
-        return NextResponse.json(
-          {
-            error:
-              "Producer orders must contain wines from a single producer (producer approval required).",
-          },
-          { status: 400 },
-        );
+      for (const w of cartWines || []) {
+        const wid = w?.id != null ? String(w.id) : "";
+        const pid = w?.producer_id != null ? String(w.producer_id) : "";
+        if (wid && pid) wineProducerByWineId.set(wid, pid);
       }
 
-      producerIdForReservation = uniqueProducerIds[0] as string;
+      const uniqueProducerIds = Array.from(new Set(wineProducerByWineId.values()));
+
+      if (isB2BSite) {
+        if (uniqueProducerIds.length !== 1) {
+          return NextResponse.json(
+            {
+              error:
+                "Producer orders must contain wines from a single producer (producer approval required).",
+            },
+            { status: 400 },
+          );
+        }
+        producerIdForReservation = uniqueProducerIds[0] ?? null;
+      } else {
+        if (uniqueProducerIds.length === 0) {
+          return NextResponse.json(
+            { error: "Cart wines must be linked to a producer" },
+            { status: 400 },
+          );
+        }
+        const sortedProducerIds = [...uniqueProducerIds].sort((a, b) =>
+          a.localeCompare(b),
+        );
+        for (const producerId of sortedProducerIds) {
+          const lines = producerItems.filter(
+            (line) => wineProducerByWineId.get(String(line.merchandise.id)) === producerId,
+          );
+          if (lines.length === 0) continue;
+          producerGroupsForB2C.push({
+            producerId,
+            lines,
+            subtotalSek: sumLineAmountsSek(lines),
+          });
+        }
+        if (producerGroupsForB2C.length === 0) {
+          return NextResponse.json(
+            { error: "Failed to group cart by producer" },
+            { status: 400 },
+          );
+        }
+        producerIdForReservation = producerGroupsForB2C[0]?.producerId ?? null;
+      }
     }
+
+    const b2cProducerCheckout =
+      !isB2BSite && hasProducerItems && producerGroupsForB2C.length > 0;
 
     // Get current user if authenticated
     const currentUser = await getCurrentUser();
@@ -284,51 +375,48 @@ export async function POST(request: Request) {
       console.log("Using selected delivery zone:", finalDeliveryZoneId);
     }
 
-    // Use selected pallet if provided, otherwise find matching pallet
-    let palletId = null;
+    // Pallet: shipping-region automation first, then legacy zone-pair match (determineZones unchanged).
+    let palletId: string | null = null;
+    let reservationShippingRegionId: string | null = null;
+
     if (body.selectedPalletId) {
       palletId = body.selectedPalletId;
       console.log("Using selected pallet:", palletId);
-    } else if (zones.pickupZoneId && finalDeliveryZoneId) {
-      const { data: matchingPallets, error: palletsError } = await sb
-        .from("pallets")
-        .select("id")
-        .eq("pickup_zone_id", zones.pickupZoneId)
-        .eq("delivery_zone_id", finalDeliveryZoneId)
-        .limit(1);
+    } else {
+      const regionResult = await resolveShippingRegionForCart(
+        cart.lines as CartLine[],
+      );
+      if (
+        regionResult.shippingRegionId &&
+        finalDeliveryZoneId &&
+        !regionResult.hasMultipleRegions
+      ) {
+        const { palletId: regionPalletId, created } =
+          await findOrCreatePalletForRegion(
+            regionResult.shippingRegionId,
+            finalDeliveryZoneId,
+          );
+        palletId = regionPalletId;
+        reservationShippingRegionId = regionResult.shippingRegionId;
+        console.log(
+          "Using shipping-region pallet:",
+          palletId,
+          created ? "(created)" : "(existing)",
+        );
+      } else if (zones.pickupZoneId && finalDeliveryZoneId) {
+        const { data: matchingPallets, error: palletsError } = await sbAdmin
+          .from("pallets")
+          .select("id")
+          .eq("pickup_zone_id", zones.pickupZoneId)
+          .eq("delivery_zone_id", finalDeliveryZoneId)
+          .limit(1);
 
-      if (!palletsError && matchingPallets && matchingPallets.length > 0) {
-        palletId = matchingPallets[0].id;
-        console.log("Found matching pallet:", palletId);
+        if (!palletsError && matchingPallets && matchingPallets.length > 0) {
+          palletId = matchingPallets[0].id as string;
+          console.log("Found matching zone-pair pallet:", palletId);
+        }
       }
     }
-
-    // Create order reservation (now with pallet_id and zones)
-    console.log("Creating order reservation");
-    const { data: reservation, error: reservationError } = await sbAdmin
-      .from("order_reservations")
-      .insert({
-        user_id: currentUser?.id || null,
-        cart_id: cart.id,
-        address_id: savedAddress.id,
-        pickup_zone_id: zones.pickupZoneId,
-        delivery_zone_id: finalDeliveryZoneId,
-        pallet_id: palletId,
-        producer_id: producerIdForReservation,
-        status: "pending_producer_approval",
-      })
-      .select()
-      .single();
-
-    if (reservationError) {
-      console.error("Failed to create reservation:", reservationError);
-      return NextResponse.json(
-        { error: "Failed to create reservation" },
-        { status: 500 },
-      );
-    }
-
-    console.log("Reservation created:", reservation);
 
     // Extract discount inputs early so we can validate Stripe intent amounts server-side.
     const voucherCodeRaw =
@@ -352,6 +440,8 @@ export async function POST(request: Request) {
           : 0;
 
     // If voucher_code is present, validate/apply it before amount validation.
+    // TODO: extend voucher ledger / use_discount_code to attribute redemption across all
+    // order_reservations in checkout_group_id (today RPC is cart-total only; no reservation id).
     if (voucher_code && user?.id) {
       try {
         // List-price subtotal (pre member / early-bird) for voucher eligibility — matches milestone mint comment.
@@ -547,6 +637,8 @@ export async function POST(request: Request) {
 
     const withinTolerance = (a: number, b: number) => Math.abs(a - b) <= 1;
 
+    let stripePaymentMethodId: string | null = null;
+
     if (intentType === "setup_intent") {
       const setupIntent = await stripe.setupIntents.retrieve(intentId);
       console.log("[Checkout API] Retrieved SetupIntent:", {
@@ -598,24 +690,7 @@ export async function POST(request: Request) {
           { status: 400 },
         );
       }
-
-      const { error: upErr } = await sbAdmin
-        .from("order_reservations")
-        .update({
-          setup_intent_id: intentId,
-          payment_method_id: paymentMethodId,
-          payment_mode: "setup_intent",
-          payment_status: "pending",
-        })
-        .eq("id", reservation.id);
-
-      if (upErr) {
-        console.error("[Checkout API] Failed to update reservation payment fields:", upErr);
-        return NextResponse.json(
-          { error: "Failed to attach Stripe intent" },
-          { status: 500 },
-        );
-      }
+      stripePaymentMethodId = paymentMethodId;
     } else {
       const paymentIntent = await stripe.paymentIntents.retrieve(intentId);
       console.log("[Checkout API] Retrieved PaymentIntent:", {
@@ -658,54 +733,278 @@ export async function POST(request: Request) {
           { status: 400 },
         );
       }
+      stripePaymentMethodId = paymentMethodId;
+    }
 
-      const { error: upErr } = await sbAdmin
+    const checkoutGroupId = b2cProducerCheckout ? crypto.randomUUID() : null;
+
+    const rollbackCheckoutGroup = async () => {
+      if (!checkoutGroupId) return;
+      const { error: delErr } = await sbAdmin
         .from("order_reservations")
-        .update({
-          payment_intent_id: intentId,
-          payment_method_id: paymentMethodId,
-          payment_mode: "payment_intent",
-          payment_status: "paid",
-        })
-        .eq("id", reservation.id);
+        .delete()
+        .eq("checkout_group_id", checkoutGroupId);
+      if (delErr) {
+        console.error("[CHECKOUT] Failed to roll back checkout group:", delErr);
+      }
+    };
 
-      if (upErr) {
-        console.error("[Checkout API] Failed to update reservation payment fields:", upErr);
+    type CreatedReservationRow = {
+      id: string;
+      producerId: string;
+      palletId: string | null;
+      amountSek: number;
+    };
+
+    let reservation: { id: string };
+    let createdReservations: CreatedReservationRow[] = [];
+    let reservationIdsForPayment: string[] = [];
+
+    if (b2cProducerCheckout) {
+      const voucherPoolOre = Math.round(Number(voucherDiscountCents) || 0);
+      const pactPoolOre = Math.round(pactPointsSekOff * 100);
+      const subtotals = producerGroupsForB2C.map((g) => g.subtotalSek);
+      const voucherOrePerGroup = splitDiscountPoolOreByCheckoutWeights(
+        subtotals,
+        shippingSek,
+        voucherPoolOre,
+      );
+      const pactOrePerGroup = splitDiscountPoolOreByCheckoutWeights(
+        subtotals,
+        shippingSek,
+        pactPoolOre,
+      );
+
+      for (let gi = 0; gi < producerGroupsForB2C.length; gi++) {
+        const group = producerGroupsForB2C[gi]!;
+        let groupPalletId: string | null = null;
+        let groupShippingRegionId: string | null = null;
+
+        if (body.selectedPalletId && typeof body.selectedPalletId === "string") {
+          groupPalletId = body.selectedPalletId;
+        } else {
+          const regionResult = await resolveShippingRegionForCart(
+            group.lines as CartLine[],
+          );
+          if (
+            regionResult.shippingRegionId &&
+            finalDeliveryZoneId &&
+            !regionResult.hasMultipleRegions
+          ) {
+            const { palletId: regionPalletId } = await findOrCreatePalletForRegion(
+              regionResult.shippingRegionId,
+              finalDeliveryZoneId,
+            );
+            groupPalletId = regionPalletId;
+            groupShippingRegionId = regionResult.shippingRegionId;
+          } else {
+            groupPalletId = palletId;
+            groupShippingRegionId = reservationShippingRegionId;
+          }
+        }
+
+        const groupVoucherSek = (voucherOrePerGroup[gi] ?? 0) / 100;
+        const groupPactSek = (pactOrePerGroup[gi] ?? 0) / 100;
+        const amountSek = Math.max(
+          0,
+          group.subtotalSek - groupVoucherSek - groupPactSek,
+        );
+
+        const { data: row, error: insErr } = await sbAdmin
+          .from("order_reservations")
+          .insert({
+            user_id: currentUser?.id || null,
+            cart_id: cart.id,
+            address_id: savedAddress.id,
+            pickup_zone_id: zones.pickupZoneId,
+            delivery_zone_id: finalDeliveryZoneId,
+            pallet_id: groupPalletId,
+            shipping_region_id: groupShippingRegionId,
+            producer_id: group.producerId,
+            checkout_group_id: checkoutGroupId,
+            status: "pending_producer_approval",
+          })
+          .select("id")
+          .single();
+
+        if (insErr || !row?.id) {
+          console.error("[CHECKOUT] Reservation insert failed:", insErr);
+          await rollbackCheckoutGroup();
+          return NextResponse.json(
+            { error: "Failed to create reservation" },
+            { status: 500 },
+          );
+        }
+
+        const rid = String(row.id);
+        console.log(
+          `[CHECKOUT] Created reservation ${rid} for producer ${group.producerId} on pallet ${groupPalletId}`,
+        );
+
+        const itemRows = group.lines.map((line) => ({
+          reservation_id: rid,
+          item_id: line.merchandise.id,
+          quantity: line.quantity,
+          price_band: "market" as const,
+        }));
+        const { error: itemsInsErr } = await sb
+          .from("order_reservation_items")
+          .insert(itemRows);
+        if (itemsInsErr) {
+          console.error("[CHECKOUT] Reservation items failed:", itemsInsErr);
+          await rollbackCheckoutGroup();
+          return NextResponse.json(
+            { error: "Failed to create reservation items" },
+            { status: 500 },
+          );
+        }
+
+        if (groupPalletId) {
+          await updatePickupProducerForPallet(groupPalletId);
+        }
+
+        createdReservations.push({
+          id: rid,
+          producerId: group.producerId,
+          palletId: groupPalletId,
+          amountSek,
+        });
+        reservationIdsForPayment.push(rid);
+      }
+
+      reservation = { id: createdReservations[0]!.id };
+    } else {
+      console.log("Creating order reservation");
+      const { data: resRow, error: reservationError } = await sbAdmin
+        .from("order_reservations")
+        .insert({
+          user_id: currentUser?.id || null,
+          cart_id: cart.id,
+          address_id: savedAddress.id,
+          pickup_zone_id: zones.pickupZoneId,
+          delivery_zone_id: finalDeliveryZoneId,
+          pallet_id: palletId,
+          shipping_region_id: reservationShippingRegionId,
+          producer_id: producerIdForReservation,
+          status: "pending_producer_approval",
+        })
+        .select("id")
+        .single();
+
+      if (reservationError || !resRow?.id) {
+        console.error("Failed to create reservation:", reservationError);
         return NextResponse.json(
-          { error: "Failed to attach Stripe intent" },
+          { error: "Failed to create reservation" },
           { status: 500 },
         );
       }
+
+      reservation = { id: String(resRow.id) };
+      reservationIdsForPayment = [reservation.id];
+      console.log("Reservation created:", reservation);
     }
 
-    // Create reservation items (use all items, or filter by source if needed)
-    console.log("Creating reservation items");
-    const itemsToAdd = hasWarehouseItems && !hasProducerItems 
-      ? warehouseItems 
-      : hasProducerItems && !hasWarehouseItems
-        ? producerItems
-        : cart.lines; // Mixed order - add all items for now
-    
-    const reservationItems = itemsToAdd.map((line: any) => ({
-      reservation_id: reservation.id,
-      item_id: line.merchandise.id,
-      quantity: line.quantity,
-      price_band: "market",
-    }));
+    if (checkoutGroupId && stripe) {
+      try {
+        if (intentType === "setup_intent") {
+          const si = await stripe.setupIntents.retrieve(intentId);
+          await stripe.setupIntents.update(intentId, {
+            metadata: {
+              ...(si.metadata ?? {}),
+              checkout_group_id: checkoutGroupId,
+            },
+          });
+        } else {
+          const pi = await stripe.paymentIntents.retrieve(intentId);
+          await stripe.paymentIntents.update(intentId, {
+            metadata: {
+              ...(pi.metadata ?? {}),
+              checkout_group_id: checkoutGroupId,
+            },
+          });
+        }
+      } catch (metaErr) {
+        console.warn("[CHECKOUT] Stripe metadata update (checkout_group_id):", metaErr);
+      }
+    }
 
-    const { error: itemsError } = await sb
-      .from("order_reservation_items")
-      .insert(reservationItems);
+    const payUpdate =
+      intentType === "setup_intent"
+        ? {
+            setup_intent_id: intentId,
+            payment_method_id: stripePaymentMethodId,
+            payment_mode: "setup_intent" as const,
+            payment_status: "pending" as const,
+          }
+        : {
+            payment_intent_id: intentId,
+            payment_method_id: stripePaymentMethodId,
+            payment_mode: "payment_intent" as const,
+            payment_status: "paid" as const,
+          };
 
-    if (itemsError) {
-      console.error("Failed to create reservation items:", itemsError);
+    const { error: payAttachErr } = await sbAdmin
+      .from("order_reservations")
+      .update(payUpdate)
+      .in("id", reservationIdsForPayment);
+
+    if (payAttachErr) {
+      console.error("[Checkout API] Failed to update reservation payment fields:", payAttachErr);
+      if (b2cProducerCheckout) {
+        await rollbackCheckoutGroup();
+      } else {
+        await sbAdmin.from("order_reservations").delete().eq("id", reservation.id);
+      }
       return NextResponse.json(
-        { error: "Failed to create reservation items" },
+        { error: "Failed to attach Stripe intent" },
         { status: 500 },
       );
     }
 
-    console.log("Reservation items created");
+    const reservationIdForWineId = (wineId: string): string => {
+      if (!b2cProducerCheckout) return reservation.id;
+      const pid = wineProducerByWineId.get(wineId);
+      if (!pid) return reservation.id;
+      return (
+        createdReservations.find((c) => c.producerId === pid)?.id ?? reservation.id
+      );
+    };
+
+    // Create reservation items (use all items, or filter by source if needed)
+    if (!b2cProducerCheckout) {
+      console.log("Creating reservation items");
+      const itemsToAdd =
+        hasWarehouseItems && !hasProducerItems
+          ? warehouseItems
+          : hasProducerItems && !hasWarehouseItems
+            ? producerItems
+            : cart.lines;
+
+      const reservationItems = itemsToAdd.map((line) => ({
+        reservation_id: reservation.id,
+        item_id: line.merchandise.id,
+        quantity: line.quantity,
+        price_band: "market",
+      }));
+
+      const { error: itemsError } = await sb
+        .from("order_reservation_items")
+        .insert(reservationItems);
+
+      if (itemsError) {
+        console.error("Failed to create reservation items:", itemsError);
+        return NextResponse.json(
+          { error: "Failed to create reservation items" },
+          { status: 500 },
+        );
+      }
+
+      console.log("Reservation items created");
+
+      if (palletId) {
+        await updatePickupProducerForPallet(palletId);
+      }
+    }
 
     // Optional: persist share allocations (assign bottles to friends you follow)
     if (sharePayload && currentUser?.id) {
@@ -796,7 +1095,7 @@ export async function POST(request: Request) {
               const line = cartLineById.get(lineId);
               if (!line) continue;
               shareRows.push({
-                reservation_id: reservation.id,
+                reservation_id: reservationIdForWineId(line.wineId),
                 from_user_id: currentUser.id,
                 to_user_id: friendId,
                 wine_id: line.wineId,
@@ -833,17 +1132,28 @@ export async function POST(request: Request) {
       }
     }
 
-    // Convert cart items to bookings (reuse palletId from above)
+    // Convert cart items to bookings (per-line pallet when B2C split by producer)
     console.log("Converting cart items to bookings with pallet:", palletId);
 
-    const bookings = cart.lines.map((line) => ({
-      user_id: currentUser?.id || null,
-      item_id: line.merchandise.id,
-      quantity: line.quantity,
-      band: "market",
-      status: "reserved",
-      pallet_id: palletId,
-    }));
+    const bookings = cart.lines.map((line) => {
+      const wid = String(line.merchandise.id);
+      let assignPallet = palletId;
+      if (b2cProducerCheckout) {
+        const pid = wineProducerByWineId.get(wid);
+        const cr = pid
+          ? createdReservations.find((c) => c.producerId === pid)
+          : undefined;
+        if (cr?.palletId) assignPallet = cr.palletId;
+      }
+      return {
+        user_id: currentUser?.id || null,
+        item_id: line.merchandise.id,
+        quantity: line.quantity,
+        band: "market",
+        status: "reserved",
+        pallet_id: assignPallet,
+      };
+    });
 
     const { error: bookingsError } = await sb.from("bookings").insert(bookings);
 
@@ -890,6 +1200,7 @@ export async function POST(request: Request) {
           const totalPointsUsed = alloc.pointsBoosted + alloc.pointsNonBoosted;
           const totalSekDiscount = alloc.sekDiscount;
 
+          // related_order_id uses first reservation in checkout group; TODO: persist checkout_group_id on ledger rows.
           const redeemResult = await redeemPactPoints(
             currentUser.id,
             totalPointsUsed,
@@ -914,7 +1225,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // Update reservation with zone information
+    // Update reservation(s) with zone information
     if (zones.pickupZoneId || finalDeliveryZoneId) {
       const { error: updateError } = await sb
         .from("order_reservations")
@@ -922,7 +1233,7 @@ export async function POST(request: Request) {
           pickup_zone_id: zones.pickupZoneId,
           delivery_zone_id: finalDeliveryZoneId,
         })
-        .eq("id", reservation.id);
+        .in("id", reservationIdsForPayment);
 
       if (updateError) {
         console.error("Failed to update reservation with zones:", updateError);
@@ -931,36 +1242,36 @@ export async function POST(request: Request) {
       }
     }
 
-    // Create reservation tracking record
-    console.log("Creating reservation tracking record");
+    // Create reservation tracking record(s) — unique tracking_code per reservation
+    console.log("Creating reservation tracking record(s)");
 
-    // Generera tracking code
-    const { data: trackingCodeResult, error: trackingCodeError } = await sb.rpc(
-      "generate_tracking_code",
-    );
-    if (trackingCodeError) {
-      console.error("Failed to generate tracking code:", trackingCodeError);
-    }
+    for (const rid of reservationIdsForPayment) {
+      const { data: trackingCodeResult, error: trackingCodeError } = await sb.rpc(
+        "generate_tracking_code",
+      );
+      if (trackingCodeError) {
+        console.error("Failed to generate tracking code:", trackingCodeError);
+      }
 
-    const trackingCode =
-      trackingCodeResult?.data || Math.random().toString().slice(2, 10);
+      const trackingCode =
+        trackingCodeResult?.data || Math.random().toString().slice(2, 10);
 
-    const { data: trackingRecord, error: trackingError } = await sb
-      .from("reservation_tracking")
-      .insert({
-        reservation_id: reservation.id,
-        customer_email: address.email,
-        customer_name: address.fullName,
-        tracking_code: trackingCode,
-      })
-      .select()
-      .single();
+      const { data: trackingRecord, error: trackingError } = await sb
+        .from("reservation_tracking")
+        .insert({
+          reservation_id: rid,
+          customer_email: address.email,
+          customer_name: address.fullName,
+          tracking_code: trackingCode,
+        })
+        .select()
+        .single();
 
-    if (trackingError) {
-      console.error("Failed to create tracking record:", trackingError);
-      // Tracking failure should not break the checkout process
-    } else {
-      console.log("Tracking record created:", trackingRecord);
+      if (trackingError) {
+        console.error("Failed to create tracking record:", trackingError);
+      } else {
+        console.log("Tracking record created:", trackingRecord);
+      }
     }
 
     // Send order confirmation email immediately
@@ -1158,12 +1469,16 @@ export async function POST(request: Request) {
               "confirmed",
             ] as const;
 
-            const { count: priorOrdersRaw, error: priorOrdersError } = await sbAdmin
+            let priorOrdersQuery = sbAdmin
               .from("order_reservations")
               .select("id", { count: "exact", head: true })
               .eq("user_id", currentUser.id)
-              .in("status", [...qualifyingStatuses])
-              .neq("id", reservation.id);
+              .in("status", [...qualifyingStatuses]);
+            for (const rid of reservationIdsForPayment) {
+              priorOrdersQuery = priorOrdersQuery.neq("id", rid);
+            }
+            const { count: priorOrdersRaw, error: priorOrdersError } =
+              await priorOrdersQuery;
 
             if (priorOrdersError) {
               console.error("[PACT] inviter first-order check:", priorOrdersError);
@@ -1204,40 +1519,48 @@ export async function POST(request: Request) {
     console.log("Clearing cart");
     await CartService.clearCart();
 
-    // Check if pallet is now complete
+    // Check if pallet(s) are now complete
     console.log("Checking if pallet completion after new reservation");
+    const palletIdsToFinalize = new Set<string>();
+    if (b2cProducerCheckout) {
+      for (const c of createdReservations) {
+        if (c.palletId) palletIdsToFinalize.add(c.palletId);
+      }
+    } else if (palletId) {
+      palletIdsToFinalize.add(palletId);
+    }
+
     try {
       const { checkPalletCompletion } = await import("@/lib/pallet-completion");
-      const isComplete = await checkPalletCompletion(palletId);
-
-      if (isComplete) {
-        console.log(
-          `🎉 Pallet ${palletId} is now complete! Payment notifications triggered.`,
-        );
+      for (const pid of palletIdsToFinalize) {
+        const isComplete = await checkPalletCompletion(pid);
+        if (isComplete) {
+          console.log(
+            `🎉 Pallet ${pid} is now complete! Payment notifications triggered.`,
+          );
+        }
       }
     } catch (error) {
       console.error("Error checking pallet completion:", error);
-      // Don't fail the reservation if pallet completion check fails
     }
 
     // Auto status: once a pallet has at least one reservation, mark it as consolidating (unless already beyond).
     try {
-      if (palletId) {
+      for (const pid of palletIdsToFinalize) {
         const { data: palletRow } = await sbAdmin
           .from("pallets")
           .select("id, status, status_mode")
-          .eq("id", palletId)
+          .eq("id", pid)
           .maybeSingle();
-        const mode = (palletRow as any)?.status_mode || "auto";
-        const status = String((palletRow as any)?.status || "open").toLowerCase();
-        if (
-          mode === "auto" &&
-          (status === "open" || status === "")
-        ) {
+        const mode = (palletRow as { status_mode?: string } | null)?.status_mode || "auto";
+        const status = String(
+          (palletRow as { status?: string } | null)?.status || "open",
+        ).toLowerCase();
+        if (mode === "auto" && (status === "open" || status === "")) {
           await sbAdmin
             .from("pallets")
             .update({ status: "consolidating", updated_at: new Date().toISOString() })
-            .eq("id", palletId);
+            .eq("id", pid);
         }
       }
     } catch (e) {
@@ -1249,13 +1572,34 @@ export async function POST(request: Request) {
     // IMPORTANT:
     // Do NOT redirect from an API route. `fetch()` will follow a 307 as a POST to the new URL,
     // which can break (and in dev may surface as HTML error pages). Return JSON and let the client navigate.
-    const successUrl = `/checkout/success?success=true&reservationId=${reservation.id}&message=${encodeURIComponent(
+    const reservationsForResponse =
+      b2cProducerCheckout && createdReservations.length > 0
+        ? createdReservations
+        : [
+            {
+              id: reservation.id,
+              producerId: String(producerIdForReservation ?? ""),
+              palletId,
+              amountSek: Math.max(
+                0,
+                subtotalSek - voucherSekOff - pactPointsSekOff,
+              ),
+            },
+          ];
+
+    const checkoutGroupQuery = checkoutGroupId
+      ? `&checkoutGroupId=${encodeURIComponent(checkoutGroupId)}`
+      : "";
+    const successUrl = `/checkout/success?success=true&reservationId=${reservation.id}${checkoutGroupQuery}&message=${encodeURIComponent(
       "Reservation placed successfully",
     )}`;
 
     return NextResponse.json({
       success: true,
       reservationId: reservation.id,
+      checkoutGroupId: checkoutGroupId ?? undefined,
+      reservations: reservationsForResponse,
+      reservation: reservationsForResponse[0],
       redirectUrl: successUrl,
       voucherApplied,
       ...(voucherApplied ? { voucherDiscountCents } : {}),

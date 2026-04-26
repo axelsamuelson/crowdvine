@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
@@ -201,79 +201,107 @@ export function StripePaymentSection({
     string | null
   >(null);
   const [loading, setLoading] = useState(false);
+  const [retryNonce, setRetryNonce] = useState(0);
   const onIntentCreatedRef = useRef(onIntentCreated);
   onIntentCreatedRef.current = onIntentCreated;
 
-  const requestBody = useMemo(
-    () => ({
-      pallet_id: palletId,
-      cart_total_sek: cartTotalSek,
-      pact_points_redeem: pactPointsRedeem,
-    }),
-    [palletId, cartTotalSek, pactPointsRedeem],
-  );
-
-  const fetchIntent = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    setPaymentElementLoadError(null);
-    try {
-      const res = await fetch("/api/checkout/payment-intent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
-      });
-
-      const data: unknown = await res.json().catch(() => null);
-      if (!res.ok || !data || typeof data !== "object") {
-        const msg =
-          data && typeof data === "object" && "error" in data
-            ? String((data as { error?: unknown }).error ?? "Failed to create intent")
-            : "Failed to create payment intent";
-        throw new Error(msg);
-      }
-
-      const d = data as {
-        paymentMode?: unknown;
-        clientSecret?: unknown;
-        intentId?: unknown;
-        bottlesFilled?: unknown;
-      };
-
-      const mode =
-        d.paymentMode === "setup_intent" || d.paymentMode === "payment_intent"
-          ? d.paymentMode
-          : null;
-      const cs = typeof d.clientSecret === "string" ? d.clientSecret : null;
-      const id = typeof d.intentId === "string" ? d.intentId : null;
-      const filled = typeof d.bottlesFilled === "number" ? d.bottlesFilled : 0;
-
-      if (!mode || !cs || !id) {
-        throw new Error("Invalid payment intent response");
-      }
-
-      setPaymentMode(mode);
-      setClientSecret(cs);
-      setIntentId(id);
-      onIntentCreatedRef.current({
-        paymentMode: mode,
-        intentId: id,
-        bottlesFilled: filled,
-      });
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Failed to create payment intent";
-      setError(msg);
-      setClientSecret(null);
-      setPaymentMode(null);
-      setIntentId(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [requestBody]);
+  /** When cart / pallet / points change, allow a fresh payment-intent fetch. */
+  const fetchedRef = useRef(false);
+  useEffect(() => {
+    fetchedRef.current = false;
+  }, [palletId, cartTotalSek, pactPointsRedeem]);
 
   useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+
+    const controller = new AbortController();
+
+    async function fetchIntent() {
+      setLoading(true);
+      setError(null);
+      setPaymentElementLoadError(null);
+      try {
+        const res = await fetch("/api/checkout/payment-intent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pallet_id: palletId,
+            cart_total_sek: cartTotalSek,
+            pact_points_redeem: pactPointsRedeem,
+          }),
+          signal: controller.signal,
+        });
+
+        const data: unknown = await res.json().catch(() => null);
+        if (!res.ok || !data || typeof data !== "object") {
+          const msg =
+            data && typeof data === "object" && "error" in data
+              ? String((data as { error?: unknown }).error ?? "Failed to create intent")
+              : "Failed to create payment intent";
+          throw new Error(msg);
+        }
+
+        const d = data as {
+          paymentMode?: unknown;
+          clientSecret?: unknown;
+          intentId?: unknown;
+          bottlesFilled?: unknown;
+        };
+
+        const mode =
+          d.paymentMode === "setup_intent" || d.paymentMode === "payment_intent"
+            ? d.paymentMode
+            : null;
+        const cs = typeof d.clientSecret === "string" ? d.clientSecret : null;
+        const id = typeof d.intentId === "string" ? d.intentId : null;
+        const filled = typeof d.bottlesFilled === "number" ? d.bottlesFilled : 0;
+
+        if (!mode || !cs || !id) {
+          throw new Error("Invalid payment intent response");
+        }
+
+        setPaymentMode(mode);
+        setClientSecret(cs);
+        setIntentId(id);
+        onIntentCreatedRef.current({
+          paymentMode: mode,
+          intentId: id,
+          bottlesFilled: filled,
+        });
+      } catch (e) {
+        if (e instanceof DOMException && e.name === "AbortError") {
+          fetchedRef.current = false;
+          return;
+        }
+        if (e instanceof Error && e.name === "AbortError") {
+          fetchedRef.current = false;
+          return;
+        }
+        const msg =
+          e instanceof Error ? e.message : "Failed to create payment intent";
+        fetchedRef.current = false;
+        setError(msg);
+        setClientSecret(null);
+        setPaymentMode(null);
+        setIntentId(null);
+      } finally {
+        setLoading(false);
+      }
+    }
+
     void fetchIntent();
-  }, [fetchIntent]);
+
+    return () => {
+      controller.abort();
+      fetchedRef.current = false;
+    };
+  }, [palletId, cartTotalSek, pactPointsRedeem, retryNonce]);
+
+  const requestRetry = useCallback(() => {
+    fetchedRef.current = false;
+    setRetryNonce((n) => n + 1);
+  }, []);
 
   if (!publishableKey) {
     return (
@@ -297,7 +325,7 @@ export function StripePaymentSection({
     return (
       <div className="space-y-3 rounded-md border border-border bg-background p-4">
         <p className="text-sm text-destructive">{error}</p>
-        <Button type="button" variant="outline" size="sm" onClick={fetchIntent}>
+        <Button type="button" variant="outline" size="sm" onClick={requestRetry}>
           Retry
         </Button>
       </div>
@@ -310,6 +338,16 @@ export function StripePaymentSection({
 
   return (
     <div className="space-y-3">
+      {paymentMode === "setup_intent" ? (
+        <p className="text-sm text-muted-foreground">
+          Your card will be saved and charged only when the pallet ships.
+        </p>
+      ) : null}
+      {paymentMode === "payment_intent" ? (
+        <p className="text-sm text-muted-foreground">
+          Your bottles will ship within 7-14 days.
+        </p>
+      ) : null}
       {paymentElementLoadError ? (
         <div className="space-y-2 rounded-md border border-border bg-background p-4">
           <p className="text-sm text-destructive">{paymentElementLoadError}</p>
@@ -318,7 +356,7 @@ export function StripePaymentSection({
             secret, or a blocked network. Try again after verifying your Stripe
             publishable key matches the account that created the intent.
           </p>
-          <Button type="button" variant="outline" size="sm" onClick={fetchIntent}>
+          <Button type="button" variant="outline" size="sm" onClick={requestRetry}>
             Retry
           </Button>
         </div>

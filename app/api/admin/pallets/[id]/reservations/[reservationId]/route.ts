@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import {
+  cleanupEmptyPalletsAfterReservationChange,
+  releaseBookingsForReservationPallet,
+  updatePickupProducerForPallet,
+} from "@/lib/pallet-auto-management";
 
 async function assertAdmin(request: Request) {
   const cookie = request.headers.get("cookie") || "";
@@ -22,7 +27,7 @@ export async function DELETE(
   // Verify pallet exists and load zones
   const { data: pallet, error: palletError } = await sb
     .from("pallets")
-    .select("id, pickup_zone_id, delivery_zone_id")
+    .select("id, pickup_zone_id, delivery_zone_id, shipping_region_id")
     .eq("id", palletId)
     .maybeSingle();
 
@@ -30,10 +35,11 @@ export async function DELETE(
     return NextResponse.json({ error: "Pallet not found" }, { status: 404 });
   }
 
-  // Verify reservation exists and belongs to pallet by zone mapping (data-driven)
   const { data: reservation, error: reservationError } = await sb
     .from("order_reservations")
-    .select("id, delivery_zone_id")
+    .select(
+      "id, delivery_zone_id, pallet_id, shipping_region_id",
+    )
     .eq("id", reservationId)
     .maybeSingle();
 
@@ -50,38 +56,66 @@ export async function DELETE(
     );
   }
 
-  // Derive pickup zone from items -> wines -> producers.pickup_zone_id
-  const { data: items, error: itemsError } = await sb
-    .from("order_reservation_items")
-    .select(
-      `
-      item_id,
-      wines(
-        producer_id,
-        producers(pickup_zone_id)
+  const resPalletId = reservation.pallet_id as string | null | undefined;
+  const belongsByPalletId =
+    typeof resPalletId === "string" && resPalletId === palletId;
+
+  if (!belongsByPalletId) {
+    const { data: items, error: itemsError } = await sb
+      .from("order_reservation_items")
+      .select(
+        `
+        item_id,
+        wines(
+          producer_id,
+          producers(pickup_zone_id)
+        )
+      `,
       )
-    `,
-    )
-    .eq("reservation_id", reservationId);
+      .eq("reservation_id", reservationId);
 
-  if (itemsError) {
-    return NextResponse.json({ error: itemsError.message }, { status: 500 });
+    if (itemsError) {
+      return NextResponse.json({ error: itemsError.message }, { status: 500 });
+    }
+
+    const pickupZones = new Set<string>();
+    type ItemRow = {
+      wines?: { producers?: { pickup_zone_id?: string | null } | null } | null;
+    };
+    (items ?? []).forEach((it: ItemRow) => {
+      const pz = it?.wines?.producers?.pickup_zone_id;
+      if (pz) pickupZones.add(pz);
+    });
+
+    const palletPickup = pallet.pickup_zone_id as string | null | undefined;
+    if (
+      pickupZones.size !== 1 ||
+      !palletPickup ||
+      Array.from(pickupZones)[0] !== palletPickup
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Reservation does not belong to this pallet (link or pickup zone mismatch)",
+        },
+        { status: 400 },
+      );
+    }
   }
 
-  const pickupZones = new Set<string>();
-  (items || []).forEach((it: any) => {
-    const pz = it?.wines?.producers?.pickup_zone_id;
-    if (pz) pickupZones.add(pz);
-  });
+  const cleanupSnapshot = {
+    pallet_id: (reservation.pallet_id as string | null) ?? null,
+    delivery_zone_id: (reservation.delivery_zone_id as string | null) ?? null,
+    shipping_region_id:
+      (reservation.shipping_region_id as string | null) ?? null,
+  };
 
-  if (pickupZones.size !== 1 || Array.from(pickupZones)[0] !== pallet.pickup_zone_id) {
-    return NextResponse.json(
-      { error: "Reservation does not belong to this pallet (pickup zone mismatch)" },
-      { status: 400 },
-    );
-  }
+  await releaseBookingsForReservationPallet(
+    reservationId,
+    cleanupSnapshot.pallet_id,
+  );
 
-  // Cascade delete reservation-linked rows (we intentionally do not touch bookings)
+  // Cascade delete reservation-linked rows
   const { error: sharedError } = await sb
     .from("reservation_shared_items")
     .delete()
@@ -113,6 +147,12 @@ export async function DELETE(
     .eq("id", reservationId);
   if (resDelError) {
     return NextResponse.json({ error: resDelError.message }, { status: 500 });
+  }
+
+  await cleanupEmptyPalletsAfterReservationChange(cleanupSnapshot);
+
+  if (cleanupSnapshot.pallet_id) {
+    await updatePickupProducerForPallet(cleanupSnapshot.pallet_id);
   }
 
   return NextResponse.json({ success: true });

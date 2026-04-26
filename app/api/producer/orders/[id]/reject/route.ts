@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentUser } from "@/lib/auth";
+import {
+  cleanupEmptyPalletsAfterReservationChange,
+  releaseBookingsForReservationPallet,
+  updatePickupProducerForPallet,
+} from "@/lib/pallet-auto-management";
 
 export async function POST(
   request: Request,
@@ -29,7 +34,9 @@ export async function POST(
 
     const { data: reservation, error: reservationError } = await sb
       .from("order_reservations")
-      .select("id, producer_id, status")
+      .select(
+        "id, producer_id, status, pallet_id, delivery_zone_id, shipping_region_id",
+      )
       .eq("id", id)
       .maybeSingle();
 
@@ -52,6 +59,15 @@ export async function POST(
     }
 
     const now = new Date().toISOString();
+    const snapshot = {
+      pallet_id: (reservation.pallet_id as string | null) ?? null,
+      delivery_zone_id: (reservation.delivery_zone_id as string | null) ?? null,
+      shipping_region_id:
+        (reservation.shipping_region_id as string | null) ?? null,
+    };
+
+    await releaseBookingsForReservationPallet(id, snapshot.pallet_id);
+
     const { data: updated, error: updateError } = await sb
       .from("order_reservations")
       .update({
@@ -59,6 +75,7 @@ export async function POST(
         producer_rejected_at: now,
         producer_rejected_by: user.id,
         producer_decision_note: note,
+        pallet_id: null,
       })
       .eq("id", id)
       .select("id, status, producer_rejected_at")
@@ -68,12 +85,17 @@ export async function POST(
       return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
 
+    await cleanupEmptyPalletsAfterReservationChange(snapshot);
+
+    if (snapshot.pallet_id) {
+      await updatePickupProducerForPallet(snapshot.pallet_id);
+    }
+
     return NextResponse.json({ success: true, order: updated });
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error?.message || "Unknown error" },
-      { status: 500 },
-    );
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 

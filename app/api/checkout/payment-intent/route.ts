@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { stripe } from "@/lib/stripe";
 import { getOrCreateStripeCustomer } from "@/lib/stripe/customer";
 import { CartService } from "@/src/lib/cart-service";
-import { sumReservedBottlesOnPallet } from "@/lib/pallet-completion";
+import { sumReservedBottlesOnPallet } from "@/lib/pallet-fill-count";
 import {
   allocatePactRedemptionPoints,
   calculateBoostAwareMaxRedemption,
@@ -12,6 +12,24 @@ import {
 import { getRedeemableBalance } from "@/lib/membership/pact-points-engine";
 
 type PaymentMode = "setup_intent" | "payment_intent";
+
+/** Pallet is past deferred-card-save phase → checkout collects with PaymentIntent. */
+const PALLET_DIRECT_CHARGE_STATUSES = new Set([
+  "shipping_ordered",
+  "complete",
+  "awaiting_pickup",
+  "picked_up",
+  "in_transit",
+  "out_for_delivery",
+  "shipped",
+  "delivered",
+]);
+
+function palletUsesPaymentIntent(status: string | null | undefined): boolean {
+  return PALLET_DIRECT_CHARGE_STATUSES.has(
+    String(status ?? "").toLowerCase().trim(),
+  );
+}
 
 /**
  * Contract: `cart_total_sek` must represent the server-calculable order total BEFORE PACT Points:
@@ -90,8 +108,12 @@ export async function POST(request: Request) {
     }
 
     const bottlesFilled = await sumReservedBottlesOnPallet(pallet_id);
-    const paymentMode: PaymentMode =
-      bottlesFilled >= PALLET_THRESHOLD ? "payment_intent" : "setup_intent";
+    const palletStatusStr =
+      typeof palletRow.status === "string" ? palletRow.status : "";
+    const palletStatusResponse = palletStatusStr || null;
+    const paymentMode: PaymentMode = palletUsesPaymentIntent(palletStatusStr)
+      ? "payment_intent"
+      : "setup_intent";
 
     console.log("[payment-intent] Mode decision:", {
       pallet_id,
@@ -148,6 +170,31 @@ export async function POST(request: Request) {
     const customerId = await getOrCreateStripeCustomer(user.id);
 
     if (paymentMode === "setup_intent") {
+      const existingIntents = await stripe.setupIntents.list({
+        customer: customerId,
+        limit: 5,
+      });
+
+      const existing = existingIntents.data.find(
+        (si) =>
+          si.metadata?.pallet_id === pallet_id &&
+          si.metadata?.expected_amount_ore === String(amountInOre) &&
+          si.status === "requires_payment_method",
+      );
+
+      if (existing?.client_secret) {
+        console.log("[payment-intent] Reusing open SetupIntent:", existing.id);
+        return NextResponse.json({
+          paymentMode,
+          clientSecret: existing.client_secret,
+          intentId: existing.id,
+          amountInOre,
+          bottlesFilled,
+          palletStatus: palletStatusResponse,
+          palletThreshold: PALLET_THRESHOLD,
+        });
+      }
+
       const intent = await stripe.setupIntents.create({
         customer: customerId,
         automatic_payment_methods: { enabled: true },
@@ -168,6 +215,7 @@ export async function POST(request: Request) {
         intentId: intent.id,
         amountInOre,
         bottlesFilled,
+        palletStatus: palletStatusResponse,
         palletThreshold: PALLET_THRESHOLD,
       });
     }
@@ -193,6 +241,7 @@ export async function POST(request: Request) {
       intentId: intent.id,
       amountInOre,
       bottlesFilled,
+      palletStatus: palletStatusResponse,
       palletThreshold: PALLET_THRESHOLD,
     });
   } catch (error) {

@@ -35,6 +35,12 @@ function calculateDistance(
   return R * c;
 }
 
+export type NoDeliveryZoneError = {
+  error: "NO_DELIVERY_ZONE";
+  message: string;
+  address: { city: string; postcode: string; countryCode: string };
+};
+
 export interface ZoneMatchResult {
   pickupZoneId: string | null;
   deliveryZoneId: string | null;
@@ -42,6 +48,8 @@ export interface ZoneMatchResult {
   deliveryZoneName: string | null;
   availableDeliveryZones?: DeliveryZoneOption[];
   pallets?: PalletInfo[];
+  /** Present when the address geocodes but lies outside all delivery zones. */
+  noDeliveryZone?: NoDeliveryZoneError;
 }
 
 export interface DeliveryZoneOption {
@@ -61,6 +69,11 @@ export interface PalletInfo {
   pickupZoneName: string;
   deliveryZoneName: string;
   costCents: number;
+  /** DB pallet lifecycle (e.g. shipping_ordered → direct charge at checkout). */
+  status?: string | null;
+  /** Present when enriched by checkout zones API (region pallets). */
+  shipping_region_id?: string | null;
+  current_pickup_producer?: { id: string; name: string | null } | null;
 }
 
 export interface DeliveryAddress {
@@ -322,7 +335,8 @@ export async function determineZones(
                   bottle_capacity,
                   cost_cents,
                   pickup_zone_id,
-                  delivery_zone_id
+                  delivery_zone_id,
+                  status
                 `,
                 )
                 .eq("pickup_zone_id", pickupZoneId)
@@ -393,6 +407,10 @@ export async function determineZones(
                     pickupZoneName: pickupZoneName || "",
                     deliveryZoneName: deliveryZoneName || "",
                     costCents: pallet.cost_cents,
+                    status:
+                      typeof (pallet as { status?: string }).status === "string"
+                        ? (pallet as { status: string }).status
+                        : null,
                   });
                 }
               }
@@ -419,8 +437,25 @@ export async function determineZones(
             return result;
           } else {
             console.log("❌ No delivery zones match this address");
-            deliveryZoneId = null;
-            deliveryZoneName = null;
+            const noDeliveryResult: ZoneMatchResult = {
+              pickupZoneId,
+              pickupZoneName,
+              deliveryZoneId: null,
+              deliveryZoneName: null,
+              availableDeliveryZones: [],
+              pallets: [],
+              noDeliveryZone: {
+                error: "NO_DELIVERY_ZONE",
+                message: "We don't deliver to your area yet.",
+                address: {
+                  city: deliveryAddress.city,
+                  postcode: deliveryAddress.postcode,
+                  countryCode: deliveryAddress.countryCode,
+                },
+              },
+            };
+            zoneCache.set(cacheKey, noDeliveryResult);
+            return noDeliveryResult;
           }
         }
       }
@@ -443,7 +478,8 @@ export async function determineZones(
         bottle_capacity,
         cost_cents,
         pickup_zone_id,
-        delivery_zone_id
+        delivery_zone_id,
+        status
       `,
       )
       .eq("pickup_zone_id", pickupZoneId)
@@ -471,6 +507,10 @@ export async function determineZones(
           pickupZoneName: pickupZoneName || "",
           deliveryZoneName: deliveryZoneName || "",
           costCents: pallet.cost_cents,
+          status:
+            typeof (pallet as { status?: string }).status === "string"
+              ? (pallet as { status: string }).status
+              : null,
         });
       }
     }

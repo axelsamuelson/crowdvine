@@ -3,15 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { format } from "date-fns";
+import { DeletePalletButton } from "@/components/admin/delete-pallet-button";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import {
@@ -34,18 +29,11 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
-  Package,
-  MapPin,
-  Users,
-  Wine,
-  TrendingUp,
   Edit,
-  Calendar,
-  DollarSign,
-  Box,
   Plus,
   Trash2,
   GripVertical,
+  ArrowLeft,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -164,6 +152,7 @@ export default function AdminPalletDetails({
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [orderingShipping, setOrderingShipping] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -431,110 +420,219 @@ export default function AdminPalletDetails({
   const getStatusBadge = (status: string) => {
     const statusUpper = status.toUpperCase();
     const colorMap: { [key: string]: string } = {
-      PLACED: "bg-blue-100 text-blue-700",
-      PENDING: "bg-yellow-100 text-yellow-700",
-      CONFIRMED: "bg-green-100 text-green-700",
-      OPEN: "bg-blue-100 text-blue-700",
-      CONSOLIDATING: "bg-orange-100 text-orange-700",
-      SHIPPED: "bg-purple-100 text-purple-700",
-      DELIVERED: "bg-green-100 text-green-700",
-      CANCELLED: "bg-red-100 text-red-700",
+      PLACED: "bg-blue-500/15 text-blue-300 border-blue-500/25",
+      PENDING: "bg-amber-500/15 text-amber-300 border-amber-500/25",
+      CONFIRMED: "bg-emerald-500/15 text-emerald-300 border-emerald-500/25",
+      OPEN: "bg-blue-500/15 text-blue-300 border-blue-500/25",
+      CONSOLIDATING: "bg-amber-500/15 text-amber-300 border-amber-500/25",
+      SHIPPED: "bg-violet-500/15 text-violet-300 border-violet-500/25",
+      DELIVERED: "bg-emerald-500/15 text-emerald-300 border-emerald-500/25",
+      CANCELLED: "bg-red-500/15 text-red-300 border-red-500/25",
     };
 
     return (
-      <Badge
-        className={`${colorMap[statusUpper] || "bg-gray-100 text-gray-700"} border-0`}
+      <span
+        className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${
+          colorMap[statusUpper] ||
+          "bg-zinc-800 text-zinc-300 border-[#1F1F23]"
+        }`}
       >
         {status}
-      </Badge>
+      </span>
     );
+  };
+
+  const getPaymentBadge = (status: string) => {
+    const s = status.toLowerCase();
+    if (/fail|declin|cancel|void/.test(s)) {
+      return (
+        <span className="inline-flex rounded-full border border-red-500/25 bg-red-500/15 px-2 py-0.5 text-[11px] font-medium text-red-300">
+          Failed
+        </span>
+      );
+    }
+    if (
+      /pending_payment|placed|pending_producer|partly_approved|approved/.test(
+        s,
+      )
+    ) {
+      return (
+        <span className="inline-flex rounded-full border border-amber-500/25 bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-300">
+          Pending
+        </span>
+      );
+    }
+    if (/confirm|paid|complete|deliver|ship/.test(s)) {
+      return (
+        <span className="inline-flex rounded-full border border-emerald-500/25 bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-300">
+          Paid
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex rounded-full border border-[#1F1F23] bg-zinc-800 px-2 py-0.5 text-[11px] font-medium text-zinc-400">
+        —
+      </span>
+    );
+  };
+
+  const palletStatusAllowsOrderShipping = () => {
+    const raw = palletStatus;
+    const s =
+      raw !== null && raw !== undefined ? String(raw).toLowerCase() : "";
+    const bottles = stats?.total_bottles ?? 0;
+    return (
+      (s === "open" || s === "consolidating") && bottles > 0
+    );
+  };
+
+  const handleOrderShipping = async () => {
+    const confirmed = window.confirm(
+      "Are you sure? This will charge all customers with saved cards on this pallet. This cannot be undone.",
+    );
+    if (!confirmed) return;
+    setOrderingShipping(true);
+    try {
+      const res = await fetch(
+        `/api/admin/pallets/${palletId}/order-shipping`,
+        { method: "POST" },
+      );
+      const data: unknown = await res.json().catch(() => null);
+      const errMsg =
+        data &&
+        typeof data === "object" &&
+        "error" in data &&
+        typeof (data as { error: unknown }).error === "string"
+          ? (data as { error: string }).error
+          : "Request failed";
+      if (!res.ok) {
+        toast.error(errMsg);
+        return;
+      }
+      toast.success("Shipping ordered. Customers are being charged.");
+      await fetchPalletData();
+    } catch {
+      toast.error("Request failed");
+    } finally {
+      setOrderingShipping(false);
+    }
   };
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="p-8">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-            <div className="h-4 bg-gray-200 rounded w-2/3"></div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="rounded-lg border border-[#1F1F23] bg-[#0F0F12] p-10">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-zinc-800 rounded w-1/3" />
+          <div className="h-4 bg-zinc-800 rounded w-1/2" />
+          <div className="h-4 bg-zinc-800 rounded w-2/3" />
+        </div>
+      </div>
     );
   }
 
+  const palletExt = pallet as {
+    shipping_region?: { name: string } | null;
+    current_pickup_producer?: { name: string } | null;
+    shipping_ordered_at?: string | null;
+  };
+  const shipsFromName = palletExt.current_pickup_producer?.name ?? null;
+  const shippingOrderedAt = palletExt.shipping_ordered_at;
+  const regionMeta =
+    palletExt.shipping_region?.name ?? pallet.pickup_zone?.name ?? "—";
+  const fillPct = stats?.percentage_filled ?? 0;
+  const fillBarClass =
+    fillPct > 80 ? "bg-emerald-500" : fillPct >= 30 ? "bg-blue-500" : "bg-amber-500";
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-10 pb-10">
       {error && (
-        <Alert variant="destructive">
+        <Alert
+          variant="destructive"
+          className="border-red-500/30 bg-red-950/30 text-red-200"
+        >
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{pallet.name}</h1>
-          {pallet.description && (
-            <p className="text-muted-foreground mt-2">{pallet.description}</p>
-          )}
-          <div className="mt-3 flex items-center gap-3">
-            <div className="text-xs font-medium text-gray-500">Pallet status</div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500">Auto</span>
-              <Switch
-                checked={palletStatusMode === "manual"}
-                onCheckedChange={(checked) =>
-                  void savePalletStatusMode(checked ? "manual" : "auto")
-                }
-                disabled={savingStatus}
-              />
-              <span className="text-xs text-gray-500">Manual</span>
-            </div>
-            <Select
-              value={palletStatus}
-              onValueChange={(v) => void savePalletStatus(v)}
-              disabled={savingStatus || palletStatusMode !== "manual"}
-            >
-              <SelectTrigger className="h-9 w-[240px] rounded-full">
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="open">open</SelectItem>
-                <SelectItem value="consolidating">consolidating</SelectItem>
-                <SelectItem value="complete">complete</SelectItem>
-                <SelectItem value="awaiting_pickup">awaiting_pickup</SelectItem>
-                <SelectItem value="picked_up">picked_up</SelectItem>
-                <SelectItem value="in_transit">in_transit</SelectItem>
-                <SelectItem value="out_for_delivery">out_for_delivery</SelectItem>
-                <SelectItem value="delivered">delivered</SelectItem>
-                <SelectItem value="cancelled">cancelled</SelectItem>
-              </SelectContent>
-            </Select>
-            {savingStatus ? (
-              <span className="text-xs text-gray-500">Saving…</span>
-            ) : null}
-          </div>
-        </div>
-        <Button onClick={() => router.push(`/admin/pallets/${palletId}/edit`)}>
-          <Edit className="w-4 h-4 mr-2" />
-          Edit Pallet
+      <header className="space-y-4">
+        <Button
+          asChild
+          variant="ghost"
+          size="sm"
+          className="-ml-2 h-8 gap-2 px-2 text-sm font-normal text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100"
+        >
+          <Link href="/admin/pallets">
+            <ArrowLeft className="h-4 w-4 shrink-0" />
+            Back to Pallets
+          </Link>
         </Button>
-      </div>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0 space-y-2">
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-2xl font-bold tracking-tight text-zinc-100">
+                {pallet.name}
+              </h1>
+              <span className="inline-flex rounded-full border border-[#1F1F23] bg-zinc-900 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-zinc-400">
+                {palletStatus}
+              </span>
+            </div>
+            {pallet.description ? (
+              <p className="text-sm text-zinc-500">{pallet.description}</p>
+            ) : null}
+            <p className="text-sm text-zinc-400">
+              <span className="tabular-nums">{stats?.total_bottles ?? 0}</span>
+              <span> / </span>
+              <span className="tabular-nums">{pallet.bottle_capacity}</span>
+              <span> bottles · </span>
+              <span className="tabular-nums">{fillPct}%</span>
+              <span> full · </span>
+              <span>{pallet.delivery_zone?.name ?? "—"}</span>
+              <span> · Ships from </span>
+              {shipsFromName ? (
+                <span className="font-medium text-zinc-200">
+                  {shipsFromName}
+                </span>
+              ) : (
+                <span className="font-medium text-amber-500/90">TBD</span>
+              )}
+            </p>
+          </div>
+          {palletStatusAllowsOrderShipping() ? (
+            <Button
+              type="button"
+              size="sm"
+              disabled={orderingShipping}
+              onClick={() => void handleOrderShipping()}
+              className="h-8 shrink-0 bg-amber-600 text-xs font-medium text-white hover:bg-amber-500"
+            >
+              {orderingShipping ? "Ordering…" : "Order Shipping"}
+            </Button>
+          ) : null}
+        </div>
+        <div className="h-1 w-full overflow-hidden rounded-full bg-[#1F1F23]">
+          <div
+            className={`h-full rounded-full transition-all ${fillBarClass}`}
+            style={{
+              width: `${Math.min(100, Math.max(0, fillPct))}%`,
+            }}
+          />
+        </div>
+      </header>
 
+      <div className="grid items-start gap-10 lg:grid-cols-5">
+        <div className="space-y-10 lg:col-span-3">
       {/* Completion Rules (Klaviyo-like segment builder) */}
-      <Card className="p-6 bg-white border border-gray-200 rounded-2xl">
+      <Card className="rounded-lg border border-[#1F1F23] bg-[#0F0F12] p-6 shadow-none">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <div className="text-sm font-medium text-gray-900">
+            <div className="text-sm font-medium text-zinc-100">
               Completion rules
             </div>
-            <div className="text-sm text-gray-500 mt-1">
+            <div className="mt-1 text-sm text-zinc-500">
               {formatCompletionRules(rules)}
             </div>
             {metrics && (
-              <div className="text-xs text-gray-500 mt-2">
+              <div className="mt-2 text-xs text-zinc-500">
                 Live metrics: Bottles={metrics.currentBottles}, Profit (SEK ex VAT)={metrics.profitSek}, Complete={String(metrics.isComplete)}
               </div>
             )}
@@ -543,15 +641,15 @@ export default function AdminPalletDetails({
             <Button
               variant="outline"
               size="sm"
-              className="rounded-full"
+              className="rounded-md border-[#1F1F23] bg-transparent text-xs text-zinc-300 hover:bg-zinc-900"
               onClick={addGroup}
             >
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="mr-2 h-4 w-4" />
               Add ELSE IF step
             </Button>
             <Button
               size="sm"
-              className="bg-black hover:bg-black/90 text-white rounded-full"
+              className="rounded-md bg-zinc-100 text-xs text-zinc-900 hover:bg-zinc-200"
               onClick={saveRules}
               disabled={savingRules}
             >
@@ -561,15 +659,15 @@ export default function AdminPalletDetails({
         </div>
 
         <div className="mt-5 space-y-4">
-          <div className="text-xs font-medium text-gray-500">
+          <div className="text-xs font-medium text-zinc-500">
             Priority order matters: first matching step wins. ELSE = Incomplete.
           </div>
 
           {(rules.groups || []).map((group, gi) => (
             <div
               key={gi}
-              className={`rounded-2xl border border-gray-200 p-4 ${
-                gi === 0 ? "bg-white" : "bg-gray-50"
+              className={`rounded-xl border border-[#1F1F23] p-4 ${
+                gi === 0 ? "bg-[#0F0F12]" : "bg-zinc-900/30"
               }`}
               draggable
               onDragStart={() => setDraggingGroupIndex(gi)}
@@ -585,14 +683,14 @@ export default function AdminPalletDetails({
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2">
-                    <div className="text-xs font-semibold text-gray-900">
+                    <div className="text-xs font-semibold text-zinc-100">
                       Step {gi + 1}
                     </div>
-                    <span className="text-[10px] uppercase tracking-wide text-gray-500">
+                    <span className="text-[10px] uppercase tracking-wide text-zinc-500">
                       {stepLabel(gi)}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1 text-gray-400">
+                  <div className="flex items-center gap-1 text-zinc-500">
                     <GripVertical className="w-4 h-4" />
                     <span className="text-xs">Drag to reorder</span>
                   </div>
@@ -607,7 +705,7 @@ export default function AdminPalletDetails({
                       }))
                     }
                   >
-                    <SelectTrigger className="w-28 bg-white">
+                    <SelectTrigger className="h-8 w-28 border-[#1F1F23] bg-zinc-900 text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -615,13 +713,13 @@ export default function AdminPalletDetails({
                       <SelectItem value="OR">OR</SelectItem>
                     </SelectContent>
                   </Select>
-                  <span className="text-xs text-gray-500">between conditions</span>
+                  <span className="text-xs text-zinc-500">between conditions</span>
                 </div>
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="rounded-full"
+                    className="rounded-md border-[#1F1F23] bg-transparent text-xs text-zinc-300 hover:bg-zinc-900"
                     onClick={() => addCondition(gi)}
                   >
                     <Plus className="w-4 h-4 mr-2" />
@@ -631,7 +729,7 @@ export default function AdminPalletDetails({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="rounded-full"
+                      className="rounded-md border-[#1F1F23] bg-transparent text-xs text-zinc-300 hover:bg-zinc-900"
                       onClick={() => moveGroup(gi, gi - 1)}
                       title="Move up"
                     >
@@ -642,7 +740,7 @@ export default function AdminPalletDetails({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="rounded-full"
+                      className="rounded-md border-[#1F1F23] bg-transparent text-xs text-zinc-300 hover:bg-zinc-900"
                       onClick={() => moveGroup(gi, gi + 1)}
                       title="Move down"
                     >
@@ -652,7 +750,7 @@ export default function AdminPalletDetails({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="rounded-full"
+                    className="rounded-md border-[#1F1F23] bg-transparent text-xs text-zinc-300 hover:bg-zinc-900"
                     onClick={() => removeGroup(gi)}
                   >
                     <Trash2 className="w-4 h-4" />
@@ -662,7 +760,7 @@ export default function AdminPalletDetails({
 
               <div className="mt-4 space-y-3">
                 {(group.conditions || []).length === 0 ? (
-                  <div className="text-sm text-gray-500">No conditions yet.</div>
+                  <div className="text-sm text-zinc-500">No conditions yet.</div>
                 ) : (
                   group.conditions.map((c, ci) => (
                     <div
@@ -670,14 +768,14 @@ export default function AdminPalletDetails({
                       className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end"
                     >
                       <div className="md:col-span-4 space-y-2">
-                        <div className="text-xs text-gray-500">Metric</div>
+                        <div className="text-xs text-zinc-500">Metric</div>
                         <Select
                           value={c.metric}
                           onValueChange={(v) =>
                             updateCondition(gi, ci, { metric: v as any })
                           }
                         >
-                          <SelectTrigger className="bg-white">
+                          <SelectTrigger className="h-8 border-[#1F1F23] bg-zinc-900 text-xs">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -690,14 +788,14 @@ export default function AdminPalletDetails({
                       </div>
 
                       <div className="md:col-span-2 space-y-2">
-                        <div className="text-xs text-gray-500">Operator</div>
+                        <div className="text-xs text-zinc-500">Operator</div>
                         <Select
                           value={c.op}
                           onValueChange={(v) =>
                             updateCondition(gi, ci, { op: v as any })
                           }
                         >
-                          <SelectTrigger className="bg-white">
+                          <SelectTrigger className="h-8 border-[#1F1F23] bg-zinc-900 text-xs">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -710,10 +808,10 @@ export default function AdminPalletDetails({
                       </div>
 
                       <div className="md:col-span-4 space-y-2">
-                        <div className="text-xs text-gray-500">Value</div>
+                        <div className="text-xs text-zinc-500">Value</div>
                         <Input
                           type="number"
-                          className="no-spinner bg-white"
+                          className="no-spinner border-[#1F1F23] bg-zinc-900 text-zinc-100"
                           value={String(c.value ?? "")}
                           onChange={(e) =>
                             updateCondition(gi, ci, {
@@ -727,7 +825,7 @@ export default function AdminPalletDetails({
                         <Button
                           variant="outline"
                           size="sm"
-                          className="rounded-full"
+                          className="rounded-md border-[#1F1F23] bg-transparent text-xs text-zinc-300 hover:bg-zinc-900"
                           onClick={() => removeCondition(gi, ci)}
                         >
                           <Trash2 className="w-4 h-4" />
@@ -740,178 +838,32 @@ export default function AdminPalletDetails({
             </div>
           ))}
 
-          <div className="rounded-2xl border border-dashed border-gray-200 p-4 bg-white">
-            <div className="text-xs font-semibold text-gray-900">ELSE</div>
-            <div className="text-sm text-gray-600 mt-1">
-              Pallet is <span className="font-medium">Incomplete</span>
+          <div className="rounded-xl border border-dashed border-[#1F1F23] bg-zinc-900/20 p-4">
+            <div className="text-xs font-semibold text-zinc-200">ELSE</div>
+            <div className="mt-1 text-sm text-zinc-500">
+              Pallet is <span className="font-medium text-zinc-300">Incomplete</span>
             </div>
           </div>
         </div>
       </Card>
 
-      {/* Stats Grid */}
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Fill Progress
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-3">
-                <TrendingUp className="w-8 h-8 text-blue-600" />
-                <div>
-                  <div className="text-2xl font-bold">
-                    {stats.percentage_filled}%
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {stats.total_bottles} / {pallet.bottle_capacity} bottles
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Revenue
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-3">
-                <DollarSign className="w-8 h-8 text-green-600" />
-                <div>
-                  <div className="text-2xl font-bold">
-                    {formatCurrency(stats.total_revenue_cents / 100)}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {stats.total_reservations} reservations
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Participants
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-3">
-                <Users className="w-8 h-8 text-purple-600" />
-                <div>
-                  <div className="text-2xl font-bold">{stats.unique_users}</div>
-                  <p className="text-xs text-muted-foreground">
-                    unique customers
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Wine Varieties
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-3">
-                <Wine className="w-8 h-8 text-red-600" />
-                <div>
-                  <div className="text-2xl font-bold">{stats.unique_wines}</div>
-                  <p className="text-xs text-muted-foreground">
-                    different wines
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Pallet Info */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="w-5 h-5" />
-              Zones
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+      {/* Reservations */}
+      <div className="overflow-hidden rounded-lg border border-[#1F1F23] bg-[#0F0F12]">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[#1F1F23] px-5 py-4">
             <div>
-              <div className="text-sm font-medium text-muted-foreground mb-1">
-                Pickup Zone
-              </div>
-              <div className="text-base">
-                {pallet.pickup_zone?.name || "Not set"}
-              </div>
-            </div>
-            <div>
-              <div className="text-sm font-medium text-muted-foreground mb-1">
-                Delivery Zone
-              </div>
-              <div className="text-base">
-                {pallet.delivery_zone?.name || "Not set"}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Box className="w-5 h-5" />
-              Pallet Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <div className="text-sm font-medium text-muted-foreground mb-1">
-                Transport Cost
-              </div>
-              <div className="text-base font-semibold">
-                {formatCurrency(pallet.cost_cents / 100)}
-              </div>
-            </div>
-            <div>
-              <div className="text-sm font-medium text-muted-foreground mb-1">
-                Capacity
-              </div>
-              <div className="text-base">{pallet.bottle_capacity} bottles</div>
-            </div>
-            <div>
-              <div className="text-sm font-medium text-muted-foreground mb-1">
-                Created
-              </div>
-              <div className="text-base">
-                {new Date(pallet.created_at).toLocaleDateString()}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Reservations Table */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <CardTitle>Reservations ({reservations.length})</CardTitle>
-              <CardDescription>
+              <h2 className="text-sm font-semibold text-zinc-100">
+                Reservations ({reservations.length})
+              </h2>
+              <p className="text-xs text-zinc-500">
                 All customer reservations for this pallet
-              </CardDescription>
+              </p>
             </div>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button
-                  variant="outline"
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50 rounded-full"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-xs text-red-400 hover:bg-red-500/10 hover:text-red-300"
                   disabled={resettingReservations || reservations.length === 0}
                 >
                   {resettingReservations ? "Resetting..." : "Reset reservations"}
@@ -939,36 +891,35 @@ export default function AdminPalletDetails({
               </AlertDialogContent>
             </AlertDialog>
           </div>
-        </CardHeader>
-        <CardContent>
+        <div className="px-2 pb-2">
           {reservations.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="px-4 py-10 text-center text-sm text-zinc-500">
               No reservations yet
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-medium text-sm">
-                      Order ID
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-sm">
+                  <tr className="border-b border-[#1F1F23]">
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
                       Customer
                     </th>
-                    <th className="text-left py-3 px-4 font-medium text-sm">
-                      Status
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                      Wines
                     </th>
-                    <th className="text-left py-3 px-4 font-medium text-sm">
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
                       Bottles
                     </th>
-                    <th className="text-left py-3 px-4 font-medium text-sm">
-                      Total
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                      Status
                     </th>
-                    <th className="text-left py-3 px-4 font-medium text-sm">
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                      Payment
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
                       Date
                     </th>
-                    <th className="text-left py-3 px-4 font-medium text-sm">
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
                       Actions
                     </th>
                   </tr>
@@ -977,37 +928,43 @@ export default function AdminPalletDetails({
                   {reservations.map((reservation) => (
                     <tr
                       key={reservation.id}
-                      className="border-b hover:bg-gray-50"
+                      className="border-b border-[#1F1F23] text-sm text-zinc-300 hover:bg-[#0F0F12]/50"
                     >
-                      <td className="py-3 px-4 text-sm font-mono">
-                        {reservation.order_id.slice(0, 8)}...
-                      </td>
-                      <td className="py-3 px-4 text-sm">
+                      <td className="px-4 py-3">
                         <div>
-                          <div className="font-medium">
+                          <div className="font-medium text-zinc-100">
                             {reservation.user_name || "Unknown"}
                           </div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="text-xs text-zinc-500">
                             {reservation.user_email}
                           </div>
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-sm">
-                        {getStatusBadge(reservation.status)}
+                      <td className="max-w-[200px] px-4 py-3 text-xs text-zinc-400">
+                        {reservation.items
+                          .map((it) => `${it.wine_name} ×${it.quantity}`)
+                          .join(", ")}
                       </td>
-                      <td className="py-3 px-4 text-sm font-medium">
+                      <td className="px-4 py-3 font-medium tabular-nums text-zinc-100">
                         {reservation.total_bottles}
                       </td>
-                      <td className="py-3 px-4 text-sm font-medium">
-                        {formatCurrency(reservation.total_cost_cents / 100)}
+                      <td className="px-4 py-3">
+                        {getStatusBadge(reservation.status)}
                       </td>
-                      <td className="py-3 px-4 text-sm text-muted-foreground">
+                      <td className="px-4 py-3">
+                        {getPaymentBadge(reservation.status)}
+                      </td>
+                      <td className="px-4 py-3 tabular-nums text-zinc-500">
                         {new Date(reservation.created_at).toLocaleDateString()}
                       </td>
-                      <td className="py-3 px-4 text-sm">
-                        <div className="flex items-center gap-2">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1">
                           <Link href={`/admin/reservations/${reservation.id}`}>
-                            <Button variant="ghost" size="sm">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 px-2 text-xs text-zinc-400 hover:text-zinc-100"
+                            >
                               View
                             </Button>
                           </Link>
@@ -1016,7 +973,7 @@ export default function AdminPalletDetails({
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                className="h-8 px-2 text-xs text-zinc-500 hover:bg-red-500/10 hover:text-red-400"
                                 disabled={deletingReservationId === reservation.id}
                               >
                                 {deletingReservationId === reservation.id ? "Deleting..." : "Delete"}
@@ -1050,72 +1007,259 @@ export default function AdminPalletDetails({
               </table>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Wines Breakdown */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Wines on Pallet</CardTitle>
-          <CardDescription>
-            Breakdown of all wines reserved for this pallet
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {reservations.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No wines yet
+      <div className="rounded-lg border border-[#1F1F23] bg-[#0F0F12] px-5 py-5">
+        <h2 className="mb-3 text-xs font-medium uppercase tracking-widest text-zinc-500">
+          Wine allocation
+        </h2>
+        {reservations.length === 0 ? (
+          <p className="text-sm text-zinc-500">No wines yet</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[#1F1F23]">
+                  <th className="py-2 pr-4 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                    Wine name
+                  </th>
+                  <th className="py-2 pr-4 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                    Producer
+                  </th>
+                  <th className="py-2 pr-4 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                    Bottles
+                  </th>
+                  <th className="py-2 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                    % of pallet
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from(
+                  reservations
+                    .flatMap((r) => r.items)
+                    .reduce((acc, item) => {
+                      const key = `${item.producer_name}-${item.wine_name}`;
+                      if (!acc.has(key)) {
+                        acc.set(key, {
+                          producer: item.producer_name,
+                          wine: item.wine_name,
+                          quantity: 0,
+                          price: item.price_cents,
+                        });
+                      }
+                      const existing = acc.get(key)!;
+                      existing.quantity += item.quantity;
+                      return acc;
+                    }, new Map())
+                    .values(),
+                )
+                  .sort((a, b) => b.quantity - a.quantity)
+                  .map((wine, idx) => {
+                    const cap = pallet.bottle_capacity || 1;
+                    const pct = Math.round((wine.quantity / cap) * 1000) / 10;
+                    return (
+                      <tr
+                        key={idx}
+                        className="border-b border-[#1F1F23] text-zinc-300 last:border-0"
+                      >
+                        <td className="py-2 pr-4 font-medium text-zinc-100">
+                          {wine.wine}
+                        </td>
+                        <td className="py-2 pr-4 text-zinc-400">{wine.producer}</td>
+                        <td className="py-2 pr-4 tabular-nums text-zinc-200">
+                          {wine.quantity}
+                        </td>
+                        <td className="py-2 tabular-nums text-zinc-500">
+                          {pct}%
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+        </div>
+
+        <aside className="space-y-6 lg:col-span-2 lg:sticky lg:top-6 lg:self-start">
+          <div className="rounded-lg border border-[#1F1F23] bg-[#0F0F12]">
+            <div className="border-b border-[#1F1F23] px-4 py-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                Pallet status
+              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <span className="text-xs text-zinc-500">Auto</span>
+                <Switch
+                  checked={palletStatusMode === "manual"}
+                  onCheckedChange={(checked) =>
+                    void savePalletStatusMode(checked ? "manual" : "auto")
+                  }
+                  disabled={savingStatus}
+                />
+                <span className="text-xs text-zinc-500">Manual</span>
+                <Select
+                  value={palletStatus}
+                  onValueChange={(v) => void savePalletStatus(v)}
+                  disabled={savingStatus || palletStatusMode !== "manual"}
+                >
+                  <SelectTrigger className="h-8 w-[200px] border-[#1F1F23] bg-zinc-900 text-xs text-zinc-200">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="open">open</SelectItem>
+                    <SelectItem value="consolidating">consolidating</SelectItem>
+                    <SelectItem value="complete">complete</SelectItem>
+                    <SelectItem value="awaiting_pickup">awaiting_pickup</SelectItem>
+                    <SelectItem value="picked_up">picked_up</SelectItem>
+                    <SelectItem value="in_transit">in_transit</SelectItem>
+                    <SelectItem value="out_for_delivery">out_for_delivery</SelectItem>
+                    <SelectItem value="delivered">delivered</SelectItem>
+                    <SelectItem value="cancelled">cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+                {savingStatus ? (
+                  <span className="text-xs text-zinc-500">Saving…</span>
+                ) : null}
+              </div>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {Array.from(
-                reservations
-                  .flatMap((r) => r.items)
-                  .reduce((acc, item) => {
-                    const key = `${item.producer_name}-${item.wine_name}`;
-                    if (!acc.has(key)) {
-                      acc.set(key, {
-                        producer: item.producer_name,
-                        wine: item.wine_name,
-                        quantity: 0,
-                        price: item.price_cents,
-                      });
-                    }
-                    const existing = acc.get(key)!;
-                    existing.quantity += item.quantity;
-                    return acc;
-                  }, new Map())
-                  .values(),
-              )
-                .sort((a, b) => b.quantity - a.quantity)
-                .map((wine, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between py-3 px-4 border rounded-lg hover:bg-gray-50"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Wine className="w-5 h-5 text-red-600" />
-                      <div>
-                        <div className="font-medium">{wine.wine}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {wine.producer}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-semibold">
-                        {wine.quantity} bottles
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {formatCurrency(wine.price / 100)} each
-                      </div>
-                    </div>
-                  </div>
-                ))}
+            <div className="divide-y divide-[#1F1F23] px-4">
+              <div className="py-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                  Region
+                </p>
+                <p className="mt-1 text-sm font-medium text-zinc-100">
+                  {regionMeta}
+                </p>
+              </div>
+              <div className="py-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                  Delivery
+                </p>
+                <p className="mt-1 text-sm font-medium text-zinc-100">
+                  {pallet.delivery_zone?.name ?? "—"}
+                </p>
+              </div>
+              <div className="py-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                  Ships from
+                </p>
+                <p className="mt-1 text-sm font-medium text-zinc-100">
+                  {shipsFromName && shipsFromName.length > 0 ? (
+                    shipsFromName
+                  ) : (
+                    <span className="text-amber-500/90">Not determined</span>
+                  )}
+                </p>
+              </div>
+              <div className="py-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                  Capacity
+                </p>
+                <p className="mt-1 text-sm font-medium tabular-nums text-zinc-100">
+                  {pallet.bottle_capacity} bottles
+                </p>
+              </div>
+              <div className="py-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                  Shipping cost
+                </p>
+                <p className="mt-1 text-sm font-medium tabular-nums text-zinc-100">
+                  {formatCurrency(pallet.cost_cents / 100)}
+                </p>
+              </div>
+              <div className="py-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                  Created
+                </p>
+                <p className="mt-1 text-sm font-medium tabular-nums text-zinc-100">
+                  {new Date(pallet.created_at).toLocaleDateString()}
+                </p>
+              </div>
+              <div className="py-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                  Shipping ordered
+                </p>
+                <p className="mt-1 text-sm font-medium tabular-nums text-zinc-100">
+                  {shippingOrderedAt
+                    ? format(new Date(shippingOrderedAt), "PPp")
+                    : "—"}
+                </p>
+              </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+
+          {stats ? (
+            <div className="grid grid-cols-2 gap-3 rounded-lg border border-[#1F1F23] bg-[#0F0F12] p-4">
+              <div>
+                <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+                  Fill
+                </p>
+                <p className="mt-0.5 text-lg font-semibold tabular-nums text-zinc-100">
+                  {stats.percentage_filled}%
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+                  Revenue
+                </p>
+                <p className="mt-0.5 text-lg font-semibold tabular-nums text-zinc-100">
+                  {formatCurrency(stats.total_revenue_cents / 100)}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+                  Customers
+                </p>
+                <p className="mt-0.5 text-lg font-semibold tabular-nums text-zinc-100">
+                  {stats.unique_users}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+                  Wine SKUs
+                </p>
+                <p className="mt-0.5 text-lg font-semibold tabular-nums text-zinc-100">
+                  {stats.unique_wines}
+                </p>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="flex flex-col gap-2">
+            {palletStatusAllowsOrderShipping() ? (
+              <Button
+                type="button"
+                size="sm"
+                disabled={orderingShipping}
+                onClick={() => void handleOrderShipping()}
+                className="h-9 w-full bg-amber-600 text-xs font-medium text-white hover:bg-amber-500"
+              >
+                {orderingShipping ? "Ordering…" : "Order Shipping"}
+              </Button>
+            ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9 border-[#1F1F23] bg-transparent text-xs text-zinc-200 hover:bg-zinc-900"
+              onClick={() => router.push(`/admin/pallets/${palletId}/edit`)}
+            >
+              <Edit className="mr-2 h-3.5 w-3.5" />
+              Edit pallet
+            </Button>
+            <div className="pt-1 [&>button]:h-8 [&>button]:w-full [&>button]:justify-center [&>button]:border-0 [&>button]:bg-transparent [&>button]:text-xs [&>button]:font-normal [&>button]:text-red-400 [&>button]:shadow-none [&>button]:hover:bg-red-500/10 [&>button]:hover:text-red-300">
+              <DeletePalletButton
+                palletId={palletId}
+                palletName={pallet.name}
+                onDeleted={() => router.push("/admin/pallets")}
+              />
+            </div>
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { cleanupEmptyPallets } from "@/lib/pallet-auto-management";
 
 export async function POST(
   request: Request,
@@ -25,7 +26,7 @@ export async function POST(
     // Load pallet zones
     const { data: pallet, error: palletError } = await sb
       .from("pallets")
-      .select("id, pickup_zone_id, delivery_zone_id")
+      .select("id, pickup_zone_id, delivery_zone_id, shipping_region_id")
       .eq("id", palletId)
       .maybeSingle();
 
@@ -105,12 +106,24 @@ export async function POST(
       return NextResponse.json({ error: delResErr.message }, { status: 500 });
     }
 
+    const { error: delBookErr } = await sb
+      .from("bookings")
+      .delete()
+      .eq("pallet_id", palletId);
+    if (delBookErr) {
+      console.warn("[Admin pallet reset] bookings delete:", delBookErr.message);
+    }
+
+    const srId = pallet.shipping_region_id as string | null | undefined;
+    const delZ = pallet.delivery_zone_id as string | null | undefined;
+    if (srId && delZ) {
+      await cleanupEmptyPallets(srId, delZ);
+    }
+
     return NextResponse.json({ success: true, deleted: toDelete.length });
-  } catch (e: any) {
-    return NextResponse.json(
-      { error: e?.message || "Internal server error" },
-      { status: 500 },
-    );
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
