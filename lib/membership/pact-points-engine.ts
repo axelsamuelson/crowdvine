@@ -391,7 +391,28 @@ export async function redeemPactPoints(
   userId: string,
   pointsToRedeem: number,
   relatedOrderId: string,
+  pendingUntilPayment: boolean = false,
 ): Promise<{ success: boolean; newBalance: number; error?: string }> {
+  /**
+   * PACT Points pending redemption lifecycle:
+   *
+   * 1. Created when an order_reservation is inserted with payment_mode =
+   *    'setup_intent'. Points are immediately deducted from balance to
+   *    prevent double-spending. Ledger event has pending_until_payment = true.
+   *
+   * 2. Confirmed (pending flag cleared) in Phase 2.3 when the saved
+   *    payment method successfully charges after the pallet fills.
+   *
+   * 3. Reversed in Phase 2.3 when the saved payment method permanently
+   *    fails after retries (24h/72h/96h email cycle). Original points
+   *    are returned via redemption_reversed ledger event.
+   *
+   * 4. Reversed via admin cancel-order endpoint (not yet built).
+   *
+   * There is no timeout-based reversal. Pending redemptions persist as
+   * long as the order_reservation exists in pending_payment status.
+   * When pallet fills, payment is attempted and fate is determined.
+   */
   if (pointsToRedeem <= 0) {
     return {
       success: false,
@@ -420,6 +441,7 @@ export async function redeemPactPoints(
       p_related_user_id: null,
       p_description: `Redeemed ${pointsToRedeem} PACT Points at checkout`,
       p_expires_in_days: PACT_POINTS_EXPIRY_DAYS,
+      p_pending_until_payment: pendingUntilPayment,
     });
 
     if (error) {
@@ -433,5 +455,89 @@ export async function redeemPactPoints(
     const message = e instanceof Error ? e.message : "Unknown error";
     console.error("[pact-points] redeemPactPoints:", e);
     return { success: false, newBalance: 0, error: message };
+  }
+}
+
+export async function confirmPendingRedemption(
+  orderId: string,
+): Promise<{ success: boolean; error?: string }> {
+  const sb = getSupabaseAdmin();
+  try {
+    const { error } = await sb
+      .from("pact_points_events")
+      .update({ pending_until_payment: false })
+      .eq("related_order_id", orderId)
+      .eq("event_type", "redemption");
+    if (error) {
+      console.error("[pact-points] confirmPendingRedemption:", error);
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Unknown error";
+    console.error("[pact-points] confirmPendingRedemption:", e);
+    return { success: false, error: message };
+  }
+}
+
+export async function reversePendingRedemption(
+  orderId: string,
+): Promise<{ success: boolean; refundedPoints: number; error?: string }> {
+  const sb = getSupabaseAdmin();
+  try {
+    const { data: rows, error } = await sb
+      .from("pact_points_events")
+      .select("user_id, points_delta")
+      .eq("related_order_id", orderId)
+      .eq("event_type", "redemption")
+      .eq("pending_until_payment", true);
+
+    if (error) {
+      console.error("[pact-points] reversePendingRedemption lookup:", error);
+      return { success: false, refundedPoints: 0, error: error.message };
+    }
+
+    const byUser = new Map<string, number>();
+    for (const r of rows ?? []) {
+      const uid = typeof r.user_id === "string" ? r.user_id : null;
+      const delta = Number(r.points_delta) || 0;
+      if (!uid || delta >= 0) continue;
+      byUser.set(uid, (byUser.get(uid) || 0) + Math.abs(delta));
+    }
+
+    let refundedPoints = 0;
+    for (const [userId, pts] of byUser.entries()) {
+      if (pts <= 0) continue;
+      refundedPoints += pts;
+      const { error: rpcErr } = await sb.rpc("award_pact_points", {
+        p_user_id: userId,
+        p_event_type: "redemption_reversed",
+        p_points_delta: pts,
+        p_bottle_count: null,
+        p_related_order_id: orderId,
+        p_related_user_id: null,
+        p_description: "Payment failed",
+        p_expires_in_days: PACT_POINTS_EXPIRY_DAYS,
+        p_pending_until_payment: false,
+      });
+      if (rpcErr) {
+        console.error("[pact-points] reversePendingRedemption RPC:", rpcErr);
+        return { success: false, refundedPoints: 0, error: rpcErr.message };
+      }
+    }
+
+    // Mark original pending redemption events as no longer pending to prevent double reversal.
+    await sb
+      .from("pact_points_events")
+      .update({ pending_until_payment: false })
+      .eq("related_order_id", orderId)
+      .eq("event_type", "redemption")
+      .eq("pending_until_payment", true);
+
+    return { success: true, refundedPoints };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Unknown error";
+    console.error("[pact-points] reversePendingRedemption:", e);
+    return { success: false, refundedPoints: 0, error: message };
   }
 }

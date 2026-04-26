@@ -19,6 +19,10 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ReservationLoadingModal } from "@/components/checkout/reservation-loading-modal";
 import { ProgressionBuffDisplay } from "@/components/membership/progression-buff-display";
+import {
+  StripePaymentSection,
+  type StripeConfirmResult,
+} from "@/components/checkout/stripe-payment-section";
 import { toast } from "sonner";
 import {
   MapPin,
@@ -82,6 +86,15 @@ function CheckoutContent() {
   const [loading, setLoading] = useState(true);
   const [zoneLoading, setZoneLoading] = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [paymentMode, setPaymentMode] = useState<
+    "setup_intent" | "payment_intent" | null
+  >(null);
+  const [stripeIntentId, setStripeIntentId] = useState<string | null>(null);
+  const [stripeConfirmFn, setStripeConfirmFn] = useState<
+    (() => Promise<{ success: boolean; intentId: string; error?: string }>) | null
+  >(null);
+  const [stripeError, setStripeError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   // Payment method selection removed - payment happens when pallet fills
   const [selectedPallet, setSelectedPallet] = useState<PalletInfo | null>(null);
@@ -718,6 +731,191 @@ function CheckoutContent() {
     // Don't set false on success - keep showing during redirect
   };
 
+  const handlePlaceReservation = useCallback(async () => {
+    setStripeError(null);
+
+    // Validate required fields
+    if (!profile?.email) {
+      toast.error("Please add your profile information first");
+      return;
+    }
+
+    // Check 6-bottle validation (already validated in useEffect, this is just a safeguard)
+    if (!isValidCart) {
+      console.error(
+        "❌ [Checkout] Cart validation failed - button should be disabled",
+      );
+      toast.error(
+        "Please complete your order to meet the 6-bottle requirement",
+      );
+      return;
+    }
+
+    if (!deliveryComplete) return;
+    if (!selectedPallet?.id) {
+      toast.error("Please select a pallet to continue");
+      return;
+    }
+
+    if (!stripeConfirmFn || !paymentMode) {
+      setStripeError("Payment is not ready yet. Please wait a moment.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setIsPlacingOrder(true);
+
+    const confirmed = await stripeConfirmFn();
+    if (!confirmed.success) {
+      setStripeError(confirmed.error ?? "Payment confirmation failed");
+      setIsSubmitting(false);
+      setIsPlacingOrder(false);
+      return;
+    }
+
+    const formData = new FormData();
+
+    // Customer details
+    formData.append("fullName", profile?.full_name || "");
+    formData.append("email", profile?.email || "");
+    formData.append("phone", profile?.phone || "");
+
+    // Delivery address (always from profile)
+    if (profile) {
+      formData.append("street", profile.address || "");
+      formData.append("postcode", profile.postal_code || "");
+      formData.append("city", profile.city || "");
+      formData.append(
+        "countryCode",
+        profile.country === "Sweden"
+          ? "SE"
+          : profile.country === "Norway"
+            ? "NO"
+            : profile.country === "Denmark"
+              ? "DK"
+              : profile.country === "Finland"
+                ? "FI"
+                : profile.country === "Germany"
+                  ? "DE"
+                  : profile.country === "France"
+                    ? "FR"
+                    : profile.country === "United Kingdom"
+                      ? "GB"
+                      : "",
+      );
+    }
+
+    // Zone information
+    if (zoneInfo.selectedDeliveryZoneId) {
+      formData.append("selectedDeliveryZoneId", zoneInfo.selectedDeliveryZoneId);
+    }
+
+    // Pallet information
+    formData.append("selectedPalletId", selectedPallet.id);
+
+    // Optional: share allocations
+    if (shareAllocation && shareFriendIds && shareFriendIds.length > 0) {
+      formData.append(
+        "shareBottles",
+        JSON.stringify({
+          friendIds: shareFriendIds,
+          allocations: shareAllocation,
+        }),
+      );
+    }
+
+    if (Number.isFinite(redeemPoints) && redeemPoints > 0) {
+      formData.append("pact_points_redeem", String(Math.floor(redeemPoints)));
+    }
+
+    formData.append("stripe_intent_id", confirmed.intentId);
+    formData.append("stripe_intent_type", paymentMode);
+
+    try {
+      const response = await fetch("/api/checkout/confirm", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        const contentType = response.headers.get("content-type") || "";
+        let redirectUrl: string | null = null;
+        if (contentType.includes("application/json")) {
+          const data: unknown = await response.json().catch(() => null);
+          if (data && typeof data === "object") {
+            const d = data as Record<string, unknown>;
+            redirectUrl = typeof d.redirectUrl === "string" ? d.redirectUrl : null;
+          }
+        }
+
+        toast.success("Reservation placed successfully!");
+        checkoutCompletedRef.current = true;
+        window.location.href = redirectUrl || "/checkout/success";
+        return;
+      }
+
+      void AnalyticsTracker.trackEvent({
+        eventType: "payment_failed",
+        eventCategory: "checkout",
+        metadata: { phase: "confirm", status: response.status },
+      });
+
+      const contentType = response.headers.get("content-type") || "";
+      let errorMessage = "Failed to place reservation";
+      if (contentType.includes("application/json")) {
+        try {
+          const errorData: unknown = await response.json();
+          if (errorData && typeof errorData === "object") {
+            const e = errorData as { error?: unknown; debug?: unknown };
+            if (typeof e.error === "string") errorMessage = e.error;
+            if (e.debug) {
+              console.error(
+                "❌ [Checkout] /api/checkout/confirm debug:",
+                e.debug,
+              );
+            }
+          }
+        } catch {
+          // fall through to generic message
+        }
+      } else {
+        const text = await response.text();
+        console.error(
+          `❌ [Checkout] /api/checkout/confirm returned non-JSON error: status=${response.status} content-type=${contentType} bodyStart=${JSON.stringify(
+            text.slice(0, 200),
+          )}`,
+        );
+      }
+
+      setStripeError(errorMessage);
+      toast.error(errorMessage);
+      setIsSubmitting(false);
+      setIsPlacingOrder(false);
+    } catch (error) {
+      void AnalyticsTracker.trackEvent({
+        eventType: "payment_failed",
+        eventCategory: "checkout",
+        metadata: { phase: "confirm", status: 0, network: true },
+      });
+      console.error("Error placing reservation:", error);
+      setStripeError("Failed to place reservation");
+      toast.error("Failed to place reservation");
+      setIsSubmitting(false);
+      setIsPlacingOrder(false);
+    }
+  }, [
+    deliveryComplete,
+    isValidCart,
+    paymentMode,
+    profile,
+    redeemPoints,
+    selectedPallet?.id,
+    shareAllocation,
+    shareFriendIds,
+    stripeConfirmFn,
+    zoneInfo.selectedDeliveryZoneId,
+  ]);
+
   // Calculate shipping cost
   const shippingCost =
     selectedPallet && cart?.lines
@@ -817,6 +1015,36 @@ function CheckoutContent() {
   const hasBoostedProducerInOrder = boostedLineTotal > 0;
 
   const totalAfterPactPoints = Math.max(0, total - pactPointsSekOff);
+
+  // This is the value we send to /api/checkout/payment-intent as `cart_total_sek`.
+  // We intentionally do NOT include client-only discounts here (voucher/rewards/progression),
+  // because /api/checkout/confirm is the source of truth and validates the final amount.
+  const finalAmountAfterVoucher = useMemo(() => {
+    const subtotalSek = parseFloat(cart?.cost?.totalAmount?.amount ?? "0") || 0;
+    const shippingSek = shippingCost
+      ? shippingCost.totalShippingCostCents / 100
+      : 0;
+    return subtotalSek + shippingSek;
+  }, [cart?.cost?.totalAmount?.amount, shippingCost]);
+
+  const handleStripeIntentCreated = useCallback(
+    (data: {
+      paymentMode: "setup_intent" | "payment_intent";
+      intentId: string;
+      bottlesFilled: number;
+    }) => {
+      setPaymentMode(data.paymentMode);
+      setStripeIntentId(data.intentId);
+    },
+    [],
+  );
+
+  const handleStripeConfirmReady = useCallback(
+    (fn: () => Promise<StripeConfirmResult>) => {
+      setStripeConfirmFn(() => fn);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!Number.isFinite(maxRedemption)) return;
@@ -1525,128 +1753,119 @@ function CheckoutContent() {
                 </h2>
 
                 {deliveryComplete ? (
-                  <form
-                    ref={formRef}
-                    onSubmit={handleSubmit}
-                    className="space-y-3"
-                  >
-                  {hasWarehouseItems ? (
-                    <div className="mb-2">
-                      <PaymentMethodSelectorB2B
-                        onPaymentMethodSelected={setPaymentMethod}
-                        selectedMethod={paymentMethod}
-                        hasWarehouseItems={hasWarehouseItems}
-                        hasProducerItems={hasProducerItems}
-                      />
-                    </div>
-                  ) : null}
-
-                  {hasProducerItems ? (
-                    <div className="space-y-2">
-                      <h3 className="text-base font-semibold text-foreground">
-                        No Payment Required Yet
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        You&apos;ll only pay when your pallet reaches 100% and is
-                        ready to ship.
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Reserve your bottles for free. When the pallet fills
-                        up, you&apos;ll receive an email with a secure payment
-                        link.
-                      </p>
-                    </div>
-                  ) : null}
-
-                  {hasWarehouseItems && paymentMethod === "invoice" ? (
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-medium text-foreground">
-                          Invoice payment
-                        </span>
+                  <div className="space-y-3">
+                    {hasWarehouseItems ? (
+                      <div className="mb-2">
+                        <PaymentMethodSelectorB2B
+                          onPaymentMethodSelected={setPaymentMethod}
+                          selectedMethod={paymentMethod}
+                          hasWarehouseItems={hasWarehouseItems}
+                          hasProducerItems={hasProducerItems}
+                        />
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        Your order will be processed and you&apos;ll receive an
-                        invoice within 30 days.
-                      </p>
-                    </div>
-                  ) : null}
+                    ) : null}
 
-                  {!isValidCart ? (
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2 border-b border-red-200 pb-2">
-                        <AlertCircle className="h-5 w-5 text-red-600" />
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-red-600">Order Blocked</p>
-                          <p className="text-xs text-muted-foreground">
-                            Add bottles to meet 6-bottle requirement
+                    {hasProducerItems && selectedPallet ? (
+                      <>
+                        {paymentMode === "setup_intent" ? (
+                          <p className="mb-3 text-sm text-muted-foreground">
+                            Your card will be saved and charged only when the
+                            pallet is full.
                           </p>
+                        ) : null}
+                        {paymentMode === "payment_intent" ? (
+                          <p className="mb-3 text-sm text-muted-foreground">
+                            Your bottles will ship within 7-14 days.
+                          </p>
+                        ) : null}
+                        <StripePaymentSection
+                          palletId={selectedPallet.id}
+                          cartTotalSek={finalAmountAfterVoucher}
+                          pactPointsRedeem={redeemPoints}
+                          onIntentCreated={handleStripeIntentCreated}
+                          onConfirmReady={handleStripeConfirmReady}
+                        />
+
+                        {stripeError ? (
+                          <p className="mt-3 text-sm text-destructive">
+                            {stripeError}
+                          </p>
+                        ) : null}
+
+                        <div className="flex items-center justify-between pt-4 mt-4 border-t border-border">
+                          <span className="text-base">Total</span>
+                          <span className="text-xl font-semibold tabular-nums">
+                            {formatCheckoutKr(totalAfterPactPoints)}
+                          </span>
                         </div>
-                      </div>
-                      <div className="space-y-2">
-                        {validations
-                          .filter((v) => !v.isValid)
-                          .map((v, i) => {
-                            const href = v.groupId
-                              ? `/shop/group/${v.groupId}`
-                              : `/shop/${v.producerHandle}`;
-                            return (
-                              <Link key={i} href={href}>
-                                <div className="group w-full rounded-md border border-border bg-background p-4 transition-all hover:border-foreground/20">
-                                  <div className="flex items-start justify-between gap-3">
-                                    <div className="min-w-0 flex-1">
-                                      <p className="mb-1.5 text-sm font-medium text-foreground">
-                                        {v.groupName || v.producerName}
-                                      </p>
-                                      <p className="mb-2 text-xs text-muted-foreground">
-                                        Current: {v.quantity} bottle
-                                        {v.quantity > 1 ? "s" : ""} •
-                                        <span className="font-medium text-red-600">
-                                          {" "}
-                                          Need {v.needed} more
-                                        </span>{" "}
-                                        for {v.quantity + v.needed} total
-                                      </p>
-                                      <div className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground group-hover:underline">
-                                        Browse wines from this{" "}
-                                        {v.groupId ? "group" : "producer"}
-                                        <ArrowRight className="h-3 w-3" />
+
+                        <Button
+                          type="button"
+                          className="mt-4 w-full border-transparent bg-black text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40"
+                          disabled={!stripeConfirmFn || isSubmitting || zoneLoading}
+                          onClick={handlePlaceReservation}
+                        >
+                          {isSubmitting
+                            ? "Processing..."
+                            : paymentMode === "payment_intent"
+                              ? "Pay now"
+                              : "Place Reservation"}
+                        </Button>
+                      </>
+                    ) : null}
+
+                    {!isValidCart ? (
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 border-b border-red-200 pb-2">
+                          <AlertCircle className="h-5 w-5 text-red-600" />
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold text-red-600">
+                              Order Blocked
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Add bottles to meet 6-bottle requirement
+                            </p>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          {validations
+                            .filter((v) => !v.isValid)
+                            .map((v, i) => {
+                              const href = v.groupId
+                                ? `/shop/group/${v.groupId}`
+                                : `/shop/${v.producerHandle}`;
+                              return (
+                                <Link key={i} href={href}>
+                                  <div className="group w-full rounded-md border border-border bg-background p-4 transition-all hover:border-foreground/20">
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div className="min-w-0 flex-1">
+                                        <p className="mb-1.5 text-sm font-medium text-foreground">
+                                          {v.groupName || v.producerName}
+                                        </p>
+                                        <p className="mb-2 text-xs text-muted-foreground">
+                                          Current: {v.quantity} bottle
+                                          {v.quantity > 1 ? "s" : ""} •
+                                          <span className="font-medium text-red-600">
+                                            {" "}
+                                            Need {v.needed} more
+                                          </span>{" "}
+                                          for {v.quantity + v.needed} total
+                                        </p>
+                                        <div className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground group-hover:underline">
+                                          Browse wines from this{" "}
+                                          {v.groupId ? "group" : "producer"}
+                                          <ArrowRight className="h-3 w-3" />
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
-                                </div>
-                              </Link>
-                            );
-                          })}
+                                </Link>
+                              );
+                            })}
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="flex items-center justify-between pt-3 border-t border-border">
-                        <span className="text-base text-foreground">Total</span>
-                        <span className="text-xl font-semibold tabular-nums text-foreground">
-                          {formatCheckoutKr(totalAfterPactPoints)}
-                        </span>
-                      </div>
-                      <Button
-                        type="submit"
-                        className="w-full bg-black text-white hover:bg-black/90"
-                        size="lg"
-                        disabled={zoneLoading}
-                      >
-                        {zoneLoading ? (
-                          <>
-                            <div className="mr-2 h-5 w-5 animate-spin rounded-full border-b-2 border-white" />
-                            Finding Zones…
-                          </>
-                        ) : (
-                          "Place Reservation"
-                        )}
-                      </Button>
-                    </>
-                  )}
-                </form>
+                    ) : null}
+                  </div>
               ) : null}
               </div>
             </section>

@@ -34,6 +34,8 @@ import {
 } from "@/lib/membership/progression-rewards";
 import { checkAndMintMilestoneVouchers } from "@/lib/membership/milestone-vouchers";
 import { tryActivateReferralOnFirstOrder } from "@/lib/referral/activate-referral-on-first-order";
+import { stripe } from "@/lib/stripe";
+import { calculateCartShippingCost } from "@/lib/shipping-calculations";
 
 export async function POST(request: Request) {
   let voucherApplied = false;
@@ -55,6 +57,8 @@ export async function POST(request: Request) {
       const formData = await request.formData();
       const voucherCodeField = formData.get("voucher_code");
       const pactPointsRedeemField = formData.get("pact_points_redeem");
+      const stripeIntentIdField = formData.get("stripe_intent_id");
+      const stripeIntentTypeField = formData.get("stripe_intent_type");
       body = {
         address: {
           fullName: formData.get("fullName"),
@@ -78,6 +82,12 @@ export async function POST(request: Request) {
               : pactPointsRedeemField != null
                 ? Number(String(pactPointsRedeemField))
                 : undefined,
+        stripe_intent_id:
+          typeof stripeIntentIdField === "string" ? stripeIntentIdField : undefined,
+        stripe_intent_type:
+          typeof stripeIntentTypeField === "string"
+            ? stripeIntentTypeField
+            : undefined,
         // paymentMethodId removed - using new payment flow
       };
     }
@@ -320,6 +330,354 @@ export async function POST(request: Request) {
 
     console.log("Reservation created:", reservation);
 
+    // Extract discount inputs early so we can validate Stripe intent amounts server-side.
+    const voucherCodeRaw =
+      body && typeof body === "object" && "voucher_code" in body
+        ? (body as { voucher_code?: unknown }).voucher_code
+        : undefined;
+    const voucher_code =
+      typeof voucherCodeRaw === "string" && voucherCodeRaw.trim() !== ""
+        ? voucherCodeRaw.trim()
+        : undefined;
+
+    const pactPointsRedeemRaw =
+      body && typeof body === "object" && "pact_points_redeem" in body
+        ? (body as { pact_points_redeem?: unknown }).pact_points_redeem
+        : undefined;
+    const pact_points_redeem =
+      typeof pactPointsRedeemRaw === "number"
+        ? pactPointsRedeemRaw
+        : typeof pactPointsRedeemRaw === "string"
+          ? Number(pactPointsRedeemRaw)
+          : 0;
+
+    // If voucher_code is present, validate/apply it before amount validation.
+    if (voucher_code && user?.id) {
+      try {
+        // List-price subtotal (pre member / early-bird) for voucher eligibility — matches milestone mint comment.
+        const { data: listPriceRows, error: listPriceError } = await sbAdmin
+          .from("cart_items")
+          .select("quantity, wines ( base_price_cents )")
+          .eq("cart_id", cart.id);
+
+        let listPriceTotalCents = 0;
+        if (!listPriceError && listPriceRows?.length) {
+          for (const row of listPriceRows) {
+            const wine = row.wines as { base_price_cents: number | null } | null;
+            const unit = wine?.base_price_cents;
+            if (typeof unit === "number" && unit > 0) {
+              listPriceTotalCents += unit * row.quantity;
+            }
+          }
+        }
+        if (listPriceTotalCents <= 0) {
+          listPriceTotalCents = Math.round(
+            parseFloat(String(cart.cost.totalAmount.amount)) * 100,
+          );
+        }
+
+        const { data: rpcData, error: rpcError } = await sbAdmin.rpc(
+          "use_discount_code",
+          {
+            p_code: voucher_code,
+            p_user_id: user.id,
+            p_order_amount_cents: listPriceTotalCents,
+          },
+        );
+
+        if (rpcError) {
+          console.error("[Checkout API] use_discount_code RPC error:", rpcError);
+        } else {
+          const rows = Array.isArray(rpcData)
+            ? rpcData
+            : rpcData != null
+              ? [rpcData]
+              : [];
+          const row = rows[0] as
+            | {
+                success?: boolean;
+                discount_amount_cents?: number;
+                error_message?: string | null;
+              }
+            | undefined;
+
+          if (row?.success === true) {
+            voucherApplied = true;
+            voucherDiscountCents = Number(row.discount_amount_cents) || 0;
+            console.log(
+              "[Checkout API] Voucher applied, discount cents:",
+              voucherDiscountCents,
+            );
+          } else if (row && row.success === false && row.error_message) {
+            console.log("[Checkout API] Voucher not applied:", row.error_message);
+          }
+        }
+      } catch (voucherErr) {
+        console.error("[Checkout API] use_discount_code failed:", voucherErr);
+      }
+    }
+
+    // Phase 2.2.A: Attach Stripe intent to reservation
+    const stripe_intent_id =
+      body && typeof body === "object" && "stripe_intent_id" in body
+        ? (body as { stripe_intent_id?: unknown }).stripe_intent_id
+        : undefined;
+    const stripe_intent_type =
+      body && typeof body === "object" && "stripe_intent_type" in body
+        ? (body as { stripe_intent_type?: unknown }).stripe_intent_type
+        : undefined;
+
+    const intentId =
+      typeof stripe_intent_id === "string" && stripe_intent_id.trim() !== ""
+        ? stripe_intent_id.trim()
+        : null;
+    const intentType =
+      stripe_intent_type === "setup_intent" || stripe_intent_type === "payment_intent"
+        ? stripe_intent_type
+        : null;
+
+    if (!intentId || !intentType) {
+      return NextResponse.json(
+        { error: "Missing stripe_intent_id or stripe_intent_type" },
+        { status: 400 },
+      );
+    }
+
+    if (!stripe) {
+      console.error("[Checkout API] Stripe not configured");
+      return NextResponse.json({ error: "Stripe not configured" }, { status: 503 });
+    }
+
+    // ------------------------------------------------------------
+    // Server-side amount validation (never trust client totals)
+    // ------------------------------------------------------------
+    // Expected amount is calculated from:
+    // - cart-service totals (member + early-bird already applied)
+    // + shipping (selected pallet)
+    // - voucher discount (if applied above)
+    // - PACT Points discount (boost-aware redemption math)
+    const subtotalSek = parseFloat(String(cart.cost.totalAmount.amount)) || 0;
+
+    let shippingSek = 0;
+    try {
+      if (palletId) {
+        const { data: palletRow, error: palletErr } = await sbAdmin
+          .from("pallets")
+          .select("id, name, cost_cents, bottle_capacity")
+          .eq("id", palletId)
+          .maybeSingle();
+        if (palletErr) throw palletErr;
+        if (palletRow) {
+          const shipping = calculateCartShippingCost(
+            (cart.lines || []).map((l) => ({ quantity: l.quantity })),
+            {
+              id: String(palletRow.id),
+              name: String(palletRow.name ?? ""),
+              costCents: Number(palletRow.cost_cents) || 0,
+              bottleCapacity: Number(palletRow.bottle_capacity) || 0,
+              currentBottles: 0,
+              remainingBottles: 0,
+            },
+          );
+          shippingSek = shipping?.totalShippingCostSek ?? 0;
+        }
+      }
+    } catch (shipErr) {
+      console.error("[Checkout API] Failed to compute shipping for amount validation:", shipErr);
+      return NextResponse.json(
+        { error: "Failed to compute shipping" },
+        { status: 500 },
+      );
+    }
+
+    // Compute boost-aware PACT points discount (SEK) using current cart lines.
+    let pactPointsSekOff = 0;
+    try {
+      if (currentUser?.id && Number.isFinite(pact_points_redeem) && pact_points_redeem > 0) {
+        const lineAmount = (line: CartItem) =>
+          parseFloat(String(line.cost.totalAmount.amount)) || 0;
+        const isBoosted = (line: CartItem) =>
+          line.merchandise.product.producerBoostActive === true;
+
+        const boostedLineTotal = cart.lines
+          .filter(isBoosted)
+          .reduce((sum, line) => sum + lineAmount(line), 0);
+        const nonBoostedLineTotal = cart.lines
+          .filter((line) => !isBoosted(line))
+          .reduce((sum, line) => sum + lineAmount(line), 0);
+
+        const availablePoints = await getRedeemableBalance(currentUser.id);
+        const { maxPoints: maxRedeemable } = calculateBoostAwareMaxRedemption(
+          boostedLineTotal,
+          nonBoostedLineTotal,
+          availablePoints,
+        );
+        const requested = Math.floor(pact_points_redeem);
+        const toRedeem = Math.min(requested, maxRedeemable);
+        if (toRedeem > 0) {
+          const alloc = allocatePactRedemptionPoints(
+            toRedeem,
+            boostedLineTotal,
+            nonBoostedLineTotal,
+          );
+          pactPointsSekOff = alloc.sekDiscount;
+        }
+      }
+    } catch (pactCalcErr) {
+      console.error("[Checkout API] Failed to compute PACT points discount:", pactCalcErr);
+      return NextResponse.json(
+        { error: "Failed to compute PACT Points discount" },
+        { status: 500 },
+      );
+    }
+
+    const voucherSekOff = (Number(voucherDiscountCents) || 0) / 100;
+    const expectedFinalSek = Math.max(
+      0,
+      subtotalSek + shippingSek - voucherSekOff - pactPointsSekOff,
+    );
+    const expectedAmountOre = Math.round(expectedFinalSek * 100);
+
+    if (expectedAmountOre <= 0) {
+      return NextResponse.json(
+        { error: "Order total cannot be zero" },
+        { status: 400 },
+      );
+    }
+
+    const withinTolerance = (a: number, b: number) => Math.abs(a - b) <= 1;
+
+    if (intentType === "setup_intent") {
+      const setupIntent = await stripe.setupIntents.retrieve(intentId);
+      console.log("[Checkout API] Retrieved SetupIntent:", {
+        id: setupIntent.id,
+        status: setupIntent.status,
+        payment_method: setupIntent.payment_method,
+      });
+
+      if (setupIntent.status !== "succeeded") {
+        return NextResponse.json(
+          { error: "SetupIntent not succeeded" },
+          { status: 400 },
+        );
+      }
+
+      const expectedFromStripeRaw =
+        setupIntent.metadata && typeof setupIntent.metadata.expected_amount_ore === "string"
+          ? Number(setupIntent.metadata.expected_amount_ore)
+          : NaN;
+      if (!Number.isFinite(expectedFromStripeRaw)) {
+        return NextResponse.json(
+          { error: "SetupIntent missing expected_amount_ore metadata" },
+          { status: 400 },
+        );
+      }
+      if (!withinTolerance(expectedAmountOre, expectedFromStripeRaw)) {
+        console.error("[Checkout API] Amount mismatch (setup_intent)", {
+          expectedAmountOre,
+          stripeExpectedAmountOre: expectedFromStripeRaw,
+          diff: expectedAmountOre - expectedFromStripeRaw,
+          subtotalSek,
+          shippingSek,
+          voucherDiscountCents,
+          pactPointsSekOff,
+        });
+        return NextResponse.json(
+          { error: "Amount mismatch" },
+          { status: 400 },
+        );
+      }
+
+      const paymentMethodId =
+        typeof setupIntent.payment_method === "string"
+          ? setupIntent.payment_method
+          : null;
+      if (!paymentMethodId) {
+        return NextResponse.json(
+          { error: "SetupIntent missing payment_method" },
+          { status: 400 },
+        );
+      }
+
+      const { error: upErr } = await sbAdmin
+        .from("order_reservations")
+        .update({
+          setup_intent_id: intentId,
+          payment_method_id: paymentMethodId,
+          payment_mode: "setup_intent",
+          payment_status: "pending",
+        })
+        .eq("id", reservation.id);
+
+      if (upErr) {
+        console.error("[Checkout API] Failed to update reservation payment fields:", upErr);
+        return NextResponse.json(
+          { error: "Failed to attach Stripe intent" },
+          { status: 500 },
+        );
+      }
+    } else {
+      const paymentIntent = await stripe.paymentIntents.retrieve(intentId);
+      console.log("[Checkout API] Retrieved PaymentIntent:", {
+        id: paymentIntent.id,
+        status: paymentIntent.status,
+        payment_method: paymentIntent.payment_method,
+      });
+
+      if (paymentIntent.status !== "succeeded") {
+        return NextResponse.json(
+          { error: "PaymentIntent not succeeded" },
+          { status: 400 },
+        );
+      }
+
+      const stripeAmountOre = Number(paymentIntent.amount) || 0;
+      if (!withinTolerance(expectedAmountOre, stripeAmountOre)) {
+        console.error("[Checkout API] Amount mismatch (payment_intent)", {
+          expectedAmountOre,
+          stripeAmountOre,
+          diff: expectedAmountOre - stripeAmountOre,
+          subtotalSek,
+          shippingSek,
+          voucherDiscountCents,
+          pactPointsSekOff,
+        });
+        return NextResponse.json(
+          { error: "Amount mismatch" },
+          { status: 400 },
+        );
+      }
+
+      const paymentMethodId =
+        typeof paymentIntent.payment_method === "string"
+          ? paymentIntent.payment_method
+          : null;
+      if (!paymentMethodId) {
+        return NextResponse.json(
+          { error: "PaymentIntent missing payment_method" },
+          { status: 400 },
+        );
+      }
+
+      const { error: upErr } = await sbAdmin
+        .from("order_reservations")
+        .update({
+          payment_intent_id: intentId,
+          payment_method_id: paymentMethodId,
+          payment_mode: "payment_intent",
+          payment_status: "paid",
+        })
+        .eq("id", reservation.id);
+
+      if (upErr) {
+        console.error("[Checkout API] Failed to update reservation payment fields:", upErr);
+        return NextResponse.json(
+          { error: "Failed to attach Stripe intent" },
+          { status: 500 },
+        );
+      }
+    }
+
     // Create reservation items (use all items, or filter by source if needed)
     console.log("Creating reservation items");
     const itemsToAdd = hasWarehouseItems && !hasProducerItems 
@@ -499,90 +857,6 @@ export async function POST(request: Request) {
 
     console.log("Bookings created");
 
-    const voucherCodeRaw =
-      body && typeof body === "object" && "voucher_code" in body
-        ? (body as { voucher_code?: unknown }).voucher_code
-        : undefined;
-    const voucher_code =
-      typeof voucherCodeRaw === "string" && voucherCodeRaw.trim() !== ""
-        ? voucherCodeRaw.trim()
-        : undefined;
-
-    const pactPointsRedeemRaw =
-      body && typeof body === "object" && "pact_points_redeem" in body
-        ? (body as { pact_points_redeem?: unknown }).pact_points_redeem
-        : undefined;
-    const pact_points_redeem =
-      typeof pactPointsRedeemRaw === "number"
-        ? pactPointsRedeemRaw
-        : typeof pactPointsRedeemRaw === "string"
-          ? Number(pactPointsRedeemRaw)
-          : 0;
-
-    if (voucher_code && user?.id) {
-      try {
-        // List-price subtotal (pre member / early-bird) for voucher eligibility — matches milestone mint comment.
-        const { data: listPriceRows, error: listPriceError } = await sbAdmin
-          .from("cart_items")
-          .select("quantity, wines ( base_price_cents )")
-          .eq("cart_id", cart.id);
-
-        let listPriceTotalCents = 0;
-        if (!listPriceError && listPriceRows?.length) {
-          for (const row of listPriceRows) {
-            const wine = row.wines as { base_price_cents: number | null } | null;
-            const unit = wine?.base_price_cents;
-            if (typeof unit === "number" && unit > 0) {
-              listPriceTotalCents += unit * row.quantity;
-            }
-          }
-        }
-        if (listPriceTotalCents <= 0) {
-          listPriceTotalCents = Math.round(
-            parseFloat(String(cart.cost.totalAmount.amount)) * 100,
-          );
-        }
-
-        const { data: rpcData, error: rpcError } = await sbAdmin.rpc(
-          "use_discount_code",
-          {
-            p_code: voucher_code,
-            p_user_id: user.id,
-            p_order_amount_cents: listPriceTotalCents,
-          },
-        );
-
-        if (rpcError) {
-          console.error("[Checkout API] use_discount_code RPC error:", rpcError);
-        } else {
-          const rows = Array.isArray(rpcData) ? rpcData : rpcData != null ? [rpcData] : [];
-          const row = rows[0] as
-            | {
-                success?: boolean;
-                discount_amount_cents?: number;
-                error_message?: string | null;
-              }
-            | undefined;
-
-          if (row?.success === true) {
-            voucherApplied = true;
-            voucherDiscountCents = Number(row.discount_amount_cents) || 0;
-            console.log(
-              "[Checkout API] Voucher applied, discount cents:",
-              voucherDiscountCents,
-            );
-          } else if (row && row.success === false && row.error_message) {
-            console.log(
-              "[Checkout API] Voucher not applied:",
-              row.error_message,
-            );
-          }
-        }
-      } catch (voucherErr) {
-        console.error("[Checkout API] use_discount_code failed:", voucherErr);
-      }
-    }
-
     // Optional: redeem PACT Points (new system). Never block checkout on failure.
     if (currentUser?.id && Number.isFinite(pact_points_redeem) && pact_points_redeem > 0) {
       try {
@@ -620,6 +894,7 @@ export async function POST(request: Request) {
             currentUser.id,
             totalPointsUsed,
             reservation.id,
+            intentType === "setup_intent",
           );
 
           if (redeemResult.success) {
