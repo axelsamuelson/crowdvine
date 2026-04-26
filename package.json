@@ -62,6 +62,8 @@
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
     "@sendgrid/mail": "^8.1.5",
+    "@stripe/react-stripe-js": "^3.0.0",
+    "@stripe/stripe-js": "^4.10.0",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.56.1",
     "@tailwindcss/line-clamp": "^0.4.4",

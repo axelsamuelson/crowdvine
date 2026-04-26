@@ -142,8 +142,12 @@ async function completePallet(palletId: string): Promise<void> {
       `📧 [Pallet Completion] Step 2: Triggering payment notifications for pallet ${palletId}`,
     );
 
-    // SECOND: Trigger payment notifications (this creates Stripe links and sends emails)
-    await triggerPaymentNotifications(palletId);
+    // TODO: In Fas 2.3, replace this with auto-charge logic via saved payment methods
+    // for orders with payment_mode = 'setup_intent'. For payment_intent orders,
+    // payment is already complete.
+    console.log(
+      `ℹ️ [Pallet Completion] Skipping payment notifications (deprecated payment link flow) for pallet ${palletId}`,
+    );
 
     console.log(
       `✅ [Pallet Completion] Step 3: All payment notifications sent successfully`,

@@ -1,3 +1,9 @@
+/**
+ * DEPRECATED: Replaced by SetupIntent + PaymentIntent flow.
+ * See app/api/checkout/confirm/route.ts and lib/pallet-completion.ts.
+ * This file is kept temporarily for reference and will be removed in a later cleanup phase.
+ */
+
 import { stripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getAppUrl } from "@/lib/app-url";
@@ -103,7 +109,7 @@ export async function createPaymentLinkForReservation(
     console.log(`🌐 [Payment Link] Using base URL: ${baseUrl}`);
 
     // Create Stripe Checkout Session (payment mode, not setup!)
-    const session = await stripe.checkout.sessions.create({
+    const session = await stripe!.checkout.sessions.create({
       mode: "payment", // Pay now, not save card for future use
       customer_email: reservation.profiles.email,
       line_items: [
@@ -121,8 +127,6 @@ export async function createPaymentLinkForReservation(
       ],
       success_url: `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/payment/cancelled?reservation_id=${reservationId}`,
-      // Note: Stripe Checkout Sessions max 24h, we handle 7-day deadline in our DB
-      // expires_at: removed - use default 24h expiration, regenerate link if needed
       metadata: {
         reservation_id: reservationId,
         pallet_id: reservation.pallet_id,
@@ -130,16 +134,12 @@ export async function createPaymentLinkForReservation(
         bottle_count: bottleCount.toString(),
         total_amount: totalAmountCents.toString(),
       },
-      // Add customer information for better UX
       shipping_address_collection: {
         allowed_countries: ["SE", "NO", "DK", "FI", "DE", "FR", "GB"],
       },
-      // Allow customer to add billing address
       billing_address_collection: "required",
-      // Set payment method types (cards work better than SetupIntent)
       payment_method_types: ["card"],
-      // Add automatic tax if configured
-      automatic_tax: { enabled: false }, // Can be enabled later if needed
+      automatic_tax: { enabled: false },
     });
 
     console.log(`✅ [Payment Link] Stripe session created: ${session.id}`);
@@ -178,48 +178,34 @@ export async function createPaymentLinkForReservation(
   }
 }
 
-/**
- * Get payment status for a reservation
- */
 export async function getPaymentStatus(reservationId: string) {
   const supabase = getSupabaseAdmin();
 
-  try {
-    const { data: reservation, error } = await supabase
-      .from("order_reservations")
-      .select(
-        "payment_status, payment_intent_id, payment_link, payment_deadline, status",
-      )
-      .eq("id", reservationId)
-      .single();
+  const { data: reservation, error } = await supabase
+    .from("order_reservations")
+    .select(
+      "payment_status, payment_intent_id, payment_link, payment_deadline, status",
+    )
+    .eq("id", reservationId)
+    .single();
 
-    if (error || !reservation) {
-      throw new Error(`Reservation ${reservationId} not found`);
-    }
-
-    return {
-      paymentStatus: reservation.payment_status,
-      paymentIntentId: reservation.payment_intent_id,
-      paymentLink: reservation.payment_link,
-      paymentDeadline: reservation.payment_deadline,
-      reservationStatus: reservation.status,
-      hasPaymentLink: !!reservation.payment_link,
-      isExpired: reservation.payment_deadline
-        ? new Date(reservation.payment_deadline) < new Date()
-        : false,
-    };
-  } catch (error) {
-    console.error(
-      `❌ [Payment Status] Error getting payment status for reservation ${reservationId}:`,
-      error,
-    );
-    throw error;
+  if (error || !reservation) {
+    throw new Error(`Reservation ${reservationId} not found`);
   }
+
+  return {
+    paymentStatus: reservation.payment_status,
+    paymentIntentId: reservation.payment_intent_id,
+    paymentLink: reservation.payment_link,
+    paymentDeadline: reservation.payment_deadline,
+    reservationStatus: reservation.status,
+    hasPaymentLink: !!reservation.payment_link,
+    isExpired: reservation.payment_deadline
+      ? new Date(reservation.payment_deadline) < new Date()
+      : false,
+  };
 }
 
-/**
- * Regenerate payment link if expired or missing
- */
 export async function regeneratePaymentLink(
   reservationId: string,
 ): Promise<string> {
@@ -229,30 +215,19 @@ export async function regeneratePaymentLink(
 
   const supabase = getSupabaseAdmin();
 
-  try {
-    // Clear existing payment link
-    await supabase
-      .from("order_reservations")
-      .update({
-        payment_link: null,
-        payment_intent_id: null,
-      })
-      .eq("id", reservationId);
+  // Clear existing payment link
+  await supabase
+    .from("order_reservations")
+    .update({
+      payment_link: null,
+      payment_intent_id: null,
+    })
+    .eq("id", reservationId);
 
-    // Create new payment link
-    return await createPaymentLinkForReservation(reservationId);
-  } catch (error) {
-    console.error(
-      `❌ [Payment Link] Error regenerating payment link for reservation ${reservationId}:`,
-      error,
-    );
-    throw error;
-  }
+  // Create new payment link
+  return await createPaymentLinkForReservation(reservationId);
 }
 
-/**
- * Cancel payment link (if reservation is cancelled)
- */
 export async function cancelPaymentLink(reservationId: string): Promise<void> {
   console.log(
     `❌ [Payment Link] Cancelling payment link for reservation ${reservationId}`,
@@ -260,48 +235,35 @@ export async function cancelPaymentLink(reservationId: string): Promise<void> {
 
   const supabase = getSupabaseAdmin();
 
-  try {
-    // Get payment intent ID if exists
-    const { data: reservation } = await supabase
-      .from("order_reservations")
-      .select("payment_intent_id")
-      .eq("id", reservationId)
-      .single();
+  // Get payment intent ID if exists
+  const { data: reservation } = await supabase
+    .from("order_reservations")
+    .select("payment_intent_id")
+    .eq("id", reservationId)
+    .single();
 
-    // Cancel Stripe payment intent if exists
-    if (reservation?.payment_intent_id) {
-      try {
-        await stripe.paymentIntents.cancel(reservation.payment_intent_id);
-        console.log(
-          `✅ [Payment Link] Cancelled Stripe payment intent ${reservation.payment_intent_id}`,
-        );
-      } catch (stripeError) {
-        console.error(
-          `❌ [Payment Link] Error cancelling Stripe payment intent:`,
-          stripeError,
-        );
-        // Continue anyway, we'll clean up the database
-      }
+  // Cancel Stripe payment intent if exists
+  if (reservation?.payment_intent_id) {
+    try {
+      await stripe!.paymentIntents.cancel(reservation.payment_intent_id);
+      console.log(
+        `✅ [Payment Link] Cancelled Stripe payment intent ${reservation.payment_intent_id}`,
+      );
+    } catch (stripeError) {
+      console.error(`❌ [Payment Link] Error cancelling Stripe payment intent:`, stripeError);
     }
-
-    // Clear payment link from database
-    await supabase
-      .from("order_reservations")
-      .update({
-        payment_link: null,
-        payment_intent_id: null,
-        payment_status: "cancelled",
-      })
-      .eq("id", reservationId);
-
-    console.log(
-      `✅ [Payment Link] Payment link cancelled for reservation ${reservationId}`,
-    );
-  } catch (error) {
-    console.error(
-      `❌ [Payment Link] Error cancelling payment link for reservation ${reservationId}:`,
-      error,
-    );
-    throw error;
   }
+
+  // Clear payment link from database
+  await supabase
+    .from("order_reservations")
+    .update({
+      payment_link: null,
+      payment_intent_id: null,
+      payment_status: "cancelled",
+    })
+    .eq("id", reservationId);
+
+  console.log(`✅ [Payment Link] Payment link cancelled for reservation ${reservationId}`);
 }
+

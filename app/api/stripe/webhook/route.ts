@@ -3,6 +3,11 @@ import { stripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function POST(request: NextRequest) {
+  if (!stripe) {
+    console.error("❌ [Stripe Webhook] Stripe is not configured");
+    return NextResponse.json({ error: "Stripe not configured" }, { status: 503 });
+  }
+
   const body = await request.text();
   const signature = request.headers.get("stripe-signature");
 
@@ -30,10 +35,12 @@ export async function POST(request: NextRequest) {
       process.env.STRIPE_WEBHOOK_SECRET,
     );
     console.log(`✅ [Stripe Webhook] Event received: ${event.type}`);
-  } catch (err: any) {
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Unknown signature verification error";
     console.error(
       `❌ [Stripe Webhook] Webhook signature verification failed:`,
-      err.message,
+      message,
     );
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
@@ -217,13 +224,7 @@ export async function POST(request: NextRequest) {
       case "setup_intent.succeeded": {
         const setupIntent = event.data.object;
         console.log(
-          `💳 [Stripe Webhook] Setup intent succeeded: ${setupIntent.id}`,
-        );
-
-        // This is for the old payment method saving system
-        // We can keep this for backward compatibility but won't use it in the new flow
-        console.log(
-          `ℹ️ [Stripe Webhook] Setup intent succeeded but not processing (new payment flow doesn't use setup intents)`,
+          `💳 [Stripe Webhook] setup_intent.succeeded: ${setupIntent.id}`,
         );
         break;
       }
@@ -231,13 +232,53 @@ export async function POST(request: NextRequest) {
       case "setup_intent.setup_failed": {
         const setupIntent = event.data.object;
         console.log(
-          `❌ [Stripe Webhook] Setup intent failed: ${setupIntent.id}`,
+          `❌ [Stripe Webhook] setup_intent.setup_failed: ${setupIntent.id}`,
         );
+        break;
+      }
 
-        // Log for debugging but don't process (old system)
+      case "payment_method.attached": {
+        const pm = event.data.object;
+        const pmId =
+          pm && typeof pm === "object" && "id" in pm
+            ? String((pm as { id: unknown }).id)
+            : "unknown";
+        console.log(`💳 [Stripe Webhook] payment_method.attached: ${pmId}`);
+        break;
+      }
+
+      case "payment_method.detached": {
+        const pm = event.data.object;
+        const pmId =
+          pm && typeof pm === "object" && "id" in pm
+            ? String((pm as { id: unknown }).id)
+            : "unknown";
+        console.log(`🗑️ [Stripe Webhook] payment_method.detached: ${pmId}`);
+        break;
+      }
+
+      case "customer.deleted": {
+        const customer = event.data.object;
+        const customerId =
+          customer && typeof customer === "object" && "id" in customer
+            ? String((customer as { id: unknown }).id)
+            : null;
         console.log(
-          `ℹ️ [Stripe Webhook] Setup intent failed but not processing (new payment flow doesn't use setup intents)`,
+          `🧹 [Stripe Webhook] customer.deleted: ${customerId ?? "unknown"}`,
         );
+        if (customerId) {
+          const supabase = getSupabaseAdmin();
+          const { error: updateError } = await supabase
+            .from("user_memberships")
+            .update({ stripe_customer_id: null })
+            .eq("stripe_customer_id", customerId);
+          if (updateError) {
+            console.error(
+              `❌ [Stripe Webhook] Failed to null out stripe_customer_id for ${customerId}:`,
+              updateError,
+            );
+          }
+        }
         break;
       }
 
@@ -246,10 +287,11 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ received: true });
-  } catch (error: any) {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
     console.error(`❌ [Stripe Webhook] Error processing webhook:`, error);
     return NextResponse.json(
-      { error: "Webhook processing failed", details: error.message },
+      { error: "Webhook processing failed", details: message },
       { status: 500 },
     );
   }

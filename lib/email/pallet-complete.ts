@@ -1,5 +1,4 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { createPaymentLinkForReservation } from "@/lib/stripe/payment-links";
 
 /**
  * Trigger payment notifications for all pending reservations in a completed pallet
@@ -117,9 +116,6 @@ async function sendPaymentNotification(reservation: any): Promise<void> {
         return sum + price * quantity;
       }, 0) || 0;
 
-    // Create payment link
-    const paymentLink = await createPaymentLinkForReservation(reservation.id);
-
     // Calculate deadline info
     const deadline = new Date(reservation.payment_deadline);
     const deadlineStr = deadline.toLocaleDateString("sv-SE", {
@@ -128,6 +124,7 @@ async function sendPaymentNotification(reservation: any): Promise<void> {
       day: "numeric",
     });
 
+    // TODO: In Fas 2.3, this email will be sent only on payment failure. On success, a different email will be sent.
     // Send email
     await sendPaymentReadyEmail({
       to: reservation.profiles.email,
@@ -135,7 +132,6 @@ async function sendPaymentNotification(reservation: any): Promise<void> {
       palletName: reservation.pallets?.name || "Your Pallet",
       bottleCount: bottleCount,
       totalAmount: (totalAmountCents / 100).toFixed(2),
-      paymentLink: paymentLink,
       deadline: deadlineStr,
       reservationId: reservation.id,
     });
@@ -157,7 +153,6 @@ async function sendPaymentReadyEmail(params: {
   palletName: string;
   bottleCount: number;
   totalAmount: string;
-  paymentLink: string;
   deadline: string;
   reservationId: string;
 }): Promise<void> {
@@ -176,7 +171,7 @@ async function sendPaymentReadyEmail(params: {
         email: process.env.SENDGRID_FROM_EMAIL!,
         name: process.env.SENDGRID_FROM_NAME || "PACT",
       },
-      subject: `🍷 Your Pallet is Ready - Payment Required`,
+      subject: `🍷 Your Pallet is Ready`,
       html: generatePaymentEmailHTML(params),
       text: generatePaymentEmailText(params),
     };
@@ -200,7 +195,6 @@ function generatePaymentEmailHTML(params: {
   palletName: string;
   bottleCount: number;
   totalAmount: string;
-  paymentLink: string;
   deadline: string;
 }): string {
   return `
@@ -239,23 +233,11 @@ function generatePaymentEmailHTML(params: {
             </div>
           </div>
           
-          <!-- Payment Instructions -->
-          <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 20px; margin: 30px 0;">
-            <h3 style="color: #856404; margin: 0 0 15px 0; font-size: 18px; font-weight: 600;">Next Steps</h3>
-            <p style="color: #856404; font-size: 16px; line-height: 1.6; margin: 0 0 15px 0;">
-              Please complete your payment by <strong>${params.deadline}</strong> to confirm your order.
+          <div style="background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 20px; margin: 30px 0;">
+            <h3 style="color: #000000; margin: 0 0 15px 0; font-size: 18px; font-weight: 600;">What happens next?</h3>
+            <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0;">
+              We'll follow up with payment instructions if needed. Please keep an eye on your inbox.
             </p>
-            <p style="color: #856404; font-size: 14px; line-height: 1.5; margin: 0;">
-              If you don't complete payment by the deadline, your reservation will be released to other customers.
-            </p>
-          </div>
-          
-          <!-- Payment Button -->
-          <div style="text-align: center; margin: 40px 0;">
-            <a href="${params.paymentLink}" 
-               style="display: inline-block; background-color: #000000; color: #ffffff; padding: 16px 32px; text-decoration: none; border-radius: 6px; font-size: 18px; font-weight: 600; transition: background-color 0.2s;">
-              Complete Payment
-            </a>
           </div>
           
           <!-- Additional Info -->
@@ -298,7 +280,6 @@ function generatePaymentEmailText(params: {
   palletName: string;
   bottleCount: number;
   totalAmount: string;
-  paymentLink: string;
   deadline: string;
 }): string {
   return `
@@ -310,18 +291,8 @@ Your Reservation:
 - ${params.bottleCount} bottles
 - ${params.totalAmount} SEK
 
-Next Steps:
-Please complete your payment by ${params.deadline} to confirm your order.
-
-Complete Payment: ${params.paymentLink}
-
-If you don't complete payment by the deadline, your reservation will be released to other customers.
-
 What happens next?
-1. Complete your payment using the link above
-2. We'll process your order and prepare it for shipping
-3. You'll receive a shipping confirmation email
-4. Your wine will be delivered to your pickup location
+We'll follow up with payment instructions if needed. Please keep an eye on your inbox.
 
 Questions? Contact us at support@pactwines.com
 
@@ -338,6 +309,12 @@ export async function sendPaymentReminder(
   console.log(
     `⏰ [Email Reminder] Sending payment reminder for reservation ${reservationId}`,
   );
+
+  // Deprecated: this flow used payment links. In Fas 2.3 we’ll redesign reminders around the new payment system.
+  console.warn(
+    "[DEPRECATED] sendPaymentReminder called. Payment link reminders are disabled in this phase.",
+  );
+  return;
 
   const supabase = getSupabaseAdmin();
 
