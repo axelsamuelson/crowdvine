@@ -16,7 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ReservationLoadingModal } from "@/components/checkout/reservation-loading-modal";
 import { ProgressionBuffDisplay } from "@/components/membership/progression-buff-display";
 import {
@@ -1127,8 +1126,8 @@ function CheckoutContent() {
     const totalForLine = parseFloat(line.cost.totalAmount.amount);
     const product = line.merchandise.product;
     const imgUrl = product.featuredImage?.url;
-    const producerLabel =
-      product.producerName || product.title;
+    const lineTitle = product.title || line.merchandise.title;
+    const producerLabel = product.producerName ?? "";
     const showLineDiscount =
       product.hasDiscount === true &&
       typeof product.originalUnitPriceSek === "number";
@@ -1136,47 +1135,46 @@ function CheckoutContent() {
       ? product.originalUnitPriceSek! * line.quantity
       : null;
     return (
-      <div key={line.id} className="flex gap-3">
-        <div className="h-20 w-20 shrink-0 overflow-hidden rounded-md bg-muted">
+      <div
+        key={line.id}
+        className="flex items-start gap-3 border-b border-border py-3 last:border-0"
+      >
+        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md bg-muted">
           {imgUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={imgUrl}
-              alt={product.featuredImage?.altText || ""}
-              width={80}
-              height={80}
+              alt={product.featuredImage?.altText || lineTitle}
               className="h-full w-full object-cover"
             />
           ) : null}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="font-medium text-foreground leading-tight">
-            {line.merchandise.title}
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5">{producerLabel}</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Qty {line.quantity}
-          </p>
+          <p className="truncate text-sm font-medium text-foreground">{lineTitle}</p>
+          {producerLabel ? (
+            <p className="mt-0.5 text-xs text-muted-foreground">{producerLabel}</p>
+          ) : null}
+          <p className="text-xs text-muted-foreground">Qty {line.quantity}</p>
           {line.discountLabel ? (
-            <span className="mt-1 inline-flex w-fit items-center rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+            <span className="mt-1 inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700">
               {line.discountLabel}
             </span>
           ) : null}
         </div>
         <div className="shrink-0 text-right">
           {showLineDiscount && originalLineTotal !== null ? (
-            <div className="flex flex-col items-end">
-              <span className="text-sm text-muted-foreground line-through tabular-nums">
+            <>
+              <p className="text-xs text-muted-foreground line-through tabular-nums">
                 {formatCheckoutKr(originalLineTotal)}
-              </span>
-              <span className="text-sm font-medium tabular-nums text-foreground">
+              </p>
+              <p className="text-sm font-medium tabular-nums text-foreground">
                 {formatCheckoutKr(totalForLine)}
-              </span>
-            </div>
+              </p>
+            </>
           ) : (
-            <span className="text-sm font-medium tabular-nums text-foreground">
+            <p className="text-sm font-medium tabular-nums text-foreground">
               {formatCheckoutKr(totalForLine)}
-            </span>
+            </p>
           )}
         </div>
       </div>
@@ -1325,9 +1323,7 @@ function CheckoutContent() {
                 Your order ({cart.totalQuantity}{" "}
                 {cart.totalQuantity === 1 ? "bottle" : "bottles"})
               </p>
-              <div className="space-y-4">
-                {orderLines.map(renderCartLineRow)}
-              </div>
+              <div>{orderLines.map(renderCartLineRow)}</div>
               <div className="space-y-2 border-t border-border pt-4 mt-4 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Subtotal</span>
@@ -1442,9 +1438,7 @@ function CheckoutContent() {
                   placeholder="Discount code"
                   value={discountCodeInput}
                   onChange={(e) => setDiscountCodeInput(e.target.value)}
-                  className={cn(
-                    "h-9 rounded-md border border-border bg-popover pl-3 text-sm text-foreground shadow-sm placeholder:text-muted-foreground",
-                  )}
+                  className="h-9 rounded-md border border-zinc-200 bg-white pl-3 text-sm text-zinc-900 shadow-sm placeholder:text-zinc-500 focus-visible:ring-zinc-300 dark:bg-white dark:text-zinc-900 dark:border-zinc-200 dark:placeholder:text-zinc-500"
                 />
                 <Button
                   type="button"
@@ -1725,52 +1719,43 @@ function CheckoutContent() {
                           <p className="text-sm font-medium text-foreground">
                             Delivery options
                           </p>
-                          <RadioGroup
-                            value="bring"
-                            className="grid gap-0"
-                            aria-label="Delivery options"
+                          <div
+                            className="flex items-start justify-between border-b border-border py-3"
+                            role="group"
+                            aria-label="Delivery option: home delivery via Bring"
                           >
-                            <div className="rounded-md border border-border bg-background px-3 py-4 shadow-sm">
-                              <div className="flex items-start gap-3">
-                                <RadioGroupItem
-                                  value="bring"
-                                  id="checkout-delivery-bring"
-                                  className="mt-0.5 h-[18px] w-[18px] shrink-0 border-2 border-foreground bg-background text-foreground shadow-none data-[state=checked]:border-foreground data-[state=checked]:bg-background [&>span>svg]:h-2 [&>span>svg]:w-2 [&>span>svg]:fill-foreground [&>span>svg]:text-foreground"
-                                />
-                                <div className="min-w-0 flex-1">
-                                  <Label
-                                    htmlFor="checkout-delivery-bring"
-                                    className="cursor-default text-sm font-semibold leading-tight text-foreground"
-                                  >
-                                    Home delivery via Bring
-                                  </Label>
-                                  <p className="mt-0.5 text-sm text-muted-foreground">
-                                    Estimated delivery: {deliveryEstimateLabel}
-                                  </p>
-                                  <div className="mt-3 rounded-md border border-sky-200/80 bg-sky-50/60 px-3 py-2.5 dark:border-sky-900/40 dark:bg-sky-950/30">
-                                    <p className="text-xs leading-snug text-muted-foreground">
-                                      Signature and age verification required at
-                                      delivery
-                                    </p>
-                                  </div>
-                                </div>
-                                <div className="flex shrink-0 flex-row items-center gap-2.5 pl-1">
-                                  <span className="text-sm font-semibold tabular-nums text-foreground whitespace-nowrap">
-                                    {deliveryOptionShippingLabel}
-                                  </span>
-                                  {/* eslint-disable-next-line @next/next/no-img-element -- static brand SVG from /public */}
-                                  <img
-                                    src="/bring-logo.svg"
-                                    alt=""
-                                    width={96}
-                                    height={36}
-                                    className="h-8 w-auto max-w-[120px] shrink-0 object-contain object-right"
-                                    aria-hidden
-                                  />
-                                </div>
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-foreground"
+                                aria-hidden
+                              >
+                                <div className="h-1.5 w-1.5 rounded-full bg-foreground" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-foreground">
+                                  Home delivery via Bring
+                                </p>
+                                <p className="mt-0.5 text-xs text-muted-foreground">
+                                  {deliveryEstimateLabel} · Signature and age
+                                  verification required
+                                </p>
                               </div>
                             </div>
-                          </RadioGroup>
+                            <div className="flex shrink-0 items-center gap-2">
+                              <span className="whitespace-nowrap text-sm tabular-nums text-foreground">
+                                {deliveryOptionShippingLabel}
+                              </span>
+                              {/* eslint-disable-next-line @next/next/no-img-element -- static brand asset from /public */}
+                              <img
+                                src="/bring-logo.svg"
+                                alt=""
+                                width={96}
+                                height={36}
+                                className="h-5 w-auto max-w-[100px] shrink-0 object-contain object-right"
+                                aria-hidden
+                              />
+                            </div>
+                          </div>
                         </div>
 
                         <div>
@@ -1803,14 +1788,9 @@ function CheckoutContent() {
                 ) : null}
 
                 {deliveryComplete ? (
-                  <Button
-                    type="button"
-                    className="w-full"
-                    disabled={zoneLoading || deliveryComplete}
-                    onClick={() => {}}
-                  >
+                  <p className="py-2 text-center text-sm text-muted-foreground">
                     Delivery confirmed ✓
-                  </Button>
+                  </p>
                 ) : null}
               </div>
             </section>
@@ -1855,25 +1835,31 @@ function CheckoutContent() {
                           </p>
                         ) : null}
 
-                        <div className="flex items-center justify-between pt-4 mt-4 border-t border-border">
-                          <span className="text-base">Total</span>
-                          <span className="text-xl font-semibold tabular-nums">
-                            {formatCheckoutKr(totalAfterPactPoints)}
-                          </span>
-                        </div>
+                        <div className="mt-6 space-y-4 border-t border-border pt-4">
+                          <div className="flex items-center justify-between py-4">
+                            <span className="text-base font-semibold text-foreground">
+                              Total
+                            </span>
+                            <span className="text-2xl font-bold tabular-nums text-foreground">
+                              {formatCheckoutKr(totalAfterPactPoints)}
+                            </span>
+                          </div>
 
-                        <Button
-                          type="button"
-                          className="mt-4 w-full border-transparent bg-black text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40"
-                          disabled={!stripeConfirmFn || isSubmitting || zoneLoading}
-                          onClick={handlePlaceReservation}
-                        >
-                          {isSubmitting
-                            ? "Processing..."
-                            : paymentMode === "payment_intent"
-                              ? "Pay now"
-                              : "Place Reservation"}
-                        </Button>
+                          <Button
+                            type="button"
+                            className="w-full border-transparent bg-black text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40"
+                            disabled={
+                              !stripeConfirmFn || isSubmitting || zoneLoading
+                            }
+                            onClick={handlePlaceReservation}
+                          >
+                            {isSubmitting
+                              ? "Processing..."
+                              : paymentMode === "payment_intent"
+                                ? "Pay now"
+                                : "Place Reservation"}
+                          </Button>
+                        </div>
                       </>
                     ) : null}
 

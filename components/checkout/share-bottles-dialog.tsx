@@ -216,7 +216,7 @@ export function ShareBottlesDialog({
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search people you follow"
                 className={cn(
-                  "h-9 rounded-md border border-border bg-popover pl-9 text-sm text-foreground shadow-sm placeholder:text-muted-foreground",
+                  "h-9 rounded-md border border-zinc-200 bg-white pl-9 text-sm text-zinc-900 shadow-sm placeholder:text-zinc-500 focus-visible:ring-zinc-300 dark:bg-white dark:text-zinc-900 dark:border-zinc-200 dark:placeholder:text-zinc-500",
                 )}
                 aria-label="Search people you follow"
                 autoComplete="off"
@@ -392,7 +392,7 @@ export function ShareBottlesDialog({
                                   const v = clampInt(Number(e.target.value), 0, remainingForThisFriend);
                                   setQty(friend.id, line.id, v);
                                 }}
-                                className="w-24 text-right"
+                                className="h-9 w-24 rounded-md border border-zinc-200 bg-white text-right text-sm text-zinc-900 dark:bg-white dark:text-zinc-900 dark:border-zinc-200"
                               />
                             </div>
                           );
