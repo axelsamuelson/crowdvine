@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { getStripeCustomerId } from "@/lib/stripe/customer";
 import { stripe, STRIPE_CONFIG } from "@/lib/stripe";
 
 /**
@@ -14,7 +15,6 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check if Stripe is configured
     if (!STRIPE_CONFIG.isConfigured || !stripe) {
       console.log("⚠️ Stripe not configured, returning empty payment methods");
       return NextResponse.json({
@@ -22,36 +22,66 @@ export async function GET() {
       });
     }
 
-    // Find Stripe customer for this user
-    const customers = await stripe.customers.list({ limit: 100 });
-    const customer = customers.data.find(
-      (c) => c.metadata?.user_id === user.id,
-    );
-
-    if (!customer) {
-      console.log("ℹ️ No Stripe customer found for user:", user.id);
-      return NextResponse.json({
-        paymentMethods: [],
-      });
+    let customerId: string;
+    try {
+      const id = await getStripeCustomerId(user.id);
+      if (!id) {
+        return NextResponse.json(
+          { error: "No payment method on file" },
+          { status: 404 },
+        );
+      }
+      customerId = id;
+    } catch {
+      return NextResponse.json(
+        { error: "Failed to load billing profile" },
+        { status: 500 },
+      );
     }
 
-    console.log("✅ Found Stripe customer:", customer.id, "for user:", user.id);
+    const customer = await stripe.customers.retrieve(customerId);
+    if (
+      typeof customer === "string" ||
+      ("deleted" in customer && customer.deleted)
+    ) {
+      return NextResponse.json(
+        { error: "No payment method on file" },
+        { status: 404 },
+      );
+    }
 
-    // Get payment methods for this customer
+    const defaultPmId =
+      typeof customer.invoice_settings?.default_payment_method === "string"
+        ? customer.invoice_settings.default_payment_method
+        : customer.invoice_settings?.default_payment_method?.id ?? null;
+
     const paymentMethods = await stripe.paymentMethods.list({
-      customer: customer.id,
+      customer: customerId,
       type: "card",
     });
 
-    console.log("💳 Payment methods found:", paymentMethods.data.length);
+    const sorted = [...paymentMethods.data].sort((a, b) => {
+      const aIsDef = defaultPmId === a.id;
+      const bIsDef = defaultPmId === b.id;
+      if (aIsDef !== bIsDef) return aIsDef ? -1 : 1;
+      return (b.created ?? 0) - (a.created ?? 0);
+    });
 
-    // Transform Stripe payment methods to our format
-    const formattedMethods = paymentMethods.data.map((pm) => ({
+    const seen = new Set<string>();
+    const unique = sorted.filter((pm) => {
+      const fp = pm.card?.fingerprint;
+      if (!fp) return true;
+      if (seen.has(fp)) return false;
+      seen.add(fp);
+      return true;
+    });
+
+    const formattedMethods = unique.map((pm) => ({
       id: pm.id,
       type: "card" as const,
       last4: pm.card?.last4,
       brand: pm.card?.brand,
-      is_default: customer.invoice_settings.default_payment_method === pm.id,
+      is_default: defaultPmId === pm.id,
       expiry_month: pm.card?.exp_month,
       expiry_year: pm.card?.exp_year,
     }));

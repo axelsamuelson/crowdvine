@@ -30,7 +30,7 @@ function singleWineFromRow(row: ReservationItemRow): WineJoin | null {
   return Array.isArray(w) ? w[0] ?? null : w;
 }
 
-type ReservationChargeRow = {
+export type ReservationChargeRow = {
   id: string;
   user_id: string;
   payment_mode: string | null;
@@ -234,7 +234,7 @@ async function markReservationPaymentFailed(
 
 type ChargeOneOutcome = "charged" | "failed" | "skipped";
 
-async function chargeOneSetupIntentReservation(
+export async function chargeOneSetupIntentReservation(
   palletId: string,
   row: ReservationChargeRow,
 ): Promise<ChargeOneOutcome> {
@@ -334,6 +334,7 @@ async function chargeOneSetupIntentReservation(
         .update({
           payment_intent_id: paymentIntent.id,
           payment_status: "paid",
+          retry_scheduled_at: null,
         })
         .eq("id", row.id);
 

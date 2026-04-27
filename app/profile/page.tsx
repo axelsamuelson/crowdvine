@@ -11,6 +11,7 @@ import {
 import { PageLayout } from "@/components/layout/page-layout";
 import { B2BProfileLayout } from "@/components/profile/b2b-profile-layout";
 import { ReferralInviteCard } from "@/components/profile/referral-invite-card";
+import { PaymentMethodsSection } from "@/components/profile/payment-methods-section";
 import { LevelBadge } from "@/components/membership/level-badge";
 import { PactPointsTimeline, type PactPointsEvent } from "@/components/membership/pact-points-timeline";
 import { Progress } from "@/components/ui/progress";
@@ -27,7 +28,6 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
-// PaymentMethodCard removed - using new payment flow
 import { getLevelDisplayName, MembershipLevel } from "@/lib/membership/points-engine";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
@@ -88,24 +88,6 @@ interface MembershipData {
   }>;
 }
 
-interface PaymentMethod {
-  id: string;
-  type: "card" | "bank";
-  last4?: string;
-  brand?: string;
-  is_default: boolean;
-  expiry_month?: number;
-  expiry_year?: number;
-}
-
-interface MilestoneVoucher {
-  id: string;
-  code: string;
-  discount_percentage: number;
-  expires_at: string | null;
-  used: boolean;
-}
-
 function ProfilePageContent() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [membershipData, setMembershipData] = useState<MembershipData | null>(
@@ -127,8 +109,8 @@ function ProfilePageContent() {
     });
   }, [membershipData]);
   const [pactEvents, setPactEvents] = useState<PactPointsEvent[]>([]);
-  // Payment methods removed - using new payment flow
   const [reservations, setReservations] = useState<any[]>([]);
+  const [paymentMethodCount, setPaymentMethodCount] = useState(0);
 
   const orderStats = useMemo(() => {
     let bottles = 0;
@@ -145,9 +127,9 @@ function ProfilePageContent() {
   const [loading, setLoading] = useState(true);
   const [unauthorized, setUnauthorized] = useState(false);
 
-  const [dashTab, setDashTab] = useState<"orders" | "activity" | "perks">(
-    "orders",
-  );
+  const [dashTab, setDashTab] = useState<
+    "orders" | "payment" | "activity" | "perks"
+  >("orders");
   const [referralInfo, setReferralInfo] = useState({
     inviteUrl: "",
     invitedCount: 0,
@@ -206,8 +188,55 @@ function ProfilePageContent() {
       fetchReferralLink(),
     ]).finally(() => setLoading(false));
 
-    // Payment method setup check removed - using new payment flow
   }, []);
+
+  const syncPaymentMethodCount = useCallback((count: number) => {
+    setPaymentMethodCount(count);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/user/payment-methods");
+        if (cancelled) return;
+        if (res.ok) {
+          const data: unknown = await res.json();
+          const list =
+            data &&
+            typeof data === "object" &&
+            "paymentMethods" in data &&
+            Array.isArray(
+              (data as { paymentMethods: unknown }).paymentMethods,
+            )
+              ? (data as { paymentMethods: unknown[] }).paymentMethods
+              : [];
+          setPaymentMethodCount(list.length);
+        } else {
+          setPaymentMethodCount(0);
+        }
+      } catch {
+        if (!cancelled) setPaymentMethodCount(0);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const dashTabs = useMemo(
+    () => [
+      { id: "orders" as const, label: "Orders", count: reservations.length },
+      {
+        id: "payment" as const,
+        label: "Payment",
+        badgeCount: paymentMethodCount,
+      },
+      { id: "activity" as const, label: "Activity" },
+      { id: "perks" as const, label: "Perks" },
+    ],
+    [reservations.length, paymentMethodCount],
+  );
 
   const loadLastViewed = () => {
     try {
@@ -380,8 +409,6 @@ function ProfilePageContent() {
     }
   };
 
-  // fetchPaymentMethods removed - using new payment flow
-
   const fetchReservations = async () => {
     try {
       const res = await fetch("/api/user/reservations");
@@ -445,7 +472,7 @@ function ProfilePageContent() {
         profile={profile}
         membershipData={membershipData}
         reservations={reservations}
-        ipEvents={ipEvents}
+        ipEvents={[]}
       />
     );
   }
@@ -471,12 +498,6 @@ function ProfilePageContent() {
         { month: "long", day: "numeric", year: "numeric" },
       )
     : "Recently granted";
-
-  const dashTabs = [
-    { id: "orders" as const, label: "Orders", count: reservations.length },
-    { id: "activity" as const, label: "Activity" },
-    { id: "perks" as const, label: "Perks" },
-  ];
 
   const reservationsTabContent = (
     <div className="space-y-6">
@@ -782,10 +803,25 @@ function ProfilePageContent() {
                     )}
                   >
                     <span className="relative inline-block">
-                      {tab.label}
-                      {"count" in tab && tab.count !== undefined ? (
-                        <span className="ml-1 text-muted-foreground">({tab.count})</span>
-                      ) : null}
+                      {tab.id === "orders" ? (
+                        <>
+                          Orders
+                          <span className="ml-1 text-muted-foreground">
+                            ({tab.count})
+                          </span>
+                        </>
+                      ) : tab.id === "payment" ? (
+                        <>
+                          Payment
+                          {tab.badgeCount > 0 ? (
+                            <span className="ml-1 text-muted-foreground">
+                              ({tab.badgeCount})
+                            </span>
+                          ) : null}
+                        </>
+                      ) : (
+                        tab.label
+                      )}
                       {isActive ? (
                         <span className="absolute -bottom-3 left-0 right-0 h-0.5 rounded-full bg-primary" />
                       ) : null}
@@ -798,6 +834,13 @@ function ProfilePageContent() {
 
           <div className="mt-2">
             {dashTab === "orders" ? reservationsTabContent : null}
+            {dashTab === "payment" ? (
+              <div className="space-y-3">
+                <PaymentMethodsSection
+                  onCountChange={syncPaymentMethodCount}
+                />
+              </div>
+            ) : null}
             {dashTab === "activity" ? (
               <div className="space-y-3">
                 <section className="flex justify-end">

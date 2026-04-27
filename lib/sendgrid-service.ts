@@ -488,16 +488,44 @@ export async function sendPaymentFailedEmail({
   to,
   reservationId,
   reason,
-  profilePaymentUrl,
+  retryHours,
+  profileUrl,
 }: {
   to: string;
   reservationId: string;
   reason: string;
-  profilePaymentUrl: string;
+  retryHours: 24 | 72;
+  profileUrl: string;
 }): Promise<boolean> {
   const subject = "Action required — payment failed for your PACT order";
   const safeReason = escapeHtmlBasic(reason);
-  const text = `We tried to charge your card for reservation ${reservationId} but the payment failed: ${reason}.\nPlease update your payment method at ${profilePaymentUrl}.\nYour reservation is held for 7 days.`;
-  const html = `<p>We tried to charge your card for reservation <strong>${escapeHtmlBasic(reservationId)}</strong> but the payment failed: ${safeReason}.</p><p>Please <a href="${profilePaymentUrl}">update your payment method</a>.</p><p>Your reservation is held for 7 days.</p>`;
+  const base = profileUrl.replace(/\/$/, "");
+  const paymentProfileUrl = `${base}/profile#payment`;
+  const text = `We tried to charge your card for reservation ${reservationId} but the payment failed: ${reason}.
+
+We will automatically retry your payment in ${retryHours} hours. You can update your payment method at ${paymentProfileUrl}`;
+  const html = `<p>We tried to charge your card for reservation <strong>${escapeHtmlBasic(reservationId)}</strong> but the payment failed: ${safeReason}.</p><p>We will automatically retry your payment in <strong>${retryHours}</strong> hours. You can update your payment method at <a href="${paymentProfileUrl}">${paymentProfileUrl}</a>.</p>`;
+  return sendGridService.sendEmail({ to, subject, html, text });
+}
+
+export async function sendPaymentCancelledEmail({
+  to,
+  reservationId,
+  reason,
+}: {
+  to: string;
+  reservationId: string;
+  reason: string;
+}): Promise<boolean> {
+  const subject = "Your PACT reservation has been cancelled";
+  const safeReason = escapeHtmlBasic(reason);
+  const text = `Unfortunately we had to cancel your reservation ${reservationId} because we were unable to process your payment after multiple attempts.
+
+${reason}
+
+Any PACT Points used on this order have been refunded to your account.
+
+You're welcome to place a new reservation at pact.wine.`;
+  const html = `<p>Unfortunately we had to cancel your reservation <strong>${escapeHtmlBasic(reservationId)}</strong> because we were unable to process your payment after multiple attempts.</p><p>${safeReason}</p><p>Any PACT Points used on this order have been refunded to your account.</p><p>You're welcome to place a new reservation at <a href="https://pact.wine">pact.wine</a>.</p>`;
   return sendGridService.sendEmail({ to, subject, html, text });
 }

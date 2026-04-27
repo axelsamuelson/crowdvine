@@ -42,6 +42,8 @@ async function runMiddleware(req: NextRequest) {
     "/auth/auth-code-error",
     "/forgot-password",
     "/tasting", // Allow tasting pages for guests
+    "/api/stripe/webhook",
+    "/api/cron",
   ];
   const isPublic = PUBLIC.some(
     (p) => pathname === p || pathname.startsWith(`${p}/`),

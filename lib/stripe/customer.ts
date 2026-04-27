@@ -10,6 +10,31 @@ type ProfileRow = {
   full_name: string | null;
 };
 
+/**
+ * Read-only: returns Stripe customer id from user_memberships, or null if none.
+ * Does not create a customer or call Stripe.
+ */
+export async function getStripeCustomerId(
+  userId: string,
+): Promise<string | null> {
+  const sb = getSupabaseAdmin();
+
+  const { data: membership, error } = await sb
+    .from("user_memberships")
+    .select("stripe_customer_id")
+    .eq("user_id", userId)
+    .maybeSingle<MembershipRow>();
+
+  if (error) {
+    console.error("[Stripe] getStripeCustomerId query failed", error);
+    throw error;
+  }
+
+  const raw = membership?.stripe_customer_id;
+  const id = typeof raw === "string" ? raw.trim() : "";
+  return id !== "" ? id : null;
+}
+
 export async function getOrCreateStripeCustomer(userId: string): Promise<string> {
   if (!stripe) {
     console.error("[Stripe] Stripe client not configured");

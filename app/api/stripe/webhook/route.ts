@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { getAppUrl } from "@/lib/app-url";
-
 async function handlePaymentIntentSucceededWebhook(
   paymentIntent: Stripe.PaymentIntent,
 ): Promise<void> {
@@ -163,6 +161,16 @@ async function handlePaymentIntentPaymentFailedWebhook(
     return;
   }
 
+  const { schedulePaymentRetry } = await import("@/lib/payment-retry");
+  try {
+    await schedulePaymentRetry(reservationId, nextAttempts);
+  } catch (e) {
+    console.error(
+      `[Stripe Webhook] reservation_id=${reservationId} schedulePaymentRetry:`,
+      e,
+    );
+  }
+
   const userId =
     prior && typeof prior.user_id === "string" ? prior.user_id : null;
   let toEmail: string | null = null;
@@ -178,21 +186,24 @@ async function handlePaymentIntentPaymentFailedWebhook(
     }
   }
 
-  if (toEmail) {
+  if (toEmail && nextAttempts < 3) {
     const { sendPaymentFailedEmail } = await import("@/lib/sendgrid-service");
-    const profilePaymentUrl = `${getAppUrl()}/profile`;
+    const profileUrl =
+      process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "https://pact.wine";
+    const retryHours: 24 | 72 = nextAttempts === 1 ? 24 : 72;
     const sent = await sendPaymentFailedEmail({
       to: toEmail,
       reservationId,
       reason,
-      profilePaymentUrl,
+      retryHours,
+      profileUrl,
     });
     if (!sent) {
       console.warn(
         `[Stripe Webhook] reservation_id=${reservationId} payment failed email not sent`,
       );
     }
-  } else {
+  } else if (!toEmail) {
     console.warn(
       `[Stripe Webhook] reservation_id=${reservationId} no profile email for payment failure`,
     );
