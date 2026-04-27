@@ -542,6 +542,9 @@ export default function AdminPalletDetails({
   const fillPct = stats?.percentage_filled ?? 0;
   const fillBarClass =
     fillPct > 80 ? "bg-emerald-500" : fillPct >= 30 ? "bg-blue-500" : "bg-amber-500";
+  const totalBookedBottles = stats?.total_bottles ?? 0;
+  const showMissingPalletZonePickupMessage =
+    !shipsFromName && totalBookedBottles > 0;
 
   return (
     <div className="space-y-10 pb-10">
@@ -592,10 +595,18 @@ export default function AdminPalletDetails({
                 <span className="font-medium text-zinc-200">
                   {shipsFromName}
                 </span>
+              ) : showMissingPalletZonePickupMessage ? (
+                <span className="font-medium text-zinc-300">—</span>
               ) : (
                 <span className="font-medium text-amber-500/90">TBD</span>
               )}
             </p>
+            {showMissingPalletZonePickupMessage ? (
+              <p className="text-xs text-amber-500/90 max-w-xl">
+                No producer marked as pallet zone has orders on this pallet yet.
+                Mark a producer as pallet zone in producer settings.
+              </p>
+            ) : null}
           </div>
           {palletStatusAllowsOrderShipping() ? (
             <Button
@@ -959,7 +970,7 @@ export default function AdminPalletDetails({
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
-                          <Link href={`/admin/reservations/${reservation.id}`}>
+                          <Link href={`/admin/b2c-orders/${reservation.id}`}>
                             <Button
                               variant="ghost"
                               size="sm"
@@ -1149,10 +1160,18 @@ export default function AdminPalletDetails({
                 <p className="mt-1 text-sm font-medium text-zinc-100">
                   {shipsFromName && shipsFromName.length > 0 ? (
                     shipsFromName
+                  ) : showMissingPalletZonePickupMessage ? (
+                    "—"
                   ) : (
                     <span className="text-amber-500/90">Not determined</span>
                   )}
                 </p>
+                {showMissingPalletZonePickupMessage ? (
+                  <p className="mt-1 text-xs text-amber-500/90">
+                    No producer marked as pallet zone has orders on this pallet yet.
+                    Mark a producer as pallet zone in producer settings.
+                  </p>
+                ) : null}
               </div>
               <div className="py-3">
                 <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">

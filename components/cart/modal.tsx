@@ -93,30 +93,33 @@ const CartItems = ({
         <span>Products</span>
         <span>{cart.lines.length} items</span>
       </CartContainer>
-      <div className="relative flex-1 min-h-0 py-4 overflow-x-hidden">
-        <CartContainer className="overflow-y-auto flex flex-col gap-y-3 h-full scrollbar-hide">
-          <AnimatePresence>
-            {cart.lines.map((item, i) => (
-              <motion.div
-                key={item.merchandise.id}
-                layout
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3, delay: i * 0.1, ease: "easeOut" }}
-              >
-                <CartItemCard item={item} onCloseCart={closeCart} />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </CartContainer>
-      </div>
+      <div className="flex flex-col flex-1 min-h-0">
+        <div className="relative flex min-h-0 flex-1 flex-col py-4 overflow-x-hidden">
+          <CartContainer className="flex min-h-0 flex-1 flex-col">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-y-3">
+              <AnimatePresence>
+                {cart.lines.map((item, i) => (
+                  <motion.div
+                    key={item.merchandise.id}
+                    layout
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.3, delay: i * 0.1, ease: "easeOut" }}
+                  >
+                    <CartItemCard item={item} onCloseCart={closeCart} />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          </CartContainer>
+        </div>
 
-      {/* Validation Display - hidden since we show validation in the button */}
-      {/* <CartValidationDisplay 
+        {/* Validation Display - hidden since we show validation in the button */}
+        {/* <CartValidationDisplay 
         validations={validations} 
         isLoading={isValidating}
       /> */}
 
-      <CartContainer>
+        <CartContainer className="shrink-0">
         <div className="py-4 text-sm text-foreground/50 shrink-0">
           {typeof pactPointsBalance === "number" && pactPointsBalance > 0 ? (
             <div className="flex items-center justify-between border-t border-border py-2 mt-2">
@@ -154,7 +157,8 @@ const CartItems = ({
           validations={validations}
           isValidating={isValidating}
         />
-      </CartContainer>
+        </CartContainer>
+      </div>
     </div>
   );
 };

@@ -11,7 +11,7 @@ import { formatPrice, priceExclVat } from "@/lib/shopify/utils";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { ColorSwatch } from "@/components/ui/color-picker";
 import { useProductImages } from "../products/variant-selector";
-import { Factory, Warehouse } from "lucide-react";
+import { Warehouse } from "lucide-react";
 import { BoostBadge } from "@/components/producer/boost-badge";
 
 type MerchandiseSearchParams = {
@@ -56,7 +56,10 @@ export function CartItemCard({ item, onCloseCart }: CartItemProps) {
   const hasImage = renderImage && renderImage.url;
   
   return (
-    <div className="bg-popover rounded-lg p-2">
+    <div
+      className="cart-item bg-popover rounded-lg px-2 py-1"
+      data-cart-item
+    >
       <div className="flex flex-row gap-6">
         <div className="relative size-[120px] overflow-hidden rounded-sm shrink-0">
           {hasImage ? (
@@ -114,21 +117,12 @@ export function CartItemCard({ item, onCloseCart }: CartItemProps) {
               {item.merchandise.product.producerBoostActive === true ? (
                 <BoostBadge />
               ) : null}
-              {item.source && (
+              {item.source === "warehouse" ? (
                 <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md bg-muted text-muted-foreground">
-                  {item.source === "producer" ? (
-                    <>
-                      <Factory className="w-3 h-3" />
-                      <span>Producer</span>
-                    </>
-                  ) : (
-                    <>
-                      <Warehouse className="w-3 h-3" />
-                      <span>Warehouse</span>
-                    </>
-                  )}
+                  <Warehouse className="w-3 h-3" />
+                  <span>Warehouse</span>
                 </span>
-              )}
+              ) : null}
             </div>
           </Link>
           <div className="flex flex-col">

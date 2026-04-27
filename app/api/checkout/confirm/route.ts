@@ -1132,40 +1132,47 @@ export async function POST(request: Request) {
       }
     }
 
-    // Convert cart items to bookings (per-line pallet when B2C split by producer)
-    console.log("Converting cart items to bookings with pallet:", palletId);
-
-    const bookings = cart.lines.map((line) => {
-      const wid = String(line.merchandise.id);
-      let assignPallet = palletId;
-      if (b2cProducerCheckout) {
-        const pid = wineProducerByWineId.get(wid);
-        const cr = pid
-          ? createdReservations.find((c) => c.producerId === pid)
-          : undefined;
-        if (cr?.palletId) assignPallet = cr.palletId;
-      }
-      return {
-        user_id: currentUser?.id || null,
-        item_id: line.merchandise.id,
-        quantity: line.quantity,
-        band: "market",
-        status: "reserved",
-        pallet_id: assignPallet,
-      };
-    });
-
-    const { error: bookingsError } = await sb.from("bookings").insert(bookings);
-
-    if (bookingsError) {
-      console.error("Failed to create bookings:", bookingsError);
-      return NextResponse.json(
-        { error: "Failed to create bookings" },
-        { status: 500 },
-      );
-    }
-
-    console.log("Bookings created");
+    // DEPRECATED: bookings table is being phased out in favor of
+    // order_reservation_items which is the single source of truth
+    // for pallet fill counts. The bookings insert is disabled to
+    // prevent data divergence. The admin bookings page will be
+    // migrated separately. See lib/pallet-fill-count.ts for the
+    // canonical fill counting logic.
+    //
+    // // Convert cart items to bookings (per-line pallet when B2C split by producer)
+    // console.log("Converting cart items to bookings with pallet:", palletId);
+    //
+    // const bookings = cart.lines.map((line) => {
+    //   const wid = String(line.merchandise.id);
+    //   let assignPallet = palletId;
+    //   if (b2cProducerCheckout) {
+    //     const pid = wineProducerByWineId.get(wid);
+    //     const cr = pid
+    //       ? createdReservations.find((c) => c.producerId === pid)
+    //       : undefined;
+    //     if (cr?.palletId) assignPallet = cr.palletId;
+    //   }
+    //   return {
+    //     user_id: currentUser?.id || null,
+    //     item_id: line.merchandise.id,
+    //     quantity: line.quantity,
+    //     band: "market",
+    //     status: "reserved",
+    //     pallet_id: assignPallet,
+    //   };
+    // });
+    //
+    // const { error: bookingsError } = await sb.from("bookings").insert(bookings);
+    //
+    // if (bookingsError) {
+    //   console.error("Failed to create bookings:", bookingsError);
+    //   return NextResponse.json(
+    //     { error: "Failed to create bookings" },
+    //     { status: 500 },
+    //   );
+    // }
+    //
+    // console.log("Bookings created");
 
     // Optional: redeem PACT Points (new system). Never block checkout on failure.
     if (currentUser?.id && Number.isFinite(pact_points_redeem) && pact_points_redeem > 0) {

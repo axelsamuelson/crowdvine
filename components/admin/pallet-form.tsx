@@ -13,13 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface PalletZone {
@@ -57,6 +50,15 @@ interface Pallet {
 interface PalletFormProps {
   pallet?: Pallet;
 }
+
+const inputDarkClass =
+  "border-[#1F1F23] bg-zinc-900 text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-zinc-700";
+
+const selectTriggerDarkClass =
+  "border-[#1F1F23] bg-zinc-900 text-zinc-100";
+
+const selectContentDarkClass =
+  "border-[#1F1F23] bg-zinc-900 text-zinc-100";
 
 export default function PalletForm({ pallet }: PalletFormProps) {
   const [formData, setFormData] = useState<CreatePalletData>({
@@ -169,140 +171,186 @@ export default function PalletForm({ pallet }: PalletFormProps) {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleCancel = () => {
+    if (pallet) {
+      router.push(`/admin/pallets/${pallet.id}`);
+    } else {
+      router.push("/admin/pallets");
+    }
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{pallet ? "Edit Pallet" : "Add Pallet"}</CardTitle>
-        <CardDescription>
-          {pallet ? "Update pallet information" : "Create a new pallet"}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+    <form className="space-y-8" onSubmit={handleSubmit}>
+      {error && (
+        <Alert
+          variant="destructive"
+          className="border-red-500/30 bg-red-950/30 text-red-200"
+        >
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      <div className="space-y-6 rounded-lg border border-[#1F1F23] bg-[#0F0F12] p-6">
+        <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-400">
+          Basic info
+        </h2>
+
+        <div className="space-y-2">
+          <Label htmlFor="name" className="text-sm text-zinc-300">
+            Name
+          </Label>
+          <Input
+            id="name"
+            className={inputDarkClass}
+            value={formData.name}
+            onChange={(e) => handleChange("name", e.target.value)}
+            placeholder="Standard Pallet"
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="description" className="text-sm text-zinc-300">
+            Description
+          </Label>
+          <Textarea
+            id="description"
+            className={inputDarkClass}
+            value={formData.description}
+            onChange={(e) => handleChange("description", e.target.value)}
+            placeholder="Description of the pallet..."
+            rows={3}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-6 rounded-lg border border-[#1F1F23] bg-[#0F0F12] p-6">
+        <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-400">
+          Routing
+        </h2>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="delivery_zone_id" className="text-sm text-zinc-300">
+              Delivery Zone
+            </Label>
+            <Select
+              value={formData.delivery_zone_id}
+              onValueChange={(value) =>
+                handleChange("delivery_zone_id", value)
+              }
+              required
+            >
+              <SelectTrigger
+                id="delivery_zone_id"
+                className={selectTriggerDarkClass}
+              >
+                <SelectValue placeholder="Select delivery zone" />
+              </SelectTrigger>
+              <SelectContent className={selectContentDarkClass}>
+                {deliveryZones.map((zone) => (
+                  <SelectItem key={zone.id} value={zone.id}>
+                    {zone.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="space-y-2">
-            <Label htmlFor="name">Name *</Label>
+            <Label htmlFor="pickup_zone_id" className="text-sm text-zinc-300">
+              Pickup Zone
+            </Label>
+            <Select
+              value={formData.pickup_zone_id}
+              onValueChange={(value) => handleChange("pickup_zone_id", value)}
+              required
+            >
+              <SelectTrigger
+                id="pickup_zone_id"
+                className={selectTriggerDarkClass}
+              >
+                <SelectValue placeholder="Select pickup zone" />
+              </SelectTrigger>
+              <SelectContent className={selectContentDarkClass}>
+                {pickupZones.map((zone) => (
+                  <SelectItem key={zone.id} value={zone.id}>
+                    {zone.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-6 rounded-lg border border-[#1F1F23] bg-[#0F0F12] p-6">
+        <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-400">
+          Capacity & Cost
+        </h2>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="cost_cents" className="text-sm text-zinc-300">
+              Cost (SEK)
+            </Label>
             <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => handleChange("name", e.target.value)}
-              placeholder="Standard Pallet"
+              id="cost_cents"
+              type="number"
+              step="0.01"
+              className={inputDarkClass}
+              value={(formData.cost_cents / 100).toFixed(2)}
+              onChange={(e) =>
+                handleChange(
+                  "cost_cents",
+                  Math.round(parseFloat(e.target.value) * 100) || 0,
+                )
+              }
+              placeholder="150.00"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => handleChange("description", e.target.value)}
-              placeholder="Description of the pallet..."
-              rows={3}
+            <Label htmlFor="bottle_capacity" className="text-sm text-zinc-300">
+              Bottle Capacity
+            </Label>
+            <Input
+              id="bottle_capacity"
+              type="number"
+              className={inputDarkClass}
+              value={formData.bottle_capacity}
+              onChange={(e) =>
+                handleChange("bottle_capacity", parseInt(e.target.value) || 0)
+              }
+              placeholder="72"
+              required
             />
           </div>
+        </div>
+      </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="delivery_zone_id">Delivery Zone *</Label>
-              <Select
-                value={formData.delivery_zone_id}
-                onValueChange={(value) =>
-                  handleChange("delivery_zone_id", value)
-                }
-                required
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select delivery zone" />
-                </SelectTrigger>
-                <SelectContent>
-                  {deliveryZones.map((zone) => (
-                    <SelectItem key={zone.id} value={zone.id}>
-                      {zone.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="pickup_zone_id">Pickup Zone *</Label>
-              <Select
-                value={formData.pickup_zone_id}
-                onValueChange={(value) => handleChange("pickup_zone_id", value)}
-                required
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select pickup zone" />
-                </SelectTrigger>
-                <SelectContent>
-                  {pickupZones.map((zone) => (
-                    <SelectItem key={zone.id} value={zone.id}>
-                      {zone.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="cost_cents">Cost (SEK) *</Label>
-              <Input
-                id="cost_cents"
-                type="number"
-                step="0.01"
-                value={(formData.cost_cents / 100).toFixed(2)}
-                onChange={(e) =>
-                  handleChange(
-                    "cost_cents",
-                    Math.round(parseFloat(e.target.value) * 100) || 0,
-                  )
-                }
-                placeholder="150.00"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="bottle_capacity">Bottle Capacity *</Label>
-              <Input
-                id="bottle_capacity"
-                type="number"
-                value={formData.bottle_capacity}
-                onChange={(e) =>
-                  handleChange("bottle_capacity", parseInt(e.target.value) || 0)
-                }
-                placeholder="72"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end space-x-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.back()}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading
-                ? "Saving..."
-                : pallet
-                  ? "Update Pallet"
-                  : "Create Pallet"}
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+      <div className="flex items-center justify-end gap-3">
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={handleCancel}
+          className="text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100"
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          disabled={loading}
+          className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200"
+        >
+          {loading
+            ? "Saving..."
+            : pallet
+              ? "Save changes"
+              : "Create Pallet"}
+        </Button>
+      </div>
+    </form>
   );
 }

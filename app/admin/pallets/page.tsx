@@ -63,6 +63,8 @@ interface Pallet {
   current_pickup_producer_id?: string | null;
   /** True when pickup is set but that producer is not marked as a pallet-zone producer. */
   pickup_is_fallback?: boolean;
+  /** True when the pallet has bookings but no pickup producer is assigned yet. */
+  needs_pallet_zone?: boolean;
   cost_cents: number;
   bottle_capacity: number;
   created_at: string;
@@ -444,23 +446,23 @@ export default function PalletsPage() {
                         <span className="mx-1.5 text-zinc-600">→</span>
                         <span className="text-zinc-300">{origin}</span>
                       </p>
-                      {pallet.current_pickup_producer?.name ? (
-                        <p className="text-xs text-zinc-400">
-                          Ships from{" "}
-                          <span className="font-medium text-zinc-200">
-                            {pallet.current_pickup_producer.name}
-                          </span>
-                          {pallet.pickup_is_fallback ? (
-                            <span className="block text-amber-500/90 mt-1">
-                              No pallet-zone producer at volume threshold yet
+                      {pallet.current_pickup_producer?.name ||
+                      pallet.shipping_region_id ||
+                      pallet.shipping_region?.id ? (
+                        <>
+                          <p className="text-xs text-zinc-400">
+                            Ships from{" "}
+                            <span className="font-medium text-zinc-200">
+                              {pallet.current_pickup_producer?.name ?? "—"}
                             </span>
-                          ) : null}
-                        </p>
-                      ) : pallet.shipping_region_id ||
-                        pallet.shipping_region?.id ? (
-                        <p className="text-xs text-amber-500/90">
-                          Ships from: TBD
-                        </p>
+                          </p>
+                          {(pallet.needs_pallet_zone === true ||
+                            pallet.pickup_is_fallback === true) && (
+                            <p className="text-xs text-amber-500 mt-0.5">
+                              ⚠ No pallet zone producer has orders yet
+                            </p>
+                          )}
+                        </>
                       ) : null}
                       {typeof pallet.shipping_ordered_at === "string" &&
                       pallet.shipping_ordered_at.length > 0 ? (
@@ -597,21 +599,23 @@ export default function PalletsPage() {
                       <span className="mx-1.5 text-zinc-600">→</span>
                       <span className="text-zinc-300">{origin}</span>
                     </p>
-                    {pallet.current_pickup_producer?.name ? (
-                      <p className="text-xs text-zinc-400">
-                        Ships from{" "}
-                        <span className="font-medium text-zinc-200">
-                          {pallet.current_pickup_producer.name}
-                        </span>
-                        {pallet.pickup_is_fallback ? (
-                          <span className="block text-amber-500/90 mt-1">
-                            No pallet-zone producer at volume threshold yet
+                    {pallet.current_pickup_producer?.name ||
+                    pallet.shipping_region_id ||
+                    pallet.shipping_region?.id ? (
+                      <>
+                        <p className="text-xs text-zinc-400">
+                          Ships from{" "}
+                          <span className="font-medium text-zinc-200">
+                            {pallet.current_pickup_producer?.name ?? "—"}
                           </span>
-                        ) : null}
-                      </p>
-                    ) : pallet.shipping_region_id ||
-                      pallet.shipping_region?.id ? (
-                      <p className="text-xs text-amber-500/90">Ships from: TBD</p>
+                        </p>
+                        {(pallet.needs_pallet_zone === true ||
+                          pallet.pickup_is_fallback === true) && (
+                          <p className="text-xs text-amber-500 mt-0.5">
+                            ⚠ No pallet zone producer has orders yet
+                          </p>
+                        )}
+                      </>
                     ) : null}
                     {typeof pallet.shipping_ordered_at === "string" &&
                     pallet.shipping_ordered_at.length > 0 ? (

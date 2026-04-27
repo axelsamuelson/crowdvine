@@ -75,6 +75,62 @@ export type PalletEarlyBirdContext = {
  * Shared zone + pallet + fill resolution for cart pricing and zone-status API.
  * Reuses {@link determineZones}; does not reimplement geocoding or zone geometry.
  */
+type PalletRow = {
+  id: string;
+  created_at: string | null;
+  bottle_capacity: number | string | null;
+};
+
+async function findOpenPalletByShippingRegion(
+  shippingRegionId: string,
+  deliveryZoneId: string,
+): Promise<PalletRow | null> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("pallets")
+    .select("id, created_at, bottle_capacity")
+    .eq("shipping_region_id", shippingRegionId)
+    .eq("delivery_zone_id", deliveryZoneId)
+    .in("status", ["open", "consolidating", "shipping_ordered"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data?.id) {
+    return null;
+  }
+  return {
+    id: data.id,
+    created_at: data.created_at ?? null,
+    bottle_capacity: data.bottle_capacity,
+  };
+}
+
+async function findLegacyOpenPalletByPickup(
+  pickupZoneId: string,
+  deliveryZoneId: string,
+): Promise<PalletRow | null> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("pallets")
+    .select("id, created_at, bottle_capacity")
+    .eq("pickup_zone_id", pickupZoneId)
+    .eq("delivery_zone_id", deliveryZoneId)
+    .in("status", ["open", "consolidating", "shipping_ordered"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data?.id) {
+    return null;
+  }
+  return {
+    id: data.id,
+    created_at: data.created_at ?? null,
+    bottle_capacity: data.bottle_capacity,
+  };
+}
+
 export async function resolvePalletEarlyBirdContext(
   wineIds: string[],
   userId: string | null,
@@ -110,69 +166,70 @@ export async function resolvePalletEarlyBirdContext(
   const pickupZoneId = zones.pickupZoneId;
   const deliveryZoneId = zones.deliveryZoneId;
 
-  if (!pickupZoneId || !deliveryZoneId) {
-    const stockholmId = await resolveDefaultStockholmDeliveryZoneId();
-    const sb = getSupabaseAdmin();
-    if (!stockholmId) {
-      return {
-        ...empty,
-        deliveryZoneName: "Stockholm",
-      };
-    }
+  const sb = getSupabaseAdmin();
 
-    const { data: producers, error: pe } = await sb
-      .from("wines")
-      .select("producer_id")
-      .in("id", uniqueWineIds);
+  const { data: wineRows, error: wineErr } = await sb
+    .from("wines")
+    .select("id, producer_id")
+    .in("id", uniqueWineIds);
 
-    if (pe || !producers?.length) {
-      return { ...empty, deliveryZoneName: "Stockholm" };
-    }
+  const producerIds = [
+    ...new Set(
+      (wineRows ?? [])
+        .map((w) => w.producer_id as string | null)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
 
-    const producerIds = [
-      ...new Set(
-        producers
-          .map((w) => w.producer_id as string | null)
-          .filter((x): x is string => Boolean(x)),
-      ),
-    ];
+  let shippingRegionId: string | null = null;
+  let pickupFromAnyProducer: string | null = null;
 
-    const { data: prodRows, error: prErr } = await sb
+  if (!wineErr && wineRows && producerIds.length > 0) {
+    const { data: prodRows, error: prodErr } = await sb
       .from("producers")
-      .select("pickup_zone_id")
+      .select("id, shipping_region_id, pickup_zone_id")
       .in("id", producerIds);
 
-    const pickupFromProducer =
-      prodRows?.find((p) => p.pickup_zone_id)?.pickup_zone_id ?? null;
+    if (!prodErr && prodRows) {
+      const byProducerId = new Map(
+        prodRows.map((p) => [
+          String(p.id),
+          {
+            shipping_region_id:
+              (p.shipping_region_id as string | null) ?? null,
+            pickup_zone_id: (p.pickup_zone_id as string | null) ?? null,
+          },
+        ]),
+      );
 
-    if (!pickupFromProducer) {
-      return { ...empty, deliveryZoneName: "Stockholm" };
+      for (const pr of prodRows) {
+        const pk = pr.pickup_zone_id as string | null | undefined;
+        if (pk && !pickupFromAnyProducer) {
+          pickupFromAnyProducer = pk;
+        }
+      }
+
+      for (const wid of uniqueWineIds) {
+        const row = wineRows.find((w) => w.id === wid);
+        const pid = row?.producer_id ? String(row.producer_id) : null;
+        if (!pid) continue;
+        const pr = byProducerId.get(pid);
+        if (pr?.shipping_region_id) {
+          shippingRegionId = pr.shipping_region_id;
+          break;
+        }
+      }
     }
+  }
 
-    const { data: palletRow, error: palErr } = await sb
-      .from("pallets")
-      .select("id, created_at, bottle_capacity")
-      .eq("pickup_zone_id", pickupFromProducer)
-      .eq("delivery_zone_id", stockholmId)
-      .eq("is_complete", false)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (palErr || !palletRow?.id) {
-      const { data: zoneName } = await sb
-        .from("pallet_zones")
-        .select("name")
-        .eq("id", stockholmId)
-        .maybeSingle();
-      return {
-        ...empty,
-        deliveryZoneName: zoneName?.name ?? "Stockholm",
-        pickupZoneId: pickupFromProducer,
-        deliveryZoneId: stockholmId,
-      };
-    }
-
+  const returnFromPallet = async (
+    palletRow: PalletRow,
+    ctx: {
+      deliveryZoneName: string | null;
+      pickupZoneId: string | null;
+      deliveryZoneId: string | null;
+    },
+  ): Promise<PalletEarlyBirdContext> => {
     const fill = await getPalletFillData(
       palletRow.id,
       Number(palletRow.bottle_capacity) || 0,
@@ -182,49 +239,91 @@ export async function resolvePalletEarlyBirdContext(
       bottlesFilled,
       discountTier: getPalletDiscountTier(bottlesFilled),
       bottleCapacity,
-      deliveryZoneName: "Stockholm",
-      pickupZoneId: pickupFromProducer,
-      deliveryZoneId: stockholmId,
+      deliveryZoneName: ctx.deliveryZoneName,
+      pickupZoneId: ctx.pickupZoneId,
+      deliveryZoneId: ctx.deliveryZoneId,
       activePalletId: palletRow.id,
       activePalletCreatedAt: palletRow.created_at ?? null,
     };
-  }
+  };
 
-  const sb = getSupabaseAdmin();
-  const { data: palletRow, error: palErr } = await sb
-    .from("pallets")
-    .select("id, created_at, bottle_capacity")
-    .eq("pickup_zone_id", pickupZoneId)
-    .eq("delivery_zone_id", deliveryZoneId)
-    .eq("is_complete", false)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  if (deliveryZoneId) {
+    let palletRow: PalletRow | null = null;
+    if (shippingRegionId) {
+      palletRow = await findOpenPalletByShippingRegion(
+        shippingRegionId,
+        deliveryZoneId,
+      );
+    }
+    if (!palletRow && pickupZoneId) {
+      palletRow = await findLegacyOpenPalletByPickup(
+        pickupZoneId,
+        deliveryZoneId,
+      );
+    }
 
-  if (palErr || !palletRow?.id) {
-    return {
-      ...empty,
+    if (!palletRow) {
+      return {
+        ...empty,
+        deliveryZoneName: zones.deliveryZoneName,
+        pickupZoneId,
+        deliveryZoneId,
+      };
+    }
+
+    return returnFromPallet(palletRow, {
       deliveryZoneName: zones.deliveryZoneName,
       pickupZoneId,
       deliveryZoneId,
+    });
+  }
+
+  const stockholmId = await resolveDefaultStockholmDeliveryZoneId();
+  if (!stockholmId) {
+    return {
+      ...empty,
+      deliveryZoneName: "Stockholm",
     };
   }
 
-  const fill = await getPalletFillData(
-    palletRow.id,
-    Number(palletRow.bottle_capacity) || 0,
-  );
-  const { bottlesFilled, bottleCapacity } = fill;
-  return {
-    bottlesFilled,
-    discountTier: getPalletDiscountTier(bottlesFilled),
-    bottleCapacity,
-    deliveryZoneName: zones.deliveryZoneName,
-    pickupZoneId,
-    deliveryZoneId,
-    activePalletId: palletRow.id,
-    activePalletCreatedAt: palletRow.created_at ?? null,
-  };
+  if (producerIds.length === 0) {
+    return { ...empty, deliveryZoneName: "Stockholm" };
+  }
+
+  let palletRow: PalletRow | null = null;
+  if (shippingRegionId) {
+    palletRow = await findOpenPalletByShippingRegion(
+      shippingRegionId,
+      stockholmId,
+    );
+  }
+
+  if (!palletRow && pickupFromAnyProducer) {
+    palletRow = await findLegacyOpenPalletByPickup(
+      pickupFromAnyProducer,
+      stockholmId,
+    );
+  }
+
+  if (!palletRow) {
+    const { data: zoneName } = await sb
+      .from("pallet_zones")
+      .select("name")
+      .eq("id", stockholmId)
+      .maybeSingle();
+    return {
+      ...empty,
+      deliveryZoneName: zoneName?.name ?? "Stockholm",
+      pickupZoneId: pickupFromAnyProducer,
+      deliveryZoneId: stockholmId,
+    };
+  }
+
+  return returnFromPallet(palletRow, {
+    deliveryZoneName: "Stockholm",
+    pickupZoneId: pickupFromAnyProducer,
+    deliveryZoneId: stockholmId,
+  });
 }
 
 export async function resolveWineIdForProductHandle(

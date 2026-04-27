@@ -186,7 +186,7 @@ export default function ReservationEditForm({
         throw new Error(errorData.error || "Failed to update reservation");
       }
 
-      router.push("/admin/reservations");
+      router.push("/admin/b2c-orders");
     } catch (err) {
       console.error("Error updating reservation:", err);
       setError(
@@ -207,10 +207,10 @@ export default function ReservationEditForm({
 
       {/* Header Actions */}
       <div className="flex items-center justify-between">
-        <Link href="/admin/reservations">
+        <Link href="/admin/b2c-orders">
           <Button variant="outline" size="sm">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Reservations
+            Back to B2C Orders
           </Button>
         </Link>
         <Button type="submit" disabled={loading}>

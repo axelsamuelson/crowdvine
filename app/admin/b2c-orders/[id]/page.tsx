@@ -2,13 +2,17 @@ import { notFound } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import ReservationEditForm from "@/components/admin/reservation-edit-form";
 
-interface ReservationEditPageProps {
+export const metadata = {
+  title: "B2C Order",
+};
+
+interface B2cOrderEditPageProps {
   params: Promise<{ id: string }>;
 }
 
-export default async function ReservationEditPage({
+export default async function B2cOrderEditPage({
   params,
-}: ReservationEditPageProps) {
+}: B2cOrderEditPageProps) {
   const resolvedParams = await params;
   const { id } = resolvedParams;
 
@@ -70,8 +74,12 @@ export default async function ReservationEditPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Edit Reservation</h1>
-        <p className="text-gray-600 dark:text-gray-400">Update reservation details and items</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+          B2C Order
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400">
+          Update reservation details and items
+        </p>
       </div>
 
       <ReservationEditForm

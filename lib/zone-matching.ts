@@ -1,5 +1,5 @@
-import { supabaseServer } from "./supabase-server";
 import { getSupabaseAdmin } from "./supabase-admin";
+import { sumReservedBottlesOnPallet } from "@/lib/pallet-fill-count";
 import {
   geocodeAddress,
   createFullAddress,
@@ -385,18 +385,9 @@ export async function determineZones(
               if (!palletsError && matchingPallets) {
                 // Get current bottle count for each pallet
                 for (const pallet of matchingPallets) {
-                  // Get current bottle count for each pallet using pallet_id
-                  const { data: bookings, error: bookingsError } = await sb
-                    .from("bookings")
-                    .select("quantity")
-                    .eq("pallet_id", pallet.id);
-
-                  const currentBottles = bookingsError
-                    ? 0
-                    : bookings?.reduce(
-                        (sum, booking) => sum + booking.quantity,
-                        0,
-                      ) || 0;
+                  const currentBottles = await sumReservedBottlesOnPallet(
+                    pallet.id,
+                  );
 
                   pallets.push({
                     id: pallet.id,
@@ -488,15 +479,7 @@ export async function determineZones(
     if (!palletsError && matchingPallets) {
       // Get current bottle count for each pallet
       for (const pallet of matchingPallets) {
-        // Get current bottle count for each pallet using pallet_id
-        const { data: bookings, error: bookingsError } = await sb
-          .from("bookings")
-          .select("quantity")
-          .eq("pallet_id", pallet.id);
-
-        const currentBottles = bookingsError
-          ? 0
-          : bookings?.reduce((sum, booking) => sum + booking.quantity, 0) || 0;
+        const currentBottles = await sumReservedBottlesOnPallet(pallet.id);
 
         pallets.push({
           id: pallet.id,

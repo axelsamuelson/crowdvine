@@ -16,6 +16,26 @@ const nextConfig = {
         destination: "/admin/operations/objectives/:id",
         permanent: true,
       },
+      {
+        source: "/admin/bookings",
+        destination: "/admin/b2c-orders",
+        permanent: true,
+      },
+      {
+        source: "/admin/reservations",
+        destination: "/admin/b2c-orders",
+        permanent: true,
+      },
+      {
+        source: "/admin/reservations/:id",
+        destination: "/admin/b2c-orders/:id",
+        permanent: true,
+      },
+      {
+        source: "/admin/bookings/dirty-wine",
+        destination: "/admin/b2b-orders",
+        permanent: true,
+      },
     ];
   },
   /* Vercel configuration */

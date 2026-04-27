@@ -92,8 +92,8 @@ const navigationGroups: NavGroup[] = [
     name: "Bokningar",
     icon: Calendar,
     items: [
-      { name: "Bookings", href: "/admin/bookings", icon: Calendar },
-      { name: "Reservations", href: "/admin/reservations", icon: FileText },
+      { name: "B2C Orders", href: "/admin/b2c-orders", icon: Calendar },
+      { name: "B2B Orders", href: "/admin/b2b-orders", icon: FileText },
     ],
   },
   {

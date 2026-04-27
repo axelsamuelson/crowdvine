@@ -16,9 +16,27 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-export default function ReservationsPage() {
+interface AdminReservationListRow {
+  id: string;
+  created_at: string;
+  user_id?: string | null;
+  order_id?: string | null;
+  status?: string | null;
+  payment_status?: string | null;
+  fulfillment_status?: string | null;
+  delivery_zone_id?: string | null;
+  pickup_zone_id?: string | null;
+  profiles?: {
+    full_name?: string | null;
+    email?: string | null;
+  } | null;
+}
+
+export default function B2cOrdersPage() {
   const router = useRouter();
-  const [reservations, setReservations] = useState<any[]>([]);
+  const [reservations, setReservations] = useState<AdminReservationListRow[]>(
+    [],
+  );
   const [loading, setLoading] = useState(true);
   const [selectedReservations, setSelectedReservations] = useState<string[]>(
     [],
@@ -40,11 +58,11 @@ export default function ReservationsPage() {
 
       const reservationsData = await reservationsResponse.json();
       console.log(
-        "📋 [Reservations Page] Fetched reservations:",
+        "📋 [B2C Orders Page] Fetched reservations:",
         reservationsData.reservations?.length || 0,
       );
       console.log(
-        "📋 [Reservations Page] Sample reservation:",
+        "📋 [B2C Orders Page] Sample reservation:",
         reservationsData.reservations?.[0],
       );
 
@@ -129,11 +147,11 @@ export default function ReservationsPage() {
       reservation.order_id?.toLowerCase().includes(searchLower) ||
       reservation.user_id?.toLowerCase().includes(searchLower) ||
       // Note: profiles data not available until foreign key is set up
-      reservation.status?.toLowerCase().includes(searchLower)
+      (reservation.status?.toLowerCase()?.includes(searchLower) ?? false)
     );
   });
 
-  const handleRowClick = (reservation: any) => {
+  const handleRowClick = (reservation: AdminReservationListRow) => {
     // Navigate to order details using reservation's order_id
     const orderId = reservation.order_id;
     if (orderId) {
@@ -147,7 +165,7 @@ export default function ReservationsPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Reservations
+            B2C Orders
           </h1>
           <p className="text-sm text-gray-600 dark:text-zinc-400 mt-1">
             Manage customer order reservations (these block zone deletion)

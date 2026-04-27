@@ -77,7 +77,8 @@ export async function POST(request: NextRequest) {
         address_postcode: body.address_postcode || "",
         short_description: body.short_description || "",
         logo_image_path: body.logo_image_path || "",
-        pickup_zone_id: body.pickup_zone_id || null,
+        // pickup_zone_id is deprecated — see PUT /api/admin/producers/[id]
+        pickup_zone_id: null,
         shipping_region_id: shippingRegionId,
         is_pallet_zone: body.is_pallet_zone === true,
         owner_id: null, // Set by admin

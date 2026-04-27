@@ -187,10 +187,10 @@ export default async function AdminDashboard() {
               </div>
               <div className="p-2 border-t border-gray-100 dark:border-zinc-800">
                 <Link
-                  href="/admin/bookings"
+                  href="/admin/b2c-orders"
                   className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-medium bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900 hover:opacity-90 transition-opacity"
                 >
-                  View all bookings
+                  View all B2C orders
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
@@ -306,7 +306,7 @@ export default async function AdminDashboard() {
             {[
               { href: "/admin/producers", label: "Producers", icon: Users },
               { href: "/admin/wines", label: "Wines", icon: Wine },
-              { href: "/admin/bookings", label: "Bookings", icon: Calendar },
+              { href: "/admin/b2c-orders", label: "B2C Orders", icon: Calendar },
               { href: "/admin/content", label: "Content", icon: FileText },
               { href: "/admin/menu-extraction", label: "Menyextraktion", icon: Sparkles },
             ].map((action) => (

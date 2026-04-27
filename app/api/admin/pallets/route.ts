@@ -271,6 +271,14 @@ export async function GET() {
         pickup_is_fallback = cpp.is_pallet_zone !== true;
       }
 
+      const cppIdRaw = pallet.current_pickup_producer_id;
+      const hasPickupProducerId =
+        typeof cppIdRaw === "string"
+          ? cppIdRaw.trim().length > 0
+          : cppIdRaw != null;
+      const needs_pallet_zone =
+        totalBookedBottles > 0 && !hasPickupProducerId;
+
       return {
         ...pallet,
         pallet_type,
@@ -281,6 +289,7 @@ export async function GET() {
         is_complete: totalBookedBottles >= cap,
         needs_ordering: remainingBottles > 0,
         pickup_is_fallback,
+        needs_pallet_zone,
       };
     });
 

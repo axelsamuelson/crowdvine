@@ -1349,6 +1349,48 @@ function CheckoutContent() {
                     )}
                   </span>
                 </div>
+                {pactPointsBalance > 0 ? (
+                  <div className="space-y-2 border-b border-border/60 pb-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium text-foreground">
+                        Use PACT Points
+                      </span>
+                      <span className="text-muted-foreground">
+                        {pactPointsBalance} available
+                      </span>
+                    </div>
+                    <Slider
+                      value={[redeemPoints]}
+                      onValueChange={([v]) =>
+                        setRedeemPoints(typeof v === "number" ? v : 0)
+                      }
+                      max={maxRedemption}
+                      step={10}
+                      className="my-1"
+                    />
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <button
+                        type="button"
+                        onClick={() => setRedeemPoints(0)}
+                        className="underline decoration-border underline-offset-2 transition-colors hover:text-foreground"
+                      >
+                        Use none
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRedeemPoints(maxRedemption)}
+                        className="underline decoration-border underline-offset-2 transition-colors hover:text-foreground"
+                      >
+                        Use all
+                      </button>
+                    </div>
+                    {hasBoostedProducerInOrder ? (
+                      <p className="text-[11px] text-violet-700">
+                        Worth 2× against boosted producers in this order
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
                 {redeemPoints > 0 ? (
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">
@@ -1414,59 +1456,6 @@ function CheckoutContent() {
                   Add
                 </Button>
               </div>
-
-              {pactPointsBalance > 0 ? (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-foreground">
-                      Use PACT Points
-                    </span>
-                    <span className="text-muted-foreground">
-                      {pactPointsBalance} available
-                    </span>
-                  </div>
-                  <Slider
-                    value={[redeemPoints]}
-                    onValueChange={([v]) =>
-                      setRedeemPoints(typeof v === "number" ? v : 0)
-                    }
-                    max={maxRedemption}
-                    step={10}
-                    className="my-1"
-                  />
-                  {redeemPoints > 0 ? (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        PACT Points discount
-                      </span>
-                      <span className="font-medium tabular-nums text-foreground">
-                        −{formatCheckoutKr(pactPointsSekOff)}
-                      </span>
-                    </div>
-                  ) : null}
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <button
-                      type="button"
-                      onClick={() => setRedeemPoints(0)}
-                      className="underline decoration-border underline-offset-2 transition-colors hover:text-foreground"
-                    >
-                      Use none
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRedeemPoints(maxRedemption)}
-                      className="underline decoration-border underline-offset-2 transition-colors hover:text-foreground"
-                    >
-                      Use all
-                    </button>
-                  </div>
-                  {hasBoostedProducerInOrder ? (
-                    <p className="mt-1 text-[11px] text-violet-700">
-                      Worth 2× against boosted producers in this order
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
 
               <Button
                 type="button"

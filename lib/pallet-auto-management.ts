@@ -200,10 +200,11 @@ export async function findOrCreatePalletForRegion(
     for (let spin = 0; spin < MAX_FIND_OR_CREATE_SPINS; spin++) {
       const { data: existing, error: findErr } = await sb
         .from("pallets")
-        .select("id, bottle_capacity")
+        .select("id, bottle_capacity, status")
         .eq("shipping_region_id", shippingRegionId)
         .eq("delivery_zone_id", deliveryZoneId)
-        .eq("status", "open")
+        .in("status", ["open", "consolidating", "shipping_ordered"])
+        .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
@@ -224,7 +225,13 @@ export async function findOrCreatePalletForRegion(
         const cap = Math.max(0, Math.floor(Number(existing.bottle_capacity) || 0));
         const overflowCap = Math.floor(cap * PALLET_OVERFLOW_THRESHOLD);
 
-        if (cap > 0 && bottles >= overflowCap) {
+        const existingStatus = String(
+          (existing as { status?: string | null }).status ?? "",
+        ).toLowerCase();
+        const mayAutoCloseOnOverflow =
+          existingStatus === "open" || existingStatus === "consolidating";
+
+        if (cap > 0 && bottles >= overflowCap && mayAutoCloseOnOverflow) {
           const { error: closeErr } = await sb
             .from("pallets")
             .update({
@@ -372,8 +379,9 @@ export type ReservationCleanupSnapshot = {
 
 /**
  * Sets {@link pallets.current_pickup_producer_id} from pallet fill and region producers.
- * Priority: pallet-zone producers with at least 20% of pallet bottles; else producer with
- * most bottles in the region. Never throws.
+ * Only producers with {@link producers.is_pallet_zone} true are eligible. Among them, the
+ * leader by bottle count must have at least 20% of pallet bottles; otherwise pickup is cleared.
+ * Non–pallet-zone producers are never selected. Never throws.
  */
 const PICKUP_PRODUCER_LOCKED_STATUSES = new Set([
   "shipping_ordered",
@@ -492,7 +500,6 @@ export async function updatePickupProducerForPallet(
       .filter((r) => r.id.length > 0)
       .sort((a, b) => a.id.localeCompare(b.id));
 
-    const producerById = new Map(producersList.map((p) => [p.id, p]));
     const counts = new Map<string, number>();
     for (const p of producersList) {
       counts.set(p.id, 0);
@@ -574,9 +581,18 @@ export async function updatePickupProducerForPallet(
       totalBottles * PALLET_ZONE_PRIORITY_THRESHOLD,
     );
 
-    const pickWinner = (candidateIds: string[]): string | null => {
-      if (candidateIds.length === 0) return null;
-      const ranked = [...candidateIds].sort((a, b) => {
+    const zoneProducerIds = producersList
+      .filter((p) => p.is_pallet_zone)
+      .map((p) => p.id);
+
+    /** Best pallet-zone producer by bottle count among those with more than zero bottles; null if none. */
+    const bestPalletZoneProducerId = (): string | null => {
+      if (zoneProducerIds.length === 0) return null;
+      const withBottles = zoneProducerIds.filter(
+        (id) => (counts.get(id) ?? 0) > 0,
+      );
+      if (withBottles.length === 0) return null;
+      const ranked = [...withBottles].sort((a, b) => {
         const ca = counts.get(a) ?? 0;
         const cb = counts.get(b) ?? 0;
         if (cb !== ca) return cb - ca;
@@ -585,30 +601,18 @@ export async function updatePickupProducerForPallet(
       return ranked[0] ?? null;
     };
 
-    const zoneProducerIds = producersList
-      .filter((p) => p.is_pallet_zone)
-      .map((p) => p.id);
+    const candidateId = bestPalletZoneProducerId();
+    const candidateCount = candidateId
+      ? (counts.get(candidateId) ?? 0)
+      : 0;
+    const winnerId =
+      candidateId !== null &&
+      candidateCount > 0 &&
+      candidateCount >= threshold
+        ? candidateId
+        : null;
 
-    const zoneMeetingThreshold = zoneProducerIds.filter(
-      (id) => (counts.get(id) ?? 0) >= threshold,
-    );
-
-    let winnerId: string | null = null;
-    if (zoneMeetingThreshold.length > 0) {
-      winnerId = pickWinner(zoneMeetingThreshold);
-    } else {
-      const allIds = producersList.map((p) => p.id);
-      const fallbackId = pickWinner(allIds);
-      const maxCount = fallbackId
-        ? (counts.get(fallbackId) ?? 0)
-        : 0;
-      winnerId = maxCount > 0 ? fallbackId : null;
-    }
-
-    const winnerRow = winnerId ? producerById.get(winnerId) : undefined;
-    const usingFallback = Boolean(
-      winnerId && winnerRow && !winnerRow.is_pallet_zone,
-    );
+    const usingFallback = false;
 
     const normalizedCurrent =
       (pallet.current_pickup_producer_id as string | null | undefined) ?? null;
