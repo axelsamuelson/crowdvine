@@ -159,7 +159,10 @@ export async function resolvePalletEarlyBirdContext(
 
   let zones = await determineZones(zoneCart, deliveryAddress);
 
-  if (!zones.deliveryZoneId || !zones.pickupZoneId) {
+  if (
+    !zones.deliveryZoneId ||
+    (!zones.pickupZoneId && !zones.shippingRegionIdForRouting)
+  ) {
     zones = await determineZones(zoneCart, STOCKHOLM_FALLBACK_GEO_ADDRESS);
   }
 

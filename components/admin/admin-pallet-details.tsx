@@ -124,7 +124,7 @@ export default function AdminPalletDetails({
     isComplete: boolean;
   } | null>(null);
   const [rules, setRules] = useState<CompletionRules>(() => {
-    const existing = (pallet as any)?.completion_rules;
+    const existing = pallet.completion_rules;
     return (
       existing || {
         mode: "SEQUENTIAL",
@@ -140,10 +140,12 @@ export default function AdminPalletDetails({
   const [savingRules, setSavingRules] = useState(false);
   const [savingStatus, setSavingStatus] = useState(false);
   const [palletStatus, setPalletStatus] = useState<string>(
-    typeof (pallet as any)?.status === "string" ? (pallet as any).status : "open",
+    typeof pallet.status === "string" && pallet.status.length > 0
+      ? pallet.status
+      : "open",
   );
   const [palletStatusMode, setPalletStatusMode] = useState<"auto" | "manual">(
-    (pallet as any)?.status_mode === "manual" ? "manual" : "auto",
+    pallet.status_mode === "manual" ? "manual" : "auto",
   );
   const [deletingReservationId, setDeletingReservationId] = useState<string | null>(null);
   const [resettingReservations, setResettingReservations] = useState(false);
@@ -153,7 +155,15 @@ export default function AdminPalletDetails({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [orderingShipping, setOrderingShipping] = useState(false);
+  const [revertingShipping, setRevertingShipping] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    if (typeof pallet.status === "string" && pallet.status.length > 0) {
+      setPalletStatus(pallet.status);
+    }
+    setPalletStatusMode(pallet.status_mode === "manual" ? "manual" : "auto");
+  }, [pallet.id, pallet.status, pallet.status_mode]);
 
   useEffect(() => {
     fetchPalletData();
@@ -515,6 +525,43 @@ export default function AdminPalletDetails({
       toast.error("Request failed");
     } finally {
       setOrderingShipping(false);
+    }
+  };
+
+  const palletStatusIsShippingOrdered =
+    String(palletStatus).toLowerCase() === "shipping_ordered";
+
+  const handleRevertShipping = async () => {
+    const confirmed = window.confirm(
+      "Revert shipping order? The pallet will return to open status.",
+    );
+    if (!confirmed) return;
+    setRevertingShipping(true);
+    try {
+      const res = await fetch(
+        `/api/admin/pallets/${palletId}/revert-shipping`,
+        { method: "POST" },
+      );
+      const data: unknown = await res.json().catch(() => null);
+      const errMsg =
+        data &&
+        typeof data === "object" &&
+        "error" in data &&
+        typeof (data as { error: unknown }).error === "string"
+          ? (data as { error: string }).error
+          : "Request failed";
+      if (!res.ok) {
+        toast.error(errMsg);
+        return;
+      }
+      toast.success("Pallet reverted to open");
+      setPalletStatus("open");
+      router.refresh();
+      await fetchPalletData();
+    } catch {
+      toast.error("Request failed");
+    } finally {
+      setRevertingShipping(false);
     }
   };
 
@@ -1258,6 +1305,16 @@ export default function AdminPalletDetails({
               >
                 {orderingShipping ? "Ordering…" : "Order Shipping"}
               </Button>
+            ) : null}
+            {palletStatusIsShippingOrdered ? (
+              <button
+                type="button"
+                disabled={revertingShipping}
+                onClick={() => void handleRevertShipping()}
+                className="text-xs text-amber-500 hover:text-amber-400 underline underline-offset-2 mt-2 disabled:opacity-50 text-left"
+              >
+                Revert to open
+              </button>
             ) : null}
             <Button
               type="button"

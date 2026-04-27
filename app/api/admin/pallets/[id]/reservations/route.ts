@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { PALLET_FILL_STATUSES } from "@/lib/pallet-fill-count";
 
 /**
  * Admin endpoint to get all reservations for a specific pallet
@@ -37,14 +38,12 @@ export async function GET(
     // We consider active reservations that deliver to this pallet's delivery zone,
     // then derive pickup_zone_id from the wines inside the reservation (via producers.pickup_zone_id).
     // This stays correct even if producers are re-linked later.
-    const activeStatuses = ["placed", "approved", "partly_approved", "pending_payment", "confirmed"];
-
     const { data: reservations, error: reservationsError } = await supabase
       .from("order_reservations")
       .select(
         "id, user_id, status, created_at, delivery_zone_id",
       )
-      .in("status", activeStatuses)
+      .in("status", [...PALLET_FILL_STATUSES])
       .eq("delivery_zone_id", pallet.delivery_zone_id)
       .order("created_at", { ascending: false });
 
@@ -107,17 +106,22 @@ export async function GET(
     const userIds = Array.from(
       new Set(reservations.map((r) => r.user_id).filter(Boolean)),
     ) as string[];
-    const profilesById = new Map<string, any>();
+    type ProfileRow = { id: string; email: string | null; full_name: string | null };
+    const profilesById = new Map<string, ProfileRow>();
     if (userIds.length > 0) {
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, email, full_name")
         .in("id", userIds);
-      (profiles || []).forEach((p: any) => profilesById.set(p.id, p));
+      for (const p of profiles ?? []) {
+        if (p && typeof p.id === "string") {
+          profilesById.set(p.id, p as ProfileRow);
+        }
+      }
     }
 
-    // Build reservation -> items
-    const itemsByReservationId = new Map<string, any[]>();
+    type ItemRow = (typeof items)[number];
+    const itemsByReservationId = new Map<string, ItemRow[]>();
     for (const it of items || []) {
       const arr = itemsByReservationId.get(it.reservation_id) || [];
       arr.push(it);
@@ -130,10 +134,10 @@ export async function GET(
         const resItems = itemsByReservationId.get(reservation.id) || [];
 
         const pickupZones = new Set<string>();
-        resItems.forEach((it: any) => {
-          const pz = it?.wines?.producers?.pickup_zone_id;
-          if (pz) pickupZones.add(pz);
-        });
+        for (const it of resItems) {
+          const pz = it.wines?.producers?.pickup_zone_id;
+          if (typeof pz === "string" && pz.length > 0) pickupZones.add(pz);
+        }
 
         // Only include if we can derive exactly one pickup zone and it matches this pallet.
         if (pickupZones.size !== 1) return null;
@@ -141,7 +145,7 @@ export async function GET(
         if (derivedPickupZoneId !== pallet.pickup_zone_id) return null;
 
         const itemsData =
-          resItems.map((item: any) => ({
+          resItems.map((item) => ({
             wine_name: item.wines?.wine_name || "Unknown Wine",
             producer_name: item.wines?.producers?.name || "Unknown Producer",
             quantity: item.quantity,

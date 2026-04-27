@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "./supabase-admin";
 import { sumReservedBottlesOnPallet } from "@/lib/pallet-fill-count";
+import { findOrCreatePalletForRegion } from "@/lib/pallet-auto-management";
 import {
   geocodeAddress,
   createFullAddress,
@@ -35,6 +36,181 @@ function calculateDistance(
   return R * c;
 }
 
+type PalletZoneEmbed = {
+  id: string;
+  name: string;
+  zone_type: string;
+};
+
+type ProducerForZonesRow = {
+  id: string;
+  name?: string | null;
+  pickup_zone_id?: string | null;
+  shipping_region_id?: string | null;
+  pallet_zones?: PalletZoneEmbed | PalletZoneEmbed[] | null;
+};
+
+function normalizePalletZoneJoin(
+  z: ProducerForZonesRow["pallet_zones"],
+): PalletZoneEmbed | null {
+  if (z == null) return null;
+  if (Array.isArray(z)) return z[0] ?? null;
+  return z;
+}
+
+/**
+ * When every cart producer has the same non-null {@link producers.shipping_region_id},
+ * region-based pallets apply and legacy pickup_zone_id is not required.
+ */
+function unifiedShippingRegionId(
+  producers: ProducerForZonesRow[],
+): string | null {
+  if (producers.length === 0) return null;
+  const ids = producers.map((p) => {
+    const v = p.shipping_region_id;
+    return typeof v === "string" && v.trim().length > 0 ? v.trim() : null;
+  });
+  if (ids.some((id) => id === null)) return null;
+  const unique = new Set(ids as string[]);
+  if (unique.size !== 1) return null;
+  return [...unique][0] ?? null;
+}
+
+type SupabaseAdmin = ReturnType<typeof getSupabaseAdmin>;
+
+async function buildPalletInfosForDeliveryPair(
+  sb: SupabaseAdmin,
+  params: {
+    shippingRegionId: string | null;
+    pickupZoneId: string | null;
+    pickupZoneDisplayName: string | null;
+    deliveryZoneId: string;
+    deliveryZoneName: string;
+  },
+): Promise<PalletInfo[]> {
+  const {
+    shippingRegionId,
+    pickupZoneId,
+    pickupZoneDisplayName,
+    deliveryZoneId,
+    deliveryZoneName,
+  } = params;
+  const pallets: PalletInfo[] = [];
+
+  if (shippingRegionId) {
+    try {
+      const { palletId } = await findOrCreatePalletForRegion(
+        shippingRegionId,
+        deliveryZoneId,
+      );
+      const { data: pRow, error: pe } = await sb
+        .from("pallets")
+        .select("id, name, bottle_capacity, cost_cents, status")
+        .eq("id", palletId)
+        .maybeSingle();
+      if (pe || !pRow) {
+        console.error("[determineZones] region pallet load:", pe?.message);
+        return pallets;
+      }
+      const id = String(pRow.id ?? "");
+      if (!id) return pallets;
+      const currentBottles = await sumReservedBottlesOnPallet(id);
+      const cap = Math.max(0, Math.floor(Number(pRow.bottle_capacity) || 0));
+      const statusRaw = pRow.status;
+      const status =
+        typeof statusRaw === "string" ? statusRaw : null;
+      pallets.push({
+        id,
+        name: String(pRow.name ?? ""),
+        currentBottles,
+        maxBottles: cap,
+        remainingBottles: Math.max(0, cap - currentBottles),
+        pickupZoneName: pickupZoneDisplayName || "Shipping region",
+        deliveryZoneName,
+        costCents: Number(pRow.cost_cents) || 0,
+        status,
+        shipping_region_id: shippingRegionId,
+      });
+    } catch (e) {
+      console.error("[determineZones] region pallet resolve:", e);
+    }
+    return pallets;
+  }
+
+  if (!pickupZoneId) {
+    return pallets;
+  }
+
+  let { data: matchingPallets, error: palletsError } = await sb
+    .from("pallets")
+    .select(
+      `
+      id,
+      name,
+      bottle_capacity,
+      cost_cents,
+      pickup_zone_id,
+      delivery_zone_id,
+      status
+    `,
+    )
+    .eq("pickup_zone_id", pickupZoneId)
+    .eq("delivery_zone_id", deliveryZoneId);
+
+  if (
+    !palletsError &&
+    (!matchingPallets || matchingPallets.length === 0)
+  ) {
+    console.log(
+      "🆕 No pallet exists for this route. Creating new pallet (legacy zone pair)...",
+    );
+
+    const newPalletName = `${pickupZoneDisplayName ?? "Pickup"} to ${deliveryZoneName}`;
+    const { data: newPallet, error: createError } = await sb
+      .from("pallets")
+      .insert({
+        name: newPalletName,
+        pickup_zone_id: pickupZoneId,
+        delivery_zone_id: deliveryZoneId,
+        bottle_capacity: 720,
+        cost_cents: 50000,
+        status: "open",
+      })
+      .select()
+      .single();
+
+    if (createError) {
+      console.error("❌ Failed to create new pallet:", createError);
+    } else if (newPallet) {
+      console.log("✅ Created new pallet:", newPallet.id, newPalletName);
+      matchingPallets = [newPallet];
+    }
+  }
+
+  if (!palletsError && matchingPallets) {
+    for (const pallet of matchingPallets) {
+      const pid = String(pallet.id ?? "");
+      if (!pid) continue;
+      const currentBottles = await sumReservedBottlesOnPallet(pid);
+      const cap = Math.max(0, Math.floor(Number(pallet.bottle_capacity) || 0));
+      const st = pallet.status;
+      pallets.push({
+        id: pid,
+        name: String(pallet.name ?? ""),
+        currentBottles,
+        maxBottles: cap,
+        remainingBottles: Math.max(0, cap - currentBottles),
+        pickupZoneName: pickupZoneDisplayName || "",
+        deliveryZoneName,
+        costCents: Number(pallet.cost_cents) || 0,
+        status: typeof st === "string" ? st : null,
+      });
+    }
+  }
+
+  return pallets;
+}
+
 export type NoDeliveryZoneError = {
   error: "NO_DELIVERY_ZONE";
   message: string;
@@ -48,6 +224,11 @@ export interface ZoneMatchResult {
   deliveryZoneName: string | null;
   availableDeliveryZones?: DeliveryZoneOption[];
   pallets?: PalletInfo[];
+  /**
+   * When all cart producers share this shipping region, pallets use region routing and
+   * {@link pickupZoneId} may be null.
+   */
+  shippingRegionIdForRouting?: string | null;
   /** Present when the address geocodes but lies outside all delivery zones. */
   noDeliveryZone?: NoDeliveryZoneError;
 }
@@ -139,6 +320,7 @@ export async function determineZones(
       deliveryZoneId: null,
       pickupZoneName: null,
       deliveryZoneName: null,
+      shippingRegionIdForRouting: null,
     };
   }
 
@@ -147,7 +329,7 @@ export async function determineZones(
   ];
   console.log("👨‍🌾 Producer IDs from wines:", producerIds);
 
-  // Get producers with their pickup zones
+  // Get producers with pickup zone join (legacy) and shipping_region_id (region pallets)
   const { data: producers, error: producersError } = await sb
     .from("producers")
     .select(
@@ -155,6 +337,7 @@ export async function determineZones(
       id,
       name,
       pickup_zone_id,
+      shipping_region_id,
       pallet_zones!pickup_zone_id (
         id,
         name,
@@ -175,20 +358,42 @@ export async function determineZones(
       deliveryZoneId: null,
       pickupZoneName: null,
       deliveryZoneName: null,
+      shippingRegionIdForRouting: null,
     };
   }
 
-  // Determine pickup zone:
-  // Some producers may be missing pickup_zone_id; pick the first valid pickup zone.
-  const producerWithPickupZone = producers.find((p) => p.pallet_zones) || null;
-  const pickupZone = producerWithPickupZone?.pallet_zones || null;
-  const pickupZoneId = pickupZone?.id || null;
-  const pickupZoneName = pickupZone?.name || null;
+  const producerRows = producers as ProducerForZonesRow[];
 
-  console.log("📦 Pickup zone determined:", {
+  const shippingRegionIdForRouting =
+    unifiedShippingRegionId(producerRows);
+
+  let pickupZoneId: string | null = null;
+  let pickupZoneName: string | null = null;
+
+  if (shippingRegionIdForRouting) {
+    const { data: srRow } = await sb
+      .from("shipping_regions")
+      .select("name")
+      .eq("id", shippingRegionIdForRouting)
+      .maybeSingle();
+    pickupZoneId = null;
+    const rn = srRow?.name != null ? String(srRow.name).trim() : "";
+    pickupZoneName = rn.length > 0 ? `${rn} (region)` : "Shipping region";
+  } else {
+    const producerWithPickupZone =
+      producerRows.find((p) => normalizePalletZoneJoin(p.pallet_zones)) ??
+      null;
+    const pickup = normalizePalletZoneJoin(
+      producerWithPickupZone?.pallet_zones ?? null,
+    );
+    pickupZoneId = pickup?.id ?? null;
+    pickupZoneName = pickup?.name ?? null;
+  }
+
+  console.log("📦 Pickup / routing determined:", {
     pickupZoneId,
     pickupZoneName,
-    producerWithPickupZone,
+    shippingRegionIdForRouting,
   });
 
   // For delivery zone, we need to check if the address actually falls within a zone
@@ -312,100 +517,26 @@ export async function determineZones(
 
             console.log("✅ Found matching delivery zone:", deliveryZoneName);
 
-            // Get pallets that match the zones
-            const pallets: PalletInfo[] = [];
-
-            // Check if we have both zones needed for pallet matching
-            if (!pickupZoneId) {
+            if (
+              !shippingRegionIdForRouting &&
+              !pickupZoneId &&
+              producerRows.length > 0
+            ) {
               console.warn(
-                "⚠️ No pickup zone found. Producer may not have pickup_zone_id set.",
-              );
-              console.warn(
-                "⚠️ Cannot create/find pallets without pickup zone.",
+                'No pickup zone found: cart producers are not all on the same shipping_region_id, and none have pickup_zone_id (or join failed).',
               );
             }
 
-            if (pickupZoneId && deliveryZoneId) {
-              let { data: matchingPallets, error: palletsError } = await sb
-                .from("pallets")
-                .select(
-                  `
-                  id,
-                  name,
-                  bottle_capacity,
-                  cost_cents,
-                  pickup_zone_id,
-                  delivery_zone_id,
-                  status
-                `,
-                )
-                .eq("pickup_zone_id", pickupZoneId)
-                .eq("delivery_zone_id", deliveryZoneId);
-
-              console.log(
-                "🚚 Matching pallets found:",
-                matchingPallets?.length || 0,
-              );
-
-              // If no pallet exists, create a new one automatically
-              if (
-                !palletsError &&
-                (!matchingPallets || matchingPallets.length === 0)
-              ) {
-                console.log(
-                  "🆕 No pallet exists for this route. Creating new pallet...",
-                );
-
-                const newPalletName = `${pickupZoneName} to ${deliveryZoneName}`;
-                const { data: newPallet, error: createError } = await sb
-                  .from("pallets")
-                  .insert({
-                    name: newPalletName,
-                    pickup_zone_id: pickupZoneId,
-                    delivery_zone_id: deliveryZoneId,
-                    bottle_capacity: 720, // Standard pallet capacity
-                    cost_cents: 50000, // Default 500 SEK, can be updated later
-                    status: "open",
+            const pallets =
+              deliveryZoneId && deliveryZoneName
+                ? await buildPalletInfosForDeliveryPair(sb, {
+                    shippingRegionId: shippingRegionIdForRouting,
+                    pickupZoneId,
+                    pickupZoneDisplayName: pickupZoneName,
+                    deliveryZoneId,
+                    deliveryZoneName,
                   })
-                  .select()
-                  .single();
-
-                if (createError) {
-                  console.error("❌ Failed to create new pallet:", createError);
-                } else if (newPallet) {
-                  console.log(
-                    "✅ Created new pallet:",
-                    newPallet.id,
-                    newPalletName,
-                  );
-                  matchingPallets = [newPallet];
-                }
-              }
-
-              if (!palletsError && matchingPallets) {
-                // Get current bottle count for each pallet
-                for (const pallet of matchingPallets) {
-                  const currentBottles = await sumReservedBottlesOnPallet(
-                    pallet.id,
-                  );
-
-                  pallets.push({
-                    id: pallet.id,
-                    name: pallet.name,
-                    currentBottles,
-                    maxBottles: pallet.bottle_capacity,
-                    remainingBottles: pallet.bottle_capacity - currentBottles,
-                    pickupZoneName: pickupZoneName || "",
-                    deliveryZoneName: deliveryZoneName || "",
-                    costCents: pallet.cost_cents,
-                    status:
-                      typeof (pallet as { status?: string }).status === "string"
-                        ? (pallet as { status: string }).status
-                        : null,
-                  });
-                }
-              }
-            }
+                : [];
 
             // Cache and return all matching zones for user selection
             const result = {
@@ -415,6 +546,7 @@ export async function determineZones(
               deliveryZoneName,
               availableDeliveryZones: matchingZones,
               pallets,
+              shippingRegionIdForRouting,
             };
 
             // Cache the result
@@ -435,6 +567,7 @@ export async function determineZones(
               deliveryZoneName: null,
               availableDeliveryZones: [],
               pallets: [],
+              shippingRegionIdForRouting,
               noDeliveryZone: {
                 error: "NO_DELIVERY_ZONE",
                 message: "We don't deliver to your area yet.",
@@ -457,47 +590,16 @@ export async function determineZones(
     deliveryZoneName = null;
   }
 
-  // Get pallets that match the zones
-  const pallets: PalletInfo[] = [];
-  if (pickupZoneId && deliveryZoneId) {
-    const { data: matchingPallets, error: palletsError } = await sb
-      .from("pallets")
-      .select(
-        `
-        id,
-        name,
-        bottle_capacity,
-        cost_cents,
-        pickup_zone_id,
-        delivery_zone_id,
-        status
-      `,
-      )
-      .eq("pickup_zone_id", pickupZoneId)
-      .eq("delivery_zone_id", deliveryZoneId);
-
-    if (!palletsError && matchingPallets) {
-      // Get current bottle count for each pallet
-      for (const pallet of matchingPallets) {
-        const currentBottles = await sumReservedBottlesOnPallet(pallet.id);
-
-        pallets.push({
-          id: pallet.id,
-          name: pallet.name,
-          currentBottles,
-          maxBottles: pallet.bottle_capacity,
-          remainingBottles: pallet.bottle_capacity - currentBottles,
-          pickupZoneName: pickupZoneName || "",
-          deliveryZoneName: deliveryZoneName || "",
-          costCents: pallet.cost_cents,
-          status:
-            typeof (pallet as { status?: string }).status === "string"
-              ? (pallet as { status: string }).status
-              : null,
-        });
-      }
-    }
-  }
+  const pallets: PalletInfo[] =
+    deliveryZoneId && deliveryZoneName
+      ? await buildPalletInfosForDeliveryPair(sb, {
+          shippingRegionId: shippingRegionIdForRouting,
+          pickupZoneId,
+          pickupZoneDisplayName: pickupZoneName,
+          deliveryZoneId,
+          deliveryZoneName,
+        })
+      : [];
 
   const result = {
     pickupZoneId,
@@ -505,6 +607,7 @@ export async function determineZones(
     pickupZoneName,
     deliveryZoneName,
     pallets,
+    shippingRegionIdForRouting,
   };
 
   // Cache the result (even if no zones found)

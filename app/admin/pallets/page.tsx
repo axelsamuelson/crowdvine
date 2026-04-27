@@ -118,6 +118,9 @@ export default function PalletsPage() {
   const [orderingShippingPalletId, setOrderingShippingPalletId] = useState<
     string | null
   >(null);
+  const [revertingShippingPalletId, setRevertingShippingPalletId] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     const fetchPallets = async () => {
@@ -195,6 +198,9 @@ export default function PalletsPage() {
     );
   };
 
+  const palletStatusIsShippingOrdered = (pallet: Pallet) =>
+    String(pallet.status ?? "").toLowerCase().trim() === "shipping_ordered";
+
   const handleOrderShipping = async (palletId: string) => {
     const confirmed = window.confirm(
       "Are you sure? This will charge all customers with saved cards on this pallet. This cannot be undone.",
@@ -232,6 +238,47 @@ export default function PalletsPage() {
       toast.error("Request failed");
     } finally {
       setOrderingShippingPalletId(null);
+    }
+  };
+
+  const handleRevertShipping = async (palletId: string) => {
+    const confirmed = window.confirm(
+      "Revert shipping order? The pallet will return to open status and customers can place new reservations at the setup_intent rate.",
+    );
+    if (!confirmed) return;
+
+    setRevertingShippingPalletId(palletId);
+    try {
+      const res = await fetch(
+        `/api/admin/pallets/${palletId}/revert-shipping`,
+        { method: "POST" },
+      );
+      const data: unknown = await res.json().catch(() => null);
+      const errMsg =
+        data &&
+        typeof data === "object" &&
+        "error" in data &&
+        typeof (data as { error: unknown }).error === "string"
+          ? (data as { error: string }).error
+          : "Request failed";
+
+      if (!res.ok) {
+        toast.error(errMsg);
+        return;
+      }
+
+      toast.success("Pallet reverted to open");
+      const refresh = await fetch("/api/admin/pallets");
+      if (refresh.ok) {
+        const list: unknown = await refresh.json();
+        if (Array.isArray(list)) {
+          setPallets(list as Pallet[]);
+        }
+      }
+    } catch {
+      toast.error("Request failed");
+    } finally {
+      setRevertingShippingPalletId(null);
     }
   };
 
@@ -464,16 +511,36 @@ export default function PalletsPage() {
                           )}
                         </>
                       ) : null}
-                      {typeof pallet.shipping_ordered_at === "string" &&
-                      pallet.shipping_ordered_at.length > 0 ? (
-                        <p className="text-xs font-medium text-amber-400/90">
-                          Shipping ordered:{" "}
-                          {format(
-                            new Date(pallet.shipping_ordered_at),
-                            "PPp",
-                            { locale: sv },
-                          )}
-                        </p>
+                      {palletStatusIsShippingOrdered(pallet) ||
+                      (typeof pallet.shipping_ordered_at === "string" &&
+                        pallet.shipping_ordered_at.length > 0) ? (
+                        <div className="space-y-1">
+                          {typeof pallet.shipping_ordered_at === "string" &&
+                          pallet.shipping_ordered_at.length > 0 ? (
+                            <p className="text-xs font-medium text-amber-400/90">
+                              Shipping ordered:{" "}
+                              {format(
+                                new Date(pallet.shipping_ordered_at),
+                                "PPp",
+                                { locale: sv },
+                              )}
+                            </p>
+                          ) : null}
+                          {palletStatusIsShippingOrdered(pallet) ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void handleRevertShipping(pallet.id)
+                              }
+                              disabled={
+                                revertingShippingPalletId === pallet.id
+                              }
+                              className="text-xs text-amber-500 hover:text-amber-400 underline underline-offset-2 disabled:opacity-50"
+                            >
+                              Revert to open
+                            </button>
+                          ) : null}
+                        </div>
                       ) : null}
                     </div>
                     <div className="shrink-0 w-full lg:w-44 space-y-2">
@@ -617,16 +684,32 @@ export default function PalletsPage() {
                         )}
                       </>
                     ) : null}
-                    {typeof pallet.shipping_ordered_at === "string" &&
-                    pallet.shipping_ordered_at.length > 0 ? (
-                      <p className="text-xs font-medium text-amber-400/90">
-                        Shipping ordered:{" "}
-                        {format(
-                          new Date(pallet.shipping_ordered_at),
-                          "PPp",
-                          { locale: sv },
-                        )}
-                      </p>
+                    {palletStatusIsShippingOrdered(pallet) ||
+                    (typeof pallet.shipping_ordered_at === "string" &&
+                      pallet.shipping_ordered_at.length > 0) ? (
+                      <div className="space-y-1">
+                        {typeof pallet.shipping_ordered_at === "string" &&
+                        pallet.shipping_ordered_at.length > 0 ? (
+                          <p className="text-xs font-medium text-amber-400/90">
+                            Shipping ordered:{" "}
+                            {format(
+                              new Date(pallet.shipping_ordered_at),
+                              "PPp",
+                              { locale: sv },
+                            )}
+                          </p>
+                        ) : null}
+                        {palletStatusIsShippingOrdered(pallet) ? (
+                          <button
+                            type="button"
+                            onClick={() => void handleRevertShipping(pallet.id)}
+                            disabled={revertingShippingPalletId === pallet.id}
+                            className="text-xs text-amber-500 hover:text-amber-400 underline underline-offset-2 disabled:opacity-50"
+                          >
+                            Revert to open
+                          </button>
+                        ) : null}
+                      </div>
                     ) : null}
                     {pallet.wine_summary.length > 0 ? (
                       <details className="group border-t border-[#1F1F23] pt-3">
