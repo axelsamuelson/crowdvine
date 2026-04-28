@@ -72,12 +72,12 @@ export default async function B2cOrderEditPage({
     .order("wine_name");
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+    <div className="container mx-auto space-y-6 py-8">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
           B2C Order
         </h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">
           Update reservation details and items
         </p>
       </div>

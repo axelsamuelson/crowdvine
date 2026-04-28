@@ -20,16 +20,80 @@ interface AdminReservationListRow {
   id: string;
   created_at: string;
   user_id?: string | null;
-  order_id?: string | null;
   status?: string | null;
   payment_status?: string | null;
-  fulfillment_status?: string | null;
   delivery_zone_id?: string | null;
   pickup_zone_id?: string | null;
+  shipping_region_id?: string | null;
+  shipping_region_name?: string | null;
+  delivery_zone_name?: string | null;
+  total_sek?: number | null;
+  total_bottles?: number | null;
+  payment_mode?: string | null;
+  checkout_group_id?: string | null;
+  cart_id?: string | null;
+  pallet_id?: string | null;
+  pallet?: { id: string; name: string | null } | null;
   profiles?: {
     full_name?: string | null;
     email?: string | null;
   } | null;
+}
+
+function formatPaymentStatus(status: string | null | undefined): string {
+  switch (status) {
+    case "paid":
+      return "Paid";
+    case "pending":
+      return "Awaiting payment";
+    case "failed":
+      return "Payment failed";
+    case "expired":
+      return "Expired";
+    case "cancelled":
+      return "Cancelled";
+    default:
+      return "Not charged yet";
+  }
+}
+
+function paymentBadgeClass(status: string | null | undefined): string {
+  switch (status) {
+    case "paid":
+      return "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400";
+    case "pending":
+      return "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400";
+    case "failed":
+    case "expired":
+      return "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400";
+    case "cancelled":
+      return "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-zinc-400";
+    default:
+      return "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-zinc-400";
+  }
+}
+
+function formatReservationStatus(status: string | null | undefined): string {
+  switch (status) {
+    case "pending_producer_approval":
+      return "Pending approval";
+    case "approved":
+      return "Approved";
+    case "partly_approved":
+      return "Partly approved";
+    case "placed":
+      return "Placed";
+    case "confirmed":
+      return "Confirmed";
+    case "pending_payment":
+      return "Pending payment";
+    case "cancelled":
+      return "Cancelled";
+    case "rejected":
+      return "Rejected";
+    default:
+      return status ?? "—";
+  }
 }
 
 export default function B2cOrdersPage() {
@@ -152,11 +216,7 @@ export default function B2cOrdersPage() {
   });
 
   const handleRowClick = (reservation: AdminReservationListRow) => {
-    // Navigate to order details using reservation's order_id
-    const orderId = reservation.order_id;
-    if (orderId) {
-      router.push(`/admin/orders/${orderId}`);
-    }
+    router.push(`/admin/b2c-orders/${reservation.id}`);
   };
 
   return (
@@ -321,10 +381,13 @@ export default function B2cOrdersPage() {
                       Total
                     </th>
                     <th className="text-left p-3 text-xs font-medium text-gray-600 dark:text-zinc-400">
+                      Bottles
+                    </th>
+                    <th className="text-left p-3 text-xs font-medium text-gray-600 dark:text-zinc-400">
                       Payment
                     </th>
                     <th className="text-left p-3 text-xs font-medium text-gray-600 dark:text-zinc-400">
-                      Fulfillment
+                      Order Status
                     </th>
                     <th className="text-left p-3 text-xs font-medium text-gray-600 dark:text-zinc-400">
                       Delivery
@@ -358,9 +421,7 @@ export default function B2cOrdersPage() {
                         />
                       </td>
                       <td className="p-3 font-mono text-xs text-gray-900 dark:text-zinc-100">
-                        {reservation.order_id?.substring(0, 8) ||
-                          reservation.id?.substring(0, 8) ||
-                          "N/A"}
+                        {reservation.id.substring(0, 8).toUpperCase()}
                       </td>
                       <td className="p-3 text-xs text-gray-600 dark:text-zinc-400">
                         {new Date(reservation.created_at).toLocaleDateString(
@@ -382,43 +443,38 @@ export default function B2cOrdersPage() {
                         </div>
                       </td>
                       <td className="p-3 text-xs text-gray-500 dark:text-zinc-400">
-                        N/A
+                        {typeof reservation.total_sek === "number"
+                          ? `${Math.round(reservation.total_sek)} kr`
+                          : "—"}
+                      </td>
+                      <td className="p-3 text-xs text-gray-500 dark:text-zinc-400 tabular-nums">
+                        {typeof reservation.total_bottles === "number"
+                          ? reservation.total_bottles
+                          : "—"}
                       </td>
                       <td className="p-3">
                         <span
                           className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${
-                            reservation.payment_status === "paid"
-                              ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
-                              : reservation.payment_status === "pending"
-                                ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
-                                : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
+                            paymentBadgeClass(reservation.payment_status)
                           }`}
                         >
-                          {reservation.payment_status || "Pending"}
+                          {formatPaymentStatus(reservation.payment_status)}
                         </span>
                       </td>
                       <td className="p-3">
                         <span
-                          className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${
-                            reservation.fulfillment_status === "fulfilled"
-                              ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
-                              : reservation.fulfillment_status === "processing"
-                                ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
-                                : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-zinc-400"
-                          }`}
+                          className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-zinc-400"
                         >
-                          {reservation.fulfillment_status || "Pending"}
+                          {formatReservationStatus(reservation.status)}
                         </span>
                       </td>
                       <td className="p-3 text-xs text-gray-900 dark:text-zinc-100">
-                        {reservation.delivery_zone_id
-                          ? `Zone ${reservation.delivery_zone_id}`
-                          : "—"}
+                        {reservation.delivery_zone_name ?? "—"}
                       </td>
                       <td className="p-3 text-xs text-gray-900 dark:text-zinc-100">
-                        {reservation.pickup_zone_id
-                          ? `Zone ${reservation.pickup_zone_id}`
-                          : "—"}
+                        {reservation.shipping_region_name ??
+                          reservation.pallet?.name ??
+                          "—"}
                       </td>
                     </tr>
                   ))}

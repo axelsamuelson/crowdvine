@@ -15,27 +15,43 @@ function getSupabaseAdmin() {
 
 export async function GET() {
   try {
-    const sb = getSupabaseAdmin();
+    const sbAdmin = getSupabaseAdmin();
 
     console.log("🔍 [Reservations API] Starting to fetch reservations...");
 
-    // Try fetching with profiles join first
-    const { data: reservations, error: reservationsError } = await sb
+    const { data: reservations, error: reservationsError } = await sbAdmin
       .from("order_reservations")
       .select(
         `
         id,
         status,
+        payment_status,
+        payment_mode,
         created_at,
         user_id,
         delivery_zone_id,
         pickup_zone_id,
+        checkout_group_id,
+        shipping_region_id,
         cart_id,
         address_id,
-        pallet_id
+        pallet_id,
+        delivery:pallet_zones!delivery_zone_id (
+          id,
+          name
+        ),
+        shipping_region:shipping_regions!shipping_region_id (
+          id,
+          name
+        ),
+        pallet:pallets!pallet_id (
+          id,
+          name
+        )
       `,
       )
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(200);
 
     if (reservationsError) {
       console.error(
@@ -55,20 +71,112 @@ export async function GET() {
       });
     }
 
+    const baseReservations = Array.isArray(reservations) ? reservations : [];
     console.log(
-      `✅ [Reservations API] Found ${reservations?.length || 0} reservations`,
+      `✅ [Reservations API] Found ${baseReservations.length} reservations`,
     );
 
+    if (baseReservations.length === 0) {
+      return NextResponse.json({ reservations: [] });
+    }
+
+    const reservationIds = baseReservations
+      .map((r) => (r && typeof r.id === "string" ? r.id : null))
+      .filter((id): id is string => Boolean(id));
+
+    type ItemRowPrice = {
+      reservation_id: string;
+      quantity: number | null;
+      unit_price_sek: number | null;
+    };
+
+    type ItemRowFallback = {
+      reservation_id: string;
+      quantity: number | null;
+      wines?: { base_price_cents: number | null } | null;
+    };
+
+    const totalByReservation: Record<string, number> = {};
+    const bottlesByReservation: Record<string, number> = {};
+
+    if (reservationIds.length > 0) {
+      // Prefer order_reservation_items.unit_price_sek when present; fall back to wines.base_price_cents.
+      const { data: itemsWithPrice, error: itemsWithPriceError } =
+        await sbAdmin
+          .from("order_reservation_items")
+          .select("reservation_id, quantity, unit_price_sek")
+          .in("reservation_id", reservationIds);
+
+      const shouldFallback =
+        Boolean(itemsWithPriceError) &&
+        typeof itemsWithPriceError?.message === "string" &&
+        /unit_price_sek/i.test(itemsWithPriceError.message);
+
+      if (!itemsWithPriceError && Array.isArray(itemsWithPrice)) {
+        for (const item of itemsWithPrice as ItemRowPrice[]) {
+          const rid = item.reservation_id;
+          if (typeof rid !== "string" || rid.length === 0) continue;
+          const qty = typeof item.quantity === "number" ? item.quantity : 0;
+          const unitSek =
+            typeof item.unit_price_sek === "number" ? item.unit_price_sek : 0;
+          totalByReservation[rid] = (totalByReservation[rid] ?? 0) + qty * unitSek;
+          bottlesByReservation[rid] = (bottlesByReservation[rid] ?? 0) + qty;
+        }
+      } else if (shouldFallback) {
+        const { data: itemsFallback, error: itemsFallbackError } = await sbAdmin
+          .from("order_reservation_items")
+          .select(
+            `
+            reservation_id,
+            quantity,
+            wines ( base_price_cents )
+          `,
+          )
+          .in("reservation_id", reservationIds);
+
+        if (itemsFallbackError) {
+          console.error(
+            "❌ [Reservations API] Error fetching reservation items (fallback):",
+            itemsFallbackError,
+          );
+        } else if (Array.isArray(itemsFallback)) {
+          for (const item of itemsFallback as ItemRowFallback[]) {
+            const rid = item.reservation_id;
+            if (typeof rid !== "string" || rid.length === 0) continue;
+            const qty = typeof item.quantity === "number" ? item.quantity : 0;
+            const baseCents =
+              typeof item.wines?.base_price_cents === "number"
+                ? item.wines.base_price_cents
+                : 0;
+            totalByReservation[rid] =
+              (totalByReservation[rid] ?? 0) + qty * (baseCents / 100);
+            bottlesByReservation[rid] = (bottlesByReservation[rid] ?? 0) + qty;
+          }
+        }
+      } else if (itemsWithPriceError) {
+        console.error(
+          "❌ [Reservations API] Error fetching reservation items:",
+          itemsWithPriceError,
+        );
+      }
+    }
+
     // Manually fetch profiles for all user_ids
-    if (reservations && reservations.length > 0) {
-      const userIds = [
-        ...new Set(reservations.map((r) => r.user_id).filter(Boolean)),
-      ];
+    const userIds = Array.from(
+      new Set(
+        baseReservations
+          .map((r) => (r && typeof r.user_id === "string" ? r.user_id : null))
+          .filter((id): id is string => Boolean(id)),
+      ),
+    );
+
+    type ProfileRow = { id: string; email: string | null; full_name: string | null };
+    const profilesById = new Map<string, ProfileRow>();
+    if (userIds.length > 0) {
       console.log(
         `🔍 [Reservations API] Fetching profiles for ${userIds.length} unique users`,
       );
-
-      const { data: profiles, error: profilesError } = await sb
+      const { data: profiles, error: profilesError } = await sbAdmin
         .from("profiles")
         .select("id, email, full_name")
         .in("id", userIds);
@@ -79,31 +187,51 @@ export async function GET() {
           profilesError,
         );
       } else {
-        console.log(
-          `✅ [Reservations API] Found ${profiles?.length || 0} profiles`,
-        );
-
-        // Create a map for quick lookup
-        const profilesMap = new Map(profiles?.map((p) => [p.id, p]) || []);
-
-        // Attach profiles to reservations
-        const reservationsWithProfiles = reservations.map((reservation) => ({
-          ...reservation,
-          profiles: profilesMap.get(reservation.user_id) || null,
-        }));
-
-        console.log(
-          `✅ [Reservations API] Returning ${reservationsWithProfiles.length} reservations with profiles`,
-        );
-        return NextResponse.json({
-          reservations: reservationsWithProfiles,
-        });
+        for (const p of profiles ?? []) {
+          if (p && typeof p.id === "string") {
+            profilesById.set(p.id, p as ProfileRow);
+          }
+        }
       }
     }
 
-    return NextResponse.json({
-      reservations: reservations || [],
+    type DeliveryJoin = { id: string; name: string | null } | null;
+    type PalletJoin = { id: string; name: string | null } | null;
+    type ShippingRegionJoin = { id: string; name: string | null } | null;
+
+    const enriched = baseReservations.map((reservation) => {
+      const rid = typeof reservation.id === "string" ? reservation.id : "";
+      const uid = typeof reservation.user_id === "string" ? reservation.user_id : null;
+      const delivery = (reservation as { delivery?: DeliveryJoin }).delivery ?? null;
+      const pallet = (reservation as { pallet?: PalletJoin }).pallet ?? null;
+      const shippingRegion =
+        (reservation as { shipping_region?: ShippingRegionJoin }).shipping_region ??
+        null;
+      const profile = uid ? profilesById.get(uid) ?? null : null;
+
+      return {
+        ...reservation,
+        profiles: profile
+          ? { full_name: profile.full_name, email: profile.email }
+          : null,
+        delivery_zone_name: delivery?.name ?? null,
+        shipping_region_name: shippingRegion?.name ?? null,
+        total_bottles:
+          rid && Object.prototype.hasOwnProperty.call(bottlesByReservation, rid)
+            ? bottlesByReservation[rid] ?? null
+            : null,
+        total_sek:
+          rid && Object.prototype.hasOwnProperty.call(totalByReservation, rid)
+            ? totalByReservation[rid] ?? null
+            : null,
+      };
     });
+
+    console.log(
+      `✅ [Reservations API] Returning ${enriched.length} reservations (enriched)`,
+    );
+
+    return NextResponse.json({ reservations: enriched });
   } catch (error) {
     console.error("❌ [Reservations API] Unexpected error:", error);
     return NextResponse.json(

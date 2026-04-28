@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -29,6 +30,7 @@ import {
   Waypoints,
   Flag,
   Globe2,
+  ChevronDown,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -119,10 +121,41 @@ const navigationGroups: NavGroup[] = [
 
 export function Sidebar({ userEmail, onSignOut, mobileOpen, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set());
 
   const isItemActive = (item: NavItem) =>
     pathname === item.href ||
     (item.href !== "/admin" && pathname.startsWith(item.href + "/"));
+
+  const activeGroupNames = useMemo(() => {
+    return new Set(
+      navigationGroups
+        .filter((g) => g.items.some((it) => isItemActive(it)))
+        .map((g) => g.name),
+    );
+  }, [pathname]);
+
+  useEffect(() => {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      for (const name of activeGroupNames) next.add(name);
+      return next;
+    });
+  }, [activeGroupNames]);
+
+  const toggleGroup = (group: NavGroup) => {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      const isOpen = next.has(group.name);
+      if (isOpen) {
+        next.delete(group.name);
+        return next;
+      }
+      next.add(group.name);
+      return next;
+    });
+  };
 
   const SidebarContent = (
     <>
@@ -146,33 +179,50 @@ export function Sidebar({ userEmail, onSignOut, mobileOpen, onMobileClose }: Sid
 
       {/* Navigation – template: section labels + flat nav items */}
       <ScrollArea className="flex-1 py-4 px-4">
-        <nav className="space-y-6">
+        <nav className="space-y-3">
           {navigationGroups.map((group) => (
             <div key={group.name}>
-              <div className="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                {group.name}
-              </div>
-              <div className="space-y-1">
-                {group.items.map((item) => {
-                  const isActive = isItemActive(item);
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      onClick={onMobileClose}
-                      className={cn(
-                        "flex items-center px-3 py-2 text-sm rounded-md transition-colors",
-                        isActive
-                          ? "text-gray-900 dark:text-white font-medium bg-gray-100 dark:bg-[#1F1F23]"
-                          : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1F1F23]",
-                      )}
-                    >
-                      <item.icon className="mr-3 h-4 w-4 shrink-0" />
-                      {item.name}
-                    </Link>
-                  );
-                })}
-              </div>
+              <button
+                type="button"
+                onClick={() => toggleGroup(group)}
+                className="group flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm font-semibold uppercase tracking-wider text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-[#1F1F23] dark:hover:text-gray-200"
+              >
+                <span className="flex items-center gap-2">
+                  <group.icon className="h-4 w-4 shrink-0 opacity-80" />
+                  {group.name}
+                </span>
+                <ChevronDown
+                  className={cn(
+                    "h-4 w-4 shrink-0 transition-transform",
+                    openGroups.has(group.name) ? "rotate-180" : "rotate-0",
+                  )}
+                  aria-hidden
+                />
+              </button>
+
+              {openGroups.has(group.name) ? (
+                <div className="mt-1 space-y-1 pl-2">
+                  {group.items.map((item) => {
+                    const isActive = isItemActive(item);
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        onClick={onMobileClose}
+                        className={cn(
+                          "flex items-center px-3 py-2 text-[15px] rounded-md transition-colors",
+                          isActive
+                            ? "text-gray-900 dark:text-white font-medium bg-gray-100 dark:bg-[#1F1F23]"
+                            : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1F1F23]",
+                        )}
+                      >
+                        <item.icon className="mr-3 h-4 w-4 shrink-0" />
+                        {item.name}
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : null}
             </div>
           ))}
         </nav>
