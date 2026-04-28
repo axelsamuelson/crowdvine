@@ -47,7 +47,13 @@ export function CheckoutStripeReturnClient() {
         return;
       }
 
-      if (redirectStatus !== "succeeded") {
+      // Legacy / manual recovery: Stripe may omit redirect_status on some returns.
+      // Only block known non-success; otherwise server retrieves the intent and verifies status.
+      if (
+        redirectStatus != null &&
+        redirectStatus !== "" &&
+        redirectStatus !== "succeeded"
+      ) {
         setLoading(false);
         setError(
           isSv

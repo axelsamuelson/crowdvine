@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET(
@@ -10,10 +10,18 @@ export async function GET(
     const { id } = await params;
     const user = await getCurrentUser();
     if (!user) {
+      console.warn("[GET /api/user/reservations/:id] unauthenticated", {
+        reservationId: id,
+      });
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const supabase = getSupabaseAdmin();
+
+    console.log("[GET /api/user/reservations/:id] start", {
+      reservationId: id,
+      userId: user.id,
+    });
 
     // Get specific reservation with related data
     const { data: reservation, error } = await supabase
@@ -47,10 +55,10 @@ export async function GET(
       )
       .eq("id", id)
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
     if (error) {
-      console.error("Error fetching reservation:", error);
+      console.error("[GET /api/user/reservations/:id] query error:", error);
       const isProd = process.env.NODE_ENV === "production";
       return NextResponse.json(
         isProd
@@ -69,6 +77,10 @@ export async function GET(
     }
 
     if (!reservation) {
+      console.warn("[GET /api/user/reservations/:id] not found or wrong user", {
+        reservationId: id,
+        userId: user.id,
+      });
       return NextResponse.json(
         { error: "Reservation not found" },
         { status: 404 },
@@ -119,7 +131,7 @@ export async function GET(
       .from("profiles")
       .select("full_name, email")
       .eq("id", user.id)
-      .single();
+      .maybeSingle();
 
     const items =
       reservation.order_reservation_items?.map((item) => ({
@@ -168,25 +180,14 @@ export async function GET(
       .eq("from_user_id", user.id);
 
     if (sharedError) {
-      console.error("Error fetching reservation share allocations:", sharedError);
-      const isProd = process.env.NODE_ENV === "production";
-      return NextResponse.json(
-        isProd
-          ? { error: "Failed to fetch reservation" }
-          : {
-              error: "Failed to fetch reservation",
-              debug: {
-                message: (sharedError as any)?.message,
-                code: (sharedError as any)?.code,
-                details: (sharedError as any)?.details,
-                hint: (sharedError as any)?.hint,
-              },
-            },
-        { status: 500 },
+      // Non-fatal: reservation details should still load if share query fails.
+      console.error(
+        "[GET /api/user/reservations/:id] share allocations error (continuing without shared section):",
+        sharedError,
       );
     }
 
-    if (sharedRows && sharedRows.length > 0) {
+    if (!sharedError && sharedRows && sharedRows.length > 0) {
       const byTo = new Map<
         string,
         {
@@ -283,6 +284,12 @@ export async function GET(
       items,
       shared,
     };
+
+    console.log("[GET /api/user/reservations/:id] ok", {
+      reservationId: reservation.id,
+      userId: user.id,
+      itemCount: items.length,
+    });
 
     return NextResponse.json(transformedReservation);
   } catch (error) {

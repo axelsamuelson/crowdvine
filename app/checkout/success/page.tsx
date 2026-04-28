@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useCallback, useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -65,6 +65,52 @@ interface ReservationDetails {
   }>;
 }
 
+/** Legacy return_url pointed here; relay to stripe-return so confirm-stripe-run runs. */
+function CheckoutSuccessStripeRelay() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const si = searchParams.get("setup_intent")?.trim() ?? "";
+  const pi = searchParams.get("payment_intent")?.trim() ?? "";
+  const needsRelay = Boolean(si || pi);
+
+  useEffect(() => {
+    if (!needsRelay) return;
+
+    const rs = searchParams.get("redirect_status")?.trim() ?? "";
+    const next = new URLSearchParams();
+    if (si) next.set("setup_intent", si);
+    if (pi) next.set("payment_intent", pi);
+    if (rs) next.set("redirect_status", rs);
+
+    console.info(
+      "[checkout/success] Stripe return detected; relaying to /checkout/stripe-return",
+      {
+        hasSetupIntent: Boolean(si),
+        hasPaymentIntent: Boolean(pi),
+        redirectStatus: rs || null,
+      },
+    );
+
+    router.replace(`/checkout/stripe-return?${next.toString()}`);
+  }, [needsRelay, router, searchParams, si, pi]);
+
+  if (needsRelay) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="text-center max-w-md space-y-3">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-900 mx-auto" />
+          <p className="text-gray-700">Completing your reservation…</p>
+          <p className="text-sm text-gray-500">
+            One moment while we save your order.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return <CheckoutConfirmationContent />;
+}
+
 function CheckoutConfirmationContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -72,94 +118,20 @@ function CheckoutConfirmationContent() {
     null,
   );
   const [loading, setLoading] = useState(true);
+  const [groupReservationIds, setGroupReservationIds] = useState<string[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const reservationIdParam = searchParams.get("reservationId");
   const checkoutGroupIdParam = searchParams.get("checkoutGroupId");
   const message = searchParams.get("message");
-  const [resolvedReservationId, setResolvedReservationId] = useState<
-    string | null
-  >(null);
 
-  useEffect(() => {
-    if (message) {
-      toast.success(decodeURIComponent(message));
-    }
+  const hasIdParams = Boolean(
+    reservationIdParam?.trim() || checkoutGroupIdParam?.trim(),
+  );
+  const ambiguousLanding =
+    !hasIdParams && loadError === "no_id" && !reservation;
 
-    let cancelled = false;
-
-    async function resolveAndFetch() {
-      if (reservationIdParam) {
-        setResolvedReservationId(reservationIdParam);
-        return;
-      }
-      if (checkoutGroupIdParam) {
-        try {
-          const res = await fetch(
-            `/api/user/reservations/by-checkout-group/${encodeURIComponent(checkoutGroupIdParam)}`,
-          );
-          if (!res.ok) {
-            toast.error("Failed to resolve reservation");
-            setLoading(false);
-            return;
-          }
-          const data = (await res.json()) as { reservationId?: string };
-          if (!cancelled && data.reservationId) {
-            setResolvedReservationId(data.reservationId);
-          } else if (!cancelled) {
-            toast.error("Reservation not found");
-            setLoading(false);
-          }
-        } catch {
-          if (!cancelled) {
-            toast.error("Failed to resolve reservation");
-            setLoading(false);
-          }
-        }
-        return;
-      }
-      setLoading(false);
-    }
-
-    void resolveAndFetch();
-
-    // Clear cart cache when success page loads
-    localStorage.removeItem("cart-cache");
-    localStorage.removeItem("cart-cache-time");
-
-    return () => {
-      cancelled = true;
-    };
-  }, [reservationIdParam, checkoutGroupIdParam, message]);
-
-  useEffect(() => {
-    if (!resolvedReservationId) return;
-
-    const fetchReservationDetails = async () => {
-      try {
-        const response = await fetch(
-          `/api/user/reservations/${resolvedReservationId}`,
-        );
-        if (response.ok) {
-          const data = await response.json();
-          setReservation(data);
-
-          // Send order confirmation email
-          await sendOrderConfirmationEmail(data);
-        } else {
-          toast.error("Failed to fetch reservation details");
-        }
-      } catch (error) {
-        console.error("Error fetching reservation:", error);
-        toast.error("Failed to fetch reservation details");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void fetchReservationDetails();
-  }, [resolvedReservationId]);
-
-  const sendOrderConfirmationEmail = async (
+  const sendOrderConfirmationEmail = useCallback(async (
     reservationData: ReservationDetails,
   ) => {
     try {
@@ -227,7 +199,131 @@ function CheckoutConfirmationContent() {
       console.error("📧 Error sending order confirmation email:", error);
       // Fail open: do not show user-facing error toasts here.
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (message) {
+      toast.success(decodeURIComponent(message));
+    }
+
+    localStorage.removeItem("cart-cache");
+    localStorage.removeItem("cart-cache-time");
+
+    let cancelled = false;
+
+    async function run() {
+      setLoadError(null);
+      setReservation(null);
+      setGroupReservationIds([]);
+
+      const ridRaw = reservationIdParam?.trim() ?? "";
+      const gidRaw = checkoutGroupIdParam?.trim() ?? "";
+
+      console.info("[checkout/success] params", {
+        hasReservationId: Boolean(ridRaw),
+        hasCheckoutGroupId: Boolean(gidRaw),
+      });
+
+      let idsFromGroup: string[] = [];
+
+      if (gidRaw) {
+        const res = await fetch(
+          `/api/user/reservations/by-checkout-group/${encodeURIComponent(gidRaw)}`,
+        );
+        const parsed: unknown = await res.json().catch(() => null);
+        const data =
+          parsed && typeof parsed === "object"
+            ? (parsed as { reservationIds?: unknown })
+            : null;
+        const ids = Array.isArray(data?.reservationIds)
+          ? (data.reservationIds as unknown[]).filter(
+              (x): x is string => typeof x === "string" && x.trim() !== "",
+            )
+          : [];
+
+        console.info("[checkout/success] by-checkout-group", {
+          status: res.status,
+          idCount: ids.length,
+          checkoutGroupId: gidRaw,
+        });
+
+        if (res.ok && ids.length > 0) {
+          idsFromGroup = ids;
+        }
+      }
+
+      let primaryId: string | null = null;
+      if (gidRaw && idsFromGroup.length > 0) {
+        primaryId =
+          ridRaw && idsFromGroup.includes(ridRaw) ? ridRaw : idsFromGroup[0]!;
+      } else if (ridRaw) {
+        primaryId = ridRaw;
+      }
+
+      if (!primaryId) {
+        console.warn("[checkout/success] no primary reservation id", {
+          ridRaw: ridRaw || null,
+          gidRaw: gidRaw || null,
+        });
+        if (!cancelled) {
+          setLoadError("no_id");
+          setLoading(false);
+        }
+        return;
+      }
+
+      if (!cancelled) {
+        setGroupReservationIds(idsFromGroup);
+      }
+
+      console.info("[checkout/success] fetch reservation", {
+        primaryReservationId: primaryId,
+        groupReservationCount: idsFromGroup.length,
+      });
+
+      const response = await fetch(`/api/user/reservations/${primaryId}`);
+
+      console.info("[checkout/success] reservation GET", {
+        status: response.status,
+        primaryReservationId: primaryId,
+      });
+
+      if (!response.ok) {
+        if (!cancelled) {
+          setLoadError(`http_${response.status}`);
+          setLoading(false);
+        }
+        return;
+      }
+
+      const payload: unknown = await response.json().catch(() => null);
+      if (!payload || typeof payload !== "object") {
+        if (!cancelled) {
+          setLoadError("invalid_payload");
+          setLoading(false);
+        }
+        return;
+      }
+
+      if (!cancelled) {
+        const details = payload as ReservationDetails;
+        setReservation(details);
+        await sendOrderConfirmationEmail(details);
+        setLoading(false);
+      }
+    }
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    checkoutGroupIdParam,
+    message,
+    reservationIdParam,
+    sendOrderConfirmationEmail,
+  ]);
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -278,11 +374,14 @@ function CheckoutConfirmationContent() {
         <div className="flex items-start justify-between gap-6">
           <div className="min-w-0">
             <h1 className="text-2xl font-medium text-gray-900 mb-2">
-              Reservation confirmed
+              {ambiguousLanding
+                ? "We couldn’t load your reservation"
+                : "Reservation confirmed"}
             </h1>
             <p className="text-gray-500">
-              Your bottles are reserved. We’ll notify you when your pallet is
-              ready for payment and shipment.
+              {ambiguousLanding
+                ? "See below for next steps."
+                : "Your bottles are reserved. We’ll notify you when your pallet is ready for payment and shipment."}
             </p>
             {reservation && (
               <div className="flex items-center gap-2 text-sm text-gray-500 mt-3">
@@ -292,17 +391,46 @@ function CheckoutConfirmationContent() {
             )}
           </div>
 
-          <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-            <CheckCircle className="h-6 w-6 text-green-700" />
+          <div
+            className={`h-12 w-12 rounded-full flex items-center justify-center shrink-0 ${
+              ambiguousLanding ? "bg-amber-100" : "bg-green-100"
+            }`}
+          >
+            <CheckCircle
+              className={`h-6 w-6 ${
+                ambiguousLanding ? "text-amber-800" : "text-green-700"
+              }`}
+            />
           </div>
         </div>
+
+        {reservation && groupReservationIds.length > 1 ? (
+          <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+            This checkout created {groupReservationIds.length} reservations
+            (split by producer). Showing details for one reservation below; open
+            &quot;View reservations&quot; to see the full list.
+          </div>
+        ) : null}
 
         {!reservation ? (
           <Card className="p-6 bg-white border border-gray-200 rounded-2xl">
             <CardContent className="p-0">
               <p className="text-gray-600">
-                We couldn’t load reservation details. Please try again.
+                {ambiguousLanding
+                  ? "Your payment method may have been verified, but we could not load the reservation. View reservations or contact support."
+                  : loadError === "no_id"
+                    ? "Your reservation was confirmed, but we could not load the details from this link. View your reservations for the full summary."
+                    : loadError?.startsWith("http_")
+                      ? "Your reservation was confirmed, but we could not load the details right now. View your reservations — the order should appear there."
+                      : "Your reservation was confirmed, but we could not load the details. View your reservations for the full summary."}
               </p>
+              {(reservationIdParam?.trim() || checkoutGroupIdParam?.trim()) && (
+                <p className="text-xs text-gray-500 mt-3 font-mono break-all">
+                  Reference:{" "}
+                  {reservationIdParam?.trim() ||
+                    `checkoutGroup:${checkoutGroupIdParam?.trim()}`}
+                </p>
+              )}
               <div className="flex flex-col sm:flex-row gap-3 mt-6">
                 <Button
                   onClick={() => router.push("/profile/reservations")}
@@ -650,7 +778,7 @@ export default function CheckoutConfirmationPage() {
         </div>
       }
     >
-      <CheckoutConfirmationContent />
+      <CheckoutSuccessStripeRelay />
     </Suspense>
   );
 }
