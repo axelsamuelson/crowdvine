@@ -402,10 +402,31 @@ export async function POST(request: NextRequest) {
       }
 
       case "setup_intent.setup_failed": {
-        const setupIntent = event.data.object;
+        const setupIntent = event.data.object as Stripe.SetupIntent;
+        const err = setupIntent.last_setup_error;
+        const reason =
+          err?.message ||
+          (typeof err?.code === "string" ? `code=${err.code}` : null) ||
+          "unknown";
         console.log(
-          `❌ [Stripe Webhook] setup_intent.setup_failed: ${setupIntent.id}`,
+          `❌ [Stripe Webhook] setup_intent.setup_failed: ${setupIntent.id} status=${setupIntent.status} reason=${reason}`,
         );
+        if (err) {
+          console.log(
+            "[Stripe Webhook] setup_failed last_setup_error:",
+            JSON.stringify(
+              {
+                type: err.type,
+                code: err.code,
+                decline_code: err.decline_code,
+                message: err.message,
+                param: err.param,
+              },
+              null,
+              2,
+            ),
+          );
+        }
         break;
       }
 

@@ -18,11 +18,46 @@ type IntentCreated = {
   bottlesFilled: number;
 };
 
-export type StripeConfirmResult = {
-  success: boolean;
-  intentId: string;
-  error?: string;
+export type StripeConfirmStripeError = {
+  type?: string;
+  code?: string;
+  decline_code?: string;
+  message?: string;
 };
+
+/**
+ * Discriminated union: `success` is always present; when `success === true`,
+ * `intentId` and `intentType` are required (TypeScript narrows after guards).
+ */
+export type StripeConfirmResult =
+  | {
+      success: true;
+      intentId: string;
+      intentType: PaymentMode;
+    }
+  | {
+      success: false;
+      intentId?: string;
+      intentType?: PaymentMode;
+      error?: string;
+      /** Safe-to-log Stripe error fields (never include client_secret). */
+      stripeError?: StripeConfirmStripeError;
+      /** For debugging state-machine issues. */
+      intentStatus?: string;
+    };
+
+function formatStripeErrorMessage(error: unknown, fallback: string): string {
+  if (!error || typeof error !== "object") return fallback;
+  const e = error as { message?: unknown; code?: unknown; type?: unknown; decline_code?: unknown };
+  const message = typeof e.message === "string" && e.message.trim() ? e.message.trim() : fallback;
+  const code = typeof e.code === "string" && e.code.trim() ? e.code.trim() : null;
+  const type = typeof e.type === "string" && e.type.trim() ? e.type.trim() : null;
+  const decline = typeof e.decline_code === "string" && e.decline_code.trim() ? e.decline_code.trim() : null;
+  const meta = [type ? `type=${type}` : null, code ? `code=${code}` : null, decline ? `decline=${decline}` : null]
+    .filter(Boolean)
+    .join(" ");
+  return meta ? `${message} (${meta})` : message;
+}
 
 type Props = {
   palletId: string;
@@ -119,19 +154,36 @@ function StripeElementInner({
 
   const confirm = useCallback(async (): Promise<StripeConfirmResult> => {
     if (!stripe || !elements) {
-      return { success: false, intentId: "", error: "Not ready" };
+      return { success: false, error: "Not ready" };
     }
 
     const { error: submitError } = await elements.submit();
     if (submitError) {
       return {
         success: false,
-        intentId: "",
         error: submitError.message ?? "Payment details invalid",
+        stripeError: {
+          type:
+            typeof (submitError as { type?: unknown })?.type === "string"
+              ? String((submitError as { type?: unknown }).type)
+              : undefined,
+          code:
+            typeof (submitError as { code?: unknown })?.code === "string"
+              ? String((submitError as { code?: unknown }).code)
+              : undefined,
+          decline_code:
+            typeof (submitError as { decline_code?: unknown })?.decline_code === "string"
+              ? String((submitError as { decline_code?: unknown }).decline_code)
+              : undefined,
+          message:
+            typeof (submitError as { message?: unknown })?.message === "string"
+              ? String((submitError as { message?: unknown }).message)
+              : undefined,
+        },
       };
     }
 
-    const return_url = `${window.location.origin}/checkout/success`;
+    const return_url = `${window.location.origin}/checkout/stripe-return`;
 
     if (paymentMode === "setup_intent") {
       const { error, setupIntent } = await stripe.confirmSetup({
@@ -140,10 +192,56 @@ function StripeElementInner({
         redirect: "if_required",
         confirmParams: { return_url },
       });
-      if (error || !setupIntent?.id) {
-        return { success: false, intentId: "", error: error?.message ?? "Failed to confirm setup" };
+      const setupStatus = setupIntent?.status;
+      if (error || !setupIntent?.id || setupStatus !== "succeeded") {
+        if (error) {
+          console.error("[Stripe] confirmSetup error:", {
+            type: (error as { type?: unknown })?.type,
+            code: (error as { code?: unknown })?.code,
+            decline_code: (error as { decline_code?: unknown })?.decline_code,
+            message: (error as { message?: unknown })?.message,
+          });
+        }
+        return {
+          success: false,
+          intentStatus: typeof setupStatus === "string" ? setupStatus : undefined,
+          stripeError: error
+            ? {
+                type:
+                  typeof (error as { type?: unknown })?.type === "string"
+                    ? String((error as { type?: unknown }).type)
+                    : undefined,
+                code:
+                  typeof (error as { code?: unknown })?.code === "string"
+                    ? String((error as { code?: unknown }).code)
+                    : undefined,
+                decline_code:
+                  typeof (error as { decline_code?: unknown })?.decline_code === "string"
+                    ? String((error as { decline_code?: unknown }).decline_code)
+                    : undefined,
+                message:
+                  typeof (error as { message?: unknown })?.message === "string"
+                    ? String((error as { message?: unknown }).message)
+                    : undefined,
+              }
+            : setupStatus && setupStatus !== "succeeded"
+              ? {
+                  code: "setup_intent_not_succeeded",
+                  message: `SetupIntent status is ${setupStatus}`,
+                }
+              : undefined,
+          error: error
+            ? formatStripeErrorMessage(error, "Failed to confirm setup")
+            : setupStatus && setupStatus !== "succeeded"
+              ? `Card confirmation not completed (status: ${setupStatus})`
+              : "Failed to confirm setup",
+        };
       }
-      return { success: true, intentId: setupIntent.id };
+      return {
+        success: true,
+        intentId: setupIntent.id,
+        intentType: "setup_intent",
+      };
     }
 
     const { error, paymentIntent } = await stripe.confirmPayment({
@@ -152,10 +250,56 @@ function StripeElementInner({
       redirect: "if_required",
       confirmParams: { return_url },
     });
-    if (error || !paymentIntent?.id) {
-      return { success: false, intentId: "", error: error?.message ?? "Failed to confirm payment" };
+    const piStatus = paymentIntent?.status;
+    if (error || !paymentIntent?.id || piStatus !== "succeeded") {
+      if (error) {
+        console.error("[Stripe] confirmPayment error:", {
+          type: (error as { type?: unknown })?.type,
+          code: (error as { code?: unknown })?.code,
+          decline_code: (error as { decline_code?: unknown })?.decline_code,
+          message: (error as { message?: unknown })?.message,
+        });
+      }
+      return {
+        success: false,
+        intentStatus: typeof piStatus === "string" ? piStatus : undefined,
+        stripeError: error
+          ? {
+              type:
+                typeof (error as { type?: unknown })?.type === "string"
+                  ? String((error as { type?: unknown }).type)
+                  : undefined,
+              code:
+                typeof (error as { code?: unknown })?.code === "string"
+                  ? String((error as { code?: unknown }).code)
+                  : undefined,
+              decline_code:
+                typeof (error as { decline_code?: unknown })?.decline_code === "string"
+                  ? String((error as { decline_code?: unknown }).decline_code)
+                  : undefined,
+              message:
+                typeof (error as { message?: unknown })?.message === "string"
+                  ? String((error as { message?: unknown }).message)
+                  : undefined,
+            }
+          : piStatus && piStatus !== "succeeded"
+            ? {
+                code: "payment_intent_not_succeeded",
+                message: `PaymentIntent status is ${piStatus}`,
+              }
+            : undefined,
+        error: error
+          ? formatStripeErrorMessage(error, "Failed to confirm payment")
+          : piStatus && piStatus !== "succeeded"
+            ? `Payment not completed (status: ${piStatus})`
+            : "Failed to confirm payment",
+      };
     }
-    return { success: true, intentId: paymentIntent.id };
+    return {
+      success: true,
+      intentId: paymentIntent.id,
+      intentType: "payment_intent",
+    };
   }, [clientSecret, elements, paymentMode, stripe]);
 
   useEffect(() => {

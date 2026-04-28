@@ -6,11 +6,20 @@ import { motion } from "framer-motion";
 
 interface ReservationLoadingModalProps {
   open: boolean;
+  title?: string;
+  description?: string;
 }
 
 export function ReservationLoadingModal({
   open,
+  title,
+  description,
 }: ReservationLoadingModalProps) {
+  const t = typeof title === "string" && title.trim() ? title.trim() : "Confirming Reservation";
+  const d =
+    typeof description === "string" && description.trim()
+      ? description.trim()
+      : "Processing your order";
   return (
     <Dialog open={open}>
       <DialogContent
@@ -18,7 +27,7 @@ export function ReservationLoadingModal({
         aria-describedby="reservation-loading-description"
       >
         <VisuallyHidden>
-          <DialogTitle>Confirming reservation</DialogTitle>
+          <DialogTitle>{t}</DialogTitle>
         </VisuallyHidden>
         <div className="text-center py-12 px-6">
           {/* Minimalist Wine Bottle Animation */}
@@ -103,7 +112,7 @@ export function ReservationLoadingModal({
 
           {/* Loading Text - Minimalist Typography */}
           <h3 className="text-lg font-light text-gray-900 mb-1 tracking-wide">
-            Confirming Reservation
+            {t}
           </h3>
 
           {/* Subtle progress indicator */}
@@ -130,7 +139,7 @@ export function ReservationLoadingModal({
             id="reservation-loading-description"
             className="text-sm text-gray-500 font-light"
           >
-            Processing your order
+            {d}
           </p>
         </div>
       </DialogContent>

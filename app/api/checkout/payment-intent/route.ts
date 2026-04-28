@@ -68,6 +68,33 @@ export async function POST(request: Request) {
       );
     }
 
+    // Helpful guard: prevent confusing client errors when keys are mixed (pk_test + sk_live, etc.)
+    const pk = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "";
+    const sk = process.env.STRIPE_SECRET_KEY ?? "";
+    const pkMode = pk.startsWith("pk_live_")
+      ? "live"
+      : pk.startsWith("pk_test_")
+        ? "test"
+        : "unknown";
+    const skMode = sk.startsWith("sk_live_")
+      ? "live"
+      : sk.startsWith("sk_test_")
+        ? "test"
+        : "unknown";
+    if (pkMode !== "unknown" && skMode !== "unknown" && pkMode !== skMode) {
+      console.error("[payment-intent] Stripe key mode mismatch:", {
+        pkMode,
+        skMode,
+      });
+      return NextResponse.json(
+        {
+          error:
+            "Stripe keys are misconfigured (publishable key mode does not match secret key mode).",
+        },
+        { status: 503 },
+      );
+    }
+
     const bodyUnknown: unknown = await request.json().catch(() => null);
     const body = bodyUnknown as Partial<RequestBody> | null;
 

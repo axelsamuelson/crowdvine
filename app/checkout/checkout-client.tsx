@@ -85,13 +85,14 @@ function CheckoutContent() {
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(true);
   const [zoneLoading, setZoneLoading] = useState(false);
-  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [isStripeConfirming, setIsStripeConfirming] = useState(false);
+  const [isFinalizingReservation, setIsFinalizingReservation] = useState(false);
   const [paymentMode, setPaymentMode] = useState<
     "setup_intent" | "payment_intent" | null
   >(null);
   const [stripeIntentId, setStripeIntentId] = useState<string | null>(null);
   const [stripeConfirmFn, setStripeConfirmFn] = useState<
-    (() => Promise<{ success: boolean; intentId: string; error?: string }>) | null
+    (() => Promise<StripeConfirmResult>) | null
   >(null);
   const [stripeError, setStripeError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -616,14 +617,14 @@ function CheckoutContent() {
       return;
     }
 
-    setIsPlacingOrder(true); // Show loading modal
+    setIsFinalizingReservation(true); // legacy path: show finalizing modal
 
     // Check if delivery zone is available
     const hasCompleteAddress =
       profile?.address && profile?.city && profile?.postal_code;
       
     if (zoneInfo.zoneError === "NO_DELIVERY_ZONE") {
-      setIsPlacingOrder(false);
+      setIsFinalizingReservation(false);
       toast.error(
         zoneInfo.zoneErrorMessage?.trim() ||
           "We don't deliver to your area yet.",
@@ -632,7 +633,7 @@ function CheckoutContent() {
     }
 
     if (hasCompleteAddress && !zoneInfo.selectedDeliveryZoneId) {
-      setIsPlacingOrder(false);
+      setIsFinalizingReservation(false);
       toast.error(
         "No delivery zone matches your address. Please contact support or try a different address.",
       );
@@ -641,7 +642,7 @@ function CheckoutContent() {
 
     // Check if pallet is available (should be auto-selected)
     if (zoneInfo.pallets && zoneInfo.pallets.length > 0 && !selectedPallet) {
-      setIsPlacingOrder(false);
+      setIsFinalizingReservation(false);
       toast.error(
         "No suitable pallet found for your location. Please contact support.",
       );
@@ -749,7 +750,7 @@ function CheckoutContent() {
         checkoutCompletedRef.current = true;
         window.location.href = redirectUrl || "/checkout/success";
       } else {
-        setIsPlacingOrder(false); // Hide modal on error
+        setIsFinalizingReservation(false); // Hide modal on error
         void AnalyticsTracker.trackEvent({
           eventType: "payment_failed",
           eventCategory: "checkout",
@@ -781,7 +782,7 @@ function CheckoutContent() {
         toast.error(errorMessage);
       }
     } catch (error) {
-      setIsPlacingOrder(false); // Hide modal on error
+      setIsFinalizingReservation(false); // Hide modal on error
       void AnalyticsTracker.trackEvent({
         eventType: "payment_failed",
         eventCategory: "checkout",
@@ -792,6 +793,59 @@ function CheckoutContent() {
     }
     // Don't set false on success - keep showing during redirect
   };
+
+  const isSwedish = useMemo(() => {
+    if (typeof document !== "undefined") {
+      const lang = document.documentElement?.lang;
+      if (typeof lang === "string" && lang.toLowerCase().startsWith("sv")) return true;
+    }
+    if (typeof navigator !== "undefined") {
+      const l = navigator.language;
+      if (typeof l === "string" && l.toLowerCase().startsWith("sv")) return true;
+    }
+    return false;
+  }, []);
+
+  const friendlyStripeErrorMessage = useCallback(
+    (result: Extract<StripeConfirmResult, { success: false }>): string => {
+      const code = result.stripeError?.code;
+      const type = result.stripeError?.type;
+      const decline = result.stripeError?.decline_code;
+      const status = result.intentStatus;
+
+      if (code === "setup_intent_authentication_failure") {
+        return isSwedish
+          ? "Din bank kunde inte verifiera kortet. Försök igen, använd ett annat kort eller kontakta din kortutgivare."
+          : "Your bank could not authenticate this card. Please try again, use another card, or contact your card issuer.";
+      }
+
+      // Common "try another card" / retryable bucket
+      if (code === "card_declined" || decline === "do_not_honor") {
+        return isSwedish
+          ? "Kortet nekades. Försök igen eller använd ett annat kort."
+          : "Your card was declined. Please try again or use another card.";
+      }
+
+      if (status === "requires_payment_method") {
+        return isSwedish
+          ? "Betalningen kunde inte genomföras. Försök igen eller använd ett annat kort."
+          : "Payment could not be completed. Please try again or use another card.";
+      }
+
+      // Fallback with safe, helpful detail
+      const base =
+        typeof result.error === "string" && result.error.trim()
+          ? result.error.trim()
+          : isSwedish
+            ? "Betalningen kunde inte genomföras. Försök igen."
+            : "Payment could not be completed. Please try again.";
+      const meta = [type ? `type=${type}` : null, code ? `code=${code}` : null, decline ? `decline=${decline}` : null]
+        .filter(Boolean)
+        .join(" ");
+      return meta ? `${base} (${meta})` : base;
+    },
+    [isSwedish],
+  );
 
   const handlePlaceReservation = useCallback(async () => {
     setStripeError(null);
@@ -824,16 +878,40 @@ function CheckoutContent() {
       return;
     }
 
+    // Phase 1: Stripe confirmation/authentication
     setIsSubmitting(true);
-    setIsPlacingOrder(true);
+    setIsStripeConfirming(true);
 
-    const confirmed = await stripeConfirmFn();
-    if (!confirmed.success) {
-      setStripeError(confirmed.error ?? "Payment confirmation failed");
+    let confirmed: StripeConfirmResult;
+    try {
+      confirmed = await stripeConfirmFn();
+    } catch (e) {
+      console.error("[Checkout] stripeConfirmFn threw:", e);
+      setStripeError(
+        isSwedish
+          ? "Betalningen kunde inte genomföras. Försök igen eller använd ett annat kort."
+          : "Payment could not be completed. Please try again or use another card.",
+      );
       setIsSubmitting(false);
-      setIsPlacingOrder(false);
+      setIsStripeConfirming(false);
       return;
     }
+
+    if (!confirmed.success) {
+      console.warn("[Checkout] Stripe confirmation failed:", {
+        intentStatus: confirmed.intentStatus,
+        stripeError: confirmed.stripeError,
+      });
+      setStripeError(friendlyStripeErrorMessage(confirmed));
+      toast.error(friendlyStripeErrorMessage(confirmed));
+      setIsSubmitting(false);
+      setIsStripeConfirming(false);
+      return;
+    }
+
+    // Phase 2: Backend finalization (only after Stripe success)
+    setIsStripeConfirming(false);
+    setIsFinalizingReservation(true);
 
     const formData = new FormData();
 
@@ -952,7 +1030,7 @@ function CheckoutContent() {
       setStripeError(errorMessage);
       toast.error(errorMessage);
       setIsSubmitting(false);
-      setIsPlacingOrder(false);
+      setIsFinalizingReservation(false);
     } catch (error) {
       void AnalyticsTracker.trackEvent({
         eventType: "payment_failed",
@@ -963,11 +1041,13 @@ function CheckoutContent() {
       setStripeError("Failed to place reservation");
       toast.error("Failed to place reservation");
       setIsSubmitting(false);
-      setIsPlacingOrder(false);
+      setIsFinalizingReservation(false);
     }
   }, [
     deliveryComplete,
+    friendlyStripeErrorMessage,
     isValidCart,
+    isSwedish,
     paymentMode,
     profile,
     redeemPoints,
@@ -1282,7 +1362,31 @@ function CheckoutContent() {
 
   return (
     <>
-      <ReservationLoadingModal open={isPlacingOrder} />
+      <ReservationLoadingModal
+        open={isStripeConfirming || isFinalizingReservation}
+        title={
+          isStripeConfirming
+            ? isSwedish
+              ? "Verifierar kort…"
+              : "Authenticating card…"
+            : isFinalizingReservation
+              ? isSwedish
+                ? "Bekräftar reservation…"
+                : "Confirming reservation…"
+              : undefined
+        }
+        description={
+          isStripeConfirming
+            ? isSwedish
+              ? "Följ instruktionerna från din bank om du blir ombedd."
+              : "Follow your bank’s instructions if prompted."
+            : isFinalizingReservation
+              ? isSwedish
+                ? "Bearbetar din order"
+                : "Processing your order"
+              : undefined
+        }
+      />
       <ShareBottlesDialog
         open={shareDialogOpen}
         onOpenChange={setShareDialogOpen}
@@ -1849,7 +1953,11 @@ function CheckoutContent() {
                             type="button"
                             className="w-full border-transparent bg-black text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40"
                             disabled={
-                              !stripeConfirmFn || isSubmitting || zoneLoading
+                              !stripeConfirmFn ||
+                              isSubmitting ||
+                              zoneLoading ||
+                              isStripeConfirming ||
+                              isFinalizingReservation
                             }
                             onClick={handlePlaceReservation}
                           >
