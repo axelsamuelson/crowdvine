@@ -1,9 +1,16 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import { usePathname, useRouter } from "next/navigation";
 
-interface OnboardingContextType {
+export interface OnboardingContextType {
   showWelcome: () => void;
   hideWelcome: () => void;
 }
@@ -20,26 +27,33 @@ export function useOnboarding() {
   return context;
 }
 
+/** Same as {@link useOnboarding} but returns undefined outside {@link OnboardingProvider} (no throw). */
+export function useOnboardingOptional():
+  | OnboardingContextType
+  | undefined {
+  return useContext(OnboardingContext);
+}
+
 export function OnboardingProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [hasChecked, setHasChecked] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const routerRef = useRef(router);
+  routerRef.current = router;
 
   useEffect(() => {
-    // Only check once when component mounts
-    if (hasChecked) return;
-
-    // Don't show on auth pages, invite pages, or tasting pages (guests can access)
     const isAuthPage =
       pathname?.startsWith("/log-in") ||
       pathname?.startsWith("/signup") ||
       pathname?.startsWith("/access-request") ||
       pathname?.startsWith("/access-pending") ||
-      pathname?.startsWith("/i/") || pathname?.startsWith("/ib/") || pathname?.startsWith("/b/") || pathname?.startsWith("/p/") ||
+      pathname?.startsWith("/i/") ||
+      pathname?.startsWith("/ib/") ||
+      pathname?.startsWith("/b/") ||
+      pathname?.startsWith("/p/") ||
       pathname?.startsWith("/c/") ||
       pathname?.startsWith("/invite-signup") ||
       pathname?.startsWith("/code-signup") ||
@@ -47,55 +61,63 @@ export function OnboardingProvider({
       pathname?.startsWith("/tasting/");
 
     if (isAuthPage) {
-      setHasChecked(true);
       return;
     }
 
-    // Check if user has seen the welcome modal from database
+    const controller = new AbortController();
+
     const checkOnboardingStatus = async () => {
       try {
         console.log("🎓 [Onboarding] Checking onboarding status...");
-        const response = await fetch("/api/user/onboarding-seen");
+        const response = await fetch("/api/user/onboarding-seen", {
+          signal: controller.signal,
+        });
         console.log("🎓 [Onboarding] Response status:", response.status);
 
         if (response.ok) {
           const data = await response.json();
           console.log("🎓 [Onboarding] Data:", data);
-          // No automatic redirect to /onboarding on first visit – user can open it via onboarding button if desired
         } else {
-          // If 401 (Unauthorized), user is a guest - silently skip onboarding
           if (response.status === 401) {
-            console.log("🎓 [Onboarding] User is a guest (401), skipping onboarding check");
+            console.log(
+              "🎓 [Onboarding] User is a guest (401), skipping onboarding check",
+            );
             return;
           }
           console.error("🎓 [Onboarding] Response not OK:", response.status);
-          // Try to get error details
           try {
             const errorData = await response.json();
             console.error("🎓 [Onboarding] Error details:", errorData);
-          } catch (e) {
+          } catch {
             console.error("🎓 [Onboarding] Could not parse error response");
           }
         }
-      } catch (error) {
+      } catch (error: unknown) {
+        if (
+          error instanceof DOMException &&
+          error.name === "AbortError"
+        ) {
+          return;
+        }
+        if (error instanceof Error && error.name === "AbortError") {
+          return;
+        }
         console.error(
           "🎓 [Onboarding] Error checking onboarding status:",
           error,
         );
-      } finally {
-        setHasChecked(true);
       }
     };
 
-    checkOnboardingStatus();
-  }, [pathname, hasChecked, router]);
+    void checkOnboardingStatus();
+    return () => controller.abort();
+  }, [pathname]);
 
-  const showWelcome = () => {
-    router.push("/onboarding");
-  };
+  const showWelcome = useCallback(() => {
+    routerRef.current.push("/onboarding");
+  }, []);
 
-  const hideWelcome = async () => {
-    // Mark as seen in database
+  const hideWelcome = useCallback(async () => {
     try {
       await fetch("/api/user/onboarding-seen", {
         method: "POST",
@@ -103,10 +125,15 @@ export function OnboardingProvider({
     } catch (error) {
       console.error("Error marking onboarding as seen:", error);
     }
-  };
+  }, []);
+
+  const value = useMemo(
+    () => ({ showWelcome, hideWelcome }),
+    [showWelcome, hideWelcome],
+  );
 
   return (
-    <OnboardingContext.Provider value={{ showWelcome, hideWelcome }}>
+    <OnboardingContext.Provider value={value}>
       {children}
     </OnboardingContext.Provider>
   );

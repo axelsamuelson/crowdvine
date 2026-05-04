@@ -1,3 +1,7 @@
+/**
+ * TODO(markets): Consider `allowed_country_codes` (or `market_id`) on pallets / producers so
+ * EU-only inventory cannot be reserved against unsupported destination countries at checkout.
+ */
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import {
   PALLET_FILL_STATUSES,

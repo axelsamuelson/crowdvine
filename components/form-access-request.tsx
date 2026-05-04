@@ -8,7 +8,7 @@ import {
   FormMessage,
   FormStateMessage,
 } from "@/components/ui/form";
-import { useForm, useFormContext } from "react-hook-form";
+import { useForm, useFormContext, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useEffect, useState } from "react";
@@ -25,6 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { InviteWineZoneField } from "@/components/market/invite-wine-zone-field";
 
 const accessRequestSchema = z.object({
   input: z.string().min(1, "Please enter an email or invitation code"),
@@ -122,11 +123,15 @@ export const FormAccessRequest = ({
       z.object({
         email: z.string().email("Please enter a valid email"),
         password: z.string().min(6, "Password must be at least 6 characters"),
+        display_name: z.string().min(1, "Please enter your name"),
+        active_geo_zone_id: z.string().min(1, "Choose your wine zone"),
       }),
     ),
     defaultValues: {
       email: "",
       password: "",
+      display_name: "",
+      active_geo_zone_id: "",
     },
   });
 
@@ -172,6 +177,8 @@ export const FormAccessRequest = ({
   async function handleInviteSubmit(values: {
     email: string;
     password: string;
+    display_name: string;
+    active_geo_zone_id: string;
   }) {
     setIsProcessing(true);
 
@@ -180,6 +187,8 @@ export const FormAccessRequest = ({
         inviteCode,
         values.email,
         values.password,
+        values.display_name,
+        values.active_geo_zone_id,
       );
 
       if (state.success === true) {
@@ -294,6 +303,39 @@ export const FormAccessRequest = ({
                 )}
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="invite-display-name">Full name</Label>
+                <Input
+                  id="invite-display-name"
+                  type="text"
+                  placeholder="Your name"
+                  {...inviteForm.register("display_name")}
+                  className="bg-white/80 border-gray-200"
+                />
+                {inviteForm.formState.errors.display_name && (
+                  <p className="text-sm text-red-600">
+                    {inviteForm.formState.errors.display_name.message}
+                  </p>
+                )}
+              </div>
+
+              <Controller
+                control={inviteForm.control}
+                name="active_geo_zone_id"
+                render={({ field }) => (
+                  <InviteWineZoneField
+                    id="invite-wine-zone-access"
+                    value={field.value}
+                    onValueChange={field.onChange}
+                  />
+                )}
+              />
+              {inviteForm.formState.errors.active_geo_zone_id && (
+                <p className="text-sm text-red-600">
+                  {inviteForm.formState.errors.active_geo_zone_id.message}
+                </p>
+              )}
+
               <div className="flex gap-3 pt-4">
                 <Button
                   type="button"
@@ -325,12 +367,20 @@ async function validateInvitationCodeWithCredentials(
   code: string,
   email: string,
   password: string,
+  fullName: string,
+  activeGeoZoneId: string,
 ): Promise<ActionResult<string>> {
   try {
     const response = await fetch("/api/invitations/redeem", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, code }),
+      body: JSON.stringify({
+        email,
+        password,
+        code,
+        full_name: fullName,
+        activeGeoZoneId,
+      }),
     });
 
     const result = await response.json();

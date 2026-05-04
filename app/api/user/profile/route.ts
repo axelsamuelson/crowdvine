@@ -62,6 +62,7 @@ export async function PUT(request: Request) {
       city,
       postal_code,
       country,
+      region,
       description,
       avatar_image_path,
       cover_image_path,
@@ -77,6 +78,7 @@ export async function PUT(request: Request) {
     if (city !== undefined) updatePayload.city = city;
     if (postal_code !== undefined) updatePayload.postal_code = postal_code;
     if (country !== undefined) updatePayload.country = country;
+    if (region !== undefined) updatePayload.region = region;
     if (description !== undefined) updatePayload.description = description;
     if (avatar_image_path !== undefined)
       updatePayload.avatar_image_path = avatar_image_path;

@@ -23,6 +23,7 @@ interface Invitation {
   allowed_types?: InvitationPageType[];
   can_change_account_type?: boolean;
   used_at?: string | null;
+  defaultGeoZoneId?: string | null;
   profiles?: {
     email: string;
     full_name?: string;
@@ -40,6 +41,7 @@ export default function ProducerInvitePage() {
     password: "",
     password_confirm: "",
     full_name: "",
+    active_geo_zone_id: "",
     selected_type: null as InvitationPageType | null,
     producer_name: "",
     producer_country_code: "",
@@ -64,6 +66,15 @@ export default function ProducerInvitePage() {
       window.scrollTo(0, 0);
     }
   }, [loading, invitation]);
+
+  useEffect(() => {
+    const id = invitation?.defaultGeoZoneId?.trim();
+    if (!id) return;
+    setFormData((prev) => ({
+      ...prev,
+      active_geo_zone_id: prev.active_geo_zone_id || id,
+    }));
+  }, [invitation?.defaultGeoZoneId]);
 
   const validateInvitation = async () => {
     try {
@@ -127,6 +138,7 @@ export default function ProducerInvitePage() {
           email: formData.email.toLowerCase().trim(),
           password: formData.password,
           full_name: formData.full_name,
+          activeGeoZoneId: formData.active_geo_zone_id,
           ...(invitation?.can_change_account_type && {
             selected_type: formData.selected_type ?? "producer",
           }),

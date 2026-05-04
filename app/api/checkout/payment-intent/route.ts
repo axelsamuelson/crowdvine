@@ -10,6 +10,23 @@ import {
   calculateBoostAwareMaxRedemption,
 } from "@/lib/membership/pact-points-redemption-math";
 import { getRedeemableBalance } from "@/lib/membership/pact-points-engine";
+import { determineZones } from "@/lib/zone-matching";
+import {
+  CHECKOUT_UNSUPPORTED_COUNTRY_USER_MESSAGE,
+  US_CONDITIONAL_TERMS_VERSION,
+  getCountryMarketMode,
+  isValidUsStateCode,
+} from "@/lib/countries";
+import {
+  legacyMarketModeFromResolved,
+  resolveMarketForCountry,
+} from "@/lib/market/resolve-market";
+import { resolveActiveGeoZoneForUser } from "@/lib/market/resolve-active-geo-zone";
+import {
+  isZoneDeliveryCompleteForActiveGeo,
+  userZoneRowToDeliveryLines,
+  type UserZoneAddressTemplate,
+} from "@/lib/checkout/user-zone-delivery-template";
 
 type PaymentMode = "setup_intent" | "payment_intent";
 
@@ -47,6 +64,9 @@ type RequestBody = {
   pallet_id: string;
   cart_total_sek: number;
   pact_points_redeem?: number;
+  /** US conditional checkout: required when profile country is US */
+  us_age_21_confirmed?: boolean;
+  us_conditional_ack?: boolean;
 };
 
 export async function POST(request: Request) {
@@ -138,9 +158,118 @@ export async function POST(request: Request) {
     const palletStatusStr =
       typeof palletRow.status === "string" ? palletRow.status : "";
     const palletStatusResponse = palletStatusStr || null;
-    const paymentMode: PaymentMode = palletUsesPaymentIntent(palletStatusStr)
-      ? "payment_intent"
-      : "setup_intent";
+
+    // Compute boost-aware max redemption using current cart lines.
+    const cart = await CartService.getCart();
+    if (!cart || !cart.lines?.length) {
+      return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
+    }
+
+    const active = await resolveActiveGeoZoneForUser(user.id);
+    let zoneTemplate: UserZoneAddressTemplate | null = null;
+    if (active.geoZoneId) {
+      const { data: zr, error: zrErr } = await sbAdmin
+        .from("user_zone_addresses")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("geo_zone_id", active.geoZoneId)
+        .maybeSingle();
+      if (zrErr) {
+        console.error("[payment-intent] zone address load:", zrErr.message);
+        return NextResponse.json(
+          { error: "Failed to load delivery details for your wine zone" },
+          { status: 500 },
+        );
+      }
+      zoneTemplate = zr as UserZoneAddressTemplate | null;
+    }
+
+    const delivery = userZoneRowToDeliveryLines(zoneTemplate);
+    if (!isZoneDeliveryCompleteForActiveGeo(active, delivery)) {
+      return NextResponse.json(
+        {
+          error: `Add delivery details for ${active.displayName} before paying.`,
+        },
+        { status: 400 },
+      );
+    }
+
+    const street = delivery!.street;
+    const city = delivery!.city;
+    const postal = delivery!.postal;
+    const countryCode = delivery!.countryCode;
+
+    const marketMode = getCountryMarketMode(countryCode);
+    if (marketMode === "unsupported") {
+      return NextResponse.json(
+        { error: CHECKOUT_UNSUPPORTED_COUNTRY_USER_MESSAGE },
+        { status: 422 },
+      );
+    }
+
+    const resolvedMarket = await resolveMarketForCountry({
+      countryCode: active.countryCode,
+      regionCode: active.regionCode,
+    });
+    const derivedMarketMode = legacyMarketModeFromResolved(resolvedMarket);
+    if (derivedMarketMode !== marketMode) {
+      console.warn("[payment-intent] Market resolver vs getCountryMarketMode mismatch", {
+        countryCode,
+        legacy: marketMode,
+        derived: derivedMarketMode,
+        resolvedMarket,
+      });
+    }
+
+    if (
+      !resolvedMarket.isCheckoutEligible &&
+      !resolvedMarket.isConditionalReservationEligible
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            resolvedMarket.reason?.trim() ||
+            CHECKOUT_UNSUPPORTED_COUNTRY_USER_MESSAGE,
+        },
+        { status: 422 },
+      );
+    }
+
+    const usConditional =
+      resolvedMarket.checkoutMode === "conditional_reservation" &&
+      resolvedMarket.isConditionalReservationEligible;
+    let usStateUpper: string | null = null;
+
+    if (usConditional) {
+      usStateUpper = delivery!.regionCode?.trim().toUpperCase() ?? null;
+      if (!usStateUpper || !isValidUsStateCode(usStateUpper)) {
+        return NextResponse.json(
+          {
+            error:
+              "Add a valid two-letter US state or territory to your zone delivery details before continuing.",
+          },
+          { status: 400 },
+        );
+      }
+      if (
+        body?.us_age_21_confirmed !== true ||
+        body?.us_conditional_ack !== true
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Confirm that you are 21 or older and that you understand this is a conditional reservation.",
+          },
+          { status: 400 },
+        );
+      }
+    }
+
+    const paymentMode: PaymentMode = usConditional
+      ? "setup_intent"
+      : palletUsesPaymentIntent(palletStatusStr)
+        ? "payment_intent"
+        : "setup_intent";
 
     console.log("[payment-intent] Mode decision:", {
       pallet_id,
@@ -149,12 +278,67 @@ export async function POST(request: Request) {
       paymentMode,
       palletStatus: palletRow.status,
       palletCapacity: palletRow.bottle_capacity,
+      usConditional,
     });
 
-    // Compute boost-aware max redemption using current cart lines.
-    const cart = await CartService.getCart();
-    if (!cart || !cart.lines?.length) {
-      return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
+    const zones = await determineZones(cart.lines as never, {
+      postcode: postal,
+      city,
+      countryCode,
+    });
+
+    if (zones.noDeliveryZone?.error === "UNSUPPORTED_COUNTRY") {
+      return NextResponse.json(
+        { error: CHECKOUT_UNSUPPORTED_COUNTRY_USER_MESSAGE },
+        { status: 422 },
+      );
+    }
+
+    if (usConditional) {
+      if (zones.noDeliveryZone?.error === "NO_DELIVERY_ZONE") {
+        return NextResponse.json(
+          {
+            error:
+              zones.noDeliveryZone.message?.trim() ||
+              "No pallet is available for this conditional reservation.",
+          },
+          { status: 422 },
+        );
+      }
+    } else {
+      if (!zones.deliveryZoneId) {
+        return NextResponse.json(
+          {
+            error:
+              zones.noDeliveryZone?.message?.trim() ||
+              "No delivery zone matches your address.",
+          },
+          { status: 422 },
+        );
+      }
+    }
+
+    let palletAllowed = zones.pallets?.some((p) => p.id === pallet_id) ?? false;
+    if (!palletAllowed && zones.deliveryZoneId) {
+      const { data: pRow } = await sbAdmin
+        .from("pallets")
+        .select("id, delivery_zone_id")
+        .eq("id", pallet_id)
+        .maybeSingle();
+      const dz =
+        pRow && typeof pRow === "object"
+          ? (pRow as { delivery_zone_id?: string | null }).delivery_zone_id
+          : null;
+      palletAllowed = typeof dz === "string" && dz === zones.deliveryZoneId;
+    }
+    if (!palletAllowed) {
+      return NextResponse.json(
+        {
+          error:
+            "This pallet is not available for your delivery address. Refresh checkout or choose another address.",
+        },
+        { status: 422 },
+      );
     }
 
     let boostedLineTotal = 0;
@@ -199,15 +383,27 @@ export async function POST(request: Request) {
     if (paymentMode === "setup_intent") {
       const existingIntents = await stripe.setupIntents.list({
         customer: customerId,
-        limit: 5,
+        limit: 8,
       });
 
-      const existing = existingIntents.data.find(
-        (si) =>
-          si.metadata?.pallet_id === pallet_id &&
-          si.metadata?.expected_amount_ore === String(amountInOre) &&
-          si.status === "requires_payment_method",
-      );
+      const existing = existingIntents.data.find((si) => {
+        const meta = si.metadata ?? {};
+        const isConditional = meta.reservation_mode === "conditional";
+        if (usConditional !== isConditional) return false;
+        if (
+          usConditional &&
+          (meta.region !== usStateUpper ||
+            meta.country_code !== "US" ||
+            meta.market_code !== "US")
+        ) {
+          return false;
+        }
+        return (
+          meta.pallet_id === pallet_id &&
+          meta.expected_amount_ore === String(amountInOre) &&
+          si.status === "requires_payment_method"
+        );
+      });
 
       if (existing?.client_secret) {
         console.log("[payment-intent] Reusing open SetupIntent:", existing.id);
@@ -222,16 +418,29 @@ export async function POST(request: Request) {
         });
       }
 
+      const metadata: Record<string, string> = {
+        user_id: user.id,
+        pallet_id,
+        pact_points_redeem: String(pointsToRedeem),
+        expected_amount_ore: String(amountInOre),
+      };
+      if (usConditional && usStateUpper) {
+        metadata.country_code = "US";
+        metadata.region = usStateUpper;
+        metadata.market_code = "US";
+        metadata.reservation_mode = "conditional";
+        metadata.age_21_confirmed = "true";
+        metadata.conditional_ack_confirmed = "true";
+        metadata.terms_version = US_CONDITIONAL_TERMS_VERSION;
+      }
+
       const intent = await stripe.setupIntents.create({
         customer: customerId,
-        automatic_payment_methods: { enabled: true },
+        ...(usConditional
+          ? { payment_method_types: ["card"] }
+          : { automatic_payment_methods: { enabled: true } }),
         usage: "off_session",
-        metadata: {
-          user_id: user.id,
-          pallet_id,
-          pact_points_redeem: String(pointsToRedeem),
-          expected_amount_ore: String(amountInOre),
-        },
+        metadata,
       });
 
       console.log("[payment-intent] Created SetupIntent:", intent.id);
@@ -245,6 +454,13 @@ export async function POST(request: Request) {
         palletStatus: palletStatusResponse,
         palletThreshold: PALLET_THRESHOLD,
       });
+    }
+
+    if (usConditional) {
+      return NextResponse.json(
+        { error: "US reservations require card verification only (no immediate charge)." },
+        { status: 400 },
+      );
     }
 
     const intent = await stripe.paymentIntents.create({

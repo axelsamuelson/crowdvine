@@ -25,6 +25,8 @@ interface Invitation {
   used_at?: string | null;
   /** Reusable /i personal link — never "consumed" as single-use */
   is_personal_link?: boolean;
+  /** From validate API when invitation_codes.default_geo_zone_id is set (migration 146). */
+  defaultGeoZoneId?: string | null;
   profiles?: {
     email: string;
     full_name?: string;
@@ -42,6 +44,7 @@ export default function InviteSignupPage() {
     password: "",
     password_confirm: "",
     full_name: "",
+    active_geo_zone_id: "",
     selected_type: null as InvitationPageType | null,
   });
   const [signupSuccess, setSignupSuccess] = useState(false);
@@ -60,6 +63,15 @@ export default function InviteSignupPage() {
       window.scrollTo(0, 0);
     }
   }, [loading, invitation]);
+
+  useEffect(() => {
+    const id = invitation?.defaultGeoZoneId?.trim();
+    if (!id) return;
+    setFormData((prev) => ({
+      ...prev,
+      active_geo_zone_id: prev.active_geo_zone_id || id,
+    }));
+  }, [invitation?.defaultGeoZoneId]);
 
   const validateInvitation = async () => {
     try {
@@ -121,6 +133,7 @@ export default function InviteSignupPage() {
           email: formData.email.toLowerCase().trim(),
           password: formData.password,
           full_name: formData.full_name,
+          activeGeoZoneId: formData.active_geo_zone_id,
           ...(invitation?.can_change_account_type && {
             selected_type: formData.selected_type ?? allowedTypes[0],
           }),

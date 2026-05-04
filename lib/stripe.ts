@@ -38,6 +38,10 @@ export async function createSetupIntent(customerId?: string) {
   }
 }
 
+/**
+ * @deprecated Prefer {@link getOrCreateStripeCustomer} from `@/lib/stripe/customer` so the
+ * customer id is stored on `profiles` and duplicates per user are avoided.
+ */
 export async function createCustomer(email: string, name?: string) {
   if (!stripe) {
     throw new Error(

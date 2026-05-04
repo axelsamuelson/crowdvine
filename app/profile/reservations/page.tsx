@@ -38,6 +38,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { LucideIcon } from "lucide-react";
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
+import { normalizeUserReservationsResponse } from "@/lib/reservations/user-reservations-api";
 
 interface Reservation {
   id: string;
@@ -54,6 +55,16 @@ interface Reservation {
   payment_status?: string;
   payment_link?: string;
   payment_deadline?: string;
+  market_drop_id?: string | null;
+  marketDropId?: string | null;
+  bottleCount?: number;
+  bottleVerb?: string;
+  customerPalletLabel?: string;
+  isConditional?: boolean;
+  logisticsPalletName?: string;
+  marketDropReservedBottles?: number | null;
+  marketDropCapacityBottles?: number | null;
+  displayDestination?: string | null;
   items: Array<{
     wine_name: string;
     producer_name?: string | null;
@@ -109,6 +120,8 @@ interface AddressPalletData {
     approved: number | null;
     decision: string | null;
   }>;
+  conditionalBottleTotal?: number;
+  orderedBottleDisplayTotal?: number;
 }
 
 function getProducerOutcome(status: string | undefined) {
@@ -118,12 +131,16 @@ function getProducerOutcome(status: string | undefined) {
   if (s === "approved" || s === "placed" || s === "pending_payment" || s === "confirmed")
     return "Approved";
   if (s === "pending_producer_approval") return "Pending";
+  if (s === "conditional_pending") return "US conditional (under review)";
   return "Pending";
 }
 
 function getSummaryStatus(group: AddressPalletData) {
   const reservationStatus = String(group.latestReservationStatus || "");
   const payment = String(group.paymentStatus || "");
+  if (reservationStatus === "conditional_pending") {
+    return "Conditional pending review";
+  }
   const palletStatusRaw = String(group.palletStatus || "");
   const palletStatus = palletStatusRaw.toLowerCase();
   const palletComplete =
@@ -231,6 +248,11 @@ const timelineStatusConfig: Record<
     containerClass: "border border-success/40 bg-success/10",
     iconClass: "text-success",
   },
+  "Conditional pending review": {
+    icon: Clock,
+    containerClass: "border border-amber-200 bg-amber-50",
+    iconClass: "text-amber-800",
+  },
 };
 
 const timelineDefaultStatus = {
@@ -280,6 +302,25 @@ const formatPrice = (cents: number) => {
     maximumFractionDigits: 0,
   }).format(cents / 100);
 };
+
+function formatBottleSummary(group: AddressPalletData): string {
+  const cond = group.conditionalBottleTotal ?? 0;
+  const ord = group.orderedBottleDisplayTotal ?? 0;
+  if (cond > 0 && ord > 0) {
+    return `${cond} bottles requested · ${ord} bottles ordered`;
+  }
+  if (cond > 0) {
+    return `${cond} bottles requested`;
+  }
+  if (ord > 0) {
+    return `${ord} bottles ordered`;
+  }
+  const fallback =
+    group.totalRequestedBottles && group.totalRequestedBottles > 0
+      ? group.totalRequestedBottles
+      : group.totalBottles;
+  return `${fallback} bottles`;
+}
 
 function PalletDialog({ group }: { group: AddressPalletData }) {
   const [open, setOpen] = useState(false);
@@ -352,7 +393,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                     {group.palletName}
                   </p>
                   <p className="text-[11px] text-muted-foreground font-normal mb-1 truncate">
-                    {group.totalBottles} bottles • {group.wines.length} wines
+                    {formatBottleSummary(group)} • {group.wines.length} wines
                   </p>
                   <div className="flex gap-2 items-center text-sm md:text-base font-semibold">
                     <span className="text-sm md:text-base font-semibold">{formatPrice(group.totalCostCents)}</span>
@@ -1046,21 +1087,33 @@ export default function ReservationsPage() {
       const data = await response.json();
       console.log("[Reservations] Data received:", data);
 
-      if (Array.isArray(data)) {
-        console.log("[Reservations] Processing", data.length, "reservations");
-        setReservations(data);
-        // Fetch pallet totals (global) so progress matches admin/pallets (bookings-based)
-        const palletIds = Array.from(
-          new Set(
-            data
-              .map((r: any) => r.pallet_id)
-              .filter((id: any) => typeof id === "string" && id.length > 0),
-          ),
-        ) as string[];
+      const { reservations: list } = normalizeUserReservationsResponse(data);
+      if (list.length > 0) {
+        console.log("[Reservations] Processing", list.length, "reservations");
+        setReservations(list as Reservation[]);
+        const needsLegacyPalletData = (list as Reservation[]).some(
+          (r) => !(r.market_drop_id || r.marketDropId),
+        );
+        const palletIds = needsLegacyPalletData
+          ? (Array.from(
+              new Set(
+                (list as Reservation[])
+                  .map((r) => r.pallet_id)
+                  .filter(
+                    (id): id is string => typeof id === "string" && id.length > 0,
+                  ),
+              ),
+            ) as string[])
+          : [];
 
         const palletInfoById = new Map<
           string,
-          { currentBottles: number; capacity: number; isComplete: boolean; status?: string | null }
+          {
+            currentBottles: number;
+            capacity: number;
+            isComplete: boolean;
+            status?: string | null;
+          }
         >();
 
         if (palletIds.length > 0) {
@@ -1082,12 +1135,15 @@ export default function ReservationsPage() {
                 });
               });
             }
-          } catch (e) {
+          } catch {
             console.warn("[Reservations] Failed to fetch pallet totals");
           }
         }
 
-        const addressPalletGroups = processAddressPalletData(data, palletInfoById);
+        const addressPalletGroups = processAddressPalletData(
+          list as Reservation[],
+          palletInfoById,
+        );
         console.log(
           "[Reservations] Created",
           addressPalletGroups.length,
@@ -1095,7 +1151,6 @@ export default function ReservationsPage() {
         );
         setAddressPalletData(addressPalletGroups);
       } else {
-        console.warn("[Reservations] Data is not an array:", data);
         setReservations([]);
         setAddressPalletData([]);
       }
@@ -1119,13 +1174,19 @@ export default function ReservationsPage() {
     const addressPalletMap = new Map<string, AddressPalletData>();
 
     reservations.forEach((reservation) => {
-      // Create unique key combining address and pallet
-      const addressPalletKey = `${reservation.delivery_address || "No Address"}|${reservation.pallet_name || "Unassigned Pallet"}`;
+      const mdId = reservation.market_drop_id || reservation.marketDropId;
+      const addressPalletKey = mdId
+        ? `md:${String(mdId)}`
+        : `${reservation.delivery_address || "No Address"}|${reservation.logisticsPalletName || reservation.pallet_name || "Unassigned Pallet"}`;
 
       if (!addressPalletMap.has(addressPalletKey)) {
         const palletInfo = reservation.pallet_id
           ? palletInfoById.get(reservation.pallet_id)
           : undefined;
+        const displayName =
+          reservation.customerPalletLabel?.trim() ||
+          reservation.pallet_name ||
+          "Unassigned Pallet";
         const producerItems =
           reservation.items?.map((it) => ({
             wine_name: it.wine_name,
@@ -1138,17 +1199,22 @@ export default function ReservationsPage() {
                 : Number(it.producer_approved_quantity) || 0,
             decision: it.producer_decision_status || null,
           })) || [];
+        const mdReserved = reservation.marketDropReservedBottles;
+        const mdCap = reservation.marketDropCapacityBottles;
         addressPalletMap.set(addressPalletKey, {
           addressPalletKey,
           palletId: reservation.pallet_id ?? null,
-          palletName: reservation.pallet_name || "Unassigned Pallet",
+          palletName: displayName,
           palletStatus: palletInfo?.status ?? reservation.pallet_status ?? null,
           deliveryAddress:
             reservation.delivery_address || "No delivery address",
           wines: [],
           totalBottles: 0,
           totalRequestedBottles: 0,
-          palletCurrentBottles: palletInfo?.currentBottles,
+          palletCurrentBottles:
+            mdReserved != null && Number.isFinite(mdReserved)
+              ? mdReserved
+              : palletInfo?.currentBottles,
           totalCostCents: 0,
           orderCount: 0,
           latestOrderDate: reservation.created_at,
@@ -1156,10 +1222,15 @@ export default function ReservationsPage() {
           paymentStatus: reservation.payment_status,
           paymentLink: reservation.payment_link,
           paymentDeadline: reservation.payment_deadline,
-          palletCapacity: palletInfo?.capacity || reservation.pallet_capacity,
+          palletCapacity:
+            mdCap != null && Number.isFinite(mdCap) && mdCap > 0
+              ? mdCap
+              : palletInfo?.capacity || reservation.pallet_capacity,
           palletIsComplete:
-            palletInfo?.isComplete ?? false,
+            palletInfo?.isComplete ?? Boolean(reservation.pallet_is_complete),
           producerItems,
+          conditionalBottleTotal: 0,
+          orderedBottleDisplayTotal: 0,
         });
       }
 
@@ -1180,6 +1251,16 @@ export default function ReservationsPage() {
       group.totalRequestedBottles =
         (group.totalRequestedBottles || 0) + reservationRequested;
 
+      const bottleFromApi = Number(reservation.bottleCount);
+      const bottleCountRow = Number.isFinite(bottleFromApi)
+        ? bottleFromApi
+        : reservationRequested;
+      const isCond = Boolean(reservation.isConditional);
+      if (isCond) {
+        group.conditionalBottleTotal =
+          (group.conditionalBottleTotal || 0) + bottleCountRow;
+      }
+
       // Only count bottles toward pallet fill once the reservation is approved/placed/etc.
       const reservationCountsTowardPallet = countedStatuses.has(String(reservation.status || ""));
       if (reservationCountsTowardPallet) {
@@ -1192,6 +1273,10 @@ export default function ReservationsPage() {
           return sum + (approved === null ? Number(item.quantity) || 0 : approved);
         }, 0);
         group.totalBottles += reservationApproved;
+        if (!isCond) {
+          group.orderedBottleDisplayTotal =
+            (group.orderedBottleDisplayTotal || 0) + reservationApproved;
+        }
       }
       group.totalCostCents += reservation.total_cost_cents;
 
@@ -1375,7 +1460,8 @@ export default function ReservationsPage() {
                 My Reservations
               </h1>
               <p className="text-gray-500 mt-1">
-                Your reservations by delivery address and pallet.
+                Your reservations by wine zone and market drop. Labels match
+                each campaign, not internal logistics pallets.
               </p>
             </div>
           </div>

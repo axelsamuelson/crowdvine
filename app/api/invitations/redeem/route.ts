@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { clearCartId } from "@/src/lib/cookies";
 import { logUserEventServer } from "@/lib/analytics/log-user-event-server";
+import { validateEligibleGeoZoneId } from "@/lib/market/validate-eligible-geo-zone";
 
 /**
  * POST /api/invitations/redeem
@@ -12,17 +13,48 @@ export async function POST(request: NextRequest) {
   try {
     console.log("[INVITE-REDEEM] Starting redemption process");
 
-    const { invitation_code, email, password, full_name, selected_type, producer_data } =
-      await request.json();
+    const body = await request.json();
+    const invitation_code_raw = body.invitation_code ?? body.code ?? "";
+    const invitation_code = String(invitation_code_raw).trim().toUpperCase();
+    const email = String(body.email ?? "")
+      .trim()
+      .toLowerCase();
+    const password = String(body.password ?? "");
+    const full_name_raw = String(body.full_name ?? body.fullName ?? "").trim();
+    const full_name =
+      full_name_raw ||
+      (email.includes("@")
+        ? email.split("@")[0]!.replace(/[._+]/g, " ").trim()
+        : "") ||
+      "Member";
+    const activeGeoZoneIdRaw = body.activeGeoZoneId ?? body.active_geo_zone_id;
+    const activeGeoZoneId =
+      typeof activeGeoZoneIdRaw === "string" ? activeGeoZoneIdRaw.trim() : "";
+    const { selected_type, producer_data } = body;
 
-    if (!invitation_code || !email || !password || !full_name) {
+    if (!invitation_code || !email || !password) {
       return NextResponse.json(
-        { error: "All fields are required" },
+        { error: "Invitation code, email, and password are required" },
+        { status: 400 },
+      );
+    }
+
+    if (!activeGeoZoneId) {
+      return NextResponse.json(
+        { error: "Wine zone is required (activeGeoZoneId)" },
         { status: 400 },
       );
     }
 
     const sb = getSupabaseAdmin();
+
+    const geoGate = await validateEligibleGeoZoneId(sb, activeGeoZoneId);
+    if (!geoGate.ok) {
+      return NextResponse.json(
+        { error: geoGate.message },
+        { status: geoGate.status },
+      );
+    }
 
     // Validate invitation code
     console.log("[INVITE-REDEEM] Validating invitation code:", invitation_code);
@@ -197,6 +229,33 @@ export async function POST(request: NextRequest) {
       }
     } else {
       console.log("[INVITE-REDEEM] STEP-2 SUCCESS - Profile created");
+    }
+
+    console.log(
+      "[INVITE-REDEEM] Step 2b: user_zone_preferences (active wine zone)",
+    );
+    const { error: zonePrefError } = await sb
+      .from("user_zone_preferences")
+      .upsert(
+        {
+          user_id: userId,
+          active_geo_zone_id: activeGeoZoneId,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" },
+      );
+    if (zonePrefError) {
+      console.error(
+        "[INVITE-REDEEM] user_zone_preferences upsert:",
+        zonePrefError,
+      );
+      return NextResponse.json(
+        {
+          error: "Failed to save wine zone preference",
+          details: zonePrefError.message,
+        },
+        { status: 500 },
+      );
     }
 
     if (invitation.created_by && isPersonal) {

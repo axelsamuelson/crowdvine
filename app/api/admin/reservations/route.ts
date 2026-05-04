@@ -36,6 +36,11 @@ export async function GET() {
         cart_id,
         address_id,
         pallet_id,
+        market_code,
+        country_code,
+        region,
+        is_conditional,
+        charge_blocked_reason,
         delivery:pallet_zones!delivery_zone_id (
           id,
           name

@@ -47,6 +47,25 @@ import {
 } from "@/lib/membership/pact-points-redemption-math";
 import { cn } from "@/lib/utils";
 import type { ProducerValidation } from "@/lib/checkout-validation";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  getCheckoutBrowseOnlyUnsupportedCountryMessage,
+  getCountryCodeFromProfileCountry,
+  getCountryDisplayName,
+  getCountryMarketMode,
+  isValidUsStateCode,
+  listUsStateCodesSorted,
+  US_CONDITIONAL_RESERVATION_BUTTON_EN,
+  US_CONDITIONAL_RESERVATION_COPY_EN,
+} from "@/lib/countries";
+import { isUsConditionalReservationsEnabledClient } from "@/lib/market/feature-flags";
+import type { ResolvedActiveGeoZone } from "@/lib/market/resolve-active-geo-zone";
+import {
+  isZoneDeliveryCompleteForActiveGeo,
+  userZoneRowToDeliveryLines,
+  type UserZoneAddressTemplate,
+  type ZoneDeliveryLines,
+} from "@/lib/checkout/user-zone-delivery-template";
 
 interface ProgressionBuffRow {
   buff_percentage: string;
@@ -68,6 +87,7 @@ interface UserProfile {
   city?: string;
   postal_code?: string;
   country?: string;
+  region?: string;
   created_at: string;
 }
 
@@ -97,6 +117,15 @@ function CheckoutContent() {
   const [stripeError, setStripeError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [activeShop, setActiveShop] = useState<ResolvedActiveGeoZone | null>(
+    null,
+  );
+  const [zoneAddressRow, setZoneAddressRow] =
+    useState<UserZoneAddressTemplate | null>(null);
+  const [zoneTemplatesLoaded, setZoneTemplatesLoaded] = useState(false);
+  const [deliveryDraft, setDeliveryDraft] = useState<ZoneDeliveryLines | null>(
+    null,
+  );
   // Payment method selection removed - payment happens when pallet fills
   const [selectedPallet, setSelectedPallet] = useState<PalletInfo | null>(null);
   const [userRewards, setUserRewards] = useState<UserReward[]>([]);
@@ -104,6 +133,7 @@ function CheckoutContent() {
   const [useRewards, setUseRewards] = useState(false);
   const checkoutCompletedRef = useRef(false);
   const checkoutPhaseRef = useRef<"delivery" | "payment_ready">("delivery");
+  const zoneInfoFetchInProgressRef = useRef(false);
   const [discountCodeInput, setDiscountCodeInput] = useState("");
   const [postalCodeDraft, setPostalCodeDraft] = useState("");
   const postalModalTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -115,6 +145,8 @@ function CheckoutContent() {
   const [paymentMethod, setPaymentMethod] = useState<"card" | "invoice">("card");
   const [pactPointsBalance, setPactPointsBalance] = useState(0);
   const [redeemPoints, setRedeemPoints] = useState(0);
+  const [usAge21Confirmed, setUsAge21Confirmed] = useState(false);
+  const [usConditionalAck, setUsConditionalAck] = useState(false);
 
   // v2: Progression buffs state
   const [progressionBuffs, setProgressionBuffs] = useState<ProgressionBuffRow[]>(
@@ -139,36 +171,103 @@ function CheckoutContent() {
     }>;
     pallets?: PalletInfo[];
     usingFallbackAddress?: boolean;
-    zoneError?: "NO_DELIVERY_ZONE" | null;
+    zoneError?: "NO_DELIVERY_ZONE" | "UNSUPPORTED_COUNTRY" | null;
     zoneErrorMessage?: string;
   }>({ pickupZone: null, deliveryZone: null, selectedDeliveryZoneId: null });
 
   const formRef = useRef<HTMLFormElement | null>(null);
 
-  const hasProfileInfo = Boolean(profile?.full_name && profile?.email);
-  const hasCompleteProfileAddress = Boolean(
-    profile?.address && profile?.city && profile?.postal_code,
+  const profileCountryCode = useMemo(
+    () => getCountryCodeFromProfileCountry(profile?.country ?? "") ?? null,
+    [profile?.country],
   );
 
-  const hasPostalCode = Boolean(profile?.postal_code && /^\d{5}$/.test(profile.postal_code.trim()));
-  const hasFullAddress = hasCompleteProfileAddress;
+  const checkoutMarketCountry = activeShop?.countryCode ?? profileCountryCode;
+
+  const isUsConditional =
+    isUsConditionalReservationsEnabledClient() &&
+    checkoutMarketCountry != null &&
+    getCountryMarketMode(checkoutMarketCountry) === "conditional_reservation";
+
+  const hasProfileInfo = Boolean(profile?.full_name && profile?.email);
+
+  const effectiveDelivery = useMemo(() => {
+    return userZoneRowToDeliveryLines(zoneAddressRow) ?? deliveryDraft;
+  }, [zoneAddressRow, deliveryDraft]);
+
+  const hasZoneDeliveryReady = useMemo(() => {
+    if (activeShop?.geoZoneId) {
+      return Boolean(
+        effectiveDelivery &&
+          isZoneDeliveryCompleteForActiveGeo(activeShop, effectiveDelivery),
+      );
+    }
+    return Boolean(
+      profile?.address && profile?.city && profile?.postal_code,
+    );
+  }, [activeShop, effectiveDelivery, profile]);
+
+  const hasPostalCode = Boolean(
+    effectiveDelivery?.postal &&
+      (isUsConditional
+        ? effectiveDelivery.postal.trim().length >= 3
+        : /^\d{5}$/.test(effectiveDelivery.postal.trim())),
+  );
+  const hasFullAddress = hasZoneDeliveryReady;
+  const hasUsState =
+    !isUsConditional ||
+    isValidUsStateCode(effectiveDelivery?.regionCode?.trim() ?? "");
   const hasZoneSelected = Boolean(zoneInfo.selectedDeliveryZoneId);
 
   const palletsLength = zoneInfo.pallets?.length ?? 0;
   const deliveryComplete = useMemo(
-    () =>
-      hasProfileInfo &&
-      hasCompleteProfileAddress &&
-      Boolean(zoneInfo.selectedDeliveryZoneId) &&
-      (palletsLength === 0 || selectedPallet != null),
+    () => {
+      if (!hasProfileInfo || !hasZoneDeliveryReady) return false;
+      if (isUsConditional) {
+        if (!hasUsState) return false;
+        return palletsLength === 0 || selectedPallet != null;
+      }
+      return (
+        Boolean(zoneInfo.selectedDeliveryZoneId) &&
+        (palletsLength === 0 || selectedPallet != null)
+      );
+    },
     [
-      hasCompleteProfileAddress,
+      hasZoneDeliveryReady,
       hasProfileInfo,
+      hasUsState,
+      isUsConditional,
       palletsLength,
       selectedPallet,
       zoneInfo.selectedDeliveryZoneId,
     ],
   );
+
+  useEffect(() => {
+    if (!isUsConditional) {
+      setUsAge21Confirmed(false);
+      setUsConditionalAck(false);
+    }
+  }, [isUsConditional]);
+
+  useEffect(() => {
+    if (!isUsConditional) return;
+    const dz = selectedPallet?.delivery_zone_id;
+    if (typeof dz === "string" && dz.trim() !== "") {
+      const id = dz.trim();
+      setZoneInfo((prev) =>
+        prev.selectedDeliveryZoneId === id
+          ? prev
+          : { ...prev, selectedDeliveryZoneId: id },
+      );
+    }
+  }, [isUsConditional, selectedPallet?.delivery_zone_id, selectedPallet?.id]);
+
+  const zoneOrUsPalletReady =
+    Boolean(zoneInfo.selectedDeliveryZoneId) ||
+    (isUsConditional &&
+      typeof selectedPallet?.delivery_zone_id === "string" &&
+      selectedPallet.delivery_zone_id.trim() !== "");
 
   useEffect(() => {
     checkoutPhaseRef.current = deliveryComplete ? "payment_ready" : "delivery";
@@ -220,6 +319,45 @@ function CheckoutContent() {
       }
     } catch (error) {
       console.error("Failed to fetch profile:", error);
+    }
+  }, []);
+
+  const fetchZoneShopContext = useCallback(async () => {
+    setZoneTemplatesLoaded(false);
+    try {
+      const ar = await fetch("/api/user/active-zone");
+      if (!ar.ok) {
+        setActiveShop(null);
+        setZoneAddressRow(null);
+        return;
+      }
+      const aj = await ar.json();
+      const az = aj.activeZone as ResolvedActiveGeoZone | undefined;
+      setActiveShop(az ?? null);
+      const gid = az?.geoZoneId?.trim();
+      if (!gid) {
+        setZoneAddressRow(null);
+        return;
+      }
+      const zr = await fetch(
+        `/api/user/zone-addresses?geoZoneId=${encodeURIComponent(gid)}`,
+      );
+      if (!zr.ok) {
+        setZoneAddressRow(null);
+        return;
+      }
+      const zj = await zr.json();
+      setZoneAddressRow(
+        zj.address && typeof zj.address === "object"
+          ? (zj.address as UserZoneAddressTemplate)
+          : null,
+      );
+    } catch (e) {
+      console.error("Failed to load active zone / zone address:", e);
+      setActiveShop(null);
+      setZoneAddressRow(null);
+    } finally {
+      setZoneTemplatesLoaded(true);
     }
   }, []);
 
@@ -282,7 +420,7 @@ function CheckoutContent() {
 
   useEffect(() => {
     fetchCart();
-    fetchProfile();
+    void fetchProfile().then(() => void fetchZoneShopContext());
     fetchUserRewards();
     fetchProgressionBuffs(); // v2: fetch progression buffs
     fetchPactPointsBalance();
@@ -298,18 +436,48 @@ function CheckoutContent() {
   }, [
     fetchCart,
     fetchProfile,
+    fetchZoneShopContext,
     fetchUserRewards,
     fetchProgressionBuffs,
     fetchPactPointsBalance,
   ]);
 
-  // Initial zone matching when cart and profile are loaded
   useEffect(() => {
-    if (cart && cart.totalQuantity > 0 && !loading) {
+    if (!zoneTemplatesLoaded || !activeShop?.geoZoneId) return;
+    const fromDb = userZoneRowToDeliveryLines(zoneAddressRow);
+    if (fromDb) {
+      setDeliveryDraft(null);
+      return;
+    }
+    setDeliveryDraft((prev) => {
+      if (prev) return prev;
+      return {
+        street: "",
+        city: "",
+        postal: "",
+        countryCode: activeShop.countryCode,
+        regionCode: activeShop.regionCode ?? null,
+        fullName: profile?.full_name?.trim() || "",
+        phone: profile?.phone?.trim() || "",
+        email: profile?.email?.trim() || "",
+      };
+    });
+  }, [
+    zoneTemplatesLoaded,
+    activeShop,
+    zoneAddressRow,
+    profile?.full_name,
+    profile?.phone,
+    profile?.email,
+  ]);
+
+  // Initial zone matching when cart and zone context are loaded
+  useEffect(() => {
+    if (cart && cart.totalQuantity > 0 && !loading && zoneTemplatesLoaded) {
       console.log("🚀 Initial zone matching triggered");
       updateZoneInfo();
     }
-  }, [cart, loading]);
+  }, [cart, loading, zoneTemplatesLoaded]);
 
   // Validate cart on load and when cart changes
   useEffect(() => {
@@ -358,46 +526,75 @@ function CheckoutContent() {
 
       return () => clearTimeout(timeoutId);
     }
-  }, [profile]);
+  }, [profile, activeShop, zoneAddressRow, deliveryDraft]);
 
   const updateZoneInfo = async () => {
     if (!cart || cart.totalQuantity === 0) return;
 
     // Prevent multiple simultaneous calls
-    if (updateZoneInfo.inProgress) {
+    if (zoneInfoFetchInProgressRef.current) {
       console.log("⏳ Zone update already in progress, skipping...");
       return;
     }
-    updateZoneInfo.inProgress = true;
+    zoneInfoFetchInProgressRef.current = true;
     setZoneLoading(true);
 
     try {
-      let deliveryAddress;
-      
-      if (profile && profile.address && profile.city && profile.postal_code) {
+      const eff = userZoneRowToDeliveryLines(zoneAddressRow) ?? deliveryDraft;
+      const isUsingFallback = Boolean(
+        activeShop?.geoZoneId &&
+          (!eff || !isZoneDeliveryCompleteForActiveGeo(activeShop, eff)),
+      );
+
+      let deliveryAddress: {
+        postcode: string;
+        city: string;
+        countryCode: string;
+      } | null = null;
+
+      if (
+        activeShop?.geoZoneId &&
+        eff &&
+        isZoneDeliveryCompleteForActiveGeo(activeShop, eff)
+      ) {
+        deliveryAddress = {
+          postcode: eff.postal,
+          city: eff.city,
+          countryCode: eff.countryCode,
+        };
+      } else if (
+        !activeShop?.geoZoneId &&
+        profile?.address &&
+        profile?.city &&
+        profile?.postal_code
+      ) {
+        const countryCode = getCountryCodeFromProfileCountry(
+          profile.country ?? "",
+        );
+        if (!countryCode) {
+          setZoneInfo({
+            pickupZone: null,
+            pickupZoneId: null,
+            deliveryZone: null,
+            selectedDeliveryZoneId: null,
+            availableDeliveryZones: [],
+            pallets: [],
+            usingFallbackAddress: !profile?.address,
+            zoneError: "UNSUPPORTED_COUNTRY",
+            zoneErrorMessage:
+              getCheckoutBrowseOnlyUnsupportedCountryMessage(),
+          });
+          setSelectedPallet(null);
+          setZoneLoading(false);
+          return;
+        }
         deliveryAddress = {
           postcode: profile.postal_code || "",
           city: profile.city || "",
-          countryCode:
-            profile.country === "Sweden"
-              ? "SE"
-              : profile.country === "Norway"
-                ? "NO"
-                : profile.country === "Denmark"
-                  ? "DK"
-                  : profile.country === "Finland"
-                    ? "FI"
-                    : profile.country === "Germany"
-                      ? "DE"
-                      : profile.country === "France"
-                        ? "FR"
-                        : profile.country === "United Kingdom"
-                          ? "GB"
-                          : "",
+          countryCode,
         };
       } else {
-        // No complete address - cannot determine zones
-        console.log("⚠️ No complete address - cannot determine zones");
+        console.log("⚠️ No complete zone delivery — cannot determine zones");
         setZoneInfo({
           pickupZone: null,
           pickupZoneId: null,
@@ -405,15 +602,13 @@ function CheckoutContent() {
           selectedDeliveryZoneId: null,
           availableDeliveryZones: [],
           pallets: [],
-          usingFallbackAddress: false,
+          usingFallbackAddress: isUsingFallback,
           zoneError: null,
           zoneErrorMessage: undefined,
         });
         setZoneLoading(false);
         return;
       }
-
-      const isUsingFallback = !profile?.address;
 
       console.log("🚀 Sending zone request:", {
         cartItems: cart.lines,
@@ -442,6 +637,29 @@ function CheckoutContent() {
           rawJson && typeof rawJson === "object"
             ? (rawJson as Record<string, unknown>)
             : null;
+
+        if (zd?.error === "UNSUPPORTED_COUNTRY") {
+          setZoneInfo({
+            pickupZone:
+              typeof zd.pickupZoneName === "string" ? zd.pickupZoneName : null,
+            pickupZoneId:
+              typeof zd.pickupZoneId === "string"
+                ? zd.pickupZoneId
+                : zd.pickupZoneId === null
+                  ? null
+                  : undefined,
+            deliveryZone: null,
+            selectedDeliveryZoneId: null,
+            availableDeliveryZones: [],
+            pallets: [],
+            usingFallbackAddress: isUsingFallback,
+            zoneError: "UNSUPPORTED_COUNTRY",
+            zoneErrorMessage:
+              getCheckoutBrowseOnlyUnsupportedCountryMessage(),
+          });
+          setSelectedPallet(null);
+          return;
+        }
 
         if (zd?.error === "NO_DELIVERY_ZONE") {
           const msg =
@@ -567,7 +785,49 @@ function CheckoutContent() {
     } catch (error) {
       console.error("Failed to update zone info:", error);
     } finally {
-      updateZoneInfo.inProgress = false;
+      zoneInfoFetchInProgressRef.current = false;
+      setZoneLoading(false);
+    }
+  };
+
+  const handleSaveZoneDelivery = async () => {
+    const eff = deliveryDraft;
+    if (!activeShop?.geoZoneId || !eff) return;
+    if (!isZoneDeliveryCompleteForActiveGeo(activeShop, eff)) {
+      toast.error("Complete all required fields for this wine zone.");
+      return;
+    }
+    setZoneLoading(true);
+    try {
+      const res = await fetch(
+        `/api/user/zone-addresses/${encodeURIComponent(activeShop.geoZoneId)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            full_name: eff.fullName || undefined,
+            phone: eff.phone || undefined,
+            email: eff.email || undefined,
+            address_line1: eff.street,
+            city: eff.city,
+            postal_code: eff.postal,
+            country_code: eff.countryCode,
+            region_code: eff.regionCode || null,
+          }),
+        },
+      );
+      if (!res.ok) {
+        const j = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(j.error || "Save failed");
+      }
+      const j = (await res.json()) as { address?: UserZoneAddressTemplate };
+      if (j.address) setZoneAddressRow(j.address);
+      setDeliveryDraft(null);
+      toast.success("Delivery details saved for this wine zone.");
+      await updateZoneInfo();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Save failed");
+    } finally {
       setZoneLoading(false);
     }
   };
@@ -575,7 +835,21 @@ function CheckoutContent() {
   const handleProfileSaved = async (updatedProfile: UserProfile) => {
     setProfile(updatedProfile);
 
-    // Check if address is complete
+    if (activeShop?.geoZoneId) {
+      toast.success("Saved.");
+      setDeliveryDraft((d) =>
+        d
+          ? {
+              ...d,
+              fullName: updatedProfile.full_name?.trim() || d.fullName,
+              phone: updatedProfile.phone?.trim() || d.phone,
+              email: updatedProfile.email?.trim() || d.email,
+            }
+          : d,
+      );
+      return;
+    }
+
     const hasAddress =
       updatedProfile.address &&
       updatedProfile.city &&
@@ -584,7 +858,6 @@ function CheckoutContent() {
     if (hasAddress) {
       toast.success("Saving...");
       setZoneLoading(true);
-      // Wait a moment for state to update
       setTimeout(async () => {
         await updateZoneInfo();
         setZoneLoading(false);
@@ -619,10 +892,15 @@ function CheckoutContent() {
 
     setIsFinalizingReservation(true); // legacy path: show finalizing modal
 
-    // Check if delivery zone is available
-    const hasCompleteAddress =
-      profile?.address && profile?.city && profile?.postal_code;
-      
+    if (zoneInfo.zoneError === "UNSUPPORTED_COUNTRY") {
+      setIsFinalizingReservation(false);
+      toast.error(
+        zoneInfo.zoneErrorMessage?.trim() ||
+          getCheckoutBrowseOnlyUnsupportedCountryMessage(),
+      );
+      return;
+    }
+
     if (zoneInfo.zoneError === "NO_DELIVERY_ZONE") {
       setIsFinalizingReservation(false);
       toast.error(
@@ -632,7 +910,13 @@ function CheckoutContent() {
       return;
     }
 
-    if (hasCompleteAddress && !zoneInfo.selectedDeliveryZoneId) {
+    const deliveryZoneReady =
+      Boolean(zoneInfo.selectedDeliveryZoneId) ||
+      (isUsConditional &&
+        typeof selectedPallet?.delivery_zone_id === "string" &&
+        selectedPallet.delivery_zone_id.trim() !== "");
+
+    if (hasZoneDeliveryReady && !deliveryZoneReady) {
       setIsFinalizingReservation(false);
       toast.error(
         "No delivery zone matches your address. Please contact support or try a different address.",
@@ -652,49 +936,38 @@ function CheckoutContent() {
     // Prepare form data
     const formData = new FormData();
     
+    const effSubmit =
+      userZoneRowToDeliveryLines(zoneAddressRow) ?? deliveryDraft;
+
     // Customer details
-    formData.append("fullName", profile?.full_name || "");
-    // Use profile email if available, otherwise we'll need to get it from auth
-    formData.append("email", profile?.email || "");
-    formData.append("phone", profile?.phone || "");
-    
+    formData.append(
+      "fullName",
+      effSubmit?.fullName || profile?.full_name || "",
+    );
+    formData.append("email", effSubmit?.email || profile?.email || "");
+    formData.append("phone", effSubmit?.phone || profile?.phone || "");
+
     // Payment method (only for warehouse orders)
     if (hasWarehouseItems) {
       formData.append("paymentMethodType", paymentMethod);
     }
-    
-    // Delivery address (always from profile)
-    if (profile) {
-      formData.append("street", profile.address || "");
-      formData.append("postcode", profile.postal_code || "");
-      formData.append("city", profile.city || "");
-      formData.append(
-        "countryCode",
-        profile.country === "Sweden"
-          ? "SE"
-          : profile.country === "Norway"
-            ? "NO"
-            : profile.country === "Denmark"
-              ? "DK"
-              : profile.country === "Finland"
-                ? "FI"
-                : profile.country === "Germany"
-                  ? "DE"
-                  : profile.country === "France"
-                    ? "FR"
-                    : profile.country === "United Kingdom"
-                      ? "GB"
-                      : "",
-      );
+
+    if (effSubmit) {
+      formData.append("street", effSubmit.street);
+      formData.append("postcode", effSubmit.postal);
+      formData.append("city", effSubmit.city);
+      formData.append("countryCode", effSubmit.countryCode);
+      if (effSubmit.regionCode) {
+        formData.append("regionCode", effSubmit.regionCode);
+      }
     }
-    // Note: If no profile, form validation will catch missing address
-    
+
     // Zone information
-    if (zoneInfo.selectedDeliveryZoneId) {
-      formData.append(
-        "selectedDeliveryZoneId",
-        zoneInfo.selectedDeliveryZoneId,
-      );
+    const zoneIdForSubmit =
+      zoneInfo.selectedDeliveryZoneId ||
+      (isUsConditional ? selectedPallet?.delivery_zone_id?.trim() ?? "" : "");
+    if (zoneIdForSubmit) {
+      formData.append("selectedDeliveryZoneId", zoneIdForSubmit);
     }
     
     // Pallet information
@@ -915,39 +1188,31 @@ function CheckoutContent() {
 
     const formData = new FormData();
 
-    // Customer details
-    formData.append("fullName", profile?.full_name || "");
-    formData.append("email", profile?.email || "");
-    formData.append("phone", profile?.phone || "");
+    const effConfirm =
+      userZoneRowToDeliveryLines(zoneAddressRow) ?? deliveryDraft;
 
-    // Delivery address (always from profile)
-    if (profile) {
-      formData.append("street", profile.address || "");
-      formData.append("postcode", profile.postal_code || "");
-      formData.append("city", profile.city || "");
-      formData.append(
-        "countryCode",
-        profile.country === "Sweden"
-          ? "SE"
-          : profile.country === "Norway"
-            ? "NO"
-            : profile.country === "Denmark"
-              ? "DK"
-              : profile.country === "Finland"
-                ? "FI"
-                : profile.country === "Germany"
-                  ? "DE"
-                  : profile.country === "France"
-                    ? "FR"
-                    : profile.country === "United Kingdom"
-                      ? "GB"
-                      : "",
-      );
+    formData.append(
+      "fullName",
+      effConfirm?.fullName || profile?.full_name || "",
+    );
+    formData.append("email", effConfirm?.email || profile?.email || "");
+    formData.append("phone", effConfirm?.phone || profile?.phone || "");
+
+    if (effConfirm) {
+      formData.append("street", effConfirm.street);
+      formData.append("postcode", effConfirm.postal);
+      formData.append("city", effConfirm.city);
+      formData.append("countryCode", effConfirm.countryCode);
+      if (effConfirm.regionCode) {
+        formData.append("regionCode", effConfirm.regionCode);
+      }
     }
 
-    // Zone information
-    if (zoneInfo.selectedDeliveryZoneId) {
-      formData.append("selectedDeliveryZoneId", zoneInfo.selectedDeliveryZoneId);
+    const zIdForConfirm =
+      zoneInfo.selectedDeliveryZoneId ||
+      (isUsConditional ? selectedPallet?.delivery_zone_id?.trim() ?? "" : "");
+    if (zIdForConfirm) {
+      formData.append("selectedDeliveryZoneId", zIdForConfirm);
     }
 
     // Pallet information
@@ -1046,11 +1311,15 @@ function CheckoutContent() {
   }, [
     deliveryComplete,
     friendlyStripeErrorMessage,
+    isUsConditional,
     isValidCart,
     isSwedish,
     paymentMode,
     profile,
+    zoneAddressRow,
+    deliveryDraft,
     redeemPoints,
+    selectedPallet?.delivery_zone_id,
     selectedPallet?.id,
     shareAllocation,
     shareFriendIds,
@@ -1588,8 +1857,109 @@ function CheckoutContent() {
 
             <section className="py-6 first:pt-0 border-b border-border last:border-0">
               <div className="space-y-3">
+                {activeShop ? (
+                  <p className="text-sm text-muted-foreground">
+                    Shopping in:{" "}
+                    <span className="font-medium text-foreground">
+                      {activeShop.displayName}
+                    </span>
+                    <span className="text-muted-foreground"> · </span>
+                    <span>{activeShop.currencyCode}</span>
+                  </p>
+                ) : !zoneTemplatesLoaded ? (
+                  <p className="text-xs text-muted-foreground">
+                    Loading shopping zone…
+                  </p>
+                ) : null}
+
+                {activeShop?.geoZoneId &&
+                !userZoneRowToDeliveryLines(zoneAddressRow) &&
+                deliveryDraft ? (
+                  <div className="rounded-lg border border-border p-4 space-y-3">
+                    <p className="text-sm font-medium text-foreground">
+                      Add delivery details for {activeShop.displayName}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Saved here for this wine zone only. Updating delivery does
+                      not change your wine zone (use the shop zone switcher for
+                      that).
+                    </p>
+                    <div className="space-y-2">
+                      <Label htmlFor="zone-addr1">Street address</Label>
+                      <Input
+                        id="zone-addr1"
+                        value={deliveryDraft.street}
+                        onChange={(e) =>
+                          setDeliveryDraft((d) =>
+                            d ? { ...d, street: e.target.value } : d,
+                          )
+                        }
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="zone-city">City</Label>
+                        <Input
+                          id="zone-city"
+                          value={deliveryDraft.city}
+                          onChange={(e) =>
+                            setDeliveryDraft((d) =>
+                              d ? { ...d, city: e.target.value } : d,
+                            )
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="zone-postal">Postal code</Label>
+                        <Input
+                          id="zone-postal"
+                          value={deliveryDraft.postal}
+                          onChange={(e) =>
+                            setDeliveryDraft((d) =>
+                              d ? { ...d, postal: e.target.value } : d,
+                            )
+                          }
+                        />
+                      </div>
+                    </div>
+                    {isUsConditional ? (
+                      <div className="space-y-2">
+                        <Label>State / territory</Label>
+                        <Select
+                          value={deliveryDraft.regionCode ?? ""}
+                          onValueChange={(v) =>
+                            setDeliveryDraft((d) =>
+                              d ? { ...d, regionCode: v || null } : d,
+                            )
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select state" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {listUsStateCodesSorted().map((c) => (
+                              <SelectItem key={c} value={c}>
+                                {c}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ) : null}
+                    <Button
+                      type="button"
+                      variant="default"
+                      className="w-full"
+                      disabled={zoneLoading}
+                      onClick={() => void handleSaveZoneDelivery()}
+                    >
+                      Save delivery details
+                    </Button>
+                  </div>
+                ) : null}
+
                 <h2 className="text-base font-semibold text-foreground">
-                  1. Delivery
+                  1. Delivery details
                 </h2>
 
                 {!hasPostalCode ? (
@@ -1642,7 +2012,7 @@ function CheckoutContent() {
                           Postal code
                         </p>
                         <p className="text-sm font-medium text-foreground">
-                          {profile?.postal_code}
+                          {effectiveDelivery?.postal ?? "—"}
                         </p>
                       </div>
                       <ProfileInfoModal
@@ -1659,7 +2029,8 @@ function CheckoutContent() {
                     </div>
 
                     <p className="text-sm text-muted-foreground">
-                      We need your full address to confirm delivery
+                      We need a complete delivery address for your active wine
+                      zone
                     </p>
                     <ProfileInfoModal
                       onProfileSaved={handleProfileSaved}
@@ -1678,7 +2049,7 @@ function CheckoutContent() {
                           Postal code
                         </p>
                         <p className="text-sm font-medium text-foreground">
-                          {profile?.postal_code}
+                          {effectiveDelivery?.postal ?? "—"}
                         </p>
                       </div>
                       <ProfileInfoModal
@@ -1698,13 +2069,19 @@ function CheckoutContent() {
                       <div className="min-w-0">
                         <p className="text-xs text-muted-foreground">Address</p>
                         <p className="text-sm font-medium text-foreground">
-                          {profile?.address}
+                          {effectiveDelivery?.street ?? "—"}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {profile?.postal_code} {profile?.city}
+                          {effectiveDelivery?.postal ?? ""}{" "}
+                          {effectiveDelivery?.city ?? ""}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {profile?.country || "Sweden"}
+                          {effectiveDelivery?.countryCode
+                            ? getCountryDisplayName(
+                                effectiveDelivery.countryCode,
+                                "en",
+                              )
+                            : "—"}
                         </p>
                       </div>
                       <ProfileInfoModal
@@ -1724,6 +2101,12 @@ function CheckoutContent() {
 
                 {hasFullAddress ? (
                   <div className="space-y-3 pt-2">
+                    {isUsConditional && !hasUsState ? (
+                      <p className="text-sm text-destructive">
+                        Select your US state or territory in your zone delivery
+                        details to continue.
+                      </p>
+                    ) : null}
                     {zoneLoading ? (
                       <div className="flex items-center gap-3">
                         <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-foreground" />
@@ -1755,16 +2138,25 @@ function CheckoutContent() {
 
                     {!zoneLoading && zoneInfo.zoneError === "NO_DELIVERY_ZONE" ? (
                       <p className="text-sm text-destructive mt-2">
-                        We don&apos;t deliver to your area yet. We&apos;re
-                        expanding soon — check back later.
+                        {isUsConditional
+                          ? zoneInfo.zoneErrorMessage?.trim() ||
+                            "No pallet is available for this release right now."
+                          : "We don't deliver to your area yet. We're expanding soon — check back later."}
                       </p>
                     ) : null}
 
                     {!zoneLoading &&
-                    zoneInfo.zoneError !== "NO_DELIVERY_ZONE" &&
+                    zoneInfo.zoneError === "UNSUPPORTED_COUNTRY" ? (
+                      <p className="text-sm text-amber-800 dark:text-amber-200 mt-2 whitespace-pre-line">
+                        {getCheckoutBrowseOnlyUnsupportedCountryMessage()}
+                      </p>
+                    ) : null}
+
+                    {!zoneLoading &&
+                    !zoneInfo.zoneError &&
                     !zoneInfo.deliveryZone &&
                     !zoneInfo.usingFallbackAddress &&
-                    profile?.postal_code ? (
+                    effectiveDelivery?.postal ? (
                       <p className="text-sm text-muted-foreground">
                         No delivery zone found for your address.
                       </p>
@@ -1816,51 +2208,57 @@ function CheckoutContent() {
 
                     {hasFullAddress &&
                     !zoneLoading &&
-                    Boolean(zoneInfo.selectedDeliveryZoneId) &&
+                    zoneOrUsPalletReady &&
                     selectedPallet != null ? (
                       <div className="space-y-4 border-t border-border pt-3">
-                        <div className="space-y-2">
-                          <p className="text-sm font-medium text-foreground">
-                            Delivery options
+                        {isUsConditional ? (
+                          <p className="text-sm text-muted-foreground">
+                            {US_CONDITIONAL_RESERVATION_COPY_EN}
                           </p>
-                          <div
-                            className="flex items-start justify-between border-b border-border py-3"
-                            role="group"
-                            aria-label="Delivery option: home delivery via Bring"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div
-                                className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-foreground"
-                                aria-hidden
-                              >
-                                <div className="h-1.5 w-1.5 rounded-full bg-foreground" />
+                        ) : (
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium text-foreground">
+                              Delivery options
+                            </p>
+                            <div
+                              className="flex items-start justify-between border-b border-border py-3"
+                              role="group"
+                              aria-label="Delivery option: home delivery via Bring"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-foreground"
+                                  aria-hidden
+                                >
+                                  <div className="h-1.5 w-1.5 rounded-full bg-foreground" />
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-foreground">
+                                    Home delivery via Bring
+                                  </p>
+                                  <p className="mt-0.5 text-xs text-muted-foreground">
+                                    {deliveryEstimateLabel} · Signature and age
+                                    verification required
+                                  </p>
+                                </div>
                               </div>
-                              <div>
-                                <p className="text-sm font-medium text-foreground">
-                                  Home delivery via Bring
-                                </p>
-                                <p className="mt-0.5 text-xs text-muted-foreground">
-                                  {deliveryEstimateLabel} · Signature and age
-                                  verification required
-                                </p>
+                              <div className="flex shrink-0 items-center gap-2">
+                                <span className="whitespace-nowrap text-sm tabular-nums text-foreground">
+                                  {deliveryOptionShippingLabel}
+                                </span>
+                                {/* eslint-disable-next-line @next/next/no-img-element -- static brand asset from /public */}
+                                <img
+                                  src="/bring-logo.svg"
+                                  alt=""
+                                  width={96}
+                                  height={36}
+                                  className="h-5 w-auto max-w-[100px] shrink-0 object-contain object-right"
+                                  aria-hidden
+                                />
                               </div>
-                            </div>
-                            <div className="flex shrink-0 items-center gap-2">
-                              <span className="whitespace-nowrap text-sm tabular-nums text-foreground">
-                                {deliveryOptionShippingLabel}
-                              </span>
-                              {/* eslint-disable-next-line @next/next/no-img-element -- static brand asset from /public */}
-                              <img
-                                src="/bring-logo.svg"
-                                alt=""
-                                width={96}
-                                height={36}
-                                className="h-5 w-auto max-w-[100px] shrink-0 object-contain object-right"
-                                aria-hidden
-                              />
                             </div>
                           </div>
-                        </div>
+                        )}
 
                         <div>
                           <div className="mb-1.5 flex items-center justify-between">
@@ -1925,12 +2323,51 @@ function CheckoutContent() {
 
                     {hasProducerItems && selectedPallet ? (
                       <>
+                        {isUsConditional ? (
+                          <div className="space-y-3 rounded-md border border-border bg-background p-4">
+                            <div className="flex items-start gap-3">
+                              <Checkbox
+                                id="us-age-21"
+                                checked={usAge21Confirmed}
+                                onCheckedChange={(v) =>
+                                  setUsAge21Confirmed(v === true)
+                                }
+                              />
+                              <label
+                                htmlFor="us-age-21"
+                                className="text-sm leading-snug text-foreground"
+                              >
+                                I confirm that I am 21 years or older.
+                              </label>
+                            </div>
+                            <div className="flex items-start gap-3">
+                              <Checkbox
+                                id="us-conditional-ack"
+                                checked={usConditionalAck}
+                                onCheckedChange={(v) =>
+                                  setUsConditionalAck(v === true)
+                                }
+                              />
+                              <label
+                                htmlFor="us-conditional-ack"
+                                className="text-sm leading-snug text-foreground"
+                              >
+                                I understand this is a conditional reservation
+                                and that I will not be charged unless the drop
+                                becomes available in my state.
+                              </label>
+                            </div>
+                          </div>
+                        ) : null}
                         <StripePaymentSection
                           palletId={selectedPallet.id}
                           cartTotalSek={finalAmountAfterVoucher}
                           pactPointsRedeem={redeemPoints}
                           onIntentCreated={handleStripeIntentCreated}
                           onConfirmReady={handleStripeConfirmReady}
+                          usConditionalPayment={isUsConditional}
+                          usAge21Confirmed={usAge21Confirmed}
+                          usConditionalAck={usConditionalAck}
                         />
 
                         {stripeError ? (
@@ -1957,7 +2394,9 @@ function CheckoutContent() {
                               isSubmitting ||
                               zoneLoading ||
                               isStripeConfirming ||
-                              isFinalizingReservation
+                              isFinalizingReservation ||
+                              (isUsConditional &&
+                                (!usAge21Confirmed || !usConditionalAck))
                             }
                             onClick={handlePlaceReservation}
                           >
@@ -1965,7 +2404,9 @@ function CheckoutContent() {
                               ? "Processing..."
                               : paymentMode === "payment_intent"
                                 ? "Pay now"
-                                : "Place Reservation"}
+                                : isUsConditional
+                                  ? US_CONDITIONAL_RESERVATION_BUTTON_EN
+                                  : "Place Reservation"}
                           </Button>
                         </div>
                       </>

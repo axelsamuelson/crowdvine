@@ -21,6 +21,7 @@ export function computePalletFillPercentForDisplay(
 /** Single source of truth for which reservation statuses count toward pallet fill. */
 export const PALLET_FILL_STATUSES = [
   "pending_producer_approval",
+  "conditional_pending",
   "placed",
   "approved",
   "partly_approved",

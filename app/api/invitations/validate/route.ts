@@ -43,6 +43,7 @@ export async function POST(request: Request) {
         can_change_account_type,
         created_at,
         is_personal_link,
+        default_geo_zone_id,
         profiles!created_by(email, full_name)
       `;
 
@@ -171,6 +172,13 @@ export async function POST(request: Request) {
         : "consumer";
     const canChangeAccountType = !!invitation.can_change_account_type;
 
+    const rawDefaultGeo = (invitation as { default_geo_zone_id?: unknown })
+      .default_geo_zone_id;
+    const defaultGeoZoneId =
+      typeof rawDefaultGeo === "string" && rawDefaultGeo.trim()
+        ? rawDefaultGeo.trim()
+        : null;
+
     return NextResponse.json({
       success: true,
       invitation: {
@@ -185,6 +193,7 @@ export async function POST(request: Request) {
         can_change_account_type: canChangeAccountType,
         used_at: invitation.used_at ?? undefined,
         is_personal_link: isPersonal,
+        defaultGeoZoneId,
         profiles: invitation.profiles, // Contains { email, full_name }
       },
     });

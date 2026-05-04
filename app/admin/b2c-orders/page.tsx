@@ -34,6 +34,11 @@ interface AdminReservationListRow {
   cart_id?: string | null;
   pallet_id?: string | null;
   pallet?: { id: string; name: string | null } | null;
+  market_code?: string | null;
+  country_code?: string | null;
+  region?: string | null;
+  is_conditional?: boolean | null;
+  charge_blocked_reason?: string | null;
   profiles?: {
     full_name?: string | null;
     email?: string | null;
@@ -91,6 +96,8 @@ function formatReservationStatus(status: string | null | undefined): string {
       return "Cancelled";
     case "rejected":
       return "Rejected";
+    case "conditional_pending":
+      return "US conditional (pending review)";
     default:
       return status ?? "—";
   }
@@ -210,8 +217,13 @@ export default function B2cOrdersPage() {
     return (
       reservation.order_id?.toLowerCase().includes(searchLower) ||
       reservation.user_id?.toLowerCase().includes(searchLower) ||
-      // Note: profiles data not available until foreign key is set up
-      (reservation.status?.toLowerCase()?.includes(searchLower) ?? false)
+      (reservation.status?.toLowerCase()?.includes(searchLower) ?? false) ||
+      (reservation.market_code?.toLowerCase()?.includes(searchLower) ?? false) ||
+      (reservation.country_code?.toLowerCase()?.includes(searchLower) ?? false) ||
+      (reservation.region?.toLowerCase()?.includes(searchLower) ?? false) ||
+      (reservation.charge_blocked_reason
+        ?.toLowerCase()
+        ?.includes(searchLower) ?? false)
     );
   });
 
@@ -462,11 +474,32 @@ export default function B2cOrdersPage() {
                         </span>
                       </td>
                       <td className="p-3">
-                        <span
-                          className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-zinc-400"
-                        >
-                          {formatReservationStatus(reservation.status)}
-                        </span>
+                        <div className="flex flex-col gap-1 items-start">
+                          <span className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-zinc-400">
+                            {formatReservationStatus(reservation.status)}
+                          </span>
+                          {reservation.is_conditional === true ||
+                          reservation.market_code === "US" ? (
+                            <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-sky-100 dark:bg-sky-900/40 text-sky-800 dark:text-sky-300">
+                              US conditional
+                            </span>
+                          ) : null}
+                          {reservation.charge_blocked_reason ? (
+                            <span
+                              className="text-[10px] text-amber-800 dark:text-amber-200 max-w-[200px] leading-tight"
+                              title={reservation.charge_blocked_reason}
+                            >
+                              Charge hold: {reservation.charge_blocked_reason}
+                            </span>
+                          ) : null}
+                          {reservation.country_code || reservation.region ? (
+                            <span className="text-[10px] text-gray-500 dark:text-zinc-500 font-mono">
+                              {[reservation.country_code, reservation.region]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </span>
+                          ) : null}
+                        </div>
                       </td>
                       <td className="p-3 text-xs text-gray-900 dark:text-zinc-100">
                         {reservation.delivery_zone_name ?? "—"}

@@ -20,6 +20,11 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { User, MapPin, Phone, Mail } from "lucide-react";
+import {
+  getCountryCodeFromProfileCountry,
+  getSupportedProfileCountries,
+  listUsStateCodesSorted,
+} from "@/lib/countries";
 
 interface ProfileInfo {
   full_name?: string;
@@ -28,6 +33,7 @@ interface ProfileInfo {
   city?: string;
   postal_code?: string;
   country?: string;
+  region?: string;
 }
 
 interface ProfileModalProps {
@@ -47,7 +53,8 @@ export function ProfileInfoModal({
     address: "",
     city: "",
     postal_code: "",
-    country: "Sweden",
+    country: "SE",
+    region: "",
   });
 
   // Load existing profile when modal opens
@@ -65,13 +72,15 @@ export function ProfileInfoModal({
         const profile = data.profile || data;
 
         if (profile) {
+          const countryCode =
+            getCountryCodeFromProfileCountry(profile.country ?? null) ?? "SE";
           setFormData({
             full_name: profile.full_name || "",
             phone: profile.phone || "",
             address: profile.address || "",
             city: profile.city || "",
             postal_code: profile.postal_code || "",
-            country: profile.country || "Sweden",
+            country: countryCode,
           });
         }
       }
@@ -104,7 +113,7 @@ export function ProfileInfoModal({
 
       if (!hasAddress) {
         toast.warning(
-          "Address missing. You can save now, but need to add address before checkout.",
+          "Home address on profile is incomplete. Checkout uses your wine zone delivery details separately.",
         );
       }
 
@@ -135,13 +144,14 @@ export function ProfileInfoModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-gray-900">
             <User className="w-5 h-5" />
-            Profile Information
+            Contact details
           </DialogTitle>
           <p
             id="profile-modal-description"
             className="text-sm text-gray-600 mt-2"
           >
-            Add your delivery information to complete checkout
+            Name and phone for your account. Delivery for your active wine zone
+            is set on checkout and does not change your home address on file.
           </p>
         </DialogHeader>
 
@@ -212,23 +222,48 @@ export function ProfileInfoModal({
             <Select
               value={formData.country}
               onValueChange={(value) =>
-                setFormData({ ...formData, country: value })
+                setFormData({
+                  ...formData,
+                  country: value,
+                  region: value === "US" ? formData.region : "",
+                })
               }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select country" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Sweden">Sweden</SelectItem>
-                <SelectItem value="Norway">Norway</SelectItem>
-                <SelectItem value="Denmark">Denmark</SelectItem>
-                <SelectItem value="Finland">Finland</SelectItem>
-                <SelectItem value="Germany">Germany</SelectItem>
-                <SelectItem value="France">France</SelectItem>
-                <SelectItem value="United Kingdom">United Kingdom</SelectItem>
+                {getSupportedProfileCountries().map(({ code, nameEn }) => (
+                  <SelectItem key={code} value={code}>
+                    {nameEn} ({code})
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
+
+          {formData.country === "US" ? (
+            <div>
+              <Label htmlFor="region">State / territory</Label>
+              <Select
+                value={formData.region && formData.region.length > 0 ? formData.region : undefined}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, region: value })
+                }
+              >
+                <SelectTrigger id="region">
+                  <SelectValue placeholder="Select state" />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  {listUsStateCodesSorted().map((code) => (
+                    <SelectItem key={code} value={code}>
+                      {code}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
 
           <div className="flex gap-3 pt-4">
             <Button

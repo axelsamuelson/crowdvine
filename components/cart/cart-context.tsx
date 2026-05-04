@@ -461,3 +461,12 @@ export function useCart(): UseCartReturn {
   }
   return context;
 }
+
+/**
+ * Same context as {@link useCart} but returns undefined when there is no provider
+ * (e.g. layout segments or SSR quirks). Prefer {@link useCart} when the tree must
+ * always be under {@link CartProvider}.
+ */
+export function useCartOptional(): UseCartReturn | undefined {
+  return useContext(CartContext);
+}

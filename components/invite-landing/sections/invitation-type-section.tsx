@@ -17,6 +17,7 @@ import { getLevelInfo } from "@/lib/membership/points-engine";
 import { MetallicMembershipCard } from "../metallic-membership-card";
 import { DirtyWineLogo } from "../dirty-wine-logo";
 import { buildInviteUrl } from "@/lib/invitation-path";
+import { InviteWineZoneField } from "@/components/market/invite-wine-zone-field";
 
 export type InvitationType = "consumer" | "producer" | "business";
 
@@ -25,6 +26,8 @@ export interface InvitationFormData {
   email: string;
   password: string;
   password_confirm: string;
+  /** Required eligible geo_zones.id before redeem. */
+  active_geo_zone_id?: string;
   selected_type?: InvitationType | null;
   // Producer fields (used when isProducerOnly)
   producer_name?: string;
@@ -134,6 +137,10 @@ export function InvitationTypeSection({
     }
     if (formData.password !== formData.password_confirm) {
       setConfirmError("Passwords do not match.");
+      return;
+    }
+    if (!formData.active_geo_zone_id?.trim()) {
+      setConfirmError("Choose your wine zone.");
       return;
     }
     onSubmit(e);
@@ -597,6 +604,13 @@ export function InvitationTypeSection({
                   <p className="text-sm text-destructive">{confirmError}</p>
                 )}
               </div>
+              {!isProducerOnly && (
+                <InviteWineZoneField
+                  value={formData.active_geo_zone_id ?? ""}
+                  onValueChange={(v) => onFormChange({ active_geo_zone_id: v })}
+                  className="pt-1"
+                />
+              )}
               {showContinueOn3 && (
                 <Button
                   type="button"
@@ -612,7 +626,10 @@ export function InvitationTypeSection({
                 <Button
                   type="submit"
                   className="w-full bg-black text-white hover:bg-black/90 hover:text-white"
-                  disabled={submitting}
+                  disabled={
+                    submitting ||
+                    !formData.active_geo_zone_id?.trim()
+                  }
                 >
                   {submitting ? "Creating account..." : "Create account"}
                 </Button>
@@ -689,6 +706,11 @@ export function InvitationTypeSection({
           {/* Step 5: Address */}
           {isProducerOnly && step >= 5 && (
             <div className="space-y-4">
+              <InviteWineZoneField
+                id="invite-wine-zone-producer"
+                value={formData.active_geo_zone_id ?? ""}
+                onValueChange={(v) => onFormChange({ active_geo_zone_id: v })}
+              />
               <div className="space-y-2">
                 <Label htmlFor="address_street">Street address</Label>
                 <Input
@@ -728,7 +750,10 @@ export function InvitationTypeSection({
                 <Button
                   type="submit"
                   className="w-full bg-black text-white hover:bg-black/90 hover:text-white"
-                  disabled={submitting}
+                  disabled={
+                    submitting ||
+                    !formData.active_geo_zone_id?.trim()
+                  }
                 >
                   {submitting ? "Creating account..." : "Create account"}
                 </Button>

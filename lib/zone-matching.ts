@@ -6,6 +6,13 @@ import {
   createFullAddress,
   isValidCoordinates,
 } from "./geocoding";
+import {
+  CHECKOUT_UNSUPPORTED_COUNTRY_USER_MESSAGE,
+  getCountryDisplayName,
+  getCountryMarketMode,
+  isSupportedCheckoutCountry,
+  normalizeProfileCountry,
+} from "@/lib/countries";
 
 // Cache for zone matching results to avoid repeated API calls
 const zoneCache = new Map<string, ZoneMatchResult>();
@@ -130,6 +137,7 @@ async function buildPalletInfosForDeliveryPair(
         costCents: Number(pRow.cost_cents) || 0,
         status,
         shipping_region_id: shippingRegionId,
+        delivery_zone_id: deliveryZoneId,
       });
     } catch (e) {
       console.error("[determineZones] region pallet resolve:", e);
@@ -204,6 +212,10 @@ async function buildPalletInfosForDeliveryPair(
         deliveryZoneName,
         costCents: Number(pallet.cost_cents) || 0,
         status: typeof st === "string" ? st : null,
+        delivery_zone_id:
+          typeof pallet.delivery_zone_id === "string"
+            ? pallet.delivery_zone_id
+            : null,
       });
     }
   }
@@ -212,7 +224,7 @@ async function buildPalletInfosForDeliveryPair(
 }
 
 export type NoDeliveryZoneError = {
-  error: "NO_DELIVERY_ZONE";
+  error: "NO_DELIVERY_ZONE" | "UNSUPPORTED_COUNTRY";
   message: string;
   address: { city: string; postcode: string; countryCode: string };
 };
@@ -254,7 +266,13 @@ export interface PalletInfo {
   status?: string | null;
   /** Present when enriched by checkout zones API (region pallets). */
   shipping_region_id?: string | null;
+  /** DB delivery zone id (used when checkout skips EU geocoding, e.g. US conditional). */
+  delivery_zone_id?: string | null;
   current_pickup_producer?: { id: string; name: string | null } | null;
+  /** Customer-facing market drop when resolved in `/api/checkout/zones`. */
+  marketDropId?: string | null;
+  /** Same as `id` for internal pallets; included for API clarity. */
+  sourcePalletId?: string | null;
 }
 
 export interface DeliveryAddress {
@@ -268,6 +286,206 @@ export interface CartItem {
     id: string;
   };
   quantity: number;
+}
+
+const US_COND_DELIVERY_LABEL = "US (conditional — logistics pending)";
+
+type PalletRowConditional = {
+  id: string;
+  name?: string | null;
+  bottle_capacity?: number | null;
+  cost_cents?: number | null;
+  status?: string | null;
+  delivery_zone_id?: string | null;
+  delivery_zone?:
+    | { id: string; name?: string | null }
+    | Array<{ id: string; name?: string | null }>
+    | null;
+};
+
+async function palletInfosFromRows(
+  sb: SupabaseAdmin,
+  rows: PalletRowConditional[],
+  pickupLabel: string | null,
+  shippingRegionId: string | null,
+): Promise<PalletInfo[]> {
+  const out: PalletInfo[] = [];
+  for (const pallet of rows) {
+    const pid = String(pallet.id ?? "");
+    if (!pid) continue;
+    const dzJoin = pallet.delivery_zone;
+    const dzName =
+      dzJoin == null
+        ? ""
+        : Array.isArray(dzJoin)
+          ? String(dzJoin[0]?.name ?? "")
+          : String((dzJoin as { name?: string | null }).name ?? "");
+    const currentBottles = await sumReservedBottlesOnPallet(pid);
+    const cap = Math.max(0, Math.floor(Number(pallet.bottle_capacity) || 0));
+    const st = pallet.status;
+    out.push({
+      id: pid,
+      name: String(pallet.name ?? ""),
+      currentBottles,
+      maxBottles: cap,
+      remainingBottles: Math.max(0, cap - currentBottles),
+      pickupZoneName: pickupLabel || "Shipping region",
+      deliveryZoneName: dzName,
+      costCents: Number(pallet.cost_cents) || 0,
+      status: typeof st === "string" ? st : null,
+      shipping_region_id: shippingRegionId,
+      delivery_zone_id:
+        typeof pallet.delivery_zone_id === "string"
+          ? pallet.delivery_zone_id
+          : null,
+    });
+  }
+  return out;
+}
+
+async function buildConditionalUsZoneResult(
+  sb: SupabaseAdmin,
+  params: {
+    shippingRegionIdForRouting: string | null;
+    pickupZoneId: string | null;
+    pickupZoneName: string | null;
+    deliveryAddress: DeliveryAddress;
+  },
+): Promise<ZoneMatchResult> {
+  const {
+    shippingRegionIdForRouting,
+    pickupZoneId,
+    pickupZoneName,
+    deliveryAddress,
+  } = params;
+
+  const noPalletMsg =
+    "No active pallet was found for this release. Please try again later or contact support.";
+
+  if (shippingRegionIdForRouting) {
+    const { data: palletRows, error } = await sb
+      .from("pallets")
+      .select(
+        `
+        id,
+        name,
+        bottle_capacity,
+        cost_cents,
+        status,
+        delivery_zone_id,
+        delivery_zone:pallet_zones!delivery_zone_id ( id, name )
+      `,
+      )
+      .eq("shipping_region_id", shippingRegionIdForRouting)
+      .in("status", ["open", "consolidating", "shipping_ordered"]);
+
+    if (error) {
+      console.error(
+        "[determineZones] US conditional pallet query:",
+        error.message,
+      );
+    }
+
+    if (!palletRows?.length) {
+      return {
+        pickupZoneId: null,
+        pickupZoneName,
+        deliveryZoneId: null,
+        deliveryZoneName: US_COND_DELIVERY_LABEL,
+        availableDeliveryZones: [],
+        pallets: [],
+        shippingRegionIdForRouting,
+        noDeliveryZone: {
+          error: "NO_DELIVERY_ZONE",
+          message: noPalletMsg,
+          address: {
+            city: deliveryAddress.city,
+            postcode: deliveryAddress.postcode,
+            countryCode: deliveryAddress.countryCode,
+          },
+        },
+      };
+    }
+
+    const pallets = await palletInfosFromRows(
+      sb,
+      palletRows as PalletRowConditional[],
+      pickupZoneName,
+      shippingRegionIdForRouting,
+    );
+
+    return {
+      pickupZoneId: null,
+      pickupZoneName,
+      deliveryZoneId: null,
+      deliveryZoneName: US_COND_DELIVERY_LABEL,
+      availableDeliveryZones: [],
+      pallets,
+      shippingRegionIdForRouting,
+    };
+  }
+
+  if (pickupZoneId) {
+    const { data: palletRows, error } = await sb
+      .from("pallets")
+      .select(
+        `
+        id,
+        name,
+        bottle_capacity,
+        cost_cents,
+        status,
+        delivery_zone_id,
+        delivery_zone:pallet_zones!delivery_zone_id ( id, name )
+      `,
+      )
+      .eq("pickup_zone_id", pickupZoneId)
+      .in("status", ["open", "consolidating", "shipping_ordered"]);
+
+    if (error) {
+      console.error(
+        "[determineZones] US conditional legacy pallet query:",
+        error.message,
+      );
+    }
+
+    if (palletRows?.length) {
+      const pallets = await palletInfosFromRows(
+        sb,
+        palletRows as PalletRowConditional[],
+        pickupZoneName,
+        null,
+      );
+      return {
+        pickupZoneId,
+        pickupZoneName,
+        deliveryZoneId: null,
+        deliveryZoneName: US_COND_DELIVERY_LABEL,
+        availableDeliveryZones: [],
+        pallets,
+        shippingRegionIdForRouting: null,
+      };
+    }
+  }
+
+  return {
+    pickupZoneId,
+    pickupZoneName,
+    deliveryZoneId: null,
+    deliveryZoneName: null,
+    availableDeliveryZones: [],
+    pallets: [],
+    shippingRegionIdForRouting,
+    noDeliveryZone: {
+      error: "NO_DELIVERY_ZONE",
+      message: noPalletMsg,
+      address: {
+        city: deliveryAddress.city,
+        postcode: deliveryAddress.postcode,
+        countryCode: deliveryAddress.countryCode,
+      },
+    },
+  };
 }
 
 /**
@@ -406,17 +624,77 @@ export async function determineZones(
     deliveryAddress.city &&
     deliveryAddress.postcode
   ) {
-    // Get all delivery zones for the country
+    const profileCc = normalizeProfileCountry(deliveryAddress.countryCode);
+
+    if (!profileCc || getCountryMarketMode(profileCc) === "unsupported") {
+      const unsupported: ZoneMatchResult = {
+        pickupZoneId,
+        pickupZoneName,
+        deliveryZoneId: null,
+        deliveryZoneName: null,
+        availableDeliveryZones: [],
+        pallets: [],
+        shippingRegionIdForRouting,
+        noDeliveryZone: {
+          error: "UNSUPPORTED_COUNTRY",
+          message: CHECKOUT_UNSUPPORTED_COUNTRY_USER_MESSAGE,
+          address: {
+            city: deliveryAddress.city,
+            postcode: deliveryAddress.postcode,
+            countryCode: deliveryAddress.countryCode,
+          },
+        },
+      };
+      zoneCache.set(cacheKey, unsupported);
+      return unsupported;
+    }
+
+    if (getCountryMarketMode(profileCc) === "conditional_reservation") {
+      const usResult = await buildConditionalUsZoneResult(sb, {
+        shippingRegionIdForRouting,
+        pickupZoneId,
+        pickupZoneName,
+        deliveryAddress,
+      });
+      zoneCache.set(cacheKey, usResult);
+      return usResult;
+    }
+
+    const countryCodeNormalized = profileCc;
+    if (!isSupportedCheckoutCountry(countryCodeNormalized)) {
+      const unsupported: ZoneMatchResult = {
+        pickupZoneId,
+        pickupZoneName,
+        deliveryZoneId: null,
+        deliveryZoneName: null,
+        availableDeliveryZones: [],
+        pallets: [],
+        shippingRegionIdForRouting,
+        noDeliveryZone: {
+          error: "UNSUPPORTED_COUNTRY",
+          message: CHECKOUT_UNSUPPORTED_COUNTRY_USER_MESSAGE,
+          address: {
+            city: deliveryAddress.city,
+            postcode: deliveryAddress.postcode,
+            countryCode: deliveryAddress.countryCode,
+          },
+        },
+      };
+      zoneCache.set(cacheKey, unsupported);
+      return unsupported;
+    }
+
+    // Get all delivery zones for the country (explicit country or legacy global rows)
     console.log(
       "🔍 Fetching delivery zones for country:",
-      deliveryAddress.countryCode,
+      countryCodeNormalized,
     );
     const { data: deliveryZones, error: deliveryZonesError } = await sb
       .from("pallet_zones")
       .select("id, name, center_lat, center_lon, radius_km, country_code")
       .eq("zone_type", "delivery")
       .or(
-        `country_code.eq.${deliveryAddress.countryCode},country_code.is.null`,
+        `country_code.eq.${countryCodeNormalized},country_code.is.null`,
       );
 
     console.log("📍 Found delivery zones:", deliveryZones?.length || 0);
@@ -434,7 +712,7 @@ export async function determineZones(
         street: `${deliveryAddress.postcode} ${deliveryAddress.city}`,
         postcode: deliveryAddress.postcode,
         city: deliveryAddress.city,
-        country: deliveryAddress.countryCode === "SE" ? "Sweden" : undefined,
+        country: getCountryDisplayName(countryCodeNormalized, "en"),
       });
 
       console.log("🌍 Geocoding address:", fullAddress);

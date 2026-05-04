@@ -212,12 +212,14 @@ export async function retryFailedPayments(): Promise<{
     const { data: rows, error } = await sb
       .from("order_reservations")
       .select(
-        "id, user_id, pallet_id, payment_mode, payment_status, payment_method_id, setup_intent_id, payment_attempts, status",
+        "id, user_id, pallet_id, payment_mode, payment_status, payment_method_id, setup_intent_id, payment_attempts, status, is_conditional, charge_blocked_reason",
       )
       .eq("payment_status", "failed")
       .not("retry_scheduled_at", "is", null)
       .lte("retry_scheduled_at", nowIso)
       .eq("payment_mode", "setup_intent")
+      .eq("is_conditional", false)
+      .is("charge_blocked_reason", null)
       .not("payment_method_id", "is", null)
       .neq("status", "cancelled")
       .neq("status", "confirmed");
@@ -256,6 +258,19 @@ export async function retryFailedPayments(): Promise<{
           continue;
         }
 
+        if (fresh.is_conditional === true) {
+          console.log(
+            `[RETRY] Skipping conditional reservation: legal/logistics review required. reservation_id=${id}`,
+          );
+          continue;
+        }
+        if (
+          fresh.charge_blocked_reason != null &&
+          String(fresh.charge_blocked_reason).trim() !== ""
+        ) {
+          continue;
+        }
+
         const palletId =
           typeof fresh.pallet_id === "string" && fresh.pallet_id.trim() !== ""
             ? fresh.pallet_id.trim()
@@ -288,6 +303,11 @@ export async function retryFailedPayments(): Promise<{
               : fresh.payment_attempts != null
                 ? Number(fresh.payment_attempts)
                 : null,
+          is_conditional: fresh.is_conditional as boolean | null | undefined,
+          charge_blocked_reason:
+            typeof fresh.charge_blocked_reason === "string"
+              ? fresh.charge_blocked_reason
+              : null,
         };
 
         attempted += 1;

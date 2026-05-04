@@ -19,17 +19,19 @@ export function useUserRole(): UserRoleState {
   });
 
   useEffect(() => {
+    let mounted = true;
     const supabase = createClient();
 
     const load = async () => {
       try {
-        setState((s) => ({ ...s, loading: true }));
+        if (mounted) setState((s) => ({ ...s, loading: true }));
         const {
           data: { user },
         } = await supabase.auth.getUser();
 
         if (!user) {
-          setState({ loading: false, role: null, producerId: null });
+          if (mounted)
+            setState({ loading: false, role: null, producerId: null });
           return;
         }
 
@@ -40,30 +42,37 @@ export function useUserRole(): UserRoleState {
           .maybeSingle();
 
         if (error) {
-          setState({ loading: false, role: null, producerId: null });
+          if (mounted)
+            setState({ loading: false, role: null, producerId: null });
           return;
         }
 
         const role = (profile?.role || "user") as UserRole;
-        setState({
-          loading: false,
-          role,
-          producerId: profile?.producer_id || null,
-        });
+        if (mounted) {
+          setState({
+            loading: false,
+            role,
+            producerId: profile?.producer_id || null,
+          });
+        }
       } catch {
-        setState({ loading: false, role: null, producerId: null });
+        if (mounted)
+          setState({ loading: false, role: null, producerId: null });
       }
     };
 
-    load();
+    void load();
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(() => {
-      load();
+      void load();
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   return state;

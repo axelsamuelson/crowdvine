@@ -1,3 +1,5 @@
+"use client";
+
 import { SidebarLinks } from "./sidebar/product-sidebar-links";
 import { FooterLogoSvg } from "./footer-logo-svg";
 import { OnboardingButton } from "./onboarding-button";

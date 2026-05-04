@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { validateEligibleGeoZoneId } from "@/lib/market/validate-eligible-geo-zone";
 import { signupLimiter, getClientIdentifier } from "@/lib/rate-limiter";
 
+/**
+ * Invitation signups should use POST /api/invitations/redeem in the app.
+ * If `invitation_code` is sent here, `activeGeoZoneId` is required (same validation as redeem).
+ */
 export async function POST(req: Request) {
   // Rate limiting för signup (striktare)
   const identifier = getClientIdentifier(req);
@@ -36,10 +42,37 @@ export async function POST(req: Request) {
   //   }
   // }
 
-  const { email, password, full_name, invitation_code } = await req.json();
+  const body = await req.json();
+  const { email, password, full_name } = body;
+  const invitation_code = body.invitation_code
+    ? String(body.invitation_code).trim().toUpperCase()
+    : "";
+  const activeGeoZoneIdRaw = body.activeGeoZoneId ?? body.active_geo_zone_id;
+  const activeGeoZoneId =
+    typeof activeGeoZoneIdRaw === "string" ? activeGeoZoneIdRaw.trim() : "";
+
   const supabase = createSupabaseServerClient();
 
   if (invitation_code) {
+    if (!activeGeoZoneId) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message: "Wine zone is required (activeGeoZoneId)",
+        },
+        { status: 400 },
+      );
+    }
+
+    const sbAdmin = getSupabaseAdmin();
+    const geoGate = await validateEligibleGeoZoneId(sbAdmin, activeGeoZoneId);
+    if (!geoGate.ok) {
+      return NextResponse.json(
+        { ok: false, message: geoGate.message },
+        { status: geoGate.status },
+      );
+    }
+
     const { data: invite } = await supabase
       .from("invitation_codes")
       .select("code, used_at")
@@ -73,7 +106,30 @@ export async function POST(req: Request) {
 
   await supabase.from("profiles").insert(profileData);
 
-  if (invitation_code) {
+  if (invitation_code && data.user?.id) {
+    const sbAdmin = getSupabaseAdmin();
+    const { error: zonePrefError } = await sbAdmin
+      .from("user_zone_preferences")
+      .upsert(
+        {
+          user_id: data.user.id,
+          active_geo_zone_id: activeGeoZoneId,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" },
+      );
+    if (zonePrefError) {
+      console.error("[auth/signup] user_zone_preferences upsert:", zonePrefError);
+      return NextResponse.json(
+        {
+          ok: false,
+          message: "Failed to save wine zone preference",
+          details: zonePrefError.message,
+        },
+        { status: 500 },
+      );
+    }
+
     await supabase
       .from("invitation_codes")
       .update({ used_at: new Date().toISOString() })

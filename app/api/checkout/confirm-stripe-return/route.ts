@@ -11,6 +11,17 @@ import {
   calculateBoostAwareMaxRedemption,
 } from "@/lib/membership/pact-points-redemption-math";
 import { getRedeemableBalance } from "@/lib/membership/pact-points-engine";
+import {
+  CHECKOUT_UNSUPPORTED_COUNTRY_USER_MESSAGE,
+  US_CONDITIONAL_TERMS_VERSION,
+  getCountryCodeFromProfileCountry,
+  getCountryMarketMode,
+  isValidUsStateCode,
+} from "@/lib/countries";
+import {
+  legacyMarketModeFromResolved,
+  resolveMarketForCountry,
+} from "@/lib/market/resolve-market";
 
 type IntentType = "setup_intent" | "payment_intent";
 
@@ -19,19 +30,6 @@ function envStripeMode(): "live" | "test" | "unknown" {
   if (sk.startsWith("sk_live_")) return "live";
   if (sk.startsWith("sk_test_")) return "test";
   return "unknown";
-}
-
-function countryCodeFromProfileCountry(country: string | null): string {
-  const c = (country ?? "").trim().toLowerCase();
-  if (c === "sweden") return "SE";
-  if (c === "norway") return "NO";
-  if (c === "denmark") return "DK";
-  if (c === "finland") return "FI";
-  if (c === "germany") return "DE";
-  if (c === "france") return "FR";
-  if (c === "united kingdom") return "GB";
-  // Best effort: default to SE for PACT B2C.
-  return "SE";
 }
 
 function retryableMessage(): string {
@@ -136,7 +134,7 @@ export async function POST(request: Request) {
     // Load profile to reconstruct address for /api/checkout/confirm.
     const { data: profile } = await sbAdmin
       .from("profiles")
-      .select("email, full_name, phone, address, city, postal_code, country")
+      .select("email, full_name, phone, address, city, postal_code, country, region")
       .eq("id", user.id)
       .maybeSingle<{
         email: string | null;
@@ -146,6 +144,7 @@ export async function POST(request: Request) {
         city: string | null;
         postal_code: string | null;
         country: string | null;
+        region: string | null;
       }>();
 
     const email =
@@ -159,7 +158,13 @@ export async function POST(request: Request) {
     const postcode =
       typeof profile?.postal_code === "string" ? profile.postal_code.trim() : "";
     const city = typeof profile?.city === "string" ? profile.city.trim() : "";
-    const countryCode = countryCodeFromProfileCountry(profile?.country ?? null);
+    const countryCode = getCountryCodeFromProfileCountry(profile?.country ?? null);
+    if (!countryCode || getCountryMarketMode(countryCode) === "unsupported") {
+      return NextResponse.json(
+        { success: false, error: CHECKOUT_UNSUPPORTED_COUNTRY_USER_MESSAGE },
+        { status: 400 },
+      );
+    }
 
     if (!email || !street || !postcode || !city) {
       return NextResponse.json(
@@ -168,24 +173,117 @@ export async function POST(request: Request) {
       );
     }
 
+    const resolvedStripeReturn = await resolveMarketForCountry({
+      countryCode,
+      regionCode: typeof profile?.region === "string" ? profile.region : null,
+    });
+    const legacyStripeModes = getCountryMarketMode(countryCode);
+    if (
+      legacyMarketModeFromResolved(resolvedStripeReturn) !== legacyStripeModes
+    ) {
+      console.warn("[confirm-stripe-return] Market resolver vs legacy mismatch", {
+        countryCode,
+        legacy: legacyStripeModes,
+        derived: legacyMarketModeFromResolved(resolvedStripeReturn),
+        resolvedMarket: resolvedStripeReturn,
+      });
+    }
+
+    const usConditional =
+      resolvedStripeReturn.checkoutMode === "conditional_reservation" &&
+      resolvedStripeReturn.isConditionalReservationEligible;
+
+    if (
+      !resolvedStripeReturn.isCheckoutEligible &&
+      !resolvedStripeReturn.isConditionalReservationEligible
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            resolvedStripeReturn.reason?.trim() ||
+            CHECKOUT_UNSUPPORTED_COUNTRY_USER_MESSAGE,
+        },
+        { status: 400 },
+      );
+    }
+
+    if (
+      intentType === "setup_intent" &&
+      getCountryMarketMode(countryCode) === "conditional_reservation" &&
+      !usConditional
+    ) {
+      const si = intent as Stripe.SetupIntent;
+      if (si.metadata?.reservation_mode === "conditional") {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              "US conditional reservations are not enabled in this environment.",
+          },
+          { status: 400 },
+        );
+      }
+    }
+    const profileRegionUpper =
+      typeof profile?.region === "string" ? profile.region.trim().toUpperCase() : "";
+    if (usConditional) {
+      if (!isValidUsStateCode(profileRegionUpper)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Add a valid US state to your profile before completing checkout.",
+          },
+          { status: 400 },
+        );
+      }
+    }
+
     // Recompute expected amount (server-side) for metadata validation.
     const cart = await CartService.getCart();
     if (!cart?.lines?.length) {
       return NextResponse.json({ success: false, error: "Cart is empty" }, { status: 400 });
     }
 
-    // Determine zones to get selectedDeliveryZoneId.
-    const deliveryAddress: DeliveryAddress = {
-      postcode,
-      city,
-      countryCode,
-    };
-    const zones = await determineZones(cart.lines as any, deliveryAddress);
-    if (!zones.deliveryZoneId) {
-      return NextResponse.json(
-        { success: false, error: "No delivery zone matched; please return to checkout" },
-        { status: 400 },
-      );
+    let selectedDeliveryZoneId: string;
+
+    if (usConditional) {
+      const { data: palletRow } = await sbAdmin
+        .from("pallets")
+        .select("delivery_zone_id")
+        .eq("id", palletId)
+        .maybeSingle();
+      const dz = (palletRow as { delivery_zone_id?: string | null } | null)?.delivery_zone_id;
+      if (typeof dz !== "string" || !dz.trim()) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Pallet has no delivery zone; please return to checkout",
+          },
+          { status: 400 },
+        );
+      }
+      selectedDeliveryZoneId = dz.trim();
+    } else {
+      const deliveryAddress: DeliveryAddress = {
+        postcode,
+        city,
+        countryCode,
+      };
+      const zones = await determineZones(cart.lines as any, deliveryAddress);
+      if (zones.noDeliveryZone?.error === "UNSUPPORTED_COUNTRY") {
+        return NextResponse.json(
+          { success: false, error: CHECKOUT_UNSUPPORTED_COUNTRY_USER_MESSAGE },
+          { status: 400 },
+        );
+      }
+      if (!zones.deliveryZoneId) {
+        return NextResponse.json(
+          { success: false, error: "No delivery zone matched; please return to checkout" },
+          { status: 400 },
+        );
+      }
+      selectedDeliveryZoneId = String(zones.deliveryZoneId);
     }
 
     // Shipping cost uses pallet attributes.
@@ -274,7 +372,44 @@ export async function POST(request: Request) {
           { status: 400 },
         );
       }
+      if (usConditional) {
+        const m = si.metadata ?? {};
+        if (
+          m.reservation_mode !== "conditional" ||
+          m.market_code !== "US" ||
+          m.country_code !== "US" ||
+          m.age_21_confirmed !== "true" ||
+          m.conditional_ack_confirmed !== "true" ||
+          m.terms_version !== US_CONDITIONAL_TERMS_VERSION
+        ) {
+          return NextResponse.json(
+            { success: false, error: "Invalid US conditional payment setup." },
+            { status: 400 },
+          );
+        }
+        const metaRegion =
+          typeof m.region === "string" ? m.region.trim().toUpperCase() : "";
+        if (metaRegion !== profileRegionUpper) {
+          return NextResponse.json(
+            {
+              success: false,
+              error:
+                "US state on file does not match card verification. Update your profile.",
+            },
+            { status: 400 },
+          );
+        }
+      }
     } else {
+      if (usConditional) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "US conditional checkout cannot use immediate charges.",
+          },
+          { status: 400 },
+        );
+      }
       const pi = intent as Stripe.PaymentIntent;
       if (pi.status !== "succeeded") {
         return NextResponse.json({ success: false, error: retryableMessage() }, { status: 400 });
@@ -303,7 +438,7 @@ export async function POST(request: Request) {
     form.append("postcode", postcode);
     form.append("city", city);
     form.append("countryCode", countryCode);
-    form.append("selectedDeliveryZoneId", String(zones.deliveryZoneId));
+    form.append("selectedDeliveryZoneId", selectedDeliveryZoneId);
     form.append("selectedPalletId", palletId);
     if (pointsToRedeem > 0) {
       form.append("pact_points_redeem", String(pointsToRedeem));

@@ -6,6 +6,27 @@ import {
 } from "@/lib/pallet-early-bird-context";
 import { deliveryEstimateLabelFromFillPercent } from "@/lib/pallet-delivery-estimate-label";
 import { computePalletFillPercentForDisplay } from "@/lib/pallet-fill-count";
+import { getPalletDiscountTier } from "@/lib/pallet-discount";
+import { sumFillBottlesOnMarketDrop } from "@/lib/market/market-drop-counts";
+import {
+  resolveActiveGeoZoneAnonymous,
+  resolveActiveGeoZoneForUser,
+} from "@/lib/market/resolve-active-geo-zone";
+import {
+  resolveMarketForCountry,
+  type ResolvedMarket,
+} from "@/lib/market/resolve-market";
+import {
+  isCustomerConditionalDrop,
+  resolveMarketDropForPallet,
+} from "@/lib/market/resolve-market-drop";
+import { isVirtualCampaignFromGeoZone } from "@/lib/market/market-drop-eligibility";
+import { formatVirtualDropReadyFromDisplayName } from "@/lib/market/market-drop-destination";
+import {
+  getGeoZoneById,
+  resolveGeoZone,
+} from "@/lib/market/resolve-geo-zone";
+import type { MarketDropRow } from "@/lib/market/market-drop-types";
 
 /** Pallzon = `resolveDeliveryAddressForUser` → `profiles.postal_code`, `city`, `country` (samma som `/profile/edit`). */
 const SETTINGS_URL = "/profile/edit" as const;
@@ -13,6 +34,34 @@ const SETTINGS_URL = "/profile/edit" as const;
 const MEANINGFUL_FILL_RATE_BOTTLES_PER_HOUR = 0.25;
 const MIN_PALLET_AGE_HOURS_FOR_ETA = 2;
 const FILL_PERCENT_FOR_ETA = 40;
+
+type DropState = "existing" | "virtual_available" | "unavailable";
+
+type ZoneStatusBody = {
+  bottlesFilled: number;
+  bottleCapacity: number;
+  /** Same as `bottlesFilled` (explicit name for clients). */
+  bottlesCount: number;
+  /** Same as `bottleCapacity`. */
+  capacityBottles: number;
+  fillPercent: number;
+  discountTier: 0 | 10 | 20;
+  estimatedDays: number | null;
+  estimatedDelivery: string;
+  userZoneName: string;
+  settingsUrl: string;
+  statusPrimary: string;
+  bottlesVerb: "ordered" | "requested";
+  logisticsFootnote: string | null;
+  dropState: DropState;
+  marketDropId: string | null;
+  displayDestination: string;
+  canStartMarketDrop: boolean;
+  campaignTagline: string | null;
+  showProgressBar: boolean;
+  showEarlyBird: boolean;
+  unavailableMessage: string | null;
+};
 
 function computeEstimatedDays(
   bottlesFilled: number,
@@ -41,32 +90,50 @@ function computeEstimatedDays(
   return Math.ceil(days);
 }
 
-function emptyOk(body: {
-  userZoneName: string;
-}): Response {
-  return NextResponse.json({
+function statusPrimaryForExistingConditionalDrop(drop: MarketDropRow): string {
+  const dest = drop.display_destination.trim();
+  const place = dest.split(",")[0]?.trim() || dest;
+  return `${place} pallet · In review`;
+}
+
+function emptyOk(body: { userZoneName: string }): Response {
+  const payload: ZoneStatusBody = {
     bottlesFilled: 0,
     bottleCapacity: 0,
+    bottlesCount: 0,
+    capacityBottles: 0,
     fillPercent: 0,
-    discountTier: 0 as const,
+    discountTier: 0,
     estimatedDays: null,
     estimatedDelivery: deliveryEstimateLabelFromFillPercent(0),
     userZoneName: body.userZoneName,
     settingsUrl: SETTINGS_URL,
-  });
+    statusPrimary: "Pallet status",
+    bottlesVerb: "ordered",
+    logisticsFootnote: null,
+    dropState: "existing",
+    marketDropId: null,
+    displayDestination: body.userZoneName,
+    canStartMarketDrop: true,
+    campaignTagline: null,
+    showProgressBar: true,
+    showEarlyBird: false,
+    unavailableMessage: null,
+  };
+  return NextResponse.json(payload);
 }
 
 export async function GET(request: NextRequest) {
   try {
     const productHandle = request.nextUrl.searchParams.get("productHandle")?.trim();
     if (!productHandle) {
-      return emptyOk({ userZoneName: "Stockholm" });
+      return emptyOk({ userZoneName: "Stockholm, Sweden" });
     }
 
     const user = await getCurrentUser();
     const wineId = await resolveWineIdForProductHandle(productHandle);
     if (!wineId) {
-      return emptyOk({ userZoneName: "Stockholm" });
+      return emptyOk({ userZoneName: "Stockholm, Sweden" });
     }
 
     const ctx = await resolvePalletEarlyBirdContext(
@@ -74,8 +141,153 @@ export async function GET(request: NextRequest) {
       user?.id ?? null,
     );
 
-    const bottlesFilled = ctx.bottlesFilled;
-    const bottleCapacity = ctx.bottleCapacity;
+    let bottlesFilled = ctx.bottlesFilled;
+    let bottleCapacity = ctx.bottleCapacity;
+    let discountTier = ctx.discountTier;
+
+    let userZoneName =
+      ctx.deliveryZoneName?.trim() || "Stockholm, Sweden";
+    let statusPrimary = "Pallet status";
+    let bottlesVerb: "ordered" | "requested" = "ordered";
+    let logisticsFootnote: string | null = null;
+    let estimatedDays: number | null = null;
+
+    let dropState: DropState = "existing";
+    let marketDropId: string | null = null;
+    let displayDestination = userZoneName;
+    let canStartMarketDrop = true;
+    let campaignTagline: string | null = null;
+    let showProgressBar = true;
+    let showEarlyBird = true;
+    let unavailableMessage: string | null = null;
+
+    const palletId = ctx.activePalletId;
+    if (palletId && typeof palletId === "string") {
+      const activeGeoSlice = user?.id
+        ? await resolveActiveGeoZoneForUser(user.id)
+        : await resolveActiveGeoZoneAnonymous();
+
+      const resolvedMarket: ResolvedMarket = await resolveMarketForCountry({
+        countryCode: activeGeoSlice.countryCode,
+        regionCode: activeGeoSlice.regionCode,
+      });
+
+      if (resolvedMarket.marketCode !== "UNKNOWN") {
+        const geo = await resolveGeoZone({
+          marketCode: activeGeoSlice.marketCode,
+          countryCode: activeGeoSlice.countryCode,
+          regionCode: activeGeoSlice.regionCode,
+          city: activeGeoSlice.city,
+        });
+
+        const drop = await resolveMarketDropForPallet({
+          sourcePalletId: palletId,
+          marketCode: activeGeoSlice.marketCode,
+          countryCode: activeGeoSlice.countryCode,
+          regionCode: activeGeoSlice.regionCode,
+        });
+
+        let dropBlockedByGeo = false;
+        if (drop?.geo_zone_id) {
+          const linked = await getGeoZoneById(drop.geo_zone_id);
+          if (
+            linked &&
+            (!linked.isActive || linked.eligibilityStatus === "disabled")
+          ) {
+            dropBlockedByGeo = true;
+          }
+        }
+
+        if (drop && !dropBlockedByGeo) {
+          dropState = "existing";
+          marketDropId = drop.id;
+          displayDestination = drop.display_destination.trim();
+          userZoneName = drop.display_destination.trim();
+          const cap =
+            drop.capacity_bottles != null && drop.capacity_bottles > 0
+              ? drop.capacity_bottles
+              : ctx.bottleCapacity;
+          const fill = await sumFillBottlesOnMarketDrop(drop.id);
+          bottlesFilled = fill;
+          bottleCapacity = cap;
+          discountTier = getPalletDiscountTier(fill);
+          showEarlyBird = true;
+          if (isCustomerConditionalDrop(drop)) {
+            statusPrimary = statusPrimaryForExistingConditionalDrop(drop);
+            userZoneName = "";
+            bottlesVerb = "requested";
+            if (
+              typeof drop.logistics_status === "string" &&
+              drop.logistics_status.toLowerCase() === "pending"
+            ) {
+              logisticsFootnote = "Logistics pending";
+            }
+          } else {
+            statusPrimary = "Pallet status";
+            bottlesVerb = "ordered";
+          }
+        } else if (drop && dropBlockedByGeo) {
+          dropState = "unavailable";
+          marketDropId = null;
+          displayDestination = "";
+          statusPrimary = "Not available in your shopping zone yet";
+          userZoneName = "";
+          unavailableMessage =
+            "This wine is not currently available for reservations for your shopping zone.";
+          bottlesVerb = "ordered";
+          bottlesFilled = 0;
+          bottleCapacity = 0;
+          discountTier = 0;
+          showProgressBar = false;
+          showEarlyBird = false;
+          canStartMarketDrop = false;
+          campaignTagline = null;
+          logisticsFootnote = null;
+        } else if (geo && isVirtualCampaignFromGeoZone(resolvedMarket, geo)) {
+          dropState = "virtual_available";
+          marketDropId = null;
+          displayDestination = geo.displayName;
+          statusPrimary = formatVirtualDropReadyFromDisplayName(geo.displayName);
+          userZoneName = "";
+          const virtualConditionalCopy =
+            geo.eligibilityStatus === "conditional_reservation";
+          if (virtualConditionalCopy) {
+            bottlesVerb = "requested";
+            campaignTagline =
+              "Be the first to request bottles for this pallet.";
+          } else {
+            bottlesVerb = "ordered";
+            campaignTagline =
+              "Be the first to reserve bottles for this pallet.";
+          }
+          bottlesFilled = 0;
+          bottleCapacity =
+            ctx.bottleCapacity > 0 ? ctx.bottleCapacity : 720;
+          discountTier = 0;
+          showEarlyBird = false;
+          canStartMarketDrop = true;
+        } else {
+          dropState = "unavailable";
+          marketDropId = null;
+          displayDestination = "";
+          statusPrimary = "Not available in your shopping zone yet";
+          userZoneName = "";
+          unavailableMessage =
+            "This wine is not currently available for reservations for your shopping zone.";
+          bottlesVerb =
+            resolvedMarket.countryCode === "US" ? "requested" : "ordered";
+          bottlesFilled = 0;
+          bottleCapacity = 0;
+          discountTier = 0;
+          showProgressBar = false;
+          showEarlyBird = false;
+          canStartMarketDrop = false;
+          campaignTagline = null;
+          logisticsFootnote = null;
+        }
+      }
+    }
+
     const fillPercent = computePalletFillPercentForDisplay(
       bottlesFilled,
       bottleCapacity,
@@ -83,27 +295,40 @@ export async function GET(request: NextRequest) {
     const estimatedDelivery =
       deliveryEstimateLabelFromFillPercent(fillPercent);
 
-    const discountTier = ctx.discountTier;
-    const estimatedDays = computeEstimatedDays(
-      bottlesFilled,
-      ctx.activePalletCreatedAt,
-      bottleCapacity,
-    );
+    if (bottlesVerb === "ordered") {
+      estimatedDays = computeEstimatedDays(
+        bottlesFilled,
+        ctx.activePalletCreatedAt,
+        bottleCapacity,
+      );
+    }
 
-    const userZoneName =
-      ctx.deliveryZoneName?.trim() || "Stockholm";
-
-    return NextResponse.json({
+    const payload: ZoneStatusBody = {
       bottlesFilled,
       bottleCapacity,
+      bottlesCount: bottlesFilled,
+      capacityBottles: bottleCapacity,
       fillPercent,
       discountTier,
       estimatedDays,
       estimatedDelivery,
       userZoneName,
       settingsUrl: SETTINGS_URL,
-    });
+      statusPrimary,
+      bottlesVerb,
+      logisticsFootnote,
+      dropState,
+      marketDropId,
+      displayDestination,
+      canStartMarketDrop,
+      campaignTagline,
+      showProgressBar,
+      showEarlyBird,
+      unavailableMessage,
+    };
+
+    return NextResponse.json(payload);
   } catch {
-    return emptyOk({ userZoneName: "Stockholm" });
+    return emptyOk({ userZoneName: "Stockholm, Sweden" });
   }
 }

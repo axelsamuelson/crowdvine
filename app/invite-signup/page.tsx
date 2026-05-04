@@ -10,15 +10,18 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle, XCircle, Loader2, UserPlus } from "lucide-react";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { trackInvitationValidationClientFailure } from "@/lib/analytics/invitation-client-helpers";
+import { InviteWineZoneField } from "@/components/market/invite-wine-zone-field";
 
 function InviteSignupContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const [inviteCode, setInviteCode] = useState("");
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [activeGeoZoneId, setActiveGeoZoneId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -114,6 +117,18 @@ function InviteSignupContent() {
       return;
     }
 
+    if (!fullName.trim()) {
+      setError("Please enter your name.");
+      setLoading(false);
+      return;
+    }
+
+    if (!activeGeoZoneId.trim()) {
+      setError("Choose your wine zone.");
+      setLoading(false);
+      return;
+    }
+
     try {
       // Handle invitation signup
       const inviteResponse = await fetch("/api/invitations/redeem", {
@@ -123,6 +138,8 @@ function InviteSignupContent() {
           email,
           password,
           code: inviteCode,
+          full_name: fullName.trim(),
+          activeGeoZoneId: activeGeoZoneId.trim(),
         }),
       });
 
@@ -258,6 +275,18 @@ function InviteSignupContent() {
           <form onSubmit={handleSignup} className="space-y-6">
             <div className="space-y-4">
               <div>
+                <Label htmlFor="fullName">Full name</Label>
+                <Input
+                  id="fullName"
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Your name"
+                  required
+                  className="mt-1"
+                />
+              </div>
+              <div>
                 <Label htmlFor="email">Email Address</Label>
                 <Input
                   id="email"
@@ -304,6 +333,12 @@ function InviteSignupContent() {
                   className="mt-1"
                 />
               </div>
+
+              <InviteWineZoneField
+                id="invite-wine-zone-invite-signup"
+                value={activeGeoZoneId}
+                onValueChange={setActiveGeoZoneId}
+              />
             </div>
 
             {error && (
@@ -312,7 +347,11 @@ function InviteSignupContent() {
               </Alert>
             )}
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={loading || !activeGeoZoneId.trim()}
+            >
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />

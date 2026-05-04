@@ -68,6 +68,7 @@ export function OpusLandingView({
           merged.email?.trim() ||
           merged.password ||
           merged.password_confirm ||
+          merged.active_geo_zone_id?.trim() ||
           merged.producer_name?.trim() ||
           merged.producer_country_code ||
           merged.producer_region,

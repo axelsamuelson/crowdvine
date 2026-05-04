@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { InviteWineZoneField } from "@/components/market/invite-wine-zone-field";
 
 interface Pallet {
   id: string;
@@ -50,6 +51,7 @@ interface Invitation {
   current_uses: number;
   max_uses: number;
   expires_at: string;
+  defaultGeoZoneId?: string | null;
   profiles?: {
     email: string;
   };
@@ -66,6 +68,7 @@ export default function InviteSignupPage() {
     email: "",
     password: "",
     full_name: "",
+    active_geo_zone_id: "",
   });
 
   const code = params.code as string;
@@ -94,6 +97,14 @@ export default function InviteSignupPage() {
 
       if (data.success) {
         setInvitation(data.invitation);
+        const def = data.invitation?.defaultGeoZoneId;
+        if (typeof def === "string" && def.trim()) {
+          const id = def.trim();
+          setFormData((prev) => ({
+            ...prev,
+            active_geo_zone_id: prev.active_geo_zone_id || id,
+          }));
+        }
       } else {
         toast.error(data.error || "Invalid invitation code");
         router.push("/access-request");
@@ -181,6 +192,10 @@ export default function InviteSignupPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.active_geo_zone_id?.trim()) {
+      toast.error("Choose your wine zone.");
+      return;
+    }
     setSubmitting(true);
 
     try {
@@ -192,6 +207,7 @@ export default function InviteSignupPage() {
           email: formData.email.toLowerCase().trim(),
           password: formData.password,
           full_name: formData.full_name,
+          activeGeoZoneId: formData.active_geo_zone_id,
         }),
       });
 
@@ -378,10 +394,18 @@ export default function InviteSignupPage() {
                   />
                 </div>
 
+                <InviteWineZoneField
+                  id="invite-wine-zone-c"
+                  value={formData.active_geo_zone_id}
+                  onValueChange={(v) =>
+                    setFormData((prev) => ({ ...prev, active_geo_zone_id: v }))
+                  }
+                />
+
                 <Button
                   type="submit"
                   className="w-full bg-black hover:bg-gray-800 text-white"
-                  disabled={submitting}
+                  disabled={submitting || !formData.active_geo_zone_id?.trim()}
                 >
                   {submitting ? (
                     <>

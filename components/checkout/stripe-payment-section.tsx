@@ -65,6 +65,10 @@ type Props = {
   pactPointsRedeem: number;
   onIntentCreated: (data: IntentCreated) => void;
   onConfirmReady: (confirmFn: () => Promise<StripeConfirmResult>) => void;
+  /** US conditional: include acks in /api/checkout/payment-intent body */
+  usConditionalPayment?: boolean;
+  usAge21Confirmed?: boolean;
+  usConditionalAck?: boolean;
 };
 
 const publishableKey =
@@ -336,6 +340,9 @@ export function StripePaymentSection({
   pactPointsRedeem,
   onIntentCreated,
   onConfirmReady,
+  usConditionalPayment = false,
+  usAge21Confirmed = false,
+  usConditionalAck = false,
 }: Props) {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [paymentMode, setPaymentMode] = useState<PaymentMode | null>(null);
@@ -353,9 +360,30 @@ export function StripePaymentSection({
   const fetchedRef = useRef(false);
   useEffect(() => {
     fetchedRef.current = false;
-  }, [palletId, cartTotalSek, pactPointsRedeem]);
+  }, [
+    palletId,
+    cartTotalSek,
+    pactPointsRedeem,
+    usConditionalPayment,
+    usAge21Confirmed,
+    usConditionalAck,
+  ]);
 
   useEffect(() => {
+    if (
+      usConditionalPayment &&
+      (!usAge21Confirmed || !usConditionalAck)
+    ) {
+      fetchedRef.current = false;
+      setClientSecret(null);
+      setPaymentMode(null);
+      setIntentId(null);
+      setError(null);
+      setPaymentElementLoadError(null);
+      setLoading(false);
+      return;
+    }
+
     if (fetchedRef.current) return;
     fetchedRef.current = true;
 
@@ -373,6 +401,12 @@ export function StripePaymentSection({
             pallet_id: palletId,
             cart_total_sek: cartTotalSek,
             pact_points_redeem: pactPointsRedeem,
+            ...(usConditionalPayment
+              ? {
+                  us_age_21_confirmed: true,
+                  us_conditional_ack: true,
+                }
+              : {}),
           }),
           signal: controller.signal,
         });
@@ -440,7 +474,15 @@ export function StripePaymentSection({
       controller.abort();
       fetchedRef.current = false;
     };
-  }, [palletId, cartTotalSek, pactPointsRedeem, retryNonce]);
+  }, [
+    palletId,
+    cartTotalSek,
+    pactPointsRedeem,
+    retryNonce,
+    usConditionalPayment,
+    usAge21Confirmed,
+    usConditionalAck,
+  ]);
 
   const requestRetry = useCallback(() => {
     fetchedRef.current = false;
@@ -452,6 +494,18 @@ export function StripePaymentSection({
       <div className="rounded-md border border-border bg-background p-4 text-sm text-destructive">
         Missing `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`.
       </div>
+    );
+  }
+
+  if (
+    usConditionalPayment &&
+    (!usAge21Confirmed || !usConditionalAck)
+  ) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Confirm the checkboxes above to verify your card for this conditional
+        reservation.
+      </p>
     );
   }
 
@@ -484,7 +538,9 @@ export function StripePaymentSection({
     <div className="space-y-3">
       {paymentMode === "setup_intent" ? (
         <p className="text-sm text-muted-foreground">
-          Your card will be saved and charged only when the pallet ships.
+          {usConditionalPayment
+            ? "Your card will be verified and saved. You will not be charged now."
+            : "Your card will be saved and charged only when the pallet ships."}
         </p>
       ) : null}
       {paymentMode === "payment_intent" ? (

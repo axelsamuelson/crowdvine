@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { determineZones } from "@/lib/zone-matching";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { getCurrentUser } from "@/lib/auth";
+import { normalizeProfileCountry } from "@/lib/countries";
+import { resolveMarketForCountry } from "@/lib/market/resolve-market";
+import { resolveMarketDropForPallet } from "@/lib/market/resolve-market-drop";
+import { resolveActiveGeoZoneForUser } from "@/lib/market/resolve-active-geo-zone";
 
 export async function POST(request: Request) {
   try {
@@ -52,7 +57,7 @@ export async function POST(request: Request) {
         };
         const byId = new Map<string, EnrichedRow>();
         for (const r of rows) {
-          const row = r as EnrichedRow;
+          const row = r as unknown as EnrichedRow;
           byId.set(row.id, row);
         }
         palletsOut = palletsOut.map((p) => {
@@ -73,12 +78,63 @@ export async function POST(request: Request) {
       }
     }
 
+    const user = await getCurrentUser();
+
+    const rawCc =
+      typeof deliveryAddress.countryCode === "string"
+        ? deliveryAddress.countryCode.trim()
+        : "";
+    const normalizedCc = normalizeProfileCountry(rawCc);
+
+    /** Logged-in: market / campaign slice follows active shopping geo, not profile home. */
+    let resolvedMarket;
+    if (user?.id) {
+      const active = await resolveActiveGeoZoneForUser(user.id);
+      resolvedMarket = await resolveMarketForCountry({
+        countryCode: active.countryCode,
+        regionCode: active.regionCode,
+      });
+    } else {
+      resolvedMarket = normalizedCc
+        ? await resolveMarketForCountry({
+            countryCode: normalizedCc,
+            regionCode: null,
+          })
+        : await resolveMarketForCountry({ countryCode: "SE", regionCode: null });
+    }
+
+    palletsOut = await Promise.all(
+      palletsOut.map(async (p) => {
+        const drop =
+          resolvedMarket.marketCode !== "UNKNOWN"
+            ? await resolveMarketDropForPallet({
+                sourcePalletId: p.id,
+                marketCode: resolvedMarket.marketCode,
+                countryCode: resolvedMarket.countryCode,
+                regionCode: resolvedMarket.regionCode,
+              })
+            : null;
+        return {
+          ...p,
+          marketDropId: drop?.id ?? null,
+          sourcePalletId: p.id,
+        };
+      }),
+    );
+
+    const primary = palletsOut[0];
+    const topMarketDropId = primary?.marketDropId ?? null;
+    const topSourcePalletId =
+      typeof primary?.id === "string" && primary.id ? primary.id : null;
+
     console.log("🌍 [ZONES API] Returning zones:", {
       pickupZoneId: zones.pickupZoneId,
       pickupZoneName: zones.pickupZoneName,
       deliveryZoneId: zones.deliveryZoneId,
       deliveryZoneName: zones.deliveryZoneName,
       palletsCount: palletsOut.length || 0,
+      marketDropId: topMarketDropId,
+      sourcePalletId: topSourcePalletId,
     });
 
     return NextResponse.json({
@@ -88,6 +144,8 @@ export async function POST(request: Request) {
       deliveryZoneName: zones.deliveryZoneName,
       availableDeliveryZones: zones.availableDeliveryZones || [],
       pallets: palletsOut,
+      marketDropId: topMarketDropId,
+      sourcePalletId: topSourcePalletId,
       ...(zones.noDeliveryZone
         ? {
             error: zones.noDeliveryZone.error,

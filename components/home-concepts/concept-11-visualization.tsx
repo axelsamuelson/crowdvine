@@ -90,7 +90,17 @@ export function Concept11Visualization() {
         const reservationsRes = await fetch("/api/user/reservations");
         if (reservationsRes.ok) {
           const reservationsData = await reservationsRes.json();
-          setReservations(Array.isArray(reservationsData) ? reservationsData : []);
+          const list = Array.isArray(reservationsData)
+            ? reservationsData
+            : reservationsData &&
+                typeof reservationsData === "object" &&
+                Array.isArray(
+                  (reservationsData as { reservations?: unknown[] })
+                    .reservations,
+                )
+              ? (reservationsData as { reservations: unknown[] }).reservations
+              : [];
+          setReservations(list);
         }
       } catch (error) {
         console.error("Error fetching data:", error);

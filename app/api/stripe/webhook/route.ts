@@ -461,14 +461,24 @@ export async function POST(request: NextRequest) {
         );
         if (customerId) {
           const supabase = getSupabaseAdmin();
-          const { error: updateError } = await supabase
+          const { error: membershipsErr } = await supabase
             .from("user_memberships")
             .update({ stripe_customer_id: null })
             .eq("stripe_customer_id", customerId);
-          if (updateError) {
+          if (membershipsErr) {
             console.error(
-              `❌ [Stripe Webhook] Failed to null out stripe_customer_id for ${customerId}:`,
-              updateError,
+              `❌ [Stripe Webhook] Failed to null out user_memberships.stripe_customer_id for ${customerId}:`,
+              membershipsErr,
+            );
+          }
+          const { error: profilesErr } = await supabase
+            .from("profiles")
+            .update({ stripe_customer_id: null })
+            .eq("stripe_customer_id", customerId);
+          if (profilesErr) {
+            console.error(
+              `❌ [Stripe Webhook] Failed to null out profiles.stripe_customer_id for ${customerId}:`,
+              profilesErr,
             );
           }
         }

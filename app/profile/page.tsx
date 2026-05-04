@@ -414,8 +414,14 @@ function ProfilePageContent() {
       const res = await fetch("/api/user/reservations");
       if (res.ok) {
         const data = await res.json();
-        // API returns array directly, not wrapped in object
-        setReservations(Array.isArray(data) ? data : []);
+        const list = Array.isArray(data)
+          ? data
+          : data &&
+              typeof data === "object" &&
+              Array.isArray((data as { reservations?: unknown[] }).reservations)
+            ? (data as { reservations: unknown[] }).reservations
+            : [];
+        setReservations(list);
       }
     } catch (error) {
       console.error("Error fetching reservations:", error);

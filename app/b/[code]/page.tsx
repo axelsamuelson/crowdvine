@@ -22,6 +22,7 @@ interface Invitation {
   allowed_types?: InvitationPageType[];
   can_change_account_type?: boolean;
   used_at?: string | null;
+  defaultGeoZoneId?: string | null;
   profiles?: {
     email: string;
     full_name?: string;
@@ -40,10 +41,20 @@ export default function BusinessInvitePage() {
     password: "",
     password_confirm: "",
     full_name: "",
+    active_geo_zone_id: "",
     selected_type: null as InvitationPageType | null,
   });
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [registeredName, setRegisteredName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const id = invitation?.defaultGeoZoneId?.trim();
+    if (!id) return;
+    setFormData((prev) => ({
+      ...prev,
+      active_geo_zone_id: prev.active_geo_zone_id || id,
+    }));
+  }, [invitation?.defaultGeoZoneId]);
 
   useEffect(() => {
     if (!code) return;
@@ -102,6 +113,7 @@ export default function BusinessInvitePage() {
           email: formData.email.toLowerCase().trim(),
           password: formData.password,
           full_name: formData.full_name,
+          activeGeoZoneId: formData.active_geo_zone_id,
           ...(invitation?.can_change_account_type && {
             selected_type: formData.selected_type ?? ["business"][0],
           }),

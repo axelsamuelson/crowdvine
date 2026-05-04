@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { X } from "lucide-react";
-import { useCart } from "@/components/cart/cart-context";
+import { useCartOptional } from "@/components/cart/cart-context";
 import type { ProducerValidation } from "@/lib/checkout-validation";
 
 const serializeCart = (cart: any) =>
@@ -17,7 +17,7 @@ const serializeCart = (cart: any) =>
 export function CompleteOrderRail({ showMobile = false }: { showMobile?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { cart } = useCart();
+  const cart = useCartOptional()?.cart;
   const [validations, setValidations] = useState<ProducerValidation[]>([]);
   const [isHidden, setIsHidden] = useState(false);
   const [isValidating, setIsValidating] = useState(false);

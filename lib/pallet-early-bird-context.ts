@@ -6,13 +6,10 @@ import {
   STOCKHOLM_FALLBACK_GEO_ADDRESS,
   resolveDefaultStockholmDeliveryZoneId,
 } from "@/lib/pallet-zone-defaults";
-
-function normalizeCountryCode(country: string): string {
-  const c = country.trim().toLowerCase();
-  if (c === "sweden" || c === "sverige") return "SE";
-  if (c.length === 2) return country.trim().toUpperCase();
-  return "SE";
-}
+import {
+  getCountryCodeFromProfileCountry,
+  isSupportedCheckoutCountry,
+} from "@/lib/countries";
 
 async function resolveWineIdsByHandles(handles: string[]): Promise<string[]> {
   if (handles.length === 0) return [];
@@ -52,11 +49,16 @@ export async function resolveDeliveryAddressForUser(
     return STOCKHOLM_FALLBACK_GEO_ADDRESS;
   }
 
-  return {
-    postcode: String(prof.postal_code).trim(),
-    city: String(prof.city).trim(),
-    countryCode: normalizeCountryCode(String(prof.country)),
-  };
+  const code = getCountryCodeFromProfileCountry(String(prof.country));
+  if (code && isSupportedCheckoutCountry(code)) {
+    return {
+      postcode: String(prof.postal_code).trim(),
+      city: String(prof.city).trim(),
+      countryCode: code,
+    };
+  }
+
+  return STOCKHOLM_FALLBACK_GEO_ADDRESS;
 }
 
 export type PalletEarlyBirdContext = {

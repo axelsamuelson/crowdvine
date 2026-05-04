@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { buildReservationSummaryGroups } from "@/lib/reservations/user-reservations-api";
 
 export async function GET() {
   try {
@@ -38,7 +39,7 @@ export async function GET() {
 
     // If no reservations, return empty array
     if (!reservations || reservations.length === 0) {
-      return NextResponse.json([]);
+      return NextResponse.json({ reservations: [], summaryGroups: [] });
     }
 
     // ---- Data-driven pallet derivation (no manual fix needed) ----
@@ -159,6 +160,56 @@ export async function GET() {
       }
     }
 
+    const reservationRows = reservations as Array<Record<string, unknown>>;
+    const marketDropById = new Map<string, Record<string, unknown>>();
+    const mdIds = Array.from(
+      new Set(
+        reservationRows
+          .map((r) => r.market_drop_id)
+          .filter(
+            (id): id is string =>
+              typeof id === "string" && id.trim().length > 0,
+          )
+          .map((id) => id.trim()),
+      ),
+    );
+    if (mdIds.length > 0) {
+      const { data: mds, error: mdErr } = await supabase
+        .from("market_drops")
+        .select(
+          "id, display_name, display_destination, checkout_mode, market_code, country_code, region_code, status, source_pallet_id, capacity_bottles, reserved_bottles",
+        )
+        .in("id", mdIds);
+      if (!mdErr && mds) {
+        (mds as Array<Record<string, unknown>>).forEach((row) => {
+          const id = row.id != null ? String(row.id) : "";
+          if (id) marketDropById.set(id, row);
+        });
+      }
+    }
+
+    const sourcePalletIds = Array.from(
+      new Set(
+        Array.from(marketDropById.values())
+          .map((md) => md.source_pallet_id)
+          .filter(
+            (id): id is string =>
+              typeof id === "string" && String(id).trim().length > 0,
+          )
+          .map((id) => String(id).trim()),
+      ),
+    );
+    const sourcePalletNameById = new Map<string, string>();
+    if (sourcePalletIds.length > 0) {
+      const { data: spl } = await supabase
+        .from("pallets")
+        .select("id, name")
+        .in("id", sourcePalletIds);
+      (spl || []).forEach((p: { id?: string; name?: string }) => {
+        if (p?.id) sourcePalletNameById.set(String(p.id), String(p.name ?? ""));
+      });
+    }
+
     // Transform the data to match the expected format
     const transformedReservations = await Promise.all(
       reservations.map(async (reservation) => {
@@ -276,14 +327,72 @@ export async function GET() {
           0,
         );
 
+        const resRow = reservation as Record<string, unknown>;
+        const mdIdRaw = resRow.market_drop_id;
+        const mdId =
+          typeof mdIdRaw === "string" && mdIdRaw.trim()
+            ? mdIdRaw.trim()
+            : null;
+        const md = mdId ? marketDropById.get(mdId) : undefined;
+
+        const bottleCount = itemsWithCosts.reduce(
+          (sum, item) => sum + (Number(item.quantity) || 0),
+          0,
+        );
+
+        const rawConditional = Boolean(resRow.is_conditional);
+        const st = String(reservation.status || "");
+        const mdCheckout = md
+          ? String((md as { checkout_mode?: string }).checkout_mode || "")
+          : "";
+        const isConditional =
+          rawConditional ||
+          st === "conditional_pending" ||
+          mdCheckout === "conditional_reservation";
+
+        const bottleVerb = isConditional ? "requested" : "ordered";
+        const displayDestination =
+          md && typeof (md as { display_destination?: string }).display_destination === "string"
+            ? String((md as { display_destination: string }).display_destination).trim() || null
+            : null;
+        const customerPalletLabel = displayDestination
+          ? `${displayDestination} pallet`
+          : "Your reservation";
+
+        const mdSourceId =
+          md && (md as { source_pallet_id?: unknown }).source_pallet_id != null
+            ? String((md as { source_pallet_id: unknown }).source_pallet_id).trim()
+            : null;
+        const sourcePalletName =
+          mdSourceId && mdSourceId.length > 0
+            ? sourcePalletNameById.get(mdSourceId) ?? null
+            : null;
+
+        const mdCap =
+          md && (md as { capacity_bottles?: unknown }).capacity_bottles != null
+            ? Number((md as { capacity_bottles: unknown }).capacity_bottles)
+            : null;
+        const mdReserved =
+          md && (md as { reserved_bottles?: unknown }).reserved_bottles != null
+            ? Number((md as { reserved_bottles: unknown }).reserved_bottles)
+            : null;
+
+        const chargeBlockedReason =
+          typeof resRow.charge_blocked_reason === "string"
+            ? resRow.charge_blocked_reason
+            : null;
+
         return {
           id: reservation.id,
           order_id: reservation.order_id || reservation.id,
           status: reservation.status,
           created_at: reservation.created_at,
           pallet_id: palletId,
-          pallet_name: palletName,
-          pallet_capacity: palletCapacity,
+          pallet_name: customerPalletLabel,
+          pallet_capacity:
+            mdCap != null && Number.isFinite(mdCap) && mdCap > 0
+              ? mdCap
+              : palletCapacity,
           pallet_is_complete: palletIsComplete,
           pallet_status: palletStatus,
           delivery_address: deliveryAddress,
@@ -292,11 +401,63 @@ export async function GET() {
           payment_status: reservation.payment_status,
           payment_link: reservation.payment_link,
           payment_deadline: reservation.payment_deadline,
+          market_drop_id: mdId,
+          marketDropId: mdId,
+          geoZoneId: null,
+          displayDestination,
+          marketCode:
+            md && (md as { market_code?: string }).market_code
+              ? String((md as { market_code: string }).market_code)
+              : null,
+          countryCode:
+            md && (md as { country_code?: string }).country_code
+              ? String((md as { country_code: string }).country_code)
+              : null,
+          regionCode:
+            md && (md as { region_code?: string | null }).region_code != null
+              ? String((md as { region_code: string | null }).region_code || "")
+              : null,
+          checkoutMode: mdCheckout || null,
+          reservationModeLabel: isConditional ? "Conditional reservation" : "",
+          bottleCount,
+          bottleVerb,
+          customerPalletLabel,
+          isConditional,
+          chargeBlockedReason,
+          marketDropReservedBottles:
+            mdReserved != null && Number.isFinite(mdReserved) ? mdReserved : null,
+          marketDropCapacityBottles:
+            mdCap != null && Number.isFinite(mdCap) ? mdCap : null,
+          logisticsPalletName: palletName,
+          sourcePalletId: mdSourceId,
+          sourcePalletName,
         };
       }),
     );
 
-    return NextResponse.json(transformedReservations);
+    const slim = transformedReservations.map((r) => ({
+      id: String(r.id),
+      created_at: String(r.created_at),
+      status: String(r.status),
+      payment_status: r.payment_status != null ? String(r.payment_status) : null,
+      bottle_count: Number(r.bottleCount) || 0,
+      is_conditional: Boolean(r.isConditional),
+      bottle_verb: r.bottleVerb as "requested" | "ordered",
+      customer_pallet_label: String(r.customerPalletLabel || "Your reservation"),
+      display_destination:
+        r.displayDestination != null ? String(r.displayDestination) : null,
+      market_drop_id:
+        r.market_drop_id != null ? String(r.market_drop_id) : null,
+      pallet_id: r.pallet_id != null ? String(r.pallet_id) : null,
+      delivery_address: String(r.delivery_address || ""),
+    }));
+
+    const summaryGroups = buildReservationSummaryGroups(slim);
+
+    return NextResponse.json({
+      reservations: transformedReservations,
+      summaryGroups,
+    });
   } catch (error) {
     console.error("Reservations API error:", error);
     return NextResponse.json(

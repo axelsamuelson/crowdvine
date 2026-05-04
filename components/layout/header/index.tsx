@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 import { LogoSvg } from "./logo-svg";
 import CartModal from "@/components/cart/modal";
 import { ProfileIcon } from "./profile-icon";
-import { PalletIcon } from "./pallet-icon";
 import { PortalToggle } from "./portal-toggle";
 import { NavItem } from "@/lib/types";
 import { Collection } from "@/lib/shopify/types";
@@ -16,6 +15,7 @@ import { CompleteOrderRail } from "@/components/cart/complete-order-rail";
 import { useUserRole } from "@/lib/hooks/use-user-role";
 import { usePortalAccess } from "@/lib/hooks/use-portal-access";
 import { useAdminStatus } from "@/lib/hooks/use-admin-status";
+import { HeaderShoppingContext } from "@/components/market/header-shopping-context";
 
 export const navItems: NavItem[] = [
   {
@@ -118,7 +118,7 @@ export function Header({ collections }: HeaderProps) {
             <PortalToggle showPortalToggle={true} className="shrink-0 ml-2" />
           )}
         </div>
-        <PalletIcon />
+        <HeaderShoppingContext className="mr-1" />
         <ProfileIcon className="hidden md:block" />
         <CartModal />
       </nav>

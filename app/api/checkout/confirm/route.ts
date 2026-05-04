@@ -43,6 +43,22 @@ import { checkAndMintMilestoneVouchers } from "@/lib/membership/milestone-vouche
 import { tryActivateReferralOnFirstOrder } from "@/lib/referral/activate-referral-on-first-order";
 import { stripe } from "@/lib/stripe";
 import { calculateCartShippingCost } from "@/lib/shipping-calculations";
+import {
+  CHECKOUT_UNSUPPORTED_COUNTRY_USER_MESSAGE,
+  US_CHARGE_BLOCKED_REASON,
+  US_CONDITIONAL_TERMS_VERSION,
+  getCountryMarketMode,
+  isSupportedCheckoutCountry,
+  isValidUsStateCode,
+  normalizeProfileCountry,
+} from "@/lib/countries";
+import {
+  legacyMarketModeFromResolved,
+  resolveMarketForCountry,
+} from "@/lib/market/resolve-market";
+import { assertClientMarketDropIdAllowed } from "@/lib/market/resolve-market-drop";
+import { resolveOrCreateMarketDropIdForCheckout } from "@/lib/market/get-or-create-market-drop";
+import { resolveActiveGeoZoneForUser } from "@/lib/market/resolve-active-geo-zone";
 
 type ProducerGroup = {
   producerId: string;
@@ -113,6 +129,7 @@ export async function POST(request: Request) {
       const pactPointsRedeemField = formData.get("pact_points_redeem");
       const stripeIntentIdField = formData.get("stripe_intent_id");
       const stripeIntentTypeField = formData.get("stripe_intent_type");
+      const marketDropIdField = formData.get("market_drop_id");
       body = {
         address: {
           fullName: formData.get("fullName"),
@@ -122,6 +139,7 @@ export async function POST(request: Request) {
           postcode: formData.get("postcode"),
           city: formData.get("city"),
           countryCode: formData.get("countryCode"),
+          regionCode: formData.get("regionCode"),
         },
         selectedDeliveryZoneId: formData.get("selectedDeliveryZoneId"),
         selectedPalletId: formData.get("selectedPalletId"),
@@ -142,6 +160,10 @@ export async function POST(request: Request) {
           typeof stripeIntentTypeField === "string"
             ? stripeIntentTypeField
             : undefined,
+        market_drop_id:
+          typeof marketDropIdField === "string" && marketDropIdField.trim()
+            ? marketDropIdField.trim()
+            : undefined,
         // paymentMethodId removed - using new payment flow
       };
     }
@@ -158,10 +180,53 @@ export async function POST(request: Request) {
       );
     }
 
+    type Addr = typeof address & { regionCode?: unknown; region?: unknown };
+    const addr = address as Addr;
+    const rcForm =
+      typeof addr.regionCode === "string"
+        ? addr.regionCode.trim().toUpperCase()
+        : typeof addr.region === "string"
+          ? addr.region.trim().toUpperCase()
+          : "";
+    if (rcForm.length === 2) {
+      (address as { regionCode: string }).regionCode = rcForm;
+    }
+
+    const rawCountryCode =
+      typeof address.countryCode === "string" ? address.countryCode.trim() : "";
+    const normalizedCountry = normalizeProfileCountry(rawCountryCode);
+    if (!normalizedCountry || getCountryMarketMode(normalizedCountry) === "unsupported") {
+      return NextResponse.json(
+        { error: CHECKOUT_UNSUPPORTED_COUNTRY_USER_MESSAGE },
+        { status: 422 },
+      );
+    }
+    if (
+      getCountryMarketMode(normalizedCountry) === "normal_checkout" &&
+      !isSupportedCheckoutCountry(normalizedCountry)
+    ) {
+      return NextResponse.json(
+        { error: CHECKOUT_UNSUPPORTED_COUNTRY_USER_MESSAGE },
+        { status: 422 },
+      );
+    }
+    address.countryCode = normalizedCountry;
+
     // Get current user to ensure we have an email address
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const activeCheckout = await resolveActiveGeoZoneForUser(user.id);
+    if (normalizedCountry !== activeCheckout.countryCode) {
+      return NextResponse.json(
+        {
+          error:
+            "Delivery country does not match your active shopping zone. Switch wine zone or update delivery details.",
+        },
+        { status: 400 },
+      );
     }
 
     // Ensure we have an email address - use authenticated user's email as fallback
@@ -230,10 +295,48 @@ export async function POST(request: Request) {
     const sb = await supabaseServer();
     const sbAdmin = getSupabaseAdmin();
 
+    const resolvedMarketConfirm = await resolveMarketForCountry({
+      countryCode: activeCheckout.countryCode,
+      regionCode: activeCheckout.regionCode,
+    });
+    const profileCityForMarketDrop =
+      (typeof activeCheckout.city === "string" && activeCheckout.city.trim()
+        ? activeCheckout.city.trim()
+        : null) ||
+      (typeof address.city === "string" && address.city.trim()
+        ? address.city.trim()
+        : null);
+    const legacyMarketCompare = getCountryMarketMode(address.countryCode);
+    if (
+      legacyMarketModeFromResolved(resolvedMarketConfirm) !== legacyMarketCompare
+    ) {
+      console.warn("[checkout/confirm] Market resolver vs legacy mismatch", {
+        countryCode: address.countryCode,
+        legacy: legacyMarketCompare,
+        derived: legacyMarketModeFromResolved(resolvedMarketConfirm),
+        resolvedMarket: resolvedMarketConfirm,
+      });
+    }
+
     // Check if we're on B2B site (dirtywine.se)
     const h = await headers();
     const host = h.get("x-forwarded-host") ?? h.get("host");
     const isB2BSite = isB2BHost(host);
+
+    if (
+      !isB2BSite &&
+      !resolvedMarketConfirm.isCheckoutEligible &&
+      !resolvedMarketConfirm.isConditionalReservationEligible
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            resolvedMarketConfirm.reason?.trim() ||
+            CHECKOUT_UNSUPPORTED_COUNTRY_USER_MESSAGE,
+        },
+        { status: 422 },
+      );
+    }
 
     // Separate producer and warehouse items (only on B2B sites)
     // On B2C sites (pactwines.com), all items are treated as producer items
@@ -327,9 +430,53 @@ export async function POST(request: Request) {
     const b2cProducerCheckout =
       !isB2BSite && hasProducerItems && producerGroupsForB2C.length > 0;
 
+    const usConditionalCheckout =
+      !isB2BSite &&
+      resolvedMarketConfirm.checkoutMode === "conditional_reservation" &&
+      resolvedMarketConfirm.isConditionalReservationEligible;
+
     // Get current user if authenticated
     const currentUser = await getCurrentUser();
     console.log("Current user:", currentUser?.id || "Anonymous");
+
+    // Determine pickup and delivery zones before persisting address / reservation
+    console.log("Determining zones based on cart items and delivery address");
+    const zones = await determineZones(cart.lines, {
+      postcode: address.postcode,
+      city: address.city,
+      countryCode: address.countryCode,
+    });
+
+    console.log("Zones determined:", zones);
+
+    if (zones.noDeliveryZone?.error === "UNSUPPORTED_COUNTRY") {
+      return NextResponse.json(
+        { error: CHECKOUT_UNSUPPORTED_COUNTRY_USER_MESSAGE },
+        { status: 422 },
+      );
+    }
+
+    if (usConditionalCheckout) {
+      if (zones.noDeliveryZone?.error === "NO_DELIVERY_ZONE") {
+        return NextResponse.json(
+          {
+            error:
+              zones.noDeliveryZone.message?.trim() ||
+              "No pallet is available for this conditional reservation.",
+          },
+          { status: 400 },
+        );
+      }
+    } else if (!zones.deliveryZoneId) {
+      return NextResponse.json(
+        {
+          error:
+            zones.noDeliveryZone?.message?.trim() ||
+            "No delivery zone matches your address.",
+        },
+        { status: 400 },
+      );
+    }
 
     // Save customer address
     console.log("Saving customer address:", address);
@@ -357,16 +504,6 @@ export async function POST(request: Request) {
     }
 
     console.log("Address saved:", savedAddress);
-
-    // Determine pickup and delivery zones FIRST (before creating reservation)
-    console.log("Determining zones based on cart items and delivery address");
-    const zones = await determineZones(cart.lines, {
-      postcode: address.postcode,
-      city: address.city,
-      countryCode: address.countryCode,
-    });
-
-    console.log("Zones determined:", zones);
 
     // Use selected delivery zone if provided
     let finalDeliveryZoneId = zones.deliveryZoneId;
@@ -418,6 +555,71 @@ export async function POST(request: Request) {
       }
     }
 
+    if (usConditionalCheckout && palletId) {
+      const { data: palletGeo, error: palletGeoErr } = await sbAdmin
+        .from("pallets")
+        .select("delivery_zone_id, pickup_zone_id")
+        .eq("id", palletId)
+        .maybeSingle();
+      if (palletGeoErr) {
+        console.error("[CHECKOUT] US conditional pallet load:", palletGeoErr);
+      }
+      const dzRaw = (palletGeo as { delivery_zone_id?: unknown } | null)
+        ?.delivery_zone_id;
+      const pzRaw = (palletGeo as { pickup_zone_id?: unknown } | null)
+        ?.pickup_zone_id;
+      const dzId =
+        typeof dzRaw === "string" && dzRaw.trim() !== "" ? dzRaw.trim() : null;
+      const pzId =
+        typeof pzRaw === "string" && pzRaw.trim() !== "" ? pzRaw.trim() : null;
+      if (dzId) finalDeliveryZoneId = dzId;
+      if (pzId && !zones.pickupZoneId) zones.pickupZoneId = pzId;
+      if (!finalDeliveryZoneId?.trim()) {
+        return NextResponse.json(
+          {
+            error:
+              "Selected pallet is missing a delivery zone; cannot place reservation.",
+          },
+          { status: 400 },
+        );
+      }
+    }
+
+    const clientMarketDropIdRaw =
+      body && typeof body === "object" && "market_drop_id" in body
+        ? (body as { market_drop_id?: unknown }).market_drop_id
+        : undefined;
+    const clientMarketDropId =
+      typeof clientMarketDropIdRaw === "string" && clientMarketDropIdRaw.trim()
+        ? clientMarketDropIdRaw.trim()
+        : null;
+
+    let serverMarketDropIdSingle: string | null = null;
+    if (!isB2BSite && palletId) {
+      serverMarketDropIdSingle = await resolveOrCreateMarketDropIdForCheckout({
+        sourcePalletId: palletId,
+        resolvedMarket: resolvedMarketConfirm,
+        usConditionalCheckout,
+        profileCity: profileCityForMarketDrop,
+      });
+      if (usConditionalCheckout && !serverMarketDropIdSingle) {
+        return NextResponse.json(
+          {
+            error:
+              "No market drop is available for this US location. Check your state or try again later.",
+          },
+          { status: 400 },
+        );
+      }
+      const mdAssert = assertClientMarketDropIdAllowed({
+        clientMarketDropId,
+        serverMarketDropId: serverMarketDropIdSingle,
+      });
+      if (!mdAssert.ok) {
+        return NextResponse.json({ error: mdAssert.message }, { status: 400 });
+      }
+    }
+
     // Extract discount inputs early so we can validate Stripe intent amounts server-side.
     const voucherCodeRaw =
       body && typeof body === "object" && "voucher_code" in body
@@ -453,7 +655,10 @@ export async function POST(request: Request) {
         let listPriceTotalCents = 0;
         if (!listPriceError && listPriceRows?.length) {
           for (const row of listPriceRows) {
-            const wine = row.wines as { base_price_cents: number | null } | null;
+            const winesUnknown = row.wines as unknown;
+            const wine = Array.isArray(winesUnknown)
+              ? (winesUnknown[0] as { base_price_cents: number | null } | undefined)
+              : (winesUnknown as { base_price_cents: number | null } | null);
             const unit = wine?.base_price_cents;
             if (typeof unit === "number" && unit > 0) {
               listPriceTotalCents += unit * row.quantity;
@@ -536,6 +741,48 @@ export async function POST(request: Request) {
     if (!stripe) {
       console.error("[Checkout API] Stripe not configured");
       return NextResponse.json({ error: "Stripe not configured" }, { status: 503 });
+    }
+
+    let profileRegionUpper: string | null = null;
+    if (usConditionalCheckout) {
+      if (intentType !== "setup_intent") {
+        return NextResponse.json(
+          {
+            error:
+              "US conditional reservations require card verification only (SetupIntent).",
+          },
+          { status: 400 },
+        );
+      }
+      if (!user?.id) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      const ru =
+        typeof (address as { regionCode?: string }).regionCode === "string"
+          ? (address as { regionCode: string }).regionCode.trim().toUpperCase()
+          : "";
+      if (!isValidUsStateCode(ru)) {
+        return NextResponse.json(
+          {
+            error:
+              "Add a valid US state to your delivery details before completing checkout.",
+          },
+          { status: 400 },
+        );
+      }
+      if (
+        activeCheckout.regionCode &&
+        activeCheckout.regionCode.trim().toUpperCase() !== ru
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "US state on your delivery address must match your active wine zone.",
+          },
+          { status: 400 },
+        );
+      }
+      profileRegionUpper = ru;
     }
 
     // ------------------------------------------------------------
@@ -690,8 +937,49 @@ export async function POST(request: Request) {
           { status: 400 },
         );
       }
+
+      if (usConditionalCheckout) {
+        const m = setupIntent.metadata ?? {};
+        if (
+          m.reservation_mode !== "conditional" ||
+          m.market_code !== "US" ||
+          m.country_code !== "US" ||
+          m.age_21_confirmed !== "true" ||
+          m.conditional_ack_confirmed !== "true" ||
+          m.terms_version !== US_CONDITIONAL_TERMS_VERSION
+        ) {
+          return NextResponse.json(
+            { error: "Invalid or incomplete US conditional payment setup." },
+            { status: 400 },
+          );
+        }
+        const metaRegion =
+          typeof m.region === "string" ? m.region.trim().toUpperCase() : "";
+        if (
+          !profileRegionUpper ||
+          metaRegion !== profileRegionUpper
+        ) {
+          return NextResponse.json(
+            {
+              error:
+                "US state on your delivery details does not match card verification. Update delivery details and try again.",
+            },
+            { status: 400 },
+          );
+        }
+      }
+
       stripePaymentMethodId = paymentMethodId;
     } else {
+      if (usConditionalCheckout) {
+        return NextResponse.json(
+          {
+            error:
+              "US conditional reservations cannot use immediate card charges.",
+          },
+          { status: 400 },
+        );
+      }
       const paymentIntent = await stripe.paymentIntents.retrieve(intentId);
       console.log("[Checkout API] Retrieved PaymentIntent:", {
         id: paymentIntent.id,
@@ -760,6 +1048,20 @@ export async function POST(request: Request) {
     let createdReservations: CreatedReservationRow[] = [];
     let reservationIdsForPayment: string[] = [];
 
+    // TODO(before first US charge): legal/logistics must confirm allowed state, license, carrier,
+    // adult signature, tax/duties, and terms — not implemented here.
+    const usReservationExtra = usConditionalCheckout
+      ? {
+          status: "conditional_pending" as const,
+          market_code: "US",
+          country_code: "US",
+          region: profileRegionUpper ?? undefined,
+          is_conditional: true,
+          charge_blocked_reason: US_CHARGE_BLOCKED_REASON,
+          payment_method_type: "card" as const,
+        }
+      : { status: "pending_producer_approval" as const };
+
     if (b2cProducerCheckout) {
       const voucherPoolOre = Math.round(Number(voucherDiscountCents) || 0);
       const pactPoolOre = Math.round(pactPointsSekOff * 100);
@@ -810,6 +1112,26 @@ export async function POST(request: Request) {
           group.subtotalSek - groupVoucherSek - groupPactSek,
         );
 
+        const groupMarketDropId =
+          !isB2BSite && groupPalletId
+            ? await resolveOrCreateMarketDropIdForCheckout({
+                sourcePalletId: groupPalletId,
+                resolvedMarket: resolvedMarketConfirm,
+                usConditionalCheckout,
+                profileCity: profileCityForMarketDrop,
+              })
+            : null;
+        if (usConditionalCheckout && !groupMarketDropId) {
+          await rollbackCheckoutGroup();
+          return NextResponse.json(
+            {
+              error:
+                "No market drop is available for this US location. Check your state or try again later.",
+            },
+            { status: 400 },
+          );
+        }
+
         const { data: row, error: insErr } = await sbAdmin
           .from("order_reservations")
           .insert({
@@ -822,7 +1144,8 @@ export async function POST(request: Request) {
             shipping_region_id: groupShippingRegionId,
             producer_id: group.producerId,
             checkout_group_id: checkoutGroupId,
-            status: "pending_producer_approval",
+            market_drop_id: groupMarketDropId,
+            ...usReservationExtra,
           })
           .select("id")
           .single();
@@ -886,7 +1209,8 @@ export async function POST(request: Request) {
           pallet_id: palletId,
           shipping_region_id: reservationShippingRegionId,
           producer_id: producerIdForReservation,
-          status: "pending_producer_approval",
+          market_drop_id: serverMarketDropIdSingle,
+          ...usReservationExtra,
         })
         .select("id")
         .single();
@@ -959,6 +1283,38 @@ export async function POST(request: Request) {
         { error: "Failed to attach Stripe intent" },
         { status: 500 },
       );
+    }
+
+    if (usConditionalCheckout && user?.id && profileRegionUpper) {
+      const hdrs = await headers();
+      const fwd = hdrs.get("x-forwarded-for");
+      const ip =
+        (typeof fwd === "string" ? fwd.split(",")[0]?.trim() : null) ||
+        hdrs.get("x-real-ip") ||
+        null;
+      const ua = hdrs.get("user-agent") || null;
+      for (const rid of reservationIdsForPayment) {
+        const { error: termsErr } = await sbAdmin
+          .from("market_terms_acceptances")
+          .insert({
+            user_id: user.id,
+            market_code: "US",
+            country_code: "US",
+            region: profileRegionUpper,
+            terms_version: US_CONDITIONAL_TERMS_VERSION,
+            ip_address: ip,
+            user_agent: ua,
+            metadata: {
+              order_reservation_id: rid,
+              age_21_confirmed: true,
+              conditional_reservation_ack: true,
+              setup_intent_id: intentId,
+            },
+          });
+        if (termsErr) {
+          console.error("[Checkout API] market_terms_acceptances insert:", termsErr);
+        }
+      }
     }
 
     const reservationIdForWineId = (wineId: string): string => {
@@ -1597,8 +1953,11 @@ export async function POST(request: Request) {
     const checkoutGroupQuery = checkoutGroupId
       ? `&checkoutGroupId=${encodeURIComponent(checkoutGroupId)}`
       : "";
+    const successMessage = usConditionalCheckout
+      ? "Conditional reservation placed — your card was verified. You will not be charged until the drop is approved for your state."
+      : "Reservation placed successfully";
     const successUrl = `/checkout/success?success=true&reservationId=${reservation.id}${checkoutGroupQuery}&message=${encodeURIComponent(
-      "Reservation placed successfully",
+      successMessage,
     )}`;
 
     return NextResponse.json({

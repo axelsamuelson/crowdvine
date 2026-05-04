@@ -1,4 +1,5 @@
 import { stripe } from "@/lib/stripe";
+import { getOrCreateStripeCustomer } from "@/lib/stripe/customer";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getMemberDiscountPercentForUserId } from "@/lib/membership/server-member-discount";
 import { resolvePalletEarlyBirdContext } from "@/lib/pallet-early-bird-context";
@@ -38,6 +39,8 @@ export type ReservationChargeRow = {
   payment_method_id: string | null;
   setup_intent_id: string | null;
   payment_attempts: number | null;
+  is_conditional?: boolean | null;
+  charge_blocked_reason?: string | null;
 };
 
 function producerFromWine(wine: WineJoin | null): WineProducer | null {
@@ -241,6 +244,20 @@ export async function chargeOneSetupIntentReservation(
   const sb = getSupabaseAdmin();
   const reservationId = row.id;
 
+  if (row.is_conditional === true) {
+    console.log(
+      `[auto-charge] Skipping conditional reservation: legal/logistics review required. reservation_id=${reservationId}`,
+    );
+    return "skipped";
+  }
+  const block = row.charge_blocked_reason;
+  if (block != null && String(block).trim() !== "") {
+    console.log(
+      `[auto-charge] Skipping reservation with charge_blocked_reason=${String(block).trim()} reservation_id=${reservationId}`,
+    );
+    return "skipped";
+  }
+
   if (!stripe) {
     console.error(
       `[auto-charge] reservation_id=${reservationId} Stripe not configured; skipping`,
@@ -255,26 +272,21 @@ export async function chargeOneSetupIntentReservation(
     return "skipped";
   }
 
-  const { data: membership, error: memErr } = await sb
-    .from("user_memberships")
-    .select("stripe_customer_id")
-    .eq("user_id", row.user_id)
-    .maybeSingle();
-
-  if (memErr || !membership?.stripe_customer_id?.trim()) {
+  let stripeCustomerId: string;
+  try {
+    stripeCustomerId = await getOrCreateStripeCustomer(row.user_id);
+  } catch (e) {
     console.error(
-      `[auto-charge] reservation_id=${reservationId} missing stripe_customer_id on user_memberships`,
-      memErr,
+      `[auto-charge] reservation_id=${reservationId} getOrCreateStripeCustomer failed`,
+      e,
     );
     await markReservationPaymentFailed(
       reservationId,
-      "Missing Stripe customer on membership",
+      "Missing or invalid Stripe customer for user",
       row.payment_attempts,
     );
     return "failed";
   }
-
-  const stripeCustomerId = membership.stripe_customer_id.trim();
 
   let reservationAmountInOre: number;
   try {
@@ -410,11 +422,13 @@ export async function autoChargeDeferredReservationsForPallet(
   const { data: toCharge, error } = await sb
     .from("order_reservations")
     .select(
-      "id, user_id, payment_mode, payment_status, payment_method_id, setup_intent_id, payment_attempts",
+      "id, user_id, payment_mode, payment_status, payment_method_id, setup_intent_id, payment_attempts, is_conditional, charge_blocked_reason",
     )
     .eq("pallet_id", palletId)
     .eq("payment_mode", "setup_intent")
     .eq("payment_status", "pending")
+    .eq("is_conditional", false)
+    .is("charge_blocked_reason", null)
     .not("payment_method_id", "is", null);
 
   if (error) {

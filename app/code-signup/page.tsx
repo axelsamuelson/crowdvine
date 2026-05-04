@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, UserPlus, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import { InviteWineZoneField } from "@/components/market/invite-wine-zone-field";
 
 function CodeSignupContent() {
   const router = useRouter();
@@ -21,6 +22,7 @@ function CodeSignupContent() {
     confirmPassword: "",
     fullName: "",
     code: code || "",
+    active_geo_zone_id: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -98,6 +100,11 @@ function CodeSignupContent() {
       return;
     }
 
+    if (!formData.active_geo_zone_id?.trim()) {
+      toast.error("Choose your wine zone.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -109,6 +116,7 @@ function CodeSignupContent() {
           password: formData.password,
           fullName: formData.fullName,
           code: formData.code,
+          activeGeoZoneId: formData.active_geo_zone_id,
         }),
       });
 
@@ -265,11 +273,24 @@ function CodeSignupContent() {
                 />
               </div>
 
+              <InviteWineZoneField
+                id="invite-wine-zone-code-signup"
+                value={formData.active_geo_zone_id}
+                onValueChange={(v) =>
+                  setFormData((prev) => ({ ...prev, active_geo_zone_id: v }))
+                }
+              />
+
               {/* Submit Button */}
               <Button
                 type="submit"
                 className="w-full"
-                disabled={loading || !codeValid || validatingCode}
+                disabled={
+                  loading ||
+                  !codeValid ||
+                  validatingCode ||
+                  !formData.active_geo_zone_id?.trim()
+                }
               >
                 {loading ? (
                   <>

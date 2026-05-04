@@ -105,12 +105,12 @@ export default async function RootLayout({
         )}
         suppressHydrationWarning
       >
-        <V0Provider isV0={isV0}>
-          <MobileMenuProvider>
-            <CartProvider>
-              <PortalProvider>
-                <MembershipProvider>
-                  <OnboardingProvider>
+        <CartProvider>
+          <OnboardingProvider>
+            <V0Provider isV0={isV0}>
+              <MobileMenuProvider>
+                <PortalProvider>
+                  <MembershipProvider>
                     <NuqsAdapter>
                       <main>
                         {/* Vaul drawer needs this wrapper; inner div avoids hydration mismatch from drawer lib touching the node */}
@@ -122,13 +122,13 @@ export default async function RootLayout({
                       {isDevelopment && <DebugGrid />}
                       <Toaster closeButton position="bottom-right" />
                     </NuqsAdapter>
-                  </OnboardingProvider>
-                </MembershipProvider>
-              </PortalProvider>
-            </CartProvider>
-          </MobileMenuProvider>
-          {isV0 && <V0Setup />}
-        </V0Provider>
+                  </MembershipProvider>
+                </PortalProvider>
+              </MobileMenuProvider>
+              {isV0 && <V0Setup />}
+            </V0Provider>
+          </OnboardingProvider>
+        </CartProvider>
       </body>
     </html>
   );

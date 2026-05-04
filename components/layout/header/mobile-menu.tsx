@@ -13,6 +13,7 @@ import { useUserRole } from "@/lib/hooks/use-user-role";
 import { usePortalAccess } from "@/lib/hooks/use-portal-access";
 import { useAdminStatus } from "@/lib/hooks/use-admin-status";
 import { PortalToggle } from "./portal-toggle";
+import { HeaderShoppingContextMobile } from "@/components/market/header-shopping-context";
 import { Shield } from "lucide-react";
 
 const navItems = [
@@ -105,6 +106,8 @@ export function MobileMenu({ collections }: { collections: any[] }) {
                       <PortalToggle showPortalToggle={true} />
                     </div>
                   )}
+
+                  <HeaderShoppingContextMobile onNavigate={closeMobileMenu} />
 
                   {/* Scrollable content area */}
                   <div className="flex-1 overflow-y-auto -mx-3 px-3 md:-mx-4 md:px-4">
