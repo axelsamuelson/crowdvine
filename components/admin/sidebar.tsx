@@ -31,6 +31,8 @@ import {
   Flag,
   Globe2,
   ChevronDown,
+  Mail,
+  Wrench,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -116,6 +118,11 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: "Menyextraktion", href: "/admin/menu-extraction", icon: Sparkles },
     ],
+  },
+  {
+    name: "Verktyg",
+    icon: Wrench,
+    items: [{ name: "E-post", href: "/admin/email", icon: Mail }],
   },
 ];
 

@@ -192,6 +192,11 @@ async function handlePaymentIntentPaymentFailedWebhook(
   }
 
   const nextAttempts = (prior?.payment_attempts ?? 0) + 1;
+  const declineCode =
+    typeof err?.decline_code === "string" ? err.decline_code.trim() : "";
+  const isAuthenticationRequired =
+    declineCode === "authentication_required" ||
+    err?.code === "authentication_required";
 
   const { error: updateError } = await supabase
     .from("order_reservations")
@@ -200,6 +205,7 @@ async function handlePaymentIntentPaymentFailedWebhook(
       payment_failed_reason: reason.slice(0, 2000),
       payment_attempts: nextAttempts,
       payment_last_attempt_at: new Date().toISOString(),
+      payment_intent_id: paymentIntent.id,
       ...(chargeId ? { charge_id: chargeId } : {}),
       stripe_decline_code: err?.decline_code ?? null,
       stripe_failure_code: err?.code ?? null,
@@ -207,6 +213,7 @@ async function handlePaymentIntentPaymentFailedWebhook(
       stripe_network_advice_code: networkAdvice,
       payment_method_last4: pmLast4,
       payment_method_brand: pmBrand,
+      ...(isAuthenticationRequired ? { retry_scheduled_at: null } : {}),
     })
     .eq("id", reservationId);
 
@@ -216,16 +223,6 @@ async function handlePaymentIntentPaymentFailedWebhook(
       updateError,
     );
     return;
-  }
-
-  const { schedulePaymentRetry } = await import("@/lib/payment-retry");
-  try {
-    await schedulePaymentRetry(reservationId, nextAttempts);
-  } catch (e) {
-    console.error(
-      `[Stripe Webhook] reservation_id=${reservationId} schedulePaymentRetry:`,
-      e,
-    );
   }
 
   const userId =
@@ -243,27 +240,61 @@ async function handlePaymentIntentPaymentFailedWebhook(
     }
   }
 
-  if (toEmail && nextAttempts < 3) {
-    const { sendPaymentFailedEmail } = await import("@/lib/sendgrid-service");
-    const profileUrl =
-      process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "https://pact.wine";
-    const retryHours: 24 | 72 = nextAttempts === 1 ? 24 : 72;
-    const sent = await sendPaymentFailedEmail({
-      to: toEmail,
-      reservationId,
-      reason,
-      retryHours,
-      profileUrl,
-    });
-    if (!sent) {
-      console.warn(
-        `[Stripe Webhook] reservation_id=${reservationId} payment failed email not sent`,
+  if (!isAuthenticationRequired) {
+    const { schedulePaymentRetry } = await import("@/lib/payment-retry");
+    try {
+      await schedulePaymentRetry(reservationId, nextAttempts);
+    } catch (e) {
+      console.error(
+        `[Stripe Webhook] reservation_id=${reservationId} schedulePaymentRetry:`,
+        e,
       );
     }
-  } else if (!toEmail) {
-    console.warn(
-      `[Stripe Webhook] reservation_id=${reservationId} no profile email for payment failure`,
+
+    if (toEmail && nextAttempts < 3) {
+      const { sendPaymentFailedEmail } = await import("@/lib/sendgrid-service");
+      const profileUrl =
+        process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "https://pact.wine";
+      const retryHours: 24 | 72 = nextAttempts === 1 ? 24 : 72;
+      const sent = await sendPaymentFailedEmail({
+        to: toEmail,
+        reservationId,
+        reason,
+        retryHours,
+        profileUrl,
+      });
+      if (!sent) {
+        console.warn(
+          `[Stripe Webhook] reservation_id=${reservationId} payment failed email not sent`,
+        );
+      }
+    } else if (!toEmail) {
+      console.warn(
+        `[Stripe Webhook] reservation_id=${reservationId} no profile email for payment failure`,
+      );
+    }
+  } else {
+    const { sendPaymentAuthenticationRequiredEmail } = await import(
+      "@/lib/sendgrid-service"
     );
+    const { getAppUrl } = await import("@/lib/app-url");
+    const authenticateUrl = `${getAppUrl().replace(/\/$/, "")}/reservations/${encodeURIComponent(reservationId)}/authenticate`;
+    if (toEmail) {
+      const sent = await sendPaymentAuthenticationRequiredEmail({
+        to: toEmail,
+        reservationId,
+        authenticateUrl,
+      });
+      if (!sent) {
+        console.warn(
+          `[Stripe Webhook] reservation_id=${reservationId} authentication-required email not sent`,
+        );
+      }
+    } else {
+      console.warn(
+        `[Stripe Webhook] reservation_id=${reservationId} no profile email for authentication recovery`,
+      );
+    }
   }
 }
 

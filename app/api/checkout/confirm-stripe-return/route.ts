@@ -93,16 +93,31 @@ export async function POST(request: Request) {
     } else {
       const { data: existing } = await sbAdmin
         .from("order_reservations")
-        .select("id")
+        .select("id, user_id")
         .eq("payment_intent_id", intentId)
         .maybeSingle();
       if (existing?.id) {
-        return NextResponse.json({
-          success: true,
-          redirectUrl: `/checkout/success?success=true&reservationId=${encodeURIComponent(String(existing.id))}&message=${encodeURIComponent(
-            "Reservation placed successfully",
-          )}`,
-        });
+        const ownerId =
+          typeof existing.user_id === "string" ? existing.user_id.trim() : "";
+        if (!ownerId || ownerId !== user.id) {
+          return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+        }
+        const piEarly = await stripe.paymentIntents.retrieve(intentId);
+        if (
+          piEarly.status === "succeeded" ||
+          piEarly.status === "processing"
+        ) {
+          return NextResponse.json({
+            success: true,
+            redirectUrl: `/checkout/success?success=true&reservationId=${encodeURIComponent(String(existing.id))}&message=${encodeURIComponent(
+              "Reservation placed successfully",
+            )}`,
+          });
+        }
+        return NextResponse.json(
+          { success: false, error: retryableMessage() },
+          { status: 400 },
+        );
       }
     }
 

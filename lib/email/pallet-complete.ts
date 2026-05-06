@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { sendEmail } from "@/lib/email";
+import { escapeHtmlBasic } from "@/lib/email/escape-html";
 
 /**
  * Trigger payment notifications for all pending reservations in a completed pallet.
@@ -113,7 +114,14 @@ async function sendPaymentNotification(reservation: any): Promise<void> {
     // Calculate total amount from items
     const totalAmountCents =
       items?.reduce((sum, item) => {
-        const price = item.wines?.base_price_cents || 0;
+        const wine = item.wines as
+          | { base_price_cents?: number }
+          | { base_price_cents?: number }[]
+          | null
+          | undefined;
+        const price = Array.isArray(wine)
+          ? wine[0]?.base_price_cents ?? 0
+          : wine?.base_price_cents ?? 0;
         const quantity = item.quantity || 0;
         return sum + price * quantity;
       }, 0) || 0;
@@ -180,9 +188,9 @@ async function sendPaymentReadyEmail(params: {
 }
 
 /**
- * Generate HTML email content
+ * Generate HTML email content (pallet full / ready to pay).
  */
-function generatePaymentEmailHTML(params: {
+export function generatePaymentEmailHTML(params: {
   name: string;
   palletName: string;
   bottleCount: number;
@@ -265,9 +273,9 @@ function generatePaymentEmailHTML(params: {
 }
 
 /**
- * Generate plain text email content
+ * Generate plain text email content (pallet full / ready to pay).
  */
-function generatePaymentEmailText(params: {
+export function generatePaymentEmailText(params: {
   name: string;
   palletName: string;
   bottleCount: number;
@@ -307,80 +315,9 @@ export async function sendPaymentReminder(
     "[DEPRECATED] sendPaymentReminder called. Payment link reminders are disabled in this phase.",
   );
   return;
-
-  const supabase = getSupabaseAdmin();
-
-  try {
-    // Get reservation details
-    const { data: reservation, error } = await supabase
-      .from("order_reservations")
-      .select(
-        `
-        id,
-        quantity,
-        total_amount_cents,
-        payment_deadline,
-        payment_link,
-        profiles!inner(email, full_name),
-        pallets(name)
-      `,
-      )
-      .eq("id", reservationId)
-      .eq("status", "pending_payment")
-      .single();
-
-    if (error || !reservation) {
-      throw new Error(
-        `Reservation ${reservationId} not found or not pending payment`,
-      );
-    }
-
-    if (!reservation.payment_link) {
-      throw new Error(`No payment link found for reservation ${reservationId}`);
-    }
-
-    // Calculate time remaining
-    const deadline = new Date(reservation.payment_deadline);
-    const now = new Date();
-    const hoursRemaining = Math.max(
-      0,
-      Math.floor((deadline.getTime() - now.getTime()) / (1000 * 60 * 60)),
-    );
-
-    if (hoursRemaining === 0) {
-      throw new Error(
-        `Payment deadline has passed for reservation ${reservationId}`,
-      );
-    }
-
-    // Send reminder email
-    await sendPaymentReminderEmail({
-      to: reservation.profiles.email,
-      name: reservation.profiles.full_name || "Friend",
-      palletName: reservation.pallets?.name || "Your Pallet",
-      bottleCount: reservation.quantity,
-      totalAmount: (reservation.total_amount_cents / 100).toFixed(2),
-      paymentLink: reservation.payment_link,
-      hoursRemaining: hoursRemaining,
-      reservationId: reservation.id,
-    });
-
-    console.log(
-      `✅ [Email Reminder] Payment reminder sent to ${reservation.profiles.email}`,
-    );
-  } catch (error) {
-    console.error(
-      `❌ [Email Reminder] Error sending payment reminder for reservation ${reservationId}:`,
-      error,
-    );
-    throw error;
-  }
 }
 
-/**
- * Send payment reminder email
- */
-async function sendPaymentReminderEmail(params: {
+export type PaymentReminderEmailParams = {
   to: string;
   name: string;
   palletName: string;
@@ -389,27 +326,38 @@ async function sendPaymentReminderEmail(params: {
   paymentLink: string;
   hoursRemaining: number;
   reservationId: string;
-}): Promise<void> {
-  const html = `
+};
+
+export function buildPaymentReminderHtml(
+  params: PaymentReminderEmailParams,
+): string {
+  const safeName = escapeHtmlBasic(params.name);
+  const safePallet = escapeHtmlBasic(params.palletName);
+  return `
       <h2>Payment Reminder</h2>
-      <p>Hi ${params.name},</p>
-      <p>This is a friendly reminder that your payment for <strong>"${params.palletName}"</strong> is due soon.</p>
+      <p>Hi ${safeName},</p>
+      <p>This is a friendly reminder that your payment for <strong>"${safePallet}"</strong> is due soon.</p>
       
       <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0;">
         <p><strong>Time remaining:</strong> ${params.hoursRemaining} hours</p>
-        <p><strong>Order:</strong> ${params.bottleCount} bottles - ${params.totalAmount} SEK</p>
+        <p><strong>Order:</strong> ${params.bottleCount} bottles - ${escapeHtmlBasic(params.totalAmount)} SEK</p>
       </div>
       
       <p>Please complete your payment to secure your reservation:</p>
       
-      <a href="${params.paymentLink}" 
+      <a href="${escapeHtmlBasic(params.paymentLink)}" 
          style="display: inline-block; background-color: #000000; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin: 20px 0;">
         Complete Payment
       </a>
       
       <p>If you don't complete payment by the deadline, your reservation will be released.</p>
     `;
-  const text = `
+}
+
+export function buildPaymentReminderText(
+  params: PaymentReminderEmailParams,
+): string {
+  return `
 Payment Reminder
 
 Hi ${params.name},
@@ -424,11 +372,4 @@ ${params.paymentLink}
 
 If you don't complete payment by the deadline, your reservation will be released.
     `;
-
-  await sendEmail({
-    to: params.to,
-    subject: `⏰ Payment Reminder - ${params.hoursRemaining} hours remaining`,
-    html,
-    text,
-  });
 }

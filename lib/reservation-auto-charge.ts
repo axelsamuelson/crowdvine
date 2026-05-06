@@ -210,13 +210,29 @@ async function resolveReservationChargeAmountInOre(params: {
   return { amountOre, source: "db_recomputed" };
 }
 
+function paymentIntentIdFromStripeError(err: unknown): string | null {
+  if (!err || typeof err !== "object") return null;
+  const raw = (err as { payment_intent?: unknown }).payment_intent;
+  if (typeof raw === "string" && raw.trim()) return raw.trim();
+  if (raw && typeof raw === "object" && "id" in raw) {
+    const id = (raw as { id?: unknown }).id;
+    if (typeof id === "string" && id.trim()) return id.trim();
+  }
+  return null;
+}
+
 async function markReservationPaymentFailed(
   reservationId: string,
   reason: string,
   priorAttempts: number | null,
+  opts?: { paymentIntentId?: string | null },
 ): Promise<void> {
   const sb = getSupabaseAdmin();
   const nextAttempts = (priorAttempts ?? 0) + 1;
+  const piId =
+    typeof opts?.paymentIntentId === "string" && opts.paymentIntentId.trim()
+      ? opts.paymentIntentId.trim()
+      : null;
   const { error } = await sb
     .from("order_reservations")
     .update({
@@ -224,6 +240,7 @@ async function markReservationPaymentFailed(
       payment_failed_reason: reason.slice(0, 2000),
       payment_attempts: nextAttempts,
       payment_last_attempt_at: new Date().toISOString(),
+      ...(piId ? { payment_intent_id: piId } : {}),
     })
     .eq("id", reservationId);
 
@@ -368,6 +385,7 @@ export async function chargeOneSetupIntentReservation(
       reservationId,
       msg,
       row.payment_attempts,
+      { paymentIntentId: paymentIntent.id },
     );
     return "failed";
   } catch (err) {
@@ -375,10 +393,12 @@ export async function chargeOneSetupIntentReservation(
       `[auto-charge] reservation_id=${reservationId} Stripe PaymentIntent.create failed:`,
       err,
     );
+    const piFromErr = paymentIntentIdFromStripeError(err);
     await markReservationPaymentFailed(
       reservationId,
       stripeFailureMessage(err),
       row.payment_attempts,
+      piFromErr ? { paymentIntentId: piFromErr } : undefined,
     );
     return "failed";
   }
