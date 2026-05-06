@@ -2,6 +2,50 @@ import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+
+function paymentIntentLatestChargeId(
+  paymentIntent: Stripe.PaymentIntent,
+): string | null {
+  const lc = paymentIntent.latest_charge;
+  if (typeof lc === "string" && lc.length > 0) return lc;
+  if (lc && typeof lc === "object" && "id" in lc) {
+    const id = (lc as Stripe.Charge).id;
+    return typeof id === "string" && id.length > 0 ? id : null;
+  }
+  return null;
+}
+
+/** Present on some issuer errors; not always in TS unions. */
+function stripeNetworkAdviceCodeFromPaymentError(
+  err: Stripe.PaymentIntent.LastPaymentError | null | undefined,
+): string | null {
+  if (!err || typeof err !== "object") return null;
+  if (
+    "network_advice_code" in err &&
+    typeof (err as { network_advice_code?: string }).network_advice_code ===
+      "string"
+  ) {
+    const v = (err as { network_advice_code: string }).network_advice_code;
+    return v.length > 0 ? v : null;
+  }
+  return null;
+}
+
+function cardBrandLast4FromLastPaymentError(
+  err: Stripe.PaymentIntent.LastPaymentError | undefined,
+): { last4: string | null; brand: string | null } {
+  const pm = err?.payment_method;
+  if (!pm || typeof pm === "string") {
+    return { last4: null, brand: null };
+  }
+  const card = pm.card;
+  if (!card) return { last4: null, brand: null };
+  return {
+    last4: typeof card.last4 === "string" ? card.last4 : null,
+    brand: typeof card.brand === "string" ? card.brand : null,
+  };
+}
+
 async function handlePaymentIntentSucceededWebhook(
   paymentIntent: Stripe.PaymentIntent,
 ): Promise<void> {
@@ -18,6 +62,7 @@ async function handlePaymentIntentSucceededWebhook(
   );
 
   const supabase = getSupabaseAdmin();
+  const chargeId = paymentIntentLatestChargeId(paymentIntent);
 
   const { error: updateError } = await supabase
     .from("order_reservations")
@@ -25,6 +70,7 @@ async function handlePaymentIntentSucceededWebhook(
       payment_status: "paid",
       payment_intent_id: paymentIntent.id,
       status: "confirmed",
+      ...(chargeId ? { charge_id: chargeId } : {}),
     })
     .eq("id", reservationId);
 
@@ -119,8 +165,12 @@ async function handlePaymentIntentPaymentFailedWebhook(
     return;
   }
   const reservationId = reservationIdRaw.trim();
-  const reason =
-    paymentIntent.last_payment_error?.message ?? "Payment failed";
+  const err = paymentIntent.last_payment_error;
+  const reason = err?.message ?? "Payment failed";
+  const chargeId = paymentIntentLatestChargeId(paymentIntent);
+  const { last4: pmLast4, brand: pmBrand } =
+    cardBrandLast4FromLastPaymentError(err ?? undefined);
+  const networkAdvice = stripeNetworkAdviceCodeFromPaymentError(err);
 
   console.log(
     `[Stripe Webhook] payment_intent.payment_failed reservation_id=${reservationId} pi=${paymentIntent.id} reason=${reason}`,
@@ -150,6 +200,13 @@ async function handlePaymentIntentPaymentFailedWebhook(
       payment_failed_reason: reason.slice(0, 2000),
       payment_attempts: nextAttempts,
       payment_last_attempt_at: new Date().toISOString(),
+      ...(chargeId ? { charge_id: chargeId } : {}),
+      stripe_decline_code: err?.decline_code ?? null,
+      stripe_failure_code: err?.code ?? null,
+      stripe_error_type: err?.type ?? null,
+      stripe_network_advice_code: networkAdvice,
+      payment_method_last4: pmLast4,
+      payment_method_brand: pmBrand,
     })
     .eq("id", reservationId);
 
@@ -207,6 +264,147 @@ async function handlePaymentIntentPaymentFailedWebhook(
     console.warn(
       `[Stripe Webhook] reservation_id=${reservationId} no profile email for payment failure`,
     );
+  }
+}
+
+async function handleSetupIntentSetupFailedWebhook(
+  setupIntent: Stripe.SetupIntent,
+): Promise<void> {
+  try {
+    const sbAdmin = getSupabaseAdmin();
+    const err = setupIntent.last_setup_error;
+    const userIdRaw = setupIntent.metadata?.user_id;
+    const palletIdRaw = setupIntent.metadata?.pallet_id;
+    const userId =
+      typeof userIdRaw === "string" && userIdRaw.trim() !== ""
+        ? userIdRaw.trim()
+        : null;
+    const palletId =
+      typeof palletIdRaw === "string" && palletIdRaw.trim() !== ""
+        ? palletIdRaw.trim()
+        : null;
+
+    const reason = (err?.message ?? "Setup failed").slice(0, 2000);
+
+    const { data: existing, error: findErr } = await sbAdmin
+      .from("order_reservations")
+      .select("id, payment_attempts")
+      .eq("setup_intent_id", setupIntent.id)
+      .maybeSingle();
+
+    if (findErr) {
+      console.error("[WEBHOOK] setup_intent.setup_failed lookup:", findErr);
+    }
+
+    if (existing?.id) {
+      const nextAttempts = (existing.payment_attempts ?? 0) + 1;
+      const { error: upErr } = await sbAdmin
+        .from("order_reservations")
+        .update({
+          payment_status: "failed",
+          payment_attempts: nextAttempts,
+          payment_last_attempt_at: new Date().toISOString(),
+          payment_failed_reason: reason,
+          stripe_decline_code: err?.decline_code ?? null,
+          stripe_failure_code: err?.code ?? null,
+          stripe_error_type: err?.type ?? null,
+        })
+        .eq("id", existing.id);
+      if (upErr) {
+        console.error("[WEBHOOK] setup_intent.setup_failed update:", upErr);
+      }
+    } else if (userId && palletId) {
+      const { error: insErr } = await sbAdmin.from("order_reservations").insert({
+        user_id: userId,
+        pallet_id: palletId,
+        setup_intent_id: setupIntent.id,
+        payment_mode: "setup_intent",
+        payment_status: "failed",
+        status: "cancelled",
+        cancellation_reason: "Payment setup failed before order was placed",
+        cancelled_at: new Date().toISOString(),
+        payment_failed_reason: reason,
+        stripe_decline_code: err?.decline_code ?? null,
+        stripe_failure_code: err?.code ?? null,
+        stripe_error_type: err?.type ?? null,
+        payment_attempts: 1,
+        payment_last_attempt_at: new Date().toISOString(),
+      });
+      if (insErr) {
+        console.error("[WEBHOOK] setup_intent.setup_failed insert:", insErr);
+      }
+    } else {
+      console.log(
+        "[WEBHOOK] setup_intent.setup_failed: no reservation row and missing user_id/pallet_id metadata; not persisting",
+        { setupIntentId: setupIntent.id, userId, palletId },
+      );
+    }
+
+    console.log("[WEBHOOK] setup_intent.setup_failed handled", {
+      setupIntentId: setupIntent.id,
+      userId,
+      declineCode: err?.decline_code,
+      code: err?.code,
+      message: err?.message,
+    });
+  } catch (e) {
+    console.error("[WEBHOOK] setup_intent.setup_failed handler error:", e);
+  }
+}
+
+async function handleChargeFailedWebhook(charge: Stripe.Charge): Promise<void> {
+  try {
+    const reservationIdRaw = charge.metadata?.reservation_id;
+    if (!reservationIdRaw || typeof reservationIdRaw !== "string") {
+      console.log(
+        "[WEBHOOK] charge.failed: no reservation_id in metadata, skipping DB update",
+      );
+      return;
+    }
+    const reservationId = reservationIdRaw.trim();
+    const sbAdmin = getSupabaseAdmin();
+    const outcome = charge.outcome;
+    const sellerMessage =
+      outcome && typeof outcome.seller_message === "string"
+        ? outcome.seller_message
+        : null;
+    const rawRisk = outcome?.risk_score;
+    const stripeRiskScore =
+      typeof rawRisk === "number" && Number.isFinite(rawRisk)
+        ? Math.round(rawRisk)
+        : null;
+    const card = charge.payment_method_details?.card;
+    const last4 =
+      card && typeof card.last4 === "string" ? card.last4 : null;
+    const brand =
+      card && typeof card.brand === "string" ? card.brand : null;
+
+    const { error: upErr } = await sbAdmin
+      .from("order_reservations")
+      .update({
+        charge_id: charge.id,
+        stripe_decline_code: charge.failure_code ?? null,
+        stripe_failure_code: charge.failure_code ?? null,
+        stripe_outcome_seller_message: sellerMessage,
+        stripe_risk_score: stripeRiskScore,
+        payment_method_last4: last4,
+        payment_method_brand: brand,
+      })
+      .eq("id", reservationId);
+
+    if (upErr) {
+      console.error("[WEBHOOK] charge.failed update:", upErr);
+      return;
+    }
+
+    console.log("[WEBHOOK] charge.failed saved", {
+      chargeId: charge.id,
+      reservationId,
+      failureCode: charge.failure_code,
+      declineCode: charge.failure_code,
+    });
+  } catch (e) {
+    console.error("[WEBHOOK] charge.failed handler error:", e);
   }
 }
 
@@ -425,6 +623,27 @@ export async function POST(request: NextRequest) {
               null,
               2,
             ),
+          );
+        }
+        try {
+          await handleSetupIntentSetupFailedWebhook(setupIntent);
+        } catch (e) {
+          console.error(
+            `[Stripe Webhook] setup_intent.setup_failed outer error si=${setupIntent.id}:`,
+            e,
+          );
+        }
+        break;
+      }
+
+      case "charge.failed": {
+        const charge = event.data.object as Stripe.Charge;
+        try {
+          await handleChargeFailedWebhook(charge);
+        } catch (e) {
+          console.error(
+            `[Stripe Webhook] charge.failed handler error ch=${charge.id}:`,
+            e,
           );
         }
         break;

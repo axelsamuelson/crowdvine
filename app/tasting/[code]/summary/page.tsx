@@ -16,10 +16,10 @@ interface Summary {
   session: { id: string; name: string };
   statistics: { totalWines: number };
   wines: Array<{
-    wine: {
-      id: string;
-      wine_name: string;
-      vintage: string;
+  wine: {
+    id: string;
+    wine_name: string;
+    vintage: string;
       grape_varieties?: string | null;
       color?: string | null;
       label_image_path?: string | null;

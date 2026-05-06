@@ -46,6 +46,40 @@ export type StripeConfirmResult =
       intentStatus?: string;
     };
 
+/** Fire-and-forget: logs client-side confirm failures for B2C Orders / admin. */
+function fireClientPaymentFailureLog(args: {
+  paymentMode: PaymentMode;
+  knownIntentId: string;
+  palletId: string;
+  userId?: string;
+  amountOre?: number;
+  stripeError?: StripeConfirmStripeError;
+}): void {
+  const { paymentMode, knownIntentId, palletId, userId, amountOre, stripeError } =
+    args;
+  const base = {
+    error_type: stripeError?.type,
+    error_code: stripeError?.code,
+    decline_code: stripeError?.decline_code,
+    error_message: stripeError?.message,
+    pallet_id: palletId,
+    ...(userId ? { user_id: userId } : {}),
+    ...(amountOre != null && Number.isFinite(amountOre)
+      ? { amount_ore: Math.round(amountOre) }
+      : {}),
+  };
+  const body =
+    paymentMode === "setup_intent"
+      ? { ...base, setup_intent_id: knownIntentId }
+      : { ...base, payment_intent_id: knownIntentId };
+
+  void fetch("/api/checkout/log-payment-failure", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }).catch(() => {});
+}
+
 function formatStripeErrorMessage(error: unknown, fallback: string): string {
   if (!error || typeof error !== "object") return fallback;
   const e = error as { message?: unknown; code?: unknown; type?: unknown; decline_code?: unknown };
@@ -63,6 +97,8 @@ type Props = {
   palletId: string;
   cartTotalSek: number;
   pactPointsRedeem: number;
+  /** Logged on client-side Stripe confirm failures when present. */
+  userId?: string;
   onIntentCreated: (data: IntentCreated) => void;
   onConfirmReady: (confirmFn: () => Promise<StripeConfirmResult>) => void;
   /** US conditional: include acks in /api/checkout/payment-intent body */
@@ -145,11 +181,19 @@ function StripeElementInner({
   clientSecret,
   onConfirmReady,
   onPaymentElementLoadError,
+  knownIntentId,
+  palletId,
+  userId,
+  amountOre,
 }: {
   paymentMode: PaymentMode;
   clientSecret: string;
   onConfirmReady: (confirmFn: () => Promise<StripeConfirmResult>) => void;
   onPaymentElementLoadError: (message: string) => void;
+  knownIntentId: string;
+  palletId: string;
+  userId?: string;
+  amountOre?: number;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -193,7 +237,7 @@ function StripeElementInner({
       const { error, setupIntent } = await stripe.confirmSetup({
         elements,
         clientSecret,
-        redirect: "if_required",
+        redirect: "always",
         confirmParams: { return_url },
       });
       const setupStatus = setupIntent?.status;
@@ -206,34 +250,44 @@ function StripeElementInner({
             message: (error as { message?: unknown })?.message,
           });
         }
+        const stripeErrPayload: StripeConfirmStripeError | undefined = error
+          ? {
+              type:
+                typeof (error as { type?: unknown })?.type === "string"
+                  ? String((error as { type?: unknown }).type)
+                  : undefined,
+              code:
+                typeof (error as { code?: unknown })?.code === "string"
+                  ? String((error as { code?: unknown }).code)
+                  : undefined,
+              decline_code:
+                typeof (error as { decline_code?: unknown })?.decline_code ===
+                "string"
+                  ? String((error as { decline_code?: unknown }).decline_code)
+                  : undefined,
+              message:
+                typeof (error as { message?: unknown })?.message === "string"
+                  ? String((error as { message?: unknown }).message)
+                  : undefined,
+            }
+          : setupStatus && setupStatus !== "succeeded"
+            ? {
+                code: "setup_intent_not_succeeded",
+                message: `SetupIntent status is ${setupStatus}`,
+              }
+            : undefined;
+        fireClientPaymentFailureLog({
+          paymentMode: "setup_intent",
+          knownIntentId: setupIntent?.id ?? knownIntentId,
+          palletId,
+          userId,
+          amountOre,
+          stripeError: stripeErrPayload,
+        });
         return {
           success: false,
           intentStatus: typeof setupStatus === "string" ? setupStatus : undefined,
-          stripeError: error
-            ? {
-                type:
-                  typeof (error as { type?: unknown })?.type === "string"
-                    ? String((error as { type?: unknown }).type)
-                    : undefined,
-                code:
-                  typeof (error as { code?: unknown })?.code === "string"
-                    ? String((error as { code?: unknown }).code)
-                    : undefined,
-                decline_code:
-                  typeof (error as { decline_code?: unknown })?.decline_code === "string"
-                    ? String((error as { decline_code?: unknown }).decline_code)
-                    : undefined,
-                message:
-                  typeof (error as { message?: unknown })?.message === "string"
-                    ? String((error as { message?: unknown }).message)
-                    : undefined,
-              }
-            : setupStatus && setupStatus !== "succeeded"
-              ? {
-                  code: "setup_intent_not_succeeded",
-                  message: `SetupIntent status is ${setupStatus}`,
-                }
-              : undefined,
+          stripeError: stripeErrPayload,
           error: error
             ? formatStripeErrorMessage(error, "Failed to confirm setup")
             : setupStatus && setupStatus !== "succeeded"
@@ -264,34 +318,44 @@ function StripeElementInner({
           message: (error as { message?: unknown })?.message,
         });
       }
+      const stripeErrPayload: StripeConfirmStripeError | undefined = error
+        ? {
+            type:
+              typeof (error as { type?: unknown })?.type === "string"
+                ? String((error as { type?: unknown }).type)
+                : undefined,
+            code:
+              typeof (error as { code?: unknown })?.code === "string"
+                ? String((error as { code?: unknown }).code)
+                : undefined,
+            decline_code:
+              typeof (error as { decline_code?: unknown })?.decline_code ===
+              "string"
+                ? String((error as { decline_code?: unknown }).decline_code)
+                : undefined,
+            message:
+              typeof (error as { message?: unknown })?.message === "string"
+                ? String((error as { message?: unknown }).message)
+                : undefined,
+          }
+        : piStatus && piStatus !== "succeeded"
+          ? {
+              code: "payment_intent_not_succeeded",
+              message: `PaymentIntent status is ${piStatus}`,
+            }
+          : undefined;
+      fireClientPaymentFailureLog({
+        paymentMode: "payment_intent",
+        knownIntentId: paymentIntent?.id ?? knownIntentId,
+        palletId,
+        userId,
+        amountOre,
+        stripeError: stripeErrPayload,
+      });
       return {
         success: false,
         intentStatus: typeof piStatus === "string" ? piStatus : undefined,
-        stripeError: error
-          ? {
-              type:
-                typeof (error as { type?: unknown })?.type === "string"
-                  ? String((error as { type?: unknown }).type)
-                  : undefined,
-              code:
-                typeof (error as { code?: unknown })?.code === "string"
-                  ? String((error as { code?: unknown }).code)
-                  : undefined,
-              decline_code:
-                typeof (error as { decline_code?: unknown })?.decline_code === "string"
-                  ? String((error as { decline_code?: unknown }).decline_code)
-                  : undefined,
-              message:
-                typeof (error as { message?: unknown })?.message === "string"
-                  ? String((error as { message?: unknown }).message)
-                  : undefined,
-            }
-          : piStatus && piStatus !== "succeeded"
-            ? {
-                code: "payment_intent_not_succeeded",
-                message: `PaymentIntent status is ${piStatus}`,
-              }
-            : undefined,
+        stripeError: stripeErrPayload,
         error: error
           ? formatStripeErrorMessage(error, "Failed to confirm payment")
           : piStatus && piStatus !== "succeeded"
@@ -304,7 +368,16 @@ function StripeElementInner({
       intentId: paymentIntent.id,
       intentType: "payment_intent",
     };
-  }, [clientSecret, elements, paymentMode, stripe]);
+  }, [
+    amountOre,
+    clientSecret,
+    elements,
+    knownIntentId,
+    palletId,
+    paymentMode,
+    stripe,
+    userId,
+  ]);
 
   useEffect(() => {
     onConfirmReadyRef.current(confirm);
@@ -338,6 +411,7 @@ export function StripePaymentSection({
   palletId,
   cartTotalSek,
   pactPointsRedeem,
+  userId,
   onIntentCreated,
   onConfirmReady,
   usConditionalPayment = false,
@@ -534,6 +608,8 @@ export function StripePaymentSection({
     return null;
   }
 
+  const amountOreHint = Math.round(cartTotalSek * 100);
+
   return (
     <div className="space-y-3">
       {paymentMode === "setup_intent" ? (
@@ -581,6 +657,10 @@ export function StripePaymentSection({
             clientSecret={clientSecret}
             onConfirmReady={onConfirmReady}
             onPaymentElementLoadError={setPaymentElementLoadError}
+            knownIntentId={intentId}
+            palletId={palletId}
+            userId={userId}
+            amountOre={amountOreHint}
           />
         </Elements>
       )}

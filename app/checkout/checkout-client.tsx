@@ -2363,6 +2363,7 @@ function CheckoutContent() {
                           palletId={selectedPallet.id}
                           cartTotalSek={finalAmountAfterVoucher}
                           pactPointsRedeem={redeemPoints}
+                          userId={profile?.id}
                           onIntentCreated={handleStripeIntentCreated}
                           onConfirmReady={handleStripeConfirmReady}
                           usConditionalPayment={isUsConditional}

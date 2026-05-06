@@ -252,7 +252,7 @@ export async function PATCH(request: NextRequest) {
                   "DEBUG: Failed to send approval email to:",
                   accessRequest.email,
                 );
-                console.log("DEBUG: Check SendGrid configuration and API key");
+                console.log("DEBUG: Check Resend configuration and RESEND_API_KEY");
               }
             } catch (emailError) {
               console.log(

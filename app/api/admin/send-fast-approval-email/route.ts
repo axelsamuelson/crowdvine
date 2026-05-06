@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       text: textTemplate,
     });
 
-    console.log("🚀 FAST EMAIL: SendGrid result:", emailSent);
+    console.log("🚀 FAST EMAIL: Resend / mail result:", emailSent);
 
     if (emailSent) {
       console.log("✅ FAST EMAIL: Approval email sent successfully to:", email);

@@ -22,6 +22,12 @@ import {
   legacyMarketModeFromResolved,
   resolveMarketForCountry,
 } from "@/lib/market/resolve-market";
+import { resolveActiveGeoZoneForUser } from "@/lib/market/resolve-active-geo-zone";
+import {
+  isZoneDeliveryCompleteForActiveGeo,
+  userZoneRowToDeliveryLines,
+  type UserZoneAddressTemplate,
+} from "@/lib/checkout/user-zone-delivery-template";
 
 type IntentType = "setup_intent" | "payment_intent";
 
@@ -131,7 +137,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Load profile to reconstruct address for /api/checkout/confirm.
+    // Load profile + wine-zone delivery lines (must match /api/checkout/payment-intent).
     const { data: profile } = await sbAdmin
       .from("profiles")
       .select("email, full_name, phone, address, city, postal_code, country, region")
@@ -147,18 +153,69 @@ export async function POST(request: Request) {
         region: string | null;
       }>();
 
+    const active = await resolveActiveGeoZoneForUser(user.id);
+    let zoneTemplate: UserZoneAddressTemplate | null = null;
+    if (active.geoZoneId) {
+      const { data: zr, error: zrErr } = await sbAdmin
+        .from("user_zone_addresses")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("geo_zone_id", active.geoZoneId)
+        .maybeSingle();
+      if (zrErr) {
+        console.error("[confirm-stripe-return] zone address load:", zrErr.message);
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Failed to load delivery details for your wine zone",
+          },
+          { status: 500 },
+        );
+      }
+      zoneTemplate = zr as UserZoneAddressTemplate | null;
+    }
+
+    const delivery = userZoneRowToDeliveryLines(zoneTemplate);
+    const useZoneAddress =
+      delivery != null && isZoneDeliveryCompleteForActiveGeo(active, delivery);
+
     const email =
-      typeof profile?.email === "string" && profile.email.includes("@")
-        ? profile.email.trim()
-        : user.email;
+      useZoneAddress && delivery?.email && delivery.email.includes("@")
+        ? delivery.email.trim()
+        : typeof profile?.email === "string" && profile.email.includes("@")
+          ? profile.email.trim()
+          : user.email;
     const fullName =
-      typeof profile?.full_name === "string" ? profile.full_name.trim() : "";
-    const phone = typeof profile?.phone === "string" ? profile.phone.trim() : "";
-    const street = typeof profile?.address === "string" ? profile.address.trim() : "";
-    const postcode =
-      typeof profile?.postal_code === "string" ? profile.postal_code.trim() : "";
-    const city = typeof profile?.city === "string" ? profile.city.trim() : "";
-    const countryCode = getCountryCodeFromProfileCountry(profile?.country ?? null);
+      useZoneAddress && delivery?.fullName
+        ? delivery.fullName
+        : typeof profile?.full_name === "string"
+          ? profile.full_name.trim()
+          : "";
+    const phone =
+      useZoneAddress && delivery?.phone
+        ? delivery.phone.trim()
+        : typeof profile?.phone === "string"
+          ? profile.phone.trim()
+          : "";
+
+    let street: string;
+    let postcode: string;
+    let city: string;
+    let countryCode: string | null;
+
+    if (useZoneAddress && delivery) {
+      street = delivery.street;
+      city = delivery.city;
+      postcode = delivery.postal;
+      countryCode = delivery.countryCode;
+    } else {
+      street = typeof profile?.address === "string" ? profile.address.trim() : "";
+      postcode =
+        typeof profile?.postal_code === "string" ? profile.postal_code.trim() : "";
+      city = typeof profile?.city === "string" ? profile.city.trim() : "";
+      countryCode = getCountryCodeFromProfileCountry(profile?.country ?? null);
+    }
+
     if (!countryCode || getCountryMarketMode(countryCode) === "unsupported") {
       return NextResponse.json(
         { success: false, error: CHECKOUT_UNSUPPORTED_COUNTRY_USER_MESSAGE },
@@ -173,10 +230,15 @@ export async function POST(request: Request) {
       );
     }
 
-    const resolvedStripeReturn = await resolveMarketForCountry({
-      countryCode,
-      regionCode: typeof profile?.region === "string" ? profile.region : null,
-    });
+    const resolvedStripeReturn = useZoneAddress
+      ? await resolveMarketForCountry({
+          countryCode: active.countryCode,
+          regionCode: active.regionCode,
+        })
+      : await resolveMarketForCountry({
+          countryCode,
+          regionCode: typeof profile?.region === "string" ? profile.region : null,
+        });
     const legacyStripeModes = getCountryMarketMode(countryCode);
     if (
       legacyMarketModeFromResolved(resolvedStripeReturn) !== legacyStripeModes
@@ -226,7 +288,11 @@ export async function POST(request: Request) {
       }
     }
     const profileRegionUpper =
-      typeof profile?.region === "string" ? profile.region.trim().toUpperCase() : "";
+      useZoneAddress && delivery?.regionCode
+        ? delivery.regionCode
+        : typeof profile?.region === "string"
+          ? profile.region.trim().toUpperCase()
+          : "";
     if (usConditional) {
       if (!isValidUsStateCode(profileRegionUpper)) {
         return NextResponse.json(
@@ -360,7 +426,14 @@ export async function POST(request: Request) {
         typeof si.metadata?.expected_amount_ore === "string"
           ? Number(si.metadata.expected_amount_ore)
           : NaN;
-      if (!Number.isFinite(expectedFromMeta) || Math.abs(expectedFromMeta - expectedAmountOre) > 1) {
+      // Allow small drift vs payment-intent metadata (float/line-sum vs cart.total, rounding).
+      const amountDriftOre = Math.abs(expectedFromMeta - expectedAmountOre);
+      if (!Number.isFinite(expectedFromMeta) || amountDriftOre > 10) {
+        console.error("[confirm-stripe-return] setup amount mismatch", {
+          expectedFromMeta,
+          expectedAmountOre,
+          driftOre: amountDriftOre,
+        });
         return NextResponse.json(
           { success: false, error: "Amount mismatch" },
           { status: 400 },
@@ -414,7 +487,12 @@ export async function POST(request: Request) {
       if (pi.status !== "succeeded") {
         return NextResponse.json({ success: false, error: retryableMessage() }, { status: 400 });
       }
-      if (Math.abs((Number(pi.amount) || 0) - expectedAmountOre) > 1) {
+      const piAmountOre = Number(pi.amount) || 0;
+      if (Math.abs(piAmountOre - expectedAmountOre) > 10) {
+        console.error("[confirm-stripe-return] payment_intent amount mismatch", {
+          piAmountOre,
+          expectedAmountOre,
+        });
         return NextResponse.json(
           { success: false, error: "Amount mismatch" },
           { status: 400 },
@@ -438,6 +516,9 @@ export async function POST(request: Request) {
     form.append("postcode", postcode);
     form.append("city", city);
     form.append("countryCode", countryCode);
+    if (usConditional && profileRegionUpper) {
+      form.append("regionCode", profileRegionUpper);
+    }
     form.append("selectedDeliveryZoneId", selectedDeliveryZoneId);
     form.append("selectedPalletId", palletId);
     if (pointsToRedeem > 0) {
@@ -453,20 +534,43 @@ export async function POST(request: Request) {
       headers: cookie ? { cookie } : undefined,
       body: form,
     });
-    const confirmData = await confirmRes.json().catch(() => null);
-    if (!confirmRes.ok || !confirmData || typeof confirmData !== "object") {
-      return NextResponse.json(
-        { success: false, error: "Failed to finalize reservation" },
-        { status: 500 },
-      );
+    const confirmText = await confirmRes.text();
+    let confirmData: unknown = null;
+    try {
+      confirmData = confirmText ? JSON.parse(confirmText) : null;
+    } catch {
+      confirmData = null;
     }
-    const d = confirmData as { redirectUrl?: unknown; error?: unknown };
-    const redirectUrl = typeof d.redirectUrl === "string" ? d.redirectUrl : null;
+    const parsed =
+      confirmData && typeof confirmData === "object"
+        ? (confirmData as { redirectUrl?: unknown; error?: unknown })
+        : null;
+
+    if (!confirmRes.ok || !parsed) {
+      console.error("[confirm-stripe-return] checkout/confirm failed", {
+        status: confirmRes.status,
+        snippet: confirmText.slice(0, 800),
+      });
+      const errMsg =
+        typeof parsed?.error === "string" && parsed.error.trim()
+          ? parsed.error.trim()
+          : "Failed to finalize reservation";
+      const outStatus =
+        confirmRes.status >= 400 && confirmRes.status < 600 ? confirmRes.status : 500;
+      return NextResponse.json({ success: false, error: errMsg }, { status: outStatus });
+    }
+
+    const redirectUrl =
+      typeof parsed.redirectUrl === "string" ? parsed.redirectUrl : null;
     if (!redirectUrl) {
-      return NextResponse.json(
-        { success: false, error: typeof d.error === "string" ? d.error : "Failed to finalize reservation" },
-        { status: 500 },
-      );
+      const errMsg =
+        typeof parsed.error === "string" && parsed.error.trim()
+          ? parsed.error.trim()
+          : "Failed to finalize reservation";
+      console.error("[confirm-stripe-return] checkout/confirm missing redirectUrl", {
+        keys: Object.keys(parsed),
+      });
+      return NextResponse.json({ success: false, error: errMsg }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, redirectUrl });

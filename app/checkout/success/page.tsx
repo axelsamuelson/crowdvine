@@ -187,12 +187,49 @@ function CheckoutConfirmationContent() {
       });
 
       if (response.ok) {
-        const result = await response.json();
-        console.log("📧 Order confirmation email sent successfully:", result);
+        const result = (await response.json().catch(() => ({}))) as {
+          skipped?: boolean;
+          success?: boolean;
+          message?: string;
+          reason?: string;
+        };
+        if (result.skipped === true) {
+          if (
+            result.reason === "email_quota_exceeded" ||
+            result.reason === "sendgrid_quota_exceeded"
+          ) {
+            console.info(
+              "📧 Order confirmation skipped: email provider quota or billing limit reached — your reservation is still saved.",
+            );
+          } else {
+            console.info(
+              "📧 Order confirmation email skipped (RESEND_API_KEY not set). Add RESEND_API_KEY to .env.local and restart the dev server to send mail.",
+            );
+          }
+        } else {
+          console.log("📧 Order confirmation email sent successfully:", result);
+        }
         // Quiet success: don't distract after checkout.
       } else {
         const errorText = await response.text();
-        console.error("📧 Failed to send order confirmation email:", errorText);
+        try {
+          const parsed = JSON.parse(errorText) as {
+            code?: string;
+            message?: string;
+            error?: string;
+          };
+          const detail =
+            typeof parsed.message === "string" && parsed.message.trim()
+              ? parsed.code
+                ? `${parsed.code}: ${parsed.message.trim()}`
+                : parsed.message.trim()
+              : typeof parsed.error === "string"
+                ? parsed.error
+                : errorText;
+          console.error("📧 Failed to send order confirmation email:", detail);
+        } catch {
+          console.error("📧 Failed to send order confirmation email:", errorText);
+        }
         // Fail open: email delivery issues must not look like checkout failed.
       }
     } catch (error) {

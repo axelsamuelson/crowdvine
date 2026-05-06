@@ -1,7 +1,9 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { sendEmail } from "@/lib/email";
 
 /**
- * Trigger payment notifications for all pending reservations in a completed pallet
+ * Trigger payment notifications for all pending reservations in a completed pallet.
+ * @todo No importers in this repository — wire from pallet completion / admin flow when this path goes live.
  */
 export async function triggerPaymentNotifications(
   palletId: string,
@@ -145,7 +147,7 @@ async function sendPaymentNotification(reservation: any): Promise<void> {
 }
 
 /**
- * Send payment ready email using SendGrid
+ * Send payment ready email (Resend).
  */
 async function sendPaymentReadyEmail(params: {
   to: string;
@@ -161,22 +163,12 @@ async function sendPaymentReadyEmail(params: {
   );
 
   try {
-    // Import SendGrid client
-    const sgMail = await import("@sendgrid/mail");
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
-
-    const msg = {
+    await sendEmail({
       to: params.to,
-      from: {
-        email: process.env.SENDGRID_FROM_EMAIL!,
-        name: process.env.SENDGRID_FROM_NAME || "PACT",
-      },
       subject: `🍷 Your Pallet is Ready`,
       html: generatePaymentEmailHTML(params),
       text: generatePaymentEmailText(params),
-    };
-
-    await sgMail.send(msg);
+    });
     console.log(`✅ [Email] Payment ready email sent to ${params.to}`);
   } catch (error) {
     console.error(
@@ -398,17 +390,7 @@ async function sendPaymentReminderEmail(params: {
   hoursRemaining: number;
   reservationId: string;
 }): Promise<void> {
-  const sgMail = await import("@sendgrid/mail");
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
-
-  const msg = {
-    to: params.to,
-    from: {
-      email: process.env.SENDGRID_FROM_EMAIL!,
-      name: process.env.SENDGRID_FROM_NAME || "PACT",
-    },
-    subject: `⏰ Payment Reminder - ${params.hoursRemaining} hours remaining`,
-    html: `
+  const html = `
       <h2>Payment Reminder</h2>
       <p>Hi ${params.name},</p>
       <p>This is a friendly reminder that your payment for <strong>"${params.palletName}"</strong> is due soon.</p>
@@ -426,8 +408,8 @@ async function sendPaymentReminderEmail(params: {
       </a>
       
       <p>If you don't complete payment by the deadline, your reservation will be released.</p>
-    `,
-    text: `
+    `;
+  const text = `
 Payment Reminder
 
 Hi ${params.name},
@@ -441,8 +423,12 @@ Please complete your payment to secure your reservation:
 ${params.paymentLink}
 
 If you don't complete payment by the deadline, your reservation will be released.
-    `,
-  };
+    `;
 
-  await sgMail.send(msg);
+  await sendEmail({
+    to: params.to,
+    subject: `⏰ Payment Reminder - ${params.hoursRemaining} hours remaining`,
+    html,
+    text,
+  });
 }

@@ -48,7 +48,7 @@ export async function sendOperationsWeeklyDigestTestEmail(): Promise<{
     if (!sent) {
       return {
         ok: false,
-        error: "SendGrid returnerade false (kolla API-nyckel och avsändare).",
+        error: "Resend returnerade fel (kolla RESEND_API_KEY och avsändare).",
       }
     }
     return { ok: true }

@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       text: textTemplate,
     });
 
-    console.log("🔥 HOTMAIL OPTIMIZED: SendGrid result:", emailSent);
+    console.log("🔥 HOTMAIL OPTIMIZED: Resend / mail result:", emailSent);
 
     if (emailSent) {
       console.log("✅ HOTMAIL OPTIMIZED: Email sent successfully to:", email);

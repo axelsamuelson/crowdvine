@@ -25,7 +25,7 @@ All project documentation is organized in the `docs/` directory:
 npm install
 ```
 
-2. Create `.env.local` with your Supabase, Stripe, and SendGrid credentials:
+2. Create `.env.local` with your Supabase, Stripe, and Resend credentials:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
@@ -34,9 +34,9 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
 STRIPE_SECRET_KEY=your_stripe_secret_key
 STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
-SENDGRID_API_KEY=your_sendgrid_api_key
-SENDGRID_FROM_EMAIL=noreply@yourdomain.com
-SENDGRID_FROM_NAME=CrowdVine
+RESEND_API_KEY=re_xxxxxxxx
+# Optional: verified sender in Resend (default PACT <noreply@pactwines.com>)
+# RESEND_FROM=PACT <orders@yourdomain.com>
 APP_URL=http://localhost:3000
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```

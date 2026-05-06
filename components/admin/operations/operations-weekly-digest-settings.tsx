@@ -82,17 +82,13 @@ export function OperationsWeeklyDigestSettings({
               När detta är på skickas varje <strong>söndag kl. 12</strong>{" "}
               (Europa/Stockholm) ett e-postmeddelande till alla konton med rollen
               admin. Mailet sammanfattar nya tasks, projekt, kommentarer och
-              task-aktivitet under de senaste sju dagarna.               Använder samma SendGrid-variabler som övriga utskick i projektet (
+              task-aktivitet under de senaste sju dagarna. Använder samma Resend-nyckel som övriga utskick (
               <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[11px] dark:bg-zinc-800">
-                SENDGRID_API_KEY
+                RESEND_API_KEY
               </code>
-              ,{" "}
+              ; valfritt{" "}
               <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[11px] dark:bg-zinc-800">
-                SENDGRID_FROM_EMAIL
-              </code>
-              ,{" "}
-              <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[11px] dark:bg-zinc-800">
-                SENDGRID_FROM_NAME
+                RESEND_FROM
               </code>
               ). Schemalagd körning via Vercel Cron kräver även{" "}
               <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[11px] dark:bg-zinc-800">

@@ -1,3 +1,7 @@
+// DEPRECATED: SendGrid test script — migrated to Resend (`lib/email.ts`, `RESEND_API_KEY`). Do not use until rewritten.
+
+/*
+
 // Script to send test emails for building sender reputation
 // Run this daily to improve email deliverability speed
 
@@ -119,3 +123,5 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 }
 
 export { sendTestEmails };
+
+*/

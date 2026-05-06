@@ -1,3 +1,5 @@
+// LEGACY - unused: no app/TS imports; SMTP-based path superseded by Resend (`lib/email.ts` + `lib/sendgrid-service.ts`).
+// Kept for reference / possible future migration of old templates. Do not delete until explicitly retired.
 import nodemailer from "nodemailer";
 
 interface EmailConfig {

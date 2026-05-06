@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
       text: textTemplate,
     });
 
-    console.log("DEBUG: SendGrid result:", emailSent);
+    console.log("DEBUG: Resend / mail result:", emailSent);
 
     if (emailSent) {
       console.log("DEBUG: Approval email sent successfully to:", email);
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
         email,
       );
       return NextResponse.json(
-        { error: "Failed to send approval email - SendGrid returned false" },
+        { error: "Failed to send approval email - mail provider returned false" },
         { status: 500 },
       );
     }

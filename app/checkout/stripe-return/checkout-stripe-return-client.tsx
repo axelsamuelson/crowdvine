@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
@@ -22,7 +22,11 @@ function isSwedishLocale(): boolean {
 export function CheckoutStripeReturnClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const isSv = useMemo(() => isSwedishLocale(), []);
+  // SSR + first client paint must match (no document/navigator on server).
+  const [uiIsSv, setUiIsSv] = useState(false);
+  useLayoutEffect(() => {
+    setUiIsSv(isSwedishLocale());
+  }, []);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +35,7 @@ export function CheckoutStripeReturnClient() {
     let cancelled = false;
 
     async function run() {
+      const sv = isSwedishLocale();
       const redirectStatus = searchParams.get("redirect_status");
 
       const setupIntent = searchParams.get("setup_intent");
@@ -40,7 +45,7 @@ export function CheckoutStripeReturnClient() {
       if (redirectStatus === "failed") {
         setLoading(false);
         setError(
-          isSv
+          sv
             ? "Din betalmetod kunde inte verifieras. Försök igen eller använd ett annat kort."
             : "Your payment method could not be verified. Please try again or use another card.",
         );
@@ -56,7 +61,7 @@ export function CheckoutStripeReturnClient() {
       ) {
         setLoading(false);
         setError(
-          isSv
+          sv
             ? "Vi kunde inte verifiera betalningen. Försök igen."
             : "We could not verify the payment. Please try again.",
         );
@@ -80,7 +85,7 @@ export function CheckoutStripeReturnClient() {
       if (!intentId || !intentType) {
         setLoading(false);
         setError(
-          isSv
+          sv
             ? "Saknar betalningsinformation från Stripe. Gå tillbaka och försök igen."
             : "Missing payment information from Stripe. Please go back and try again.",
         );
@@ -90,13 +95,22 @@ export function CheckoutStripeReturnClient() {
       try {
         const res = await fetch("/api/checkout/confirm-stripe-return", {
           method: "POST",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ intentId, intentType }),
         });
 
         const data: unknown = await res.json().catch(() => null);
-        if (!res.ok || !data || typeof data !== "object") {
-          throw new Error("Failed to finalize checkout");
+        if (!data || typeof data !== "object") {
+          if (!cancelled) {
+            setLoading(false);
+            setError(
+              sv
+                ? "Kunde inte läsa svar från servern. Försök igen."
+                : "Failed to finalize checkout",
+            );
+          }
+          return;
         }
 
         const d = data as {
@@ -118,19 +132,35 @@ export function CheckoutStripeReturnClient() {
         const msg =
           typeof d.error === "string" && d.error.trim()
             ? d.error.trim()
-            : isSv
-              ? "Din betalmetod kunde inte verifieras. Försök igen eller använd ett annat kort."
-              : "Your payment method could not be verified. Please try again or use another card.";
+            : !res.ok
+              ? sv
+                ? "Kunde inte slutföra checkout. Försök igen."
+                : "Failed to finalize checkout"
+              : sv
+                ? "Din betalmetod kunde inte verifieras. Försök igen eller använd ett annat kort."
+                : "Your payment method could not be verified. Please try again or use another card.";
         if (!cancelled) {
           setLoading(false);
           setError(msg);
+        }
+        if (!res.ok) {
+          const errPart =
+            typeof d.error === "string" && d.error.trim()
+              ? d.error.trim()
+              : d.error != null
+                ? JSON.stringify(d.error)
+                : "(no error field)";
+          // Single line: some devtools collapse object literals to "{}".
+          console.error(
+            `[stripe-return] confirm-stripe-return failed status=${String(res.status)} statusText=${res.statusText} error=${errPart} body=${JSON.stringify(data)}`,
+          );
         }
       } catch (e) {
         console.error("[stripe-return] finalize error:", e);
         if (!cancelled) {
           setLoading(false);
           setError(
-            isSv
+            sv
               ? "Din betalmetod kunde inte verifieras. Försök igen eller använd ett annat kort."
               : "Your payment method could not be verified. Please try again or use another card.",
           );
@@ -145,7 +175,7 @@ export function CheckoutStripeReturnClient() {
     return () => {
       cancelled = true;
     };
-  }, [isSv, searchParams]);
+  }, [searchParams]);
 
   if (loading && !error) {
     return (
@@ -153,10 +183,10 @@ export function CheckoutStripeReturnClient() {
         <div className="mx-auto max-w-md space-y-3 p-6 pt-top-spacing text-center">
           <div className="mx-auto h-10 w-10 animate-spin rounded-full border-b-2 border-foreground" />
           <h1 className="text-lg font-medium text-foreground">
-            {isSv ? "Slutför din reservation…" : "Finalizing your reservation…"}
+            {uiIsSv ? "Slutför din reservation…" : "Finalizing your reservation…"}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {isSv
+            {uiIsSv
               ? "Vänta medan vi verifierar betalningen."
               : "Please wait while we verify your payment."}
           </p>
@@ -170,7 +200,7 @@ export function CheckoutStripeReturnClient() {
       <main className="min-h-screen bg-background">
         <div className="mx-auto max-w-md space-y-4 p-6 pt-top-spacing text-center">
           <h1 className="text-lg font-medium text-foreground">
-            {isSv ? "Betalningen misslyckades" : "Payment failed"}
+            {uiIsSv ? "Betalningen misslyckades" : "Payment failed"}
           </h1>
           <p className="text-sm text-muted-foreground">{error}</p>
           <div className="flex flex-col gap-2">
@@ -178,7 +208,7 @@ export function CheckoutStripeReturnClient() {
               onClick={() => router.replace("/checkout")}
               className="w-full"
             >
-              {isSv ? "Tillbaka till checkout" : "Back to checkout"}
+              {uiIsSv ? "Tillbaka till checkout" : "Back to checkout"}
             </Button>
           </div>
         </div>

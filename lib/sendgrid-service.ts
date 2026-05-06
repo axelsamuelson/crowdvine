@@ -1,4 +1,4 @@
-import sgMail from "@sendgrid/mail";
+import { sendEmail } from "@/lib/email";
 import {
   getWelcomeEmailTemplate,
   getWelcomeEmailText,
@@ -32,10 +32,17 @@ async function getLogoForEmail(): Promise<string | null> {
   }
 }
 
-// Initialize SendGrid
-if (process.env.SENDGRID_API_KEY) {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-}
+export type SendEmailResult =
+  | { ok: true }
+  | { ok: false; code: "missing_api_key" | "send_failed"; message: string };
+
+export type SendOrderConfirmationResult =
+  | { ok: true }
+  | {
+      ok: false;
+      code: "missing_api_key" | "template_error" | "send_failed";
+      message: string;
+    };
 
 interface EmailData {
   to: string;
@@ -43,8 +50,20 @@ interface EmailData {
   html: string;
   text?: string;
   from?: string;
-  /** Neutral headers/categories (not \"urgent\" approval-mail metadata). */
-  emailKind?: "default" | "operations_digest";
+  /**
+   * Hint for logging only (Resend has no SendGrid-style categories).
+   * - `operations_digest` — internal weekly digest
+   * - `transactional` — receipts / order confirmation
+   * - `undefined` — other admin / transactional mail
+   */
+  emailKind?: "operations_digest" | "transactional";
+}
+
+function formatEmailSendError(error: unknown): string {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message.trim();
+  }
+  return "Email send failed";
 }
 
 interface OrderConfirmationData {
@@ -77,126 +96,102 @@ interface WelcomeEmailData {
 }
 
 class SendGridService {
-  private fromEmail: string;
-  private fromName: string;
-
-  constructor() {
-    this.fromEmail = process.env.SENDGRID_FROM_EMAIL || "noreply@pactwines.com";
-    this.fromName = process.env.SENDGRID_FROM_NAME || "CrowdVine";
-  }
-
-  async sendEmail(data: EmailData): Promise<boolean> {
-    if (!process.env.SENDGRID_API_KEY) {
-      console.error("❌ SENDGRID ERROR: API key not configured!");
+  async sendEmailDetailed(data: EmailData): Promise<SendEmailResult> {
+    if (!process.env.RESEND_API_KEY?.trim()) {
+      console.error("❌ RESEND ERROR: API key not configured!");
       console.error(
-        "Please set SENDGRID_API_KEY in Vercel environment variables.",
+        "Please set RESEND_API_KEY in Vercel environment variables or .env.local.",
       );
-      console.error("For development, you can set it in .env.local file.");
-      return false;
+      return {
+        ok: false,
+        code: "missing_api_key",
+        message:
+          "RESEND_API_KEY is not set. Add it to .env.local (dev) or the host environment (prod).",
+      };
     }
 
-    const isDigest = data.emailKind === "operations_digest";
+    const from =
+      data.from?.trim() ||
+      process.env.RESEND_FROM?.trim() ||
+      "PACT <noreply@pactwines.com>";
+    const textContent = data.text || this.stripHtml(data.html);
 
-    const msg = {
+    console.log("📧 Sending email via Resend:", {
       to: data.to,
-      from: {
-        email: data.from || this.fromEmail,
-        name: this.fromName,
-      },
+      from,
       subject: data.subject,
-      html: data.html,
-      text: data.text || this.stripHtml(data.html),
-      headers: isDigest
-        ? {
-            "X-Mailer": "CrowdVine Operations",
-          }
-        : {
-            "X-Mailer": "PACT Wines Platform",
-            "X-Priority": "1", // High priority
-            "X-MSMail-Priority": "High",
-            Importance: "High",
-            "List-Unsubscribe": "<mailto:unsubscribe@pactwines.com>",
-            "X-Mailgun-Tag": "approval-email",
-            "X-Custom-Header": "urgent-delivery",
-          },
-      trackingSettings: {
-        clickTracking: {
-          enable: true,
-          enableText: false,
-        },
-        openTracking: {
-          enable: true,
-          substitutionTag: "%open-track%",
-        },
-      },
-      mailSettings: isDigest
-        ? {
-            footer: { enable: false },
-            sandboxMode: { enable: false },
-          }
-        : {
-            spamCheck: {
-              enable: true,
-              threshold: 3, // Lower threshold for better delivery
-              postToUrl: "https://pactwines.com/api/spam-webhook",
-            },
-            footer: {
-              enable: false,
-            },
-            sandboxMode: {
-              enable: false, // Make sure sandbox mode is off
-            },
-          },
-      categories: isDigest
-        ? ["operations-weekly-digest"]
-        : ["approval-email", "urgent", "hotmail-optimized"],
-    };
-
-    console.log("📧 Attempting to send email via SendGrid:", {
-      to: data.to,
-      from: msg.from,
-      subject: data.subject,
-      hasApiKey: !!process.env.SENDGRID_API_KEY,
-      apiKeyLength: process.env.SENDGRID_API_KEY?.length,
+      emailKind: data.emailKind ?? "default",
     });
 
     try {
-      const result = await sgMail.send(
-        msg as Parameters<typeof sgMail.send>[0],
-      );
+      await sendEmail({
+        to: data.to,
+        subject: data.subject,
+        html: data.html,
+        text: textContent,
+        from,
+      });
       console.log(`✅ Email sent successfully to ${data.to}`);
-      console.log("SendGrid response:", result);
-      return true;
+      return { ok: true };
     } catch (error: unknown) {
-      console.error("❌ SendGrid error:", error);
-      const errRec = error as {
-        response?: { status?: number; body?: unknown };
-        message?: string;
+      console.error("❌ Resend / email send error:", error);
+      return {
+        ok: false,
+        code: "send_failed",
+        message: formatEmailSendError(error),
       };
-      if (errRec.response) {
-        console.error("SendGrid response status:", errRec.response.status);
-        console.error(
-          "SendGrid response body:",
-          JSON.stringify(errRec.response.body, null, 2),
-        );
-      }
-      if (errRec.message) {
-        console.error("SendGrid error message:", errRec.message);
-      }
-      return false;
     }
   }
 
-  async sendOrderConfirmation(data: OrderConfirmationData): Promise<boolean> {
-    const html = await this.getOrderConfirmationTemplate(data);
-    const text = this.getOrderConfirmationText(data);
+  async sendEmail(data: EmailData): Promise<boolean> {
+    const r = await this.sendEmailDetailed(data);
+    return r.ok;
+  }
 
-    return this.sendEmail({
+  async sendOrderConfirmation(data: OrderConfirmationData): Promise<boolean> {
+    const r = await this.sendOrderConfirmationDetailed(data);
+    return r.ok;
+  }
+
+  async sendOrderConfirmationDetailed(
+    data: OrderConfirmationData,
+  ): Promise<SendOrderConfirmationResult> {
+    if (!process.env.RESEND_API_KEY?.trim()) {
+      return {
+        ok: false,
+        code: "missing_api_key",
+        message:
+          "RESEND_API_KEY is not set. Add it to .env.local (dev) or the host environment (prod).",
+      };
+    }
+    let html: string;
+    let text: string;
+    try {
+      html = await this.getOrderConfirmationTemplate(data);
+      text = this.getOrderConfirmationText(data);
+    } catch (error: unknown) {
+      console.error("❌ Order confirmation template error:", error);
+      return {
+        ok: false,
+        code: "template_error",
+        message:
+          error instanceof Error ? error.message : "Failed to build email HTML",
+      };
+    }
+
+    const sent = await this.sendEmailDetailed({
       to: data.customerEmail,
       subject: `Order Confirmation - ${data.orderId}`,
       html,
       text,
+      emailKind: "transactional",
     });
+    if (sent.ok) return { ok: true };
+    return {
+      ok: false,
+      code: sent.code,
+      message: sent.message,
+    };
   }
 
   async sendWelcomeEmail(data: WelcomeEmailData): Promise<boolean> {

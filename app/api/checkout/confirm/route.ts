@@ -882,7 +882,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const withinTolerance = (a: number, b: number) => Math.abs(a - b) <= 1;
+    // Keep in sync with /api/checkout/confirm-stripe-return (float / line-sum drift).
+    const withinTolerance = (a: number, b: number) => Math.abs(a - b) <= 10;
 
     let stripePaymentMethodId: string | null = null;
 
@@ -1252,25 +1253,70 @@ export async function POST(request: Request) {
       }
     }
 
-    const payUpdate =
+    // Unique partial indexes (migration 138) allow each setup_intent_id / payment_intent_id
+    // on at most one row. Multi-producer B2C checkout creates one reservation per producer but
+    // a single Stripe intent for the whole cart — attach intent id only to the primary row;
+    // siblings share payment_method_id + mode + status (auto-charge recomputes amount per row).
+    const payIds = reservationIdsForPayment.filter(
+      (id): id is string => typeof id === "string" && id.trim().length > 0,
+    );
+    if (payIds.length === 0) {
+      console.error("[Checkout API] reservationIdsForPayment empty before Stripe attach");
+      if (b2cProducerCheckout) await rollbackCheckoutGroup();
+      else if (reservation?.id) {
+        await sbAdmin.from("order_reservations").delete().eq("id", reservation.id);
+      }
+      return NextResponse.json(
+        { error: "Failed to attach Stripe intent" },
+        { status: 500 },
+      );
+    }
+    const [primaryReservationId, ...siblingPayIds] = payIds;
+
+    const siblingPayUpdate =
       intentType === "setup_intent"
         ? {
-            setup_intent_id: intentId,
             payment_method_id: stripePaymentMethodId,
             payment_mode: "setup_intent" as const,
             payment_status: "pending" as const,
           }
         : {
-            payment_intent_id: intentId,
             payment_method_id: stripePaymentMethodId,
             payment_mode: "payment_intent" as const,
             payment_status: "paid" as const,
           };
 
+    const primaryPayUpdate =
+      intentType === "setup_intent"
+        ? { ...siblingPayUpdate, setup_intent_id: intentId }
+        : { ...siblingPayUpdate, payment_intent_id: intentId };
+
+    if (siblingPayIds.length > 0) {
+      const { error: siblingPayErr } = await sbAdmin
+        .from("order_reservations")
+        .update(siblingPayUpdate)
+        .in("id", siblingPayIds);
+      if (siblingPayErr) {
+        console.error(
+          "[Checkout API] Failed to update sibling reservation payment fields:",
+          siblingPayErr,
+        );
+        if (b2cProducerCheckout) {
+          await rollbackCheckoutGroup();
+        } else {
+          await sbAdmin.from("order_reservations").delete().eq("id", reservation.id);
+        }
+        return NextResponse.json(
+          { error: "Failed to attach Stripe intent" },
+          { status: 500 },
+        );
+      }
+    }
+
     const { error: payAttachErr } = await sbAdmin
       .from("order_reservations")
-      .update(payUpdate)
-      .in("id", reservationIdsForPayment);
+      .update(primaryPayUpdate)
+      .eq("id", primaryReservationId);
 
     if (payAttachErr) {
       console.error("[Checkout API] Failed to update reservation payment fields:", payAttachErr);
