@@ -26,6 +26,10 @@ export const navItems: NavItem[] = [
     label: "shop all",
     href: "/shop",
   },
+  {
+    label: "hitta vin",
+    href: "/wine-search",
+  },
 ];
 
 interface HeaderProps {

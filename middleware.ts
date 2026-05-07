@@ -42,6 +42,7 @@ async function runMiddleware(req: NextRequest) {
     "/auth/auth-code-error",
     "/forgot-password",
     "/tasting", // Allow tasting pages for guests
+    "/wine-search", // Public wine list search (no login)
     "/api/stripe/webhook",
     "/api/cron",
   ];

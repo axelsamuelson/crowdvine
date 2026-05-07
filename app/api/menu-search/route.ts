@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import type { MenuSearchResponse, MenuSearchVenue, MenuSearchWine } from "@/lib/menu-search-types";
 
+/** Row shape returned by Postgres search_menu_wines (service_role RPC). */
 type RpcWineRow = {
   row_id: string;
   producer: string | null;
@@ -20,12 +21,19 @@ type RpcWineRow = {
   match_score: number | null;
 };
 
-function parseIntParam(v: string | null): number | null {
-  if (v == null || v.trim() === "") return null;
-  const n = Number.parseInt(v, 10);
+function parseIntParam(value: string | null): number | null {
+  if (value == null || value.trim() === "") return null;
+  const n = Number.parseInt(value, 10);
   return Number.isFinite(n) ? n : null;
 }
 
+function parseBoolParam(value: string | null): boolean {
+  if (value == null || value.trim() === "") return false;
+  const t = value.trim().toLowerCase();
+  return t === "true" || t === "1" || t === "yes";
+}
+
+/** Map query param to DB wine_type (DB uses e.g. rose, not rosé). */
 function mapWineTypeParam(raw: string | null): string | null {
   if (!raw?.trim()) return null;
   const t = raw.trim().toLowerCase();
@@ -43,6 +51,24 @@ function mapWineTypeParam(raw: string | null): string | null {
   return map[t] ?? null;
 }
 
+function rpcRowToWine(r: RpcWineRow): MenuSearchWine {
+  return {
+    producer: r.producer,
+    wine_name: r.wine_name,
+    vintage: r.vintage,
+    region: r.region,
+    country: r.country,
+    wine_type: r.wine_type,
+    price_bottle: r.price_bottle != null ? Number(r.price_bottle) : null,
+    price_glass: r.price_glass != null ? Number(r.price_glass) : null,
+    currency: r.currency,
+  };
+}
+
+/**
+ * Group flat RPC rows into venue cards, then sort by match_count DESC,
+ * then cheapest_bottle ASC (nulls last).
+ */
 function groupRowsToVenues(rows: RpcWineRow[]): MenuSearchVenue[] {
   const bySlug = new Map<
     string,
@@ -57,6 +83,7 @@ function groupRowsToVenues(rows: RpcWineRow[]): MenuSearchVenue[] {
   for (const r of rows) {
     const slug = r.source_slug?.trim() || "";
     if (!slug) continue;
+
     if (!bySlug.has(slug)) {
       bySlug.set(slug, {
         slug,
@@ -65,21 +92,11 @@ function groupRowsToVenues(rows: RpcWineRow[]): MenuSearchVenue[] {
         wines: [],
       });
     }
-    const v = bySlug.get(slug)!;
-    if (r.extracted_at && (!v.extracted_at || r.extracted_at > v.extracted_at)) {
-      v.extracted_at = r.extracted_at;
+    const venue = bySlug.get(slug)!;
+    if (r.extracted_at && (!venue.extracted_at || r.extracted_at > venue.extracted_at)) {
+      venue.extracted_at = r.extracted_at;
     }
-    v.wines.push({
-      producer: r.producer,
-      wine_name: r.wine_name,
-      vintage: r.vintage,
-      region: r.region,
-      country: r.country,
-      wine_type: r.wine_type,
-      price_bottle: r.price_bottle != null ? Number(r.price_bottle) : null,
-      price_glass: r.price_glass != null ? Number(r.price_glass) : null,
-      currency: r.currency,
-    });
+    venue.wines.push(rpcRowToWine(r));
   }
 
   const venues: MenuSearchVenue[] = [];
@@ -107,19 +124,21 @@ function groupRowsToVenues(rows: RpcWineRow[]): MenuSearchVenue[] {
   return venues;
 }
 
+type LegacySearchParams = {
+  q: string;
+  city: string;
+  minPrice: number | null;
+  maxPrice: number | null;
+  wineType: string | null;
+  byGlass: boolean;
+};
+
 /**
- * Legacy in-memory search (previous implementation) when RPC is unavailable.
+ * In-memory fallback when search_menu_wines / count RPC fails (same response shape, `_fallback: true`).
  */
 async function legacyMenuSearch(
   sb: ReturnType<typeof getSupabaseAdmin>,
-  params: {
-    q: string;
-    city: string;
-    minPrice: number | null;
-    maxPrice: number | null;
-    wineType: string | null;
-    byGlass: boolean;
-  }
+  params: LegacySearchParams,
 ): Promise<MenuSearchResponse> {
   const { q, city, minPrice, maxPrice, wineType, byGlass } = params;
   const qLower = q.toLowerCase();
@@ -150,16 +169,24 @@ async function legacyMenuSearch(
 
   const { data: docs, error: docsError } = await sb
     .from("menu_documents")
-    .select("id, source_slug, extracted_at")
+    .select("id, source_slug, updated_at, extracted_at")
     .eq("extraction_status", "completed")
     .in("source_slug", Array.from(slugSet));
   if (docsError) throw new Error(docsError.message);
 
   const docIds = (docs ?? []).map((d: { id: string }) => d.id);
   const docById: Record<string, { source_slug: string | null; extracted_at: string | null }> = {};
-  (docs ?? []).forEach((d: { id: string; source_slug: string | null; extracted_at: string | null }) => {
-    docById[d.id] = { source_slug: d.source_slug, extracted_at: d.extracted_at };
-  });
+  (docs ?? []).forEach(
+    (d: {
+      id: string;
+      source_slug: string | null;
+      updated_at: string | null;
+      extracted_at: string | null;
+    }) => {
+      const at = d.updated_at ?? d.extracted_at ?? null;
+      docById[d.id] = { source_slug: d.source_slug, extracted_at: at };
+    },
+  );
 
   if (docIds.length === 0) {
     return {
@@ -176,7 +203,7 @@ async function legacyMenuSearch(
   const { data: rowsRaw, error: rowsError } = await sb
     .from("menu_extracted_rows")
     .select(
-      "id, document_id, wine_name, producer, vintage, region, country, wine_type, price_glass, price_bottle, currency, needs_review, row_type"
+      "id, document_id, wine_name, producer, vintage, region, country, wine_type, price_glass, price_bottle, currency, needs_review, row_type",
     )
     .eq("row_type", "wine_row")
     .eq("needs_review", false)
@@ -222,8 +249,8 @@ async function legacyMenuSearch(
       region: r.region,
       country: r.country,
       wine_type: r.wine_type,
-      price_bottle: r.price_bottle != null ? Number(r.price_bottle) : null,
-      price_glass: r.price_glass != null ? Number(r.price_glass) : null,
+      price_bottle: r.price_bottle != null ? Math.round(Number(r.price_bottle)) : null,
+      price_glass: r.price_glass != null ? Math.round(Number(r.price_glass)) : null,
       currency: r.currency,
       confidence: null,
       source_slug: slug,
@@ -246,8 +273,10 @@ async function legacyMenuSearch(
 }
 
 /**
- * GET /api/menu-search — production wine search (Postgres + pg_trgm).
- * Query: q, city, min_price, max_price, wine_type, by_glass, page, per_page
+ * GET /api/menu-search
+ *
+ * Query: q (min 2), city, min_price, max_price, wine_type, by_glass, page, per_page
+ * Uses Postgres search_menu_wines + count_search_menu_wines; falls back to legacy in-memory search on RPC failure.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -264,13 +293,13 @@ export async function GET(request: NextRequest) {
         per_page: 20,
         venues: [],
         message: "Query q must be at least 2 characters",
-      });
+      } satisfies MenuSearchResponse & { message: string });
     }
 
     const minPrice = parseIntParam(searchParams.get("min_price"));
     const maxPrice = parseIntParam(searchParams.get("max_price"));
     const wineType = mapWineTypeParam(searchParams.get("wine_type"));
-    const byGlass = searchParams.get("by_glass") === "true";
+    const byGlass = parseBoolParam(searchParams.get("by_glass"));
 
     let page = parseIntParam(searchParams.get("page")) ?? 1;
     if (page < 1) page = 1;
@@ -290,7 +319,6 @@ export async function GET(request: NextRequest) {
         p_wine_type: wineType,
         p_by_glass: byGlass,
       });
-
       if (countErr) throw countErr;
 
       const totalMatches = Number(countData ?? 0);
@@ -305,7 +333,6 @@ export async function GET(request: NextRequest) {
         p_limit: perPage,
         p_offset: offset,
       });
-
       if (searchErr) throw searchErr;
 
       const venues = groupRowsToVenues((rows ?? []) as RpcWineRow[]);
