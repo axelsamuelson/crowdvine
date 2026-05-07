@@ -23,6 +23,7 @@ import {
   TrendingUp,
   Building2,
   Sparkles,
+  Search,
   ListTodo,
   FolderKanban,
   Target,
@@ -117,6 +118,7 @@ const navigationGroups: NavGroup[] = [
     icon: Sparkles,
     items: [
       { name: "Menyextraktion", href: "/admin/menu-extraction", icon: Sparkles },
+      { name: "Hitta vin", href: "/admin/wine-search", icon: Search },
     ],
   },
   {

@@ -11,6 +11,7 @@ import {
   Shield,
   FileText,
   Sparkles,
+  Search,
   ArrowRight,
   Plus,
   CheckCircle,
@@ -309,6 +310,7 @@ export default async function AdminDashboard() {
               { href: "/admin/b2c-orders", label: "B2C Orders", icon: Calendar },
               { href: "/admin/content", label: "Content", icon: FileText },
               { href: "/admin/menu-extraction", label: "Menyextraktion", icon: Sparkles },
+              { href: "/admin/wine-search", label: "Hitta vin", icon: Search },
             ].map((action) => (
               <Link
                 key={action.href}

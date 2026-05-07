@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
+import { appendCanvasToPdfAsA4Pages } from "@/lib/pdf-html2canvas-a4-multipage";
 import { v4 as uuidv4 } from "uuid";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -480,17 +481,13 @@ export default function InvoiceGenerator(props?: InvoiceGeneratorProps) {
         logging: false,
       });
 
-      const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",
         format: "a4",
       });
 
-      const imgWidth = 210;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+      appendCanvasToPdfAsA4Pages(pdf, canvas);
       pdf.save(`invoice-${invoiceData.invoiceNumber}.pdf`);
     }
   };

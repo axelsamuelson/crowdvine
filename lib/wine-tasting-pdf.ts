@@ -5,6 +5,7 @@
 
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
+import { appendCanvasToPdfAsA4Pages } from "@/lib/pdf-html2canvas-a4-multipage";
 
 export type { TastingPdfWine, TastingPdfSession } from "@/components/admin/tasting-pdf-template";
 
@@ -53,9 +54,6 @@ export function waitForImages(element: HTMLElement): Promise<void> {
   ).then(() => {});
 }
 
-const A4_WIDTH_MM = 210;
-const A4_HEIGHT_MM = 297;
-
 /**
  * Capture the given element with html2canvas (same as invoice) and save as PDF.
  * If content is taller than one page, splits into multiple pages.
@@ -79,35 +77,6 @@ export async function captureTastingPdfToDownload(
     format: "a4",
   });
 
-  const totalHeightMm = (canvas.height * A4_WIDTH_MM) / canvas.width;
-  const pageHeightPx = (A4_HEIGHT_MM / A4_WIDTH_MM) * canvas.width;
-
-  if (totalHeightMm <= A4_HEIGHT_MM) {
-    const imgData = canvas.toDataURL("image/png");
-    const imgHeightMm = totalHeightMm;
-    pdf.addImage(imgData, "PNG", 0, 0, A4_WIDTH_MM, imgHeightMm);
-  } else {
-    let yPx = 0;
-    let isFirstPage = true;
-    while (yPx < canvas.height) {
-      if (!isFirstPage) pdf.addPage();
-      const sliceHeightPx = Math.min(pageHeightPx, canvas.height - yPx);
-      const sliceCanvas = document.createElement("canvas");
-      sliceCanvas.width = canvas.width;
-      sliceCanvas.height = sliceHeightPx;
-      const ctx = sliceCanvas.getContext("2d");
-      if (ctx) {
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
-        ctx.drawImage(canvas, 0, yPx, canvas.width, sliceHeightPx, 0, 0, canvas.width, sliceHeightPx);
-      }
-      const imgData = sliceCanvas.toDataURL("image/png");
-      const sliceHeightMm = (sliceHeightPx * A4_WIDTH_MM) / canvas.width;
-      pdf.addImage(imgData, "PNG", 0, 0, A4_WIDTH_MM, sliceHeightMm);
-      yPx += sliceHeightPx;
-      isFirstPage = false;
-    }
-  }
-
+  appendCanvasToPdfAsA4Pages(pdf, canvas);
   pdf.save(fileName);
 }

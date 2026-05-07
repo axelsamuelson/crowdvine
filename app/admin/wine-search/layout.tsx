@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description: "Sök var viner serveras på restauranger i Stockholm (Starwinelist).",
 };
 
-export default function WineSearchLayout({
+export default function AdminWineSearchLayout({
   children,
 }: {
   children: ReactNode;
