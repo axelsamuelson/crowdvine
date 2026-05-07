@@ -12,7 +12,7 @@ import {
   upsertStarwinelistSource,
 } from "./db";
 import { extractMenuFromDocument } from "./service";
-import { BrowserlessError } from "./browserless-adapter";
+import { BrowserAdapterError } from "./browser-adapter-error";
 import { uploadPdfToStorage } from "./storage";
 import { sha256Hex } from "./checksum";
 import {
@@ -32,10 +32,12 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Crawl a single restaurant: fetch page, optionally download PDF, create menu_document, trigger extraction (Claude reads PDF from storage).
+ * Crawl a single restaurant: fetch page, optionally download PDF, create menu_document, optionally trigger extraction (Claude reads PDF from storage).
+ * @param extractAfterCrawl When true (default), runs extractMenuFromDocument after upload. Cron crawl passes false.
  */
 export async function crawlRestaurant(
-  source: StarwinelistSource
+  source: StarwinelistSource,
+  extractAfterCrawl: boolean = true
 ): Promise<CrawlResult> {
   const result: CrawlResult = {
     slug: source.slug,
@@ -142,16 +144,18 @@ export async function crawlRestaurant(
       source_slug: source.slug,
     });
 
-    try {
-      const extractionResult = await extractMenuFromDocument(doc.id);
-      result.extracted = true;
-      if (extractionResult.autoCorrection) {
-        result.auto_correction = extractionResult.autoCorrection;
+    if (extractAfterCrawl) {
+      try {
+        const extractionResult = await extractMenuFromDocument(doc.id);
+        result.extracted = true;
+        if (extractionResult.autoCorrection) {
+          result.auto_correction = extractionResult.autoCorrection;
+        }
+      } catch (extractErr) {
+        const msg = extractErr instanceof Error ? extractErr.message : String(extractErr);
+        console.warn("[crawler] Extraction failed for", source.slug, ":", msg);
+        result.extraction_skipped_reason = "extraction_error";
       }
-    } catch (extractErr) {
-      const msg = extractErr instanceof Error ? extractErr.message : String(extractErr);
-      console.warn("[crawler] Extraction failed for", source.slug, ":", msg);
-      result.extraction_skipped_reason = "extraction_error";
     }
 
     await updateStarwinelistSource(source.id, {
@@ -171,7 +175,7 @@ export async function crawlRestaurant(
     return result;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    const is429 = err instanceof BrowserlessError && err.status === 429;
+    const is429 = err instanceof BrowserAdapterError && err.status === 429;
     await updateStarwinelistSource(source.id, {
       crawl_status: "failed",
       last_crawled_at: new Date().toISOString(),
@@ -208,14 +212,16 @@ export async function crawlSingleRestaurant(slug: string): Promise<CrawlResult> 
       city: "stockholm",
     });
   }
-  return crawlRestaurant(source);
+  return crawlRestaurant(source, true);
 }
 
 /**
  * Run full crawl session for a city: get slugs, upsert sources, crawl each with delay, return summary.
+ * @param extractAfterCrawl Passed to crawlRestaurant (false for nightly cron crawl-only job).
  */
 export async function runCrawlSession(
-  city: "stockholm"
+  city: "stockholm",
+  extractAfterCrawl: boolean = true
 ): Promise<CrawlSessionSummary> {
   const summary: CrawlSessionSummary = {
     total_found: 0,
@@ -244,7 +250,7 @@ export async function runCrawlSession(
       source_url: `https://starwinelist.com/wine-place/${slug}`,
       city,
     });
-    const result = await crawlRestaurant(source);
+    const result = await crawlRestaurant(source, extractAfterCrawl);
     if (result.skipped) {
       summary.skipped += 1;
       if (result.skip_reason === "no_update") summary.updated_pdfs += 1;
@@ -281,7 +287,8 @@ export async function runCrawlSession(
  * Run crawl for a fixed list of slugs (no slug discovery). Used for smoke tests and API body.slugs.
  */
 export async function runCrawlForSlugs(
-  slugs: string[]
+  slugs: string[],
+  extractAfterCrawl: boolean = true
 ): Promise<CrawlSessionSummary> {
   const summary: CrawlSessionSummary = {
     total_found: slugs.length,
@@ -311,7 +318,7 @@ export async function runCrawlForSlugs(
         city: "stockholm",
       });
     }
-    const result = await crawlRestaurant(source);
+    const result = await crawlRestaurant(source, extractAfterCrawl);
     if (result.skipped) {
       summary.skipped += 1;
       if (result.skip_reason === "no_update") summary.updated_pdfs += 1;

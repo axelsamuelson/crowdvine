@@ -848,7 +848,8 @@ export async function extractSectionWithSystemPrompt(
  */
 export async function callMenuExtractionModel(
   pdfBuffer: Buffer,
-  documentId: string
+  documentId: string,
+  options: { forceSyncOnly?: boolean } = {}
 ): Promise<{
   result: AIExtractionResult;
   usage: ExtractionUsage;
@@ -872,7 +873,9 @@ export async function callMenuExtractionModel(
   let batchUsage: ExtractionUsage | null = null;
   let usedBatchApi = false;
 
-  if (sectionNames.length > MAX_SECTIONS_FOR_SYNC_BATCH) {
+  const forceSyncOnly = options.forceSyncOnly === true;
+
+  if (!forceSyncOnly && sectionNames.length > MAX_SECTIONS_FOR_SYNC_BATCH) {
     try {
       const batch = await extractSectionsInBatch({ sections: sectionNames, rawText });
       batchMap = batch.map;
@@ -1191,7 +1194,10 @@ export type ExtractionWithAutoCorrectionResult = {
  * raw_text is no longer required; PDF is sent to Claude as document block.
  * Returns auto-correction result when run (for smoke test / logging).
  */
-export async function extractMenuFromDocument(documentId: string): Promise<ExtractionWithAutoCorrectionResult> {
+export async function extractMenuFromDocument(
+  documentId: string,
+  options: { forceSyncOnly?: boolean } = {}
+): Promise<ExtractionWithAutoCorrectionResult> {
   const doc = await getMenuDocumentById(documentId);
   if (!doc) {
     throw new Error(`Menu document not found: ${documentId}`);
@@ -1212,7 +1218,9 @@ export async function extractMenuFromDocument(documentId: string): Promise<Extra
   });
   try {
     const { result, usage, criticStats, usedBatchApi, perSectionMeta, extractionTrace } =
-      await callMenuExtractionModel(pdfBuffer, documentId);
+      await callMenuExtractionModel(pdfBuffer, documentId, {
+        forceSyncOnly: options.forceSyncOnly === true,
+      });
     const normalizedRows = mapAIResultToRows(documentId, result, {}, perSectionMeta);
     await saveMenuExtractionResult({
       documentId,

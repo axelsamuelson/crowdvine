@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth-server";
-import { diagnosePdfUrl } from "@/lib/menu-extraction/browserless-adapter";
+import { diagnosePdfUrl } from "@/lib/menu-extraction/diagnose-pdf-url";
 
 /**
  * POST /api/admin/menu-extraction/crawl/diagnose-pdf

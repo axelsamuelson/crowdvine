@@ -1,6 +1,6 @@
 /**
  * HTTP and parsing for Starwinelist.com.
- * Uses browser adapter (Playwright or Browserless) for headless Chrome – choice via BROWSER_ADAPTER.
+ * Uses browser adapter (Chromium via playwright-core / @sparticuz/chromium on Vercel, or USE_LOCAL_FETCH).
  * TODO(menu-extraction): If Starwinelist changes page structure or adds new listing URLs, update selectors/URLs here.
  */
 
@@ -8,8 +8,8 @@ import {
   fetchRenderedHtml as browserFetchHtml,
   fetchPdfViaFunction,
   fetchPdfDirect,
-  BrowserlessError,
 } from "./browser-adapter";
+import { BrowserAdapterError } from "./browser-adapter-error";
 
 const BASE_URL = "https://starwinelist.com";
 const CRAWL_DELAY_MS = 4000;
@@ -19,8 +19,8 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Fetch HTML via Browserless. Returns null on error (403, timeout, BrowserlessError).
- * When skipDelay is false, waits CRAWL_DELAY_MS before the request to avoid hammering Browserless.
+ * Fetch HTML via Chromium (or plain fetch when USE_LOCAL_FETCH). Returns null on error (403, timeout).
+ * When skipDelay is false, waits CRAWL_DELAY_MS before the request.
  */
 async function fetchHtml(
   url: string,
@@ -32,10 +32,10 @@ async function fetchHtml(
   try {
     return await browserFetchHtml(url);
   } catch (e) {
-    if (e instanceof BrowserlessError && e.status === 429) {
+    if (e instanceof BrowserAdapterError && e.status === 429) {
       throw e;
     }
-    if (e instanceof BrowserlessError) {
+    if (e instanceof BrowserAdapterError) {
       console.warn("[starwinelist-scraper]", e.status, url, e.message);
     } else if (e instanceof Error) {
       console.warn("[starwinelist-scraper] Fetch error:", e.message, url);
@@ -137,7 +137,7 @@ export async function fetchRestaurantPage(slug: string): Promise<{
 }
 
 /**
- * Download PDF: try Browserless /function (session via restaurant page) first, then direct fetch.
+ * Download PDF: browser session (restaurant page → PDF) first, then direct fetch.
  * Returns null on failure; never throws.
  */
 export async function downloadPdf(
@@ -149,13 +149,13 @@ export async function downloadPdf(
     const buf = await fetchPdfViaFunction(restaurantUrl, pdfUrl);
     if (buf && buf.length > 0) return buf;
   } catch (e) {
-    if (e instanceof BrowserlessError && e.status === 429) {
+    if (e instanceof BrowserAdapterError && e.status === 429) {
       throw e;
     }
-    if (e instanceof BrowserlessError) {
-      console.warn("[starwinelist-scraper] PDF /function", e.status, pdfUrl, e.message);
+    if (e instanceof BrowserAdapterError) {
+      console.warn("[starwinelist-scraper] PDF session download", e.status, pdfUrl, e.message);
     } else if (e instanceof Error) {
-      console.warn("[starwinelist-scraper] PDF /function error:", e.message, pdfUrl);
+      console.warn("[starwinelist-scraper] PDF session error:", e.message, pdfUrl);
     }
   }
   try {

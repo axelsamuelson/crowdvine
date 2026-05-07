@@ -12,18 +12,6 @@ import { runCrawlSession, runCrawlForSlugs, crawlSingleRestaurant } from "@/lib/
 export async function POST(request: NextRequest) {
   try {
     await requireAdmin();
-    const usePlaywright = process.env.BROWSER_ADAPTER?.trim().toLowerCase() === "playwright";
-    if (
-      !usePlaywright &&
-      !process.env.BROWSERLESS_API_KEY?.trim() &&
-      process.env.USE_LOCAL_FETCH !== "true"
-    ) {
-      return NextResponse.json({
-        summary: null,
-        skipped: true,
-        reason: "missing_browserless_key",
-      });
-    }
     const body = await request.json().catch(() => ({}));
     const city = (body.city ?? "stockholm") as string;
     const slug = typeof body.slug === "string" ? body.slug.trim() : undefined;

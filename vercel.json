@@ -5,6 +5,14 @@
       "schedule": "0 3 * * *"
     },
     {
+      "path": "/api/cron/extract-menus",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/retry-failed-extractions",
+      "schedule": "0 6 * * *"
+    },
+    {
       "path": "/api/cron/operations-weekly-digest",
       "schedule": "0 * * * 0"
     },

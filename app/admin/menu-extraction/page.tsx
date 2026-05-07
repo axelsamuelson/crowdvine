@@ -118,8 +118,7 @@ export default function MenuExtractionOverviewPage() {
   const [sourcesLoading, setSourcesLoading] = useState(false);
   const [crawlRunning, setCrawlRunning] = useState(false);
   const [crawlSummary, setCrawlSummary] = useState<CrawlSummary | null>(null);
-  const [crawlSkippedReason, setCrawlSkippedReason] = useState<string | null>(null);
-  const [browserAdapter, setBrowserAdapter] = useState<"playwright" | "browserless" | null>(null);
+  const [browserAdapter, setBrowserAdapter] = useState<"chromium" | "local_fetch" | null>(null);
 
   const [documents, setDocuments] = useState<MenuDocumentListRow[]>([]);
   const [documentsLoading, setDocumentsLoading] = useState(false);
@@ -218,7 +217,6 @@ export default function MenuExtractionOverviewPage() {
   const handleCrawlNow = async () => {
     setCrawlRunning(true);
     setCrawlSummary(null);
-    setCrawlSkippedReason(null);
     try {
       const res = await fetch("/api/admin/menu-extraction/crawl", {
         method: "POST",
@@ -227,12 +225,8 @@ export default function MenuExtractionOverviewPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Crawl misslyckades");
-      if (data.skipped === true && data.reason === "missing_browserless_key") {
-        setCrawlSkippedReason("missing_browserless_key");
-      } else {
-        setCrawlSummary(data.summary ?? null);
-        toast.success("Crawl klar");
-      }
+      setCrawlSummary(data.summary ?? null);
+      toast.success("Crawl klar");
       loadSources();
       loadDocuments();
     } catch (e) {
@@ -420,11 +414,11 @@ export default function MenuExtractionOverviewPage() {
             <div className="w-full bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800 rounded-xl">
               <div className="p-4 flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 dark:border-zinc-800">
                 <div className="flex flex-wrap gap-2">
-                  {browserAdapter === "playwright" && (
-                    <Badge className="bg-green-600 dark:bg-green-700 text-white">Playwright (lokal)</Badge>
+                  {browserAdapter === "chromium" && (
+                    <Badge className="bg-green-600 dark:bg-green-700 text-white">Chromium</Badge>
                   )}
-                  {browserAdapter === "browserless" && (
-                    <Badge className="bg-blue-600 dark:bg-blue-700 text-white">Browserless</Badge>
+                  {browserAdapter === "local_fetch" && (
+                    <Badge className="bg-amber-600 dark:bg-amber-700 text-white">USE_LOCAL_FETCH</Badge>
                   )}
                 </div>
                 <Button
@@ -445,14 +439,9 @@ export default function MenuExtractionOverviewPage() {
                   )}
                 </Button>
               </div>
-              {crawlSkippedReason === "missing_browserless_key" && (
-                <div className="p-3 text-xs bg-amber-100 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200">
-                  Crawl kräver BROWSERLESS_API_KEY. Sätt nyckeln i miljövariabler.
-                </div>
-              )}
               {crawlSummary?.rate_limit_429 && (
                 <div className="p-3 text-xs bg-amber-100 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200">
-                  Browserless rate limit – vänta några minuter och försök igen.
+                  Rate limit (429) – vänta några minuter och försök igen.
                 </div>
               )}
               {crawlSummary && (
@@ -469,7 +458,7 @@ export default function MenuExtractionOverviewPage() {
               )}
               <div className="p-4">
                 <p className="text-xs text-gray-600 dark:text-zinc-200">
-                  Hämtar PDF-menyer från Starwinelist Stockholm och skapar dokument.
+                  Hämtar PDF-menyer från Starwinelist Stockholm, skapar dokument och kör extraktion (Claude).
                 </p>
               </div>
             </div>

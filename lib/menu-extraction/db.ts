@@ -28,7 +28,7 @@ import type {
 } from "./types";
 
 const MENU_DOCUMENTS_SELECT =
-  "id, created_at, updated_at, file_path, file_name, mime_type, source_type, upload_status, extraction_status, page_count, raw_text, ai_raw_response, model_version, prompt_version, workflow_version, extracted_at, last_extraction_attempt_at, error_message, content_hash, source_slug, extraction_input_tokens, extraction_output_tokens, extraction_cache_read_input_tokens, extraction_cache_creation_input_tokens, critic_stats, used_batch_api, extraction_trace";
+  "id, created_at, updated_at, file_path, file_name, mime_type, source_type, upload_status, extraction_status, page_count, raw_text, ai_raw_response, model_version, prompt_version, workflow_version, extracted_at, last_extraction_attempt_at, error_message, content_hash, source_slug, extraction_input_tokens, extraction_output_tokens, extraction_cache_read_input_tokens, extraction_cache_creation_input_tokens, critic_stats, used_batch_api, extraction_trace, extraction_retry_count";
 const MENU_DOCUMENT_SECTIONS_SELECT =
   "id, created_at, document_id, section_name, normalized_section, page_number, section_order";
 const MENU_EXTRACTED_ROWS_SELECT =
@@ -679,4 +679,73 @@ export async function updateMenuManualRun(
     .single();
   if (error) throw new Error(`updateMenuManualRun: ${error.message}`);
   return data as MenuManualRun;
+}
+
+/** Oldest pending documents for the extract-menus cron (crawl-only pipeline). */
+export async function listPendingMenuDocumentsForExtraction(
+  limit: number
+): Promise<Array<{ id: string; source_slug: string | null }>> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("menu_documents")
+    .select("id, source_slug")
+    .eq("extraction_status", "pending")
+    .order("created_at", { ascending: true })
+    .limit(limit);
+  if (error) throw new Error(`listPendingMenuDocumentsForExtraction: ${error.message}`);
+  return (data ?? []) as Array<{ id: string; source_slug: string | null }>;
+}
+
+export async function countMenuDocumentsPendingExtraction(): Promise<number> {
+  const sb = getSupabaseAdmin();
+  const { count, error } = await sb
+    .from("menu_documents")
+    .select("id", { count: "exact", head: true })
+    .eq("extraction_status", "pending");
+  if (error) throw new Error(`countMenuDocumentsPendingExtraction: ${error.message}`);
+  return count ?? 0;
+}
+
+/**
+ * Documents eligible for automated retry: failed (recent, retry budget) or processing (stale).
+ */
+export async function listMenuDocumentsForExtractionRetry(limit: number): Promise<MenuDocument[]> {
+  const sb = getSupabaseAdmin();
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+
+  const { data: failedData, error: failedErr } = await sb
+    .from("menu_documents")
+    .select(MENU_DOCUMENTS_SELECT)
+    .eq("extraction_status", "failed")
+    .gt("updated_at", sevenDaysAgo)
+    .or("extraction_retry_count.is.null,extraction_retry_count.lt.3")
+    .order("updated_at", { ascending: true })
+    .limit(limit);
+
+  if (failedErr) throw new Error(`listMenuDocumentsForExtractionRetry (failed): ${failedErr.message}`);
+
+  const { data: stuckData, error: stuckErr } = await sb
+    .from("menu_documents")
+    .select(MENU_DOCUMENTS_SELECT)
+    .eq("extraction_status", "processing")
+    .lt("updated_at", twoHoursAgo)
+    .order("updated_at", { ascending: true })
+    .limit(limit);
+
+  if (stuckErr) throw new Error(`listMenuDocumentsForExtractionRetry (processing): ${stuckErr.message}`);
+
+  const byId = new Map<string, MenuDocument>();
+  for (const row of (failedData ?? []) as MenuDocument[]) {
+    byId.set(row.id, row);
+  }
+  for (const row of (stuckData ?? []) as MenuDocument[]) {
+    byId.set(row.id, row);
+  }
+  const merged = Array.from(byId.values()).sort((a, b) => {
+    const ta = new Date(a.updated_at ?? a.created_at ?? 0).getTime();
+    const tb = new Date(b.updated_at ?? b.created_at ?? 0).getTime();
+    return ta - tb;
+  });
+  return merged.slice(0, limit);
 }

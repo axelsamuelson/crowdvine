@@ -83,6 +83,8 @@ export interface MenuDocument {
   used_batch_api?: boolean;
   /** Full Actor/Critic trace per section (JSON). */
   extraction_trace?: ExtractionTrace | null;
+  /** Incremented when automated retry cron re-queues extraction; null if never retried by cron. */
+  extraction_retry_count?: number | null;
 }
 
 export interface MenuDocumentSection {
@@ -353,7 +355,7 @@ export interface CrawlResult {
   document_id?: string;
   /** True when restaurant page was fetched but PDF download failed (URL saved for retry). */
   partial?: boolean;
-  /** True when failure was due to Browserless 429 rate limit. */
+  /** True when failure was due to HTTP 429 (rate limit) from the browser layer. */
   rate_limit_429?: boolean;
   /** True when AI extraction completed successfully for this document. */
   extracted?: boolean;
@@ -371,7 +373,7 @@ export interface CrawlSessionSummary {
   failed: number;
   /** Count of sources where page was fetched but PDF download failed (status partial). */
   partial?: number;
-  /** True if any request failed with Browserless 429. */
+  /** True if any request failed with HTTP 429 from the browser layer. */
   rate_limit_429?: boolean;
   document_ids: string[];
   /** Count of documents where AI extraction completed successfully. */

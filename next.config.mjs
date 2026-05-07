@@ -1,4 +1,6 @@
 const nextConfig = {
+  /** Bundled Chromium (@sparticuz/chromium) must not be webpack-bundled into serverless chunks. */
+  serverExternalPackages: ["@sparticuz/chromium", "playwright-core"],
   async redirects() {
     return [
       {

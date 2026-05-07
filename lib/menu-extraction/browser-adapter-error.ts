@@ -1,5 +1,5 @@
 /**
- * Shared error type for browser adapters (playwright, browserless).
+ * Shared error type for browser adapters (Chromium / plain fetch).
  * Allows starwinelist-scraper to check for 429 etc. without depending on a specific adapter.
  */
 export class BrowserAdapterError extends Error {
