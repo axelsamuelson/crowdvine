@@ -26,6 +26,10 @@ export const navItems: NavItem[] = [
     label: "shop all",
     href: "/shop",
   },
+  {
+    label: "Hitta vin",
+    href: "/wine-search",
+  },
 ];
 
 interface HeaderProps {
@@ -71,7 +75,9 @@ export function Header({ collections }: HeaderProps) {
                   href={item.href}
                   className={cn(
                     "font-semibold text-base transition-colors duration-200 uppercase",
-                    pathname === item.href
+                    (item.href === "/"
+                      ? pathname === "/"
+                      : pathname === item.href || pathname?.startsWith(item.href + "/"))
                       ? "text-foreground"
                       : "text-foreground/50",
                   )}

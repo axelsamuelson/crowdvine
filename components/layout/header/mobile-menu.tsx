@@ -18,6 +18,7 @@ import { Shield } from "lucide-react";
 
 const navItems = [
   { href: "/shop", label: "Shop" },
+  { href: "/wine-search", label: "Hitta vin" },
   { href: "/profile", label: "Profile", icon: User },
   { href: "/about", label: "About" },
   { href: "/", label: "Home" },

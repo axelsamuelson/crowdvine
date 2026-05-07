@@ -1,160 +1,339 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import type { MenuSearchResponse, MenuSearchVenue, MenuSearchWine } from "@/lib/menu-search-types";
+
+type RpcWineRow = {
+  row_id: string;
+  producer: string | null;
+  wine_name: string | null;
+  vintage: string | null;
+  region: string | null;
+  country: string | null;
+  wine_type: string | null;
+  price_bottle: number | null;
+  price_glass: number | null;
+  currency: string | null;
+  confidence: number | null;
+  source_slug: string | null;
+  venue_name: string | null;
+  extracted_at: string | null;
+  match_score: number | null;
+};
+
+function parseIntParam(v: string | null): number | null {
+  if (v == null || v.trim() === "") return null;
+  const n = Number.parseInt(v, 10);
+  return Number.isFinite(n) ? n : null;
+}
+
+function mapWineTypeParam(raw: string | null): string | null {
+  if (!raw?.trim()) return null;
+  const t = raw.trim().toLowerCase();
+  const map: Record<string, string> = {
+    red: "red",
+    rött: "red",
+    white: "white",
+    vitt: "white",
+    sparkling: "sparkling",
+    mousserande: "sparkling",
+    rose: "rose",
+    rosé: "rose",
+    orange: "orange",
+  };
+  return map[t] ?? null;
+}
+
+function groupRowsToVenues(rows: RpcWineRow[]): MenuSearchVenue[] {
+  const bySlug = new Map<
+    string,
+    {
+      slug: string;
+      name: string;
+      extracted_at: string | null;
+      wines: MenuSearchWine[];
+    }
+  >();
+
+  for (const r of rows) {
+    const slug = r.source_slug?.trim() || "";
+    if (!slug) continue;
+    if (!bySlug.has(slug)) {
+      bySlug.set(slug, {
+        slug,
+        name: (r.venue_name?.trim() || slug) as string,
+        extracted_at: r.extracted_at,
+        wines: [],
+      });
+    }
+    const v = bySlug.get(slug)!;
+    if (r.extracted_at && (!v.extracted_at || r.extracted_at > v.extracted_at)) {
+      v.extracted_at = r.extracted_at;
+    }
+    v.wines.push({
+      producer: r.producer,
+      wine_name: r.wine_name,
+      vintage: r.vintage,
+      region: r.region,
+      country: r.country,
+      wine_type: r.wine_type,
+      price_bottle: r.price_bottle != null ? Number(r.price_bottle) : null,
+      price_glass: r.price_glass != null ? Number(r.price_glass) : null,
+      currency: r.currency,
+    });
+  }
+
+  const venues: MenuSearchVenue[] = [];
+  for (const v of bySlug.values()) {
+    const bottles = v.wines.map((w) => w.price_bottle).filter((p): p is number => p != null && !Number.isNaN(p));
+    const glasses = v.wines.map((w) => w.price_glass).filter((p): p is number => p != null && !Number.isNaN(p));
+    venues.push({
+      slug: v.slug,
+      name: v.name,
+      extracted_at: v.extracted_at,
+      match_count: v.wines.length,
+      cheapest_bottle: bottles.length ? Math.min(...bottles) : null,
+      cheapest_glass: glasses.length ? Math.min(...glasses) : null,
+      wines: v.wines,
+    });
+  }
+
+  venues.sort((a, b) => {
+    if (b.match_count !== a.match_count) return b.match_count - a.match_count;
+    const pa = a.cheapest_bottle ?? Number.POSITIVE_INFINITY;
+    const pb = b.cheapest_bottle ?? Number.POSITIVE_INFINITY;
+    return pa - pb;
+  });
+
+  return venues;
+}
 
 /**
- * GET /api/menu-search?q=...&city=stockholm
- * Search extracted menu rows by wine query (producer + name + optional vintage).
- * Returns venues (slug/name) with matching rows and cheapest bottle price per venue.
+ * Legacy in-memory search (previous implementation) when RPC is unavailable.
+ */
+async function legacyMenuSearch(
+  sb: ReturnType<typeof getSupabaseAdmin>,
+  params: {
+    q: string;
+    city: string;
+    minPrice: number | null;
+    maxPrice: number | null;
+    wineType: string | null;
+    byGlass: boolean;
+  }
+): Promise<MenuSearchResponse> {
+  const { q, city, minPrice, maxPrice, wineType, byGlass } = params;
+  const qLower = q.toLowerCase();
+
+  const { data: sources, error: sourcesError } = await sb
+    .from("starwinelist_sources")
+    .select("slug, name")
+    .eq("city", city);
+  if (sourcesError) throw new Error(sourcesError.message);
+
+  const slugSet = new Set((sources ?? []).map((s: { slug: string }) => s.slug));
+  const slugToName: Record<string, string> = {};
+  (sources ?? []).forEach((s: { slug: string; name: string | null }) => {
+    slugToName[s.slug] = s.name ?? s.slug;
+  });
+
+  if (slugSet.size === 0) {
+    return {
+      query: q,
+      city,
+      total_matches: 0,
+      page: 1,
+      per_page: 0,
+      venues: [],
+      _fallback: true,
+    };
+  }
+
+  const { data: docs, error: docsError } = await sb
+    .from("menu_documents")
+    .select("id, source_slug, extracted_at")
+    .eq("extraction_status", "completed")
+    .in("source_slug", Array.from(slugSet));
+  if (docsError) throw new Error(docsError.message);
+
+  const docIds = (docs ?? []).map((d: { id: string }) => d.id);
+  const docById: Record<string, { source_slug: string | null; extracted_at: string | null }> = {};
+  (docs ?? []).forEach((d: { id: string; source_slug: string | null; extracted_at: string | null }) => {
+    docById[d.id] = { source_slug: d.source_slug, extracted_at: d.extracted_at };
+  });
+
+  if (docIds.length === 0) {
+    return {
+      query: q,
+      city,
+      total_matches: 0,
+      page: 1,
+      per_page: 0,
+      venues: [],
+      _fallback: true,
+    };
+  }
+
+  const { data: rowsRaw, error: rowsError } = await sb
+    .from("menu_extracted_rows")
+    .select(
+      "id, document_id, wine_name, producer, vintage, region, country, wine_type, price_glass, price_bottle, currency, needs_review, row_type"
+    )
+    .eq("row_type", "wine_row")
+    .eq("needs_review", false)
+    .in("document_id", docIds);
+  if (rowsError) throw new Error(rowsError.message);
+
+  type LegacyRow = {
+    id: string;
+    document_id: string;
+    wine_name: string | null;
+    producer: string | null;
+    vintage: string | null;
+    region: string | null;
+    country: string | null;
+    wine_type: string | null;
+    price_glass: number | null;
+    price_bottle: number | null;
+    currency: string | null;
+  };
+
+  const filtered = ((rowsRaw ?? []) as LegacyRow[]).filter((r) => {
+    const textHit =
+      (r.wine_name?.toLowerCase().includes(qLower) ?? false) ||
+      (r.producer?.toLowerCase().includes(qLower) ?? false) ||
+      (r.region?.toLowerCase().includes(qLower) ?? false);
+    if (!textHit) return false;
+    const pb = r.price_bottle != null ? Number(r.price_bottle) : null;
+    if (minPrice != null && (pb == null || pb < minPrice)) return false;
+    if (maxPrice != null && (pb == null || pb > maxPrice)) return false;
+    if (wineType != null && r.wine_type !== wineType) return false;
+    if (byGlass && (r.price_glass == null || Number.isNaN(Number(r.price_glass)))) return false;
+    return true;
+  });
+
+  const rpcLike: RpcWineRow[] = filtered.map((r) => {
+    const meta = docById[r.document_id];
+    const slug = meta?.source_slug ?? "";
+    return {
+      row_id: r.id,
+      producer: r.producer,
+      wine_name: r.wine_name,
+      vintage: r.vintage,
+      region: r.region,
+      country: r.country,
+      wine_type: r.wine_type,
+      price_bottle: r.price_bottle != null ? Number(r.price_bottle) : null,
+      price_glass: r.price_glass != null ? Number(r.price_glass) : null,
+      currency: r.currency,
+      confidence: null,
+      source_slug: slug,
+      venue_name: slugToName[slug] ?? slug,
+      extracted_at: meta?.extracted_at ?? null,
+      match_score: 0.3,
+    };
+  });
+
+  const venues = groupRowsToVenues(rpcLike);
+  return {
+    query: q,
+    city,
+    total_matches: filtered.length,
+    page: 1,
+    per_page: filtered.length,
+    venues,
+    _fallback: true,
+  };
+}
+
+/**
+ * GET /api/menu-search — production wine search (Postgres + pg_trgm).
+ * Query: q, city, min_price, max_price, wine_type, by_glass, page, per_page
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const q = (searchParams.get("q") ?? "").trim();
-    const city = (searchParams.get("city") ?? "stockholm").trim();
+    const city = (searchParams.get("city") ?? "stockholm").trim().toLowerCase();
 
     if (q.length < 2) {
       return NextResponse.json({
         query: q,
         city,
+        total_matches: 0,
+        page: 1,
+        per_page: 20,
         venues: [],
         message: "Query q must be at least 2 characters",
       });
     }
 
+    const minPrice = parseIntParam(searchParams.get("min_price"));
+    const maxPrice = parseIntParam(searchParams.get("max_price"));
+    const wineType = mapWineTypeParam(searchParams.get("wine_type"));
+    const byGlass = searchParams.get("by_glass") === "true";
+
+    let page = parseIntParam(searchParams.get("page")) ?? 1;
+    if (page < 1) page = 1;
+    let perPage = parseIntParam(searchParams.get("per_page")) ?? 20;
+    if (perPage < 1) perPage = 20;
+    if (perPage > 50) perPage = 50;
+
+    const offset = (page - 1) * perPage;
     const sb = getSupabaseAdmin();
 
-    // 1) Get document IDs for this city (via starwinelist_sources)
-    const { data: sources, error: sourcesError } = await sb
-      .from("starwinelist_sources")
-      .select("slug, name")
-      .eq("city", city);
-    if (sourcesError) {
-      return NextResponse.json({ error: sourcesError.message }, { status: 500 });
-    }
-    const slugSet = new Set((sources ?? []).map((s: { slug: string }) => s.slug));
-    const slugToName: Record<string, string> = {};
-    (sources ?? []).forEach((s: { slug: string; name: string | null }) => {
-      slugToName[s.slug] = s.name ?? s.slug;
-    });
+    try {
+      const { data: countData, error: countErr } = await sb.rpc("count_search_menu_wines", {
+        p_query: q,
+        p_city: city,
+        p_min_price: minPrice,
+        p_max_price: maxPrice,
+        p_wine_type: wineType,
+        p_by_glass: byGlass,
+      });
 
-    // 2) Get menu_documents with source_slug in these slugs
-    const { data: docs, error: docsError } = await sb
-      .from("menu_documents")
-      .select("id, source_slug, extracted_at")
-      .in("source_slug", Array.from(slugSet));
-    if (docsError) {
-      return NextResponse.json({ error: docsError.message }, { status: 500 });
-    }
-    const docIds = (docs ?? []).map((d: { id: string }) => d.id);
-    const docById: Record<string, { source_slug: string | null; extracted_at: string | null }> = {};
-    (docs ?? []).forEach((d: { id: string; source_slug: string | null; extracted_at: string | null }) => {
-      docById[d.id] = { source_slug: d.source_slug, extracted_at: d.extracted_at };
-    });
+      if (countErr) throw countErr;
 
-    if (docIds.length === 0) {
-      return NextResponse.json({
+      const totalMatches = Number(countData ?? 0);
+
+      const { data: rows, error: searchErr } = await sb.rpc("search_menu_wines", {
+        p_query: q,
+        p_city: city,
+        p_min_price: minPrice,
+        p_max_price: maxPrice,
+        p_wine_type: wineType,
+        p_by_glass: byGlass,
+        p_limit: perPage,
+        p_offset: offset,
+      });
+
+      if (searchErr) throw searchErr;
+
+      const venues = groupRowsToVenues((rows ?? []) as RpcWineRow[]);
+
+      const body: MenuSearchResponse = {
         query: q,
         city,
-        venues: [],
+        total_matches: Number.isFinite(totalMatches) ? totalMatches : 0,
+        page,
+        per_page: perPage,
+        venues,
+      };
+
+      return NextResponse.json(body);
+    } catch (rpcErr) {
+      console.warn("[menu-search] RPC failed, using legacy search:", rpcErr);
+      const legacy = await legacyMenuSearch(sb, {
+        q,
+        city,
+        minPrice,
+        maxPrice,
+        wineType,
+        byGlass,
       });
+      legacy.page = page;
+      legacy.per_page = perPage;
+      return NextResponse.json(legacy);
     }
-
-    // 3) Get extracted rows for these documents; filter by q in memory (avoids PostgREST ilike escaping)
-    const { data: rowsRaw, error: rowsError } = await sb
-      .from("menu_extracted_rows")
-      .select("id, document_id, raw_text, wine_name, producer, vintage, price_glass, price_bottle, price_other, currency")
-      .in("document_id", docIds);
-    if (rowsError) {
-      return NextResponse.json({ error: rowsError.message }, { status: 500 });
-    }
-    const qLower = q.toLowerCase();
-    const rowsList = ((rowsRaw ?? []) as Array<{
-      id: string;
-      document_id: string;
-      raw_text: string;
-      wine_name: string | null;
-      producer: string | null;
-      vintage: string | null;
-      price_glass: number | null;
-      price_bottle: number | null;
-      price_other: number | null;
-      currency: string | null;
-    }>).filter(
-      (r) =>
-        (r.wine_name?.toLowerCase().includes(qLower) ?? false) ||
-        (r.producer?.toLowerCase().includes(qLower) ?? false)
-    );
-
-    // 4) Group by document_id, compute min(price_bottle), attach venue info
-    const byDoc: Record<string, typeof rowsList> = {};
-    for (const row of rowsList) {
-      if (!byDoc[row.document_id]) byDoc[row.document_id] = [];
-      byDoc[row.document_id].push(row);
-    }
-
-    const venues: Array<{
-      slug: string;
-      name: string;
-      document_id: string;
-      source_slug: string;
-      extracted_at: string | null;
-      cheapest_bottle: number | null;
-      currency: string | null;
-      match_count: number;
-      rows: Array<{
-        wine_name: string | null;
-        producer: string | null;
-        vintage: string | null;
-        price_bottle: number | null;
-        price_glass: number | null;
-        currency: string | null;
-      }>;
-    }> = [];
-
-    for (const [docId, docRows] of Object.entries(byDoc)) {
-      const meta = docById[docId];
-      const slug = meta?.source_slug ?? docId;
-      const name = slugToName[slug] ?? slug;
-      const prices = docRows.map((r) => r.price_bottle).filter((p): p is number => p != null && !Number.isNaN(p));
-      const cheapest_bottle = prices.length > 0 ? Math.min(...prices) : null;
-      const currency = docRows[0]?.currency ?? null;
-      const sortedRows = [...docRows].sort((a, b) => {
-        const pa = a.price_bottle ?? Infinity;
-        const pb = b.price_bottle ?? Infinity;
-        return pa - pb;
-      });
-      venues.push({
-        slug,
-        name,
-        document_id: docId,
-        source_slug: slug,
-        extracted_at: meta?.extracted_at ?? null,
-        cheapest_bottle,
-        currency,
-        match_count: docRows.length,
-        rows: sortedRows.slice(0, 50).map((r) => ({
-          wine_name: r.wine_name,
-          producer: r.producer,
-          vintage: r.vintage,
-          price_bottle: r.price_bottle,
-          price_glass: r.price_glass,
-          currency: r.currency,
-        })),
-      });
-    }
-
-    // Sort by cheapest_bottle ascending (nulls last)
-    venues.sort((a, b) => {
-      const pa = a.cheapest_bottle ?? Infinity;
-      const pb = b.cheapest_bottle ?? Infinity;
-      return pa - pb;
-    });
-
-    return NextResponse.json({
-      query: q,
-      city,
-      venues,
-    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });
