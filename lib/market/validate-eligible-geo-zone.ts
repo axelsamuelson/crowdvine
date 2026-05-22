@@ -19,7 +19,7 @@ export async function validateEligibleGeoZoneId(
 
   const { data: gz, error } = await sb
     .from("geo_zones")
-    .select("id, is_active, eligibility_status")
+    .select("id, is_active, eligibility_status, city")
     .eq("id", id)
     .maybeSingle();
 
@@ -27,7 +27,19 @@ export async function validateEligibleGeoZoneId(
     return { ok: false, message: "Invalid wine zone", status: 400 };
   }
 
-  const row = gz as { is_active?: boolean; eligibility_status?: string | null };
+  const row = gz as {
+    is_active?: boolean;
+    eligibility_status?: string | null;
+    city?: string | null;
+  };
+  const city = (row.city ?? "").trim();
+  if (!city) {
+    return {
+      ok: false,
+      message: "Wine zone must include a city",
+      status: 400,
+    };
+  }
   if (!row.is_active) {
     return { ok: false, message: "Wine zone is not active", status: 400 };
   }

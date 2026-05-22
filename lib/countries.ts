@@ -1,3 +1,5 @@
+import { isUiLocalizationEnabled } from "@/lib/localization";
+
 /**
  * Central checkout / delivery country rules (ISO 3166-1 alpha-2).
  * Unknown countries must never fall back to SE — use null and block checkout.
@@ -197,7 +199,13 @@ export const US_CONDITIONAL_TERMS_VERSION = "US_CONDITIONAL_RESERVATION_v1";
 
 export const US_CHARGE_BLOCKED_REASON = "US_LEGAL_LOGISTICS_REVIEW_REQUIRED";
 
-export function getCheckoutBrowseOnlyUnsupportedCountryMessage(): string {
+export function getCheckoutBrowseOnlyUnsupportedCountryMessage(
+  host?: string | null,
+  searchParams?: { get: (key: string) => string | null } | null,
+): string {
+  if (host != null && !isUiLocalizationEnabled(host, searchParams)) {
+    return CHECKOUT_BROWSE_ONLY_UNSUPPORTED_COUNTRY_EN;
+  }
   return `${CHECKOUT_BROWSE_ONLY_UNSUPPORTED_COUNTRY_EN}\n\n${CHECKOUT_BROWSE_ONLY_UNSUPPORTED_COUNTRY_SV}`;
 }
 

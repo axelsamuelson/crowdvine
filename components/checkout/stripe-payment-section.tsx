@@ -9,6 +9,8 @@ import {
   useStripe,
 } from "@stripe/react-stripe-js";
 import { Button } from "@/components/ui/button";
+import { useShoppingContextOptional } from "@/lib/context/shopping-context-provider";
+import { stripeLocaleForAppLocale } from "@/lib/i18n/locale";
 
 type PaymentMode = "setup_intent" | "payment_intent";
 
@@ -418,6 +420,10 @@ export function StripePaymentSection({
   usAge21Confirmed = false,
   usConditionalAck = false,
 }: Props) {
+  const shoppingCtx = useShoppingContextOptional();
+  const stripeLocale = stripeLocaleForAppLocale(
+    shoppingCtx?.context.locale ?? "en",
+  );
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [paymentMode, setPaymentMode] = useState<PaymentMode | null>(null);
   const [intentId, setIntentId] = useState<string | null>(null);
@@ -643,7 +649,7 @@ export function StripePaymentSection({
           options={{
             clientSecret,
             appearance: pactAppearance,
-            locale: "en",
+            locale: stripeLocale,
             fonts: [
               {
                 cssSrc:

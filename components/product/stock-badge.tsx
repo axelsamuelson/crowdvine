@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 export type StockStatus = "out" | "few" | "in";
 
@@ -24,6 +25,7 @@ export function StockBadge({
   availableForSale = true,
   className,
 }: StockBadgeProps) {
+  const { t } = useTranslations();
   const isB2B = useB2BPriceMode();
   const pathname = usePathname();
   const [isMounted, setIsMounted] = useState(false);
@@ -60,12 +62,12 @@ export function StockBadge({
 
   const label =
     status === "out"
-      ? "Out of stock"
+      ? t("product.outOfStock")
       : status === "few"
         ? (stock as number) === 1
-          ? "Last bottle"
-          : `Last ${stock}`
-        : "In stock";
+          ? t("product.lastBottle")
+          : t("product.lastBottles", { count: stock as number })
+        : t("product.inStock");
 
   return (
     <span

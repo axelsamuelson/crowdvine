@@ -3,6 +3,7 @@
 import { HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 const onboardingButtonClassName = `
         h-8 px-3 
@@ -22,12 +23,14 @@ const onboardingButtonClassName = `
  * OnboardingProvider.showWelcome (router.push("/onboarding")).
  */
 export function OnboardingButton() {
+  const { t } = useTranslations();
+
   return (
     <Button variant="ghost" size="sm" asChild className={onboardingButtonClassName}>
       <Link href="/onboarding" prefetch>
         <HelpCircle className="w-3.5 h-3.5 mr-1.5 transition-transform group-hover:scale-110" />
-        <span className="max-md:hidden">Get Started</span>
-        <span className="md:hidden">Help</span>
+        <span className="max-md:hidden">{t("home.getStarted")}</span>
+        <span className="md:hidden">{t("home.help")}</span>
       </Link>
     </Button>
   );

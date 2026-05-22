@@ -8,6 +8,7 @@ import {
   PriceBreakdownResult,
 } from "@/lib/price-breakdown";
 import { useMembership } from "@/lib/context/membership-context";
+import { useMembershipDiscountPercent } from "@/lib/hooks/use-membership-discount-percent";
 import { formatPrice } from "@/lib/shopify/utils";
 import { Product } from "@/lib/shopify/types";
 
@@ -16,7 +17,8 @@ interface PriceWithBreakdownProps {
 }
 
 export function PriceWithBreakdown({ product }: PriceWithBreakdownProps) {
-  const { discountPercentage, loading } = useMembership();
+  const { loading } = useMembership();
+  const discountPercentage = useMembershipDiscountPercent();
   const [breakdown, setBreakdown] = useState<PriceBreakdownResult | null>(null);
   const [breakdownLoading, setBreakdownLoading] = useState(false);
 

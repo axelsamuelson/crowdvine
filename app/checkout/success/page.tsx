@@ -19,6 +19,26 @@ import {
 import { toast } from "sonner";
 import Image from "next/image";
 import Link from "next/link";
+import { useShoppingContext } from "@/lib/context/shopping-context-provider";
+import { formatMoney } from "@/lib/shopping-context/format";
+import type { AppLocale } from "@/lib/i18n/locale";
+
+function translateReservationStatus(
+  status: string,
+  t: (key: string) => string,
+): string {
+  const keyByStatus: Record<string, string> = {
+    placed: "checkout.successStatusPlaced",
+    confirmed: "checkout.successStatusConfirmed",
+    shipped: "checkout.successStatusShipped",
+    delivered: "checkout.successStatusDelivered",
+    cancelled: "checkout.successStatusCancelled",
+  };
+  const key = keyByStatus[status.toLowerCase()];
+  return key
+    ? t(key)
+    : status.charAt(0).toUpperCase() + status.slice(1);
+}
 
 interface ReservationDetails {
   id: string;
@@ -67,6 +87,7 @@ interface ReservationDetails {
 
 /** Legacy return_url pointed here; relay to stripe-return so confirm-stripe-run runs. */
 function CheckoutSuccessStripeRelay() {
+  const { t } = useShoppingContext();
   const searchParams = useSearchParams();
   const router = useRouter();
   const si = searchParams.get("setup_intent")?.trim() ?? "";
@@ -99,10 +120,8 @@ function CheckoutSuccessStripeRelay() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
         <div className="text-center max-w-md space-y-3">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-900 mx-auto" />
-          <p className="text-gray-700">Completing your reservation…</p>
-          <p className="text-sm text-gray-500">
-            One moment while we save your order.
-          </p>
+          <p className="text-gray-700">{t("checkout.successCompleting")}</p>
+          <p className="text-sm text-gray-500">{t("checkout.successMoment")}</p>
         </div>
       </div>
     );
@@ -112,6 +131,10 @@ function CheckoutSuccessStripeRelay() {
 }
 
 function CheckoutConfirmationContent() {
+  const { t, context: shopping } = useShoppingContext();
+  const appLocale = shopping.locale as AppLocale;
+  const intlLocale = shopping.intlLocale;
+  const currencyCode = shopping.currencyCode || "SEK";
   const searchParams = useSearchParams();
   const router = useRouter();
   const [reservation, setReservation] = useState<ReservationDetails | null>(
@@ -380,7 +403,7 @@ function CheckoutConfirmationContent() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+    return new Date(dateString).toLocaleDateString(intlLocale, {
       year: "numeric",
       month: "long",
       day: "numeric",
@@ -390,7 +413,7 @@ function CheckoutConfirmationContent() {
   };
 
   const formatPrice = (cents: number) => {
-    return `${Math.round(cents / 100)} SEK`;
+    return formatMoney(cents / 100, currencyCode, appLocale);
   };
 
   if (loading) {
@@ -398,7 +421,7 @@ function CheckoutConfirmationContent() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading reservation details...</p>
+          <p className="text-gray-600">{t("checkout.successLoading")}</p>
         </div>
       </div>
     );
@@ -412,13 +435,13 @@ function CheckoutConfirmationContent() {
           <div className="min-w-0">
             <h1 className="text-2xl font-medium text-gray-900 mb-2">
               {ambiguousLanding
-                ? "We couldn’t load your reservation"
-                : "Reservation confirmed"}
+                ? t("checkout.successTitleError")
+                : t("checkout.successTitleConfirmed")}
             </h1>
             <p className="text-gray-500">
               {ambiguousLanding
-                ? "See below for next steps."
-                : "Your bottles are reserved. We’ll notify you when your pallet is ready for payment and shipment."}
+                ? t("checkout.successSubtitleError")
+                : t("checkout.successSubtitleConfirmed")}
             </p>
             {reservation && (
               <div className="flex items-center gap-2 text-sm text-gray-500 mt-3">
@@ -443,9 +466,9 @@ function CheckoutConfirmationContent() {
 
         {reservation && groupReservationIds.length > 1 ? (
           <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
-            This checkout created {groupReservationIds.length} reservations
-            (split by producer). Showing details for one reservation below; open
-            &quot;View reservations&quot; to see the full list.
+            {t("checkout.successGroupBanner", {
+              count: String(groupReservationIds.length),
+            })}
           </div>
         ) : null}
 
@@ -454,16 +477,16 @@ function CheckoutConfirmationContent() {
             <CardContent className="p-0">
               <p className="text-gray-600">
                 {ambiguousLanding
-                  ? "Your payment method may have been verified, but we could not load the reservation. View reservations or contact support."
+                  ? t("checkout.successErrorAmbiguous")
                   : loadError === "no_id"
-                    ? "Your reservation was confirmed, but we could not load the details from this link. View your reservations for the full summary."
+                    ? t("checkout.successErrorNoId")
                     : loadError?.startsWith("http_")
-                      ? "Your reservation was confirmed, but we could not load the details right now. View your reservations — the order should appear there."
-                      : "Your reservation was confirmed, but we could not load the details. View your reservations for the full summary."}
+                      ? t("checkout.successErrorHttp")
+                      : t("checkout.successErrorGeneric")}
               </p>
               {(reservationIdParam?.trim() || checkoutGroupIdParam?.trim()) && (
                 <p className="text-xs text-gray-500 mt-3 font-mono break-all">
-                  Reference:{" "}
+                  {t("checkout.successReference")}{" "}
                   {reservationIdParam?.trim() ||
                     `checkoutGroup:${checkoutGroupIdParam?.trim()}`}
                 </p>
@@ -473,14 +496,14 @@ function CheckoutConfirmationContent() {
                   onClick={() => router.push("/profile/reservations")}
                   className="bg-black hover:bg-black/90 text-white rounded-full"
                 >
-                  View reservations
+                  {t("checkout.successViewReservations")}
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => router.push("/shop")}
                   className="rounded-full"
                 >
-                  Continue shopping
+                  {t("checkout.continueShopping")}
                 </Button>
               </div>
             </CardContent>
@@ -492,14 +515,15 @@ function CheckoutConfirmationContent() {
               <CardContent className="p-0 space-y-6">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <div className="text-sm text-gray-500">Reservation ID</div>
+                    <div className="text-sm text-gray-500">
+                      {t("checkout.successReservationId")}
+                    </div>
                     <div className="font-mono text-sm text-gray-900 break-all mt-1">
                       {reservation.id}
                     </div>
                   </div>
                   <Badge className={getStatusColor(reservation.status)}>
-                    {reservation.status.charAt(0).toUpperCase() +
-                      reservation.status.slice(1)}
+                    {translateReservationStatus(reservation.status, t)}
                   </Badge>
                 </div>
 
@@ -507,7 +531,7 @@ function CheckoutConfirmationContent() {
                   {reservation.pickup_zone && (
                     <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
                       <div className="text-xs text-gray-500 mb-1">
-                        Pickup zone
+                        {t("checkout.successPickupZone")}
                       </div>
                       <div className="text-sm font-medium text-gray-900">
                         {reservation.pickup_zone}
@@ -517,7 +541,7 @@ function CheckoutConfirmationContent() {
                   {reservation.delivery_zone && (
                     <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
                       <div className="text-xs text-gray-500 mb-1">
-                        Delivery zone
+                        {t("checkout.successDeliveryZone")}
                       </div>
                       <div className="text-sm font-medium text-gray-900">
                         {reservation.delivery_zone}
@@ -526,7 +550,9 @@ function CheckoutConfirmationContent() {
                   )}
                   {reservation.pallet_name && (
                     <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                      <div className="text-xs text-gray-500 mb-1">Pallet</div>
+                      <div className="text-xs text-gray-500 mb-1">
+                        {t("checkout.pallet")}
+                      </div>
                       <div className="text-sm font-medium text-gray-900">
                         {reservation.pallet_name}
                       </div>
@@ -538,7 +564,7 @@ function CheckoutConfirmationContent() {
                   <div className="rounded-2xl border border-gray-200 bg-white p-4">
                     <div className="flex items-center gap-2 text-sm font-medium text-gray-900 mb-2">
                       <Home className="h-4 w-4 text-gray-600" />
-                      Delivery address
+                      {t("checkout.successDeliveryAddress")}
                     </div>
                     <div className="text-sm text-gray-600">
                       {reservation.delivery_address}
@@ -550,11 +576,13 @@ function CheckoutConfirmationContent() {
                   <div className="rounded-2xl border border-gray-200 bg-white p-4">
                     <div className="flex items-center justify-between gap-4 mb-3">
                       <div className="text-sm font-medium text-gray-900">
-                        Shared bottles
+                        {t("checkout.successSharedBottles")}
                       </div>
                       <div className="text-xs text-gray-500">
                         {reservation.shared.length}{" "}
-                        {reservation.shared.length === 1 ? "person" : "people"}
+                        {reservation.shared.length === 1
+                          ? t("checkout.successPerson")
+                          : t("checkout.successPeople")}
                       </div>
                     </div>
 
@@ -567,14 +595,15 @@ function CheckoutConfirmationContent() {
                           <div className="flex items-center justify-between gap-3">
                             <div className="min-w-0">
                               <div className="text-sm font-medium text-gray-900 truncate">
-                                {share.to_user.full_name || "Friend"}
+                                {share.to_user.full_name ||
+                                  t("checkout.successFriend")}
                               </div>
                               <div className="text-xs text-gray-500">
                                 {share.items.reduce(
                                   (sum, i) => sum + (i.quantity || 0),
                                   0,
                                 )}{" "}
-                                bottles
+                                {t("checkout.bottles")}
                               </div>
                             </div>
                             <div className="text-sm font-medium text-gray-900 whitespace-nowrap">
@@ -609,7 +638,7 @@ function CheckoutConfirmationContent() {
                     </div>
 
                     <div className="text-[11px] text-gray-500 mt-3">
-                      Split reflects bottle prices only. Shipping is not split.
+                      {t("checkout.successSplitNote")}
                     </div>
                   </div>
                 )}
@@ -617,10 +646,12 @@ function CheckoutConfirmationContent() {
                 <div className="rounded-2xl border border-gray-200 bg-white p-4">
                   <div className="flex items-center gap-2 text-sm font-medium text-gray-900 mb-3">
                     <DollarSign className="h-4 w-4 text-gray-600" />
-                    Total
+                    {t("checkout.total")}
                   </div>
                   <div className="flex items-baseline justify-between">
-                    <div className="text-sm text-gray-500">Amount</div>
+                    <div className="text-sm text-gray-500">
+                      {t("checkout.successAmount")}
+                    </div>
                     <div className="text-xl font-medium text-gray-900">
                       {formatPrice(reservation.total_amount_cents || 0)}
                     </div>
@@ -635,7 +666,7 @@ function CheckoutConfirmationContent() {
                 <CardContent className="p-0">
                   <div className="flex items-center justify-between gap-4 mb-4">
                     <div className="text-lg font-medium text-gray-900">
-                      Reserved bottles
+                      {t("checkout.successReservedBottles")}
                     </div>
                     {reservation.order_type && (
                       <Badge 
@@ -646,9 +677,9 @@ function CheckoutConfirmationContent() {
                             : "bg-blue-50 border-blue-200 text-blue-700"
                         }
                       >
-                        {reservation.order_type === "warehouse" 
-                          ? "Warehouse Order" 
-                          : "Producer Order"}
+                        {reservation.order_type === "warehouse"
+                          ? t("checkout.successWarehouseOrder")
+                          : t("checkout.successProducerOrder")}
                       </Badge>
                     )}
                   </div>
@@ -695,7 +726,9 @@ function CheckoutConfirmationContent() {
                                         : "bg-blue-100 border-blue-300 text-blue-700 text-[10px] px-1.5 py-0"
                                     }
                                   >
-                                    {item.source === "warehouse" ? "Warehouse" : "Producer"}
+                                    {item.source === "warehouse"
+                                      ? t("checkout.successWarehouse")
+                                      : t("checkout.successProducer")}
                                   </Badge>
                                 )}
                               </div>
@@ -706,15 +739,17 @@ function CheckoutConfirmationContent() {
                               )}
                               <div className="text-xs text-gray-500 mt-1">
                                 {item.quantity}{" "}
-                                {item.quantity === 1 ? "bottle" : "bottles"}
+                                {item.quantity === 1
+                                  ? t("checkout.bottle")
+                                  : t("checkout.bottles")}
                                 {item.source === "warehouse" && (
                                   <span className="ml-2 text-green-600">
-                                    • Direct delivery
+                                    • {t("checkout.successDirectDelivery")}
                                   </span>
                                 )}
                                 {item.source === "producer" && (
                                   <span className="ml-2 text-blue-600">
-                                    • On pallet
+                                    • {t("checkout.successOnPallet")}
                                   </span>
                                 )}
                               </div>
@@ -731,7 +766,7 @@ function CheckoutConfirmationContent() {
                                 href={`/product/${item.product_handle}`}
                                 className="text-sm font-medium text-gray-900 underline underline-offset-4 hover:opacity-80"
                               >
-                                View product
+                                {t("checkout.successViewProduct")}
                               </Link>
                             </div>
                           )}
@@ -745,34 +780,26 @@ function CheckoutConfirmationContent() {
               <Card className="p-6 bg-white border border-gray-200 rounded-2xl">
                 <CardContent className="p-0 space-y-4">
                   <div className="text-lg font-medium text-gray-900">
-                    What happens next
+                    {t("checkout.successWhatNext")}
                   </div>
                   <div className="space-y-3 text-sm text-gray-600">
                     <div className="flex gap-3">
                       <div className="h-6 w-6 rounded-full bg-gray-900 text-white flex items-center justify-center text-xs font-medium shrink-0">
                         1
                       </div>
-                      <div>
-                        You’ll get updates as the pallet fills up with other
-                        orders.
-                      </div>
+                      <div>{t("checkout.successStep1")}</div>
                     </div>
                     <div className="flex gap-3">
                       <div className="h-6 w-6 rounded-full bg-gray-900 text-white flex items-center justify-center text-xs font-medium shrink-0">
                         2
                       </div>
-                      <div>
-                        When it reaches 100%, we’ll email you a secure payment
-                        link.
-                      </div>
+                      <div>{t("checkout.successStep2")}</div>
                     </div>
                     <div className="flex gap-3">
                       <div className="h-6 w-6 rounded-full bg-gray-900 text-white flex items-center justify-center text-xs font-medium shrink-0">
                         3
                       </div>
-                      <div>
-                        After payment, your wines ship to your pickup location.
-                      </div>
+                      <div>{t("checkout.successStep3")}</div>
                     </div>
                   </div>
                 </CardContent>
@@ -783,14 +810,14 @@ function CheckoutConfirmationContent() {
                   onClick={() => router.push("/profile/reservations")}
                   className="bg-black hover:bg-black/90 text-white rounded-full flex-1"
                 >
-                  View reservations
+                  {t("checkout.successViewReservations")}
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => router.push("/shop")}
                   className="rounded-full flex-1"
                 >
-                  Continue shopping
+                  {t("checkout.continueShopping")}
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </div>

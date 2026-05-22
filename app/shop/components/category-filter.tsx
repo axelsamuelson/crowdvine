@@ -6,6 +6,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useCategoryFilterCount } from "../hooks/use-filter-count";
 import { useQueryState, parseAsString } from "nuqs";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 interface CategoryFilterProps {
   collections: Collection[];
@@ -20,6 +21,7 @@ export function CategoryFilter({
   mode = "sidebar",
   onSeeAll,
 }: CategoryFilterProps) {
+  const { t } = useTranslations();
   const params = useParams<{ collection: string }>();
   const [producersParam] = useQueryState(
     "producers",
@@ -42,7 +44,7 @@ export function CategoryFilter({
     <div className={cn("px-2.5 py-2 rounded-lg bg-muted", className)}>
       <div className="flex items-baseline justify-between gap-2 mb-2">
         <h3 className="text-sm font-semibold">
-          Producers{" "}
+          {t("shop.producers")}{" "}
           {categoryCount > 0 && (
             <span className="text-foreground/50">({categoryCount})</span>
           )}
@@ -53,9 +55,9 @@ export function CategoryFilter({
             type="button"
             onClick={onSeeAll}
             className="text-xs font-medium text-foreground/60 hover:text-foreground/80 transition-colors"
-            aria-label="See all producers and filters"
+            aria-label={t("shop.seeAllProducers")}
           >
-            See all
+            {t("shop.seeAll")}
           </button>
         )}
       </div>
@@ -81,7 +83,9 @@ export function CategoryFilter({
                     )}
                     href={`/shop/${collection.handle}`}
                     aria-pressed={isSelected}
-                    aria-label={`Filter by category: ${collection.title}`}
+                    aria-label={t("shop.filterByCategory", {
+                      name: collection.title,
+                    })}
                     prefetch
                   >
                     {collection.title}

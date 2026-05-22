@@ -9,6 +9,7 @@ import {
   resolveMarketDropForPallet,
   resolveMarketDropIdForCheckout,
 } from "@/lib/market/resolve-market-drop";
+import { resolveDisplayCurrencyCode } from "@/lib/shopping-context/currency-policy";
 
 const CHECKOUT_AUTO_META = {
   created_by: "checkout_auto_create",
@@ -133,10 +134,12 @@ export async function getOrCreateMarketDropForCheckout(params: {
     display_name = `${palletName} · ${countryLabel}`;
   }
 
-  const currency =
-    geo.currencyCode?.trim() ||
-    resolvedMarket.currencyCode.trim() ||
-    "SEK";
+  const currency = resolveDisplayCurrencyCode({
+    zoneCurrencyCode: geo.currencyCode,
+    marketCurrencyCode: resolvedMarket.currencyCode,
+    countryCode: cc,
+    marketCode: resolvedMarket.marketCode,
+  });
 
   const insertRow = {
     source_pallet_id: sourcePalletId,

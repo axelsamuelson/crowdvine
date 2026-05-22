@@ -4,8 +4,10 @@ import { CartItem } from "@/lib/shopify/types";
 import { Button } from "../ui/button";
 import { useCart } from "./cart-context";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 export function DeleteItemButton({ item }: { item: CartItem }) {
+  const { t } = useTranslations();
   const { updateItem } = useCart();
   const lineId = item.id;
   const merchandiseId = item.merchandise.id;
@@ -27,10 +29,10 @@ export function DeleteItemButton({ item }: { item: CartItem }) {
         type="submit"
         size="sm"
         variant="ghost"
-        aria-label="Remove item"
+        aria-label={t("cart.removeAria")}
         className="px-2 text-sm"
       >
-        Remove
+        {t("cart.remove")}
       </Button>
     </form>
   );

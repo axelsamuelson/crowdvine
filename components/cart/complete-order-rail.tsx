@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { useCartOptional } from "@/components/cart/cart-context";
 import type { ProducerValidation } from "@/lib/checkout-validation";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 const serializeCart = (cart: any) =>
   JSON.stringify(
@@ -15,6 +16,7 @@ const serializeCart = (cart: any) =>
   );
 
 export function CompleteOrderRail({ showMobile = false }: { showMobile?: boolean }) {
+  const { t } = useTranslations();
   const pathname = usePathname();
   const router = useRouter();
   const cart = useCartOptional()?.cart;
@@ -101,10 +103,10 @@ export function CompleteOrderRail({ showMobile = false }: { showMobile?: boolean
         type="button"
         onClick={() => setIsHidden(false)}
         className="hidden md:inline-flex items-center gap-2 h-7 px-3 rounded-sm border border-gray-200 bg-white/95 backdrop-blur-md shadow-xs hover:bg-white transition-colors"
-        title="Show order progress"
+        title={t("shop.completeOrderShow")}
       >
         <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-900">
-          Complete order
+          {t("shop.completeOrder")}
         </span>
         <span className="text-[11px] text-gray-500 tabular-nums">
           {validations.length}
@@ -122,10 +124,12 @@ export function CompleteOrderRail({ showMobile = false }: { showMobile?: boolean
             type="button"
             onClick={goToProducer}
             className="flex items-center gap-2 min-w-0 flex-1 rounded-sm border border-gray-200 bg-white/95 backdrop-blur-md shadow-xs px-2.5 py-0.5 text-left hover:bg-white transition-colors"
-            aria-label={`Filter by producer ${primary?.producerName || primary?.producerHandle}`}
+            aria-label={t("shop.completeOrderFilterProducer", {
+              name: primary?.producerName || primary?.producerHandle || "",
+            })}
           >
             <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-900 whitespace-nowrap">
-              Complete order
+              {t("shop.completeOrder")}
             </span>
             <span className="text-[11px] text-gray-400 whitespace-nowrap">•</span>
             <span className="text-[11px] text-gray-900 tabular-nums whitespace-nowrap">
@@ -136,7 +140,9 @@ export function CompleteOrderRail({ showMobile = false }: { showMobile?: boolean
             </span>
             {validations.length > 1 && (
               <span className="text-[11px] text-gray-500 whitespace-nowrap">
-                +{validations.length - 1} more
+                {t("shop.completeOrderMore", {
+                  count: validations.length - 1,
+                })}
               </span>
             )}
 
@@ -151,7 +157,7 @@ export function CompleteOrderRail({ showMobile = false }: { showMobile?: boolean
               {isValidating && (
                 <div
                   className="w-3 h-3 border border-gray-400/40 border-t-gray-700 rounded-full animate-spin"
-                  aria-label="Validating cart"
+                  aria-label={t("shop.completeOrderValidating")}
                 />
               )}
             </div>
@@ -161,7 +167,7 @@ export function CompleteOrderRail({ showMobile = false }: { showMobile?: boolean
             type="button"
             onClick={() => setIsHidden(true)}
             className="h-7 w-7 inline-flex items-center justify-center rounded-sm text-gray-500 hover:text-gray-700 hover:bg-background/10 transition-colors"
-            aria-label="Hide order progress"
+            aria-label={t("shop.completeOrderHide")}
           >
             <X className="w-4 h-4" />
           </button>
@@ -182,23 +188,27 @@ export function CompleteOrderRail({ showMobile = false }: { showMobile?: boolean
               }
             }}
             className="w-full bg-white/95 backdrop-blur-md border border-gray-200 rounded-sm px-2 py-1.5 shadow-sm text-left hover:bg-white transition-colors cursor-pointer select-none"
-            aria-label={`Filter by producer ${primary?.producerName || primary?.producerHandle}`}
+            aria-label={t("shop.completeOrderFilterProducer", {
+              name: primary?.producerName || primary?.producerHandle || "",
+            })}
           >
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-900">
-                Complete order
+                {t("shop.completeOrder")}
               </div>
                 <div className="text-[11px] text-gray-700 truncate tabular-nums">
                   {primaryCurrent}/{primaryRequired} • {primary?.producerName || primary?.producerHandle}
-                {validations.length > 1 ? ` (+${validations.length - 1} more)` : ""}
+                {validations.length > 1
+                  ? ` (${t("shop.completeOrderMore", { count: validations.length - 1 })})`
+                  : ""}
               </div>
             </div>
             <button
               type="button"
               onClick={() => setIsHidden(true)}
               className="h-7 w-7 inline-flex items-center justify-center rounded-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-              aria-label="Hide order progress"
+              aria-label={t("shop.completeOrderHide")}
               onMouseDown={(e) => e.stopPropagation()}
               onClickCapture={(e) => e.stopPropagation()}
             >

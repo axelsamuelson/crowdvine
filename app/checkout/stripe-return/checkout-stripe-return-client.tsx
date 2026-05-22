@@ -3,10 +3,12 @@
 import { useEffect, useLayoutEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { isUiLocalizationEnabledClient } from "@/lib/localization";
 
 type IntentType = "setup_intent" | "payment_intent";
 
 function isSwedishLocale(): boolean {
+  if (!isUiLocalizationEnabledClient()) return false;
   if (typeof document !== "undefined") {
     const lang = document.documentElement?.lang;
     if (typeof lang === "string" && lang.toLowerCase().startsWith("sv"))

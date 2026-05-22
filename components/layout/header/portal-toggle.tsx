@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { isDirtywineHost } from "@/lib/b2b-site";
 
 const PACT_ORIGIN = "https://pactwines.com";
 const B2B_ORIGIN = "https://dirtywine.se";
@@ -17,13 +18,12 @@ export function PortalToggle({ showPortalToggle, className }: PortalToggleProps)
   if (!showPortalToggle) return null;
 
   const host =
-    typeof window !== "undefined" ? window.location.hostname.toLowerCase() : "";
-  const forceB2B =
-    typeof window !== "undefined" ? window.location.search.includes("b2b=1") : false;
-  const onLocalhost = host === "localhost" || host === "127.0.0.1";
-  // dirtywine.se = B2B. localhost = PACT (pactwines.com); use ?b2b=1 for B2B on localhost
-  const onB2B =
-    host.includes("dirtywine.se") || (onLocalhost && forceB2B);
+    typeof window !== "undefined" ? window.location.hostname : "";
+  const searchParams =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search)
+      : null;
+  const onB2B = isDirtywineHost(host, searchParams);
 
   const handleSwitch = () => {
     const targetOrigin = onB2B ? PACT_ORIGIN : B2B_ORIGIN;

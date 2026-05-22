@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ProducerValidation } from "@/lib/checkout-validation";
 import { CheckCircle, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 interface CartValidationDisplayProps {
   validations: ProducerValidation[];
@@ -14,6 +15,7 @@ export function CartValidationDisplay({
   validations,
   isLoading,
 }: CartValidationDisplayProps) {
+  const { t } = useTranslations();
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (isLoading) {
@@ -33,6 +35,7 @@ export function CartValidationDisplay({
 
   const hasInvalid = validations.some((v) => !v.isValid);
   const allValid = validations.every((v) => v.isValid);
+  const invalidCount = validations.filter((v) => !v.isValid).length;
 
   return (
     <div className="border-t border-gray-200">
@@ -49,8 +52,10 @@ export function CartValidationDisplay({
           )}
           <span className="text-sm font-medium text-gray-900">
             {allValid
-              ? "Ready to order"
-              : `${validations.filter((v) => !v.isValid).length} producer${validations.filter((v) => !v.isValid).length > 1 ? "s" : ""} need${validations.filter((v) => !v.isValid).length === 1 ? "s" : ""} more bottles`}
+              ? t("cart.readyToOrder")
+              : invalidCount === 1
+                ? t("cart.producersNeedMoreOne")
+                : t("cart.producersNeedMoreMany", { count: invalidCount })}
           </span>
         </div>
         {isExpanded ? (
@@ -65,7 +70,7 @@ export function CartValidationDisplay({
         <div className="px-4 pb-4 space-y-3">
           {/* Info text */}
           <p className="text-xs text-gray-600">
-            Orders must be in multiples of 6 bottles per producer
+            {t("cart.sixBottleRuleInfo")}
           </p>
 
           {/* Validation for each producer */}
@@ -117,10 +122,12 @@ export function CartValidationDisplay({
 
                       {!validation.isValid ? (
                         <span className="text-xs text-amber-700">
-                          + Add {validation.needed} more
+                          {t("cart.addMoreCount", { count: validation.needed })}
                         </span>
                       ) : (
-                        <span className="text-xs text-green-700">✓ Ready</span>
+                        <span className="text-xs text-green-700">
+                          {t("cart.ready")}
+                        </span>
                       )}
                     </div>
                   </div>

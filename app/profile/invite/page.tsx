@@ -12,6 +12,7 @@ import { getTimeUntilReset } from "@/lib/membership/invite-quota";
 import { buildInviteUrl, getBaseUrlForInvite } from "@/lib/invitation-path";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { ArrowLeft, Link as LinkIcon, Trash2, Users } from "lucide-react";
+import { useShoppingContext } from "@/lib/context/shopping-context-provider";
 
 type Invitation = {
   id: string;
@@ -43,6 +44,8 @@ type MembershipData = {
 };
 
 export default function ProfileInvitePage() {
+  const { t, context: shopping } = useShoppingContext();
+  const intlLocale = shopping.intlLocale;
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [unauthorized, setUnauthorized] = useState(false);
@@ -68,7 +71,7 @@ export default function ProfileInvitePage() {
   const formatDate = (dateString: string | null | undefined): string => {
     if (!dateString) return "";
     const date = new Date(dateString);
-    return date.toLocaleDateString("sv-SE", {
+    return date.toLocaleDateString(intlLocale, {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -131,7 +134,7 @@ export default function ProfileInvitePage() {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        toast.error(err.error || "Failed to generate invite");
+        toast.error(err.error || t("profile.inviteGenerateFailed"));
         return;
       }
 
@@ -148,7 +151,7 @@ export default function ProfileInvitePage() {
           created_at: data.invitation.createdAt || new Date().toISOString(),
         };
         setActiveInvitations((prev) => enrichInvites([inv, ...prev]));
-        toast.success("Invitation generated");
+        toast.success(t("profile.inviteGenerated"));
         // Refresh membership quota
         const mRes = await fetch("/api/user/membership");
         if (mRes.ok) setMembership(await mRes.json());
@@ -161,8 +164,8 @@ export default function ProfileInvitePage() {
   const copyText = async (text: string, label: string, invitationId?: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      toast.success(`${label} copied`);
-      if (invitationId && label === "Link") {
+      toast.success(t("profile.copiedLabel", { label }));
+      if (invitationId) {
         void AnalyticsTracker.trackEvent({
           eventType: "invitation_shared",
           eventCategory: "invitation",
@@ -170,23 +173,23 @@ export default function ProfileInvitePage() {
         });
       }
     } catch {
-      toast.error("Could not copy");
+      toast.error(t("profile.couldNotCopy"));
     }
   };
 
   const deleteInvite = async (id: string) => {
-    if (!confirm("Delete this invitation? It will no longer be usable.")) return;
+    if (!confirm(t("profile.inviteDeleteConfirm"))) return;
 
     try {
       setDeletingId(id);
       const res = await fetch(`/api/user/invitations/${id}`, { method: "DELETE" });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        toast.error(err.error || "Failed to delete invite");
+        toast.error(err.error || t("profile.inviteDeleteFailed"));
         return;
       }
       setActiveInvitations((prev) => prev.filter((i) => i.id !== id));
-      toast.success("Invitation deleted");
+      toast.success(t("profile.inviteDeleted"));
       // Refresh quota
       const mRes = await fetch("/api/user/membership");
       if (mRes.ok) setMembership(await mRes.json());
@@ -210,16 +213,18 @@ export default function ProfileInvitePage() {
       <PageLayout>
         <div className="pt-top-spacing px-4 sm:px-sides">
           <div className="rounded-xl border border-border bg-white p-6 shadow-sm text-center space-y-3">
-            <h1 className="text-xl font-semibold text-foreground">Logga in för att bjuda in</h1>
+            <h1 className="text-xl font-semibold text-foreground">
+              {t("profile.inviteSignInTitle")}
+            </h1>
             <p className="text-muted-foreground text-sm">
-              Du behöver vara inloggad för att skapa invitation codes.
+              {t("profile.inviteSignInSubtitle")}
             </p>
             <div className="flex justify-center">
               <Button
                 className="rounded-full bg-black text-white hover:bg-white hover:text-black hover:border-black"
                 onClick={() => router.push("/log-in")}
               >
-                Gå till inloggning
+                {t("profile.goToLogin")}
               </Button>
             </div>
           </div>
@@ -240,7 +245,7 @@ export default function ProfileInvitePage() {
             onClick={() => router.push("/profile")}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+            {t("profile.back")}
           </Button>
 
           <Button
@@ -249,15 +254,17 @@ export default function ProfileInvitePage() {
             disabled={generating || (quota?.available ?? 0) <= 0}
           >
             <Users className="h-4 w-4 mr-2" />
-            {generating ? "Generating..." : "Generate invite"}
+            {generating ? t("profile.generatingInvite") : t("profile.generateInvite")}
           </Button>
         </div>
 
         <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
           <div className="mb-4">
-            <h1 className="text-2xl font-semibold text-foreground">Invite friends</h1>
+            <h1 className="text-2xl font-semibold text-foreground">
+              {t("profile.inviteTitle")}
+            </h1>
             <p className="text-sm text-muted-foreground">
-              Share an invite link to bring friends onto CrowdVine.
+              {t("profile.invitePageSubtitle")}
             </p>
           </div>
 
@@ -269,20 +276,24 @@ export default function ProfileInvitePage() {
               resetsIn={resetsIn}
             />
           ) : (
-            <p className="text-sm text-muted-foreground">Unable to load quota.</p>
+            <p className="text-sm text-muted-foreground">
+              {t("profile.inviteQuotaLoadFailed")}
+            </p>
           )}
         </div>
 
         <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
           <Tabs defaultValue="active" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="active">Aktiva</TabsTrigger>
-              <TabsTrigger value="used">Använda</TabsTrigger>
+              <TabsTrigger value="active">{t("profile.inviteTabActive")}</TabsTrigger>
+              <TabsTrigger value="used">{t("profile.inviteTabUsed")}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="active" className="mt-4">
               {activeInvitations.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No active invites yet.</p>
+                <p className="text-sm text-muted-foreground">
+                  {t("profile.noActiveInvites")}
+                </p>
               ) : (
                 <div className="space-y-3">
                   {activeInvitations.map((inv) => (
@@ -298,7 +309,7 @@ export default function ProfileInvitePage() {
                             </p>
                             {isNewInvitation(inv.created_at) && (
                               <Badge variant="default" className="text-xs">
-                                NEW
+                                {t("profile.inviteNewBadge")}
                               </Badge>
                             )}
                           </div>
@@ -307,7 +318,9 @@ export default function ProfileInvitePage() {
                           </p>
                           {inv.created_at && (
                             <p className="text-xs text-muted-foreground">
-                              Skapad: {formatDate(inv.created_at)}
+                              {t("profile.inviteCreatedAt", {
+                                date: formatDate(inv.created_at),
+                              })}
                             </p>
                           )}
                         </div>
@@ -319,9 +332,13 @@ export default function ProfileInvitePage() {
                               size="icon"
                               className="h-9 w-9 rounded-full"
                               onClick={() =>
-                                copyText(inv.signupUrl!, "Link", inv.id)
+                                copyText(
+                                  inv.signupUrl!,
+                                  t("profile.linkLabel"),
+                                  inv.id,
+                                )
                               }
-                              aria-label="Copy link"
+                              aria-label={t("profile.copyLinkAria")}
                             >
                               <LinkIcon className="h-4 w-4" />
                             </Button>
@@ -332,7 +349,7 @@ export default function ProfileInvitePage() {
                             className="h-9 w-9 rounded-full text-muted-foreground hover:text-red-600"
                             onClick={() => deleteInvite(inv.id)}
                             disabled={deletingId === inv.id}
-                            aria-label="Delete invite"
+                            aria-label={t("profile.deleteInviteAria")}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -346,7 +363,9 @@ export default function ProfileInvitePage() {
 
             <TabsContent value="used" className="mt-4">
               {usedInvitations.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No used invites yet.</p>
+                <p className="text-sm text-muted-foreground">
+                  {t("profile.noUsedInvites")}
+                </p>
               ) : (
                 <div className="space-y-3">
                   {usedInvitations.map((inv) => (
@@ -361,17 +380,24 @@ export default function ProfileInvitePage() {
                           </p>
                           {inv.profiles && (
                             <p className="text-xs text-muted-foreground mb-1">
-                              Använd av: {inv.profiles.full_name || inv.profiles.email}
+                              {t("profile.inviteUsedBy", {
+                                name:
+                                  inv.profiles.full_name || inv.profiles.email,
+                              })}
                             </p>
                           )}
                           {inv.created_at && (
                             <p className="text-xs text-muted-foreground mb-1">
-                              Skapad: {formatDate(inv.created_at)}
+                              {t("profile.inviteCreatedAt", {
+                                date: formatDate(inv.created_at),
+                              })}
                             </p>
                           )}
                           {inv.used_at && (
                             <p className="text-xs text-muted-foreground">
-                              Använd: {formatDate(inv.used_at)}
+                              {t("profile.inviteUsedAt", {
+                                date: formatDate(inv.used_at),
+                              })}
                             </p>
                           )}
                         </div>

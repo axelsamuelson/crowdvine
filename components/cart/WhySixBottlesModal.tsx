@@ -2,7 +2,8 @@
 
 import { motion, AnimatePresence } from "motion/react";
 import { X, ChevronDown, ChevronUp } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 interface WhySixBottlesModalProps {
   isOpen: boolean;
@@ -20,40 +21,46 @@ export function WhySixBottlesModal({
   isOpen,
   onClose,
 }: WhySixBottlesModalProps) {
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(["single-bottles"]));
+  const { t } = useTranslations();
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(
+    new Set(["single-bottles"]),
+  );
 
-  const faqs: FAQItem[] = [
-    {
-      id: "single-bottles",
-      question: "Why can't I buy just one or two bottles?",
-      answer: "Because every order is part of a shared shipment built directly from each producer's cellar. Producers pack their wines in 6-bottle boxes, and the platform fills those boxes collectively. That's what allows us to ship efficiently and offer prices up to 50% lower than traditional retail.",
-      icon: "🍷"
-    },
-    {
-      id: "mix-wines",
-      question: "Can I mix different wines in one box?",
-      answer: "Yes. You can mix any bottles from the same producer or from a producer group that shares logistics. All wines in a box travel together from the same place.",
-      icon: "🔄"
-    },
-    {
-      id: "different-producers",
-      question: "Why can't I mix wines from different producers?",
-      answer: "Each producer ships their own wines directly from the cellar. Mixing bottles from unrelated producers would mean repacking, extra handling and higher transport costs. The only exception is when producers belong to the same producer group and ship together.",
-      icon: "🚫"
-    },
-    {
-      id: "producer-groups",
-      question: "What's a \"producer group\"?",
-      answer: "It's a set of nearby winemakers who share logistics. If producers belong to the same group, you can mix their wines in the same box.",
-      icon: "👥"
-    },
-    {
-      id: "separate-boxes",
-      question: "Why does every producer need a separate box?",
-      answer: "Because each producer (or group) prepares, seals, and labels their boxes for shipment. This guarantees origin, authenticity, and fair transport costs.",
-      icon: "📦"
-    }
-  ];
+  const faqs: FAQItem[] = useMemo(
+    () => [
+      {
+        id: "single-bottles",
+        question: t("cart.whyFaqSingleBottlesQ"),
+        answer: t("cart.whyFaqSingleBottlesA"),
+        icon: "🍷",
+      },
+      {
+        id: "mix-wines",
+        question: t("cart.whyFaqMixWinesQ"),
+        answer: t("cart.whyFaqMixWinesA"),
+        icon: "🔄",
+      },
+      {
+        id: "different-producers",
+        question: t("cart.whyFaqDifferentProducersQ"),
+        answer: t("cart.whyFaqDifferentProducersA"),
+        icon: "🚫",
+      },
+      {
+        id: "producer-groups",
+        question: t("cart.whyFaqProducerGroupsQ"),
+        answer: t("cart.whyFaqProducerGroupsA"),
+        icon: "👥",
+      },
+      {
+        id: "separate-boxes",
+        question: t("cart.whyFaqSeparateBoxesQ"),
+        answer: t("cart.whyFaqSeparateBoxesA"),
+        icon: "📦",
+      },
+    ],
+    [t],
+  );
 
   const toggleExpanded = (id: string) => {
     const newExpanded = new Set(expandedItems);
@@ -94,6 +101,7 @@ export function WhySixBottlesModal({
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-1.5 hover:bg-muted-foreground/10 rounded-lg transition-colors z-10"
+          aria-label={t("cart.closeAria")}
         >
           <X className="w-4 h-4 text-muted-foreground" />
         </button>
@@ -157,7 +165,7 @@ export function WhySixBottlesModal({
             onClick={onClose}
             className="w-full px-4 py-2.5 text-sm bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors font-medium"
           >
-            Got it!
+            {t("cart.gotIt")}
           </button>
         </div>
       </motion.div>

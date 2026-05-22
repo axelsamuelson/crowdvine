@@ -54,6 +54,10 @@ export function parseResolvedActiveZoneFromApi(
       pickStr(o, "eligibilityStatus", "eligibility_status") ||
       "normal_checkout",
     currencyCode: pickStr(o, "currencyCode", "currency_code") || "SEK",
+    defaultDeliveryZoneId: (() => {
+      const d = pickStr(o, "defaultDeliveryZoneId", "default_delivery_zone_id");
+      return d || null;
+    })(),
     source: ((): ResolvedActiveGeoZone["source"] => {
       const s = pickStr(o, "source", "source");
       if (s === "preference" || s === "profile" || s === "default") return s;

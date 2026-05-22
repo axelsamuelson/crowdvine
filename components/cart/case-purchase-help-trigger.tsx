@@ -6,8 +6,10 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 export function CasePurchaseHelpTrigger({ className }: { className?: string }) {
+  const { t } = useTranslations();
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -21,7 +23,7 @@ export function CasePurchaseHelpTrigger({ className }: { className?: string }) {
             background:
               "var(--color-background-secondary, hsl(var(--secondary)))",
           }}
-          aria-label="How same and mixed cases work"
+          aria-label={t("cart.caseHelpAria")}
         >
           ?
         </button>
@@ -33,28 +35,18 @@ export function CasePurchaseHelpTrigger({ className }: { className?: string }) {
         collisionPadding={12}
         className="z-[130] w-[min(20rem,calc(100vw-2rem))] space-y-3 text-sm leading-snug text-popover-foreground"
       >
-        <p className="font-semibold text-foreground">Buying by the case (6 bottles)</p>
+        <p className="font-semibold text-foreground">{t("cart.caseHelpTitle")}</p>
         <div className="space-y-1">
-          <p className="font-medium text-foreground">× 6 same</p>
-          <p className="text-muted-foreground">
-            Six bottles of the exact same wine and vintage—one full case when you
-            know what you want at home.
-          </p>
+          <p className="font-medium text-foreground">{t("cart.caseHelpSameTitle")}</p>
+          <p className="text-muted-foreground">{t("cart.caseHelpSameBody")}</p>
         </div>
         <div className="space-y-1">
-          <p className="font-medium text-foreground">× 6 mixed</p>
-          <p className="text-muted-foreground">
-            You choose six bottles from the producer&apos;s range in the mixed-case
-            flow (based on what&apos;s available), so you can vary what&apos;s in the box.
-          </p>
+          <p className="font-medium text-foreground">{t("cart.caseHelpMixedTitle")}</p>
+          <p className="text-muted-foreground">{t("cart.caseHelpMixedBody")}</p>
         </div>
         <div className="space-y-1 border-t border-border pt-3">
-          <p className="font-medium text-foreground">Why not a single bottle?</p>
-          <p className="text-muted-foreground">
-            These wines are sold in full cases to keep shipping, handling, and
-            environmental impact per bottle lower. The minimum purchase is therefore
-            six bottles.
-          </p>
+          <p className="font-medium text-foreground">{t("cart.caseHelpSingleTitle")}</p>
+          <p className="text-muted-foreground">{t("cart.caseHelpSingleBody")}</p>
         </div>
       </PopoverContent>
     </Popover>

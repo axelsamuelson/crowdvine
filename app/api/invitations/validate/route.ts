@@ -2,6 +2,26 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { logUserEventServer } from "@/lib/analytics/log-user-event-server";
 import { ensurePersonalInviteForUser } from "@/lib/referral/ensure-personal-invite";
+import type { DetectedLocation } from "@/lib/geo-zones/detect-zone";
+
+function decodeGeoHeader(raw: string | null): string | null {
+  if (!raw?.trim()) return null;
+  try {
+    return decodeURIComponent(raw.trim());
+  } catch {
+    return raw.trim();
+  }
+}
+
+function readDetectedLocation(request: Request): DetectedLocation {
+  const fromHeader = (key: string) => decodeGeoHeader(request.headers.get(key));
+  const country =
+    fromHeader("x-vercel-ip-country") ??
+    (process.env.DEV_GEO_COUNTRY?.trim() || null);
+  const city = fromHeader("x-vercel-ip-city");
+  const region = fromHeader("x-vercel-ip-region");
+  return { country, city, region };
+}
 
 /**
  * POST /api/invitations/validate
@@ -179,8 +199,11 @@ export async function POST(request: Request) {
         ? rawDefaultGeo.trim()
         : null;
 
+    const detectedLocation = readDetectedLocation(request);
+
     return NextResponse.json({
       success: true,
+      detectedLocation,
       invitation: {
         id: invitation.id,
         code: invitation.code,

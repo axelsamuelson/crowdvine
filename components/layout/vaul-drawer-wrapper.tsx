@@ -1,16 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
-/**
- * Wraps content in the vaul drawer wrapper only on routes that use Drawer (shop, etc.).
- * Omitting the wrapper on admin/tasting/etc. avoids hydration mismatch:
- * vaul can inject data-vaul-drawer-wrapper on the client; we must not have that div on admin.
- */
-export function VaulDrawerWrapper({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
+/** Routes that use vaul Drawer and need the scale-background wrapper. */
+export function pathnameNeedsVaulDrawerWrapper(pathname: string): boolean {
   const isAdminRoute = pathname.startsWith("/admin");
-  const isTastingRoute = pathname.startsWith("/tasting");
   const isAccessRequestRoute = pathname === "/access-request";
   const isCheckoutSuccessRoute = pathname === "/checkout/success";
   const isLogInRoute = pathname === "/log-in";
@@ -24,16 +19,40 @@ export function VaulDrawerWrapper({ children }: { children: React.ReactNode }) {
   const isSignupRoute = pathname === "/signup";
   const isOnboardingRoute = pathname === "/onboarding";
 
-  const needsVaulWrapper =
+  return (
     !isAdminRoute &&
-    !isTastingRoute &&
     !isAccessRequestRoute &&
     !isCheckoutSuccessRoute &&
     !isLogInRoute &&
     !isMapTopoRoute &&
     !isInvitationRoute &&
     !isSignupRoute &&
-    !isOnboardingRoute;
+    !isOnboardingRoute
+  );
+}
+
+/**
+ * Wraps content in the vaul drawer wrapper only on routes that use Drawer.
+ * {@link ssrPathname} must match the request path from middleware so SSR HTML
+ * matches the client's first paint (avoids hydration mismatch).
+ */
+export function VaulDrawerWrapper({
+  children,
+  ssrPathname,
+}: {
+  children: React.ReactNode;
+  ssrPathname: string;
+}) {
+  const pathname = usePathname();
+  const [needsVaulWrapper, setNeedsVaulWrapper] = useState(() =>
+    pathnameNeedsVaulDrawerWrapper(ssrPathname),
+  );
+
+  useEffect(() => {
+    setNeedsVaulWrapper(
+      pathnameNeedsVaulDrawerWrapper(pathname || ssrPathname),
+    );
+  }, [pathname, ssrPathname]);
 
   if (needsVaulWrapper) {
     return <div data-vaul-drawer-wrapper="true">{children}</div>;

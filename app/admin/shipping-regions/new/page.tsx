@@ -10,10 +10,10 @@ export default function NewShippingRegionPage() {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            New shipping region
+            Ny fraktregion
           </h1>
           <p className="text-sm text-gray-600 dark:text-zinc-400">
-            Define a geographic producer grouping for pallets
+            T.ex. &quot;Frankrike&quot; eller &quot;Norra Italien&quot; — tilldelas på producent.
           </p>
         </div>
       </div>

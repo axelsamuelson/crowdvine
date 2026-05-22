@@ -1,20 +1,22 @@
+import { isDirtywineHost, isPactHost } from "@/lib/b2b-site";
+
 /**
  * Resolves logo content key based on host (PACT vs Dirty Wine).
- * - dirtywine.se → _dirtywine suffix (B2B)
- * - pactwines.com, localhost, 127.0.0.1 → _pact suffix (B2C)
- * - other → base key unchanged
+ * - dirtywine.se / localhost ?b2b=1 → _dirtywine suffix (B2B)
+ * - pactwines.com / localhost (default) → _pact suffix (B2C)
  */
 export function resolveLogoKeyByHost(
   baseKey: string,
   host: string | null,
+  searchParams?: { get: (key: string) => string | null } | null,
 ): string {
   if (!host) return baseKey;
 
-  const h = host.toLowerCase().split(":")[0];
-  const isB2B = h.includes("dirtywine.se");
-  const isPACT = h.includes("pactwines.com") || h === "localhost" || h === "127.0.0.1";
-
-  const suffix = isB2B ? "_dirtywine" : isPACT ? "_pact" : null;
+  const suffix = isDirtywineHost(host, searchParams)
+    ? "_dirtywine"
+    : isPactHost(host, searchParams)
+      ? "_pact"
+      : null;
   if (!suffix) return baseKey;
 
   const suffixKeys = ["header_logo", "footer_logo", "alternative_logo"];

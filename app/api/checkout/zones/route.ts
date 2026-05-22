@@ -24,7 +24,16 @@ export async function POST(request: Request) {
       );
     }
 
-    const zones = await determineZones(cartItems, deliveryAddress);
+    const user = await getCurrentUser();
+    let preferredDeliveryZoneId: string | null = null;
+    if (user?.id) {
+      const active = await resolveActiveGeoZoneForUser(user.id);
+      preferredDeliveryZoneId = active.defaultDeliveryZoneId;
+    }
+
+    const zones = await determineZones(cartItems, deliveryAddress, {
+      preferredDeliveryZoneId,
+    });
 
     let palletsOut = zones.pallets || [];
     const palletIds = palletsOut
@@ -77,8 +86,6 @@ export async function POST(request: Request) {
         );
       }
     }
-
-    const user = await getCurrentUser();
 
     const rawCc =
       typeof deliveryAddress.countryCode === "string"

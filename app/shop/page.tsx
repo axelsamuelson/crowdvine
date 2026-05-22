@@ -2,14 +2,20 @@ import { storeCatalog } from "@/lib/shopify/constants";
 import ProductList from "./components/product-list";
 import { Metadata } from "next";
 import { Suspense } from "react";
-import ResultsControls from "./components/results-controls";
-import { ProductGrid } from "./components/product-grid";
 import { ProductCardSkeleton } from "./components/product-card-skeleton";
+import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
+import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
+import { translate } from "@/lib/i18n/messages";
 
-export const metadata: Metadata = {
-  title: "Shop",
-  description: "Shop for wines",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const ctx = await getShoppingContextFromRequest().catch(() =>
+    fallbackShoppingContext(),
+  );
+  return {
+    title: translate(ctx.locale, "shop.pageTitle"),
+    description: translate(ctx.locale, "shop.pageDescription"),
+  };
+}
 
 // Disable static generation for now - make it dynamic
 export const dynamic = "force-dynamic";

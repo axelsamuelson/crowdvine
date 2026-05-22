@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Collection } from "@/lib/shopify/types";
 import { useParams } from "next/navigation";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 interface ShopBreadcrumbProps {
   collections: Pick<Collection, "handle" | "title">[];
@@ -19,11 +20,12 @@ export function ShopBreadcrumb({
   collections,
   className,
 }: ShopBreadcrumbProps) {
+  const { t } = useTranslations();
   const params = useParams<{ collection: string }>();
   const currentCollection = params.collection;
 
   const renderCategoryBreadcrumb = () => {
-    if (currentCollection === undefined) return "All";
+    if (currentCollection === undefined) return t("common.all");
     const collection = collections.find((c) => c.handle === currentCollection);
     return collection?.title;
   };
@@ -33,7 +35,7 @@ export function ShopBreadcrumb({
       <BreadcrumbList>
         <BreadcrumbItem className="cursor-pointer text-foreground/50 hover:text-foreground/70">
           <BreadcrumbLink href="/shop" className="font-semibold">
-            Shop
+            {t("common.shop")}
           </BreadcrumbLink>
         </BreadcrumbItem>
         <BreadcrumbSeparator />

@@ -18,6 +18,7 @@ import { CaseModeSelector, type CaseMode } from "./case-mode-selector";
 import { CasePurchaseHelpTrigger } from "./case-purchase-help-trigger";
 import { AddToCartCase } from "./AddToCartCase";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 function dispatchCartRefresh(cart: unknown) {
   if (typeof window === "undefined") return;
@@ -74,6 +75,7 @@ export function ShopWineCaseSheet({
   open,
   onOpenChange,
 }: ShopWineCaseSheetProps) {
+  const { t } = useTranslations();
   const [mounted, setMounted] = useState(false);
   const [mode, setMode] = useState<CaseMode>("same");
   const [mixedHandoff, setMixedHandoff] = useState(false);
@@ -147,7 +149,7 @@ export function ShopWineCaseSheet({
             >
               <button
                 type="button"
-                aria-label="Close"
+                aria-label={t("cart.closeDialog")}
                 className="absolute inset-0 bg-black/60"
                 onClick={() => onOpenChange(false)}
               />
@@ -191,7 +193,11 @@ export function ShopWineCaseSheet({
                   onConfirm={handleConfirm}
                   disabled={!resolvedVariant || samePending}
                   pending={samePending}
-                  label={!resolvedVariant ? "Select a variant" : "Add case"}
+                  label={
+                    !resolvedVariant
+                      ? t("product.selectOne")
+                      : t("shop.addCase")
+                  }
                 />
               </motion.div>
             </motion.div>
@@ -228,8 +234,10 @@ export function ShopWineCasePicker({
   product,
   size = "sm",
   className,
-  triggerLabel = "Add case",
+  triggerLabel,
 }: ShopWineCasePickerProps) {
+  const { t } = useTranslations();
+  const label = triggerLabel ?? t("shop.addCase");
   const [open, setOpen] = useState(false);
 
   return (
@@ -243,7 +251,7 @@ export function ShopWineCasePicker({
           className,
         )}
       >
-        {triggerLabel}
+        {label}
       </Button>
       <ShopWineCaseSheet
         product={product}

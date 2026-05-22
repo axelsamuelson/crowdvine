@@ -441,11 +441,20 @@ export async function POST(request: Request) {
 
     // Determine pickup and delivery zones before persisting address / reservation
     console.log("Determining zones based on cart items and delivery address");
-    const zones = await determineZones(cart.lines, {
-      postcode: address.postcode,
-      city: address.city,
-      countryCode: address.countryCode,
-    });
+    let preferredDeliveryZoneId: string | null = null;
+    if (currentUser?.id) {
+      const activeGeo = await resolveActiveGeoZoneForUser(currentUser.id);
+      preferredDeliveryZoneId = activeGeo.defaultDeliveryZoneId;
+    }
+    const zones = await determineZones(
+      cart.lines,
+      {
+        postcode: address.postcode,
+        city: address.city,
+        countryCode: address.countryCode,
+      },
+      { preferredDeliveryZoneId },
+    );
 
     console.log("Zones determined:", zones);
 

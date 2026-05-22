@@ -58,10 +58,11 @@ export default async function ShippingRegionsPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Shipping regions
+              Fraktregioner
             </h1>
-            <p className="text-sm text-gray-600 dark:text-zinc-400">
-              Group producers for pallet routing (Phase 2.1)
+            <p className="text-sm text-gray-600 dark:text-zinc-400 max-w-xl">
+              Grupperar producenter. När alla producenter i varukorgen delar samma
+              region skapas region-baserade pallar utan klassisk upphämtningszon.
             </p>
           </div>
         </div>
@@ -71,7 +72,7 @@ export default async function ShippingRegionsPage() {
             className="rounded-lg text-xs font-medium bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900 hover:bg-gray-800 dark:hover:bg-zinc-200"
           >
             <Plus className="w-3.5 h-3.5 mr-1.5" />
-            Add region
+            Ny fraktregion
           </Button>
         </Link>
       </div>
@@ -80,10 +81,10 @@ export default async function ShippingRegionsPage() {
         <div className="bg-white dark:bg-[#0F0F12] rounded-xl border border-gray-200 dark:border-[#1F1F23] overflow-hidden">
           <div className="p-6 border-b border-gray-200 dark:border-[#1F1F23]">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-              All regions
+              Alla fraktregioner
             </h2>
             <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
-              Name, country, producers assigned, and actions
+              Koppla producenter under Producers → shipping region
             </p>
           </div>
           <div className="overflow-x-auto">

@@ -1,4 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { deleteGeoZone } from "@/lib/actions/geo-zones";
+import {
+  geoZoneCityRequired,
+  syncDeliveryZoneForGeoZone,
+} from "@/lib/market/sync-geo-zone-delivery";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 function requireAdmin(request: NextRequest) {
@@ -74,11 +79,36 @@ export async function PATCH(
     }
 
     const sb = getSupabaseAdmin();
+    const { data: before } = await sb
+      .from("geo_zones")
+      .select(
+        "id, display_name, country_code, city, is_active, eligibility_status, default_delivery_zone_id",
+      )
+      .eq("id", id)
+      .maybeSingle();
+
+    if (!before) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    const mergedCity =
+      patch.city !== undefined
+        ? (patch.city as string | null)
+        : (before as { city?: string | null }).city;
+    const cityErr = geoZoneCityRequired(
+      typeof mergedCity === "string" ? mergedCity : null,
+    );
+    if (cityErr) {
+      return NextResponse.json({ error: cityErr }, { status: 400 });
+    }
+
     const { data, error } = await sb
       .from("geo_zones")
       .update(patch)
       .eq("id", id)
-      .select("id")
+      .select(
+        "id, display_name, country_code, city, is_active, eligibility_status, default_delivery_zone_id",
+      )
       .maybeSingle();
 
     if (error) {
@@ -87,9 +117,60 @@ export async function PATCH(
     if (!data) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
-    return NextResponse.json({ ok: true, id: (data as { id: string }).id });
+
+    const row = data as {
+      id: string;
+      display_name: string;
+      country_code: string;
+      city: string | null;
+      is_active: boolean;
+      eligibility_status: string;
+      default_delivery_zone_id: string | null;
+    };
+
+    if (row.is_active && row.eligibility_status !== "disabled") {
+      try {
+        await syncDeliveryZoneForGeoZone({
+          geoZoneId: row.id,
+          displayName: row.display_name,
+          countryCode: row.country_code,
+          city: row.city!.trim(),
+          existingDeliveryZoneId: row.default_delivery_zone_id,
+        });
+      } catch (syncErr) {
+        const msg =
+          syncErr instanceof Error ? syncErr.message : "Delivery zone sync failed";
+        return NextResponse.json({ error: msg }, { status: 500 });
+      }
+    }
+
+    return NextResponse.json({ ok: true, id: row.id });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Unknown error";
     return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}
+
+/** DELETE /api/admin/geo-zones/[id] — remove geo zone (+ linked delivery when possible). */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const denied = requireAdmin(request);
+  if (denied) return denied;
+
+  const { id: rawId } = await params;
+  const id = rawId?.trim();
+  if (!id) {
+    return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  }
+
+  try {
+    const result = await deleteGeoZone(id);
+    return NextResponse.json({ ok: true, ...result });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "Unknown error";
+    const status = msg.includes("hittades inte") ? 404 : 500;
+    return NextResponse.json({ error: msg }, { status });
   }
 }

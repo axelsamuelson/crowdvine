@@ -1,56 +1,43 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+  type ComponentType,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { ArrowLeft, ChevronDown, Loader2, Truck, X } from "lucide-react";
 import { PageLayout } from "@/components/layout/page-layout";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
 import {
-  useWineZoneSwitcher,
-  type EligibleGeoZoneRow,
-} from "@/lib/hooks/use-wine-zone-switcher";
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { Skeleton } from "@/components/ui/skeleton";
+import { WineZoneLocationPicker } from "@/components/settings/wine-zone-location-picker";
+import { cn } from "@/lib/utils";
+import { useWineZoneSwitcher } from "@/lib/hooks/use-wine-zone-switcher";
 import type { UserZoneAddressTemplate } from "@/lib/checkout/user-zone-delivery-template";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
-function eligibilityStatusLabel(status: string): string {
-  const s = status.trim().toLowerCase().replace(/-/g, "_");
-  if (s === "normal_checkout") return "Normal checkout";
-  if (s === "conditional_reservation") return "Conditional reservation";
-  if (s === "interest_only") return "Interest only";
-  return status.replace(/_/g, " ");
-}
+const fieldInputClass = cn(
+  "h-10 rounded-md border border-zinc-200 bg-white px-3 text-sm text-zinc-900 shadow-sm",
+  "placeholder:text-zinc-500 focus-visible:ring-2 focus-visible:ring-zinc-300 focus-visible:ring-offset-0",
+  "dark:bg-white dark:text-zinc-900 dark:border-zinc-200 dark:placeholder:text-zinc-500",
+  "[&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_#fff] [&:-webkit-autofill]:[-webkit-text-fill-color:#18181b]",
+);
 
-function regionHint(z: EligibleGeoZoneRow): string {
-  const cc = (z.country_code ?? "").toUpperCase();
-  const rc = z.region_code?.trim().toUpperCase() ?? "";
-  if (rc) return `${cc} · ${rc}`;
-  return cc || "";
-}
-
-function flagEmoji(countryCode: string): string {
-  const m: Record<string, string> = {
-    US: "🇺🇸",
-    SE: "🇸🇪",
-    GB: "🇬🇧",
-    DK: "🇩🇰",
-    FI: "🇫🇮",
-    NO: "🇳🇴",
-    DE: "🇩🇪",
-    FR: "🇫🇷",
-  };
-  return m[countryCode.trim().toUpperCase()] ?? "🌐";
-}
+const readonlyInputClass = cn(
+  "h-10 cursor-default rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm text-zinc-600",
+  "dark:bg-zinc-50 dark:text-zinc-600 dark:border-zinc-200",
+);
 
 type DeliveryForm = {
   full_name: string;
@@ -85,7 +72,50 @@ function rowToForm(row: UserZoneAddressTemplate | null): DeliveryForm {
   };
 }
 
+function DeliverySection({
+  icon: Icon,
+  title,
+  description,
+  children,
+  defaultOpen,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  title: string;
+  description: string;
+  children: ReactNode;
+  defaultOpen: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen} className="rounded-2xl border border-border bg-card">
+      <CollapsibleTrigger className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left md:px-6">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-muted/30">
+            <Icon className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <div className="min-w-0 space-y-0.5">
+            <p className="text-base font-semibold text-foreground">{title}</p>
+            <p className="text-sm text-muted-foreground">{description}</p>
+          </div>
+        </div>
+        <ChevronDown
+          className={cn(
+            "h-5 w-5 shrink-0 text-muted-foreground transition-transform",
+            open && "rotate-180",
+          )}
+        />
+      </CollapsibleTrigger>
+      <CollapsibleContent className="border-t border-border px-5 py-5 md:px-6">
+        {children}
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
 export default function WineZoneSettingsPage() {
+  const { t, context } = useTranslations();
+  const locale = context.locale === "sv" ? "sv" : "en";
   const router = useRouter();
   const {
     signedIn,
@@ -149,21 +179,22 @@ export default function WineZoneSettingsPage() {
   }, [signedIn, loadZoneAddress]);
 
   const onSelectZone = async (zoneId: string) => {
-    await selectZone(zoneId, "Wine zone updated.");
+    if (zoneId === activeZone?.geoZoneId) return;
+    await selectZone(zoneId, t("zone.updated"));
   };
 
   const saveDelivery = async () => {
     if (!geoZoneId || !activeZone) return;
     const cc = activeZone.countryCode.trim().toUpperCase();
     if (cc.length !== 2) {
-      toast.error("Wine zone country is invalid.");
+      toast.error(t("zone.invalidCountry"));
       return;
     }
     const a1 = deliveryForm.address_line1.trim();
     const city = deliveryForm.city.trim();
     const postal = deliveryForm.postal_code.trim();
     if (!a1 || !city || !postal) {
-      toast.error("Street, city, and postal code are required.");
+      toast.error(t("zone.addressRequired"));
       return;
     }
 
@@ -195,310 +226,305 @@ export default function WineZoneSettingsPage() {
         address?: UserZoneAddressTemplate;
       };
       if (!res.ok) {
-        toast.error(body.error ?? "Could not save delivery details.");
+        toast.error(body.error ?? t("zone.saveFailed"));
         return;
       }
       if (body.address) {
         setZoneAddress(body.address);
         setDeliveryForm(rowToForm(body.address));
       }
-      toast.success("Delivery details saved for this wine zone.");
+      toast.success(t("zone.deliverySaved"));
       router.refresh();
     } catch {
-      toast.error("Could not save delivery details.");
+      toast.error(t("zone.saveFailed"));
     } finally {
       setAddrSaving(false);
     }
   };
 
+  const activeId = activeZone?.geoZoneId ?? "";
+  const countryCode = (activeZone?.countryCode ?? "").toUpperCase();
+  const displayName = activeZone?.displayName?.trim() || "";
+
   if (signedIn === false) {
     return null;
   }
 
-  const currency =
-    activeZone?.currencyCode?.trim().toUpperCase() || "SEK";
-  const displayName = activeZone?.displayName?.trim() || "";
-  const activeId = activeZone?.geoZoneId ?? "";
+  if (loading && signedIn === true) {
+    return (
+      <PageLayout>
+        <div className="flex min-h-[50vh] items-center justify-center">
+          <div className="h-10 w-10 animate-spin rounded-full border-2 border-muted border-t-foreground" />
+        </div>
+      </PageLayout>
+    );
+  }
 
   return (
-    <PageLayout className="bg-muted px-sides pb-12">
-      <div className="mx-auto w-full max-w-xl space-y-6 pt-top-spacing">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Wine zone</h1>
-          <p className="text-sm text-muted-foreground">
-            Shopping in and delivery templates are saved per wine zone. Your
-            profile country, region, and city are not updated from this page.
-          </p>
+    <PageLayout>
+      <div className="mx-auto w-full max-w-5xl px-4 pb-16 pt-6 md:px-sides md:pt-10">
+        <div className="relative mb-10 flex items-center justify-center">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute left-0 rounded-full"
+            asChild
+          >
+            <Link href="/profile" aria-label={t("zone.backToProfile")}>
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+          </Button>
+          <h1 className="text-center text-xl font-semibold tracking-tight text-foreground md:text-2xl">
+            {t("zone.selectLocation")}
+          </h1>
+          <Button
+            variant="default"
+            size="icon"
+            className="absolute right-0 h-9 w-9 rounded-full bg-foreground text-background hover:bg-foreground/90"
+            asChild
+          >
+            <Link href="/profile" aria-label={t("zone.close")}>
+              <X className="h-4 w-4" />
+            </Link>
+          </Button>
         </div>
 
-        <Card className="border-border/80">
-          <CardHeader>
-            <CardTitle className="text-base">Shopping in</CardTitle>
-            <CardDescription>
-              Current wine zone and how checkout runs for this region.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {loading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-48" />
-                <Skeleton className="h-4 w-32" />
+        <p className="mx-auto mb-8 max-w-lg text-center text-sm text-muted-foreground">
+          {t("zone.selectLocationSubtitle")}
+        </p>
+
+        {loading ? (
+          <div className="space-y-8">
+            {[1, 2].map((g) => (
+              <div key={g} className="space-y-3">
+                <Skeleton className="h-5 w-28" />
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  <Skeleton className="h-[72px] rounded-xl" />
+                  <Skeleton className="h-[72px] rounded-xl" />
+                  <Skeleton className="h-[72px] rounded-xl" />
+                </div>
               </div>
-            ) : (
-              <>
-                <p className="text-lg font-medium leading-snug">
-                  {displayName || "—"}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {flagEmoji(activeZone?.countryCode ?? "")}{" "}
-                  {(activeZone?.countryCode ?? "").toUpperCase() || "—"} ·{" "}
-                  {currency}
-                </p>
-                {activeZone?.eligibilityStatus ? (
-                  <p className="text-xs text-muted-foreground">
-                    {eligibilityStatusLabel(activeZone.eligibilityStatus)}
-                  </p>
-                ) : null}
-              </>
-            )}
-          </CardContent>
-        </Card>
+            ))}
+          </div>
+        ) : eligibleZones.length === 0 ? (
+          <p className="text-center text-sm text-muted-foreground">
+            {t("zone.noZones")}
+          </p>
+        ) : (
+          <WineZoneLocationPicker
+            zones={eligibleZones}
+            activeZoneId={activeId}
+            patchingId={patchingId}
+            locale={locale}
+            onSelectZone={(id) => void onSelectZone(id)}
+          />
+        )}
 
-        <Card className="border-border/80">
-          <CardHeader>
-            <CardTitle className="text-base">Change wine zone</CardTitle>
-            <CardDescription>
-              Choose where you shop; pallet availability follows this zone.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-40 w-full" />
-            ) : eligibleZones.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No wine zones are available right now.
-              </p>
-            ) : (
-              <ul className="flex flex-col gap-1">
-                {eligibleZones.map((z) => {
-                  const isCurrent = Boolean(activeId && z.id === activeId);
-                  const busy = patchingId === z.id;
-                  return (
-                    <li key={z.id}>
-                      <button
+        {geoZoneId ? (
+          <div className="mt-10">
+            <DeliverySection
+              icon={Truck}
+              title={
+                displayName
+                  ? t("zone.deliveryFor", { zone: displayName })
+                  : t("zone.deliveryForZone")
+              }
+              description={t("zone.deliveryOptional")}
+              defaultOpen={Boolean(zoneAddress)}
+            >
+              {addrLoading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-2/3" />
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="z-cc" className="text-sm font-medium">
+                        {t("zone.countryZone")}
+                      </Label>
+                      <Input
+                        id="z-cc"
+                        readOnly
+                        value={countryCode}
+                        className={readonlyInputClass}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="z-rc" className="text-sm font-medium">
+                        {t("zone.regionZone")}
+                      </Label>
+                      <Input
+                        id="z-rc"
+                        readOnly
+                        value={activeZone?.regionCode?.toUpperCase() || "—"}
+                        className={readonlyInputClass}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="z-name" className="text-sm font-medium">
+                        {t("zone.fullName")}
+                      </Label>
+                      <Input
+                        id="z-name"
+                        value={deliveryForm.full_name}
+                        onChange={(e) =>
+                          setDeliveryForm((f) => ({
+                            ...f,
+                            full_name: e.target.value,
+                          }))
+                        }
+                        className={fieldInputClass}
+                        autoComplete="name"
+                      />
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="z-phone" className="text-sm font-medium">
+                          {t("zone.phone")}
+                        </Label>
+                        <Input
+                          id="z-phone"
+                          value={deliveryForm.phone}
+                          onChange={(e) =>
+                            setDeliveryForm((f) => ({
+                              ...f,
+                              phone: e.target.value,
+                            }))
+                          }
+                          className={fieldInputClass}
+                          autoComplete="tel"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="z-email" className="text-sm font-medium">
+                          {t("zone.email")}
+                        </Label>
+                        <Input
+                          id="z-email"
+                          type="email"
+                          value={deliveryForm.email}
+                          onChange={(e) =>
+                            setDeliveryForm((f) => ({
+                              ...f,
+                              email: e.target.value,
+                            }))
+                          }
+                          className={fieldInputClass}
+                          autoComplete="email"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="z-a1" className="text-sm font-medium">
+                        {t("zone.street")}
+                      </Label>
+                      <Input
+                        id="z-a1"
+                        value={deliveryForm.address_line1}
+                        onChange={(e) =>
+                          setDeliveryForm((f) => ({
+                            ...f,
+                            address_line1: e.target.value,
+                          }))
+                        }
+                        className={fieldInputClass}
+                        autoComplete="address-line1"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="z-a2" className="text-sm font-medium">
+                        {t("zone.address2")}
+                      </Label>
+                      <Input
+                        id="z-a2"
+                        value={deliveryForm.address_line2}
+                        onChange={(e) =>
+                          setDeliveryForm((f) => ({
+                            ...f,
+                            address_line2: e.target.value,
+                          }))
+                        }
+                        className={fieldInputClass}
+                        autoComplete="address-line2"
+                      />
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="z-city" className="text-sm font-medium">
+                          {t("zone.city")}
+                        </Label>
+                        <Input
+                          id="z-city"
+                          value={deliveryForm.city}
+                          onChange={(e) =>
+                            setDeliveryForm((f) => ({
+                              ...f,
+                              city: e.target.value,
+                            }))
+                          }
+                          className={fieldInputClass}
+                          autoComplete="address-level2"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="z-postal" className="text-sm font-medium">
+                          {t("zone.postalCode")}
+                        </Label>
+                        <Input
+                          id="z-postal"
+                          value={deliveryForm.postal_code}
+                          onChange={(e) =>
+                            setDeliveryForm((f) => ({
+                              ...f,
+                              postal_code: e.target.value,
+                            }))
+                          }
+                          className={fieldInputClass}
+                          autoComplete="postal-code"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+                    {zoneAddress ? (
+                      <Button
                         type="button"
-                        disabled={busy || isCurrent}
-                        onClick={() => void onSelectZone(z.id)}
-                        className={cn(
-                          "flex w-full flex-col items-start gap-0.5 rounded-md border border-transparent px-3 py-2.5 text-left text-sm transition-colors",
-                          isCurrent
-                            ? "border-border bg-accent/50"
-                            : "hover:bg-muted/80",
-                          busy && "opacity-70",
-                        )}
+                        variant="outline"
+                        className="rounded-full"
+                        onClick={() => setDeliveryForm(rowToForm(zoneAddress))}
+                        disabled={addrSaving}
                       >
-                        <span className="font-medium">
-                          {flagEmoji(z.country_code)}{" "}
-                          {z.display_name?.trim() || z.id}
-                          {isCurrent ? (
-                            <span className="ml-2 text-xs font-normal text-muted-foreground">
-                              Current
-                            </span>
-                          ) : null}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {regionHint(z)}
-                        </span>
-                        <span className="text-[11px] text-muted-foreground">
-                          {eligibilityStatusLabel(z.eligibility_status)}
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/80">
-          <CardHeader>
-            <CardTitle className="text-base">
-              {displayName
-                ? `Delivery details for ${displayName}`
-                : "Delivery details for this zone"}
-            </CardTitle>
-            <CardDescription>
-              Used at checkout for this wine zone only. Not the same as your
-              profile contact fields.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {!geoZoneId ? (
-              <p className="text-sm text-muted-foreground">
-                Choose a wine zone to manage delivery details for this zone.
-              </p>
-            ) : addrLoading ? (
-              <Skeleton className="h-48 w-full" />
-            ) : (
-              <>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="z-cc">Country (wine zone)</Label>
-                    <Input
-                      id="z-cc"
-                      readOnly
-                      value={(activeZone?.countryCode ?? "").toUpperCase()}
-                      className="bg-muted"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="z-rc">Region / state (wine zone)</Label>
-                    <Input
-                      id="z-rc"
-                      readOnly
-                      value={
-                        activeZone?.regionCode?.toUpperCase() || "—"
-                      }
-                      className="bg-muted"
-                    />
-                  </div>
-                </div>
-                <div className="grid gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="z-name">Full name</Label>
-                    <Input
-                      id="z-name"
-                      value={deliveryForm.full_name}
-                      onChange={(e) =>
-                        setDeliveryForm((f) => ({
-                          ...f,
-                          full_name: e.target.value,
-                        }))
-                      }
-                      autoComplete="name"
-                    />
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="z-phone">Phone</Label>
-                      <Input
-                        id="z-phone"
-                        value={deliveryForm.phone}
-                        onChange={(e) =>
-                          setDeliveryForm((f) => ({
-                            ...f,
-                            phone: e.target.value,
-                          }))
-                        }
-                        autoComplete="tel"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="z-email">Email</Label>
-                      <Input
-                        id="z-email"
-                        type="email"
-                        value={deliveryForm.email}
-                        onChange={(e) =>
-                          setDeliveryForm((f) => ({
-                            ...f,
-                            email: e.target.value,
-                          }))
-                        }
-                        autoComplete="email"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="z-a1">Street address</Label>
-                    <Input
-                      id="z-a1"
-                      value={deliveryForm.address_line1}
-                      onChange={(e) =>
-                        setDeliveryForm((f) => ({
-                          ...f,
-                          address_line1: e.target.value,
-                        }))
-                      }
-                      autoComplete="address-line1"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="z-a2">Apartment, suite, etc. (optional)</Label>
-                    <Input
-                      id="z-a2"
-                      value={deliveryForm.address_line2}
-                      onChange={(e) =>
-                        setDeliveryForm((f) => ({
-                          ...f,
-                          address_line2: e.target.value,
-                        }))
-                      }
-                      autoComplete="address-line2"
-                    />
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="z-city">City</Label>
-                      <Input
-                        id="z-city"
-                        value={deliveryForm.city}
-                        onChange={(e) =>
-                          setDeliveryForm((f) => ({
-                            ...f,
-                            city: e.target.value,
-                          }))
-                        }
-                        autoComplete="address-level2"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="z-postal">Postal code</Label>
-                      <Input
-                        id="z-postal"
-                        value={deliveryForm.postal_code}
-                        onChange={(e) =>
-                          setDeliveryForm((f) => ({
-                            ...f,
-                            postal_code: e.target.value,
-                          }))
-                        }
-                        autoComplete="postal-code"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    onClick={() => void saveDelivery()}
-                    disabled={addrSaving}
-                  >
-                    {addrSaving ? "Saving…" : "Save delivery details"}
-                  </Button>
-                  {zoneAddress ? (
+                        {t("zone.reset")}
+                      </Button>
+                    ) : null}
                     <Button
                       type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setDeliveryForm(rowToForm(zoneAddress))}
+                      className="rounded-full bg-foreground text-background hover:bg-foreground/90"
+                      onClick={() => void saveDelivery()}
                       disabled={addrSaving}
                     >
-                      Reset
+                      {addrSaving ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          {t("common.saving")}
+                        </>
+                      ) : (
+                        t("zone.saveDelivery")
+                      )}
                     </Button>
-                  ) : null}
+                  </div>
                 </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        <p className="text-center text-sm text-muted-foreground">
-          <Button variant="link" className="h-auto p-0" asChild>
-            <Link href="/profile">Back to profile</Link>
-          </Button>
-        </p>
+              )}
+            </DeliverySection>
+          </div>
+        ) : null}
       </div>
     </PageLayout>
   );

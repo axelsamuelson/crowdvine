@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { ProducerValidation } from "@/lib/checkout-validation";
 import { WhySixBottlesModal } from "./WhySixBottlesModal";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 interface CartValidationHeaderProps {
   validations: ProducerValidation[];
@@ -16,6 +17,7 @@ export function CartValidationHeader({
   validations,
   isValidating,
 }: CartValidationHeaderProps) {
+  const { t } = useTranslations();
   const [isExpanded, setIsExpanded] = useState(false);
   const [showWhyModal, setShowWhyModal] = useState(false);
   if (isValidating) {
@@ -29,7 +31,7 @@ export function CartValidationHeader({
           <div className="flex items-center gap-2">
             <div className="w-1.5 h-1.5 rounded-full bg-foreground/50 animate-pulse" />
             <span className="text-xs text-foreground/60 font-medium">
-              Validating cart...
+              {t("cart.validatingCart")}
             </span>
           </div>
         </div>
@@ -55,7 +57,7 @@ export function CartValidationHeader({
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
               <span className="text-xs text-emerald-700 font-medium">
-                Ready to checkout
+                {t("cart.readyToCheckout")}
               </span>
             </div>
             <button
@@ -67,9 +69,9 @@ export function CartValidationHeader({
                 });
               }}
               className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
-              title="Why 6 bottles per producer?"
+              title={t("cart.whySixAria")}
             >
-              Why?
+              {t("cart.why")}
             </button>
           </div>
         </div>
@@ -96,7 +98,7 @@ export function CartValidationHeader({
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-muted-foreground/40"></div>
               <span className="text-xs text-muted-foreground">
-                Learn about our 6-bottle minimum rule
+                {t("cart.learnSixBottleRule")}
               </span>
             </div>
             <button
@@ -108,9 +110,9 @@ export function CartValidationHeader({
                 });
               }}
               className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
-              title="Why 6 bottles per producer?"
+              title={t("cart.whySixAria")}
             >
-              Why?
+              {t("cart.why")}
             </button>
           </div>
         </div>
@@ -148,8 +150,12 @@ export function CartValidationHeader({
                 <div className="w-2 h-2 rounded-full bg-amber-500"></div>
                 <span className="text-xs text-muted-foreground">
                   {invalidValidations.length === 1
-                    ? `1 producer needs ${invalidValidations[0].needed} more bottles`
-                    : `${invalidValidations.length} producers need more bottles`}
+                    ? t("cart.oneProducerNeedsMore", {
+                        needed: invalidValidations[0].needed,
+                      })
+                    : t("cart.producersNeedMore", {
+                        count: invalidValidations.length,
+                      })}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -162,9 +168,9 @@ export function CartValidationHeader({
                 });
               }}
                   className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
-                  title="Why 6 bottles per producer?"
+                  title={t("cart.whySixAria")}
                 >
-                  Why?
+                  {t("cart.why")}
                 </button>
                 <button
                   onClick={() => setIsExpanded(!isExpanded)}
@@ -183,14 +189,12 @@ export function CartValidationHeader({
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <p className="text-xs text-foreground font-medium">
-                    Add more bottles from{" "}
                     {invalidValidations.length === 1
-                      ? "this producer"
-                      : "these producers"}{" "}
-                    to checkout
+                      ? t("cart.addMoreFromThisProducer")
+                      : t("cart.addMoreFromTheseProducers")}
                   </p>
                   <p className="text-xs text-muted-foreground/70">
-                    Mix freely within each producer
+                    {t("cart.mixFreelyWithinProducer")}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -203,9 +207,9 @@ export function CartValidationHeader({
                 });
               }}
                     className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
-                    title="Why 6 bottles per producer?"
+                    title={t("cart.whySixAria")}
                   >
-                    Why?
+                    {t("cart.why")}
                   </button>
                   <button
                     onClick={() => setIsExpanded(!isExpanded)}

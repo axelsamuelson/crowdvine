@@ -4,8 +4,8 @@ import { useCallback, useState } from "react";
 import { Link2, Copy, Check, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { REFERRAL_REWARD_HEADLINE } from "@/lib/referral/constants";
 import { cn } from "@/lib/utils";
+import { useShoppingContext } from "@/lib/context/shopping-context-provider";
 
 export interface ReferralInviteCardProps {
   inviteUrl: string;
@@ -20,6 +20,7 @@ export function ReferralInviteCard({
   activatedCount,
   className,
 }: ReferralInviteCardProps) {
+  const { t } = useShoppingContext();
   const [copied, setCopied] = useState(false);
 
   const copyLink = useCallback(async () => {
@@ -27,10 +28,10 @@ export function ReferralInviteCard({
     try {
       await navigator.clipboard.writeText(inviteUrl);
       setCopied(true);
-      toast.success("Link copied");
+      toast.success(t("profile.linkCopied"));
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error("Could not copy link");
+      toast.error(t("profile.linkCopyFailed"));
     }
   }, [inviteUrl]);
 
@@ -39,8 +40,8 @@ export function ReferralInviteCard({
     try {
       if (navigator.share) {
         await navigator.share({
-          title: "Join me on PACT",
-          text: "Get access with my invite link.",
+          title: t("profile.shareTitle"),
+          text: t("profile.shareText"),
           url: inviteUrl,
         });
       } else {
@@ -67,10 +68,10 @@ export function ReferralInviteCard({
         </div>
         <div className="min-w-0 flex-1 space-y-1">
           <h2 className="text-base font-semibold tracking-tight text-foreground">
-            Invite friends
+            {t("profile.inviteTitle")}
           </h2>
           <p className="text-xs text-muted-foreground">
-            Your personal link never expires — share it anytime.
+            {t("profile.inviteSubtitle")}
           </p>
         </div>
       </div>
@@ -93,7 +94,7 @@ export function ReferralInviteCard({
           ) : (
             <Copy className="h-4 w-4" />
           )}
-          Copy link
+          {t("profile.copyLink")}
         </Button>
         <Button
           type="button"
@@ -103,23 +104,29 @@ export function ReferralInviteCard({
           disabled={!inviteUrl}
         >
           <Share2 className="h-4 w-4" />
-          Share
+          {t("profile.share")}
         </Button>
       </div>
 
       <div className="mt-5 space-y-2 rounded-xl bg-muted/40 px-4 py-3 text-sm text-foreground">
-        <p className="font-medium text-foreground">What you get</p>
-        <p className="text-muted-foreground leading-snug">{REFERRAL_REWARD_HEADLINE}</p>
+        <p className="font-medium text-foreground">{t("profile.whatYouGet")}</p>
+        <p className="text-muted-foreground leading-snug">
+          {t("profile.referralRewardHeadline")}
+        </p>
       </div>
 
       <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 border-t border-border pt-4 text-sm">
         <div>
           <span className="font-semibold tabular-nums text-foreground">{invitedCount}</span>
-          <span className="ml-1.5 text-muted-foreground">friends invited</span>
+          <span className="ml-1.5 text-muted-foreground">
+            {t("profile.friendsInvited")}
+          </span>
         </div>
         <div>
           <span className="font-semibold tabular-nums text-foreground">{activatedCount}</span>
-          <span className="ml-1.5 text-muted-foreground">placed their first qualifying order</span>
+          <span className="ml-1.5 text-muted-foreground">
+            {t("profile.firstQualifyingOrder")}
+          </span>
         </div>
       </div>
     </section>

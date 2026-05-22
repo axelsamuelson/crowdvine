@@ -13,19 +13,24 @@ import { useUserRole } from "@/lib/hooks/use-user-role";
 import { usePortalAccess } from "@/lib/hooks/use-portal-access";
 import { useAdminStatus } from "@/lib/hooks/use-admin-status";
 import { PortalToggle } from "./portal-toggle";
-import { HeaderShoppingContextMobile } from "@/components/market/header-shopping-context";
 import { Shield } from "lucide-react";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
-const navItems = [
-  { href: "/shop", label: "Shop" },
-  { href: "/wine-search", label: "Hitta vin" },
-  { href: "/profile", label: "Profile", icon: User },
-  { href: "/about", label: "About" },
-  { href: "/", label: "Home" },
-];
-
-export function MobileMenu({ collections }: { collections: any[] }) {
+export function MobileMenu({
+  collections,
+  isDirtywineSite,
+}: {
+  collections: any[];
+  isDirtywineSite: boolean;
+}) {
+  const { t } = useTranslations();
   const { isOpen, openMobileMenu, closeMobileMenu } = useMobileMenu();
+  const navItems = [
+    { href: "/shop", label: t("common.shop") },
+    { href: "/profile", label: t("common.profile"), icon: User },
+    { href: "/about", label: t("common.about") },
+    { href: "/", label: t("common.home") },
+  ];
   const pathname = usePathname();
   const { role } = useUserRole();
   const { showPortalToggle } = usePortalAccess();
@@ -108,8 +113,6 @@ export function MobileMenu({ collections }: { collections: any[] }) {
                     </div>
                   )}
 
-                  <HeaderShoppingContextMobile onNavigate={closeMobileMenu} />
-
                   {/* Scrollable content area */}
                   <div className="flex-1 overflow-y-auto -mx-3 px-3 md:-mx-4 md:px-4">
                     <nav className="grid grid-cols-2 gap-y-4 gap-x-6 mb-10">
@@ -164,7 +167,10 @@ export function MobileMenu({ collections }: { collections: any[] }) {
 
                     <div className="mb-10">
                       <ShopLinks
-                        label="Popular Producers"
+                        label={t("home.popularProducers")}
+                        emptyMessage={t("home.noProducersFound", {
+                          count: collections?.length ?? 0,
+                        })}
                         collections={collections}
                         onLinkClick={closeMobileMenu}
                       />
@@ -174,7 +180,7 @@ export function MobileMenu({ collections }: { collections: any[] }) {
                   {/* Footer - always visible at bottom */}
                   <div className="mt-auto pt-6 border-t border-gray-200/50">
                     <div className="mb-4 text-sm leading-tight opacity-50">
-                      <p className="italic">Producers And Consumers Together</p>
+                      <p className="italic">{t("home.tagline")}</p>
                     </div>
                     <SidebarLinks className="gap-2 w-full" />
                   </div>

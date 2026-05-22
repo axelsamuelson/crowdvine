@@ -13,6 +13,7 @@ import {
   Wine,
   MapPin,
   Package,
+  Truck,
   Calendar,
   FileText,
   Gift,
@@ -88,9 +89,10 @@ const navigationGroups: NavGroup[] = [
     name: "Lager & Frakt",
     icon: Package,
     items: [
-      { name: "Pallets", href: "/admin/pallets", icon: Package },
-      { name: "Zones", href: "/admin/zones", icon: MapPin },
-      { name: "Shipping regions", href: "/admin/shipping-regions", icon: Globe2 },
+      { name: "Vinzoner & leverans", href: "/admin/geo-zones", icon: Globe2 },
+      { name: "Fraktregioner", href: "/admin/shipping-regions", icon: Truck },
+      { name: "Upphämtningszoner", href: "/admin/zones", icon: MapPin },
+      { name: "Pallar", href: "/admin/pallets", icon: Package },
     ],
   },
   {

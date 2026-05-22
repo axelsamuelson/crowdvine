@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useShoppingContext } from "@/lib/context/shopping-context-provider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -29,6 +30,7 @@ interface PaymentMethodsSectionProps {
 export function PaymentMethodsSection({
   onCountChange,
 }: PaymentMethodsSectionProps) {
+  const { t } = useShoppingContext();
   const [methods, setMethods] = useState<ProfilePaymentMethodRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -51,7 +53,7 @@ export function PaymentMethodsSection({
           body = null;
         }
         setActionError(
-          readErrorMessage(body) ?? "Could not load payment methods.",
+          readErrorMessage(body) ?? t("profile.paymentLoadFailed"),
         );
         setMethods([]);
         return;
@@ -67,7 +69,7 @@ export function PaymentMethodsSection({
           : [];
       setMethods(list);
     } catch {
-      setActionError("Could not load payment methods.");
+      setActionError(t("profile.paymentLoadFailed"));
       setMethods([]);
     } finally {
       setLoading(false);
@@ -98,7 +100,7 @@ export function PaymentMethodsSection({
           body = null;
         }
         setActionError(
-          readErrorMessage(body) ?? "Could not set default card.",
+          readErrorMessage(body) ?? t("profile.paymentDefaultFailed"),
         );
         return;
       }
@@ -109,7 +111,7 @@ export function PaymentMethodsSection({
         })),
       );
     } catch {
-      setActionError("Could not set default card.");
+      setActionError(t("profile.paymentDefaultFailed"));
     } finally {
       setBusyId(null);
     }
@@ -118,7 +120,7 @@ export function PaymentMethodsSection({
   const handleRemove = async (id: string) => {
     if (
       !window.confirm(
-        "Remove this card? This cannot be undone and may affect pending reservations.",
+        t("profile.paymentRemoveConfirm"),
       )
     ) {
       return;
@@ -137,12 +139,12 @@ export function PaymentMethodsSection({
         } catch {
           body = null;
         }
-        setActionError(readErrorMessage(body) ?? "Could not remove card.");
+        setActionError(readErrorMessage(body) ?? t("profile.paymentRemoveFailed"));
         return;
       }
       setMethods((prev) => prev.filter((m) => m.id !== id));
     } catch {
-      setActionError("Could not remove card.");
+      setActionError(t("profile.paymentRemoveFailed"));
     } finally {
       setBusyId(null);
     }
@@ -170,11 +172,10 @@ export function PaymentMethodsSection({
         {methods.length === 0 ? (
           <div className="py-8 text-center space-y-2">
             <p className="text-sm font-medium text-foreground">
-              No saved payment methods
+              {t("profile.noSavedPaymentMethods")}
             </p>
             <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
-              Add a payment method at checkout when placing your next
-              reservation.
+              {t("profile.addPaymentAtCheckout")}
             </p>
           </div>
         ) : (
@@ -192,15 +193,17 @@ export function PaymentMethodsSection({
                     •••• {method.last4 ?? "····"}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Expires {method.expiry_month ?? "—"}/
-                    {method.expiry_year ?? "—"}
+                    {t("profile.expires", {
+                      month: String(method.expiry_month ?? "—"),
+                      year: String(method.expiry_year ?? "—"),
+                    })}
                   </p>
                 </div>
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-2">
                 {method.is_default ? (
                   <Badge className="bg-emerald-600 text-white hover:bg-emerald-600 border-0">
-                    Default
+                    {t("profile.default")}
                   </Badge>
                 ) : (
                   <Button
@@ -211,7 +214,7 @@ export function PaymentMethodsSection({
                     disabled={busyId !== null}
                     onClick={() => void handleSetDefault(method.id)}
                   >
-                    Set as default
+                    {t("profile.setAsDefault")}
                   </Button>
                 )}
                 <Button
@@ -222,7 +225,7 @@ export function PaymentMethodsSection({
                   disabled={busyId !== null}
                   onClick={() => void handleRemove(method.id)}
                 >
-                  Remove
+                  {t("profile.remove")}
                 </Button>
               </div>
             </div>

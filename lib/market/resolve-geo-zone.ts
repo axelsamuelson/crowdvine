@@ -145,7 +145,9 @@ export async function resolveGeoZone(params: {
     return null;
   }
 
-  const list = (rows ?? []) as GeoZoneRow[];
+  const list = ((rows ?? []) as GeoZoneRow[]).filter((r) =>
+    Boolean(normCity(r.city)),
+  );
   if (list.length === 0) return null;
 
   const pc = normCity(params.city);
@@ -183,10 +185,6 @@ export async function resolveGeoZone(params: {
   });
   const c2 = pick(regionMatches);
   if (c2) return rowToResolved(c2);
-
-  const countryMatches = list.filter((r) => !rowRegion(r) && !rowCity(r));
-  const c3 = pick(countryMatches);
-  if (c3) return rowToResolved(c3);
 
   return null;
 }

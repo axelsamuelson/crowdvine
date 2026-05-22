@@ -1,4 +1,7 @@
+"use client";
+
 import { cn } from "@/lib/utils";
+import { useTranslations } from "@/lib/hooks/use-translations";
 import Image from "next/image";
 import { FeaturedProductLabel } from "./featured-product-label";
 import { Product } from "@/lib/shopify/types";
@@ -17,8 +20,9 @@ export function LatestProductCard({
   className,
   labelPosition = "bottom-right",
 }: LatestProductCardProps) {
-  // Check if featured image is available
+  const { t } = useTranslations();
   const hasImage = product.featuredImage && product.featuredImage.url;
+  const noImageLabel = t("home.noImage");
 
   if (principal) {
     return (
@@ -41,7 +45,7 @@ export function LatestProductCard({
           ) : (
             <div className="size-full flex-1 bg-muted flex items-center justify-center">
               <span className="text-muted-foreground text-sm">
-                No image available
+                {noImageLabel}
               </span>
             </div>
           )}
@@ -76,7 +80,7 @@ export function LatestProductCard({
         ) : (
           <div className="size-full bg-muted flex items-center justify-center">
             <span className="text-muted-foreground text-sm">
-              No image available
+              {noImageLabel}
             </span>
           </div>
         )}

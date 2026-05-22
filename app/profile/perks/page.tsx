@@ -33,6 +33,7 @@ import {
   Users,
   Zap,
 } from "lucide-react";
+import { useShoppingContext } from "@/lib/context/shopping-context-provider";
 
 type Perk = {
   perk_type: string;
@@ -76,7 +77,15 @@ const perkIconByType: Record<string, any> = {
   producer_contact: Shield,
 };
 
-function PerkRow({ perk, locked }: { perk: Perk; locked?: boolean }) {
+function PerkRow({
+  perk,
+  locked,
+  t,
+}: {
+  perk: Perk;
+  locked?: boolean;
+  t: (key: string, params?: Record<string, string>) => string;
+}) {
   const Icon = perkIconByType[perk.perk_type] || Check;
   const showValue = perk.perk_value && perk.perk_value !== "true";
 
@@ -110,7 +119,7 @@ function PerkRow({ perk, locked }: { perk: Perk; locked?: boolean }) {
         {locked ? (
           <Badge variant="outline" className="text-[11px]">
             <Lock className="h-3 w-3 mr-1" />
-            Locked
+            {t("profile.perkLocked")}
           </Badge>
         ) : null}
         {showValue ? (
@@ -124,6 +133,7 @@ function PerkRow({ perk, locked }: { perk: Perk; locked?: boolean }) {
 }
 
 export default function ProfilePerksPage() {
+  const { t } = useShoppingContext();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [unauthorized, setUnauthorized] = useState(false);
@@ -204,17 +214,17 @@ export default function ProfilePerksPage() {
         <div className="pt-top-spacing px-4 sm:px-sides">
           <Card className="max-w-xl mx-auto border-border bg-white shadow-sm">
             <CardHeader>
-              <CardTitle className="text-xl">Logga in för att se dina perks</CardTitle>
-              <CardDescription>
-                Du behöver vara inloggad för att visa denna sida.
-              </CardDescription>
+              <CardTitle className="text-xl">
+                {t("profile.perksSignInTitle")}
+              </CardTitle>
+              <CardDescription>{t("profile.perksSignInSubtitle")}</CardDescription>
             </CardHeader>
             <CardContent>
               <Button
                 className="rounded-full bg-black text-white hover:bg-white hover:text-black hover:border-black"
                 onClick={() => router.push("/log-in")}
               >
-                Gå till inloggning
+                {t("profile.goToLogin")}
               </Button>
             </CardContent>
           </Card>
@@ -229,16 +239,14 @@ export default function ProfilePerksPage() {
         <div className="pt-top-spacing px-4 sm:px-sides">
           <Card className="max-w-xl mx-auto border-border bg-white shadow-sm">
             <CardHeader>
-              <CardTitle className="text-xl">Unable to load perks</CardTitle>
-              <CardDescription>
-                Something went wrong while loading membership data.
-              </CardDescription>
+              <CardTitle className="text-xl">{t("profile.perksLoadFailed")}</CardTitle>
+              <CardDescription>{t("profile.perksLoadFailedDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <Button variant="outline" className="rounded-full" onClick={() => router.push("/profile")}
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to profile
+                {t("profile.backToProfile")}
               </Button>
             </CardContent>
           </Card>
@@ -259,14 +267,14 @@ export default function ProfilePerksPage() {
               onClick={() => router.push("/profile")}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
+              {t("profile.back")}
             </Button>
             <div className="min-w-0">
               <h1 className="text-2xl font-semibold text-foreground truncate">
-                My Perks
+                {t("profile.myPerksTitle")}
               </h1>
               <p className="text-sm text-muted-foreground">
-                Your membership benefits, in one place.
+                {t("profile.myPerksSubtitle")}
               </p>
             </div>
           </div>
@@ -290,14 +298,18 @@ export default function ProfilePerksPage() {
                 />
                 <div>
                   <CardTitle className="text-base">{data.levelInfo.name}</CardTitle>
-                  <CardDescription>Membership status</CardDescription>
+                  <CardDescription>{t("profile.membershipStatus")}</CardDescription>
                 </div>
               </div>
 
               <div className="text-right">
-                <p className="text-xs text-muted-foreground">PACT Points</p>
+                <p className="text-xs text-muted-foreground">{t("profile.pactPoints")}</p>
                 <p className="text-base font-semibold text-foreground">
-                  {data.pactPoints?.balance ?? data.membership.impactPoints} points
+                  {t("profile.pointsCount", {
+                    count: String(
+                      data.pactPoints?.balance ?? data.membership.impactPoints,
+                    ),
+                  })}
                 </p>
               </div>
             </div>
@@ -308,23 +320,30 @@ export default function ProfilePerksPage() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>
-                        {data.membership.impactPoints} / {progress.next} points
+                    {t("profile.pointsProgress", {
+                      current: String(data.membership.impactPoints),
+                      next: String(progress.next),
+                    })}
                   </span>
-                      <span>{progress.remaining} points to go</span>
+                  <span>
+                    {t("profile.pointsToGo", {
+                      remaining: String(progress.remaining),
+                    })}
+                  </span>
                 </div>
                 <Progress value={progress.pct} className="h-2" />
                 <div className="flex items-center justify-between">
                   <Badge variant="secondary" className="text-[11px]">
-                    Current
+                    {t("common.current")}
                   </Badge>
                   <Badge variant="outline" className="text-[11px]">
-                    Next: {data.nextLevel?.name}
+                    {t("profile.perkNext", { name: data.nextLevel?.name ?? "" })}
                   </Badge>
                 </div>
               </div>
             ) : (
               <div className="rounded-lg border border-border bg-muted/20 p-3">
-                <p className="text-xs text-muted-foreground">You’re at the top level.</p>
+                <p className="text-xs text-muted-foreground">{t("profile.topLevel")}</p>
               </div>
             )}
           </CardContent>
@@ -333,26 +352,28 @@ export default function ProfilePerksPage() {
         {/* Perks */}
         <Tabs defaultValue="included" className="w-full">
           <TabsList className="w-full justify-start bg-white border border-border shadow-sm rounded-xl">
-            <TabsTrigger value="included">Included</TabsTrigger>
-            <TabsTrigger value="locked">Locked</TabsTrigger>
+            <TabsTrigger value="included">{t("profile.tabIncluded")}</TabsTrigger>
+            <TabsTrigger value="locked">{t("profile.tabLocked")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="included" className="mt-4">
             <Card className="border-border bg-white shadow-sm">
               <CardHeader>
-                <CardTitle className="text-base">Included perks</CardTitle>
-                <CardDescription>
-                  Benefits included with your current membership.
-                </CardDescription>
+                <CardTitle className="text-base">
+                  {t("profile.includedPerksTitle")}
+                </CardTitle>
+                <CardDescription>{t("profile.includedPerksDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 {data.perks.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No perks found.</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t("profile.noPerksFound")}
+                  </p>
                 ) : (
                   <ScrollArea className="max-h-[420px]">
                     <div className="space-y-1">
                       {data.perks.map((perk, idx) => (
-                        <PerkRow key={`${perk.perk_type}-${idx}`} perk={perk} />
+                        <PerkRow key={`${perk.perk_type}-${idx}`} perk={perk} t={t} />
                       ))}
                     </div>
                   </ScrollArea>
@@ -364,30 +385,39 @@ export default function ProfilePerksPage() {
           <TabsContent value="locked" className="mt-4">
             <Card className="border-border bg-white shadow-sm">
               <CardHeader>
-                <CardTitle className="text-base">Locked perks</CardTitle>
-                <CardDescription>
-                  Unlock these at your next level.
-                </CardDescription>
+                <CardTitle className="text-base">
+                  {t("profile.lockedPerksTitle")}
+                </CardTitle>
+                <CardDescription>{t("profile.lockedPerksDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 {data.nextLevel ? (
                   <div className="space-y-4">
                     <div className="rounded-lg border border-border bg-muted/20 p-3">
                       <p className="text-xs text-muted-foreground">
-                        Next up: <span className="font-semibold text-foreground">{data.nextLevel.name}</span>
-                        {" "}— {data.nextLevel.pointsNeeded} points to unlock.
+                        {t("profile.nextLevelUnlock", {
+                          name: data.nextLevel.name,
+                          points: String(data.nextLevel.pointsNeeded),
+                        })}
                       </p>
                     </div>
 
                     <Separator />
 
                     {nextPerks.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No locked perks found.</p>
+                      <p className="text-sm text-muted-foreground">
+                        {t("profile.noLockedPerks")}
+                      </p>
                     ) : (
                       <ScrollArea className="max-h-[420px]">
                         <div className="space-y-1">
                           {nextPerks.map((perk, idx) => (
-                            <PerkRow key={`${perk.perk_type}-${idx}`} perk={perk} locked />
+                            <PerkRow
+                              key={`${perk.perk_type}-${idx}`}
+                              perk={perk}
+                              locked
+                              t={t}
+                            />
                           ))}
                         </div>
                       </ScrollArea>

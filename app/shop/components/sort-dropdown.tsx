@@ -16,6 +16,8 @@ import { useQueryState, parseAsString } from "nuqs";
 import { cn } from "@/lib/utils";
 import { sortOptions, stockSortOptions } from "@/lib/shopify/constants";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
+import { useTranslations } from "@/lib/hooks/use-translations";
+import { sortOptionMessageKey } from "@/lib/i18n/sort-labels";
 
 interface SortDropdownProps {
   className?: string;
@@ -44,6 +46,7 @@ const SHOP_SORT_SEPARATOR = "!bg-neutral-200 dark:!bg-neutral-200";
  * (avoids dark: Select styles when the page is visually light).
  */
 export function SortDropdown({ className }: SortDropdownProps) {
+  const { t } = useTranslations();
   const [isMounted, setIsMounted] = React.useState(false);
   const isB2B = useB2BPriceMode();
   const [sort, setSort] = useQueryState(
@@ -64,13 +67,13 @@ export function SortDropdown({ className }: SortDropdownProps) {
   return (
     <Select value={displayValue ?? undefined} onValueChange={setSort}>
       <SelectTrigger size="sm" className={cn(SHOP_SORT_TRIGGER, className)}>
-        <SelectValue placeholder="Sort by" />
+        <SelectValue placeholder={t("shop.sortBy")} />
       </SelectTrigger>
       <SelectContent align="end" className={SHOP_SORT_CONTENT}>
         <SelectGroup>
           <div className="flex justify-between items-center pr-1">
             <SelectLabel className="px-2 text-xs !text-neutral-500 dark:!text-neutral-500">
-              Sort
+              {t("shop.sort")}
             </SelectLabel>
             <Button
               type="button"
@@ -79,7 +82,7 @@ export function SortDropdown({ className }: SortDropdownProps) {
               className="px-1 h-5 text-xs !text-neutral-500 hover:!bg-transparent hover:!text-neutral-700 dark:!text-neutral-500 dark:hover:!text-neutral-700"
               onClick={() => setSort(null)}
             >
-              Clear
+              {t("shop.clear")}
             </Button>
           </div>
           <SelectSeparator className={SHOP_SORT_SEPARATOR} />
@@ -89,7 +92,7 @@ export function SortDropdown({ className }: SortDropdownProps) {
               value={option.value}
               className={SHOP_SORT_ITEM}
             >
-              {option.label}
+              {t(sortOptionMessageKey(option.value))}
             </SelectItem>
           ))}
         </SelectGroup>

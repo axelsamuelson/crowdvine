@@ -49,16 +49,15 @@ import { cn } from "@/lib/utils";
 import type { ProducerValidation } from "@/lib/checkout-validation";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  getCheckoutBrowseOnlyUnsupportedCountryMessage,
   getCountryCodeFromProfileCountry,
   getCountryDisplayName,
   getCountryMarketMode,
   isValidUsStateCode,
   listUsStateCodesSorted,
-  US_CONDITIONAL_RESERVATION_BUTTON_EN,
-  US_CONDITIONAL_RESERVATION_COPY_EN,
 } from "@/lib/countries";
 import { isUsConditionalReservationsEnabledClient } from "@/lib/market/feature-flags";
+import { useShoppingContext } from "@/lib/context/shopping-context-provider";
+import { useDisplayMoney } from "@/lib/hooks/use-display-money";
 import type { ResolvedActiveGeoZone } from "@/lib/market/resolve-active-geo-zone";
 import {
   isZoneDeliveryCompleteForActiveGeo,
@@ -71,11 +70,6 @@ interface ProgressionBuffRow {
   buff_percentage: string;
   buff_description?: string;
   earned_at?: string;
-}
-
-/** Step 1 summary: show whole kronor with `kr` suffix (not `SEK`). */
-function formatCheckoutKr(amount: number): string {
-  return `${Math.round(amount)} kr`;
 }
 
 interface UserProfile {
@@ -102,6 +96,10 @@ interface UserReward {
 }
 
 function CheckoutContent() {
+  const { t, context: shopping } = useShoppingContext();
+  const { formatDisplay, formatSek, toDisplay } = useDisplayMoney();
+  const countryDisplayLocale = shopping.locale === "sv" ? "sv" : "en";
+  const uiLocalizationEnabled = shopping.uiLocalizationEnabled;
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(true);
   const [zoneLoading, setZoneLoading] = useState(false);
@@ -141,6 +139,8 @@ function CheckoutContent() {
   const [shareAllocation, setShareAllocation] = useState<ShareAllocation | null>(
     null,
   );
+
+  const browseOnlyCountryMessage = t("checkout.browseOnlyUnsupported");
   const [shareFriendIds, setShareFriendIds] = useState<string[] | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"card" | "invoice">("card");
   const [pactPointsBalance, setPactPointsBalance] = useState(0);
@@ -428,7 +428,7 @@ function CheckoutContent() {
     // Check if returning from Stripe payment method setup
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get("payment_method_added") === "true") {
-      toast.success("Payment method added and selected!");
+      toast.success(t("checkout.paymentMethodAdded"));
       // Clean URL and let PaymentMethodSelector auto-select the new method
       const cleanUrl = window.location.pathname;
       window.history.replaceState({}, "", cleanUrl);
@@ -582,7 +582,7 @@ function CheckoutContent() {
             usingFallbackAddress: !profile?.address,
             zoneError: "UNSUPPORTED_COUNTRY",
             zoneErrorMessage:
-              getCheckoutBrowseOnlyUnsupportedCountryMessage(),
+              browseOnlyCountryMessage,
           });
           setSelectedPallet(null);
           setZoneLoading(false);
@@ -655,7 +655,7 @@ function CheckoutContent() {
             usingFallbackAddress: isUsingFallback,
             zoneError: "UNSUPPORTED_COUNTRY",
             zoneErrorMessage:
-              getCheckoutBrowseOnlyUnsupportedCountryMessage(),
+              browseOnlyCountryMessage,
           });
           setSelectedPallet(null);
           return;
@@ -665,7 +665,7 @@ function CheckoutContent() {
           const msg =
             typeof zd.message === "string" && zd.message.trim()
               ? zd.message
-              : "We don't deliver to your area yet.";
+              : t("checkout.noDeliveryArea");
           console.log("✅ Zone response: no delivery zone", { msg, zd });
           setZoneInfo({
             pickupZone:
@@ -794,7 +794,7 @@ function CheckoutContent() {
     const eff = deliveryDraft;
     if (!activeShop?.geoZoneId || !eff) return;
     if (!isZoneDeliveryCompleteForActiveGeo(activeShop, eff)) {
-      toast.error("Complete all required fields for this wine zone.");
+      toast.error(t("checkout.completeZoneFields"));
       return;
     }
     setZoneLoading(true);
@@ -818,15 +818,15 @@ function CheckoutContent() {
       );
       if (!res.ok) {
         const j = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(j.error || "Save failed");
+        throw new Error(j.error || t("checkout.saveFailed"));
       }
       const j = (await res.json()) as { address?: UserZoneAddressTemplate };
       if (j.address) setZoneAddressRow(j.address);
       setDeliveryDraft(null);
-      toast.success("Delivery details saved for this wine zone.");
+      toast.success(t("checkout.deliverySaved"));
       await updateZoneInfo();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Save failed");
+      toast.error(e instanceof Error ? e.message : t("checkout.saveFailed"));
     } finally {
       setZoneLoading(false);
     }
@@ -836,7 +836,7 @@ function CheckoutContent() {
     setProfile(updatedProfile);
 
     if (activeShop?.geoZoneId) {
-      toast.success("Saved.");
+      toast.success(t("checkout.saved"));
       setDeliveryDraft((d) =>
         d
           ? {
@@ -856,15 +856,15 @@ function CheckoutContent() {
       updatedProfile.postal_code;
 
     if (hasAddress) {
-      toast.success("Saving...");
+      toast.success(t("checkout.saving"));
       setZoneLoading(true);
       setTimeout(async () => {
         await updateZoneInfo();
         setZoneLoading(false);
-        toast.success("Done! Delivery zone updated.");
+        toast.success(t("checkout.zoneUpdated"));
       }, 100);
     } else {
-      toast.success("Profile saved. Add delivery address to continue.");
+      toast.success(t("checkout.profileSavedAddAddress"));
     }
   };
 
@@ -873,7 +873,7 @@ function CheckoutContent() {
     
     // Validate required fields
     if (!profile?.email) {
-      toast.error("Please add your profile information first");
+      toast.error(t("checkout.addProfileFirst"));
       return;
     }
 
@@ -884,9 +884,7 @@ function CheckoutContent() {
       console.error(
         "❌ [Checkout] Cart validation failed - button should be disabled",
       );
-      toast.error(
-        "Please complete your order to meet the 6-bottle requirement",
-      );
+      toast.error(t("checkout.sixBottleRequirement"));
       return;
     }
 
@@ -896,7 +894,7 @@ function CheckoutContent() {
       setIsFinalizingReservation(false);
       toast.error(
         zoneInfo.zoneErrorMessage?.trim() ||
-          getCheckoutBrowseOnlyUnsupportedCountryMessage(),
+          browseOnlyCountryMessage,
       );
       return;
     }
@@ -905,7 +903,7 @@ function CheckoutContent() {
       setIsFinalizingReservation(false);
       toast.error(
         zoneInfo.zoneErrorMessage?.trim() ||
-          "We don't deliver to your area yet.",
+          t("checkout.noDeliveryArea"),
       );
       return;
     }
@@ -918,18 +916,14 @@ function CheckoutContent() {
 
     if (hasZoneDeliveryReady && !deliveryZoneReady) {
       setIsFinalizingReservation(false);
-      toast.error(
-        "No delivery zone matches your address. Please contact support or try a different address.",
-      );
+      toast.error(t("checkout.noDeliveryZoneMatch"));
       return;
     }
 
     // Check if pallet is available (should be auto-selected)
     if (zoneInfo.pallets && zoneInfo.pallets.length > 0 && !selectedPallet) {
       setIsFinalizingReservation(false);
-      toast.error(
-        "No suitable pallet found for your location. Please contact support.",
-      );
+      toast.error(t("checkout.noPalletLocation"));
       return;
     }
 
@@ -1018,7 +1012,7 @@ function CheckoutContent() {
           }
         }
 
-        toast.success("Reservation placed successfully!");
+        toast.success(t("checkout.reservationSuccess"));
 
         checkoutCompletedRef.current = true;
         window.location.href = redirectUrl || "/checkout/success";
@@ -1030,7 +1024,7 @@ function CheckoutContent() {
           metadata: { phase: "confirm", status: response.status },
         });
         const contentType = response.headers.get("content-type") || "";
-        let errorMessage = "Failed to place reservation";
+        let errorMessage = t("checkout.reservationFailed");
 
         if (contentType.includes("application/json")) {
           try {
@@ -1062,22 +1056,10 @@ function CheckoutContent() {
         metadata: { phase: "confirm", status: 0, network: true },
       });
       console.error("Error placing reservation:", error);
-      toast.error("Failed to place reservation");
+      toast.error(t("checkout.reservationFailed"));
     }
     // Don't set false on success - keep showing during redirect
   };
-
-  const isSwedish = useMemo(() => {
-    if (typeof document !== "undefined") {
-      const lang = document.documentElement?.lang;
-      if (typeof lang === "string" && lang.toLowerCase().startsWith("sv")) return true;
-    }
-    if (typeof navigator !== "undefined") {
-      const l = navigator.language;
-      if (typeof l === "string" && l.toLowerCase().startsWith("sv")) return true;
-    }
-    return false;
-  }, []);
 
   const friendlyStripeErrorMessage = useCallback(
     (result: Extract<StripeConfirmResult, { success: false }>): string => {
@@ -1087,37 +1069,27 @@ function CheckoutContent() {
       const status = result.intentStatus;
 
       if (code === "setup_intent_authentication_failure") {
-        return isSwedish
-          ? "Din bank kunde inte verifiera kortet. Försök igen, använd ett annat kort eller kontakta din kortutgivare."
-          : "Your bank could not authenticate this card. Please try again, use another card, or contact your card issuer.";
+        return t("checkout.cardAuthFailed");
       }
 
-      // Common "try another card" / retryable bucket
       if (code === "card_declined" || decline === "do_not_honor") {
-        return isSwedish
-          ? "Kortet nekades. Försök igen eller använd ett annat kort."
-          : "Your card was declined. Please try again or use another card.";
+        return t("checkout.cardDeclined");
       }
 
       if (status === "requires_payment_method") {
-        return isSwedish
-          ? "Betalningen kunde inte genomföras. Försök igen eller använd ett annat kort."
-          : "Payment could not be completed. Please try again or use another card.";
+        return t("checkout.paymentFailedTryCard");
       }
 
-      // Fallback with safe, helpful detail
       const base =
         typeof result.error === "string" && result.error.trim()
           ? result.error.trim()
-          : isSwedish
-            ? "Betalningen kunde inte genomföras. Försök igen."
-            : "Payment could not be completed. Please try again.";
+          : t("checkout.paymentFailed");
       const meta = [type ? `type=${type}` : null, code ? `code=${code}` : null, decline ? `decline=${decline}` : null]
         .filter(Boolean)
         .join(" ");
       return meta ? `${base} (${meta})` : base;
     },
-    [isSwedish],
+    [t],
   );
 
   const handlePlaceReservation = useCallback(async () => {
@@ -1125,7 +1097,7 @@ function CheckoutContent() {
 
     // Validate required fields
     if (!profile?.email) {
-      toast.error("Please add your profile information first");
+      toast.error(t("checkout.addProfileFirst"));
       return;
     }
 
@@ -1134,20 +1106,18 @@ function CheckoutContent() {
       console.error(
         "❌ [Checkout] Cart validation failed - button should be disabled",
       );
-      toast.error(
-        "Please complete your order to meet the 6-bottle requirement",
-      );
+      toast.error(t("checkout.sixBottleRequirement"));
       return;
     }
 
     if (!deliveryComplete) return;
     if (!selectedPallet?.id) {
-      toast.error("Please select a pallet to continue");
+      toast.error(t("checkout.selectPalletContinue"));
       return;
     }
 
     if (!stripeConfirmFn || !paymentMode) {
-      setStripeError("Payment is not ready yet. Please wait a moment.");
+      setStripeError(t("checkout.paymentNotReady"));
       return;
     }
 
@@ -1160,11 +1130,7 @@ function CheckoutContent() {
       confirmed = await stripeConfirmFn();
     } catch (e) {
       console.error("[Checkout] stripeConfirmFn threw:", e);
-      setStripeError(
-        isSwedish
-          ? "Betalningen kunde inte genomföras. Försök igen eller använd ett annat kort."
-          : "Payment could not be completed. Please try again or use another card.",
-      );
+      setStripeError(t("checkout.paymentFailedTryCard"));
       setIsSubmitting(false);
       setIsStripeConfirming(false);
       return;
@@ -1253,7 +1219,7 @@ function CheckoutContent() {
           }
         }
 
-        toast.success("Reservation placed successfully!");
+        toast.success(t("checkout.reservationSuccess"));
         checkoutCompletedRef.current = true;
         window.location.href = redirectUrl || "/checkout/success";
         return;
@@ -1266,7 +1232,7 @@ function CheckoutContent() {
       });
 
       const contentType = response.headers.get("content-type") || "";
-      let errorMessage = "Failed to place reservation";
+      let errorMessage = t("checkout.reservationFailed");
       if (contentType.includes("application/json")) {
         try {
           const errorData: unknown = await response.json();
@@ -1303,8 +1269,8 @@ function CheckoutContent() {
         metadata: { phase: "confirm", status: 0, network: true },
       });
       console.error("Error placing reservation:", error);
-      setStripeError("Failed to place reservation");
-      toast.error("Failed to place reservation");
+      setStripeError(t("checkout.reservationFailed"));
+      toast.error(t("checkout.reservationFailed"));
       setIsSubmitting(false);
       setIsFinalizingReservation(false);
     }
@@ -1313,7 +1279,7 @@ function CheckoutContent() {
     friendlyStripeErrorMessage,
     isUsConditional,
     isValidCart,
-    isSwedish,
+    t,
     paymentMode,
     profile,
     zoneAddressRow,
@@ -1345,9 +1311,9 @@ function CheckoutContent() {
 
   const deliveryOptionShippingLabel = useMemo(() => {
     if (!shippingCost) return "—";
-    if (shippingCost.totalShippingCostCents === 0) return "Free";
-    return formatCheckoutKr(shippingCost.totalShippingCostCents / 100);
-  }, [shippingCost]);
+    if (shippingCost.totalShippingCostCents === 0) return t("checkout.shippingFree");
+    return formatSek(shippingCost.totalShippingCostCents / 100);
+  }, [shippingCost, t, formatSek]);
 
   // Check if we're on B2B site (dirtywine.se)
   const isB2BSite = useB2BPriceMode();
@@ -1383,8 +1349,10 @@ function CheckoutContent() {
   const discountAmount = rewardsDiscountAmount + progressionBuffDiscountAmount;
 
   const subtotal = bottleCost - discountAmount;
-  const total =
-    subtotal + (shippingCost ? shippingCost.totalShippingCostSek : 0);
+  const shippingDisplay = shippingCost
+    ? toDisplay(shippingCost.totalShippingCostSek)
+    : 0;
+  const total = subtotal + shippingDisplay;
 
   const { boostedLineTotal, nonBoostedLineTotal } = useMemo(() => {
     if (!cart?.lines?.length) {
@@ -1467,7 +1435,8 @@ function CheckoutContent() {
   // Filter available rewards (membership system - no bottle rewards anymore)
   const availableRewards: UserReward[] = [];
 
-  const currencyCode = cart?.cost?.totalAmount?.currencyCode || "SEK";
+  const currencyCode =
+    shopping.currencyCode || cart?.cost?.totalAmount?.currencyCode || "SEK";
 
   const orderLines: CartItem[] = cart?.lines ?? [];
 
@@ -1480,7 +1449,7 @@ function CheckoutContent() {
     const showLineDiscount =
       product.hasDiscount === true &&
       typeof product.originalUnitPriceSek === "number";
-    const originalLineTotal = showLineDiscount
+    const originalLineTotalSek = showLineDiscount
       ? product.originalUnitPriceSek! * line.quantity
       : null;
     return (
@@ -1503,7 +1472,9 @@ function CheckoutContent() {
           {producerLabel ? (
             <p className="mt-0.5 text-xs text-muted-foreground">{producerLabel}</p>
           ) : null}
-          <p className="text-xs text-muted-foreground">Qty {line.quantity}</p>
+          <p className="text-xs text-muted-foreground">
+            {t("checkout.qty", { count: String(line.quantity) })}
+          </p>
           {line.discountLabel ? (
             <span className="mt-1 inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700">
               {line.discountLabel}
@@ -1511,18 +1482,18 @@ function CheckoutContent() {
           ) : null}
         </div>
         <div className="shrink-0 text-right">
-          {showLineDiscount && originalLineTotal !== null ? (
+          {showLineDiscount && originalLineTotalSek !== null ? (
             <>
               <p className="text-xs text-muted-foreground line-through tabular-nums">
-                {formatCheckoutKr(originalLineTotal)}
+                {formatSek(originalLineTotalSek)}
               </p>
               <p className="text-sm font-medium tabular-nums text-foreground">
-                {formatCheckoutKr(totalForLine)}
+                {formatDisplay(totalForLine)}
               </p>
             </>
           ) : (
             <p className="text-sm font-medium tabular-nums text-foreground">
-              {formatCheckoutKr(totalForLine)}
+              {formatDisplay(totalForLine)}
             </p>
           )}
         </div>
@@ -1614,16 +1585,13 @@ function CheckoutContent() {
   if (!cart || cart.totalQuantity === 0) {
     return (
       <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
-        <h1 className="text-2xl font-semibold mb-4">Checkout</h1>
-        <p className="text-gray-600">
-          Your cart is empty. Please add some items before proceeding to
-          checkout.
-        </p>
+        <h1 className="text-2xl font-semibold mb-4">{t("checkout.title")}</h1>
+        <p className="text-gray-600">{t("checkout.emptyCart")}</p>
         <a
           href="/"
           className="inline-block mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
         >
-          Continue Shopping
+          {t("checkout.continueShopping")}
         </a>
       </div>
     );
@@ -1635,24 +1603,16 @@ function CheckoutContent() {
         open={isStripeConfirming || isFinalizingReservation}
         title={
           isStripeConfirming
-            ? isSwedish
-              ? "Verifierar kort…"
-              : "Authenticating card…"
+            ? t("checkout.authenticatingCard")
             : isFinalizingReservation
-              ? isSwedish
-                ? "Bekräftar reservation…"
-                : "Confirming reservation…"
+              ? t("checkout.confirmingReservation")
               : undefined
         }
         description={
           isStripeConfirming
-            ? isSwedish
-              ? "Följ instruktionerna från din bank om du blir ombedd."
-              : "Follow your bank’s instructions if prompted."
+            ? t("checkout.bankPrompt")
             : isFinalizingReservation
-              ? isSwedish
-                ? "Bearbetar din order"
-                : "Processing your order"
+              ? t("checkout.processingOrder")
               : undefined
         }
       />
@@ -1683,37 +1643,41 @@ function CheckoutContent() {
     <main className="min-h-screen bg-background">
       <div className="mx-auto max-w-5xl space-y-8 p-6 pt-top-spacing">
         <div>
-          <h1 className="mb-2 text-2xl font-medium text-foreground">Checkout</h1>
-          <p className="text-muted-foreground">
-            Review your reservation and confirm delivery details.
-          </p>
+          <h1 className="mb-2 text-2xl font-medium text-foreground">
+            {t("checkout.title")}
+          </h1>
+          <p className="text-muted-foreground">{t("checkout.subtitle")}</p>
         </div>
 
         <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[1fr_400px] lg:items-start">
           <aside className="order-1 w-full min-w-0 lg:sticky lg:top-8 lg:order-2 lg:self-start">
             <div className="space-y-3">
               <p className="text-sm font-medium text-foreground mb-3">
-                Your order ({cart.totalQuantity}{" "}
-                {cart.totalQuantity === 1 ? "bottle" : "bottles"})
+                {t("checkout.yourOrder")} ({cart.totalQuantity}{" "}
+                {cart.totalQuantity === 1
+                  ? t("checkout.bottle")
+                  : t("checkout.bottles")})
               </p>
               <div>{orderLines.map(renderCartLineRow)}</div>
               <div className="space-y-2 border-t border-border pt-4 mt-4 text-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="text-muted-foreground">
+                    {t("checkout.subtotal")}
+                  </span>
                   <span className="tabular-nums text-foreground">
-                    {formatCheckoutKr(bottleCost)}
+                    {formatDisplay(bottleCost)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Shipping</span>
+                  <span className="text-muted-foreground">
+                    {t("checkout.shipping")}
+                  </span>
                   <span className="text-right tabular-nums text-foreground">
                     {shippingCost ? (
-                      formatCheckoutKr(
-                        shippingCost.totalShippingCostCents / 100,
-                      )
+                      formatSek(shippingCost.totalShippingCostCents / 100)
                     ) : (
                       <span className="text-muted-foreground">
-                        Calculated after address
+                        {t("checkout.shippingAfterAddress")}
                       </span>
                     )}
                   </span>
@@ -1722,10 +1686,12 @@ function CheckoutContent() {
                   <div className="space-y-2 border-b border-border/60 pb-3">
                     <div className="flex items-center justify-between text-sm">
                       <span className="font-medium text-foreground">
-                        Use PACT Points
+                        {t("checkout.usePactPoints")}
                       </span>
                       <span className="text-muted-foreground">
-                        {pactPointsBalance} available
+                        {t("checkout.pointsAvailable", {
+                          balance: String(pactPointsBalance),
+                        })}
                       </span>
                     </div>
                     <Slider
@@ -1743,19 +1709,19 @@ function CheckoutContent() {
                         onClick={() => setRedeemPoints(0)}
                         className="underline decoration-border underline-offset-2 transition-colors hover:text-foreground"
                       >
-                        Use none
+                        {t("checkout.useNone")}
                       </button>
                       <button
                         type="button"
                         onClick={() => setRedeemPoints(maxRedemption)}
                         className="underline decoration-border underline-offset-2 transition-colors hover:text-foreground"
                       >
-                        Use all
+                        {t("checkout.useAll")}
                       </button>
                     </div>
                     {hasBoostedProducerInOrder ? (
                       <p className="text-[11px] text-violet-700">
-                        Worth 2× against boosted producers in this order
+                        {t("checkout.boostWorth2x")}
                       </p>
                     ) : null}
                   </div>
@@ -1763,37 +1729,41 @@ function CheckoutContent() {
                 {redeemPoints > 0 ? (
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">
-                      PACT Points discount
+                      {t("checkout.pactPointsDiscount")}
                     </span>
                     <span className="font-medium tabular-nums text-foreground">
-                      −{formatCheckoutKr(pactPointsSekOff)}
+                      −{formatDisplay(pactPointsSekOff)}
                     </span>
                   </div>
                 ) : null}
                 {progressionBuffDiscountAmount > 0 ? (
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">
-                      Progress bonus ({totalBuffPercentage.toFixed(1)}%)
+                      {t("checkout.progressBonus", {
+                        percent: totalBuffPercentage.toFixed(1),
+                      })}
                     </span>
                     <span className="font-medium tabular-nums text-foreground">
-                      −{formatCheckoutKr(progressionBuffDiscountAmount)}
+                      −{formatDisplay(progressionBuffDiscountAmount)}
                     </span>
                   </div>
                 ) : null}
                 {useRewards && selectedRewards.length > 0 ? (
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">
-                      Voucher ({selectedRewards.length})
+                      {t("checkout.voucher", {
+                        count: String(selectedRewards.length),
+                      })}
                     </span>
                     <span className="font-medium tabular-nums text-foreground">
-                      −{formatCheckoutKr(rewardsDiscountAmount)}
+                      −{formatDisplay(rewardsDiscountAmount)}
                     </span>
                   </div>
                 ) : null}
                 <div className="flex items-center justify-between pt-2 text-base font-medium text-foreground">
-                  <span>Total</span>
+                  <span>{t("checkout.total")}</span>
                   <span className="tabular-nums text-foreground">
-                    {formatCheckoutKr(totalAfterPactPoints)}
+                    {formatDisplay(totalAfterPactPoints)}
                   </span>
                 </div>
               </div>
@@ -1808,7 +1778,7 @@ function CheckoutContent() {
             <div className="space-y-4">
               <div className="flex gap-2">
                 <Input
-                  placeholder="Discount code"
+                  placeholder={t("checkout.discountCode")}
                   value={discountCodeInput}
                   onChange={(e) => setDiscountCodeInput(e.target.value)}
                   className="h-9 rounded-md border border-zinc-200 bg-white pl-3 text-sm text-zinc-900 shadow-sm placeholder:text-zinc-500 focus-visible:ring-zinc-300 dark:bg-white dark:text-zinc-900 dark:border-zinc-200 dark:placeholder:text-zinc-500"
@@ -1820,7 +1790,7 @@ function CheckoutContent() {
                   className="shrink-0"
                   onClick={() => {}}
                 >
-                  Add
+                  {t("checkout.add")}
                 </Button>
               </div>
 
@@ -1831,7 +1801,7 @@ function CheckoutContent() {
                 onClick={() => setShareDialogOpen(true)}
               >
                 <span>
-                  Share bottles
+                  {t("checkout.shareBottles")}
                   {(shareFriendIds?.length ?? 0) > 0
                     ? ` (${shareFriendIds?.length})`
                     : ""}
@@ -1859,7 +1829,7 @@ function CheckoutContent() {
               <div className="space-y-3">
                 {activeShop ? (
                   <p className="text-sm text-muted-foreground">
-                    Shopping in:{" "}
+                    {t("checkout.shoppingIn")}{" "}
                     <span className="font-medium text-foreground">
                       {activeShop.displayName}
                     </span>
@@ -1868,7 +1838,7 @@ function CheckoutContent() {
                   </p>
                 ) : !zoneTemplatesLoaded ? (
                   <p className="text-xs text-muted-foreground">
-                    Loading shopping zone…
+                    {t("checkout.loadingZone")}
                   </p>
                 ) : null}
 
@@ -1877,15 +1847,17 @@ function CheckoutContent() {
                 deliveryDraft ? (
                   <div className="rounded-lg border border-border p-4 space-y-3">
                     <p className="text-sm font-medium text-foreground">
-                      Add delivery details for {activeShop.displayName}
+                      {t("checkout.addDeliveryFor", {
+                        zone: activeShop.displayName,
+                      })}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Saved here for this wine zone only. Updating delivery does
-                      not change your wine zone (use the shop zone switcher for
-                      that).
+                      {t("checkout.addDeliveryHint")}
                     </p>
                     <div className="space-y-2">
-                      <Label htmlFor="zone-addr1">Street address</Label>
+                      <Label htmlFor="zone-addr1">
+                        {t("checkout.streetAddress")}
+                      </Label>
                       <Input
                         id="zone-addr1"
                         value={deliveryDraft.street}
@@ -1898,7 +1870,7 @@ function CheckoutContent() {
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-2">
-                        <Label htmlFor="zone-city">City</Label>
+                        <Label htmlFor="zone-city">{t("checkout.city")}</Label>
                         <Input
                           id="zone-city"
                           value={deliveryDraft.city}
@@ -1910,7 +1882,9 @@ function CheckoutContent() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="zone-postal">Postal code</Label>
+                        <Label htmlFor="zone-postal">
+                          {t("checkout.postalCode")}
+                        </Label>
                         <Input
                           id="zone-postal"
                           value={deliveryDraft.postal}
@@ -1924,7 +1898,7 @@ function CheckoutContent() {
                     </div>
                     {isUsConditional ? (
                       <div className="space-y-2">
-                        <Label>State / territory</Label>
+                        <Label>{t("checkout.stateTerritory")}</Label>
                         <Select
                           value={deliveryDraft.regionCode ?? ""}
                           onValueChange={(v) =>
@@ -1934,7 +1908,9 @@ function CheckoutContent() {
                           }
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="Select state" />
+                            <SelectValue
+                              placeholder={t("checkout.selectState")}
+                            />
                           </SelectTrigger>
                           <SelectContent>
                             {listUsStateCodesSorted().map((c) => (
@@ -1953,27 +1929,27 @@ function CheckoutContent() {
                       disabled={zoneLoading}
                       onClick={() => void handleSaveZoneDelivery()}
                     >
-                      Save delivery details
+                      {t("checkout.saveDeliveryDetails")}
                     </Button>
                   </div>
                 ) : null}
 
                 <h2 className="text-base font-semibold text-foreground">
-                  1. Delivery details
+                  {t("checkout.deliveryDetails")}
                 </h2>
 
                 {!hasPostalCode ? (
                   <div className="space-y-3">
                     <div className="space-y-1">
                       <p className="text-sm font-medium text-foreground">
-                        Delivery postal code
+                        {t("checkout.deliveryPostalCode")}
                       </p>
                       <Input
                         value={postalCodeDraft}
                         onChange={(e) =>
                           setPostalCodeDraft(e.target.value.replace(/\s+/g, ""))
                         }
-                        placeholder="Enter your postal code"
+                        placeholder={t("checkout.enterPostalCode")}
                         inputMode="numeric"
                         autoComplete="postal-code"
                         onBlur={handlePostalDraftCommit}
@@ -1985,7 +1961,7 @@ function CheckoutContent() {
                         }}
                       />
                       <p className="text-xs text-muted-foreground">
-                        We&apos;ll show your delivery options once you enter it
+                        {t("checkout.postalCodeHint")}
                       </p>
                     </div>
 
@@ -1999,7 +1975,7 @@ function CheckoutContent() {
                           size="sm"
                           className="w-full"
                         >
-                          Add address →
+                          {t("checkout.addAddress")}
                         </Button>
                       }
                     />
@@ -2009,7 +1985,7 @@ function CheckoutContent() {
                     <div className="flex items-center justify-between py-2">
                       <div>
                         <p className="text-xs text-muted-foreground">
-                          Postal code
+                          {t("checkout.postalCodeLabel")}
                         </p>
                         <p className="text-sm font-medium text-foreground">
                           {effectiveDelivery?.postal ?? "—"}
@@ -2022,21 +1998,20 @@ function CheckoutContent() {
                             type="button"
                             className="text-xs underline underline-offset-2 text-foreground"
                           >
-                            Edit
+                            {t("checkout.edit")}
                           </button>
                         }
                       />
                     </div>
 
                     <p className="text-sm text-muted-foreground">
-                      We need a complete delivery address for your active wine
-                      zone
+                      {t("checkout.needFullAddress")}
                     </p>
                     <ProfileInfoModal
                       onProfileSaved={handleProfileSaved}
                       trigger={
                         <Button type="button" variant="outline" className="w-full">
-                          Add address →
+                          {t("checkout.addAddress")}
                         </Button>
                       }
                     />
@@ -2046,7 +2021,7 @@ function CheckoutContent() {
                     <div className="flex items-center justify-between py-2">
                       <div>
                         <p className="text-xs text-muted-foreground">
-                          Postal code
+                          {t("checkout.postalCodeLabel")}
                         </p>
                         <p className="text-sm font-medium text-foreground">
                           {effectiveDelivery?.postal ?? "—"}
@@ -2059,7 +2034,7 @@ function CheckoutContent() {
                             type="button"
                             className="text-xs underline underline-offset-2 text-foreground"
                           >
-                            Edit
+                            {t("checkout.edit")}
                           </button>
                         }
                       />
@@ -2067,7 +2042,9 @@ function CheckoutContent() {
 
                     <div className="flex items-start justify-between gap-3 py-2">
                       <div className="min-w-0">
-                        <p className="text-xs text-muted-foreground">Address</p>
+                        <p className="text-xs text-muted-foreground">
+                          {t("checkout.addressLabel")}
+                        </p>
                         <p className="text-sm font-medium text-foreground">
                           {effectiveDelivery?.street ?? "—"}
                         </p>
@@ -2079,7 +2056,7 @@ function CheckoutContent() {
                           {effectiveDelivery?.countryCode
                             ? getCountryDisplayName(
                                 effectiveDelivery.countryCode,
-                                "en",
+                                countryDisplayLocale,
                               )
                             : "—"}
                         </p>
@@ -2091,7 +2068,7 @@ function CheckoutContent() {
                             type="button"
                             className="text-xs underline underline-offset-2 text-foreground"
                           >
-                            Change
+                            {t("checkout.change")}
                           </button>
                         }
                       />
@@ -2103,15 +2080,14 @@ function CheckoutContent() {
                   <div className="space-y-3 pt-2">
                     {isUsConditional && !hasUsState ? (
                       <p className="text-sm text-destructive">
-                        Select your US state or territory in your zone delivery
-                        details to continue.
+                        {t("checkout.selectUsState")}
                       </p>
                     ) : null}
                     {zoneLoading ? (
                       <div className="flex items-center gap-3">
                         <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-foreground" />
                         <span className="text-sm text-muted-foreground">
-                          Updating delivery…
+                          {t("checkout.updatingDelivery")}
                         </span>
                       </div>
                     ) : null}
@@ -2119,7 +2095,7 @@ function CheckoutContent() {
                     {!zoneLoading && !zoneInfo.pickupZone ? (
                       <div className="space-y-2">
                         <p className="text-sm text-muted-foreground">
-                          No pickup zone found.
+                          {t("checkout.noPickupZone")}
                         </p>
                         <Button
                           variant="outline"
@@ -2131,7 +2107,7 @@ function CheckoutContent() {
                           }}
                           disabled={zoneLoading}
                         >
-                          Try Again
+                          {t("checkout.tryAgain")}
                         </Button>
                       </div>
                     ) : null}
@@ -2140,15 +2116,15 @@ function CheckoutContent() {
                       <p className="text-sm text-destructive mt-2">
                         {isUsConditional
                           ? zoneInfo.zoneErrorMessage?.trim() ||
-                            "No pallet is available for this release right now."
-                          : "We don't deliver to your area yet. We're expanding soon — check back later."}
+                            t("checkout.noPalletAvailable")
+                          : t("checkout.noDeliveryZoneYet")}
                       </p>
                     ) : null}
 
                     {!zoneLoading &&
                     zoneInfo.zoneError === "UNSUPPORTED_COUNTRY" ? (
                       <p className="text-sm text-amber-800 dark:text-amber-200 mt-2 whitespace-pre-line">
-                        {getCheckoutBrowseOnlyUnsupportedCountryMessage()}
+                        {browseOnlyCountryMessage}
                       </p>
                     ) : null}
 
@@ -2158,7 +2134,7 @@ function CheckoutContent() {
                     !zoneInfo.usingFallbackAddress &&
                     effectiveDelivery?.postal ? (
                       <p className="text-sm text-muted-foreground">
-                        No delivery zone found for your address.
+                        {t("checkout.noDeliveryZoneAddress")}
                       </p>
                     ) : null}
 
@@ -2168,7 +2144,7 @@ function CheckoutContent() {
                           className="text-xs text-muted-foreground"
                           htmlFor="checkout-pallet"
                         >
-                          Pallet
+                          {t("checkout.pallet")}
                         </Label>
                         <Select
                           value={selectedPallet?.id ?? ""}
@@ -2178,7 +2154,9 @@ function CheckoutContent() {
                             id="checkout-pallet"
                             className="h-9 w-full"
                           >
-                            <SelectValue placeholder="Select pallet" />
+                            <SelectValue
+                              placeholder={t("checkout.selectPallet")}
+                            />
                           </SelectTrigger>
                           <SelectContent>
                             {zoneInfo.pallets?.map((p) => (
@@ -2196,13 +2174,13 @@ function CheckoutContent() {
                     !zoneLoading &&
                     (zoneInfo.pallets?.length ?? 0) > 0 ? (
                       <p className="text-sm text-muted-foreground">
-                        No pallet selected
+                        {t("checkout.noPalletSelected")}
                       </p>
                     ) : null}
 
                     {hasWarehouseItems && hasZoneSelected && !zoneLoading ? (
                       <p className="text-sm text-muted-foreground">
-                        Warehouse items ship directly; no pallet required.
+                        {t("checkout.warehouseDirectShip")}
                       </p>
                     ) : null}
 
@@ -2213,17 +2191,17 @@ function CheckoutContent() {
                       <div className="space-y-4 border-t border-border pt-3">
                         {isUsConditional ? (
                           <p className="text-sm text-muted-foreground">
-                            {US_CONDITIONAL_RESERVATION_COPY_EN}
+                            {t("checkout.usConditionalCopy")}
                           </p>
                         ) : (
                           <div className="space-y-2">
                             <p className="text-sm font-medium text-foreground">
-                              Delivery options
+                              {t("checkout.deliveryOptions")}
                             </p>
                             <div
                               className="flex items-start justify-between border-b border-border py-3"
                               role="group"
-                              aria-label="Delivery option: home delivery via Bring"
+                              aria-label={t("checkout.deliveryOptionAria")}
                             >
                               <div className="flex items-center gap-3">
                                 <div
@@ -2234,11 +2212,12 @@ function CheckoutContent() {
                                 </div>
                                 <div>
                                   <p className="text-sm font-medium text-foreground">
-                                    Home delivery via Bring
+                                    {t("checkout.homeDeliveryBring")}
                                   </p>
                                   <p className="mt-0.5 text-xs text-muted-foreground">
-                                    {deliveryEstimateLabel} · Signature and age
-                                    verification required
+                                    {t("checkout.deliveryBringHint", {
+                                      estimate: deliveryEstimateLabel,
+                                    })}
                                   </p>
                                 </div>
                               </div>
@@ -2263,10 +2242,13 @@ function CheckoutContent() {
                         <div>
                           <div className="mb-1.5 flex items-center justify-between">
                             <p className="text-xs text-muted-foreground">
-                              Pallet progress
+                              {t("checkout.palletProgress")}
                             </p>
                             <p className="text-xs tabular-nums text-muted-foreground">
-                              {filledBottles} of {totalCapacity} bottles
+                              {t("checkout.palletProgressCount", {
+                                filled: String(filledBottles),
+                                total: String(totalCapacity),
+                              })}
                             </p>
                           </div>
                           <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted/50">
@@ -2280,8 +2262,9 @@ function CheckoutContent() {
                         </div>
                         {selectedPallet.current_pickup_producer?.name ? (
                           <p className="text-xs text-muted-foreground mt-2">
-                            Collected from:{" "}
-                            {selectedPallet.current_pickup_producer.name}
+                            {t("checkout.collectedFrom", {
+                              name: selectedPallet.current_pickup_producer.name,
+                            })}
                           </p>
                         ) : null}
                       </div>
@@ -2291,7 +2274,7 @@ function CheckoutContent() {
 
                 {deliveryComplete ? (
                   <p className="py-2 text-center text-sm text-muted-foreground">
-                    Delivery confirmed ✓
+                    {t("checkout.deliveryConfirmed")}
                   </p>
                 ) : null}
               </div>
@@ -2305,7 +2288,7 @@ function CheckoutContent() {
             >
               <div className="space-y-3">
                 <h2 className="text-base font-semibold text-foreground">
-                  2. Payment
+                  {t("checkout.payment")}
                 </h2>
 
                 {deliveryComplete ? (
@@ -2337,7 +2320,7 @@ function CheckoutContent() {
                                 htmlFor="us-age-21"
                                 className="text-sm leading-snug text-foreground"
                               >
-                                I confirm that I am 21 years or older.
+                                {t("checkout.usAge21")}
                               </label>
                             </div>
                             <div className="flex items-start gap-3">
@@ -2352,9 +2335,7 @@ function CheckoutContent() {
                                 htmlFor="us-conditional-ack"
                                 className="text-sm leading-snug text-foreground"
                               >
-                                I understand this is a conditional reservation
-                                and that I will not be charged unless the drop
-                                becomes available in my state.
+                                {t("checkout.usConditionalAck")}
                               </label>
                             </div>
                           </div>
@@ -2380,10 +2361,10 @@ function CheckoutContent() {
                         <div className="mt-6 space-y-4 border-t border-border pt-4">
                           <div className="flex items-center justify-between py-4">
                             <span className="text-base font-semibold text-foreground">
-                              Total
+                              {t("checkout.total")}
                             </span>
                             <span className="text-2xl font-bold tabular-nums text-foreground">
-                              {formatCheckoutKr(totalAfterPactPoints)}
+                              {formatDisplay(totalAfterPactPoints)}
                             </span>
                           </div>
 
@@ -2402,12 +2383,12 @@ function CheckoutContent() {
                             onClick={handlePlaceReservation}
                           >
                             {isSubmitting
-                              ? "Processing..."
+                              ? t("checkout.processing")
                               : paymentMode === "payment_intent"
-                                ? "Pay now"
+                                ? t("checkout.payNow")
                                 : isUsConditional
-                                  ? US_CONDITIONAL_RESERVATION_BUTTON_EN
-                                  : "Place Reservation"}
+                                  ? t("checkout.usConditionalButton")
+                                  : t("checkout.placeReservation")}
                           </Button>
                         </div>
                       </>
@@ -2419,10 +2400,10 @@ function CheckoutContent() {
                           <AlertCircle className="h-5 w-5 text-red-600" />
                           <div className="flex-1">
                             <p className="text-sm font-semibold text-red-600">
-                              Order Blocked
+                              {t("checkout.orderBlocked")}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              Add bottles to meet 6-bottle requirement
+                              {t("checkout.addBottlesRequirement")}
                             </p>
                           </div>
                         </div>
@@ -2442,17 +2423,33 @@ function CheckoutContent() {
                                           {v.groupName || v.producerName}
                                         </p>
                                         <p className="mb-2 text-xs text-muted-foreground">
-                                          Current: {v.quantity} bottle
-                                          {v.quantity > 1 ? "s" : ""} •
+                                          {v.quantity === 1
+                                            ? t("checkout.validationCurrent", {
+                                                count: String(v.quantity),
+                                              })
+                                            : t(
+                                                "checkout.validationCurrentPlural",
+                                                { count: String(v.quantity) },
+                                              )}{" "}
+                                          •
                                           <span className="font-medium text-red-600">
                                             {" "}
-                                            Need {v.needed} more
+                                            {t("checkout.validationNeedMore", {
+                                              needed: String(v.needed),
+                                            })}
                                           </span>{" "}
-                                          for {v.quantity + v.needed} total
+                                          {t("checkout.validationForTotal", {
+                                            total: String(
+                                              v.quantity + v.needed,
+                                            ),
+                                          })}
                                         </p>
                                         <div className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground group-hover:underline">
-                                          Browse wines from this{" "}
-                                          {v.groupId ? "group" : "producer"}
+                                          {t("checkout.browseWinesFrom", {
+                                            type: v.groupId
+                                              ? t("checkout.group")
+                                              : t("checkout.producer"),
+                                          })}
                                           <ArrowRight className="h-3 w-3" />
                                         </div>
                                       </div>

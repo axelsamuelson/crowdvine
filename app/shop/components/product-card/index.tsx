@@ -19,6 +19,7 @@ import { useCart } from "@/components/cart/cart-context";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { ColorSwatch } from "@/components/ui/color-picker";
 import { getColorHex } from "@/lib/utils";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 // ============================================================================
 // DEBUG: Scroll isolation flags
@@ -120,6 +121,7 @@ export const ProductCard = memo(
     /** When set (shop search active), PDP clicks log search_result_clicked. */
     listSearchQuery?: string;
   }) => {
+  const { t } = useTranslations();
   const hasNoOptions = product.options.length === 0;
   const hasOneOptionWithOneValue =
     product.options.length === 1 && product.options[0].values.length === 1;
@@ -671,7 +673,9 @@ export const ProductCard = memo(
         {isWineBox && discountInfo && (
           <div className="absolute top-2 left-2 z-10">
             <Badge className="bg-green-100 text-green-800 border-green-200">
-              {Math.round(discountInfo.discountPercentage)}% OFF
+              {t("shop.wineBoxOff", {
+                percent: Math.round(discountInfo.discountPercentage),
+              })}
             </Badge>
           </div>
         )}
@@ -680,7 +684,10 @@ export const ProductCard = memo(
           href={`/product/${product.handle}`}
           className="block size-full focus-visible:outline-none"
           style={{ touchAction: 'pan-y', overscrollBehavior: 'auto' }}
-          aria-label={`View details for ${product.title}, price ${product.priceRange.minVariantPrice}`}
+          aria-label={t("shop.viewProductAria", {
+            title: product.title,
+            price: `${product.priceRange.minVariantPrice.amount} ${product.priceRange.minVariantPrice.currencyCode}`,
+          })}
           prefetch
           onClick={() => {
             const q = listSearchQuery?.trim();
@@ -801,7 +808,7 @@ export const ProductCard = memo(
                       className="w-full bg-black hover:bg-black/90 text-white border-black rounded-md"
                       size="sm"
                     >
-                      <span className="text-xs">Add case</span>
+                      <span className="text-xs">{t("shop.addCase")}</span>
                     </Button>
                   }
                 >
@@ -819,7 +826,7 @@ export const ProductCard = memo(
                   size="sm"
                 >
                   <div className="flex items-center justify-center gap-1.5">
-                    <span className="text-xs">Add to cart</span>
+                    <span className="text-xs">{t("product.addToCart")}</span>
                     <CirclePlus className="size-3.5" />
                   </div>
                 </Button>
@@ -878,7 +885,7 @@ export const ProductCard = memo(
                       className="w-full bg-black hover:bg-black/90 text-white border-black rounded-md"
                       size="sm"
                     >
-                      <span className="text-xs">Add case</span>
+                      <span className="text-xs">{t("shop.addCase")}</span>
                     </Button>
                   }
                 >
@@ -896,7 +903,7 @@ export const ProductCard = memo(
                   size="sm"
                 >
                   <div className="flex items-center justify-center gap-1.5">
-                    <span className="text-xs">Add to cart</span>
+                    <span className="text-xs">{t("product.addToCart")}</span>
                     <CirclePlus className="size-3.5" />
                   </div>
                 </Button>
@@ -1040,7 +1047,7 @@ export const ProductCard = memo(
                     asChild
                   >
                     <Link href={`/product/${product.handle}`}>
-                      <span>View Product</span>
+                      <span>{t("shop.viewProduct")}</span>
                       <ArrowRightIcon className="shrink-0" />
                     </Link>
                   </Button>

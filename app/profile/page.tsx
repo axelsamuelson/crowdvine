@@ -25,14 +25,16 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Package, Settings, TrendingUp } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import Image from "next/image";
 import { toast } from "sonner";
 import { getLevelDisplayName, MembershipLevel } from "@/lib/membership/points-engine";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
-import { formatPrice } from "@/lib/shopify/utils";
+import { useFormatPrice } from "@/lib/hooks/use-format-price";
 import { cn } from "@/lib/utils";
+import { useShoppingContext } from "@/lib/context/shopping-context-provider";
+import type { AppLocale } from "@/lib/i18n/locale";
 
 interface UserProfile {
   id: string;
@@ -89,6 +91,10 @@ interface MembershipData {
 }
 
 function ProfilePageContent() {
+  const { t, context: shopping } = useShoppingContext();
+  const formatPrice = useFormatPrice();
+  const appLocale = shopping.locale as AppLocale;
+  const intlLocale = shopping.intlLocale;
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [membershipData, setMembershipData] = useState<MembershipData | null>(
     null,
@@ -156,17 +162,7 @@ function ProfilePageContent() {
   // Tastings count - must be before any conditional returns
   const [tastingsCount, setTastingsCount] = useState(0);
 
-  // B2B: dirtywine.se in production; localhost = PACT (pactwines.com), use ?b2b=1 for B2B
-  const searchParams = useSearchParams();
-  const [isB2B, setIsB2B] = useState(false);
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const host = window.location.hostname.toLowerCase();
-    const onProductionB2B = host.includes("dirtywine.se");
-    const onLocalhost = host === "localhost" || host === "127.0.0.1";
-    const forceB2B = searchParams.get("b2b") === "1";
-    setIsB2B(onProductionB2B || (onLocalhost && forceB2B));
-  }, [searchParams]);
+  const isB2B = useB2BPriceMode();
 
   useEffect(() => {
     // Fetch tastings count
@@ -226,16 +222,16 @@ function ProfilePageContent() {
 
   const dashTabs = useMemo(
     () => [
-      { id: "orders" as const, label: "Orders", count: reservations.length },
+      { id: "orders" as const, label: t("profile.orders"), count: reservations.length },
       {
         id: "payment" as const,
-        label: "Payment",
+        label: t("profile.payment"),
         badgeCount: paymentMethodCount,
       },
-      { id: "activity" as const, label: "Activity" },
-      { id: "perks" as const, label: "Perks" },
+      { id: "activity" as const, label: t("profile.activity") },
+      { id: "perks" as const, label: t("profile.perks") },
     ],
-    [reservations.length, paymentMethodCount],
+    [reservations.length, paymentMethodCount, t],
   );
 
   const loadLastViewed = () => {
@@ -294,7 +290,7 @@ function ProfilePageContent() {
 
           // If an invitation was used, show toast and refresh IP
           if (payload.eventType === "UPDATE" && payload.new?.used_at) {
-            toast.success("Your invite was just used! +1 point awarded");
+            toast.success(t("profile.inviteUsedToast"));
             fetchMembershipData();
             fetchPactEvents();
           }
@@ -443,16 +439,16 @@ function ProfilePageContent() {
       <PageLayout>
         <div className="pt-top-spacing px-4 sm:px-sides">
           <div className="rounded-xl border border-border bg-card p-6 shadow-sm text-center space-y-3">
-            <h1 className="text-xl font-semibold">Logga in för att se din profil</h1>
+            <h1 className="text-xl font-semibold">{t("profile.signInTitle")}</h1>
             <p className="text-muted-foreground text-sm">
-              Du behöver vara inloggad för att visa din profilsida.
+              {t("profile.signInSubtitle")}
             </p>
             <div className="flex justify-center">
               <Link
                 href="/log-in"
                 className="inline-flex items-center justify-center rounded-full bg-foreground text-background px-4 py-2 text-sm font-semibold hover:bg-foreground/90"
               >
-                Gå till inloggning
+                {t("profile.goToLogin")}
               </Link>
             </div>
           </div>
@@ -465,7 +461,7 @@ function ProfilePageContent() {
     return (
       <PageLayout>
         <div className="text-center py-12">
-          <p className="text-gray-500">Unable to load profile data</p>
+          <p className="text-gray-500">{t("profile.loadFailed")}</p>
         </div>
       </PageLayout>
     );
@@ -484,7 +480,7 @@ function ProfilePageContent() {
   }
 
   // Get profile data for social header
-  const userName = profile?.full_name || "User";
+  const userName = profile?.full_name || t("profile.userFallback");
   const avatarUrl = profile?.avatar_image_path
     ? profile.avatar_image_path.startsWith("http")
       ? profile.avatar_image_path
@@ -492,7 +488,7 @@ function ProfilePageContent() {
     : undefined;
 
   const joinedDate = profile?.created_at
-    ? new Date(profile.created_at).toLocaleDateString("en-US", {
+    ? new Date(profile.created_at).toLocaleDateString(intlLocale, {
         month: "long",
         year: "numeric",
       })
@@ -500,23 +496,23 @@ function ProfilePageContent() {
 
   const foundingSinceLabel = membershipData.membership.foundingMemberSince
     ? new Date(membershipData.membership.foundingMemberSince).toLocaleDateString(
-        "en-US",
+        intlLocale,
         { month: "long", day: "numeric", year: "numeric" },
       )
-    : "Recently granted";
+    : t("profile.recentlyGranted");
 
   const reservationsTabContent = (
     <div className="space-y-6">
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-base md:text-lg lg:text-xl font-light text-gray-900">
-            My Reservations
+            {t("profile.myReservations")}
           </h2>
           <Link
             href="/profile/reservations"
             className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
           >
-            View all
+            {t("profile.viewAll")}
           </Link>
         </div>
 
@@ -524,7 +520,7 @@ function ProfilePageContent() {
           <div className="p-4 bg-white rounded-xl border border-gray-200/50 shadow-sm">
             <div className="flex items-center gap-2 text-gray-400 mb-2">
               <Package className="w-4 h-4" />
-              <span className="text-xs">Total Bottles</span>
+              <span className="text-xs">{t("profile.totalBottles")}</span>
             </div>
             <p className="text-2xl font-semibold text-gray-900">
               {reservations.reduce((sum, r) => sum + ((r.items || []).reduce((s: number, it: any) => s + (it.quantity || 0), 0)), 0)}
@@ -534,7 +530,7 @@ function ProfilePageContent() {
           <div className="p-4 bg-white rounded-xl border border-gray-200/50 shadow-sm">
             <div className="flex items-center gap-2 text-gray-400 mb-2">
               <Settings className="w-4 h-4" />
-              <span className="text-xs">Unique Pallets</span>
+              <span className="text-xs">{t("profile.uniquePallets")}</span>
             </div>
             <p className="text-2xl font-semibold text-gray-900">
               {new Set(reservations.map((r) => r.pallet_id).filter(Boolean)).size}
@@ -545,8 +541,12 @@ function ProfilePageContent() {
             <div className="rounded-xl border border-border bg-white p-4 shadow-sm">
               <div className="flex items-center justify-between gap-3 mb-3">
                 <div>
-                  <h3 className="text-sm font-semibold text-foreground">Most ordered bottles</h3>
-                  <p className="text-xs text-muted-foreground">Top list, aggregated by wine.</p>
+                  <h3 className="text-sm font-semibold text-foreground">
+                    {t("profile.mostOrderedBottles")}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {t("profile.mostOrderedHint")}
+                  </p>
                 </div>
               </div>
               {(() => {
@@ -571,7 +571,11 @@ function ProfilePageContent() {
                 }
                 const list = Array.from(map.values()).sort((a, b) => (b.quantity || 0) - (a.quantity || 0));
                 if (list.length === 0) {
-                  return <p className="text-sm text-muted-foreground">No bottles yet.</p>;
+                  return (
+                    <p className="text-sm text-muted-foreground">
+                      {t("profile.noBottlesYet")}
+                    </p>
+                  );
                 }
                 return (
                   <div className="space-y-1">
@@ -582,7 +586,11 @@ function ProfilePageContent() {
                       >
                         <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-md border bg-muted">
                           {w.image_path ? (
-                            <img src={w.image_path} alt={w.wine_name || "Wine"} className="h-full w-full object-cover" />
+                            <img
+                              src={w.image_path}
+                              alt={w.wine_name || t("profile.wineFallback")}
+                              className="h-full w-full object-cover"
+                            />
                           ) : null}
                         </div>
                         <div className="min-w-0 flex-1">
@@ -596,7 +604,7 @@ function ProfilePageContent() {
                           </div>
                           <div className="mt-0.5 flex items-center justify-between gap-3">
                             <p className="truncate text-xs text-muted-foreground">
-                              {w.producer_name || "Unknown producer"}
+                              {w.producer_name || t("profile.unknownProducer")}
                             </p>
                             {w.color ? (
                               <span className="shrink-0 whitespace-nowrap rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
@@ -613,10 +621,14 @@ function ProfilePageContent() {
             </div>
 
             <div className="rounded-xl border border-border bg-white p-4 shadow-sm space-y-3">
-              <h3 className="text-sm font-semibold text-foreground">Last Viewed</h3>
+              <h3 className="text-sm font-semibold text-foreground">
+                {t("profile.lastViewed")}
+              </h3>
               <div className="space-y-2">
                 {lastViewedProducts.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">No recently viewed wines yet.</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t("profile.noRecentlyViewed")}
+                  </p>
                 ) : (
                   lastViewedProducts.slice(0, 5).map((p) => (
                     <Link
@@ -634,13 +646,13 @@ function ProfilePageContent() {
                           <p className="truncate text-sm font-semibold text-foreground">{p.title}</p>
                           {p.price && p.currencyCode ? (
                             <span className="shrink-0 whitespace-nowrap text-sm font-semibold text-foreground">
-                              {formatPrice(p.price, p.currencyCode)}
+                              {formatPrice(p.price)}
                             </span>
                           ) : null}
                         </div>
                         <div className="mt-0.5 flex items-center justify-between gap-3">
                           <p className="truncate text-xs text-muted-foreground">
-                            {p.producerName || "Unknown producer"}
+                            {p.producerName || t("profile.unknownProducer")}
                           </p>
                           {p.color ? (
                             <span className="shrink-0 whitespace-nowrap rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
@@ -694,21 +706,25 @@ function ProfilePageContent() {
                 {membershipData.membership.level === "founding_member" ? (
                   <div className="mt-3 w-full max-w-sm rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-1">
                     <p className="text-sm font-medium text-amber-900">
-                      Founding Member
+                      {t("profile.foundingMember")}
                     </p>
                     <p className="text-xs text-amber-700">
-                      Member since {foundingSinceLabel}
+                      {t("profile.memberSince", { date: foundingSinceLabel })}
                     </p>
                     <p className="text-xs text-amber-700">
                       {typeof foundingSpotsRemaining === "number" &&
                       foundingSpotsRemaining > 0
-                        ? `${foundingSpotsRemaining} of 100 founding spots remaining`
-                        : "All 100 founding spots have been claimed"}
+                        ? t("profile.foundingSpotsRemaining", {
+                            count: String(foundingSpotsRemaining),
+                          })
+                        : t("profile.foundingSpotsFull")}
                     </p>
                   </div>
                 ) : null}
                 {joinedDate ? (
-                  <p className="mt-1 text-sm text-muted-foreground">Joined {joinedDate}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {t("profile.joined", { date: joinedDate })}
+                  </p>
                 ) : null}
               </div>
             </div>
@@ -716,7 +732,7 @@ function ProfilePageContent() {
               <Button variant="outline" size="sm" className="rounded-full" asChild>
                 <Link href="/profile/edit" className="gap-2">
                   <Settings className="h-4 w-4" />
-                  Settings
+                  {t("profile.settings")}
                 </Link>
               </Button>
             </div>
@@ -732,7 +748,7 @@ function ProfilePageContent() {
               )}
             >
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Bottles ordered
+                {t("profile.bottlesOrdered")}
               </p>
               <p className="mt-1 text-2xl font-semibold tabular-nums">{orderStats.bottles}</p>
             </button>
@@ -745,7 +761,7 @@ function ProfilePageContent() {
               )}
             >
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Producers
+                {t("profile.producers")}
               </p>
               <p className="mt-1 text-2xl font-semibold tabular-nums">
                 {orderStats.uniqueProducers}
@@ -761,14 +777,16 @@ function ProfilePageContent() {
             >
               <div className="flex items-center justify-between">
                 <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                  PACT Points
+                  {t("profile.pactPoints")}
                 </p>
               </div>
               <p className="mt-1 text-2xl font-semibold tabular-nums leading-none">
                 {membershipData.pactPoints?.balance ?? 0}
               </p>
               <p className="mt-1 text-[10px] text-muted-foreground">
-                {membershipData.pactPoints?.lifetime ?? 0} earned all time
+                {t("profile.earnedAllTime", {
+                  count: String(membershipData.pactPoints?.lifetime ?? 0),
+                })}
               </p>
             </button>
             <button
@@ -780,7 +798,7 @@ function ProfilePageContent() {
               className="rounded-xl border bg-card p-4 text-left shadow-sm transition hover:border-foreground/20"
             >
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Invited
+                {t("profile.invited")}
               </p>
               <p className="mt-1 text-2xl font-semibold tabular-nums">
                 {referralInfo.invitedCount}
@@ -811,14 +829,14 @@ function ProfilePageContent() {
                     <span className="relative inline-block">
                       {tab.id === "orders" ? (
                         <>
-                          Orders
+                          {t("profile.orders")}
                           <span className="ml-1 text-muted-foreground">
                             ({tab.count})
                           </span>
                         </>
                       ) : tab.id === "payment" ? (
                         <>
-                          Payment
+                          {t("profile.payment")}
                           {tab.badgeCount > 0 ? (
                             <span className="ml-1 text-muted-foreground">
                               ({tab.badgeCount})
@@ -854,25 +872,27 @@ function ProfilePageContent() {
                     href="/profile/activity"
                     className="text-sm text-muted-foreground hover:text-foreground"
                   >
-                    Open full activity log
+                    {t("profile.openActivityLog")}
                   </Link>
                 </section>
                 <section className="space-y-3">
                   <div className="rounded-md bg-popover border border-border px-4 py-3">
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                      PACT Points
+                      {t("profile.pactPoints")}
                     </p>
                     <p className="text-2xl font-semibold tabular-nums leading-none mt-1">
                       {membershipData.pactPoints.balance}
                     </p>
                     <p className="text-[10px] text-muted-foreground mt-2">
-                      {membershipData.pactPoints.lifetime} earned all time
+                      {t("profile.earnedAllTime", {
+                        count: String(membershipData.pactPoints.lifetime),
+                      })}
                     </p>
                   </div>
                 </section>
                 <section className="space-y-3">
                   <h2 className="text-base font-semibold text-foreground">
-                    Membership level
+                    {t("profile.membershipLevel")}
                   </h2>
                   <div className="rounded-md bg-popover border border-border px-4 py-3">
                     <div className="flex items-center justify-between gap-3">
@@ -914,28 +934,34 @@ function ProfilePageContent() {
                           />
                         </div>
                         <p className="mt-2 text-xs text-muted-foreground">
-                          {membershipData.pactPoints.pointsToNextTier ?? 0} points to{" "}
-                          {getLevelDisplayName(membershipData.pactPoints.nextTier)}
+                          {t("profile.pointsToTier", {
+                            points: String(
+                              membershipData.pactPoints.pointsToNextTier ?? 0,
+                            ),
+                            tier: getLevelDisplayName(
+                              membershipData.pactPoints.nextTier,
+                            ),
+                          })}
                         </p>
                       </div>
                     ) : (
                       <p className="mt-3 text-xs text-muted-foreground">
-                        Top tier reached
+                        {t("profile.topTierReached")}
                       </p>
                     )}
 
                     <p className="text-[10px] text-muted-foreground mt-2">
-                      Based on last 12 months
+                      {t("profile.basedOn12Months")}
                     </p>
                   </div>
                 </section>
                 <section className="space-y-3">
                   <h2 className="text-base font-semibold text-foreground">
-                    How to earn PACT Points
+                    {t("profile.howToEarnPact")}
                   </h2>
                   <div className="rounded-md bg-popover border border-border px-4 py-3">
                     <p className="text-sm font-semibold mb-3">
-                      Earn 1 point per bottle, multiplied by your tier
+                      {t("profile.earnPerBottle")}
                     </p>
 
                     {(() => {
@@ -976,19 +1002,19 @@ function ProfilePageContent() {
                     <Separator className="my-3" />
 
                     <p className="text-xs font-semibold text-muted-foreground mb-2">
-                      Other ways to earn
+                      {t("profile.otherWaysToEarn")}
                     </p>
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-xs">
-                        <span>Invite a friend who orders</span>
+                        <span>{t("profile.inviteFriendOrders")}</span>
                         <span className="tabular-nums font-medium">+30</span>
                       </div>
                       <div className="flex justify-between text-xs">
-                        <span>Review after delivery</span>
+                        <span>{t("profile.reviewAfterDelivery")}</span>
                         <span className="tabular-nums font-medium">+10</span>
                       </div>
                       <div className="flex justify-between text-xs">
-                        <span>Set delivery zone</span>
+                        <span>{t("profile.setDeliveryZone")}</span>
                         <span className="tabular-nums font-medium">+5</span>
                       </div>
                     </div>
@@ -997,14 +1023,14 @@ function ProfilePageContent() {
                 <section className="space-y-3">
                   <div className="flex items-center justify-between">
                     <h2 className="text-base font-semibold text-foreground">
-                      Recent activity
+                      {t("profile.recentActivity")}
                     </h2>
                     {pactEvents.length > 0 ? (
                       <Link
                         href="/profile/activity"
                         className="text-sm text-muted-foreground hover:text-foreground"
                       >
-                        View all
+                        {t("profile.viewAll")}
                       </Link>
                     ) : null}
                   </div>
@@ -1017,17 +1043,21 @@ function ProfilePageContent() {
             {dashTab === "perks" ? (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-base font-semibold text-foreground">Your perks</h2>
+                  <h2 className="text-base font-semibold text-foreground">
+                    {t("profile.yourPerks")}
+                  </h2>
                   <Link
                     href="/profile/perks"
                     className="text-sm text-muted-foreground hover:text-foreground"
                   >
-                    Full perks page
+                    {t("profile.fullPerksPage")}
                   </Link>
                 </div>
                 <div className="rounded-xl border border-border bg-card divide-y">
                   {(membershipData.perks || []).length === 0 ? (
-                    <p className="p-4 text-sm text-muted-foreground">No perks listed for your tier.</p>
+                    <p className="p-4 text-sm text-muted-foreground">
+                      {t("profile.noPerksForTier")}
+                    </p>
                   ) : (
                     (membershipData.perks || []).map((perk) => (
                       <div
@@ -1056,12 +1086,11 @@ function ProfilePageContent() {
 
         <aside className="mt-10 hidden min-w-0 space-y-4 xl:mt-0 xl:block">
           <div className="rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
-            <p className="font-medium text-foreground">Tip</p>
+            <p className="font-medium text-foreground">{t("profile.tipTitle")}</p>
             <p className="mt-2 leading-snug">
-              Use your personal invite link above to grow the community. Full search and discovery
-              still live under{" "}
+              {t("profile.tipBodyIntro")}{" "}
               <Link href="/shop" className="underline underline-offset-2">
-                Shop
+                {t("common.shop")}
               </Link>
               .
             </p>

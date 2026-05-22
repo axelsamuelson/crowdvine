@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Loader } from "@/components/ui/loader";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 export type CaseMode = "same" | "mixed";
 
@@ -27,10 +28,12 @@ export function CaseModeSelector({
   onModeChange,
   onConfirm,
   disabled = false,
-  label = "Add case",
+  label,
   pending = false,
   className,
 }: CaseModeSelectorProps) {
+  const { t } = useTranslations();
+  const ctaLabel = label ?? t("shop.addCase");
   const segmentBase =
     "flex-1 min-w-0 rounded-full px-2 py-2 text-center text-xs font-medium leading-none transition-colors sm:text-sm";
 
@@ -58,7 +61,7 @@ export function CaseModeSelector({
               : "bg-transparent text-[color:var(--color-text-secondary,hsl(var(--muted-foreground)))]",
           )}
         >
-          ×&nbsp;6 same
+          {t("cart.caseSame")}
         </button>
         <button
           type="button"
@@ -70,7 +73,7 @@ export function CaseModeSelector({
               : "bg-transparent text-[color:var(--color-text-secondary,hsl(var(--muted-foreground)))]",
           )}
         >
-          ×&nbsp;6 mixed
+          {t("cart.caseMixed")}
         </button>
       </div>
 
@@ -90,7 +93,7 @@ export function CaseModeSelector({
             transition={{ duration: 0.12 }}
             className="flex items-center justify-center gap-2"
           >
-            {pending ? <Loader size="default" /> : label}
+            {pending ? <Loader size="default" /> : ctaLabel}
           </motion.span>
         </AnimatePresence>
       </Button>

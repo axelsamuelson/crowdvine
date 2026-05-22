@@ -5,10 +5,12 @@ import { useQueryState, parseAsString } from "nuqs";
 import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 const DEBOUNCE_MS = 450;
 
 export function ShopFilterSearch({ className }: { className?: string }) {
+  const { t } = useTranslations();
   const [q, setQ] = useQueryState(
     "q",
     parseAsString.withOptions({ shallow: false }),
@@ -49,13 +51,13 @@ export function ShopFilterSearch({ className }: { className?: string }) {
         enterKeyHint="search"
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
-        placeholder="Search wines or producers…"
+        placeholder={t("shop.searchPlaceholder")}
         className={cn(
           // Force a light search surface in both B2C and B2B themes.
           "h-9 rounded-md border border-border/60 bg-[#f3f4f6] dark:bg-[#f3f4f6] pl-9 text-sm text-gray-900 dark:text-gray-900 placeholder:text-muted-foreground dark:placeholder:text-muted-foreground shadow-none",
           draft.length > 0 ? "pr-9" : "pr-3",
         )}
-        aria-label="Search shop"
+        aria-label={t("shop.searchAria")}
         autoComplete="off"
         autoCorrect="off"
         spellCheck={false}
@@ -64,7 +66,7 @@ export function ShopFilterSearch({ className }: { className?: string }) {
         <button
           type="button"
           className="absolute right-1 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          aria-label="Clear search"
+          aria-label={t("shop.clearSearch")}
           onClick={clear}
         >
           <X className="h-3.5 w-3.5" strokeWidth={2} />

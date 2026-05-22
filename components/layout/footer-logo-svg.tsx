@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { cn } from "@/lib/utils";
 
 // Cache för att undvika upprepade API-anrop
 let footerLogoCache: { value: string | null; timestamp: number } | null = null;
@@ -106,11 +107,8 @@ export function FooterLogoSvg({ className }: { className?: string }) {
   if (loading) {
     return (
       <div
-        className={className}
-        style={{
-          backgroundColor: "transparent",
-          minHeight: "60px", // Ungefärlig höjd för footer logo
-        }}
+        className={cn("bg-transparent", className ?? "min-h-[60px]")}
+        aria-hidden
       />
     );
   }
@@ -151,7 +149,10 @@ export function FooterLogoSvg({ className }: { className?: string }) {
       viewBox="0 0 292 61"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className={`md:basis-3/4 max-md:w-full max-w-[1200px] h-auto block ${className || ""}`}
+      className={cn(
+        "h-auto w-auto block shrink-0",
+        className ?? "max-md:w-full max-w-[1200px] md:basis-3/4",
+      )}
     >
       <path
         d="M0 58.9432L20.7844 1.29902H35.3984L56.1828 58.9432H43.3549L39.1331 46.6837H16.9685L12.7467 58.9432H0ZM20.4596 36.535H35.7232L28.0914 14.2893L20.4596 36.535Z"

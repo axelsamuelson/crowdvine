@@ -21,6 +21,7 @@ import { ResultsCount } from "./results-count";
 import { SortDropdown } from "./sort-dropdown";
 import { ShopFilterSearch } from "./shop-filter-search";
 import Link from "next/link";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 interface MobileFiltersProps {
   collections: Collection[];
@@ -29,6 +30,7 @@ interface MobileFiltersProps {
 }
 
 export function MobileFilters({ collections, priceSources = [], className }: MobileFiltersProps) {
+  const { t } = useTranslations();
   const filterCount = useFilterCount();
   const { products, originalProducts } = useProducts();
   const [isMounted, setIsMounted] = React.useState(false);
@@ -53,7 +55,7 @@ export function MobileFilters({ collections, priceSources = [], className }: Mob
               size="sm"
               className="justify-self-start text-sm font-semibold text-foreground"
             >
-              Filters{" "}
+              {t("shop.filters")}{" "}
               {safeFilterCount > 0 && (
                 <span className="text-foreground/50">({safeFilterCount})</span>
               )}
@@ -71,7 +73,7 @@ export function MobileFilters({ collections, priceSources = [], className }: Mob
         <DrawerContent className={cn("h-[80vh]", className)}>
           <DrawerHeader className="flex justify-between items-center">
             <DrawerTitle>
-              Filters{" "}
+              {t("shop.filters")}{" "}
               {safeFilterCount > 0 && (
                 <span className="text-muted-foreground">({safeFilterCount})</span>
               )}
@@ -87,7 +89,7 @@ export function MobileFilters({ collections, priceSources = [], className }: Mob
               asChild={safeFilterCount > 0}
             >
               <Link href="/shop" prefetch>
-                Clear
+                {t("shop.clear")}
               </Link>
             </Button>
           </DrawerHeader>

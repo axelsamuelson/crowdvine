@@ -14,6 +14,9 @@ interface ColorSwatchProps {
   onColorChange: (color: Color | [Color, Color]) => void;
   size?: "xs" | "sm" | "md" | "lg";
   atLeastOneColorSelected: boolean;
+  /** Override visible/tooltip label (e.g. localized wine color names). */
+  displayName?: string;
+  selectColorAria?: (name: string) => string;
 }
 
 export const sizeClasses = {
@@ -29,11 +32,18 @@ export function ColorSwatch({
   onColorChange,
   size = "md",
   atLeastOneColorSelected,
+  displayName: displayNameProp,
+  selectColorAria,
 }: ColorSwatchProps) {
   const isDualColor = Array.isArray(color);
-  const displayName = isDualColor
-    ? `${color[0].name} & ${color[1].name}`
-    : color.name;
+  const displayName =
+    displayNameProp ??
+    (isDualColor
+      ? `${color[0].name} & ${color[1].name}`
+      : color.name);
+  const ariaLabel = selectColorAria
+    ? selectColorAria(displayName)
+    : `Select color: ${displayName}`;
 
   return (
     <button
@@ -50,7 +60,7 @@ export function ColorSwatch({
       title={displayName}
       onClick={() => onColorChange(color)}
       aria-pressed={isSelected}
-      aria-label={`Select color: ${displayName}`}
+      aria-label={ariaLabel}
     >
       {isDualColor ? (
         <>
@@ -82,6 +92,8 @@ interface ColorPickerProps {
   onColorChange: (color: Color | [Color, Color]) => void;
   size?: "sm" | "md" | "lg";
   className?: string;
+  formatDisplayName?: (color: Color | [Color, Color]) => string;
+  selectColorAria?: (name: string) => string;
 }
 
 export function ColorPicker({
@@ -90,6 +102,8 @@ export function ColorPicker({
   onColorChange,
   size = "md",
   className,
+  formatDisplayName,
+  selectColorAria,
 }: ColorPickerProps) {
   const [isClient, setIsClient] = useState(false);
   const atLeastOneColor = selectedColors.length > 0;
@@ -145,6 +159,8 @@ export function ColorPicker({
                 onColorChange={onColorChange}
                 size={size}
                 atLeastOneColorSelected={atLeastOneColor}
+                displayName={formatDisplayName?.(color)}
+                selectColorAria={selectColorAria}
               />
             </ColorWrapper>
           ))}
@@ -165,6 +181,8 @@ export function ColorPicker({
               onColorChange={onColorChange}
               size={size}
               atLeastOneColorSelected={atLeastOneColor}
+              displayName={formatDisplayName?.(color)}
+              selectColorAria={selectColorAria}
             />
           </ColorWrapper>
         ))

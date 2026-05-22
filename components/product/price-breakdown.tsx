@@ -10,8 +10,8 @@ import {
 import {
   calculateListCompositionPercentages,
   calculatePercentages,
-  formatCurrency,
 } from "@/lib/price-breakdown";
+import { useDisplayMoney } from "@/lib/hooks/use-display-money";
 
 export interface PriceBreakdownProps {
   costAmount: number; // Base cost in SEK (after exchange)
@@ -100,6 +100,9 @@ function PriceBreakdownContent({
   barSegments: BarSegment[];
   tableRows: TableRow[];
 }) {
+  const { formatSek } = useDisplayMoney();
+  const formatCurrency = (amount: number) => formatSek(amount);
+
   const displayPcts = getDisplayPercentages(
     barSegments.map((s) => ({
       label: s.label,
@@ -164,7 +167,10 @@ function PriceBreakdownContent({
 
       <div className="space-y-2">
         {tableRows.map((row) => {
-          const amountStr = row.displayAmount ?? formatCurrency(row.amount);
+          const amountStr =
+            row.label === "Member discount"
+              ? `−${formatCurrency(Math.abs(row.amount))}`
+              : (row.displayAmount ?? formatCurrency(row.amount));
           return (
             <div
               key={row.label}
@@ -287,7 +293,6 @@ function buildBreakdownRows(
             label: "Member discount",
             amount: -memberDiscountAmount,
             rowPercent: Math.round((-memberDiscountAmount / totalPrice) * 100),
-            displayAmount: `−${formatCurrency(memberDiscountAmount)}`,
           },
         ]
       : []),

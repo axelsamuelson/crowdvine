@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { useQueryState, parseAsArrayOf, parseAsString } from "nuqs";
 import { useCompetitorFilterCount } from "../hooks/use-filter-count";
 import { useProducts } from "../providers/products-provider";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 export interface PriceSourceForFilter {
   id: string;
@@ -25,6 +26,7 @@ export function CompetitorFilter({
   mode = "sidebar",
   onSeeAll,
 }: CompetitorFilterProps) {
+  const { t } = useTranslations();
   const { availableSourceSlugs } = useProducts();
   const [selectedSlugs, setSelectedSlugs] = useQueryState(
     "fsource",
@@ -57,7 +59,7 @@ export function CompetitorFilter({
     <div className={cn("px-2.5 py-2 rounded-md bg-muted", className)}>
       <div className="flex items-baseline justify-between gap-2 mb-2">
         <h3 className="text-sm font-semibold">
-          Buy at{" "}
+          {t("shop.buyAt")}{" "}
           {count > 0 && (
             <span className="text-foreground/50">({count})</span>
           )}
@@ -67,9 +69,9 @@ export function CompetitorFilter({
             type="button"
             onClick={onSeeAll}
             className="text-xs font-medium text-foreground/60 hover:text-foreground/80 transition-colors"
-            aria-label="See all filters"
+            aria-label={t("shop.seeAllFilters")}
           >
-            See all
+            {t("shop.seeAll")}
           </button>
         )}
       </div>
@@ -91,7 +93,7 @@ export function CompetitorFilter({
                         : "",
                   )}
                   aria-pressed={isSelected}
-                  aria-label={`Filter by: ${source.name}`}
+                  aria-label={t("shop.filterBySource", { name: source.name })}
                 >
                   {source.name}
                 </button>

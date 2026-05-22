@@ -405,17 +405,18 @@ export default function PalletsPage() {
       <div className="flex justify-between items-start gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-zinc-100">
-            Pallets
+            Pallar
           </h1>
-          <p className="text-sm text-zinc-500 mt-1">
-            Capacity, routes, and reservations
+          <p className="text-sm text-zinc-500 mt-1 max-w-lg">
+            Kapacitet och reservationer. Varje PACT-pall har leveranszon; ursprung
+            är fraktregion eller upphämtningszon.
           </p>
         </div>
         <Link
           href="/admin/pallets/new"
           className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors shrink-0 pt-1"
         >
-          + Add pallet
+          + Ny pall
         </Link>
       </div>
 

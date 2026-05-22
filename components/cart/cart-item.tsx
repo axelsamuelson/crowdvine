@@ -7,8 +7,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { DeleteItemButton } from "./delete-item-button";
 import { EditItemQuantityButton } from "./edit-item-quantity-button";
-import { formatPrice, priceExclVat } from "@/lib/shopify/utils";
+import { priceExclVat } from "@/lib/shopify/utils";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
+import { useFormatPrice } from "@/lib/hooks/use-format-price";
+import { useTranslations } from "@/lib/hooks/use-translations";
 import { ColorSwatch } from "@/components/ui/color-picker";
 import { useProductImages } from "../products/variant-selector";
 import { Warehouse } from "lucide-react";
@@ -24,6 +26,8 @@ interface CartItemProps {
 }
 
 export function CartItemCard({ item, onCloseCart }: CartItemProps) {
+  const formatPrice = useFormatPrice();
+  const { t } = useTranslations();
   const showExclVat = useB2BPriceMode();
   const merchandiseSearchParams = {} as MerchandiseSearchParams;
   const amount = parseFloat(item.cost.totalAmount.amount);
@@ -73,7 +77,9 @@ export function CartItemCard({ item, onCloseCart }: CartItemProps) {
             />
           ) : (
             <div className="size-full bg-muted flex items-center justify-center">
-              <span className="text-muted-foreground text-xs">No image</span>
+              <span className="text-muted-foreground text-xs">
+                {t("cart.noImage")}
+              </span>
             </div>
           )}
 
@@ -120,7 +126,7 @@ export function CartItemCard({ item, onCloseCart }: CartItemProps) {
               {item.source === "warehouse" ? (
                 <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md bg-muted text-muted-foreground">
                   <Warehouse className="w-3 h-3" />
-                  <span>Warehouse</span>
+                  <span>{t("product.warehouse")}</span>
                 </span>
               ) : null}
             </div>
@@ -136,7 +142,7 @@ export function CartItemCard({ item, onCloseCart }: CartItemProps) {
             ) : null}
             {showExclVat && (
               <span className="text-[10px] font-normal text-muted-foreground">
-                exkl. moms
+                {t("common.exclVat")}
               </span>
             )}
           </div>

@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { getCurrentUser } from "../../lib/auth";
 import { getMemberDiscountPercentForUserId } from "../../lib/membership/server-member-discount";
 import { memberDiscountedTotalInclVat } from "../../lib/price-breakdown";
@@ -6,6 +7,8 @@ import { applyPalletDiscount } from "../../lib/pallet-discount";
 import { supabaseServer } from "../../lib/supabase-server";
 import type { Cart, CartItem } from "../../lib/shopify/types";
 import { getOrSetCartId, clearCartId } from "./cookies";
+import { convertSekForDisplay } from "@/lib/shopping-context/currency-convert";
+import { resolveDisplayCurrency } from "@/lib/shopping-context/display-currency";
 
 type CartWineProducer = {
   id?: string;
@@ -84,6 +87,13 @@ export class CartService {
   static async getCart(): Promise<Cart | null> {
     console.log("🔧 getCart called");
     try {
+      const display = await resolveDisplayCurrency();
+      const { currencyCode: displayCurrency, sekToDisplayRate } = display;
+      const toDisplay = (sek: number) =>
+        Math.ceil(
+          convertSekForDisplay(sek, displayCurrency, sekToDisplayRate),
+        );
+
       const cartId = await getOrSetCartId();
       console.log("🔧 Cart ID from cookies:", cartId);
 
@@ -134,9 +144,12 @@ export class CartService {
           id: ensureCartId, // Use the actual database cart ID
           checkoutUrl: "/checkout",
           cost: {
-            subtotalAmount: { amount: "0.00", currencyCode: "SEK" },
-            totalAmount: { amount: "0.00", currencyCode: "SEK" },
-            totalTaxAmount: { amount: "0", currencyCode: "SEK" },
+            subtotalAmount: {
+              amount: "0.00",
+              currencyCode: displayCurrency,
+            },
+            totalAmount: { amount: "0.00", currencyCode: displayCurrency },
+            totalTaxAmount: { amount: "0", currencyCode: displayCurrency },
           },
           totalQuantity: 0,
           lines: [],
@@ -145,8 +158,15 @@ export class CartService {
       }
 
       const user = await getCurrentUser();
+      let requestHost: string | null = null;
+      try {
+        const h = await headers();
+        requestHost = h.get("x-forwarded-host") ?? h.get("host");
+      } catch {
+        /* headers() unavailable outside request */
+      }
       const memberDiscountPercent = user
-        ? await getMemberDiscountPercentForUserId(user.id)
+        ? await getMemberDiscountPercentForUserId(user.id, { host: requestHost })
         : 0;
 
       const wineIdsForPallet = cartItems
@@ -190,6 +210,8 @@ export class CartService {
           palletTier > 0
             ? applyPalletDiscount(lineTotalMember, palletTier)
             : lineTotalMember;
+        const lineTotalDisplay = toDisplay(lineTotalSek);
+        const unitDisplay = toDisplay(unitMemberSek);
 
         const discountLabel =
           palletTier > 0
@@ -211,8 +233,8 @@ export class CartService {
                 : "producer",
           cost: {
             totalAmount: {
-              amount: lineTotalSek.toString(),
-              currencyCode: "SEK",
+              amount: lineTotalDisplay.toString(),
+              currencyCode: displayCurrency,
             },
           },
           ...(discountLabel !== undefined ? { discountLabel } : {}),
@@ -237,20 +259,20 @@ export class CartService {
                   title: "750 ml",
                   availableForSale: true,
                   price: {
-                    amount: unitMemberSek.toString(),
-                    currencyCode: "SEK",
+                    amount: unitDisplay.toString(),
+                    currencyCode: displayCurrency,
                   },
                   selectedOptions,
                 },
               ],
               priceRange: {
                 minVariantPrice: {
-                  amount: unitMemberSek.toString(),
-                  currencyCode: "SEK",
+                  amount: unitDisplay.toString(),
+                  currencyCode: displayCurrency,
                 },
                 maxVariantPrice: {
-                  amount: unitMemberSek.toString(),
-                  currencyCode: "SEK",
+                  amount: unitDisplay.toString(),
+                  currencyCode: displayCurrency,
                 },
               },
               featuredImage: {
@@ -274,7 +296,7 @@ export class CartService {
               seo: { title: wine.wine_name, description: "" },
               tags: [],
               availableForSale: true,
-              currencyCode: "SEK",
+              currencyCode: displayCurrency,
               updatedAt: new Date().toISOString(),
               createdAt: new Date().toISOString(),
             },
@@ -293,13 +315,13 @@ export class CartService {
         cost: {
           subtotalAmount: {
             amount: Math.round(subtotal).toString(),
-            currencyCode: "SEK",
+            currencyCode: displayCurrency,
           },
           totalAmount: {
             amount: Math.round(subtotal).toString(),
-            currencyCode: "SEK",
+            currencyCode: displayCurrency,
           },
-          totalTaxAmount: { amount: "0", currencyCode: "SEK" },
+          totalTaxAmount: { amount: "0", currencyCode: displayCurrency },
         },
         totalQuantity: lines.reduce((sum, line) => sum + line.quantity, 0),
         lines,

@@ -5,6 +5,7 @@ import clsx from "clsx";
 import { CartItem } from "@/lib/shopify/types";
 import { useCart } from "./cart-context";
 import { useRef, useCallback, useEffect } from "react";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 function SubmitButton({
   type,
@@ -13,12 +14,15 @@ function SubmitButton({
   type: "plus" | "minus";
   onClick: () => void;
 }) {
+  const { t } = useTranslations();
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={
-        type === "plus" ? "Increase item quantity" : "Reduce item quantity"
+        type === "plus"
+          ? t("cart.quantityIncrease")
+          : t("cart.quantityDecrease")
       }
       className={clsx(
         "ease flex h-full min-w-[36px] max-w-[36px] flex-none items-center justify-center rounded-full p-2 transition-all duration-200 hover:border-neutral-800 hover:opacity-80",

@@ -2,24 +2,37 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { isPlatformAdminProfile } from "@/lib/auth/platform-admin-profile";
+import { isDirtywineHost } from "@/lib/b2b-site";
 
 export async function middleware(req: NextRequest) {
   try {
     return await runMiddleware(req);
   } catch (error) {
     console.error("🔴 MIDDLEWARE: Unhandled error:", error);
-    return NextResponse.next();
+    return nextWithPathname(req);
   }
+}
+
+function nextWithPathname(req: NextRequest): NextResponse {
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-pathname", req.nextUrl.pathname);
+  return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
 async function runMiddleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  if (pathname === "/wine-search" || pathname.startsWith("/wine-search/")) {
+    const u = req.nextUrl.clone();
+    u.pathname = "/admin/wine-search";
+    return NextResponse.redirect(u);
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !supabaseAnonKey) {
     console.warn("⚠️ MIDDLEWARE: Missing Supabase env vars, skipping auth");
-    return NextResponse.next();
+    return nextWithPathname(req);
   }
 
   // Offentliga paths (UI oförändrad, bara backend-gate)
@@ -42,7 +55,6 @@ async function runMiddleware(req: NextRequest) {
     "/auth/auth-code-error",
     "/forgot-password",
     "/tasting", // Allow tasting pages for guests
-    "/wine-search", // Public wine list search (no login)
     "/api/stripe/webhook",
     "/api/cron",
   ];
@@ -59,9 +71,9 @@ async function runMiddleware(req: NextRequest) {
     pathname.startsWith("/.well-known/") ||
     pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|ico)$/)
   )
-    return NextResponse.next();
+    return nextWithPathname(req);
 
-  const res = NextResponse.next();
+  const res = nextWithPathname(req);
   const supabase = createServerClient(
     supabaseUrl,
     supabaseAnonKey,
@@ -100,19 +112,16 @@ async function runMiddleware(req: NextRequest) {
   });
 
   const host = req.nextUrl.hostname.toLowerCase();
-  const onB2BProduction = host.includes("dirtywine.se");
-  const onLocalhost = host === "localhost" || host === "127.0.0.1";
-  const forceB2B = req.nextUrl.searchParams.get("b2b") === "1";
-  const isB2BDomain = onB2BProduction || (onLocalhost && forceB2B);
+  const onDirtywineSite = isDirtywineHost(host, req.nextUrl.searchParams);
 
   if (!isPublic) {
     const adminAuthCookie = req.cookies.get("admin-auth")?.value;
     const adminEmailCookie = req.cookies.get("admin-email")?.value?.trim();
     const isAdminPath = pathname.startsWith("/admin");
 
-    // dirtywine.se: no login required – allow access without auth (admin handled below)
-    if (onB2BProduction && !isAdminPath) {
-      console.log("✅ MIDDLEWARE: dirtywine.se – allowing without login:", pathname);
+    // dirtywine.se / localhost ?b2b=1: no login required – allow access without auth
+    if (onDirtywineSite && !isAdminPath) {
+      console.log("✅ MIDDLEWARE: Dirty Wine site – allowing without login:", pathname);
       return res;
     }
 
@@ -152,7 +161,7 @@ async function runMiddleware(req: NextRequest) {
       return NextResponse.redirect(new URL("/admin-auth/login", req.url));
     }
 
-    // pactwines.com (and localhost without ?b2b=1): require login
+    // pactwines.com / localhost (default): require login
     if (!user) {
       console.log(
         "🚫 MIDDLEWARE: No user found, redirecting to access-request",
@@ -184,21 +193,6 @@ async function runMiddleware(req: NextRequest) {
       membershipLevel: membership?.level,
       profileRole: profile?.role,
     });
-
-    // localhost with ?b2b=1: require business access (dirtywine.se allows all without login)
-    if (onLocalhost && forceB2B) {
-      const isAdmin = isPlatformAdmin;
-      const portalAccess =
-        profile?.portal_access && Array.isArray(profile.portal_access)
-          ? profile.portal_access
-          : ["user"];
-      const canAccessB2B = portalAccess.includes("business");
-      if (!canAccessB2B && !isAdmin) {
-        const url = new URL(req.url);
-        url.searchParams.delete("b2b");
-        return NextResponse.redirect(url);
-      }
-    }
 
     // Redirect requesters to access-pending page (unless they're already there)
     // Producers/admins should not be blocked by membership gating.

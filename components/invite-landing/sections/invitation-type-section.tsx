@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,14 @@ import { getLevelInfo } from "@/lib/membership/points-engine";
 import { MetallicMembershipCard } from "../metallic-membership-card";
 import { DirtyWineLogo } from "../dirty-wine-logo";
 import { buildInviteUrl } from "@/lib/invitation-path";
-import { InviteWineZoneField } from "@/components/market/invite-wine-zone-field";
+import {
+  InviteWineZoneField,
+  type EligibleGeoZoneRow,
+} from "@/components/market/invite-wine-zone-field";
+import type { DetectedLocation } from "@/lib/geo-zones/detect-zone";
+import { getCountryDisplayName } from "@/lib/countries";
+import { countriesFromEligibleZones } from "@/lib/geo-zones/countries-from-zones";
+import { cn } from "@/lib/utils";
 
 export type InvitationType = "consumer" | "producer" | "business";
 
@@ -47,7 +54,19 @@ const INVITATION_TYPE_LABELS: Record<InvitationType, string> = {
   business: "Business",
 };
 
+/** Post-signup "invite 3 friends" block — hidden until product is ready. */
+const SHOW_INVITE_FRIENDS_SECTION = false;
+
 type FormStep = 1 | 2 | 3 | 4 | 5;
+
+export type InviteWineZoneGeoProps = {
+  zones?: EligibleGeoZoneRow[];
+  detectedLocation?: DetectedLocation | null;
+  zoneAutoDetected?: boolean;
+  zoneManuallyChanged?: boolean;
+  showUsNoMatchHint?: boolean;
+  onZoneManualChange?: () => void;
+};
 
 interface InvitationTypeSectionProps {
   allowedTypes: InvitationType[];
@@ -64,6 +83,7 @@ interface InvitationTypeSectionProps {
   showDirtyWineLogo?: boolean;
   /** When true, form has 6 steps (account + producer); submit on step 6. */
   isProducerOnly?: boolean;
+  wineZoneGeo?: InviteWineZoneGeoProps;
 }
 
 const validLevels = ["basic", "brons", "silver", "guld", "privilege"] as const;
@@ -89,9 +109,60 @@ export function InvitationTypeSection({
   submitting,
   showDirtyWineLogo = false,
   isProducerOnly = false,
+  wineZoneGeo,
 }: InvitationTypeSectionProps) {
   const [step, setStep] = useState<FormStep>(1);
+  const [locationPhase, setLocationPhase] = useState<
+    "question" | "pick_country" | "pick_city" | "complete"
+  >("question");
+  const [cityPickerScope, setCityPickerScope] = useState<
+    "detected_country" | "all"
+  >("detected_country");
+  const [selectedPickerCountry, setSelectedPickerCountry] = useState<
+    string | null
+  >(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
+
+  const detectedCountryCode =
+    wineZoneGeo?.detectedLocation?.country?.trim().toUpperCase() ?? null;
+  const countryDisplayName = detectedCountryCode
+    ? getCountryDisplayName(detectedCountryCode, "en")
+    : null;
+  const showCountryConfirmStep = Boolean(countryDisplayName);
+  const locationStepComplete = !showCountryConfirmStep || locationPhase === "complete";
+  const zoneChosenInLocationStep =
+    showCountryConfirmStep &&
+    locationPhase === "complete" &&
+    Boolean(formData.active_geo_zone_id?.trim());
+
+  const allEligibleZones = wineZoneGeo?.zones ?? [];
+  const zonePickerCentered = cityPickerScope === "all";
+
+  const pickerCountryOptions = useMemo(() => {
+    const source =
+      cityPickerScope === "detected_country" && detectedCountryCode
+        ? allEligibleZones.filter(
+            (z) =>
+              (z.country_code?.trim().toUpperCase() ?? "") ===
+              detectedCountryCode,
+          )
+        : allEligibleZones;
+    return countriesFromEligibleZones(source, "en");
+  }, [allEligibleZones, cityPickerScope, detectedCountryCode]);
+
+  const cityPickerZones = useMemo(() => {
+    if (!selectedPickerCountry) return [];
+    return allEligibleZones.filter(
+      (z) =>
+        (z.country_code?.trim().toUpperCase() ?? "") === selectedPickerCountry,
+    );
+  }, [allEligibleZones, selectedPickerCountry]);
+
+  useEffect(() => {
+    if (!showCountryConfirmStep) {
+      setLocationPhase("complete");
+    }
+  }, [showCountryConfirmStep]);
   const [countries, setCountries] = useState<CountryOption[]>([]);
   const [regions, setRegions] = useState<RegionOption[]>([]);
 
@@ -127,6 +198,19 @@ export function InvitationTypeSection({
   const inviterDisplayName = inviterName?.trim() || "a member";
   const isWelcome = !!welcomeName?.trim();
   const displayName = welcomeName ? toTitleCase(welcomeName) : "";
+
+  const handleWineZoneChange = (zoneId: string) => {
+    wineZoneGeo?.onZoneManualChange?.();
+    onFormChange({ active_geo_zone_id: zoneId });
+  };
+
+  const wineZoneFieldProps = {
+    zones: wineZoneGeo?.zones,
+    detectedLocation: wineZoneGeo?.detectedLocation,
+    zoneAutoDetected: wineZoneGeo?.zoneAutoDetected,
+    zoneManuallyChanged: wineZoneGeo?.zoneManuallyChanged,
+    showUsNoMatchHint: wineZoneGeo?.showUsNoMatchHint,
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -196,7 +280,9 @@ export function InvitationTypeSection({
   };
 
   useEffect(() => {
-    if (isWelcome && isConsumerOnly) fetchInvitations();
+    if (SHOW_INVITE_FRIENDS_SECTION && isWelcome && isConsumerOnly) {
+      fetchInvitations();
+    }
   }, [isWelcome, isConsumerOnly]);
 
   const scrollToInviteSection = () => {
@@ -312,7 +398,7 @@ export function InvitationTypeSection({
               <Button asChild className="w-full sm:w-auto bg-black text-white hover:bg-black/90 hover:text-white">
                 <a href="/">Go to platform</a>
               </Button>
-              {isConsumerOnly && (
+              {SHOW_INVITE_FRIENDS_SECTION && isConsumerOnly && (
                 <button
                   type="button"
                   onClick={scrollToInviteSection}
@@ -342,11 +428,11 @@ export function InvitationTypeSection({
           </motion.div>
         </section>
 
-        {isConsumerOnly && (
+        {SHOW_INVITE_FRIENDS_SECTION && isConsumerOnly && (
           <section
             id="invite-friends-section"
             ref={inviteSectionRef}
-            className="relative py-20 px-6 border-t border-border/80 bg-gradient-to-b from-muted/40 to-background"
+            className="relative py-20 px-6 border-t border-border bg-background"
           >
             <div className="max-w-md mx-auto">
               {/* Headline & intro */}
@@ -371,7 +457,7 @@ export function InvitationTypeSection({
                 </div>
                 <div className="h-2.5 bg-muted rounded-full overflow-hidden">
                   <motion.div
-                    className="h-full rounded-full bg-gradient-to-r from-primary to-primary/80"
+                    className="h-full rounded-full bg-foreground"
                     initial={{ width: 0 }}
                     animate={{ width: `${progress * 100}%` }}
                     transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
@@ -410,7 +496,7 @@ export function InvitationTypeSection({
                             onClick={() => copyInviteLink(url, slotIndex)}
                           >
                             {copiedSlot === slotIndex ? (
-                              <span className="text-xs font-medium text-green-700 dark:text-green-400">
+                              <span className="text-xs font-medium text-muted-foreground">
                                 Copied
                               </span>
                             ) : (
@@ -447,7 +533,7 @@ export function InvitationTypeSection({
   }
 
   return (
-    <section className="relative py-24 px-6">
+    <section className="invitation-section-platform relative py-24 px-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -485,7 +571,7 @@ export function InvitationTypeSection({
               </h2>
               <p className="text-muted-foreground text-sm">
                 {isProducerOnly
-                  ? `Sign up and set up your producer profile — part ${step} of 5`
+                  ? `Sign up and set up your producer profile, part ${step} of 5`
                   : "Sign up to claim your membership"}
               </p>
             </>
@@ -518,7 +604,163 @@ export function InvitationTypeSection({
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {showCountryConfirmStep && locationPhase !== "complete" && (
+            <div className="space-y-4">
+              {locationPhase === "question" && (
+                <>
+                  <p className="text-lg font-medium text-foreground text-center">
+                    Are you in {countryDisplayName}?
+                  </p>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+                    <Button
+                      type="button"
+                      className="w-full sm:w-auto min-w-[120px] bg-black text-white hover:bg-black/90"
+                      onClick={() => {
+                        setCityPickerScope("detected_country");
+                        setSelectedPickerCountry(detectedCountryCode);
+                        setLocationPhase("pick_country");
+                      }}
+                    >
+                      Yes
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full sm:w-auto min-w-[140px]"
+                      onClick={() => {
+                        wineZoneGeo?.onZoneManualChange?.();
+                        onFormChange({ active_geo_zone_id: "" });
+                        setSelectedPickerCountry(null);
+                        setCityPickerScope("all");
+                        setLocationPhase("pick_country");
+                      }}
+                    >
+                      Change Country
+                    </Button>
+                  </div>
+                </>
+              )}
+              {(locationPhase === "pick_country" ||
+                locationPhase === "pick_city") && (
+                <div
+                  className={cn(
+                    "space-y-3",
+                    zonePickerCentered && "mx-auto w-full max-w-sm text-center",
+                  )}
+                >
+                  <p className="text-lg font-medium text-foreground">
+                    Choose your zone
+                  </p>
+
+                  {locationPhase === "pick_country" && (
+                    <>
+                      <div
+                        className={cn(
+                          "space-y-2",
+                          zonePickerCentered && "text-left",
+                        )}
+                      >
+                        <Label htmlFor="invite-zone-country">Country</Label>
+                        <Select
+                          value={selectedPickerCountry ?? undefined}
+                          onValueChange={(code) => {
+                            setSelectedPickerCountry(code);
+                            onFormChange({ active_geo_zone_id: "" });
+                          }}
+                        >
+                          <SelectTrigger
+                            id="invite-zone-country"
+                            className="invite-form-control w-full bg-white text-slate-900 border-input shadow-sm dark:text-slate-900"
+                          >
+                            <SelectValue placeholder="Select country" />
+                          </SelectTrigger>
+                          <SelectContent className="invite-select-content">
+                            {pickerCountryOptions.map((c) => (
+                              <SelectItem
+                                key={c.code}
+                                value={c.code}
+                                className="text-slate-900 dark:text-slate-900 data-[highlighted]:bg-slate-100 data-[highlighted]:text-slate-900 dark:data-[highlighted]:bg-slate-100 dark:data-[highlighted]:text-slate-900"
+                              >
+                                {c.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className={cn(
+                          "w-full",
+                          zonePickerCentered && "mx-auto max-w-sm",
+                        )}
+                        disabled={!selectedPickerCountry}
+                        onClick={() => setLocationPhase("pick_city")}
+                      >
+                        Continue
+                      </Button>
+                    </>
+                  )}
+
+                  {locationPhase === "pick_city" && (
+                    <>
+                      <div
+                        className={cn(
+                          "space-y-2",
+                          zonePickerCentered && "text-left",
+                        )}
+                      >
+                        <InviteWineZoneField
+                          id="invite-city-picker"
+                          label="City"
+                          placeholder="Select a city"
+                          zones={cityPickerZones}
+                          value={formData.active_geo_zone_id ?? ""}
+                          onValueChange={handleWineZoneChange}
+                          showEligibilitySuffix={false}
+                          hideGeoHints
+                          variant="invite"
+                        />
+                      </div>
+                      <div
+                        className={cn(
+                          "flex flex-col gap-2",
+                          zonePickerCentered && "items-center",
+                        )}
+                      >
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="text-sm text-muted-foreground"
+                          onClick={() => {
+                            onFormChange({ active_geo_zone_id: "" });
+                            setLocationPhase("pick_country");
+                          }}
+                        >
+                          Change country
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className={cn(
+                            "w-full",
+                            zonePickerCentered && "max-w-sm",
+                          )}
+                          disabled={!formData.active_geo_zone_id?.trim()}
+                          onClick={() => setLocationPhase("complete")}
+                        >
+                          Continue
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Step 1: Name */}
+          {locationStepComplete && (
           <div className="space-y-2">
             <Label htmlFor="full_name">
               {currentType === "business" ? "Company name" : "Full name"}
@@ -530,7 +772,7 @@ export function InvitationTypeSection({
               value={formData.full_name}
               onChange={(e) => onFormChange({ full_name: e.target.value })}
               required
-              className="bg-background"
+              className="invite-form-control bg-white text-foreground border-input"
             />
             {step < 2 && (
               <Button
@@ -544,9 +786,10 @@ export function InvitationTypeSection({
               </Button>
             )}
           </div>
+          )}
 
           {/* Step 2: Email */}
-          {step >= 2 && (
+          {locationStepComplete && step >= 2 && (
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -556,7 +799,7 @@ export function InvitationTypeSection({
                 value={formData.email}
                 onChange={(e) => onFormChange({ email: e.target.value })}
                 required
-                className="bg-background"
+                className="invite-form-control bg-white text-foreground border-input"
               />
               {step < 3 && (
                 <Button
@@ -573,7 +816,7 @@ export function InvitationTypeSection({
           )}
 
           {/* Step 3: Password */}
-          {step >= 3 && (
+          {locationStepComplete && step >= 3 && (
             <>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
@@ -585,7 +828,7 @@ export function InvitationTypeSection({
                   onChange={(e) => onFormChange({ password: e.target.value })}
                   required
                   minLength={6}
-                  className="bg-background"
+                  className="invite-form-control bg-white text-foreground border-input"
                 />
               </div>
               <div className="space-y-2">
@@ -598,17 +841,19 @@ export function InvitationTypeSection({
                   onChange={(e) => onFormChange({ password_confirm: e.target.value })}
                   required
                   minLength={6}
-                  className="bg-background"
+                  className="invite-form-control bg-white text-foreground border-input"
                 />
                 {confirmError && (
                   <p className="text-sm text-destructive">{confirmError}</p>
                 )}
               </div>
-              {!isProducerOnly && (
+              {!isProducerOnly && !zoneChosenInLocationStep && (
                 <InviteWineZoneField
                   value={formData.active_geo_zone_id ?? ""}
-                  onValueChange={(v) => onFormChange({ active_geo_zone_id: v })}
+                  onValueChange={handleWineZoneChange}
                   className="pt-1"
+                  variant="invite"
+                  {...wineZoneFieldProps}
                 />
               )}
               {showContinueOn3 && (
@@ -638,7 +883,7 @@ export function InvitationTypeSection({
           )}
 
           {/* Step 4: Producer name, country, region */}
-          {isProducerOnly && step >= 4 && (
+          {locationStepComplete && isProducerOnly && step >= 4 && (
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="producer_name">Producer / winery name *</Label>
@@ -648,7 +893,7 @@ export function InvitationTypeSection({
                   placeholder="Your winery name"
                   value={formData.producer_name ?? ""}
                   onChange={(e) => onFormChange({ producer_name: e.target.value })}
-                  className="bg-background"
+                  className="invite-form-control bg-white text-foreground border-input"
                 />
               </div>
               <div className="space-y-2">
@@ -659,12 +904,16 @@ export function InvitationTypeSection({
                     onFormChange({ producer_country_code: v, producer_region: "" })
                   }
                 >
-                  <SelectTrigger id="producer_country" className="bg-background">
+                  <SelectTrigger id="producer_country" className="invite-form-control w-full bg-white text-foreground border-input">
                     <SelectValue placeholder="Select country" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="invite-select-content">
                     {countries.map((c) => (
-                      <SelectItem key={c.code} value={c.code}>
+                      <SelectItem
+                        key={c.code}
+                        value={c.code}
+                        className="text-slate-900 dark:text-slate-900 data-[highlighted]:bg-slate-100 data-[highlighted]:text-slate-900 dark:data-[highlighted]:bg-slate-100 dark:data-[highlighted]:text-slate-900"
+                      >
                         {c.name}
                       </SelectItem>
                     ))}
@@ -677,12 +926,16 @@ export function InvitationTypeSection({
                   value={formData.producer_region ?? undefined}
                   onValueChange={(v) => onFormChange({ producer_region: v })}
                 >
-                  <SelectTrigger id="producer_region" className="bg-background">
+                  <SelectTrigger id="producer_region" className="invite-form-control w-full bg-white text-foreground border-input">
                     <SelectValue placeholder="Select region" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="invite-select-content">
                     {regions.map((r) => (
-                      <SelectItem key={r.value} value={r.value}>
+                      <SelectItem
+                        key={r.value}
+                        value={r.value}
+                        className="text-slate-900 dark:text-slate-900 data-[highlighted]:bg-slate-100 data-[highlighted]:text-slate-900 dark:data-[highlighted]:bg-slate-100 dark:data-[highlighted]:text-slate-900"
+                      >
                         {r.label}
                       </SelectItem>
                     ))}
@@ -704,12 +957,14 @@ export function InvitationTypeSection({
           )}
 
           {/* Step 5: Address */}
-          {isProducerOnly && step >= 5 && (
+          {locationStepComplete && isProducerOnly && step >= 5 && (
             <div className="space-y-4">
               <InviteWineZoneField
                 id="invite-wine-zone-producer"
                 value={formData.active_geo_zone_id ?? ""}
-                onValueChange={(v) => onFormChange({ active_geo_zone_id: v })}
+                onValueChange={handleWineZoneChange}
+                variant="invite"
+                {...wineZoneFieldProps}
               />
               <div className="space-y-2">
                 <Label htmlFor="address_street">Street address</Label>
@@ -719,7 +974,7 @@ export function InvitationTypeSection({
                   placeholder="Street and number"
                   value={formData.address_street ?? ""}
                   onChange={(e) => onFormChange({ address_street: e.target.value })}
-                  className="bg-background"
+                  className="invite-form-control bg-white text-foreground border-input"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -731,7 +986,7 @@ export function InvitationTypeSection({
                     placeholder="City"
                     value={formData.address_city ?? ""}
                     onChange={(e) => onFormChange({ address_city: e.target.value })}
-                    className="bg-background"
+                    className="invite-form-control bg-white text-foreground border-input"
                   />
                 </div>
                 <div className="space-y-2">
@@ -742,7 +997,7 @@ export function InvitationTypeSection({
                     placeholder="Postcode"
                     value={formData.address_postcode ?? ""}
                     onChange={(e) => onFormChange({ address_postcode: e.target.value })}
-                    className="bg-background"
+                    className="invite-form-control bg-white text-foreground border-input"
                   />
                 </div>
               </div>

@@ -15,33 +15,23 @@ import { CompleteOrderRail } from "@/components/cart/complete-order-rail";
 import { useUserRole } from "@/lib/hooks/use-user-role";
 import { usePortalAccess } from "@/lib/hooks/use-portal-access";
 import { useAdminStatus } from "@/lib/hooks/use-admin-status";
-import { HeaderShoppingContext } from "@/components/market/header-shopping-context";
-
-export const navItems: NavItem[] = [
-  {
-    label: "home",
-    href: "/",
-  },
-  {
-    label: "shop all",
-    href: "/shop",
-  },
-  {
-    label: "hitta vin",
-    href: "/wine-search",
-  },
-];
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 interface HeaderProps {
   collections: Collection[];
+  isDirtywineSite: boolean;
 }
 
-export function Header({ collections }: HeaderProps) {
+export function Header({ collections, isDirtywineSite }: HeaderProps) {
+  const { t } = useTranslations();
   const pathname = usePathname();
+  const navItems: NavItem[] = [
+    { label: t("nav.home"), href: "/" },
+    { label: t("nav.shopAll"), href: "/shop" },
+  ];
   const { role } = useUserRole();
   const { showPortalToggle, isB2BOnly, loading } = usePortalAccess();
   const { isAdmin } = useAdminStatus();
-
   // B2B-only users: redirect from pactwines.com to dirtywine.se
   useEffect(() => {
     if (loading || !isB2BOnly || typeof window === "undefined") return;
@@ -55,7 +45,10 @@ export function Header({ collections }: HeaderProps) {
   return (
     <header className="grid fixed top-0 left-0 z-50 grid-cols-3 items-start w-full p-sides md:grid-cols-12 md:gap-sides">
       <div className="block flex-none md:hidden">
-        <MobileMenu collections={collections} />
+        <MobileMenu
+          collections={collections}
+          isDirtywineSite={isDirtywineSite}
+        />
       </div>
       <Link
         href="/"
@@ -99,7 +92,7 @@ export function Header({ collections }: HeaderProps) {
                   )}
                   prefetch
                 >
-                  producer
+                  {t("nav.producer")}
                 </Link>
               </li>
             )}
@@ -115,7 +108,7 @@ export function Header({ collections }: HeaderProps) {
                   )}
                   prefetch
                 >
-                  admin
+                  {t("nav.admin")}
                 </Link>
               </li>
             )}
@@ -124,7 +117,6 @@ export function Header({ collections }: HeaderProps) {
             <PortalToggle showPortalToggle={true} className="shrink-0 ml-2" />
           )}
         </div>
-        <HeaderShoppingContext className="mr-1" />
         <ProfileIcon className="hidden md:block" />
         <CartModal />
       </nav>

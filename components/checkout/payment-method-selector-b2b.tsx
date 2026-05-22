@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CreditCard, FileText, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useShoppingContext } from "@/lib/context/shopping-context-provider";
 
 export type PaymentMethodType = "card" | "invoice";
 
@@ -22,10 +23,11 @@ export function PaymentMethodSelectorB2B({
   hasWarehouseItems,
   hasProducerItems,
 }: PaymentMethodSelectorB2BProps) {
+  const { t } = useShoppingContext();
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Payment Method</h3>
+        <h3 className="text-lg font-semibold">{t("checkout.paymentMethod")}</h3>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -51,13 +53,13 @@ export function PaymentMethodSelectorB2B({
                     "font-medium",
                     selectedMethod === "card" ? "text-white" : "text-gray-900"
                   )}>
-                    Card Payment
+                    {t("checkout.cardPayment")}
                   </p>
                   <p className={cn(
                     "text-sm",
                     selectedMethod === "card" ? "text-white/80" : "text-gray-600"
                   )}>
-                    Pay immediately
+                    {t("checkout.payImmediately")}
                   </p>
                 </div>
               </div>
@@ -95,15 +97,15 @@ export function PaymentMethodSelectorB2B({
                     "font-medium",
                     selectedMethod === "invoice" ? "text-white" : "text-gray-900"
                   )}>
-                    Invoice
+                    {t("checkout.invoiceLabel")}
                   </p>
                   <p className={cn(
                     "text-sm",
                     selectedMethod === "invoice" ? "text-white/80" : "text-gray-600"
                   )}>
-                    {hasWarehouseItems 
-                      ? "Pay within 30 days" 
-                      : "Only for warehouse orders"}
+                    {hasWarehouseItems
+                      ? t("checkout.payWithin30Days")
+                      : t("checkout.invoiceProducerOnly")}
                   </p>
                 </div>
               </div>
@@ -118,18 +120,14 @@ export function PaymentMethodSelectorB2B({
       {hasWarehouseItems && hasProducerItems && (
         <div className="text-sm text-muted-foreground bg-blue-50 p-3 rounded-lg">
           <p>
-            <strong>Note:</strong> Invoice payment is only available for warehouse orders. 
-            Producer orders will be charged when the pallet is complete.
+            {t("checkout.b2bNoteMixed")}
           </p>
         </div>
       )}
 
       {!hasWarehouseItems && hasProducerItems && (
         <div className="text-sm text-muted-foreground bg-blue-50 p-3 rounded-lg">
-          <p>
-            <strong>Reservation Checkout:</strong> No payment will be charged now. 
-            We only charge when the matching pallet is triggered.
-          </p>
+          <p>{t("checkout.b2bNoteReservation")}</p>
         </div>
       )}
     </div>

@@ -16,7 +16,11 @@ export async function GET(
     let value: string | null;
     if (key === "header_logo" || key === "footer_logo" || key === "alternative_logo") {
       const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? null;
-      const resolvedKey = resolveLogoKeyByHost(key, host);
+      const resolvedKey = resolveLogoKeyByHost(
+        key,
+        host,
+        request.nextUrl.searchParams,
+      );
       value = await getSiteContentByKey(resolvedKey);
       if (value == null || value === "") {
         value = await getSiteContentByKey(key);

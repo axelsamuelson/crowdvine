@@ -3,6 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
+import {
+  ACTIVE_ZONE_CHANGED_EVENT,
+  activeZoneFromChangedEvent,
+  dispatchActiveZoneChanged,
+} from "@/lib/events/active-zone-changed";
 import type { ResolvedActiveGeoZone } from "@/lib/market/resolve-active-geo-zone";
 import { parseResolvedActiveZoneFromApi } from "@/lib/market/parse-active-zone-response";
 
@@ -45,6 +50,23 @@ export function useWineZoneSwitcher(options: UseWineZoneSwitcherOptions = {}) {
   const [eligibleZones, setEligibleZones] = useState<EligibleGeoZoneRow[]>([]);
   const [patchingId, setPatchingId] = useState<string | null>(null);
   const patchingRef = useRef(false);
+  const [zoneEventNonce, setZoneEventNonce] = useState(0);
+
+  useEffect(() => {
+    const onZoneChange = (event: Event) => {
+      const fromEvent = activeZoneFromChangedEvent(event);
+      if (fromEvent) {
+        setActiveZone(fromEvent);
+        setSignedIn(true);
+        setLoading(false);
+        return;
+      }
+      setZoneEventNonce((n) => n + 1);
+    };
+    window.addEventListener(ACTIVE_ZONE_CHANGED_EVENT, onZoneChange);
+    return () =>
+      window.removeEventListener(ACTIVE_ZONE_CHANGED_EVENT, onZoneChange);
+  }, []);
 
   useEffect(() => {
     const ac = new AbortController();
@@ -117,7 +139,7 @@ export function useWineZoneSwitcher(options: UseWineZoneSwitcherOptions = {}) {
     })();
 
     return () => ac.abort();
-  }, [refreshNonce, includeEligibleZones, pathname]);
+  }, [refreshNonce, zoneEventNonce, includeEligibleZones, pathname]);
 
   const selectZone = useCallback(
     async (zoneId: string, successMessage = "Wine zone updated.") => {
@@ -146,7 +168,11 @@ export function useWineZoneSwitcher(options: UseWineZoneSwitcherOptions = {}) {
           setActiveZone(normalized);
         }
         toast.success(successMessage);
-        router.refresh();
+        dispatchActiveZoneChanged(
+          normalized ? { activeZone: normalized } : undefined,
+        );
+        // Defer RSC refresh so in-flight client fetches (shopping context) are not aborted.
+        window.setTimeout(() => router.refresh(), 150);
         return true;
       } catch {
         toast.error("Could not update wine zone.");

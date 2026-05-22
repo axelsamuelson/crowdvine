@@ -6,6 +6,8 @@ interface ShopLinksProps {
   collections: Collection[];
   align?: "left" | "right";
   label?: string;
+  /** Shown when no producer collections are available. */
+  emptyMessage?: string;
   className?: string;
   onLinkClick?: () => void;
 }
@@ -13,23 +15,14 @@ interface ShopLinksProps {
 export function ShopLinks({
   collections,
   label = "Shop",
+  emptyMessage,
   align = "left",
   className,
   onLinkClick,
 }: ShopLinksProps) {
-  // Debug: Log collections data
-  console.log("🔍 ShopLinks:", {
-    label,
-    collectionsLength: collections?.length || 0,
-    collections: collections?.slice(0, 3), // Show first 3
-  });
-
-  // Filter out wine-boxes
   const filteredCollections =
     collections?.filter((collection) => collection.handle !== "wine-boxes") ||
     [];
-
-  console.log("✅ Filtered collections:", filteredCollections.length);
 
   return (
     <div
@@ -38,10 +31,8 @@ export function ShopLinks({
       <h4 className="text-lg font-extrabold md:text-xl">{label}</h4>
 
       {/* Debug info */}
-      {filteredCollections.length === 0 && (
-        <p className="text-sm text-gray-500 mt-2">
-          No producers found ({collections?.length || 0} total collections)
-        </p>
+      {filteredCollections.length === 0 && emptyMessage && (
+        <p className="text-sm text-gray-500 mt-2">{emptyMessage}</p>
       )}
 
       <ul className="flex flex-col gap-1.5 leading-5 mt-5">

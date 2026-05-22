@@ -15,6 +15,7 @@ import {
   ArrowRight,
   Plus,
   CheckCircle,
+  Globe2,
 } from "lucide-react";
 
 export default async function AdminDashboard() {
@@ -25,6 +26,7 @@ export default async function AdminDashboard() {
     { count: winesCount },
     { count: bookingsCount },
     { count: zonesCount },
+    { count: geoZonesCount },
     { count: palletsCount },
     { data: recentBookings },
     { data: recentPallets },
@@ -33,6 +35,7 @@ export default async function AdminDashboard() {
     sb.from("wines").select("*", { count: "exact", head: true }),
     sb.from("bookings").select("*", { count: "exact", head: true }),
     sb.from("pallet_zones").select("*", { count: "exact", head: true }),
+    sb.from("geo_zones").select("*", { count: "exact", head: true }),
     sb.from("pallets").select("*", { count: "exact", head: true }),
     sb
       .from("bookings")
@@ -64,8 +67,9 @@ export default async function AdminDashboard() {
     { label: "Producers", value: String(producersCount ?? 0), icon: Users },
     { label: "Wines", value: String(winesCount ?? 0), icon: Wine },
     { label: "Bookings", value: String(bookingsCount ?? 0), icon: Calendar },
-    { label: "Zones", value: String(zonesCount ?? 0), icon: MapPin },
-    { label: "Pallets", value: String(palletsCount ?? 0), icon: Package },
+    { label: "Pallzoner", value: String(zonesCount ?? 0), icon: MapPin },
+    { label: "Vinzoner", value: String(geoZonesCount ?? 0), icon: Globe2 },
+    { label: "Pallar", value: String(palletsCount ?? 0), icon: Package },
   ];
 
   return (

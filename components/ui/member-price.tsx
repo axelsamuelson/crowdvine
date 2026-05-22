@@ -1,19 +1,13 @@
 "use client";
 
 import { useMembership } from "@/lib/context/membership-context";
-import { formatPrice, priceExclVat } from "@/lib/shopify/utils";
+import { priceExclVat } from "@/lib/shopify/utils";
+import { useFormatPrice } from "@/lib/hooks/use-format-price";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
+import { useMembershipDiscountPercent } from "@/lib/hooks/use-membership-discount-percent";
 import { calculateB2BPriceWithDiscount } from "@/lib/price-breakdown";
-
-/** Display names for membership tier (aligned with level-badge / points-engine). */
-const MEMBERSHIP_LEVEL_NAMES: Record<string, string> = {
-  basic: "Basic",
-  brons: "Plus",
-  silver: "Premium",
-  guld: "Priority",
-  privilege: "Privilege",
-  admin: "Admin",
-};
+import { useTranslations } from "@/lib/hooks/use-translations";
+import { membershipLevelMessageKey } from "@/lib/i18n/membership-levels";
 
 interface MemberPriceProps {
   amount: string | number;
@@ -49,13 +43,18 @@ export function MemberPrice({
   badgeRightOnMobile = false,
   vatExcludedShortLabel,
 }: MemberPriceProps) {
-  const { discountPercentage, level, loading } = useMembership();
+  const { t } = useTranslations();
+  const formatPrice = useFormatPrice();
+  const { level, loading } = useMembership();
+  const discountPercentage = useMembershipDiscountPercent();
   const isB2BMode = useB2BPriceMode();
   // Use forceShowExclVat if provided, otherwise use B2B mode
   // On B2C (pactwines.com): no VAT label under price
   // On B2B (dirtywine.se): show VAT qualifier under price
   const showExclVat = forceShowExclVat !== undefined ? forceShowExclVat : isB2BMode;
-  const vatLabel = showExclVat ? (vatExcludedShortLabel ?? "exkl. moms") : "";
+  const vatLabel = showExclVat
+    ? (vatExcludedShortLabel ?? t("common.exclVat"))
+    : "";
   const showVatLabel = showExclVat;
 
   if (loading) {
@@ -86,7 +85,9 @@ export function MemberPrice({
       );
     }
 
-    const levelName = level ? MEMBERSHIP_LEVEL_NAMES[level.toLowerCase()] ?? "" : "";
+    const levelName = level
+      ? t(membershipLevelMessageKey(level))
+      : "";
 
     // List / pre-discount price for strikethrough: always the storefront list amount on B2C.
     // (calculatedTotalPrice is already the member price; priceExclVatOverride is not the list inkl. moms.)
@@ -132,7 +133,10 @@ export function MemberPrice({
                 : "mt-0.5 block w-full rounded-md bg-black px-2 py-0.5 text-[10px] font-medium text-white"
           }
         >
-          {levelName} -{discountPercentage}%
+          {t("shop.membershipDiscount", {
+            level: levelName,
+            percent: discountPercentage,
+          })}
         </span>
       ) : null;
 
@@ -184,7 +188,9 @@ export function MemberPrice({
     );
   }
 
-  const levelName = level ? MEMBERSHIP_LEVEL_NAMES[level.toLowerCase()] ?? "" : "";
+  const levelName = level
+    ? t(membershipLevelMessageKey(level))
+    : "";
 
   const priceBlock = (
     <div className="flex flex-col md:flex-row md:items-baseline md:gap-2 gap-0.5">
@@ -221,7 +227,10 @@ export function MemberPrice({
               : "mt-0.5 block w-full rounded-md bg-black px-2 py-0.5 text-[10px] font-medium text-white"
         }
       >
-        {levelName} -{discountPercentage}%
+        {t("shop.membershipDiscount", {
+          level: levelName,
+          percent: discountPercentage,
+        })}
       </span>
     ) : null;
 

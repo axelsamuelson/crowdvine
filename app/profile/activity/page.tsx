@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { useShoppingContext } from "@/lib/context/shopping-context-provider";
 
 interface PactPointsEvent {
   id: string;
@@ -29,6 +30,8 @@ interface PactPointsEvent {
 type FilterType = "all" | "invites" | "orders" | "milestones";
 
 export default function ActivityPage() {
+  const { t, context: shopping } = useShoppingContext();
+  const intlLocale = shopping.intlLocale;
   const [events, setEvents] = useState<PactPointsEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>("all");
@@ -82,28 +85,28 @@ export default function ActivityPage() {
     switch (event.event_type) {
       case "own_order":
         return typeof event.bottle_count === "number"
-          ? `Order (${event.bottle_count} bottles)`
-          : "Order";
+          ? t("profile.eventOrder", { count: String(event.bottle_count) })
+          : t("profile.eventOrderShort");
       case "welcome_bonus":
-        return "Welcome bonus";
+        return t("profile.eventWelcomeBonus");
       case "invite_friend_first_order":
-        return "Friend's first order";
+        return t("profile.eventFriendFirstOrder");
       case "review_after_delivery":
-        return "Review submitted";
+        return t("profile.eventReview");
       case "zone_set":
-        return "Set delivery zone";
+        return t("profile.eventZoneSet");
       case "redemption":
-        return "Used at checkout";
+        return t("profile.eventRedemption");
       case "expiration":
-        return "Points expired";
+        return t("profile.eventExpiration");
       case "migration_from_ip":
-        return "Migrated from Impact Points";
+        return t("profile.eventMigratedIp");
       case "migration_from_voucher":
-        return "Migrated from voucher";
+        return t("profile.eventMigratedVoucher");
       case "manual_adjustment":
-        return "Adjustment";
+        return t("profile.eventAdjustment");
       case "founding_member_grant":
-        return "Founding Member welcome";
+        return t("profile.eventFoundingGrant");
       default:
         return event.event_type.replace(/_/g, " ");
     }
@@ -116,15 +119,24 @@ export default function ActivityPage() {
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffHours / 24);
 
-    if (diffHours < 1) return "Just now";
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString("en-US", {
+    if (diffHours < 1) return t("profile.justNow");
+    if (diffHours < 24) return t("profile.hoursAgo", { hours: String(diffHours) });
+    if (diffDays < 7) return t("profile.daysAgo", { days: String(diffDays) });
+    return date.toLocaleDateString(intlLocale, {
       month: "short",
       day: "numeric",
       year: "numeric",
     });
   };
+
+  const filterLabel =
+    filter === "invites"
+      ? t("profile.invitesFilter")
+      : filter === "orders"
+        ? t("profile.ordersFilter")
+        : filter === "milestones"
+          ? t("profile.milestonesFilter")
+          : "";
 
   return (
     <PageLayout>
@@ -135,16 +147,14 @@ export default function ActivityPage() {
             <Link href="/profile">
               <Button variant="ghost" size="sm" className="mb-4 -ml-2">
                 <ChevronLeft className="w-4 h-4 mr-1" />
-                Back to Profile
+                {t("profile.backToProfile")}
               </Button>
             </Link>
 
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              PACT Points Activity
+              {t("profile.activityTitle")}
             </h1>
-            <p className="text-gray-600">
-              Track your journey and see how you've earned PACT Points
-            </p>
+            <p className="text-gray-600">{t("profile.activitySubtitle")}</p>
           </div>
 
           {/* Filters */}
@@ -152,7 +162,7 @@ export default function ActivityPage() {
             <div className="flex items-center gap-2 flex-wrap">
               <Filter className="w-4 h-4 text-gray-500" />
               <span className="text-sm font-medium text-gray-700 mr-2">
-                Filter:
+                {t("profile.filter")}
               </span>
 
               <Button
@@ -161,7 +171,7 @@ export default function ActivityPage() {
                 onClick={() => setFilter("all")}
                 className="rounded-full"
               >
-                All Events
+                {t("profile.allEvents")}
               </Button>
 
               <Button
@@ -171,7 +181,7 @@ export default function ActivityPage() {
                 className="rounded-full"
               >
                 <UserPlus className="w-3 h-3 mr-1" />
-                Invites
+                {t("profile.invitesFilter")}
               </Button>
 
               <Button
@@ -181,7 +191,7 @@ export default function ActivityPage() {
                 className="rounded-full"
               >
                 <Package className="w-3 h-3 mr-1" />
-                Orders
+                {t("profile.ordersFilter")}
               </Button>
 
               <Button
@@ -191,7 +201,7 @@ export default function ActivityPage() {
                 className="rounded-full"
               >
                 <TrendingUp className="w-3 h-3 mr-1" />
-                Milestones
+                {t("profile.milestonesFilter")}
               </Button>
             </div>
           </div>
@@ -205,16 +215,16 @@ export default function ActivityPage() {
             <div className="bg-white rounded-xl border border-gray-200/50 shadow-sm p-12 text-center">
               <Award className="w-12 h-12 text-gray-300 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                No Activity Yet
+                {t("profile.noActivityTitle")}
               </h3>
               <p className="text-gray-600 mb-6">
                 {filter === "all"
-                  ? "Start earning PACT Points by ordering, inviting friends, or setting your delivery zone."
-                  : `No ${filter} events yet. Try a different filter.`}
+                  ? t("profile.noActivityAll")
+                  : t("profile.noActivityFilter", { filter: filterLabel })}
               </p>
               {filter !== "all" && (
                 <Button onClick={() => setFilter("all")} variant="outline">
-                  Show All Events
+                  {t("profile.showAllEvents")}
                 </Button>
               )}
             </div>
@@ -286,8 +296,14 @@ export default function ActivityPage() {
             <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-100">
               <p className="text-sm text-blue-800 text-center">
                 <strong>{filteredEvents.length}</strong>{" "}
-                {filteredEvents.length === 1 ? "event" : "events"} displayed
-                {filter !== "all" && " (filtered)"}
+                {filteredEvents.length === 1
+                  ? t("profile.eventDisplayed", {
+                      count: String(filteredEvents.length),
+                    })
+                  : t("profile.eventsDisplayed", {
+                      count: String(filteredEvents.length),
+                    })}
+                {filter !== "all" ? ` ${t("profile.filtered")}` : ""}
               </p>
             </div>
           )}

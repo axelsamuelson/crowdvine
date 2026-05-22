@@ -9,6 +9,7 @@ import { useQueryState, parseAsArrayOf, parseAsString } from "nuqs";
 import { ProductGrid } from "./product-grid";
 import { Card } from "../../../components/ui/card";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 interface ProductListContentProps {
   products: Product[];
@@ -144,6 +145,7 @@ export function ProductListContent({
   wineSourceSlugs = {},
   searchQuery = "",
 }: ProductListContentProps & { collectionHandle?: string }) {
+  const { t } = useTranslations();
   const { setProducts, setOriginalProducts, setAvailableSourceSlugs } = useProducts();
   const lastSearchTracked = useRef<string | null>(null);
 
@@ -288,7 +290,7 @@ export function ProductListContent({
       ) : (
         <Card className="flex mr-sides flex-1 items-center justify-center">
           <p className="text text-muted-foreground font-medium">
-            No products found
+            {t("shop.noProductsFound")}
           </p>
         </Card>
       )}

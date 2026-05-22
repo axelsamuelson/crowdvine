@@ -8,6 +8,8 @@ import { useAvailableColors } from "../hooks/use-available-colors";
 import { useColorFilterCount } from "../hooks/use-filter-count";
 import { AnimatePresence, motion } from "motion/react";
 import { useState, useEffect } from "react";
+import { useTranslations } from "@/lib/hooks/use-translations";
+import { formatWineColorDisplay } from "@/lib/i18n/wine-color-labels";
 
 interface ColorFilterProps {
   products?: Product[];
@@ -15,6 +17,7 @@ interface ColorFilterProps {
 }
 
 export function ColorFilter({ products = [], className }: ColorFilterProps) {
+  const { t } = useTranslations();
   const { availableColors, selectedColors, toggleColor } =
     useAvailableColors(products);
   const colorCount = useColorFilterCount();
@@ -33,7 +36,7 @@ export function ColorFilter({ products = [], className }: ColorFilterProps) {
     return (
       <div className={cn("px-2.5 py-2 rounded-md bg-muted", className)}>
         <h3 className="mb-2 font-semibold text-sm">
-          Color{" "}
+          {t("shop.color")}{" "}
           {colorCount > 0 && (
             <span className="text-foreground/50">({colorCount})</span>
           )}
@@ -55,7 +58,7 @@ export function ColorFilter({ products = [], className }: ColorFilterProps) {
           className={cn("px-2.5 py-2 rounded-md bg-muted", className)}
         >
           <h3 className="mb-2 font-semibold text-sm">
-            Color{" "}
+            {t("shop.color")}{" "}
             {colorCount > 0 && (
               <span className="text-foreground/50">({colorCount})</span>
             )}
@@ -67,6 +70,10 @@ export function ColorFilter({ products = [], className }: ColorFilterProps) {
               colors={availableColors}
               selectedColors={selectedColors}
               onColorChange={toggleColor}
+              formatDisplayName={(c) => formatWineColorDisplay(t, c)}
+              selectColorAria={(name) =>
+                t("shop.selectColorAria", { name })
+              }
             />
           )}
         </motion.div>

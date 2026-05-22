@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { LOCALE_COOKIE } from "@/lib/i18n/locale";
 import { getCurrentUser } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { stripe } from "@/lib/stripe";
@@ -22,6 +24,11 @@ import {
   resolveMarketForCountry,
 } from "@/lib/market/resolve-market";
 import { resolveActiveGeoZoneForUser } from "@/lib/market/resolve-active-geo-zone";
+import {
+  resolveShoppingContext,
+  stripeCurrencyFromContext,
+} from "@/lib/shopping-context/resolve";
+import { getSekToDisplayRate } from "@/lib/shopping-context/display-currency";
 import {
   isZoneDeliveryCompleteForActiveGeo,
   userZoneRowToDeliveryLines,
@@ -79,6 +86,16 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const cookieStore = await cookies();
+    const shoppingCtx = await resolveShoppingContext({
+      userId: user.id,
+      host: request.headers.get("host"),
+      cookieLocale: cookieStore.get(LOCALE_COOKIE)?.value ?? null,
+      acceptLanguage: request.headers.get("accept-language"),
+    });
+    const stripeCurrency = stripeCurrencyFromContext(shoppingCtx);
+    const sekToDisplayRate = await getSekToDisplayRate(shoppingCtx.currencyCode);
 
     if (!stripe) {
       console.error("[payment-intent] Stripe not configured");
@@ -281,11 +298,15 @@ export async function POST(request: Request) {
       usConditional,
     });
 
-    const zones = await determineZones(cart.lines as never, {
-      postcode: postal,
-      city,
-      countryCode,
-    });
+    const zones = await determineZones(
+      cart.lines as never,
+      {
+        postcode: postal,
+        city,
+        countryCode,
+      },
+      { preferredDeliveryZoneId: active.defaultDeliveryZoneId },
+    );
 
     if (zones.noDeliveryZone?.error === "UNSUPPORTED_COUNTRY") {
       return NextResponse.json(
@@ -369,7 +390,9 @@ export async function POST(request: Request) {
     );
 
     const finalAmountSek = Math.max(0, cart_total_sek - alloc.sekDiscount);
-    const amountInOre = Math.round(finalAmountSek * 100);
+    const displayMultiplier =
+      stripeCurrency === "sek" ? 1 : sekToDisplayRate;
+    const amountInOre = Math.round(finalAmountSek * displayMultiplier * 100);
 
     if (amountInOre <= 0) {
       return NextResponse.json(
@@ -466,7 +489,7 @@ export async function POST(request: Request) {
     const intent = await stripe.paymentIntents.create({
       customer: customerId,
       amount: amountInOre,
-      currency: "sek",
+      currency: stripeCurrency,
       automatic_payment_methods: { enabled: true },
       capture_method: "automatic",
       metadata: {

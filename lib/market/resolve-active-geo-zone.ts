@@ -5,6 +5,7 @@ import {
   resolveGeoZone,
 } from "@/lib/market/resolve-geo-zone";
 import { resolveMarketForCountry } from "@/lib/market/resolve-market";
+import { resolveDisplayCurrencyCode } from "@/lib/shopping-context/currency-policy";
 
 export type ActiveGeoZoneSource = "preference" | "profile" | "default";
 
@@ -18,6 +19,8 @@ export type ResolvedActiveGeoZone = {
   zoneType: string;
   eligibilityStatus: string;
   currencyCode: string;
+  /** Linked pallet_zones delivery row (same name as displayName). */
+  defaultDeliveryZoneId: string | null;
   source: ActiveGeoZoneSource;
   canStartCampaign: boolean;
   canReserveConditionally: boolean;
@@ -47,6 +50,10 @@ function dbRowToActive(
       ? null
       : String(row.city).trim();
 
+  const ddz = row.default_delivery_zone_id;
+  const defaultDeliveryZoneId =
+    typeof ddz === "string" && ddz.trim() ? ddz.trim() : null;
+
   return {
     geoZoneId: String(row.id),
     marketCode: mc,
@@ -56,7 +63,12 @@ function dbRowToActive(
     displayName: resolved.displayName,
     zoneType: resolved.zoneType,
     eligibilityStatus: resolved.eligibilityStatus,
-    currencyCode: resolved.currencyCode?.trim() || "SEK",
+    currencyCode: resolveDisplayCurrencyCode({
+      zoneCurrencyCode: resolved.currencyCode,
+      countryCode: cc.length === 2 ? cc : "SE",
+      marketCode: mc,
+    }),
+    defaultDeliveryZoneId,
     source,
     canStartCampaign: resolved.canStartCampaign,
     canReserveConditionally: resolved.canReserveConditionally,
@@ -85,30 +97,17 @@ export async function resolveDefaultGeoZone(): Promise<ResolvedActiveGeoZone> {
     return dbRowToActive(cityHit as Record<string, unknown>, "default");
   }
 
-  const { data: countryRows } = await sb
-    .from("geo_zones")
-    .select("*")
-    .eq("market_code", "EU")
-    .eq("country_code", "SE")
-    .eq("zone_type", "country")
-    .eq("is_active", true)
-    .limit(1);
-
-  const c0 = countryRows?.[0];
-  if (c0 && typeof (c0 as { id?: unknown }).id === "string") {
-    return dbRowToActive(c0 as Record<string, unknown>, "default");
-  }
-
   return {
     geoZoneId: null,
     marketCode: "EU",
     countryCode: "SE",
     regionCode: null,
-    city: null,
+    city: "Stockholm",
     displayName: "Stockholm, Sweden",
     zoneType: "city",
     eligibilityStatus: "normal_checkout",
     currencyCode: "SEK",
+    defaultDeliveryZoneId: null,
     source: "default",
     canStartCampaign: true,
     canReserveConditionally: false,
@@ -154,7 +153,10 @@ export async function resolveActiveGeoZoneForUser(
         const isActive = Boolean(row.is_active);
         const elig = String(row.eligibility_status ?? "").toLowerCase();
         if (isActive && elig !== "disabled") {
-          return dbRowToActive(row, "preference");
+          const prefCity = String(row.city ?? "").trim();
+          if (prefCity) {
+            return dbRowToActive(row, "preference");
+          }
         }
       }
     }
@@ -226,7 +228,12 @@ export async function resolveActiveGeoZoneForUser(
       displayName: geo.displayName,
       zoneType: geo.zoneType,
       eligibilityStatus: geo.eligibilityStatus,
-      currencyCode: geo.currencyCode?.trim() || resolvedMarket.currencyCode || "SEK",
+      currencyCode: resolveDisplayCurrencyCode({
+        zoneCurrencyCode: geo.currencyCode,
+        marketCurrencyCode: resolvedMarket.currencyCode,
+        countryCode: resolvedMarket.countryCode,
+        marketCode: resolvedMarket.marketCode,
+      }),
       source: "profile",
       canStartCampaign: geo.canStartCampaign,
       canReserveConditionally: geo.canReserveConditionally,

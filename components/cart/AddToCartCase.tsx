@@ -31,6 +31,7 @@ import { CasePurchaseHelpTrigger } from "./case-purchase-help-trigger";
 import { MixedCaseWineGallery } from "./mixed-case-wine-gallery";
 import { WineSpecsList } from "@/components/product/wine-specs-list";
 import Prose from "@/components/prose";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 type PurchaseMode = "same" | "mixed";
 
@@ -118,6 +119,7 @@ function MixedCaseQuantityStepper({
   /** Tighter block for wine detail footer (less vertical space). */
   compact?: boolean;
 }) {
+  const { t } = useTranslations();
   return (
     <div
       className={cn(
@@ -136,7 +138,7 @@ function MixedCaseQuantityStepper({
           compact ? "px-2.5 py-1.5" : "px-3 py-2.5",
           quantity <= 0 ? "cursor-not-allowed opacity-40" : "",
         )}
-        aria-label="Decrease"
+        aria-label={t("cart.quantityDecrease")}
       >
         <Minus className={cn("text-white", compact ? "size-3.5" : "h-4 w-4")} />
       </button>
@@ -164,7 +166,7 @@ function MixedCaseQuantityStepper({
           compact ? "px-2.5 py-1.5" : "px-3 py-2.5",
           blockPlus ? "cursor-not-allowed opacity-40" : "",
         )}
-        aria-label="Increase"
+        aria-label={t("cart.quantityIncrease")}
       >
         <Plus className={cn("text-white", compact ? "size-3.5" : "h-4 w-4")} />
       </button>
@@ -273,6 +275,7 @@ export function AddToCartCase({
     return <AddToCart product={product} className={className} />;
   }
 
+  const { t } = useTranslations();
   const [mode, setMode] = useState<PurchaseMode>("same");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [detailWineId, setDetailWineId] = useState<string | null>(null);
@@ -375,13 +378,13 @@ export function AddToCartCase({
         setDetailWineId(null);
       })
       .catch(() => {
-        setWinesError("Could not load wines. Please try again.");
+        setWinesError(t("cart.loadWinesError"));
         setWines([]);
         setQuantities({});
         setDetailWineId(null);
       })
       .finally(() => setLoadingWines(false));
-  }, [product.producerId]);
+  }, [product.producerId, t]);
 
   useEffect(() => {
     if (!sheetOpen) return;
@@ -453,7 +456,7 @@ export function AddToCartCase({
           setBatchAddError(
             typeof result.error === "string" && result.error.trim()
               ? result.error
-              : "Could not add mixed case. Please try again.",
+              : t("cart.addMixedCaseError"),
           );
           return;
         }
@@ -464,7 +467,7 @@ export function AddToCartCase({
         setDetailWineId(null);
         setSheetOpen(false);
       } catch {
-        setBatchAddError("Network error. Please try again.");
+        setBatchAddError(t("cart.networkError"));
       }
     });
   };
@@ -583,7 +586,7 @@ export function AddToCartCase({
                   >
                     <button
                       type="button"
-                      aria-label="Close wine details"
+                      aria-label={t("cart.closeWineDetails")}
                       className="pointer-events-auto absolute inset-0 bg-black/70"
                       onClick={() => setDetailWineId(null)}
                     />
@@ -641,7 +644,7 @@ export function AddToCartCase({
               {isBatchPending ? (
                 <Loader size="default" />
               ) : (
-                "Add mixed case"
+                t("cart.addMixedCase")
               )}
             </Button>
           </SheetFooter>
@@ -664,7 +667,9 @@ export function AddToCartCase({
         onConfirm={handleMainCta}
         disabled={!resolvedVariant || (mode === "mixed" && isBatchPending)}
         pending={mode === "same" && isSamePending}
-        label={!resolvedVariant ? "Select a variant" : "Add case"}
+        label={
+          !resolvedVariant ? t("product.selectOne") : t("shop.addCase")
+        }
       />
 
       {mixedCaseSheet}
@@ -701,6 +706,7 @@ function MixedCaseWineListPanel({
   /** Close the mixed-case sheet (list view). */
   onCloseMixedCase?: () => void;
 }) {
+  const { t } = useTranslations();
   const selectedCaseTotalCents = useMemo(
     () =>
       wines.reduce(
@@ -720,7 +726,7 @@ function MixedCaseWineListPanel({
         <p className="text-sm text-destructive">{winesError}</p>
       ) : wines.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No wines found for this producer.
+          {t("cart.noWinesForProducer")}
         </p>
       ) : (
         <ul className="space-y-4">

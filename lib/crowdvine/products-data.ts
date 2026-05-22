@@ -3,6 +3,43 @@ import { getAppUrl, getInternalFetchHeaders } from "@/lib/app-url";
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import { getAllWineBoxCalculations } from "@/lib/wine-box-calculations";
 import { calculateB2BPriceExclVat } from "@/lib/price-breakdown";
+import { convertSekForDisplay } from "@/lib/shopping-context/currency-convert";
+import {
+  getSekToDisplayRate,
+  resolveDisplayCurrency,
+} from "@/lib/shopping-context/display-currency";
+
+async function resolveProductDisplayCurrency(params?: {
+  displayCurrencyCode?: string;
+  sekToDisplayRate?: number;
+}): Promise<{ displayCurrencyCode: string; sekToDisplayRate: number }> {
+  let code = params?.displayCurrencyCode?.trim().toUpperCase();
+  let rate = params?.sekToDisplayRate;
+  if (!code) {
+    try {
+      const d = await resolveDisplayCurrency();
+      code = d.currencyCode;
+      rate = d.sekToDisplayRate;
+    } catch {
+      code = "SEK";
+      rate = 1;
+    }
+  } else if (rate == null || !Number.isFinite(rate)) {
+    rate = await getSekToDisplayRate(code);
+  }
+  return { displayCurrencyCode: code || "SEK", sekToDisplayRate: rate ?? 1 };
+}
+
+function displayPriceFromSek(
+  amountSek: number,
+  displayCurrencyCode: string,
+  sekToDisplayRate: number,
+  round: "ceil" | "round" = "ceil",
+) {
+  const v = convertSekForDisplay(amountSek, displayCurrencyCode, sekToDisplayRate);
+  const n = round === "ceil" ? Math.ceil(v) : Math.round(v);
+  return { amount: n.toString(), currencyCode: displayCurrencyCode };
+}
 
 async function fetchExchangeRatesMap(
   currencies: string[],
@@ -248,11 +285,15 @@ export async function fetchProductsData(params?: {
   searchQuery?: string;
   /** When false (pactwines.com), all wines availableForSale. When true (dirtywine.se), B2B stock applies. */
   isB2BSite?: boolean;
+  displayCurrencyCode?: string;
+  sekToDisplayRate?: number;
 }): Promise<ProductData[]> {
   const limit = params?.limit ?? 200;
   const sortKey = params?.sortKey || "RELEVANCE";
   const reverse = params?.reverse ?? false;
   const isB2BSite = params?.isB2BSite ?? true;
+  const { displayCurrencyCode, sekToDisplayRate } =
+    await resolveProductDisplayCurrency(params);
 
   const sb = getSupabaseAdmin();
 
@@ -511,7 +552,11 @@ export async function fetchProductsData(params?: {
           id: `${i.id}-default`,
           title: "750 ml",
           availableForSale,
-          price: { amount: Math.ceil(i.base_price_cents / 100).toString(), currencyCode: "SEK" },
+          price: displayPriceFromSek(
+            i.base_price_cents / 100,
+            displayCurrencyCode,
+            sekToDisplayRate,
+          ),
           selectedOptions: [
             ...grapeVarieties.map((g: string) => ({ name: "Grape Varieties", value: g })),
             ...(colorName ? [{ name: "Color", value: colorName }] : []),
@@ -519,14 +564,16 @@ export async function fetchProductsData(params?: {
         },
       ],
       priceRange: {
-        minVariantPrice: {
-          amount: Math.ceil(i.base_price_cents / 100).toString(),
-          currencyCode: "SEK",
-        },
-        maxVariantPrice: {
-          amount: Math.ceil(i.base_price_cents / 100).toString(),
-          currencyCode: "SEK",
-        },
+        minVariantPrice: displayPriceFromSek(
+          i.base_price_cents / 100,
+          displayCurrencyCode,
+          sekToDisplayRate,
+        ),
+        maxVariantPrice: displayPriceFromSek(
+          i.base_price_cents / 100,
+          displayCurrencyCode,
+          sekToDisplayRate,
+        ),
       },
       featuredImage: images[0] || {
         id: `${i.id}-img`,
@@ -539,7 +586,7 @@ export async function fetchProductsData(params?: {
       seo: { title: i.wine_name, description: "" },
       tags: [...grapeVarieties, ...(colorName ? [colorName] : [])],
       availableForSale,
-      currencyCode: "SEK",
+      currencyCode: displayCurrencyCode,
       updatedAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
       b2bStock: b2bStock ?? undefined,
@@ -601,10 +648,14 @@ export async function fetchCollectionProductsData(
     searchQuery?: string;
     /** When false (pactwines.com), all wines availableForSale. When true (dirtywine.se), B2B stock applies. */
     isB2BSite?: boolean;
+    displayCurrencyCode?: string;
+    sekToDisplayRate?: number;
   },
 ): Promise<ProductData[]> {
   const limit = params?.limit ?? 200;
   const isB2BSite = params?.isB2BSite ?? true;
+  const { displayCurrencyCode, sekToDisplayRate } =
+    await resolveProductDisplayCurrency(params);
 
   if (collectionId === "wine-boxes-collection") {
     const calculations = await getAllWineBoxCalculations();
@@ -639,7 +690,12 @@ export async function fetchCollectionProductsData(
           id: `${calc.wineBoxId}-variant`,
           title: `${calc.bottleCount} Bottles`,
           availableForSale: true,
-          price: { amount: Math.round(calc.finalPrice).toString(), currencyCode: "SEK" },
+          price: displayPriceFromSek(
+            calc.finalPrice,
+            displayCurrencyCode,
+            sekToDisplayRate,
+            "round",
+          ),
           selectedOptions: [
             { name: "Size", value: `${calc.bottleCount} Bottles` },
             { name: "Discount", value: `${Math.round(calc.discountPercentage)}% off` },
@@ -647,8 +703,18 @@ export async function fetchCollectionProductsData(
         },
       ],
       priceRange: {
-        minVariantPrice: { amount: Math.round(calc.finalPrice).toString(), currencyCode: "SEK" },
-        maxVariantPrice: { amount: Math.round(calc.finalPrice).toString(), currencyCode: "SEK" },
+        minVariantPrice: displayPriceFromSek(
+          calc.finalPrice,
+          displayCurrencyCode,
+          sekToDisplayRate,
+          "round",
+        ),
+        maxVariantPrice: displayPriceFromSek(
+          calc.finalPrice,
+          displayCurrencyCode,
+          sekToDisplayRate,
+          "round",
+        ),
       },
       featuredImage: {
         id: `${calc.wineBoxId}-img`,
@@ -665,7 +731,7 @@ export async function fetchCollectionProductsData(
       seo: { title: calc.name, description: "" },
       tags: [`${calc.bottleCount}-bottles`, `${calc.discountPercentage}-discount`],
       availableForSale: true,
-      currencyCode: "SEK",
+      currencyCode: displayCurrencyCode,
       updatedAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
     })) as ProductData[];
@@ -806,7 +872,11 @@ export async function fetchCollectionProductsData(
           id: `${i.id}-default`,
           title: "750 ml",
           availableForSale,
-          price: { amount: Math.ceil(i.base_price_cents / 100).toString(), currencyCode: "SEK" },
+          price: displayPriceFromSek(
+            i.base_price_cents / 100,
+            displayCurrencyCode,
+            sekToDisplayRate,
+          ),
           selectedOptions: [
             ...grapeVarieties.map((g: string) => ({ name: "Grape Varieties", value: g })),
             ...(colorName ? [{ name: "Color", value: colorName }] : []),
@@ -814,14 +884,16 @@ export async function fetchCollectionProductsData(
         },
       ],
       priceRange: {
-        minVariantPrice: {
-          amount: Math.ceil(i.base_price_cents / 100).toString(),
-          currencyCode: "SEK",
-        },
-        maxVariantPrice: {
-          amount: Math.ceil(i.base_price_cents / 100).toString(),
-          currencyCode: "SEK",
-        },
+        minVariantPrice: displayPriceFromSek(
+          i.base_price_cents / 100,
+          displayCurrencyCode,
+          sekToDisplayRate,
+        ),
+        maxVariantPrice: displayPriceFromSek(
+          i.base_price_cents / 100,
+          displayCurrencyCode,
+          sekToDisplayRate,
+        ),
       },
       featuredImage: {
         id: `${i.id}-img`,
@@ -842,7 +914,7 @@ export async function fetchCollectionProductsData(
       seo: { title: i.wine_name, description: "" },
       tags: [...grapeVarieties, ...(colorName ? [colorName] : [])],
       availableForSale,
-      currencyCode: "SEK",
+      currencyCode: displayCurrencyCode,
       updatedAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
       b2bStock: b2bStock ?? undefined,

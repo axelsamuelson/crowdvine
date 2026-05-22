@@ -286,39 +286,57 @@ export function calculatePriceBreakdown(
   };
 }
 
+export type FormatCurrencyOptions = {
+  currencyCode?: string;
+  intlLocale?: string;
+};
+
 /**
  * Format currency amount for display
- * @param amount - Amount in SEK
- * @returns Formatted currency string
+ * @param amount - Amount in major units (e.g. SEK)
  */
-export function formatCurrency(amount: number): string {
-  // Round up to nearest whole number to match formatPrice behavior
+export function formatCurrency(
+  amount: number,
+  options: FormatCurrencyOptions = {},
+): string {
+  const currencyCode = options.currencyCode ?? "SEK";
+  const intlLocale = options.intlLocale ?? "sv-SE";
   const roundedAmount = Math.ceil(amount);
-  return new Intl.NumberFormat("sv-SE", {
+  return new Intl.NumberFormat(intlLocale, {
     style: "currency",
-    currency: "SEK",
+    currency: currencyCode,
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(roundedAmount);
 }
 
-/** Format for price breakdown (2 decimals, rounded) so e.g. 22.19 shows as 22,19 kr */
-export function formatCurrencyBreakdown(amount: number): string {
+/** Format for price breakdown (2 decimals, rounded) */
+export function formatCurrencyBreakdown(
+  amount: number,
+  options: FormatCurrencyOptions = {},
+): string {
+  const currencyCode = options.currencyCode ?? "SEK";
+  const intlLocale = options.intlLocale ?? "sv-SE";
   const rounded = Math.round(amount * 100) / 100;
-  return new Intl.NumberFormat("sv-SE", {
+  return new Intl.NumberFormat(intlLocale, {
     style: "currency",
-    currency: "SEK",
+    currency: currencyCode,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(rounded);
 }
 
-/** Total price without decimals – round to nearest integer (120.20 → 120, 120.59 → 121) */
-export function formatCurrencyWhole(amount: number): string {
+/** Total price without decimals */
+export function formatCurrencyWhole(
+  amount: number,
+  options: FormatCurrencyOptions = {},
+): string {
+  const currencyCode = options.currencyCode ?? "SEK";
+  const intlLocale = options.intlLocale ?? "sv-SE";
   const rounded = Math.round(amount);
-  return new Intl.NumberFormat("sv-SE", {
+  return new Intl.NumberFormat(intlLocale, {
     style: "currency",
-    currency: "SEK",
+    currency: currencyCode,
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(rounded);

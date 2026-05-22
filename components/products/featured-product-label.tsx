@@ -1,4 +1,7 @@
+"use client";
+
 import { Badge } from "../ui/badge";
+import { useTranslations } from "@/lib/hooks/use-translations";
 import { cn } from "@/lib/utils";
 import { Product } from "@/lib/shopify/types";
 import { AddToCart, AddToCartButton } from "../cart/add-to-cart";
@@ -16,6 +19,8 @@ export function FeaturedProductLabel({
   principal?: boolean;
   className?: string;
 }) {
+  const { t } = useTranslations();
+
   if (principal) {
     return (
       <div
@@ -26,7 +31,7 @@ export function FeaturedProductLabel({
       >
         <div className="col-span-2">
           <Badge className="font-black capitalize rounded-full">
-            Best Seller
+            {t("home.bestSeller")}
           </Badge>
         </div>
         <Link

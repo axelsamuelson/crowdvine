@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  geoZoneCityRequired,
+  syncDeliveryZoneForGeoZone,
+} from "@/lib/market/sync-geo-zone-delivery";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { resolveDisplayCurrencyCode } from "@/lib/shopping-context/currency-policy";
 
 function requireAdmin(request: NextRequest) {
   const adminAuth = request.cookies.get("admin-auth")?.value;
@@ -85,10 +90,20 @@ export async function POST(request: NextRequest) {
       typeof body.city === "string" && body.city.trim()
         ? body.city.trim()
         : null;
-    const currency_code =
+    const cityErr = geoZoneCityRequired(city);
+    if (cityErr) {
+      return NextResponse.json({ error: cityErr }, { status: 400 });
+    }
+    let currency_code =
       typeof body.currency_code === "string" && body.currency_code.trim()
         ? body.currency_code.trim().toUpperCase()
         : null;
+    if (!currency_code) {
+      currency_code = resolveDisplayCurrencyCode({
+        marketCode: market_code,
+        countryCode: country_code,
+      });
+    }
     const terms_version =
       typeof body.terms_version === "string" && body.terms_version.trim()
         ? body.terms_version.trim()
@@ -136,7 +151,22 @@ export async function POST(request: NextRequest) {
         { status: 500 },
       );
     }
-    return NextResponse.json({ id: (data as { id: string }).id });
+    const id = (data as { id: string }).id;
+    if (is_active && eligibility_status !== "disabled") {
+      try {
+        await syncDeliveryZoneForGeoZone({
+          geoZoneId: id,
+          displayName: display_name,
+          countryCode: country_code,
+          city: city!,
+        });
+      } catch (syncErr) {
+        const msg =
+          syncErr instanceof Error ? syncErr.message : "Delivery zone sync failed";
+        return NextResponse.json({ error: msg }, { status: 500 });
+      }
+    }
+    return NextResponse.json({ id });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Unknown error";
     return NextResponse.json({ error: msg }, { status: 500 });

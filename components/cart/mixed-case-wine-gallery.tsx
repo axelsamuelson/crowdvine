@@ -5,6 +5,7 @@ import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 export type MixedCaseGalleryImage = { url: string; alt: string };
 
@@ -24,6 +25,7 @@ export function MixedCaseWineGallery({
   images,
   className,
 }: MixedCaseWineGalleryProps) {
+  const { t } = useTranslations();
   const valid = images.filter((i) => i?.url);
 
   const emblaOptions = useMemo(
@@ -106,7 +108,7 @@ export function MixedCaseWineGallery({
             size="icon"
             className="absolute left-2 top-1/2 z-10 h-9 w-9 -translate-y-1/2 rounded-full border-border/60 bg-background/90 shadow-sm hover:bg-background"
             onClick={scrollPrev}
-            aria-label="Previous image"
+            aria-label={t("cart.imagePrevious")}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -116,7 +118,7 @@ export function MixedCaseWineGallery({
             size="icon"
             className="absolute right-2 top-1/2 z-10 h-9 w-9 -translate-y-1/2 rounded-full border-border/60 bg-background/90 shadow-sm hover:bg-background"
             onClick={scrollNext}
-            aria-label="Next image"
+            aria-label={t("cart.imageNext")}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>

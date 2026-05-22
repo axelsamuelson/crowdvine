@@ -8,8 +8,9 @@ import { CartProvider } from "@/components/cart/cart-context";
 import { DebugGrid } from "@/components/debug-grid";
 import { isDevelopment } from "@/lib/constants";
 import { getCollections } from "@/lib/shopify";
-import { Header } from "../components/layout/header";
-import { ConditionalHeader } from "../components/layout/header/conditional-header";
+import { ConditionalHeaderServer } from "../components/layout/header/conditional-header-server";
+import { VaulDrawerWrapper } from "@/components/layout/vaul-drawer-wrapper";
+import { headers } from "next/headers";
 import dynamic from "next/dynamic";
 import { V0Provider } from "@/lib/context";
 import { MobileMenuProvider } from "../components/layout/header/mobile-menu-context";
@@ -34,6 +35,11 @@ const geistMono = Geist_Mono({
 });
 
 import { getSiteContentByKey } from "@/lib/actions/content";
+import { getIsDirtywineSiteFromHeaders } from "@/lib/b2b-site-server";
+import { B2BModeProvider } from "@/lib/context/b2b-mode-context";
+import { ShoppingContextProvider } from "@/lib/context/shopping-context-provider";
+import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
+import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
 
 export async function generateMetadata(): Promise<Metadata> {
   try {
@@ -94,8 +100,18 @@ export default async function RootLayout({
     collections = [];
   }
 
+  const isDirtywineSite = await getIsDirtywineSiteFromHeaders();
+  const requestHeaders = await headers();
+  const ssrPathname = requestHeaders.get("x-pathname")?.trim() || "/";
+  let shoppingContext = fallbackShoppingContext();
+  try {
+    shoppingContext = await getShoppingContextFromRequest();
+  } catch (error) {
+    console.warn("Failed to resolve shopping context in layout:", error);
+  }
+
   return (
-    <html lang="en">
+    <html lang={shoppingContext.locale}>
       <body
         className={cn(
           geistSans.variable,
@@ -105,30 +121,33 @@ export default async function RootLayout({
         )}
         suppressHydrationWarning
       >
-        <CartProvider>
-          <OnboardingProvider>
-            <V0Provider isV0={isV0}>
-              <MobileMenuProvider>
-                <PortalProvider>
-                  <MembershipProvider>
-                    <NuqsAdapter>
+        <B2BModeProvider isB2B={isDirtywineSite}>
+          <ShoppingContextProvider initialContext={shoppingContext}>
+          <CartProvider>
+            <OnboardingProvider>
+              <V0Provider isV0={isV0}>
+                <MobileMenuProvider>
+                  <PortalProvider>
+                    <MembershipProvider>
+                      <NuqsAdapter>
                       <main>
-                        {/* Vaul drawer needs this wrapper; inner div avoids hydration mismatch from drawer lib touching the node */}
-                        <div data-vaul-drawer-wrapper="true">
-                          <ConditionalHeader collections={collections} />
+                        <VaulDrawerWrapper ssrPathname={ssrPathname}>
+                          <ConditionalHeaderServer collections={collections} />
                           {children}
-                        </div>
+                        </VaulDrawerWrapper>
                       </main>
                       {isDevelopment && <DebugGrid />}
                       <Toaster closeButton position="bottom-right" />
-                    </NuqsAdapter>
-                  </MembershipProvider>
-                </PortalProvider>
-              </MobileMenuProvider>
-              {isV0 && <V0Setup />}
-            </V0Provider>
-          </OnboardingProvider>
-        </CartProvider>
+                      </NuqsAdapter>
+                    </MembershipProvider>
+                  </PortalProvider>
+                </MobileMenuProvider>
+                {isV0 && <V0Setup />}
+              </V0Provider>
+            </OnboardingProvider>
+          </CartProvider>
+          </ShoppingContextProvider>
+        </B2BModeProvider>
       </body>
     </html>
   );

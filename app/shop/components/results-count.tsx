@@ -1,4 +1,7 @@
+"use client";
+
 import { cn } from "@/lib/utils";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 interface ResultsCountProps {
   count: number;
@@ -6,11 +9,12 @@ interface ResultsCountProps {
 }
 
 export function ResultsCount({ count, className }: ResultsCountProps) {
+  const { t } = useTranslations();
   return (
     <span
       className={cn("place-self-center text-sm text-foreground/50", className)}
     >
-      {count} results
+      {t("shop.results", { count })}
     </span>
   );
 }

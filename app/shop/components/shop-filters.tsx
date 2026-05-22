@@ -14,6 +14,7 @@ import { useProducts } from "../providers/products-provider";
 import { useFilterCount } from "../hooks/use-filter-count";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { X } from "lucide-react";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 export function DesktopFilters({
   collections,
@@ -24,6 +25,7 @@ export function DesktopFilters({
   priceSources?: PriceSourceForFilter[];
   className?: string;
 }) {
+  const { t } = useTranslations();
   const { originalProducts } = useProducts();
   const filterCount = useFilterCount();
   const [seeAllOpen, setSeeAllOpen] = useState(false);
@@ -40,7 +42,7 @@ export function DesktopFilters({
         <div className="flex flex-col col-span-3 xl:col-span-2 gap-2">
           <div className="flex justify-between items-baseline pl-2 -mb-1">
             <h2 className="text-xl font-semibold">
-              Filter{" "}
+              {t("shop.filter")}{" "}
               {filterCount > 0 && (
                 <span className="text-foreground/50">({filterCount})</span>
               )}
@@ -48,12 +50,12 @@ export function DesktopFilters({
             <Button
               size={"sm"}
               variant="ghost"
-              aria-label="Clear all filters"
+              aria-label={t("shop.clearAllFilters")}
               className="font-medium text-foreground/50 hover:text-foreground/60"
               asChild
             >
               <Link href="/shop" prefetch>
-                Clear
+                {t("shop.clear")}
               </Link>
             </Button>
           </div>
@@ -85,7 +87,10 @@ export function DesktopFilters({
           <div className="h-full w-full flex flex-col bg-background min-h-0">
             <DialogHeader className="shrink-0 px-6 py-4 border-b border-border flex-row items-center justify-between space-y-0">
               <DialogTitle className="text-xl font-semibold">
-                Filters {filterCount > 0 && <span className="text-muted-foreground">({filterCount})</span>}
+                {t("shop.filtersTitle")}{" "}
+                {filterCount > 0 && (
+                  <span className="text-muted-foreground">({filterCount})</span>
+                )}
               </DialogTitle>
               <div className="flex items-center gap-2">
                 <Button
@@ -99,13 +104,13 @@ export function DesktopFilters({
                   asChild={filterCount > 0}
                 >
                   <Link href="/shop" prefetch>
-                    Clear
+                    {t("shop.clear")}
                   </Link>
                 </Button>
                 <Button
                   size="icon"
                   variant="ghost"
-                  aria-label="Stäng"
+                  aria-label={t("shop.close")}
                   onClick={() => setSeeAllOpen(false)}
                 >
                   <X className="h-4 w-4" />

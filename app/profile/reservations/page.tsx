@@ -39,6 +39,56 @@ import Image from "next/image";
 import type { LucideIcon } from "lucide-react";
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import { normalizeUserReservationsResponse } from "@/lib/reservations/user-reservations-api";
+import { useShoppingContext } from "@/lib/context/shopping-context-provider";
+import { useDisplayMoney } from "@/lib/hooks/use-display-money";
+
+export type ResStatusKey =
+  | "declined"
+  | "partly_approved"
+  | "approved"
+  | "pending"
+  | "us_conditional"
+  | "conditional_review"
+  | "delivered"
+  | "out_for_delivery"
+  | "in_transit"
+  | "picked_up"
+  | "awaiting_pickup"
+  | "paid"
+  | "payment_pending"
+  | "pallet_complete"
+  | "awaiting_producer"
+  | "pallet_consolidating"
+  | "reservation_placed"
+  | "producer_review";
+
+const RES_STATUS_MSG: Record<ResStatusKey, string> = {
+  declined: "profile.resStatusDeclined",
+  partly_approved: "profile.resStatusPartlyApproved",
+  approved: "profile.resStatusApproved",
+  pending: "profile.resStatusPending",
+  us_conditional: "profile.resStatusUsConditional",
+  conditional_review: "profile.resStatusConditionalReview",
+  delivered: "profile.resStatusDelivered",
+  out_for_delivery: "profile.resStatusOutForDelivery",
+  in_transit: "profile.resStatusInTransit",
+  picked_up: "profile.resStatusPickedUp",
+  awaiting_pickup: "profile.resStatusAwaitingPickup",
+  paid: "profile.resStatusPaid",
+  payment_pending: "profile.resStatusPaymentPending",
+  pallet_complete: "profile.resStatusPalletComplete",
+  awaiting_producer: "profile.resStatusAwaitingProducer",
+  pallet_consolidating: "profile.resStatusPalletConsolidating",
+  reservation_placed: "profile.resStatusReservationPlaced",
+  producer_review: "profile.resStatusProducerReview",
+};
+
+function resStatusLabel(
+  key: ResStatusKey,
+  t: (msgKey: string) => string,
+): string {
+  return t(RES_STATUS_MSG[key]);
+}
 
 interface Reservation {
   id: string;
@@ -124,22 +174,22 @@ interface AddressPalletData {
   orderedBottleDisplayTotal?: number;
 }
 
-function getProducerOutcome(status: string | undefined) {
+function getProducerOutcome(status: string | undefined): ResStatusKey {
   const s = String(status || "");
-  if (s === "declined" || s === "rejected") return "Declined";
-  if (s === "partly_approved") return "Partly approved";
+  if (s === "declined" || s === "rejected") return "declined";
+  if (s === "partly_approved") return "partly_approved";
   if (s === "approved" || s === "placed" || s === "pending_payment" || s === "confirmed")
-    return "Approved";
-  if (s === "pending_producer_approval") return "Pending";
-  if (s === "conditional_pending") return "US conditional (under review)";
-  return "Pending";
+    return "approved";
+  if (s === "pending_producer_approval") return "pending";
+  if (s === "conditional_pending") return "us_conditional";
+  return "pending";
 }
 
-function getSummaryStatus(group: AddressPalletData) {
+function getSummaryStatus(group: AddressPalletData): ResStatusKey {
   const reservationStatus = String(group.latestReservationStatus || "");
   const payment = String(group.paymentStatus || "");
   if (reservationStatus === "conditional_pending") {
-    return "Conditional pending review";
+    return "conditional_review";
   }
   const palletStatusRaw = String(group.palletStatus || "");
   const palletStatus = palletStatusRaw.toLowerCase();
@@ -153,102 +203,112 @@ function getSummaryStatus(group: AddressPalletData) {
     palletStatus === "shipped" ||
     palletStatus === "delivered";
 
-  if (palletStatus === "delivered") return "Delivered";
-  if (palletStatus === "out_for_delivery") return "Out for delivery";
-  if (palletStatus === "in_transit" || palletStatus === "shipped") return "In transit";
-  if (palletStatus === "picked_up") return "Picked up";
-  if (palletStatus === "awaiting_pickup") return "Awaiting pickup";
-  if (payment === "paid" || reservationStatus === "confirmed") return "Paid";
-  if (reservationStatus === "pending_payment") return "Payment pending";
-  if (palletComplete) return "Pallet complete";
+  if (palletStatus === "delivered") return "delivered";
+  if (palletStatus === "out_for_delivery") return "out_for_delivery";
+  if (palletStatus === "in_transit" || palletStatus === "shipped") return "in_transit";
+  if (palletStatus === "picked_up") return "picked_up";
+  if (palletStatus === "awaiting_pickup") return "awaiting_pickup";
+  if (payment === "paid" || reservationStatus === "confirmed") return "paid";
+  if (reservationStatus === "pending_payment") return "payment_pending";
+  if (palletComplete) return "pallet_complete";
 
   const producerOutcome = getProducerOutcome(reservationStatus);
-  if (producerOutcome === "Pending") return "Awaiting producer approval";
-  if (producerOutcome === "Declined") return "Declined";
-  if (producerOutcome === "Partly approved") return "Partly approved";
-  return "Pallet consolidating";
+  if (producerOutcome === "pending") return "awaiting_producer";
+  if (producerOutcome === "declined") return "declined";
+  if (producerOutcome === "partly_approved") return "partly_approved";
+  return "pallet_consolidating";
 }
 
 const timelineStatusConfig: Record<
-  string,
+  ResStatusKey,
   { icon: LucideIcon; containerClass: string; iconClass: string }
 > = {
-  "Reservation placed": {
+  reservation_placed: {
     icon: Package,
     containerClass: "border border-border bg-background",
     iconClass: "text-muted-foreground",
   },
-  "Awaiting producer approval": {
+  awaiting_producer: {
     icon: Clock,
     containerClass: "border border-amber-200 bg-amber-50",
     iconClass: "text-amber-700",
   },
-  "Partly approved": {
+  partly_approved: {
     icon: CheckCircle2,
     containerClass: "border border-amber-200 bg-amber-50",
     iconClass: "text-amber-700",
   },
-  Declined: {
+  declined: {
     icon: Clock,
     containerClass: "border border-red-200 bg-red-50",
     iconClass: "text-red-700",
   },
-  "Producer review": {
+  producer_review: {
     icon: Clock,
     containerClass: "border border-amber-200 bg-amber-50",
     iconClass: "text-amber-700",
   },
-  "Pallet consolidating": {
+  pallet_consolidating: {
     icon: Package,
     containerClass: "border border-border bg-background",
     iconClass: "text-muted-foreground",
   },
-  "Pallet complete": {
+  pallet_complete: {
     icon: CheckCircle2,
     containerClass: "border border-border bg-background",
     iconClass: "text-muted-foreground",
   },
-  "Awaiting pickup": {
+  awaiting_pickup: {
     icon: Package,
     containerClass: "border border-border bg-background",
     iconClass: "text-muted-foreground",
   },
-  "Payment pending": {
+  payment_pending: {
     icon: CreditCard,
     containerClass: "border border-primary/30 bg-primary/5",
     iconClass: "text-primary",
   },
-  Paid: {
+  paid: {
     icon: CheckCircle2,
     containerClass: "border border-border bg-background",
     iconClass: "text-muted-foreground",
   },
-  "In transit": {
+  in_transit: {
     icon: Truck,
     containerClass: "border border-primary/40 bg-primary/10",
     iconClass: "text-primary",
   },
-  "Out for delivery": {
+  out_for_delivery: {
     icon: Truck,
     containerClass: "border border-primary/40 bg-primary/10",
     iconClass: "text-primary",
   },
-  "Picked up": {
+  picked_up: {
     icon: Package,
     containerClass: "border border-border bg-background",
     iconClass: "text-muted-foreground",
   },
-  Shipped: {
-    icon: Truck,
-    containerClass: "border border-primary/40 bg-primary/10",
-    iconClass: "text-primary",
+  approved: {
+    icon: CheckCircle2,
+    containerClass: "border border-border bg-background",
+    iconClass: "text-muted-foreground",
   },
-  Delivered: {
+  pending: {
+    icon: Clock,
+    containerClass: "border border-amber-200 bg-amber-50",
+    iconClass: "text-amber-700",
+  },
+  us_conditional: {
+    icon: Clock,
+    containerClass: "border border-amber-200 bg-amber-50",
+    iconClass: "text-amber-800",
+  },
+  delivered: {
     icon: CheckCircle2,
     containerClass: "border border-success/40 bg-success/10",
     iconClass: "text-success",
   },
-  "Conditional pending review": {
+  conditional_review: {
     icon: Clock,
     containerClass: "border border-amber-200 bg-amber-50",
     iconClass: "text-amber-800",
@@ -268,25 +328,29 @@ const timelineCompletedStatus = {
   iconClass: "text-success",
 };
 
-const formatDate = (dateString: string) => {
+const formatDate = (
+  dateString: string,
+  intlLocale: string,
+  invalidLabel: string,
+) => {
   try {
     if (!dateString || typeof dateString !== "string") {
-      return "Invalid Date";
+      return invalidLabel;
     }
 
     const date = new Date(dateString);
     if (isNaN(date.getTime())) {
-      return "Invalid Date";
+      return invalidLabel;
     }
 
-    return date.toLocaleDateString("en-US", {
+    return date.toLocaleDateString(intlLocale, {
       year: "numeric",
       month: "short",
       day: "numeric",
     });
   } catch (error) {
     console.error("Error formatting date:", error);
-    return "Invalid Date";
+    return invalidLabel;
   }
 };
 
@@ -294,35 +358,36 @@ const getProducerHandle = (name: string): string => {
   return name.toLowerCase().replace(/\s+/g, "-");
 };
 
-const formatPrice = (cents: number) => {
-  return new Intl.NumberFormat("sv-SE", {
-    style: "currency",
-    currency: "SEK",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(cents / 100);
-};
-
-function formatBottleSummary(group: AddressPalletData): string {
+function formatBottleSummary(
+  group: AddressPalletData,
+  t: (key: string, params?: Record<string, string>) => string,
+): string {
   const cond = group.conditionalBottleTotal ?? 0;
   const ord = group.orderedBottleDisplayTotal ?? 0;
   if (cond > 0 && ord > 0) {
-    return `${cond} bottles requested · ${ord} bottles ordered`;
+    return t("profile.bottlesRequestedOrdered", {
+      requested: String(cond),
+      ordered: String(ord),
+    });
   }
   if (cond > 0) {
-    return `${cond} bottles requested`;
+    return t("profile.bottlesRequested", { count: String(cond) });
   }
   if (ord > 0) {
-    return `${ord} bottles ordered`;
+    return t("profile.bottlesOrderedCount", { count: String(ord) });
   }
   const fallback =
     group.totalRequestedBottles && group.totalRequestedBottles > 0
       ? group.totalRequestedBottles
       : group.totalBottles;
-  return `${fallback} bottles`;
+  return t("profile.bottlesOrderedCount", { count: String(fallback) });
 }
 
 function PalletDialog({ group }: { group: AddressPalletData }) {
+  const { t, context: shopping } = useShoppingContext();
+  const { formatSek } = useDisplayMoney();
+  const intlLocale = shopping.intlLocale;
+  const formatPrice = (cents: number) => formatSek(cents / 100);
   const [open, setOpen] = useState(false);
 
   const primaryImage =
@@ -333,6 +398,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
   };
 
   const summaryStatus = getSummaryStatus(group);
+  const summaryStatusLabel = resStatusLabel(summaryStatus, t);
   const statusConfig = timelineStatusConfig[summaryStatus] ?? timelineDefaultStatus;
   const StatusIcon = statusConfig.icon;
   // Use totalRequestedBottles if available (includes unconfirmed), otherwise fall back to approved bottles
@@ -362,7 +428,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
           {/* Status badge - top right */}
           <div className="absolute top-3 right-3 pointer-events-none">
             <Badge variant="outline" className="text-[10px] bg-white/95 backdrop-blur-sm shadow-sm">
-              {summaryStatus}
+              {summaryStatusLabel}
             </Badge>
           </div>
 
@@ -381,7 +447,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                         {progressBottles} / {group.palletCapacity}
                       </span>
                       <span className="text-sm text-muted-foreground whitespace-nowrap mt-0.5">
-                        bottles
+                        {t("profile.bottles")}
                       </span>
                     </div>
                   </div>
@@ -393,7 +459,8 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                     {group.palletName}
                   </p>
                   <p className="text-[11px] text-muted-foreground font-normal mb-1 truncate">
-                    {formatBottleSummary(group)} • {group.wines.length} wines
+                    {formatBottleSummary(group, t)} • {group.wines.length}{" "}
+                    {t("profile.wines")}
                   </p>
                   <div className="flex gap-2 items-center text-sm md:text-base font-semibold">
                     <span className="text-sm md:text-base font-semibold">{formatPrice(group.totalCostCents)}</span>
@@ -418,7 +485,9 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
           </div>
           <div className="space-y-1">
             <DialogTitle className="text-sm md:text-base font-semibold tracking-tight px-2">{group.palletName}</DialogTitle>
-            <DialogDescription className="text-xs md:text-sm">Track your reservation and view details</DialogDescription>
+            <DialogDescription className="text-xs md:text-sm">
+              {t("profile.trackReservation")}
+            </DialogDescription>
           </div>
         </DialogHeader>
 
@@ -429,16 +498,24 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
-                <h3 className="text-sm md:text-base font-semibold text-foreground truncate">{summaryStatus}</h3>
+                <h3 className="text-sm md:text-base font-semibold text-foreground truncate">
+                  {summaryStatusLabel}
+                </h3>
                 <Badge
                   variant="outline"
                   className="text-[10px] md:text-xs shrink-0"
                 >
-                  Active
+                  {t("profile.active")}
                 </Badge>
               </div>
               <p className="text-xs md:text-sm text-muted-foreground truncate">
-                Latest {formatDate(group.latestOrderDate)}
+                {t("profile.latest", {
+                  date: formatDate(
+                    group.latestOrderDate,
+                    intlLocale,
+                    t("profile.invalidDate"),
+                  ),
+                })}
               </p>
             </div>
           </div>
@@ -450,15 +527,15 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
               <TabsList className="w-full grid grid-cols-3 rounded-full bg-white border border-gray-200 h-auto gap-1 p-1">
                 <TabsTrigger value="pallet" className="gap-1.5 text-xs flex-1 px-2 md:px-3 py-1.5 md:py-2 h-auto text-[10px] md:text-xs rounded-full">
                   <Package className="h-3 w-3 md:h-3.5 md:w-3.5 shrink-0" />
-                  <span className="whitespace-nowrap">Pallet</span>
+                  <span className="whitespace-nowrap">{t("profile.palletTab")}</span>
                 </TabsTrigger>
                 <TabsTrigger value="tracking" className="gap-1.5 text-xs flex-1 px-2 md:px-3 py-1.5 md:py-2 h-auto text-[10px] md:text-xs rounded-full">
                   <Truck className="h-3 w-3 md:h-3.5 md:w-3.5 shrink-0" />
-                  <span className="whitespace-nowrap">Tracking</span>
+                  <span className="whitespace-nowrap">{t("profile.trackingTab")}</span>
                 </TabsTrigger>
                 <TabsTrigger value="wines" className="gap-1.5 text-xs flex-1 px-2 md:px-3 py-1.5 md:py-2 h-auto text-[10px] md:text-xs rounded-full">
                   <Wine className="h-3 w-3 md:h-3.5 md:w-3.5 shrink-0" />
-                  <span className="whitespace-nowrap">Wines</span>
+                  <span className="whitespace-nowrap">{t("profile.winesTab")}</span>
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -721,11 +798,19 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                         </div>
                         <div className="flex-1 pt-1">
                           <div className="flex items-center justify-between">
-                            <h4 className="text-sm font-semibold text-gray-900">Reservation placed</h4>
-                            <Badge variant="outline" className="text-xs">Complete</Badge>
+                            <h4 className="text-sm font-semibold text-gray-900">
+                              {t("profile.reservationPlaced")}
+                            </h4>
+                            <Badge variant="outline" className="text-xs">
+                              {t("profile.complete")}
+                            </Badge>
                           </div>
                           <p className="text-xs text-gray-500 mt-0.5">
-                            {formatDate(group.latestOrderDate)}
+                            {formatDate(
+                              group.latestOrderDate,
+                              intlLocale,
+                              t("profile.invalidDate"),
+                            )}
                           </p>
                         </div>
                       </div>
@@ -786,7 +871,9 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                             </div>
                             <div className="flex-1 pt-1">
                               <div className="flex items-center justify-between">
-                                <h4 className="text-sm font-semibold text-gray-900">Pallet consolidating</h4>
+                                <h4 className="text-sm font-semibold text-gray-900">
+                                  {t("profile.palletConsolidating")}
+                                </h4>
                                 <Badge variant="outline" className="text-xs">
                                   {group.palletStatus || (isComplete ? "complete" : "open")}
                                 </Badge>
@@ -1047,6 +1134,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
 }
 
 export default function ReservationsPage() {
+  const { t } = useShoppingContext();
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [addressPalletData, setAddressPalletData] = useState<
@@ -1434,7 +1522,7 @@ export default function ReservationsPage() {
             <div className="flex items-center justify-center h-64">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-900 mx-auto" />
-                <p className="mt-4 text-gray-600">Loading reservations...</p>
+                <p className="mt-4 text-gray-600">{t("profile.loadingReservations")}</p>
               </div>
             </div>
           </div>
@@ -1452,16 +1540,15 @@ export default function ReservationsPage() {
             <Link href="/profile">
               <Button variant="outline" size="sm" className="rounded-full">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
+                {t("profile.back")}
               </Button>
             </Link>
             <div>
               <h1 className="text-2xl font-medium text-gray-900">
-                My Reservations
+                {t("profile.reservationsTitle")}
               </h1>
               <p className="text-gray-500 mt-1">
-                Your reservations by wine zone and market drop. Labels match
-                each campaign, not internal logistics pallets.
+                {t("profile.reservationsSubtitle")}
               </p>
             </div>
           </div>
@@ -1471,20 +1558,20 @@ export default function ReservationsPage() {
               <CardContent className="text-center py-10">
                 <Wine className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  No reservations yet
+                  {t("profile.noReservationsTitle")}
                 </h3>
                 <p className="text-gray-500 mb-6 max-w-md mx-auto">
-                  You haven&apos;t made any reservations yet.
+                  {t("profile.noReservationsBody")}
                 </p>
                 <div className="flex gap-3 justify-center">
                   <Link href="/shop">
                     <Button className="bg-black hover:bg-black/90 text-white rounded-full px-8">
-                      Browse wines
+                      {t("profile.browseWines")}
                     </Button>
                   </Link>
                   <Link href="/">
                     <Button variant="outline" className="rounded-full px-8">
-                      Go home
+                      {t("profile.goHome")}
                     </Button>
                   </Link>
                 </div>

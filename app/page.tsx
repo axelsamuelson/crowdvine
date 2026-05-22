@@ -1,7 +1,11 @@
 import { HomeSidebar } from "@/components/layout/sidebar/home-sidebar";
 import { Footer } from "@/components/layout/footer";
 import { LatestProductCard } from "@/components/products/latest-product-card";
-import { Badge } from "@/components/ui/badge";
+import { HomeLatestDropBadge } from "@/components/home/home-latest-drop-badge";
+import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
+import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
+import { translate } from "@/lib/i18n/messages";
+import type { Metadata } from "next";
 import {
   getCollectionProducts,
   getCollections,
@@ -13,6 +17,16 @@ import { headers } from "next/headers";
 
 // Disable static generation for now - make it dynamic
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const ctx = await getShoppingContextFromRequest().catch(() =>
+    fallbackShoppingContext(),
+  );
+  return {
+    title: translate(ctx.locale, "home.pageTitle"),
+    description: translate(ctx.locale, "home.pageDescription"),
+  };
+}
 
 export default async function Home() {
   const h = await headers();
@@ -64,7 +78,7 @@ export default async function Home() {
             <div className="fixed top-0 left-0 z-10 w-full pointer-events-none base-grid py-sides">
               <div className="col-span-8 col-start-5">
                 <div className="hidden px-6 lg:block">
-                  <Badge variant="outline-secondary">latest drop</Badge>
+                  <HomeLatestDropBadge />
                 </div>
               </div>
             </div>

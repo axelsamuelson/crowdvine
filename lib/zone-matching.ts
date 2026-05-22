@@ -488,13 +488,63 @@ async function buildConditionalUsZoneResult(
   };
 }
 
+export type DetermineZonesOptions = {
+  /** From active geo_zones.default_delivery_zone_id — same name as wine zone display. */
+  preferredDeliveryZoneId?: string | null;
+};
+
+async function loadPreferredDeliveryZone(
+  sb: ReturnType<typeof getSupabaseAdmin>,
+  preferredId: string | null | undefined,
+): Promise<{
+  id: string;
+  name: string;
+  center_lat: number;
+  center_lon: number;
+  radius_km: number;
+} | null> {
+  const id = preferredId?.trim();
+  if (!id) return null;
+  const { data } = await sb
+    .from("pallet_zones")
+    .select("id, name, center_lat, center_lon, radius_km")
+    .eq("id", id)
+    .eq("zone_type", "delivery")
+    .maybeSingle();
+  if (!data?.id) return null;
+  return data as {
+    id: string;
+    name: string;
+    center_lat: number;
+    center_lon: number;
+    radius_km: number;
+  };
+}
+
+function bumpPreferredDeliveryMatch(
+  matchingZones: DeliveryZoneOption[],
+  preferredId: string | null | undefined,
+): void {
+  const pid = preferredId?.trim();
+  if (!pid) return;
+  const idx = matchingZones.findIndex((z) => z.id === pid);
+  if (idx > 0) {
+    const [preferred] = matchingZones.splice(idx, 1);
+    matchingZones.unshift(preferred);
+  }
+}
+
 /**
  * Determines pickup and delivery zones based on cart items and delivery address
  */
 export async function determineZones(
   cartItems: CartItem[],
   deliveryAddress: DeliveryAddress,
+  options?: DetermineZonesOptions,
 ): Promise<ZoneMatchResult> {
+  const preferredDeliveryZoneId =
+    options?.preferredDeliveryZoneId?.trim() || null;
+
   // Create cache key from cart items and delivery address
   const cacheKey = JSON.stringify({
     cartItems: cartItems.map((item) => item.merchandise.id).sort(),
@@ -503,6 +553,7 @@ export async function determineZones(
       city: deliveryAddress.city,
       countryCode: deliveryAddress.countryCode,
     },
+    preferredDeliveryZoneId,
   });
 
   // Check cache first
@@ -777,6 +828,7 @@ export async function determineZones(
           if (matchingZones.length > 0) {
             // Sort by radius (smallest first) to prefer more specific zones
             matchingZones.sort((a, b) => a.radiusKm - b.radiusKm);
+            bumpPreferredDeliveryMatch(matchingZones, preferredDeliveryZoneId);
 
             deliveryZoneId = matchingZones[0].id;
             deliveryZoneName = matchingZones[0].name;
@@ -838,6 +890,43 @@ export async function determineZones(
             return result;
           } else {
             console.log("❌ No delivery zones match this address");
+            const preferred = await loadPreferredDeliveryZone(
+              sb,
+              preferredDeliveryZoneId,
+            );
+            if (preferred) {
+              deliveryZoneId = preferred.id;
+              deliveryZoneName = preferred.name;
+              console.log(
+                `✅ Using linked wine-zone delivery zone: ${deliveryZoneName}`,
+              );
+              const pallets = await buildPalletInfosForDeliveryPair(sb, {
+                shippingRegionId: shippingRegionIdForRouting,
+                pickupZoneId,
+                pickupZoneDisplayName: pickupZoneName,
+                deliveryZoneId,
+                deliveryZoneName,
+              });
+              const linkedResult: ZoneMatchResult = {
+                pickupZoneId,
+                deliveryZoneId,
+                pickupZoneName,
+                deliveryZoneName,
+                availableDeliveryZones: [
+                  {
+                    id: preferred.id,
+                    name: preferred.name,
+                    centerLat: preferred.center_lat,
+                    centerLon: preferred.center_lon,
+                    radiusKm: preferred.radius_km,
+                  },
+                ],
+                pallets,
+                shippingRegionIdForRouting,
+              };
+              zoneCache.set(cacheKey, linkedResult);
+              return linkedResult;
+            }
             const noDeliveryResult: ZoneMatchResult = {
               pickupZoneId,
               pickupZoneName,

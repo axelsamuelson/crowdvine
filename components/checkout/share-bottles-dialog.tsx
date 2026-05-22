@@ -9,6 +9,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Check, Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useShoppingContext } from "@/lib/context/shopping-context-provider";
+import { useDisplayMoney } from "@/lib/hooks/use-display-money";
 
 type Friend = {
   id: string;
@@ -29,11 +31,6 @@ type CartLine = {
 function clampInt(value: number, min: number, max: number) {
   if (!Number.isFinite(value)) return min;
   return Math.max(min, Math.min(max, Math.floor(value)));
-}
-
-function formatMoney(amount: number, currencyCode: string) {
-  const rounded = Math.round(amount);
-  return `${rounded} ${currencyCode}`;
 }
 
 function formatInitials(name?: string) {
@@ -66,6 +63,8 @@ export function ShareBottlesDialog({
   cartLines,
   onConfirm,
 }: ShareBottlesDialogProps) {
+  const { t } = useShoppingContext();
+  const { formatDisplay } = useDisplayMoney();
   const [step, setStep] = useState<1 | 2>(1);
   const [loading, setLoading] = useState(false);
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -82,7 +81,7 @@ export function ShareBottlesDialog({
 
     const run = async () => {
       if (!userId) {
-        toast.error("Could not load your following list.");
+        toast.error(t("checkout.shareLoadFailed"));
         return;
       }
       try {
@@ -96,7 +95,8 @@ export function ShareBottlesDialog({
         setFriends((data?.users || []) as Friend[]);
       } catch (e: unknown) {
         console.error("[ShareBottles] Failed to load friends:", e);
-        const msg = e instanceof Error ? e.message : "Failed to load friends";
+        const msg =
+          e instanceof Error ? e.message : t("checkout.shareLoadFriendsFailed");
         toast.error(msg);
       } finally {
         setLoading(false);
@@ -199,7 +199,9 @@ export function ShareBottlesDialog({
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>
-            {step === 1 ? "Share bottles" : "Assign bottles"}
+            {step === 1
+              ? t("checkout.shareTitleSelect")
+              : t("checkout.shareTitleAssign")}
           </DialogTitle>
         </DialogHeader>
 
@@ -214,11 +216,11 @@ export function ShareBottlesDialog({
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search people you follow"
+                placeholder={t("checkout.shareSearchPlaceholder")}
                 className={cn(
                   "h-9 rounded-md border border-zinc-200 bg-white pl-9 text-sm text-zinc-900 shadow-sm placeholder:text-zinc-500 focus-visible:ring-zinc-300 dark:bg-white dark:text-zinc-900 dark:border-zinc-200 dark:placeholder:text-zinc-500",
                 )}
-                aria-label="Search people you follow"
+                aria-label={t("checkout.shareSearchAria")}
                 autoComplete="off"
               />
             </div>
@@ -229,11 +231,11 @@ export function ShareBottlesDialog({
                   {loading ? (
                     <div className="flex items-center justify-center py-10 text-gray-500">
                       <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                      Loading…
+                      {t("checkout.shareLoading")}
                     </div>
                   ) : filteredFriends.length === 0 ? (
                     <div className="py-10 text-center text-sm text-gray-500">
-                      No people found.
+                      {t("checkout.shareNoPeople")}
                     </div>
                   ) : (
                     filteredFriends.map((f) => {
@@ -286,7 +288,7 @@ export function ShareBottlesDialog({
 
             <div className="flex justify-between gap-3">
               <Button type="button" variant="outline" className="rounded-full" onClick={() => onOpenChange(false)}>
-                Cancel
+                {t("checkout.cancel")}
               </Button>
               <Button
                 type="button"
@@ -294,7 +296,7 @@ export function ShareBottlesDialog({
                 disabled={!canContinue}
                 onClick={() => setStep(2)}
               >
-                Continue
+                {t("checkout.shareContinue")}
               </Button>
             </div>
           </div>
@@ -303,22 +305,29 @@ export function ShareBottlesDialog({
         {step === 2 && (
           <div className="space-y-4">
             <div className="text-sm text-gray-600">
-              Choose how many bottles to assign to each friend. Totals per bottle can’t exceed what you reserved.
+              {t("checkout.shareStep2Hint")}
             </div>
 
             <div className="rounded-2xl border border-gray-200 bg-white p-4">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <div className="text-sm font-medium text-gray-900">
-                    Cost breakdown
+                    {t("checkout.shareCostBreakdown")}
                   </div>
                   <div className="text-xs text-gray-500">
-                    Bottle cost{clampedDiscountRate > 0 ? " (after discount)" : ""}. Shipping not split.
+                    {t("checkout.shareCostSub", {
+                      discount:
+                        clampedDiscountRate > 0
+                          ? t("checkout.shareCostSubDiscount")
+                          : "",
+                    })}
                   </div>
                 </div>
                 <div className="text-xs text-gray-500">
                   {clampedDiscountRate > 0
-                    ? `Discount: ${(clampedDiscountRate * 100).toFixed(1)}%`
+                    ? t("checkout.shareDiscountLabel", {
+                        percent: (clampedDiscountRate * 100).toFixed(1),
+                      })
                     : null}
                 </div>
               </div>
@@ -332,15 +341,15 @@ export function ShareBottlesDialog({
                         {f.full_name || "User"}
                       </span>
                       <span className="font-medium text-gray-900">
-                        {formatMoney(t.net, currencyCode)}
+                        {formatDisplay(t.net)}
                       </span>
                     </div>
                   );
                 })}
                 <div className="flex items-center justify-between text-sm border-t border-gray-200 pt-2 mt-2">
-                  <span className="text-gray-700">You</span>
+                  <span className="text-gray-700">{t("checkout.shareYou")}</span>
                   <span className="font-medium text-gray-900">
-                    {formatMoney(costBreakdown.you.net, currencyCode)}
+                    {formatDisplay(costBreakdown.you.net)}
                   </span>
                 </div>
               </div>
@@ -361,9 +370,8 @@ export function ShareBottlesDialog({
                             {friend.full_name || "User"}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {formatMoney(
-                              (costBreakdown.byFriendId[friend.id]?.net || 0),
-                              currencyCode,
+                            {formatDisplay(
+                              costBreakdown.byFriendId[friend.id]?.net || 0,
                             )}
                           </div>
                         </div>
@@ -379,7 +387,12 @@ export function ShareBottlesDialog({
                               <div className="min-w-0">
                                 <div className="text-sm text-gray-900 truncate">{line.title}</div>
                                 <div className="text-xs text-gray-500">
-                                  Reserved: {line.quantity} • Assigned: {totalsPerLine[line.id] || 0}
+                                  {t("checkout.shareReservedAssigned", {
+                                    qty: String(line.quantity),
+                                    assigned: String(
+                                      totalsPerLine[line.id] || 0,
+                                    ),
+                                  })}
                                 </div>
                               </div>
                               <Input
@@ -406,7 +419,7 @@ export function ShareBottlesDialog({
 
             <div className="flex justify-between gap-3">
               <Button type="button" variant="outline" className="rounded-full" onClick={() => setStep(1)}>
-                Back
+                {t("checkout.shareBack")}
               </Button>
               <Button
                 type="button"
@@ -415,10 +428,10 @@ export function ShareBottlesDialog({
                 onClick={() => {
                   onConfirm({ selectedFriends, allocations });
                   onOpenChange(false);
-                  toast.success("Share set up");
+                  toast.success(t("checkout.shareSetupDone"));
                 }}
               >
-                Done
+                {t("checkout.shareDone")}
               </Button>
             </div>
           </div>

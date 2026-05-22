@@ -3,6 +3,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { useMembership } from "@/lib/context/membership-context";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
+import { useMembershipDiscountPercent } from "@/lib/hooks/use-membership-discount-percent";
 import {
   calculatePriceBreakdown,
   calculateB2BPriceBreakdown,
@@ -18,7 +19,8 @@ import { Product } from "@/lib/shopify/types";
  * @param source - Cart source ("producer" = B2C price, "warehouse" = B2B price)
  */
 export function useProductPrice(product: Product, source?: "producer" | "warehouse") {
-  const { discountPercentage, loading } = useMembership();
+  const { loading } = useMembership();
+  const discountPercentage = useMembershipDiscountPercent();
   const isB2B = useB2BPriceMode();
   const [isMounted, setIsMounted] = useState(false);
 

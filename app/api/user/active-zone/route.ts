@@ -73,6 +73,13 @@ export async function PATCH(request: NextRequest) {
         { status: 400 },
       );
     }
+    const city = String(row.city ?? "").trim();
+    if (!city) {
+      return NextResponse.json(
+        { error: "Wine zone must include a city" },
+        { status: 400 },
+      );
+    }
 
     const { error: upsertErr } = await sb.from("user_zone_preferences").upsert(
       {

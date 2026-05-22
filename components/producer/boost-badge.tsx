@@ -1,6 +1,10 @@
+"use client";
+
 import { cn } from "@/lib/utils";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 export function BoostBadge({ className }: { className?: string }) {
+  const { t } = useTranslations();
   return (
     <span
       className={cn(
@@ -9,7 +13,7 @@ export function BoostBadge({ className }: { className?: string }) {
       )}
     >
       <span className="h-1.5 w-1.5 rounded-full bg-violet-500" />
-      2× points
+      {t("shop.boostPoints")}
     </span>
   );
 }

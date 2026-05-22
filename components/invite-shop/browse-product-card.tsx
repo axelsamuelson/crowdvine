@@ -3,7 +3,8 @@
 import React, { memo } from "react";
 import Link from "next/link";
 import { Product } from "@/lib/shopify/types";
-import { formatPrice, priceExclVat } from "@/lib/shopify/utils";
+import { priceExclVat } from "@/lib/shopify/utils";
+import { useFormatPrice } from "@/lib/hooks/use-format-price";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { SimpleProductImage } from "./simple-product-image";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +14,7 @@ import { ArrowRightIcon } from "lucide-react";
 import { useProductPrice } from "@/lib/hooks/use-product-price";
 import { calculatePriceBreakdown, calculateB2BPriceBreakdown } from "@/lib/price-breakdown";
 import { useMembership } from "@/lib/context/membership-context";
+import { useMembershipDiscountPercent } from "@/lib/hooks/use-membership-discount-percent";
 import { useMemo } from "react";
 
 interface BrowseProductCardProps {
@@ -28,10 +30,12 @@ export const BrowseProductCard = memo(
     inviteBasePath,
     onProductClick,
   }: BrowseProductCardProps) => {
+    const formatPrice = useFormatPrice();
     const showExclVat = useB2BPriceMode();
     const isWineBox = product.productType === "wine-box";
     const discountInfo = (product as any).discountInfo;
-    const { discountPercentage, loading: membershipLoading } = useMembership();
+    const { loading: membershipLoading } = useMembership();
+    const discountPercentage = useMembershipDiscountPercent();
     
     // Get both producer and warehouse prices for B2B sites
     const producerBreakdown = useProductPrice(product, "producer");

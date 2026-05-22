@@ -11,6 +11,7 @@ import { ReactNode } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Loader } from "../ui/loader";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 interface AddToCartProps extends ButtonProps {
   product: Product;
@@ -44,6 +45,7 @@ export function AddToCartButton({
   icon = <CirclePlus />,
   ...buttonProps
 }: AddToCartButtonProps) {
+  const { t } = useTranslations();
   const { addItem } = useCart();
   const [isLoading, startTransition] = useTransition();
 
@@ -56,9 +58,8 @@ export function AddToCartButton({
   }, [selectedVariant, product]);
 
   const getButtonText = () => {
-    // Don't show "Out Of Stock" - producer items can always be added
-    if (!resolvedVariant) return "Select one";
-    return "Add To Cart";
+    if (!resolvedVariant) return t("product.selectOne");
+    return t("product.addToCart");
   };
 
   // Producer items can always be added, so don't disable based on availableForSale
@@ -98,7 +99,9 @@ export function AddToCartButton({
     >
       <Button
         type="submit"
-        aria-label={!resolvedVariant ? "Select one" : "Add to cart"}
+        aria-label={
+          !resolvedVariant ? t("product.selectOne") : t("product.addToCart")
+        }
         disabled={isDisabled}
         className={
           iconOnly

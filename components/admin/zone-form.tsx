@@ -23,15 +23,17 @@ import { geocodeAddress, geocodeFromFields } from "@/lib/geocoding";
 
 interface ZoneFormProps {
   zone?: PalletZone;
+  /** Only used on /admin/zones — delivery zones are managed via Vinzoner & leverans. */
+  pickupOnly?: boolean;
 }
 
-export default function ZoneForm({ zone }: ZoneFormProps) {
+export default function ZoneForm({ zone, pickupOnly = false }: ZoneFormProps) {
   const [formData, setFormData] = useState<CreatePalletZoneData>({
     name: zone?.name || "",
     radius_km: zone?.radius_km || 500,
     center_lat: zone?.center_lat || 0,
     center_lon: zone?.center_lon || 0,
-    zone_type: zone?.zone_type || "delivery",
+    zone_type: pickupOnly ? "pickup" : zone?.zone_type || "pickup",
   });
 
   const [addressInput, setAddressInput] = useState("");
@@ -139,9 +141,15 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{zone ? "Edit Zone" : "Add Zone"}</CardTitle>
+        <CardTitle>
+          {zone ? "Redigera upphämtningszon" : "Ny upphämtningszon"}
+        </CardTitle>
         <CardDescription>
-          {zone ? "Update zone configuration" : "Create a new delivery zone"}
+          {pickupOnly
+            ? "Geografisk cirkel runt vingård/producent. Leveranszoner hanteras under Vinzoner & leverans."
+            : zone
+              ? "Geografisk cirkel för palllogistik."
+              : "Välj zontyp."}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -163,24 +171,28 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="zone_type">Zone Type *</Label>
-            <select
-              id="zone_type"
-              value={formData.zone_type}
-              onChange={(e) =>
-                handleChange(
-                  "zone_type",
-                  e.target.value as "delivery" | "pickup",
-                )
-              }
-              className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-1 text-base transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm aria-[invalid=true]:border-red-500 aria-[invalid=true]:focus-visible:!ring-red-500"
-              required
-            >
-              <option value="delivery">Delivery Zone</option>
-              <option value="pickup">Pickup Zone</option>
-            </select>
-          </div>
+          {pickupOnly ? (
+            <input type="hidden" name="zone_type" value="pickup" />
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="zone_type">Zontyp *</Label>
+              <select
+                id="zone_type"
+                value={formData.zone_type}
+                onChange={(e) =>
+                  handleChange(
+                    "zone_type",
+                    e.target.value as "delivery" | "pickup",
+                  )
+                }
+                className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-1 text-sm"
+                required
+              >
+                <option value="pickup">Upphämtning</option>
+                <option value="delivery">Leverans</option>
+              </select>
+            </div>
+          )}
 
           <div className="space-y-4">
             <div className="space-y-2">

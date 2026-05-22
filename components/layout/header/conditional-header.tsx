@@ -6,9 +6,13 @@ import { Collection } from "@/lib/shopify/types";
 
 interface ConditionalHeaderProps {
   collections: Collection[];
+  isDirtywineSite: boolean;
 }
 
-export function ConditionalHeader({ collections }: ConditionalHeaderProps) {
+export function ConditionalHeader({
+  collections,
+  isDirtywineSite,
+}: ConditionalHeaderProps) {
   const pathname = usePathname();
   const isAdminRoute = pathname.startsWith("/admin");
   const isAccessRequestRoute = pathname === "/access-request";
@@ -37,5 +41,7 @@ export function ConditionalHeader({ collections }: ConditionalHeaderProps) {
     return null;
   }
 
-  return <Header collections={collections} />;
+  return (
+    <Header collections={collections} isDirtywineSite={isDirtywineSite} />
+  );
 }

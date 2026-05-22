@@ -90,12 +90,12 @@ export default function ShippingRegionForm({ region }: ShippingRegionFormProps) 
     <div className="bg-white dark:bg-[#0F0F12] rounded-xl p-6 border border-gray-200 dark:border-[#1F1F23]">
       <div className="mb-6">
         <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-          {region ? "Edit shipping region" : "New shipping region"}
+          {region ? "Redigera fraktregion" : "Ny fraktregion"}
         </h2>
         <p className="text-sm text-gray-500 dark:text-zinc-400 mt-0.5">
           {region
-            ? "Update region details"
-            : "Create a geographic grouping for pallet routing"}
+            ? "Producenter med denna region får gemensam pallrouting vid checkout."
+            : "Efter skapande: koppla producenter i admin → Producers."}
         </p>
       </div>
       <form onSubmit={handleSubmit} className="space-y-6">

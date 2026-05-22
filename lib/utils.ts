@@ -6,14 +6,17 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatPrice(amount: string | number, currencyCode: string) {
+export function formatPrice(
+  amount: string | number,
+  currencyCode: string,
+  intlLocale = "sv-SE",
+) {
   const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
 
   // Round up to nearest whole number
   const roundedAmount = Math.ceil(numAmount);
 
-  // Use Swedish locale for consistent formatting with 0 decimal places
-  return new Intl.NumberFormat("sv-SE", {
+  return new Intl.NumberFormat(intlLocale, {
     style: "currency",
     currency: currencyCode,
     currencyDisplay: "narrowSymbol",

@@ -10,8 +10,10 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Loader } from "../ui/loader";
 import { CartItemCard } from "./cart-item";
-import { formatPrice, priceExclVat } from "@/lib/shopify/utils";
+import { priceExclVat } from "@/lib/shopify/utils";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
+import { useFormatPrice } from "@/lib/hooks/use-format-price";
+import { useTranslations } from "@/lib/hooks/use-translations";
 import { useBodyScrollLock } from "@/lib/hooks/use-body-scroll-lock";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -41,6 +43,8 @@ const CartItems = ({
   isValidating: boolean;
 }) => {
   const { cart } = useCart();
+  const { t } = useTranslations();
+  const formatPrice = useFormatPrice();
   const showExclVat = useB2BPriceMode();
   const totalAmount = cart ? parseFloat(cart.cost.totalAmount.amount) : 0;
   const displayTotal = showExclVat ? priceExclVat(totalAmount) : totalAmount;
@@ -90,8 +94,8 @@ const CartItems = ({
       />
 
       <CartContainer className="flex justify-between px-2 text-sm text-muted-foreground">
-        <span>Products</span>
-        <span>{cart.lines.length} items</span>
+        <span>{t("cart.products")}</span>
+        <span>{t("cart.items", { count: cart.lines.length })}</span>
       </CartContainer>
       <div className="flex flex-col flex-1 min-h-0">
         <div className="relative flex min-h-0 flex-1 flex-col py-4 overflow-x-hidden">
@@ -124,29 +128,29 @@ const CartItems = ({
           {typeof pactPointsBalance === "number" && pactPointsBalance > 0 ? (
             <div className="flex items-center justify-between border-t border-border py-2 mt-2">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-medium">PACT Points</span>
+                <span className="text-xs font-medium">{t("cart.pactPoints")}</span>
               </div>
               <span className="text-xs text-muted-foreground">
-                {pactPointsBalance} available
+                {t("cart.pactPointsAvailable", { balance: pactPointsBalance })}
                 {hasBoostedProducerInCart
-                  ? " · 2× value on boosted producers"
-                  : " · use at checkout"}
+                  ? t("cart.pactPointsBoost")
+                  : t("cart.pactPointsCheckout")}
               </span>
             </div>
           ) : null}
           <div className="flex justify-between items-center pb-1 mb-3 border-b border-muted-foreground/20">
-            <p>Shipping</p>
-            <p className="text-right">Calculated at checkout</p>
+            <p>{t("cart.shipping")}</p>
+            <p className="text-right">{t("cart.shippingAtCheckout")}</p>
           </div>
           <div className="flex justify-between items-center pt-1 pb-1 mb-1.5 text-lg font-semibold">
-            <p>Total</p>
+            <p>{t("cart.total")}</p>
             <div className="text-right">
               <span className="text-base text-foreground block">
                 {formatPrice(displayTotal, cart.cost.totalAmount.currencyCode)}
               </span>
               {showExclVat && (
                 <span className="text-[10px] font-normal text-muted-foreground">
-                  exkl. moms
+                  {t("common.exclVat")}
                 </span>
               )}
             </div>
@@ -173,6 +177,7 @@ const serializeCart = (cart: Cart) => {
 };
 
 export default function CartModal() {
+  const { t } = useTranslations();
   const { cart, isPending } = useCart();
   const [isOpen, setIsOpen] = useState(false);
   const [validations, setValidations] = useState<ProducerValidation[]>([]);
@@ -295,10 +300,10 @@ export default function CartModal() {
                 </div>
                 <div className="flex flex-col flex-1 gap-2 justify-center 2xl:gap-3">
                   <span className="text-lg font-semibold 2xl:text-xl">
-                    Cart is empty
+                    {t("cart.emptyCart")}
                   </span>
                   <p className="text-sm text-muted-foreground hover:underline">
-                    Start shopping to get started
+                    {t("cart.emptyCartHint")}
                   </p>
                 </div>
               </div>
@@ -325,7 +330,7 @@ export default function CartModal() {
   return (
     <>
       <Button
-        aria-label="Open cart"
+        aria-label={t("cart.openCart")}
         onClick={openCart}
         className={`font-semibold cursor-pointer inline-flex items-center justify-center whitespace-nowrap text-base transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border border-transparent text-white shadow-xs h-7 rounded-sm gap-1.5 py-1 px-2 [&_svg:not([class*='size-'])]:size-4 has-[>svg]:pr-1.5 uppercase ${
           hasValidationErrors
@@ -338,11 +343,12 @@ export default function CartModal() {
         {isPending ? (
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 border border-current/40 border-t-current rounded-full animate-spin"></div>
-            <span className="max-md:hidden">cart</span>
+            <span className="max-md:hidden">{t("cart.cartLabel")}</span>
           </div>
         ) : (
           <>
-            <span className="max-md:hidden">cart</span> ({cart.totalQuantity})
+            <span className="max-md:hidden">{t("cart.cartLabel")}</span> (
+            {cart.totalQuantity})
           </>
         )}
       </Button>
@@ -375,26 +381,26 @@ export default function CartModal() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      aria-label="Back to shop"
+                      aria-label={t("cart.backToShopAria")}
                       className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors hover:bg-muted-foreground/10"
                     >
                       <ArrowLeft className="w-4 h-4" />
-                      <span>Shop</span>
+                      <span>{t("cart.backToShop")}</span>
                     </Button>
                   </Link>
 
                   {/* Centered Cart Title */}
-                  <p className="text-2xl font-semibold">Cart</p>
+                  <p className="text-2xl font-semibold">{t("cart.cartTitle")}</p>
 
                   {/* Close Button */}
                   <Button
                     size="sm"
                     variant="ghost"
-                    aria-label="Close cart"
+                    aria-label={t("cart.closeAria")}
                     onClick={closeCart}
                     className="text-muted-foreground hover:text-foreground transition-colors hover:bg-muted-foreground/5"
                   >
-                    Close
+                    {t("cart.close")}
                   </Button>
                 </CartContainer>
 
@@ -417,6 +423,7 @@ function CheckoutButton({
   validations?: ProducerValidation[];
   isValidating?: boolean;
 }) {
+  const { t } = useTranslations();
   const { pending } = useFormStatus();
   const { cart, isPending } = useCart();
   const router = useRouter();
@@ -497,10 +504,10 @@ function CheckoutButton({
             <div className="flex justify-between items-center w-full">
               <span>
                 {isValidating
-                  ? "Validating..."
+                  ? t("cart.validating")
                   : hasValidationErrors
-                    ? "Add more bottles to proceed to checkout"
-                    : "Proceed to Checkout"}
+                    ? t("cart.addMoreBottles")
+                    : t("cart.proceedToCheckout")}
               </span>
               <ArrowRight className="size-6" />
             </div>

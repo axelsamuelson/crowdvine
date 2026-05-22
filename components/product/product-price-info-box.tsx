@@ -2,7 +2,7 @@
 
 import { PriceBreakdown } from "./price-breakdown";
 import { useProductPrice } from "@/lib/hooks/use-product-price";
-import { useMembership } from "@/lib/context/membership-context";
+import { useMembershipDiscountPercent } from "@/lib/hooks/use-membership-discount-percent";
 import { Product } from "@/lib/shopify/types";
 import { useCartSource } from "@/components/cart/cart-source-context";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
@@ -16,12 +16,12 @@ interface ProductPriceInfoBoxProps {
  * Shows price and full breakdown (when priceBreakdown exists). Matches design of other white boxes.
  */
 export function ProductPriceInfoBox({ product }: ProductPriceInfoBoxProps) {
-  const { discountPercentage, loading } = useMembership();
+  const discountPercentage = useMembershipDiscountPercent();
   const { selectedSource } = useCartSource();
   const isB2B = useB2BPriceMode();
   const breakdown = useProductPrice(product, selectedSource);
 
-  const hasMemberDiscount = !loading && discountPercentage > 0;
+  const hasMemberDiscount = discountPercentage > 0;
 
   // No breakdown data: don't render the box (price is already in the first box)
   if (!product.priceBreakdown || !breakdown) {

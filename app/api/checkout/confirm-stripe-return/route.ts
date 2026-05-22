@@ -351,7 +351,9 @@ export async function POST(request: Request) {
         city,
         countryCode,
       };
-      const zones = await determineZones(cart.lines as any, deliveryAddress);
+      const zones = await determineZones(cart.lines as any, deliveryAddress, {
+        preferredDeliveryZoneId: active.defaultDeliveryZoneId,
+      });
       if (zones.noDeliveryZone?.error === "UNSUPPORTED_COUNTRY") {
         return NextResponse.json(
           { success: false, error: CHECKOUT_UNSUPPORTED_COUNTRY_USER_MESSAGE },
