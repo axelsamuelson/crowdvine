@@ -2,14 +2,20 @@
 
 import { useRef } from "react";
 import { LenisProvider } from "./lenis-provider";
-import { CustomCursor } from "./custom-cursor";
 import { HeroSection } from "./sections/hero-section";
 import { ManifestoSection } from "./sections/manifesto-section";
+import { PactStorySections } from "./pact-story-sections";
+import { SavingsSection } from "@/components/invite/SavingsSection";
+import { PalletActivitySection } from "@/components/invite/PalletActivitySection";
+import { WineDiscoverySection } from "@/components/invite/WineDiscoverySection";
 import { InviteWinesSection } from "./sections/invite-wines-section";
+import type { InvitePalletSnapshot } from "@/lib/invite-landing/invite-landing-data";
+import type { Product } from "@/lib/shopify/types";
 import {
   InvitationTypeSection,
   type InvitationFormData,
   type InvitationType,
+  type InviteWineZoneGeoProps,
 } from "./sections/invitation-type-section";
 
 export interface OpusLandingViewProps {
@@ -35,6 +41,14 @@ export interface OpusLandingViewProps {
   extraContent?: React.ReactNode;
   /** Fires once when the user first edits a signup field (analytics). */
   onSignupStarted?: () => void;
+  /** Optional IP geo zone preselect + US hints (consumer invite). */
+  wineZoneGeo?: InviteWineZoneGeoProps;
+  /** Consumer invite: wines + pallet snapshot from page (no fetch in sections). */
+  inviteLandingData?: {
+    products?: Product[];
+    pallet: InvitePalletSnapshot;
+    producerNames: string[];
+  };
 }
 
 /**
@@ -54,6 +68,8 @@ export function OpusLandingView({
   isProducerOnly = false,
   extraContent,
   onSignupStarted,
+  wineZoneGeo,
+  inviteLandingData,
 }: OpusLandingViewProps) {
   const isBusinessOnly =
     allowedTypes.length === 1 && allowedTypes[0] === "business";
@@ -81,12 +97,28 @@ export function OpusLandingView({
   };
 
   return (
-    <div className="invite-opus-page custom-cursor bg-background min-h-screen">
-      <CustomCursor />
+    <div className="invite-opus-page bg-background min-h-screen">
       <LenisProvider>
         <main className="bg-background">
           <HeroSection showDirtyWineLogo={isBusinessOnly} />
           <ManifestoSection isBusinessOnly={isBusinessOnly} isProducerOnly={isProducerOnly} />
+          {!isBusinessOnly && (
+            <>
+              <SavingsSection products={inviteLandingData?.products} />
+              <PalletActivitySection
+                pallet={
+                  inviteLandingData?.pallet ?? {
+                    filled: 143,
+                    capacity: 180,
+                  }
+                }
+                products={inviteLandingData?.products}
+                producerNames={inviteLandingData?.producerNames ?? []}
+              />
+              <WineDiscoverySection products={inviteLandingData?.products} />
+            </>
+          )}
+          {!isBusinessOnly && <PactStorySections />}
           {isBusinessOnly && <InviteWinesSection />}
           <InvitationTypeSection
             allowedTypes={allowedTypes}
@@ -101,6 +133,7 @@ export function OpusLandingView({
             onSubmit={onSubmit}
             submitting={submitting}
             showDirtyWineLogo={isBusinessOnly}
+            wineZoneGeo={wineZoneGeo}
           />
           {extraContent}
         </main>

@@ -1,27 +1,195 @@
-/* Opus theme for invite landing – HSL to match tailwind.config.js (hsl(var(--background))) */
+/* Invite landing: monochrome + warm beige only */
+/* TODO: explicit dark-mode palette not defined; page assumes light invite tokens */
 .invite-opus-page {
-  --background: 270 33% 99%;
-  --foreground: 270 66% 6%;
-  --card: 260 33% 96%;
-  --card-foreground: 270 66% 6%;
-  --popover: 270 33% 99%;
-  --popover-foreground: 270 66% 6%;
-  --primary: 263 69% 42%;
-  --primary-foreground: 270 33% 99%;
-  --secondary: 260 33% 96%;
-  --secondary-foreground: 270 66% 6%;
-  --muted: 260 33% 96%;
-  --muted-foreground: 270 10% 45%;
-  --accent: 270 95% 85%;
-  --accent-foreground: 270 66% 6%;
-  --border: 260 25% 92%;
-  --input: 260 25% 92%;
-  --ring: 263 69% 42%;
-  --lime: 84 91% 80%;
+  --invite-bg: #f8f5f0;
+  --invite-surface: #ffffff;
+  --invite-ink: #111010;
+  --invite-muted: #888078;
+  --invite-border: rgba(17, 16, 16, 0.1);
+  --invite-fill: rgba(17, 16, 16, 0.06);
+
+  /* Map shadcn/Tailwind semantic tokens → invite palette */
+  --background: 40 29% 96%;
+  --foreground: 20 4% 7%;
+  --card: 0 0% 100%;
+  --card-foreground: 20 4% 7%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 20 4% 7%;
+  --primary: 20 4% 7%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 40 18% 92%;
+  --secondary-foreground: 20 4% 7%;
+  --muted: 40 18% 92%;
+  --muted-foreground: 32 9% 50%;
+  --accent: 40 18% 92%;
+  --accent-foreground: 20 4% 7%;
+  --border: 20 4% 7%;
+  --input: 20 4% 7%;
+  --ring: 20 4% 7%;
+
+  background-color: var(--invite-bg);
+  color: var(--invite-ink);
+}
+
+.invite-opus-page .border-border,
+.invite-opus-page .border-border\/80 {
+  border-color: var(--invite-border) !important;
+}
+
+.invite-opus-page .bg-background {
+  background-color: var(--invite-bg) !important;
+}
+
+.invite-opus-page .bg-card {
+  background-color: var(--invite-surface) !important;
+}
+
+.invite-opus-page .bg-muted,
+.invite-opus-page .bg-muted\/40,
+.invite-opus-page .bg-muted\/50,
+.invite-opus-page .bg-muted\/80 {
+  background-color: var(--invite-fill) !important;
+}
+
+.invite-opus-page .bg-secondary,
+.invite-opus-page .bg-secondary\/50 {
+  background-color: var(--invite-fill) !important;
+}
+
+.invite-opus-page .text-foreground {
+  color: var(--invite-ink) !important;
+}
+
+.invite-opus-page .text-muted-foreground {
+  color: var(--invite-muted) !important;
+}
+
+.invite-opus-page .text-primary,
+.invite-opus-page .text-success {
+  color: var(--invite-ink) !important;
+}
+
+.invite-opus-page .bg-primary,
+.invite-opus-page [class*="bg-primary"] {
+  background-color: var(--invite-ink) !important;
+}
+
+.invite-opus-page .border-primary,
+.invite-opus-page [class*="border-primary"] {
+  border-color: var(--invite-border) !important;
+}
+
+.invite-opus-page [class*="bg-primary/"] {
+  background-color: var(--invite-fill) !important;
+}
+
+.invite-opus-page .font-serif {
+  letter-spacing: -0.01em;
+}
+
+.invite-opus-page .invite-eyebrow {
+  color: var(--invite-muted);
+  font-size: 11px;
+  letter-spacing: 0.15em;
+}
+
+.invite-opus-page .invite-manifesto-ghost {
+  color: var(--invite-border);
+}
+
+.invite-opus-page .invite-pallet-yours {
+  background-color: var(--invite-fill) !important;
+  border: 1px dashed var(--invite-border);
+}
+
+.invite-opus-page .invite-pallet-reserved {
+  background-color: var(--invite-ink) !important;
+}
+
+.invite-opus-page .invite-pallet-open {
+  background-color: var(--invite-fill) !important;
+}
+
+/* Progress: track = fill, bar = ink */
+.invite-opus-page [role="progressbar"] {
+  background-color: var(--invite-fill) !important;
+}
+
+.invite-opus-page [role="progressbar"] > div {
+  background-color: var(--invite-ink) !important;
+}
+
+/* Form controls: always light on invite landing (avoid dark-mode black fields). */
+.invite-opus-page .invite-form-control {
+  background-color: var(--invite-surface) !important;
+  color: var(--invite-ink) !important;
+  border-color: var(--invite-border) !important;
+}
+
+.invite-opus-page .invite-form-control::placeholder {
+  color: var(--invite-muted) !important;
+}
+
+/* Radix portals select menu to <body> — style by class, not .invite-opus-page ancestor. */
+.invite-select-content {
+  background-color: var(--invite-surface) !important;
+  color: var(--invite-ink) !important;
+  border-color: var(--invite-border) !important;
+}
+
+.invite-select-content [data-slot="select-item"] {
+  color: var(--invite-ink) !important;
+}
+
+.invite-select-content [data-slot="select-item"][data-highlighted],
+.invite-select-content [data-slot="select-item"]:focus {
+  background-color: var(--invite-fill) !important;
+  color: var(--invite-ink) !important;
+}
+
+.invite-opus-page [data-slot="select-trigger"].invite-form-control,
+.invite-opus-page [data-slot="select-trigger"].invite-form-control [data-slot="select-value"] {
+  color: var(--invite-ink) !important;
+}
+
+.invite-opus-page
+  [data-slot="select-trigger"].invite-form-control[data-placeholder]
+  [data-slot="select-value"] {
+  color: var(--invite-muted) !important;
 }
 
 .invite-opus-page .font-serif {
   font-family: var(--font-instrument-serif), "Instrument Serif", "Georgia", serif;
+}
+
+.invite-pact-story {
+  --invite-story-accent: var(--invite-ink);
+}
+
+@keyframes invite-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-100% - var(--gap, 1rem)));
+  }
+}
+
+@keyframes invite-marquee-vertical {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(calc(-100% - var(--gap, 1rem)));
+  }
+}
+
+.invite-opus-page .animate-invite-marquee {
+  animation: invite-marquee var(--duration, 55s) linear infinite;
+}
+
+.invite-opus-page .animate-invite-marquee-vertical {
+  animation: invite-marquee-vertical var(--duration, 55s) linear infinite;
 }
 
 /* Serrated ticket edge (opus pricing cards) */
@@ -33,31 +201,22 @@
   mask-repeat: no-repeat;
 }
 
-.invite-opus-page .bg-lime {
-  background-color: hsl(var(--lime));
-}
-
-/* Your invitation section: use platform font and colors (match main app) */
+/* Registration: continuous with page, thin rule only */
 .invite-opus-page .invitation-section-platform {
-  --foreground: 223.81 0% 4%;
-  --muted-foreground: 223.81 0% 45%;
-  --background: 223.81 0% 94%;
-  --secondary: 223.81 0% 96%;
-  --secondary-foreground: 223.81 0% 9%;
-  --border: 223.81 0% 74%;
-  --input: 223.81 0% 90%;
-  --primary: 223.81 0% 9%;
-  --primary-foreground: 223.81 0% 98%;
-  --muted: 223.81 0% 88%;
-  --accent: 223.81 0% 90%;
-  --accent-foreground: 223.81 0% 9%;
-  --ring: 223.81 0% 63%;
+  background-color: var(--invite-bg);
+  border-top: 0.5px solid var(--invite-border);
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
-/* Custom cursor on invite opus page */
-.invite-opus-page.custom-cursor {
-  cursor: none;
+/* Membership level in heading: only high-contrast element */
+.invite-opus-page .invitation-level-name {
+  display: inline-block;
+  background: var(--invite-ink);
+  color: var(--invite-surface) !important;
+  padding: 0.12em 0.5em;
+  border-radius: 2px;
+  letter-spacing: 0.06em;
+  font-weight: 600;
 }
 
 /* Lenis smooth scroll */
@@ -288,12 +447,7 @@
   -webkit-mask-image: linear-gradient(to right, transparent, black, transparent);
 }
 
-/* Invitation heading – membership level name in level color */
-.invite-opus-page .invitation-level-name.invitation-level-basic { color: #94a3b8; }
-.invite-opus-page .invitation-level-name.invitation-level-brons { color: #818cf8; }
-.invite-opus-page .invitation-level-name.invitation-level-silver { color: #34d399; }
-.invite-opus-page .invitation-level-name.invitation-level-guld { color: #f0dfc4; }
-.invite-opus-page .invitation-level-name.invitation-level-privilege { color: #c9a0a8; }
+/* Level-specific name colors removed — badge uses invite-ink only */
 
 /* Membership cards grid – metallic cards in different colors */
 .invite-opus-page .membership-cards-grid {
@@ -321,67 +475,43 @@
   overflow: visible;
 }
 
-/* Basic – mörk slate */
-.invite-opus-page .membership-card-wrapper.variant-basic {
-  --electric-border-color: #475569;
-  --metal-bright: #64748b;
-  --metal-medium: #334155;
-  --glow-color: rgba(71, 85, 105, 0.5);
-  --glow-color-2: rgba(51, 65, 85, 0.3);
-  --border-outer-color: rgba(71, 85, 105, 0.6);
-  --border-glow-color: rgba(71, 85, 105, 0.7);
-}
-
-/* Plus – mörk indigo */
-.invite-opus-page .membership-card-wrapper.variant-brons {
-  --electric-border-color: #3730a3;
-  --metal-bright: #4f46e5;
-  --metal-medium: #1e1b4b;
-  --glow-color: rgba(55, 48, 163, 0.5);
-  --glow-color-2: rgba(30, 27, 75, 0.3);
-  --border-outer-color: rgba(55, 48, 163, 0.65);
-  --border-glow-color: rgba(55, 48, 163, 0.75);
-}
-
-/* Premium – mörk grön */
-.invite-opus-page .membership-card-wrapper.variant-silver {
-  --electric-border-color: #065f46;
-  --metal-bright: #047857;
-  --metal-medium: #022c22;
-  --glow-color: rgba(6, 95, 70, 0.55);
-  --glow-color-2: rgba(2, 44, 34, 0.3);
-  --border-outer-color: rgba(6, 95, 70, 0.65);
-  --border-glow-color: rgba(6, 95, 70, 0.75);
-}
-
-/* Priority – #E4CAA0 (mindre glow) */
-.invite-opus-page .membership-card-wrapper.variant-guld {
-  --electric-border-color: #E4CAA0;
-  --metal-bright: #f0dfc4;
-  --metal-medium: #c9a86c;
-  --glow-color: rgba(228, 202, 160, 0.28);
-  --glow-color-2: rgba(228, 202, 160, 0.12);
-  --border-outer-color: rgba(228, 202, 160, 0.65);
-  --border-glow-color: rgba(228, 202, 160, 0.75);
-}
-
-/* Privilege – #2F0E15 (större glow) */
+/* All membership variants: desaturated warm gray metal */
+.invite-opus-page .membership-card-wrapper.variant-basic,
+.invite-opus-page .membership-card-wrapper.variant-brons,
+.invite-opus-page .membership-card-wrapper.variant-silver,
+.invite-opus-page .membership-card-wrapper.variant-guld,
 .invite-opus-page .membership-card-wrapper.variant-privilege {
-  --electric-border-color: #2F0E15;
-  --metal-bright: #481620;
-  --metal-medium: #1a080b;
-  --glow-color: rgba(47, 14, 21, 0.8);
-  --glow-color-2: rgba(47, 14, 21, 0.5);
-  --border-outer-color: rgba(47, 14, 21, 0.8);
-  --border-glow-color: rgba(47, 14, 21, 0.9);
+  --electric-border-color: #e8e4dc;
+  --metal-bright: #f0ece4;
+  --metal-medium: #d8d4cc;
+  --glow-color: rgba(17, 16, 16, 0.06);
+  --glow-color-2: rgba(17, 16, 16, 0.03);
+  --border-outer-color: var(--invite-border);
+  --border-glow-color: #e8e4dc;
+  --color-neutral-900: #e8e4dc;
+  --gradient-color: rgba(17, 16, 16, 0.04);
 }
 
-.invite-opus-page .membership-card-wrapper.variant-privilege .membership-card-bg-glow {
-  opacity: 0.65;
+.invite-opus-page .membership-card-wrapper .membership-card-container {
+  background: linear-gradient(135deg, #e8e4dc, #f0ece4) !important;
+  box-shadow: none !important;
 }
 
-.invite-opus-page .membership-card-wrapper.variant-guld .membership-card-bg-glow {
-  opacity: 0.3;
+.invite-opus-page .membership-card-wrapper .membership-card-content,
+.invite-opus-page .membership-card-wrapper .membership-card-description,
+.invite-opus-page .membership-card-wrapper .membership-card-quota,
+.invite-opus-page .membership-card-wrapper .membership-card-engraved-name {
+  color: var(--invite-ink) !important;
+  text-shadow: none;
+}
+
+.invite-opus-page .membership-card-wrapper .membership-card-logo {
+  filter: none !important;
+}
+
+.invite-opus-page .membership-card-wrapper .membership-card-bg-glow {
+  opacity: 0.15;
+  background: linear-gradient(-30deg, #f0ece4, transparent, #e8e4dc) !important;
 }
 
 .invite-opus-page .membership-card-wrapper .membership-card-svg {

@@ -9,6 +9,20 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { OpusLandingView } from "@/components/invite-landing/opus-landing-view";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { trackInvitationValidationClientFailure } from "@/lib/analytics/invitation-client-helpers";
+import {
+  matchGeoZone,
+  type DetectedLocation,
+  type GeoZoneMatchRow,
+} from "@/lib/geo-zones/detect-zone";
+import type { EligibleGeoZoneRow } from "@/components/market/invite-wine-zone-field";
+import type { Product } from "@/lib/shopify/types";
+import {
+  pickInvitePallet,
+  uniqueProducerNames,
+  type InvitePalletSnapshot,
+  INVITE_PALLET_DISPLAY_CAPACITY,
+  INVITE_PALLET_PLACEHOLDER_FILLED,
+} from "@/lib/invite-landing/invite-landing-data";
 
 export type InvitationPageType = "consumer" | "producer" | "business";
 
@@ -49,6 +63,19 @@ export default function InviteSignupPage() {
   });
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [registeredName, setRegisteredName] = useState<string | null>(null);
+  const [detectedLocation, setDetectedLocation] =
+    useState<DetectedLocation | null>(null);
+  const [eligibleZones, setEligibleZones] = useState<EligibleGeoZoneRow[]>([]);
+  const [zoneAutoDetected, setZoneAutoDetected] = useState(false);
+  const [zoneManuallyChanged, setZoneManuallyChanged] = useState(false);
+  const [zonesLoaded, setZonesLoaded] = useState(false);
+  const [inviteProducts, setInviteProducts] = useState<Product[] | undefined>(
+    undefined,
+  );
+  const [invitePallet, setInvitePallet] = useState<InvitePalletSnapshot>({
+    filled: INVITE_PALLET_PLACEHOLDER_FILLED,
+    capacity: INVITE_PALLET_DISPLAY_CAPACITY,
+  });
 
   const code = params.code as string;
 
@@ -72,6 +99,78 @@ export default function InviteSignupPage() {
       active_geo_zone_id: prev.active_geo_zone_id || id,
     }));
   }, [invitation?.defaultGeoZoneId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/geo-zones/eligible", { cache: "no-store" });
+        const data = (await res.json()) as { geoZones?: EligibleGeoZoneRow[] };
+        if (!cancelled) {
+          setEligibleZones(Array.isArray(data.geoZones) ? data.geoZones : []);
+        }
+      } catch {
+        if (!cancelled) setEligibleZones([]);
+      } finally {
+        if (!cancelled) setZonesLoaded(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!invitation || !zonesLoaded) return;
+    if (invitation.defaultGeoZoneId?.trim()) return;
+    if (!detectedLocation) return;
+    const hasGeo =
+      detectedLocation.country ||
+      detectedLocation.city ||
+      detectedLocation.region;
+    if (!hasGeo) return;
+
+    const matchedId = matchGeoZone(
+      eligibleZones as GeoZoneMatchRow[],
+      detectedLocation,
+    );
+    if (!matchedId) return;
+
+    setZoneAutoDetected(true);
+    setFormData((prev) => {
+      if (prev.active_geo_zone_id?.trim()) return prev;
+      return { ...prev, active_geo_zone_id: matchedId };
+    });
+  }, [invitation, zonesLoaded, eligibleZones, detectedLocation]);
+
+  useEffect(() => {
+    if (!invitation) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [productsRes, palletRes] = await Promise.all([
+          fetch("/api/crowdvine/products?limit=24", { cache: "no-store" }),
+          fetch("/api/pallet-data", { cache: "no-store" }),
+        ]);
+        if (cancelled) return;
+        if (productsRes.ok) {
+          const list = (await productsRes.json()) as Product[];
+          setInviteProducts(Array.isArray(list) ? list : []);
+        }
+        if (palletRes.ok) {
+          const rows = (await palletRes.json()) as Parameters<
+            typeof pickInvitePallet
+          >[0];
+          setInvitePallet(pickInvitePallet(rows));
+        }
+      } catch {
+        /* placeholders remain */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [invitation]);
 
   const validateInvitation = async () => {
     try {
@@ -99,6 +198,9 @@ export default function InviteSignupPage() {
           return;
         }
         setInvitation(inv);
+        if (data.detectedLocation) {
+          setDetectedLocation(data.detectedLocation as DetectedLocation);
+        }
       } else {
         trackInvitationValidationClientFailure(
           String(data.error || "Invalid invitation code"),
@@ -268,6 +370,23 @@ export default function InviteSignupPage() {
           metadata: { surface: "i_consumer" },
         })
       }
+      wineZoneGeo={{
+        zones: eligibleZones,
+        detectedLocation,
+        zoneAutoDetected,
+        zoneManuallyChanged,
+        showUsNoMatchHint:
+          detectedLocation?.country?.trim().toUpperCase() === "US" &&
+          !invitation.defaultGeoZoneId?.trim() &&
+          zonesLoaded &&
+          !zoneAutoDetected,
+        onZoneManualChange: () => setZoneManuallyChanged(true),
+      }}
+      inviteLandingData={{
+        products: inviteProducts,
+        pallet: invitePallet,
+        producerNames: uniqueProducerNames(inviteProducts),
+      }}
     />
   );
 }

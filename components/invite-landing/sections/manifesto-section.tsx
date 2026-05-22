@@ -70,11 +70,11 @@ export function ManifestoSection({
         className={`relative flex items-center justify-center bg-background px-6 ${paddingClass}`}
       >
         <div className="max-w-5xl mx-auto relative">
-          <h2 className="text-2xl md:text-4xl lg:text-5xl font-sans leading-tight text-center text-foreground/10">
+          <h2 className="text-2xl md:text-4xl lg:text-5xl font-sans leading-tight text-center invite-manifesto-ghost">
             {businessOrCustomText}
           </h2>
 
-          <h2 className="absolute inset-0 text-2xl md:text-4xl lg:text-5xl font-sans leading-tight text-center text-black flex flex-col items-center justify-center gap-0">
+          <h2 className="absolute inset-0 text-2xl md:text-4xl lg:text-5xl font-sans leading-tight text-center text-foreground flex flex-col items-center justify-center gap-0">
             <motion.span className="block" style={{ clipPath: clipPathBusiness }}>
               {businessOrCustomText}
             </motion.span>
@@ -94,7 +94,7 @@ export function ManifestoSection({
       className="relative min-h-[80vh] flex items-center justify-center bg-background px-6 py-32"
     >
       <div className="max-w-5xl mx-auto relative">
-        <h2 className="text-2xl md:text-4xl lg:text-5xl font-sans leading-tight text-center text-foreground/10">
+        <h2 className="text-2xl md:text-4xl lg:text-5xl font-sans leading-tight text-center invite-manifesto-ghost">
           {isProducerOnly ? (
             <>
               {line1}
@@ -112,7 +112,7 @@ export function ManifestoSection({
           )}
         </h2>
 
-        <h2 className="absolute inset-0 text-2xl md:text-4xl lg:text-5xl font-sans leading-tight text-center text-black flex flex-col items-center justify-center gap-0">
+        <h2 className="absolute inset-0 text-2xl md:text-4xl lg:text-5xl font-sans leading-tight text-center text-foreground flex flex-col items-center justify-center gap-0">
           {isProducerOnly ? (
             <>
               <motion.span className="block" style={{ clipPath: clipPath1 }}>

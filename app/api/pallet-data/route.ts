@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { evaluateCompletionRules } from "@/lib/pallet-completion-rules";
 import { getAppUrl } from "@/lib/app-url";
+import { sumReservedBottlesOnPallet } from "@/lib/pallet-fill-count";
 
 async function fetchExchangeRate(origin: string, from: string) {
   if (!from || from === "SEK") return 1.0;
@@ -30,9 +31,9 @@ export async function GET(request: NextRequest) {
       .select(
         `
         id,
-        from_zone_id,
-        to_zone_id,
-        capacity_bottles,
+        delivery_zone_id,
+        pickup_zone_id,
+        bottle_capacity,
         status
       `,
       )
@@ -46,35 +47,37 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Calculate total bottles for each pallet and fetch zone names
     const palletsWithData = await Promise.all(
-      (pallets || []).map(async (pallet: any) => {
-        // Get zone names
-        const { data: fromZone } = await sb
-          .from("pallet_zones")
-          .select("name")
-          .eq("id", pallet.from_zone_id)
-          .maybeSingle();
-
-        const { data: toZone } = await sb
-          .from("pallet_zones")
-          .select("name")
-          .eq("id", pallet.to_zone_id)
-          .maybeSingle();
-
-        // Count total bottles on this pallet
-        const { count } = await sb
-          .from("order_reservation_items")
-          .select("*", { count: "exact", head: true })
-          .eq("pallet_id", pallet.id);
-
-        const totalBottles = count || 0;
+      (pallets || []).map(async (pallet: {
+        id: string;
+        delivery_zone_id: string | null;
+        pickup_zone_id: string | null;
+        bottle_capacity: number | null;
+        status: string | null;
+      }) => {
+        const [pickupZone, deliveryZone, totalBottles] = await Promise.all([
+          pallet.pickup_zone_id
+            ? sb
+                .from("pallet_zones")
+                .select("name")
+                .eq("id", pallet.pickup_zone_id)
+                .maybeSingle()
+            : Promise.resolve({ data: null }),
+          pallet.delivery_zone_id
+            ? sb
+                .from("pallet_zones")
+                .select("name")
+                .eq("id", pallet.delivery_zone_id)
+                .maybeSingle()
+            : Promise.resolve({ data: null }),
+          sumReservedBottlesOnPallet(pallet.id),
+        ]);
 
         return {
           id: pallet.id,
-          from_zone_name: fromZone?.name || "Unknown",
-          to_zone_name: toZone?.name || "Unknown",
-          capacity_bottles: pallet.capacity_bottles || 720,
+          from_zone_name: pickupZone.data?.name || "Unknown",
+          to_zone_name: deliveryZone.data?.name || "Unknown",
+          capacity_bottles: pallet.bottle_capacity || 720,
           total_bottles_on_pallet: totalBottles,
           status: pallet.status,
         };
