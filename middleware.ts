@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { isPlatformAdminProfile } from "@/lib/auth/platform-admin-profile";
+import { isStaleRefreshTokenError } from "@/lib/auth/session-errors";
+import { isPublicAppPath } from "@/lib/auth/public-paths";
 import { isDirtywineHost } from "@/lib/b2b-site";
+import { createClient as createSupabaseMiddlewareClient } from "@/utils/supabase/middleware";
 
 export async function middleware(req: NextRequest) {
   try {
@@ -35,32 +37,7 @@ async function runMiddleware(req: NextRequest) {
     return nextWithPathname(req);
   }
 
-  // Offentliga paths (UI oförändrad, bara backend-gate)
-  const PUBLIC = [
-    "/log-in",
-    "/signup",
-    "/invite-signup",
-    "/code-signup",
-    "/access-request",
-    "/access-pending",
-    "/i",
-    "/ib",
-    "/b",
-    "/p",
-    "/c",
-    "/profile",
-    "/pallet",
-    "/reset-password",
-    "/auth/callback",
-    "/auth/auth-code-error",
-    "/forgot-password",
-    "/tasting", // Allow tasting pages for guests
-    "/api/stripe/webhook",
-    "/api/cron",
-  ];
-  const isPublic = PUBLIC.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`),
-  );
+  const isPublic = isPublicAppPath(pathname);
 
   // OAuth discovery (RFC 8414, RFC 9728) and MCP API — bypass Supabase session / membership gate.
   // /.well-known/* includes oauth-authorization-server and oauth-protected-resource/...
@@ -73,49 +50,33 @@ async function runMiddleware(req: NextRequest) {
   )
     return nextWithPathname(req);
 
-  const res = nextWithPathname(req);
-  const supabase = createServerClient(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      cookies: {
-        get: (name) => req.cookies.get(name)?.value,
-        set: (name, value, options) =>
-          res.cookies.set({ name, value, ...options }),
-        remove: (name, options) =>
-          res.cookies.set({ name, value: "", ...options, maxAge: 0 }),
-      },
-    },
+  if (isPublic) {
+    return nextWithPathname(req);
+  }
+
+  const { supabase, response: res } = createSupabaseMiddlewareClient(
+    req,
+    pathname,
   );
 
-  // Log cookie information for debugging
-  const cookieNames = Array.from(req.cookies.getAll().map((c) => c.name));
-  console.log("🍪 MIDDLEWARE: Cookie info:", {
-    hasAuthCookie: !!req.cookies.get("sb-access-token"),
-    hasRefreshCookie: !!req.cookies.get("sb-refresh-token"),
-    hasAdminAuthCookie: !!req.cookies.get("admin-auth"),
-    hasAdminEmailCookie: !!req.cookies.get("admin-email"),
-    adminEmailValue: req.cookies.get("admin-email")?.value,
-    cookieNames: cookieNames,
-  });
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  console.log("🔍 MIDDLEWARE: Request details:", {
-    pathname,
-    isPublic,
-    hasUser: !!user,
-    userEmail: user?.email,
-    userAgent: req.headers.get("user-agent")?.substring(0, 50),
-  });
+  let user: Awaited<
+    ReturnType<typeof supabase.auth.getUser>
+  >["data"]["user"] = null;
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError) {
+    if (isStaleRefreshTokenError(userError)) {
+      await supabase.auth.signOut();
+      return res;
+    }
+    console.warn("MIDDLEWARE: auth.getUser failed:", userError.message);
+  } else {
+    user = userData.user;
+  }
 
   const host = req.nextUrl.hostname.toLowerCase();
   const onDirtywineSite = isDirtywineHost(host, req.nextUrl.searchParams);
 
-  if (!isPublic) {
-    const adminAuthCookie = req.cookies.get("admin-auth")?.value;
+  const adminAuthCookie = req.cookies.get("admin-auth")?.value;
     const adminEmailCookie = req.cookies.get("admin-email")?.value?.trim();
     const isAdminPath = pathname.startsWith("/admin");
 
@@ -220,11 +181,10 @@ async function runMiddleware(req: NextRequest) {
       return NextResponse.redirect(ask);
     }
 
-    console.log(
-      "✅ MIDDLEWARE: Access granted, allowing request to:",
-      pathname,
-    );
-  }
+  console.log(
+    "✅ MIDDLEWARE: Access granted, allowing request to:",
+    pathname,
+  );
 
   return res;
 }

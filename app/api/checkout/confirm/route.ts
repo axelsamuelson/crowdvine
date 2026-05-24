@@ -42,6 +42,7 @@ import {
 import { checkAndMintMilestoneVouchers } from "@/lib/membership/milestone-vouchers";
 import { tryActivateReferralOnFirstOrder } from "@/lib/referral/activate-referral-on-first-order";
 import { stripe } from "@/lib/stripe";
+import { resolvePaymentMethodDetailsFromId } from "@/lib/stripe/resolve-payment-method-details";
 import { calculateCartShippingCost } from "@/lib/shipping-calculations";
 import {
   CHECKOUT_UNSUPPORTED_COUNTRY_USER_MESSAGE,
@@ -1282,17 +1283,41 @@ export async function POST(request: Request) {
     }
     const [primaryReservationId, ...siblingPayIds] = payIds;
 
+    const paymentMethodDetails = stripePaymentMethodId
+      ? await resolvePaymentMethodDetailsFromId(stripePaymentMethodId)
+      : {
+          payment_method_type: null,
+          payment_method_brand: null,
+          payment_method_last4: null,
+        };
+
     const siblingPayUpdate =
       intentType === "setup_intent"
         ? {
             payment_method_id: stripePaymentMethodId,
             payment_mode: "setup_intent" as const,
             payment_status: "pending" as const,
+            ...(paymentMethodDetails.payment_method_type
+              ? { payment_method_type: paymentMethodDetails.payment_method_type }
+              : {}),
+            ...(paymentMethodDetails.payment_method_brand
+              ? { payment_method_brand: paymentMethodDetails.payment_method_brand }
+              : {}),
+            ...(paymentMethodDetails.payment_method_last4
+              ? { payment_method_last4: paymentMethodDetails.payment_method_last4 }
+              : {}),
           }
         : {
             payment_method_id: stripePaymentMethodId,
             payment_mode: "payment_intent" as const,
             payment_status: "paid" as const,
+            payment_method_type: paymentMethodDetails.payment_method_type ?? ("card" as const),
+            ...(paymentMethodDetails.payment_method_brand
+              ? { payment_method_brand: paymentMethodDetails.payment_method_brand }
+              : {}),
+            ...(paymentMethodDetails.payment_method_last4
+              ? { payment_method_last4: paymentMethodDetails.payment_method_last4 }
+              : {}),
           };
 
     const primaryPayUpdate =

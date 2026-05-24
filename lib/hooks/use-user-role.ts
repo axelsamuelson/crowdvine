@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { isStaleRefreshTokenError } from "@/lib/auth/session-errors";
 import { createClient } from "@/utils/supabase/client";
 
 export type UserRole = "user" | "producer" | "admin";
@@ -27,7 +28,12 @@ export function useUserRole(): UserRoleState {
         if (mounted) setState((s) => ({ ...s, loading: true }));
         const {
           data: { user },
+          error: authError,
         } = await supabase.auth.getUser();
+
+        if (authError && isStaleRefreshTokenError(authError)) {
+          await supabase.auth.signOut({ scope: "local" });
+        }
 
         if (!user) {
           if (mounted)

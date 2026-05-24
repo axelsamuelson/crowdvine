@@ -4,11 +4,15 @@ import { resolveShoppingContext } from "@/lib/shopping-context/resolve";
 import type { ShoppingContext } from "@/lib/shopping-context/types";
 import { getCurrentUser } from "@/lib/auth";
 
-export async function getShoppingContextFromRequest(): Promise<ShoppingContext> {
+export async function getShoppingContextFromRequest(options?: {
+  skipUser?: boolean;
+}): Promise<ShoppingContext> {
   const h = await headers();
   const cookieStore = await cookies();
   const host = h.get("host") ?? null;
-  const user = await getCurrentUser().catch(() => null);
+  const user = options?.skipUser
+    ? null
+    : await getCurrentUser().catch(() => null);
 
   return resolveShoppingContext({
     userId: user?.id ?? null,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { resolvePaymentMethodDetailsFromId } from "@/lib/stripe/resolve-payment-method-details";
 
 function paymentIntentLatestChargeId(
   paymentIntent: Stripe.PaymentIntent,
@@ -64,6 +65,18 @@ async function handlePaymentIntentSucceededWebhook(
   const supabase = getSupabaseAdmin();
   const chargeId = paymentIntentLatestChargeId(paymentIntent);
 
+  const pmId =
+    typeof paymentIntent.payment_method === "string"
+      ? paymentIntent.payment_method
+      : null;
+  const paymentMethodDetails = pmId
+    ? await resolvePaymentMethodDetailsFromId(pmId)
+    : {
+        payment_method_type: null,
+        payment_method_brand: null,
+        payment_method_last4: null,
+      };
+
   const { error: updateError } = await supabase
     .from("order_reservations")
     .update({
@@ -71,6 +84,15 @@ async function handlePaymentIntentSucceededWebhook(
       payment_intent_id: paymentIntent.id,
       status: "confirmed",
       ...(chargeId ? { charge_id: chargeId } : {}),
+      ...(paymentMethodDetails.payment_method_type
+        ? { payment_method_type: paymentMethodDetails.payment_method_type }
+        : {}),
+      ...(paymentMethodDetails.payment_method_brand
+        ? { payment_method_brand: paymentMethodDetails.payment_method_brand }
+        : {}),
+      ...(paymentMethodDetails.payment_method_last4
+        ? { payment_method_last4: paymentMethodDetails.payment_method_last4 }
+        : {}),
     })
     .eq("id", reservationId);
 

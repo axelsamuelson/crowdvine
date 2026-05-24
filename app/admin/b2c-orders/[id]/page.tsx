@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { resolvePaymentMethodDetailsFromId } from "@/lib/stripe/resolve-payment-method-details";
 import ReservationEditForm from "@/components/admin/reservation-edit-form";
 
 export const metadata = {
@@ -49,6 +50,17 @@ export default async function B2cOrderEditPage({
 
   if (error || !reservation) {
     notFound();
+  }
+
+  if (
+    !reservation.payment_method_last4 &&
+    typeof reservation.payment_method_id === "string" &&
+    reservation.payment_method_id.trim()
+  ) {
+    const paymentMethodDetails = await resolvePaymentMethodDetailsFromId(
+      reservation.payment_method_id,
+    );
+    Object.assign(reservation, paymentMethodDetails);
   }
 
   // Get available zones for dropdowns

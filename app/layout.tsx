@@ -39,6 +39,7 @@ import { getIsDirtywineSiteFromHeaders } from "@/lib/b2b-site-server";
 import { B2BModeProvider } from "@/lib/context/b2b-mode-context";
 import { ShoppingContextProvider } from "@/lib/context/shopping-context-provider";
 import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
+import { isPublicAppPath } from "@/lib/auth/public-paths";
 import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -105,7 +106,9 @@ export default async function RootLayout({
   const ssrPathname = requestHeaders.get("x-pathname")?.trim() || "/";
   let shoppingContext = fallbackShoppingContext();
   try {
-    shoppingContext = await getShoppingContextFromRequest();
+    shoppingContext = await getShoppingContextFromRequest({
+      skipUser: isPublicAppPath(ssrPathname),
+    });
   } catch (error) {
     console.warn("Failed to resolve shopping context in layout:", error);
   }

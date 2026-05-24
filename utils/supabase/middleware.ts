@@ -1,12 +1,28 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
 
-export function createClient(request: NextRequest) {
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
+function requestHeadersWithPathname(
+  request: NextRequest,
+  pathname?: string,
+): Headers {
+  const headers = new Headers(request.headers);
+  if (pathname) {
+    headers.set("x-pathname", pathname);
+  }
+  return headers;
+}
+
+function nextWithForwardedCookies(
+  request: NextRequest,
+  pathname?: string,
+): NextResponse {
+  return NextResponse.next({
+    request: { headers: requestHeadersWithPathname(request, pathname) },
   });
+}
+
+export function createClient(request: NextRequest, pathname?: string) {
+  let response = nextWithForwardedCookies(request, pathname);
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,11 +38,7 @@ export function createClient(request: NextRequest) {
             value,
             ...options,
           });
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          });
+          response = nextWithForwardedCookies(request, pathname);
           response.cookies.set({
             name,
             value,
@@ -39,11 +51,7 @@ export function createClient(request: NextRequest) {
             value: "",
             ...options,
           });
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          });
+          response = nextWithForwardedCookies(request, pathname);
           response.cookies.set({
             name,
             value: "",

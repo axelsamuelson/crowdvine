@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { isStaleRefreshTokenError } from "@/lib/auth/session-errors";
 
 // Auth roles
 export type UserRole = "admin" | "producer" | "user";
@@ -51,12 +52,15 @@ export async function getCurrentUser(): Promise<User | null> {
       data: { user },
       error,
     } = await supabaseServer.auth.getUser();
-    if (error || !user) {
-      console.log("Auth error or no user:", error);
+    if (error) {
+      if (isStaleRefreshTokenError(error)) {
+        await supabaseServer.auth.signOut();
+      }
       return null;
     }
-
-    console.log("User found in auth:", user.id);
+    if (!user) {
+      return null;
+    }
 
     // Hämta user profile med role
     const { data: profile, error: profileError } = await supabaseServer
@@ -66,11 +70,8 @@ export async function getCurrentUser(): Promise<User | null> {
       .single();
 
     if (profileError) {
-      console.log("Profile fetch error:", profileError);
       return null;
     }
-
-    console.log("Profile found:", profile);
 
     return {
       id: user.id,

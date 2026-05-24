@@ -1,3 +1,4 @@
+import { isStaleRefreshTokenError } from "@/lib/auth/session-errors";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export type EventType =
@@ -116,10 +117,24 @@ export class AnalyticsTracker {
     try {
       const {
         data: { user },
+        error: authError,
       } = await supabase.auth.getUser();
-      userId = user?.id ?? null;
+      if (authError) {
+        if (isStaleRefreshTokenError(authError)) {
+          await supabase.auth.signOut({ scope: "local" });
+        } else if (process.env.NODE_ENV === "development") {
+          console.warn("[analytics] auth.getUser:", authError.message);
+        }
+      } else {
+        userId = user?.id ?? null;
+      }
     } catch (e) {
-      if (!isLikelyNetworkFailure(e) && process.env.NODE_ENV === "development") {
+      if (isStaleRefreshTokenError(e)) {
+        await supabase.auth.signOut({ scope: "local" });
+      } else if (
+        !isLikelyNetworkFailure(e) &&
+        process.env.NODE_ENV === "development"
+      ) {
         console.warn("[analytics] auth.getUser:", e);
       }
     }

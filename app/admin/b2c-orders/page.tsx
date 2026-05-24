@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  formatPaymentMethodSummary,
+} from "@/lib/stripe/payment-method-display";
+import {
   Calendar,
   Clock,
   CheckCircle,
@@ -30,6 +33,9 @@ interface AdminReservationListRow {
   total_sek?: number | null;
   total_bottles?: number | null;
   payment_mode?: string | null;
+  payment_method_type?: string | null;
+  payment_method_brand?: string | null;
+  payment_method_last4?: string | null;
   checkout_group_id?: string | null;
   cart_id?: string | null;
   pallet_id?: string | null;
@@ -465,13 +471,28 @@ export default function B2cOrdersPage() {
                           : "—"}
                       </td>
                       <td className="p-3">
-                        <span
-                          className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${
-                            paymentBadgeClass(reservation.payment_status)
-                          }`}
-                        >
-                          {formatPaymentStatus(reservation.payment_status)}
-                        </span>
+                        <div className="flex flex-col gap-1 items-start">
+                          <span
+                            className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                              paymentBadgeClass(reservation.payment_status)
+                            }`}
+                          >
+                            {formatPaymentStatus(reservation.payment_status)}
+                          </span>
+                          {formatPaymentMethodSummary({
+                            type: reservation.payment_method_type,
+                            brand: reservation.payment_method_brand,
+                            last4: reservation.payment_method_last4,
+                          }) ? (
+                            <span className="text-[10px] text-gray-500 dark:text-zinc-400">
+                              {formatPaymentMethodSummary({
+                                type: reservation.payment_method_type,
+                                brand: reservation.payment_method_brand,
+                                last4: reservation.payment_method_last4,
+                              })}
+                            </span>
+                          ) : null}
+                        </div>
                       </td>
                       <td className="p-3">
                         <div className="flex flex-col gap-1 items-start">

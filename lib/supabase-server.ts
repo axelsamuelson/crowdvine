@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { isStaleRefreshTokenError } from "@/lib/auth/session-errors";
 
 interface CookieOptions {
   maxAge?: number;
@@ -63,7 +64,9 @@ export async function getCurrentUser() {
   } = await supabase.auth.getUser();
 
   if (error) {
-    console.error("Error getting current user:", error);
+    if (isStaleRefreshTokenError(error)) {
+      await supabase.auth.signOut();
+    }
     return null;
   }
   return user;

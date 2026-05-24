@@ -36,6 +36,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import {
+  formatCardBrandLabel,
+  formatPaymentMethodTypeLabel,
+} from "@/lib/stripe/payment-method-display";
 
 interface ReservationEditFormProps {
   reservation: Reservation;
@@ -84,6 +88,10 @@ type Reservation = {
   status?: string | null;
   payment_status?: string | null;
   payment_mode?: string | null;
+  payment_method_type?: string | null;
+  payment_method_brand?: string | null;
+  payment_method_last4?: string | null;
+  payment_method_id?: string | null;
   payment_intent_id?: string | null;
   setup_intent_id?: string | null;
   order_id?: string | null;
@@ -561,7 +569,32 @@ export default function ReservationEditForm({
             </div>
             <div className="mt-4 space-y-3 text-sm">
               <div className="flex items-center justify-between gap-4">
-                <span className="text-zinc-500">Payment type</span>
+                <span className="text-zinc-500">Payment method</span>
+                <span className="text-zinc-100">
+                  {formatPaymentMethodTypeLabel(reservation.payment_method_type)}
+                </span>
+              </div>
+              {reservation.payment_method_type === "card" ||
+              reservation.payment_method_brand ||
+              reservation.payment_method_last4 ? (
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-zinc-500">Card used</span>
+                  <span className="text-right text-zinc-100">
+                    {[
+                      reservation.payment_method_brand
+                        ? formatCardBrandLabel(reservation.payment_method_brand)
+                        : null,
+                      reservation.payment_method_last4
+                        ? `•••• ${reservation.payment_method_last4}`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ") || "—"}
+                  </span>
+                </div>
+              ) : null}
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-zinc-500">Stripe environment</span>
                 <span className="text-zinc-100">{getStripeEnvLabel()}</span>
               </div>
               <div className="flex items-center justify-between gap-4">
