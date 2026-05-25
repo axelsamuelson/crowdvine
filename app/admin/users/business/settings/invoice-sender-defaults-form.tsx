@@ -6,6 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  DIRTY_WINE_ORG_NUMBER,
+  DIRTY_WINE_VAT_NUMBER,
+} from "@/lib/invoice-sender-constants";
 
 export interface SenderDefaults {
   company_name: string;
@@ -126,7 +130,7 @@ export function InvoiceSenderDefaultsForm() {
                 id="org_number"
                 value={form.org_number}
                 onChange={(e) => setForm((f) => ({ ...f, org_number: e.target.value }))}
-                placeholder="t.ex. 556123-4567"
+                placeholder={DIRTY_WINE_ORG_NUMBER}
               />
             </div>
             <div>
@@ -135,7 +139,7 @@ export function InvoiceSenderDefaultsForm() {
                 id="vat_number"
                 value={form.vat_number}
                 onChange={(e) => setForm((f) => ({ ...f, vat_number: e.target.value }))}
-                placeholder="t.ex. SE556123456701"
+                placeholder={DIRTY_WINE_VAT_NUMBER}
               />
             </div>
             <div className="sm:col-span-2">

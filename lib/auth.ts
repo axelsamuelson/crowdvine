@@ -1,7 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import { isStaleRefreshTokenError } from "@/lib/auth/session-errors";
+import { supabaseServer } from "@/lib/supabase-server";
 
 // Auth roles
 export type UserRole = "admin" | "producer" | "user";
@@ -35,26 +34,19 @@ export async function getCurrentUser(): Promise<User | null> {
       console.error("Missing Supabase auth credentials");
       return null;
     }
-    const cookieStore = await cookies();
-    const supabaseServer = createServerClient(supabaseUrl, supabaseAnonKey, {
-      cookies: {
-        get: (name: string) => cookieStore.get(name)?.value,
-        set: (name: string, value: string, options: any) => {
-          cookieStore.set(name, value, options);
-        },
-        remove: (name: string, options: any) => {
-          cookieStore.set(name, "", options);
-        },
-      },
-    });
+    const supabase = await supabaseServer();
 
     const {
       data: { user },
       error,
-    } = await supabaseServer.auth.getUser();
+    } = await supabase.auth.getUser();
     if (error) {
       if (isStaleRefreshTokenError(error)) {
-        await supabaseServer.auth.signOut();
+        try {
+          await supabase.auth.signOut();
+        } catch {
+          // signOut may also try to set cookies in read-only RSC context
+        }
       }
       return null;
     }
@@ -63,7 +55,7 @@ export async function getCurrentUser(): Promise<User | null> {
     }
 
     // Hämta user profile med role
-    const { data: profile, error: profileError } = await supabaseServer
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("role, producer_id")
       .eq("id", user.id)

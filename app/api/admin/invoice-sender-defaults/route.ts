@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getCurrentAdmin } from "@/lib/admin-auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import {
+  resolveCompanyOrgNumber,
+  resolveCompanyVatNumber,
+} from "@/lib/invoice-sender-constants";
 
 const SENDER_DEFAULTS_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -70,8 +74,8 @@ export async function GET() {
       company_name: data?.company_name ?? "",
       company_logo: data?.company_logo ?? "",
       company_details: data?.company_details ?? "",
-      org_number: data?.org_number ?? "",
-      vat_number: data?.vat_number ?? "",
+      org_number: resolveCompanyOrgNumber(data?.org_number),
+      vat_number: resolveCompanyVatNumber(data?.vat_number),
       from_name: data?.from_name ?? "",
       from_email: data?.from_email ?? "",
       from_address: data?.from_address ?? "",

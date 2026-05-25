@@ -4,6 +4,10 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import { appendCanvasToPdfAsA4Pages } from "@/lib/pdf-html2canvas-a4-multipage";
+import {
+  getHtml2CanvasPdfScale,
+  html2canvasPdfBaseOptions,
+} from "@/lib/pdf-html2canvas-capture";
 import { v4 as uuidv4 } from "uuid";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -24,12 +28,24 @@ import {
   deleteInvoiceDraft,
   type InvoiceDraftMeta,
 } from "@/lib/invoice-drafts";
-import { FileDown, FileUp, FilePlus2, ChevronDown, Trash2, ClipboardList } from "lucide-react";
+import {
+  FileDown,
+  FileUp,
+  FilePlus2,
+  ChevronDown,
+  Trash2,
+  ClipboardList,
+  Download,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { computeInvoiceGrandTotal } from "@/lib/invoice-total";
 import type { InvoiceRecipient } from "@/app/api/admin/invoice-recipients/route";
 import type { InvoiceSenderDefaults } from "@/app/api/admin/invoice-sender-defaults/route";
+import {
+  resolveCompanyOrgNumber,
+  resolveCompanyVatNumber,
+} from "@/lib/invoice-sender-constants";
 
 type SenderDefaultsFields = Pick<
   InvoiceData,
@@ -56,8 +72,8 @@ function applySenderDefaultsToInvoice(defaults: InvoiceSenderDefaults | null): P
     companyName: defaults.company_name ?? "",
     companyLogo: defaults.company_logo ?? "",
     companyDetails: defaults.company_details ?? "",
-    companyOrgNumber: defaults.org_number ?? "",
-    companyVatNumber: defaults.vat_number ?? "",
+    companyOrgNumber: resolveCompanyOrgNumber(defaults.org_number),
+    companyVatNumber: resolveCompanyVatNumber(defaults.vat_number),
     fromName: defaults.from_name ?? "",
     fromEmail: defaults.from_email ?? "",
     fromAddress: defaults.from_address ?? "",
@@ -85,6 +101,7 @@ interface InvoiceGeneratorProps {
 export default function InvoiceGenerator(props?: InvoiceGeneratorProps) {
   const { onOfflineOrderCreated, initialInvoice, offlineOrderId, onOrderUpdated } = props ?? {};
   const [activeTab, setActiveTab] = useState("edit");
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const invoiceRef = useRef<HTMLDivElement>(null);
   const [senderDefaults, setSenderDefaults] = useState<InvoiceSenderDefaults | null>(null);
 
@@ -473,22 +490,54 @@ export default function InvoiceGenerator(props?: InvoiceGeneratorProps) {
 
   const calculateTotal = () => computeInvoiceGrandTotal(invoiceData);
 
-  const downloadPdf = async () => {
-    if (invoiceRef.current) {
-      const canvas = await html2canvas(invoiceRef.current, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
+  const handleDownloadPdf = async () => {
+    if (!invoiceData.items?.length) {
+      toast.error("Lägg till minst en rad på fakturan innan du laddar ner PDF.");
+      return;
+    }
+
+    const previousTab = activeTab;
+    if (activeTab !== "preview") {
+      setActiveTab("preview");
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      });
+    }
+
+    const el = invoiceRef.current;
+    if (!el) {
+      toast.error("Kunde inte skapa PDF. Öppna fliken Förhandsgranska och försök igen.");
+      return;
+    }
+
+    setDownloadingPdf(true);
+    try {
+      const canvas = await html2canvas(el, {
+        ...html2canvasPdfBaseOptions,
+        scale: getHtml2CanvasPdfScale(el),
       });
 
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",
         format: "a4",
+        compress: true,
       });
 
       appendCanvasToPdfAsA4Pages(pdf, canvas);
-      pdf.save(`invoice-${invoiceData.invoiceNumber}.pdf`);
+      const safeNumber = (invoiceData.invoiceNumber || "faktura").replace(
+        /[^\w.-]+/g,
+        "_",
+      );
+      pdf.save(`invoice-${safeNumber}.pdf`);
+    } catch (err) {
+      console.error("PDF export failed:", err);
+      toast.error("Kunde inte skapa PDF");
+    } finally {
+      setDownloadingPdf(false);
+      if (previousTab !== "preview") {
+        setActiveTab(previousTab);
+      }
     }
   };
 
@@ -517,6 +566,12 @@ export default function InvoiceGenerator(props?: InvoiceGeneratorProps) {
 
   const invoiceToolbarBtn =
     "h-9 shrink-0 gap-2 rounded-lg px-3.5 text-xs font-medium [&_svg]:size-4 [&_svg]:shrink-0";
+
+  const invoicePdfBtnClass = cn(
+    invoiceToolbarBtn,
+    "border border-zinc-300 bg-white text-zinc-900 shadow-sm hover:bg-zinc-50",
+    "dark:border-zinc-500 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700",
+  );
 
   return (
     <div className="w-full max-w-7xl space-y-6">
@@ -589,7 +644,7 @@ export default function InvoiceGenerator(props?: InvoiceGeneratorProps) {
           type="button"
           variant="default"
           onClick={handleSaveAsOfflineOrder}
-          disabled={savingOrder}
+          disabled={savingOrder || downloadingPdf}
           className={cn(
             invoiceToolbarBtn,
             "border border-primary/30 bg-primary/25 px-4 font-semibold text-primary shadow-sm ring-1 ring-border/20",
@@ -602,6 +657,17 @@ export default function InvoiceGenerator(props?: InvoiceGeneratorProps) {
           {!offlineOrderId ? (
             <span className="hidden font-normal opacity-80 sm:inline">(offline)</span>
           ) : null}
+        </Button>
+
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => void handleDownloadPdf()}
+          disabled={downloadingPdf || savingOrder}
+          className={invoicePdfBtnClass}
+        >
+          <Download aria-hidden />
+          {downloadingPdf ? "Skapar PDF…" : "Ladda ner PDF"}
         </Button>
 
         <Button
@@ -676,8 +742,15 @@ export default function InvoiceGenerator(props?: InvoiceGeneratorProps) {
               />
             </div>
             <div className="mt-6 flex justify-end border-t border-border pt-6 dark:border-zinc-700">
-              <Button onClick={downloadPdf} className="h-9 rounded-lg text-xs font-medium">
-                Ladda ner PDF
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void handleDownloadPdf()}
+                disabled={downloadingPdf}
+                className={invoicePdfBtnClass}
+              >
+                <Download aria-hidden />
+                {downloadingPdf ? "Skapar PDF…" : "Ladda ner PDF"}
               </Button>
             </div>
           </Card>

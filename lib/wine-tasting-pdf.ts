@@ -6,6 +6,10 @@
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import { appendCanvasToPdfAsA4Pages } from "@/lib/pdf-html2canvas-a4-multipage";
+import {
+  getHtml2CanvasPdfScale,
+  html2canvasPdfBaseOptions,
+} from "@/lib/pdf-html2canvas-capture";
 
 export type { TastingPdfWine, TastingPdfSession } from "@/components/admin/tasting-pdf-template";
 
@@ -65,16 +69,15 @@ export async function captureTastingPdfToDownload(
   await waitForImages(element);
 
   const canvas = await html2canvas(element, {
-    scale: 2,
-    useCORS: true,
-    logging: false,
-    backgroundColor: "#ffffff",
+    ...html2canvasPdfBaseOptions,
+    scale: getHtml2CanvasPdfScale(element),
   });
 
   const pdf = new jsPDF({
     orientation: "portrait",
     unit: "mm",
     format: "a4",
+    compress: true,
   });
 
   appendCanvasToPdfAsA4Pages(pdf, canvas);

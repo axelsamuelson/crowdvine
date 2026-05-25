@@ -1,31 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -35,22 +27,34 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Plus, Trash2, ChevronsUpDown, Wine } from "lucide-react";
+import { ArrowLeft, Trash2, ChevronsUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { getWineCostCentsExVat } from "@/lib/b2b-wine-cost";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+
+const inputClass =
+  "h-10 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500";
+const inputSmClass =
+  "h-8 text-sm border-gray-200 bg-white text-gray-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100";
+const labelClass = "text-sm font-medium text-gray-700 dark:text-zinc-300";
+const sectionClass =
+  "rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-[#1F1F23] dark:bg-zinc-950/60";
+const hintClass = "text-xs text-gray-500 dark:text-zinc-400";
+const selectTriggerClass =
+  "h-9 w-full border-gray-200 bg-white dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100";
 
 interface Wine {
   id: string;
   wine_name: string;
   vintage: string;
+  color?: string | null;
   cost_amount?: number;
   cost_currency?: string;
   exchange_rate?: number;
   alcohol_tax_cents?: number;
   producers?: { name: string } | null;
-  costCentsExVat?: number; // From API when fetched with /with-cost
+  costCentsExVat?: number;
 }
 
 interface PalletItem {
@@ -66,6 +70,16 @@ function getWineSearchLabel(w: Wine): string {
   return producer ? `${name} — ${producer}` : name;
 }
 
+function wineColorDotClass(color: string | null | undefined): string {
+  const c = (color ?? "").toLowerCase();
+  if (c.includes("red")) return "bg-red-600";
+  if (c.includes("white")) return "bg-amber-100 ring-1 ring-amber-300";
+  if (c.includes("sparkling")) return "bg-blue-500";
+  if (c.includes("rose") || c.includes("rosé")) return "bg-pink-400";
+  if (c.includes("orange")) return "bg-orange-500";
+  return "bg-zinc-400";
+}
+
 export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
   const router = useRouter();
   const isEdit = !!shipmentId;
@@ -79,6 +93,9 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [wineComboboxOpen, setWineComboboxOpen] = useState(false);
+  const [wineSearchQuery, setWineSearchQuery] = useState("");
+  const [wineProducerFilter, setWineProducerFilter] = useState("");
+  const [wineColorFilter, setWineColorFilter] = useState("");
 
   useEffect(() => {
     const fetchWines = async () => {
@@ -122,7 +139,12 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
               data.cost_cents != null ? data.cost_cents : "",
             );
             const mapped = (data.b2b_pallet_shipment_items || []).map(
-              (it: any) => ({
+              (it: {
+                wine_id: string;
+                wines?: Wine;
+                quantity?: number;
+                cost_cents_override: number | null;
+              }) => ({
                 wine_id: it.wine_id,
                 wine: it.wines,
                 quantity: it.quantity || 0,
@@ -133,7 +155,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
           } else {
             toast.error("Kunde inte hämta pallen");
           }
-        } catch (err) {
+        } catch {
           toast.error("Kunde inte hämta pallen");
         }
       };
@@ -223,57 +245,100 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
     }
   };
 
-  const formatPrice = (cents: number) =>
-    new Intl.NumberFormat("sv-SE", {
-      style: "currency",
-      currency: "SEK",
-    }).format(cents / 100);
-
   const availableWines = wines.filter(
     (w) => !items.some((i) => i.wine_id === w.id),
   );
 
+  const producerOptions = useMemo(() => {
+    const names = new Set<string>();
+    for (const w of availableWines) {
+      const n = w.producers?.name?.trim();
+      if (n) names.add(n);
+    }
+    return Array.from(names).sort((a, b) => a.localeCompare(b, "sv"));
+  }, [availableWines]);
+
+  const colorOptions = useMemo(() => {
+    const colors = new Set<string>();
+    for (const w of availableWines) {
+      const c = w.color?.trim();
+      if (c) colors.add(c);
+    }
+    return Array.from(colors).sort((a, b) => a.localeCompare(b, "sv"));
+  }, [availableWines]);
+
+  const filteredAvailableWines = useMemo(() => {
+    let list = availableWines;
+    if (wineProducerFilter) {
+      list = list.filter((w) => w.producers?.name === wineProducerFilter);
+    }
+    if (wineColorFilter) {
+      list = list.filter((w) => (w.color?.trim() || "") === wineColorFilter);
+    }
+    const q = wineSearchQuery.trim().toLowerCase();
+    if (q) {
+      list = list.filter((w) =>
+        getWineSearchLabel(w).toLowerCase().includes(q),
+      );
+    }
+    return list;
+  }, [
+    availableWines,
+    wineSearchQuery,
+    wineProducerFilter,
+    wineColorFilter,
+  ]);
+
+  const hasWineFilters =
+    wineSearchQuery.trim() !== "" ||
+    wineProducerFilter !== "" ||
+    wineColorFilter !== "";
+
   if (loading && !isEdit) {
     return (
-      <div className="space-y-8 max-w-2xl">
-        <div className="h-8 w-48 bg-muted/50 animate-pulse rounded-lg" />
-        <div className="h-96 bg-muted/30 animate-pulse rounded-xl" />
+      <div className="max-w-3xl space-y-6">
+        <div className="h-8 w-48 animate-pulse rounded-lg bg-gray-200 dark:bg-zinc-800" />
+        <div className="h-96 animate-pulse rounded-xl bg-gray-100 dark:bg-zinc-900/80" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 max-w-2xl">
+    <div className="max-w-3xl space-y-6">
       <header className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          asChild
+          className="text-gray-600 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+        >
           <Link href="/admin/pallets?tab=b2b">
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
             {isEdit ? "Redigera pall" : "Ny pall"}
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <p className="mt-0.5 text-sm text-gray-500 dark:text-zinc-400">
             Dirty Wine · Vinleverans
           </p>
         </div>
       </header>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Pallinformation */}
-        <Card className="border-0 shadow-sm bg-card">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-base font-medium">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <section className={sectionClass}>
+          <div className="mb-5">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">
               Pallinformation
-            </CardTitle>
-            <CardDescription className="text-sm">
+            </h2>
+            <p className={cn("mt-0.5", hintClass)}>
               Namn och datum för leveransen
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            </p>
+          </div>
+          <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-sm font-medium">
+              <Label htmlFor="name" className={labelClass}>
                 Namn
               </Label>
               <Input
@@ -281,13 +346,13 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="t.ex. Pallet 2024-01"
-                className="h-10"
+                className={inputClass}
                 required
               />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="shipped_at" className="text-sm font-medium">
+                <Label htmlFor="shipped_at" className={labelClass}>
                   Skickad
                 </Label>
                 <Input
@@ -295,11 +360,11 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                   type="date"
                   value={shippedAt}
                   onChange={(e) => setShippedAt(e.target.value)}
-                  className="h-10"
+                  className={cn(inputClass, "[color-scheme:light] dark:[color-scheme:dark]")}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="delivered_at" className="text-sm font-medium">
+                <Label htmlFor="delivered_at" className={labelClass}>
                   Ankommen
                 </Label>
                 <Input
@@ -307,12 +372,12 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                   type="date"
                   value={deliveredAt}
                   onChange={(e) => setDeliveredAt(e.target.value)}
-                  className="h-10"
+                  className={cn(inputClass, "[color-scheme:light] dark:[color-scheme:dark]")}
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="pallet_cost" className="text-sm font-medium">
+              <Label htmlFor="pallet_cost" className={labelClass}>
                 Palkostnad (ex moms)
               </Label>
               <Input
@@ -320,7 +385,11 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                 type="number"
                 min={0}
                 step={0.01}
-                value={palletCostCents === "" ? "" : (palletCostCents / 100).toFixed(2)}
+                value={
+                  palletCostCents === ""
+                    ? ""
+                    : (palletCostCents / 100).toFixed(2)
+                }
                 onChange={(e) => {
                   const val = parseFloat(e.target.value);
                   setPalletCostCents(
@@ -328,89 +397,197 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                   );
                 }}
                 placeholder="t.ex. 5000 (SEK)"
-                className="h-10 max-w-[200px]"
+                className={cn(inputClass, "max-w-[200px]")}
               />
-              <p className="text-xs text-muted-foreground">
+              <p className={hintClass}>
                 Transport, frakt och övriga kostnader för pallen i SEK
               </p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
-        <Separator />
-
-        {/* Viner på pallen */}
-        <Card className="border-0 shadow-sm bg-card">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-base font-medium">
+        <section className={sectionClass}>
+          <div className="mb-5">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">
               Viner på pallen
-            </CardTitle>
-            <CardDescription className="text-sm">
+            </h2>
+            <p className={cn("mt-0.5", hintClass)}>
               Sök och lägg till viner. Kostnad hämtas från databasen men kan
               ändras per rad.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Sökbar vinväljare */}
-            <Popover open={wineComboboxOpen} onOpenChange={setWineComboboxOpen}>
+            </p>
+          </div>
+          <div className="space-y-4">
+            <Popover
+              open={wineComboboxOpen}
+              onOpenChange={(open) => {
+                setWineComboboxOpen(open);
+                if (!open) {
+                  setWineSearchQuery("");
+                  setWineProducerFilter("");
+                  setWineColorFilter("");
+                }
+              }}
+            >
               <PopoverTrigger asChild>
                 <Button
+                  type="button"
                   variant="outline"
                   role="combobox"
                   aria-expanded={wineComboboxOpen}
-                  className="w-full justify-between h-11 font-normal"
+                  className="h-11 w-full justify-between border-gray-200 bg-white font-normal text-gray-900 hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700/80"
                 >
-                  <span className="text-muted-foreground truncate">
+                  <span className="truncate text-gray-500 dark:text-zinc-400">
                     Sök vin att lägga till...
                   </span>
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-                <Command>
-                  <CommandInput placeholder="Sök namn, årgång eller producent..." />
-                  <CommandList className="max-h-[280px]">
-                    <CommandEmpty>Inga viner hittades.</CommandEmpty>
-                    <CommandGroup>
-                      {availableWines.length === 0 ? (
-                        <div className="py-6 text-center text-sm text-muted-foreground">
-                          Alla viner är tillagda
-                        </div>
-                      ) : (
-                        availableWines.map((w) => (
-                          <CommandItem
-                            key={w.id}
-                            value={getWineSearchLabel(w)}
-                            onSelect={() => addWine(w)}
-                          >
-                            <Wine className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                            <span className="truncate">
-                              {w.wine_name} {w.vintage}
-                              {w.producers?.name && (
-                                <span className="text-muted-foreground ml-1">
-                                  · {w.producers.name}
-                                </span>
-                              )}
+              <PopoverContent
+                className="w-[var(--radix-popover-trigger-width)] border-gray-200 bg-white p-0 dark:border-zinc-700 dark:bg-zinc-900"
+                align="start"
+                onWheelCapture={(e) => e.stopPropagation()}
+              >
+                <div className="space-y-2 border-b border-gray-200 p-2 dark:border-zinc-700">
+                  <Input
+                    placeholder="Sök namn, årgång eller producent..."
+                    value={wineSearchQuery}
+                    onChange={(e) => setWineSearchQuery(e.target.value)}
+                    className={cn(inputClass, "h-10")}
+                    autoFocus
+                  />
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-gray-500 dark:text-zinc-400">
+                        Producent
+                      </Label>
+                      <Select
+                        value={wineProducerFilter || "__all__"}
+                        onValueChange={(v) =>
+                          setWineProducerFilter(v === "__all__" ? "" : v)
+                        }
+                      >
+                        <SelectTrigger className={selectTriggerClass}>
+                          <SelectValue placeholder="Alla producenter" />
+                        </SelectTrigger>
+                        <SelectContent className="border-gray-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+                          <SelectItem value="__all__">Alla producenter</SelectItem>
+                          {producerOptions.map((name) => (
+                            <SelectItem key={name} value={name}>
+                              {name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-gray-500 dark:text-zinc-400">
+                        Färg
+                      </Label>
+                      <Select
+                        value={wineColorFilter || "__all__"}
+                        onValueChange={(v) =>
+                          setWineColorFilter(v === "__all__" ? "" : v)
+                        }
+                      >
+                        <SelectTrigger className={selectTriggerClass}>
+                          <SelectValue placeholder="Alla färger" />
+                        </SelectTrigger>
+                        <SelectContent className="border-gray-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+                          <SelectItem value="__all__">Alla färger</SelectItem>
+                          {colorOptions.map((color) => (
+                            <SelectItem key={color} value={color}>
+                              <span className="inline-flex items-center gap-2">
+                                <span
+                                  className={cn(
+                                    "inline-block h-2.5 w-2.5 shrink-0 rounded-full",
+                                    wineColorDotClass(color),
+                                  )}
+                                  aria-hidden
+                                />
+                                {color}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  {hasWineFilters && filteredAvailableWines.length > 0 && (
+                    <p className={hintClass}>
+                      {filteredAvailableWines.length} av {availableWines.length}{" "}
+                      viner
+                    </p>
+                  )}
+                </div>
+                <div
+                  className="max-h-[min(70vh,20rem)] overflow-y-auto overscroll-contain"
+                  onWheel={(e) => e.stopPropagation()}
+                >
+                  {availableWines.length === 0 ? (
+                    <p className="py-6 text-center text-sm text-gray-500 dark:text-zinc-400">
+                      Alla viner är tillagda
+                    </p>
+                  ) : filteredAvailableWines.length === 0 ? (
+                    <p className="py-6 text-center text-sm text-gray-500 dark:text-zinc-400">
+                      {hasWineFilters
+                        ? "Inga viner matchar filtren."
+                        : "Inga viner hittades."}
+                    </p>
+                  ) : (
+                    filteredAvailableWines.map((w) => (
+                      <button
+                        key={w.id}
+                        type="button"
+                        onClick={() => {
+                          addWine(w);
+                          setWineSearchQuery("");
+                        }}
+                        className="flex w-full items-start gap-2 px-3 py-2.5 text-left text-sm text-gray-900 hover:bg-gray-100 dark:text-zinc-100 dark:hover:bg-zinc-800"
+                      >
+                        <span
+                          className={cn(
+                            "mt-1.5 inline-block h-2.5 w-2.5 shrink-0 rounded-full",
+                            wineColorDotClass(w.color),
+                          )}
+                          aria-hidden
+                        />
+                        <span className="min-w-0 flex-1 truncate">
+                          <span className="font-medium">
+                            {w.wine_name} {w.vintage}
+                          </span>
+                          {w.producers?.name && (
+                            <span className="text-gray-500 dark:text-zinc-400">
+                              {" "}
+                              · {w.producers.name}
                             </span>
-                          </CommandItem>
-                        ))
-                      )}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
+                          )}
+                          {w.color?.trim() && (
+                            <span className="text-gray-400 dark:text-zinc-500">
+                              {" "}
+                              · {w.color}
+                            </span>
+                          )}
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
               </PopoverContent>
             </Popover>
 
-            {/* Vinlista med scroll */}
             {items.length > 0 && (
-              <div className="rounded-lg border">
+              <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-zinc-800">
                 <ScrollArea className="h-[min(400px,50vh)]">
                   <Table>
                     <TableHeader>
-                      <TableRow className="hover:bg-transparent">
-                        <TableHead className="w-[40%]">Vin</TableHead>
-                        <TableHead className="w-[20%] text-right">Antal</TableHead>
-                        <TableHead className="w-[30%] text-right">
+                      <TableRow className="border-gray-200 hover:bg-transparent dark:border-zinc-800">
+                        <TableHead className="w-[40%] text-gray-600 dark:text-zinc-400">
+                          Vin
+                        </TableHead>
+                        <TableHead className="w-[20%] text-right text-gray-600 dark:text-zinc-400">
+                          Antal
+                        </TableHead>
+                        <TableHead className="w-[30%] text-right text-gray-600 dark:text-zinc-400">
                           Kostnad (ex moms)
                         </TableHead>
                         <TableHead className="w-[10%]" />
@@ -423,14 +600,12 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                         const defaultCost = wine
                           ? (wine.costCentsExVat ?? getWineCostCentsExVat(wine))
                           : 0;
-                        const costCents =
-                          item.cost_cents_override ?? defaultCost;
                         return (
                           <TableRow
                             key={item.wine_id}
-                            className="group"
+                            className="border-gray-100 hover:bg-gray-50/80 dark:border-zinc-800/80 dark:hover:bg-zinc-900/50"
                           >
-                            <TableCell className="font-medium">
+                            <TableCell className="font-medium text-gray-900 dark:text-zinc-100">
                               {wine
                                 ? `${wine.wine_name} ${wine.vintage}`
                                 : item.wine_id}
@@ -444,11 +619,11 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                                   updateItem(item.wine_id, {
                                     quantity: Math.max(
                                       1,
-                                      parseInt(e.target.value) || 0,
+                                      parseInt(e.target.value, 10) || 0,
                                     ),
                                   })
                                 }
-                                className="w-16 h-8 text-right text-sm"
+                                className={cn(inputSmClass, "ml-auto w-16 text-right")}
                               />
                             </TableCell>
                             <TableCell className="text-right">
@@ -473,7 +648,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                                     cost_cents_override: cents,
                                   });
                                 }}
-                                className="w-24 h-8 text-right text-sm"
+                                className={cn(inputSmClass, "ml-auto w-24 text-right")}
                                 title="Tomt = kostnad från databasen"
                               />
                             </TableCell>
@@ -482,7 +657,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                className="h-8 w-8 text-gray-500 hover:text-red-600 dark:text-zinc-400 dark:hover:text-red-400"
                                 onClick={() => removeItem(item.wine_id)}
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -498,19 +673,27 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
             )}
 
             {items.length === 0 && (
-              <div className="rounded-lg border border-dashed py-12 text-center text-sm text-muted-foreground">
+              <div className="rounded-lg border border-dashed border-gray-200 py-12 text-center text-sm text-gray-500 dark:border-zinc-700 dark:text-zinc-400">
                 Inga viner tillagda. Sök och lägg till viner ovan.
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
-        {/* Actions */}
-        <div className="flex items-center gap-3 pt-2">
-          <Button type="submit" disabled={saving}>
+        <div className="flex items-center gap-3 pt-1">
+          <Button
+            type="submit"
+            disabled={saving}
+            className="rounded-lg text-sm font-medium bg-gray-900 text-white hover:bg-gray-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+          >
             {saving ? "Sparar..." : isEdit ? "Spara ändringar" : "Skapa pall"}
           </Button>
-          <Button variant="ghost" type="button" asChild>
+          <Button
+            type="button"
+            variant="outline"
+            asChild
+            className="rounded-lg border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800/80"
+          >
             <Link href="/admin/pallets?tab=b2b">Avbryt</Link>
           </Button>
         </div>

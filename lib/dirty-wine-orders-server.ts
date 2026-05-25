@@ -1,5 +1,9 @@
 import type { InvoiceData } from "@/types/invoice";
 import type { DirtyWineOrderRow } from "@/lib/types/dirty-wine-order";
+import {
+  resolveCompanyOrgNumber,
+  resolveCompanyVatNumber,
+} from "@/lib/invoice-sender-constants";
 
 export function validateInvoiceForOrder(invoice: InvoiceData): string | null {
   if (!invoice.invoiceNumber?.trim()) return "Fakturanummer saknas.";
@@ -19,7 +23,12 @@ export function parseInvoiceDataFromRow(raw: unknown): InvoiceData | undefined {
   if (!raw || typeof raw !== "object") return undefined;
   const o = raw as Record<string, unknown>;
   if (typeof o.invoiceNumber !== "string" || !Array.isArray(o.items)) return undefined;
-  return raw as InvoiceData;
+  const invoice = raw as InvoiceData;
+  return {
+    ...invoice,
+    companyOrgNumber: resolveCompanyOrgNumber(invoice.companyOrgNumber),
+    companyVatNumber: resolveCompanyVatNumber(invoice.companyVatNumber),
+  };
 }
 
 export type DirtyWineOrderDbRow = {
