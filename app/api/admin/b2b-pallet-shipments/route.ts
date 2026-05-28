@@ -15,7 +15,7 @@ export async function GET() {
           wine_id,
           quantity,
           cost_cents_override,
-          wines(id, wine_name, vintage, cost_amount, cost_currency, exchange_rate, alcohol_tax_cents)
+          wines(id, wine_name, vintage, color, cost_amount, cost_currency, exchange_rate, alcohol_tax_cents, producers(name))
         )
       `,
       )
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
           wine_id,
           quantity,
           cost_cents_override,
-          wines(id, wine_name, vintage, cost_amount, cost_currency, exchange_rate, alcohol_tax_cents)
+          wines(id, wine_name, vintage, color, cost_amount, cost_currency, exchange_rate, alcohol_tax_cents, producers(name))
         )
       `,
       )

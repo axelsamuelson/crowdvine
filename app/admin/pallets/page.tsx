@@ -15,7 +15,17 @@ import Link from "next/link";
 import { DeletePalletButton } from "@/components/admin/delete-pallet-button";
 import { DeleteB2BPalletButton } from "@/components/admin/delete-b2b-pallet-button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { getWineCostCentsExVat } from "@/lib/b2b-wine-cost";
+import {
+  collectCurrenciesNeedingRates,
+  computePalletCostSummary,
+  formatSekFromCents,
+} from "@/lib/b2b-wine-cost";
+import { fetchClientExchangeRatesMap } from "@/lib/b2b-exchange-rates-client";
+import {
+  computePalletColorCounts,
+  wineColorDotClass,
+} from "@/lib/wine-color";
+import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { sv } from "date-fns/locale";
 import { toast } from "sonner";
@@ -91,8 +101,11 @@ interface B2BShipmentItem {
     wine_name: string;
     vintage: string;
     cost_amount?: number;
+    cost_currency?: string;
     exchange_rate?: number;
     alcohol_tax_cents?: number;
+    color?: string | null;
+    producers?: { name: string } | null;
   };
 }
 
@@ -114,6 +127,9 @@ export default function PalletsPage() {
   const [b2bShipments, setB2bShipments] = useState<B2BShipment[]>([]);
   const [loading, setLoading] = useState(true);
   const [b2bLoading, setB2bLoading] = useState(false);
+  const [b2bFxRates, setB2bFxRates] = useState<Record<string, number>>({
+    SEK: 1,
+  });
   const [error, setError] = useState("");
   const [orderingShippingPalletId, setOrderingShippingPalletId] = useState<
     string | null
@@ -151,6 +167,18 @@ export default function PalletsPage() {
         if (res.ok) {
           const data = await res.json();
           setB2bShipments(data);
+          const winesForFx = (data as B2BShipment[]).flatMap((s) =>
+            (s.b2b_pallet_shipment_items || [])
+              .map((i) => i.wines)
+              .filter(Boolean),
+          ) as NonNullable<B2BShipmentItem["wines"]>[];
+          const currencies = collectCurrenciesNeedingRates(winesForFx);
+          if (currencies.length > 0) {
+            const rates = await fetchClientExchangeRatesMap(currencies);
+            setB2bFxRates({ SEK: 1, ...rates });
+          } else {
+            setB2bFxRates({ SEK: 1 });
+          }
         }
       } catch (err) {
         console.error("Failed to load B2B shipments:", err);
@@ -839,21 +867,21 @@ export default function PalletsPage() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {b2bShipments.map((shipment) => {
                 const items = shipment.b2b_pallet_shipment_items || [];
-                const totalBottles = items.reduce(
-                  (s, i) => s + (i.quantity || 0),
-                  0,
+                const summary = computePalletCostSummary(
+                  items.map((i) => ({
+                    quantity: i.quantity || 0,
+                    cost_cents_override: i.cost_cents_override,
+                    wine: i.wines,
+                  })),
+                  shipment.cost_cents ?? 0,
+                  b2bFxRates,
                 );
-                const wineCostCents = items.reduce((s, i) => {
-                  const cost =
-                    i.cost_cents_override != null
-                      ? i.cost_cents_override
-                      : i.wines
-                        ? getWineCostCentsExVat(i.wines)
-                        : 0;
-                  return s + cost * (i.quantity || 0);
-                }, 0);
-                const palletCostCents = shipment.cost_cents ?? 0;
-                const totalCostCents = wineCostCents + palletCostCents;
+                const colorCounts = computePalletColorCounts(
+                  items.map((i) => ({
+                    quantity: i.quantity || 0,
+                    wine: i.wines,
+                  })),
+                );
 
                 return (
                   <div
@@ -887,18 +915,54 @@ export default function PalletsPage() {
                         </span>
                       )}
                     </div>
-                    <div className="flex justify-between items-baseline text-xs mb-3">
-                      <span className="text-gray-600 dark:text-zinc-400">
-                        {totalBottles} flaskor
-                        {palletCostCents > 0 && (
-                          <span className="ml-1">
-                            + {formatPrice(palletCostCents)} palkostnad
+                    <div className="space-y-1 text-xs mb-3">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-zinc-400">
+                          {summary.totalBottles} flaskor
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-zinc-100 tabular-nums">
+                          {formatSekFromCents(summary.grandTotalCents)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-[11px] text-gray-500 dark:text-zinc-500">
+                        <span>Inkl. alkoholskatt</span>
+                        <span className="tabular-nums">
+                          {formatSekFromCents(summary.wineTotalCents)}
+                        </span>
+                      </div>
+                      {summary.palletCostCents > 0 && (
+                        <div className="flex justify-between text-[11px] text-gray-500 dark:text-zinc-500">
+                          <span>+ palkostnad</span>
+                          <span className="tabular-nums">
+                            {formatSekFromCents(summary.palletCostCents)}
                           </span>
-                        )}
-                      </span>
-                      <span className="font-medium text-gray-900 dark:text-zinc-100 tabular-nums">
-                        {formatPrice(totalCostCents)}
-                      </span>
+                        </div>
+                      )}
+                      {colorCounts.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {colorCounts.map(({ color, bottles }) => (
+                            <span
+                              key={color}
+                              className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] dark:border-zinc-700 dark:bg-zinc-900"
+                              title={color}
+                            >
+                              <span
+                                className={cn(
+                                  "inline-block h-2 w-2 shrink-0 rounded-full",
+                                  wineColorDotClass(color),
+                                )}
+                                aria-hidden
+                              />
+                              <span className="text-gray-600 dark:text-zinc-400 max-w-[72px] truncate">
+                                {color}
+                              </span>
+                              <span className="font-medium tabular-nums text-gray-800 dark:text-zinc-200">
+                                {bottles}
+                              </span>
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     {items.length > 0 && (
                       <ScrollArea className="h-[min(100px,30vh)] -mx-1 rounded-lg mb-3">
@@ -908,10 +972,17 @@ export default function PalletsPage() {
                               key={item.id}
                               className="flex justify-between items-center text-[11px] py-1.5 px-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800/50"
                             >
-                              <span className="truncate text-gray-900 dark:text-zinc-100">
-                                {item.wines?.wine_name} {item.wines?.vintage}
+                              <span className="min-w-0 truncate text-gray-900 dark:text-zinc-100">
+                                <span className="block truncate">
+                                  {item.wines?.wine_name} {item.wines?.vintage}
+                                </span>
+                                {item.wines?.producers?.name && (
+                                  <span className="block truncate text-[10px] text-gray-500 dark:text-zinc-500">
+                                    {item.wines.producers.name}
+                                  </span>
+                                )}
                               </span>
-                              <span className="text-gray-500 dark:text-zinc-400 shrink-0 ml-2">
+                              <span className="text-gray-500 dark:text-zinc-400 shrink-0 ml-2 tabular-nums">
                                 {item.quantity} st
                               </span>
                             </div>

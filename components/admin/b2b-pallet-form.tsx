@@ -29,7 +29,18 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArrowLeft, Trash2, ChevronsUpDown } from "lucide-react";
 import { toast } from "sonner";
-import { getWineCostCentsExVat } from "@/lib/b2b-wine-cost";
+import {
+  collectCurrenciesNeedingRates,
+  computePalletCostSummary,
+  formatSekFromCents,
+  getPalletLineCost,
+  getWineCostCentsExVat,
+} from "@/lib/b2b-wine-cost";
+import { fetchClientExchangeRatesMap } from "@/lib/b2b-exchange-rates-client";
+import {
+  computePalletColorCounts,
+  wineColorDotClass,
+} from "@/lib/wine-color";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -70,16 +81,6 @@ function getWineSearchLabel(w: Wine): string {
   return producer ? `${name} — ${producer}` : name;
 }
 
-function wineColorDotClass(color: string | null | undefined): string {
-  const c = (color ?? "").toLowerCase();
-  if (c.includes("red")) return "bg-red-600";
-  if (c.includes("white")) return "bg-amber-100 ring-1 ring-amber-300";
-  if (c.includes("sparkling")) return "bg-blue-500";
-  if (c.includes("rose") || c.includes("rosé")) return "bg-pink-400";
-  if (c.includes("orange")) return "bg-orange-500";
-  return "bg-zinc-400";
-}
-
 export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
   const router = useRouter();
   const isEdit = !!shipmentId;
@@ -96,6 +97,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
   const [wineSearchQuery, setWineSearchQuery] = useState("");
   const [wineProducerFilter, setWineProducerFilter] = useState("");
   const [wineColorFilter, setWineColorFilter] = useState("");
+  const [fxRates, setFxRates] = useState<Record<string, number>>({ SEK: 1 });
 
   useEffect(() => {
     const fetchWines = async () => {
@@ -104,6 +106,11 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
         if (res.ok) {
           const data = await res.json();
           setWines(data);
+          const currencies = collectCurrenciesNeedingRates(data);
+          if (currencies.length > 0) {
+            const rates = await fetchClientExchangeRatesMap(currencies);
+            setFxRates({ SEK: 1, ...rates });
+          }
         }
       } catch (err) {
         console.error("Failed to fetch wines:", err);
@@ -294,9 +301,41 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
     wineProducerFilter !== "" ||
     wineColorFilter !== "";
 
+  const palletCostCentsNum =
+    palletCostCents === "" ? 0 : Number(palletCostCents) || 0;
+
+  const costSummary = useMemo(
+    () =>
+      computePalletCostSummary(
+        items.map((item) => {
+          const wineForCost =
+            wines.find((w) => w.id === item.wine_id) ?? item.wine;
+          return {
+            quantity: item.quantity,
+            cost_cents_override: item.cost_cents_override,
+            wine: wineForCost,
+          };
+        }),
+        palletCostCentsNum,
+        fxRates,
+      ),
+    [items, wines, palletCostCentsNum, fxRates],
+  );
+
+  const colorCounts = useMemo(
+    () =>
+      computePalletColorCounts(
+        items.map((item) => ({
+          quantity: item.quantity,
+          wine: wines.find((w) => w.id === item.wine_id) ?? item.wine,
+        })),
+      ),
+    [items, wines],
+  );
+
   if (loading && !isEdit) {
     return (
-      <div className="max-w-3xl space-y-6">
+      <div className="max-w-6xl space-y-6">
         <div className="h-8 w-48 animate-pulse rounded-lg bg-gray-200 dark:bg-zinc-800" />
         <div className="h-96 animate-pulse rounded-xl bg-gray-100 dark:bg-zinc-900/80" />
       </div>
@@ -304,7 +343,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
   }
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="max-w-6xl space-y-6">
       <header className="flex items-center gap-4">
         <Button
           variant="ghost"
@@ -576,100 +615,235 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
             </Popover>
 
             {items.length > 0 && (
-              <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-zinc-800">
-                <ScrollArea className="h-[min(400px,50vh)]">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-gray-200 hover:bg-transparent dark:border-zinc-800">
-                        <TableHead className="w-[40%] text-gray-600 dark:text-zinc-400">
-                          Vin
-                        </TableHead>
-                        <TableHead className="w-[20%] text-right text-gray-600 dark:text-zinc-400">
-                          Antal
-                        </TableHead>
-                        <TableHead className="w-[30%] text-right text-gray-600 dark:text-zinc-400">
-                          Kostnad (ex moms)
-                        </TableHead>
-                        <TableHead className="w-[10%]" />
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {items.map((item) => {
-                        const wine =
-                          item.wine ?? wines.find((w) => w.id === item.wine_id);
-                        const defaultCost = wine
-                          ? (wine.costCentsExVat ?? getWineCostCentsExVat(wine))
-                          : 0;
-                        return (
-                          <TableRow
-                            key={item.wine_id}
-                            className="border-gray-100 hover:bg-gray-50/80 dark:border-zinc-800/80 dark:hover:bg-zinc-900/50"
-                          >
-                            <TableCell className="font-medium text-gray-900 dark:text-zinc-100">
-                              {wine
-                                ? `${wine.wine_name} ${wine.vintage}`
-                                : item.wine_id}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Input
-                                type="number"
-                                min={1}
-                                value={item.quantity}
-                                onChange={(e) =>
-                                  updateItem(item.wine_id, {
-                                    quantity: Math.max(
-                                      1,
-                                      parseInt(e.target.value, 10) || 0,
-                                    ),
-                                  })
-                                }
-                                className={cn(inputSmClass, "ml-auto w-16 text-right")}
-                              />
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Input
-                                type="number"
-                                min={0}
-                                step={0.01}
-                                value={
-                                  item.cost_cents_override != null
-                                    ? (
-                                        item.cost_cents_override / 100
-                                      ).toFixed(2)
-                                    : (defaultCost / 100).toFixed(2)
-                                }
-                                onChange={(e) => {
-                                  const val = parseFloat(e.target.value);
-                                  const cents =
-                                    isNaN(val) || val < 0
-                                      ? null
-                                      : Math.round(val * 100);
-                                  updateItem(item.wine_id, {
-                                    cost_cents_override: cents,
-                                  });
-                                }}
-                                className={cn(inputSmClass, "ml-auto w-24 text-right")}
-                                title="Tomt = kostnad från databasen"
-                              />
-                            </TableCell>
-                            <TableCell className="p-2">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-gray-500 hover:text-red-600 dark:text-zinc-400 dark:hover:text-red-400"
-                                onClick={() => removeItem(item.wine_id)}
+              <>
+                <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-zinc-800">
+                  <ScrollArea className="h-[min(400px,50vh)]">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-gray-200 hover:bg-transparent dark:border-zinc-800">
+                          <TableHead className="min-w-[180px] text-gray-600 dark:text-zinc-400">
+                            Vin
+                          </TableHead>
+                          <TableHead className="min-w-[120px] text-gray-600 dark:text-zinc-400">
+                            Producent
+                          </TableHead>
+                          <TableHead className="w-16 text-right text-gray-600 dark:text-zinc-400">
+                            Antal
+                          </TableHead>
+                          <TableHead className="w-24 text-right text-gray-600 dark:text-zinc-400">
+                            Inköp/fl
+                          </TableHead>
+                          <TableHead className="w-24 text-right text-gray-600 dark:text-zinc-400">
+                            Alk.skatt/fl
+                          </TableHead>
+                          <TableHead className="w-28 text-right text-gray-600 dark:text-zinc-400">
+                            Totalt/fl
+                          </TableHead>
+                          <TableHead className="w-28 text-right text-gray-600 dark:text-zinc-400">
+                            Rad totalt
+                          </TableHead>
+                          <TableHead className="w-10" />
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {items.map((item) => {
+                          const wineForCost =
+                            wines.find((w) => w.id === item.wine_id) ??
+                            item.wine;
+                          const lineCost = getPalletLineCost(
+                            item.quantity,
+                            item.cost_cents_override,
+                            wineForCost,
+                            fxRates,
+                          );
+                          const defaultUnitTotal = wineForCost
+                            ? (wineForCost.costCentsExVat ??
+                              getWineCostCentsExVat(wineForCost, fxRates))
+                            : 0;
+                          return (
+                            <TableRow
+                              key={item.wine_id}
+                              className="border-gray-100 hover:bg-gray-50/80 dark:border-zinc-800/80 dark:hover:bg-zinc-900/50"
+                            >
+                              <TableCell>
+                                <div className="font-medium text-gray-900 dark:text-zinc-100">
+                                  {wineForCost
+                                    ? `${wineForCost.wine_name} ${wineForCost.vintage}`
+                                    : item.wine_id}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-sm text-gray-600 dark:text-zinc-400">
+                                {wineForCost?.producers?.name?.trim() || "—"}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Input
+                                  type="number"
+                                  min={1}
+                                  value={item.quantity}
+                                  onChange={(e) =>
+                                    updateItem(item.wine_id, {
+                                      quantity: Math.max(
+                                        1,
+                                        parseInt(e.target.value, 10) || 0,
+                                      ),
+                                    })
+                                  }
+                                  className={cn(
+                                    inputSmClass,
+                                    "ml-auto w-16 text-right",
+                                  )}
+                                />
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums text-sm text-gray-600 dark:text-zinc-400">
+                                {formatSekFromCents(
+                                  lineCost.purchaseCentsPerBottle,
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums text-sm text-gray-600 dark:text-zinc-400">
+                                {formatSekFromCents(
+                                  lineCost.alcoholTaxCentsPerBottle,
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  step={0.01}
+                                  value={
+                                    item.cost_cents_override != null
+                                      ? (
+                                          item.cost_cents_override / 100
+                                        ).toFixed(2)
+                                      : (defaultUnitTotal / 100).toFixed(2)
+                                  }
+                                  onChange={(e) => {
+                                    const val = parseFloat(e.target.value);
+                                    const cents =
+                                      isNaN(val) || val < 0
+                                        ? null
+                                        : Math.round(val * 100);
+                                    updateItem(item.wine_id, {
+                                      cost_cents_override: cents,
+                                    });
+                                  }}
+                                  className={cn(
+                                    inputSmClass,
+                                    "ml-auto w-24 text-right",
+                                  )}
+                                  title="Totalt per flaska inkl. alkoholskatt (ex moms)"
+                                />
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums text-sm font-medium text-gray-900 dark:text-zinc-100">
+                                {formatSekFromCents(lineCost.lineTotalCents)}
+                              </TableCell>
+                              <TableCell className="p-2">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-gray-500 hover:text-red-600 dark:text-zinc-400 dark:hover:text-red-400"
+                                  onClick={() => removeItem(item.wine_id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </ScrollArea>
+                </div>
+
+                <div className="rounded-xl border border-gray-200 bg-gray-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100 mb-3">
+                    Sammanfattning
+                  </h3>
+                  <dl className="grid gap-2 text-sm sm:grid-cols-2">
+                    <div className="flex justify-between gap-4 sm:col-span-2">
+                      <dt className="text-gray-600 dark:text-zinc-400">
+                        Totalt antal flaskor
+                      </dt>
+                      <dd className="font-medium tabular-nums text-gray-900 dark:text-zinc-100">
+                        {costSummary.totalBottles}
+                      </dd>
+                    </div>
+                    {colorCounts.length > 0 && (
+                      <div className="sm:col-span-2">
+                        <dt className="text-gray-600 dark:text-zinc-400 mb-2">
+                          Fördelning per färg
+                        </dt>
+                        <dd>
+                          <ul className="flex flex-wrap gap-2">
+                            {colorCounts.map(({ color, bottles }) => (
+                              <li
+                                key={color}
+                                className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-800"
                               >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </ScrollArea>
-              </div>
+                                <span
+                                  className={cn(
+                                    "inline-block h-2.5 w-2.5 shrink-0 rounded-full",
+                                    wineColorDotClass(color),
+                                  )}
+                                  aria-hidden
+                                />
+                                <span className="text-gray-700 dark:text-zinc-300">
+                                  {color}
+                                </span>
+                                <span className="font-semibold tabular-nums text-gray-900 dark:text-zinc-100">
+                                  {bottles}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </dd>
+                      </div>
+                    )}
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-gray-600 dark:text-zinc-400">
+                        Inköp (exkl. alkoholskatt)
+                      </dt>
+                      <dd className="tabular-nums text-gray-900 dark:text-zinc-100">
+                        {formatSekFromCents(costSummary.winePurchaseCents)}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-gray-600 dark:text-zinc-400">
+                        Alkoholskatt
+                      </dt>
+                      <dd className="tabular-nums text-gray-900 dark:text-zinc-100">
+                        {formatSekFromCents(costSummary.wineAlcoholTaxCents)}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-4 sm:col-span-2 border-t border-gray-200 pt-2 dark:border-zinc-700">
+                      <dt className="font-medium text-gray-700 dark:text-zinc-300">
+                        Vin totalt inkl. alkoholskatt
+                      </dt>
+                      <dd className="font-semibold tabular-nums text-gray-900 dark:text-zinc-100">
+                        {formatSekFromCents(costSummary.wineTotalCents)}
+                      </dd>
+                    </div>
+                    {palletCostCentsNum > 0 && (
+                      <div className="flex justify-between gap-4 sm:col-span-2">
+                        <dt className="text-gray-600 dark:text-zinc-400">
+                          Palkostnad (ex moms)
+                        </dt>
+                        <dd className="tabular-nums text-gray-900 dark:text-zinc-100">
+                          {formatSekFromCents(costSummary.palletCostCents)}
+                        </dd>
+                      </div>
+                    )}
+                    <div className="flex justify-between gap-4 sm:col-span-2 border-t border-gray-200 pt-2 dark:border-zinc-700">
+                      <dt className="font-semibold text-gray-900 dark:text-zinc-100">
+                        Totalt
+                      </dt>
+                      <dd className="text-base font-bold tabular-nums text-gray-900 dark:text-zinc-100">
+                        {formatSekFromCents(costSummary.grandTotalCents)}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+              </>
             )}
 
             {items.length === 0 && (
