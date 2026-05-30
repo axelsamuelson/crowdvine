@@ -19,6 +19,10 @@ const WRITE_TOOLS = new Set<string>([
   "batch_update_task_sort",
   "create_subtask",
   "set_subtask_done",
+  "create_producer",
+  "update_producer",
+  "create_wine",
+  "update_wine",
 ]);
 
 /** @returns true if the tool mutates data and needs mcp:write */
