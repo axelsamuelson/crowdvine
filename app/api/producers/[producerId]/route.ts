@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireCatalogApiAuth } from "@/lib/catalog-api-auth";
+import {
+  buildProducerPatch,
+  PRODUCER_DB_SELECT,
+  producerRowToApi,
+} from "@/lib/catalog-mappers";
 import { isCatalogCertification, isUuid } from "@/lib/catalog-types";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-
-const PRODUCER_COLUMNS =
-  "id, name, region, subregion, country, founded_year, bio_short, bio_long, certification, contact_name, contact_email, created_at, updated_at";
 
 function parseProducerId(raw: string | undefined): string | null {
   const id = raw?.trim();
@@ -12,44 +14,10 @@ function parseProducerId(raw: string | undefined): string | null {
   return id;
 }
 
-function buildProducerPatch(body: Record<string, unknown>): Record<string, unknown> {
-  const patch: Record<string, unknown> = {};
-
-  if (typeof body.name === "string") patch.name = body.name.trim();
-  if (typeof body.region === "string") patch.region = body.region.trim();
-  if (typeof body.country === "string") patch.country = body.country.trim();
-  if (body.subregion === null) patch.subregion = null;
-  else if (typeof body.subregion === "string") {
-    patch.subregion = body.subregion.trim() || null;
-  }
-  if (body.founded_year === null) patch.founded_year = null;
-  else if (typeof body.founded_year === "number" && Number.isInteger(body.founded_year)) {
-    patch.founded_year = body.founded_year;
-  }
-  if (body.bio_short === null) patch.bio_short = null;
-  else if (typeof body.bio_short === "string") patch.bio_short = body.bio_short;
-  if (body.bio_long === null) patch.bio_long = null;
-  else if (typeof body.bio_long === "string") patch.bio_long = body.bio_long;
-  if (body.certification === null) patch.certification = null;
-  else if (isCatalogCertification(body.certification)) {
-    patch.certification = body.certification;
-  }
-  if (body.contact_name === null) patch.contact_name = null;
-  else if (typeof body.contact_name === "string") {
-    patch.contact_name = body.contact_name.trim() || null;
-  }
-  if (body.contact_email === null) patch.contact_email = null;
-  else if (typeof body.contact_email === "string") {
-    patch.contact_email = body.contact_email.trim() || null;
-  }
-
-  return patch;
-}
-
 /**
  * GET /api/producers/:producerId
  * PATCH /api/producers/:producerId
- * DELETE /api/producers/:producerId — soft delete (deleted_at).
+ * DELETE /api/producers/:producerId — sets status inactive.
  */
 export async function GET(
   request: NextRequest,
@@ -67,10 +35,10 @@ export async function GET(
   try {
     const sb = getSupabaseAdmin();
     const { data, error } = await sb
-      .from("catalog_producers")
-      .select(PRODUCER_COLUMNS)
+      .from("producers")
+      .select(PRODUCER_DB_SELECT)
       .eq("id", id)
-      .is("deleted_at", null)
+      .eq("status", "active")
       .maybeSingle();
 
     if (error) {
@@ -80,7 +48,7 @@ export async function GET(
       return NextResponse.json({ error: "Producer not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ producer: data });
+    return NextResponse.json({ producer: producerRowToApi(data) });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Unknown error";
     return NextResponse.json({ error: msg }, { status: 500 });
@@ -122,15 +90,13 @@ export async function PATCH(
       );
     }
 
-    patch.updated_at = new Date().toISOString();
-
     const sb = getSupabaseAdmin();
     const { data, error } = await sb
-      .from("catalog_producers")
+      .from("producers")
       .update(patch)
       .eq("id", id)
-      .is("deleted_at", null)
-      .select(PRODUCER_COLUMNS)
+      .eq("status", "active")
+      .select(PRODUCER_DB_SELECT)
       .maybeSingle();
 
     if (error) {
@@ -140,7 +106,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Producer not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ producer: data });
+    return NextResponse.json({ producer: producerRowToApi(data) });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Unknown error";
     return NextResponse.json({ error: msg }, { status: 500 });
@@ -163,10 +129,10 @@ export async function DELETE(
   try {
     const sb = getSupabaseAdmin();
     const { data, error } = await sb
-      .from("catalog_producers")
-      .update({ deleted_at: new Date().toISOString() })
+      .from("producers")
+      .update({ status: "inactive", is_live: false })
       .eq("id", id)
-      .is("deleted_at", null)
+      .eq("status", "active")
       .select("id")
       .maybeSingle();
 

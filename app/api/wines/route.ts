@@ -1,38 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireCatalogApiAuth } from "@/lib/catalog-api-auth";
 import {
+  buildWineInsert,
+  ensureUniqueWineHandle,
+  WINE_DB_SELECT,
+  wineRowToApi,
+} from "@/lib/catalog-mappers";
+import {
   isCatalogCertification,
   isCatalogWineType,
   isUuid,
 } from "@/lib/catalog-types";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-
-const WINE_COLUMNS = `
-  id,
-  producer_id,
-  name,
-  vintage,
-  appellation,
-  grape_varieties,
-  type,
-  price_sek,
-  bottle_size_ml,
-  tasting_notes,
-  alcohol_pct,
-  farming,
-  serving_temp_c,
-  food_pairing,
-  awards,
-  import_price_eur,
-  winemaker_notes,
-  soil_type,
-  elevation_masl,
-  yield_hl_ha,
-  ageing,
-  is_published,
-  created_at,
-  updated_at
-`;
 
 function parseBoolQuery(value: string | null): boolean | undefined {
   if (value === null || value === "") return undefined;
@@ -42,8 +21,8 @@ function parseBoolQuery(value: string | null): boolean | undefined {
 }
 
 /**
- * GET /api/wines — list catalog wines (filters: producer_id, type, is_published).
- * POST /api/wines — create catalog wine.
+ * GET /api/wines — list wines (filters: producer_id, type, is_published).
+ * POST /api/wines — create wine.
  */
 export async function GET(request: NextRequest) {
   const denied = requireCatalogApiAuth(request);
@@ -66,11 +45,11 @@ export async function GET(request: NextRequest) {
     }
 
     const sb = getSupabaseAdmin();
-    let q = sb.from("catalog_wines").select(WINE_COLUMNS).order("name");
+    let q = sb.from("wines").select(WINE_DB_SELECT).order("wine_name");
 
     if (producerId) q = q.eq("producer_id", producerId);
-    if (type) q = q.eq("type", type);
-    if (isPublished !== undefined) q = q.eq("is_published", isPublished);
+    if (type) q = q.eq("color", type);
+    if (isPublished !== undefined) q = q.eq("is_live", isPublished);
 
     const { data, error } = await q;
     if (error) {
@@ -78,7 +57,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ wines: data ?? [] });
+    return NextResponse.json({
+      wines: (data ?? []).map((row) => wineRowToApi(row)),
+    });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Unknown error";
     return NextResponse.json({ error: msg }, { status: 500 });
@@ -136,10 +117,10 @@ export async function POST(request: NextRequest) {
     const sb = getSupabaseAdmin();
 
     const { data: producer, error: producerErr } = await sb
-      .from("catalog_producers")
+      .from("producers")
       .select("id")
       .eq("id", producerId)
-      .is("deleted_at", null)
+      .eq("status", "active")
       .maybeSingle();
 
     if (producerErr) {
@@ -152,59 +133,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const row: Record<string, unknown> = {
-      producer_id: producerId,
-      name,
-      appellation,
-      type,
-      price_sek: priceSek,
-      bottle_size_ml:
-        typeof body.bottle_size_ml === "number" && Number.isInteger(body.bottle_size_ml)
-          ? body.bottle_size_ml
-          : 750,
-      is_published: body.is_published === true,
-    };
-
-    if (body.vintage === null) row.vintage = null;
-    else if (typeof body.vintage === "number" && Number.isInteger(body.vintage)) {
-      row.vintage = body.vintage;
-    }
-    if (Array.isArray(body.grape_varieties)) {
-      row.grape_varieties = body.grape_varieties.filter(
-        (g): g is string => typeof g === "string",
-      );
-    }
-    if (typeof body.tasting_notes === "string") row.tasting_notes = body.tasting_notes;
-    if (typeof body.alcohol_pct === "number") row.alcohol_pct = body.alcohol_pct;
-    if (isCatalogCertification(body.farming)) row.farming = body.farming;
-    if (typeof body.serving_temp_c === "string") {
-      row.serving_temp_c = body.serving_temp_c;
-    }
-    if (Array.isArray(body.food_pairing)) {
-      row.food_pairing = body.food_pairing.filter(
-        (x): x is string => typeof x === "string",
-      );
-    }
-    if (Array.isArray(body.awards)) {
-      row.awards = body.awards.filter((x): x is string => typeof x === "string");
-    }
-    if (typeof body.import_price_eur === "number") {
-      row.import_price_eur = body.import_price_eur;
-    }
-    if (typeof body.winemaker_notes === "string") {
-      row.winemaker_notes = body.winemaker_notes;
-    }
-    if (typeof body.soil_type === "string") row.soil_type = body.soil_type;
-    if (typeof body.elevation_masl === "number" && Number.isInteger(body.elevation_masl)) {
-      row.elevation_masl = body.elevation_masl;
-    }
-    if (typeof body.yield_hl_ha === "number") row.yield_hl_ha = body.yield_hl_ha;
-    if (typeof body.ageing === "string") row.ageing = body.ageing;
+    const row = buildWineInsert(body);
+    row.handle = await ensureUniqueWineHandle(sb, row.handle as string);
 
     const { data, error } = await sb
-      .from("catalog_wines")
+      .from("wines")
       .insert(row)
-      .select(WINE_COLUMNS)
+      .select(WINE_DB_SELECT)
       .single();
 
     if (error) {
@@ -212,7 +147,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ wine: data }, { status: 201 });
+    return NextResponse.json({ wine: wineRowToApi(data) }, { status: 201 });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Unknown error";
     return NextResponse.json({ error: msg }, { status: 500 });
