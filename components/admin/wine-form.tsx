@@ -42,6 +42,31 @@ import { WineB2BPalletStockTable } from "@/components/admin/wine-b2b-pallet-stoc
 
 const DEFAULT_PRODUCER_MARGIN = 10;
 
+const FARMING_OPTIONS = [
+  { value: "organic_certified", label: "Ekologisk certifierad" },
+  { value: "biodynamic_certified", label: "Biodynamisk certifierad" },
+  { value: "natural", label: "Natural" },
+  { value: "sustainable", label: "Hållbar" },
+  { value: "conventional", label: "Konventionell" },
+] as const;
+
+type WineFormData = CreateWineData & {
+  food_pairing_text: string;
+  awards_text: string;
+};
+
+function formatCommaList(values: string[] | null | undefined): string {
+  return values?.join(", ") ?? "";
+}
+
+function parseCommaList(value: string): string[] | null {
+  const items = value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return items.length > 0 ? items : null;
+}
+
 interface WineFormProps {
   wine?: Wine;
   producers: Producer[];
@@ -52,7 +77,7 @@ interface WineFormProps {
 }
 
 export default function WineForm({ wine, producers, isProducerView = false, initialProducerId }: WineFormProps) {
-  const [formData, setFormData] = useState<CreateWineData>({
+  const [formData, setFormData] = useState<WineFormData>({
     handle: wine?.handle || "",
     wine_name: wine?.wine_name === "" ? "" : (wine?.wine_name ?? ""),
     vintage: wine?.vintage || "",
@@ -80,6 +105,15 @@ export default function WineForm({ wine, producers, isProducerView = false, init
     classification: wine?.classification ?? "",
     tasting_notes: wine?.tasting_notes ?? "",
     alcohol_percentage: wine?.alcohol_percentage ?? null,
+    farming: wine?.farming ?? null,
+    serving_temp_c: wine?.serving_temp_c ?? "",
+    food_pairing_text: formatCommaList(wine?.food_pairing),
+    winemaker_notes: wine?.winemaker_notes ?? "",
+    awards_text: formatCommaList(wine?.awards),
+    ageing: wine?.ageing ?? "",
+    soil_type: wine?.soil_type ?? "",
+    elevation_masl: wine?.elevation_masl ?? null,
+    yield_hl_ha: wine?.yield_hl_ha ?? null,
     volume_liters: wine?.volume_liters ?? 0.75,
     // Specs (bullet list under description on PDP; Region comes from Producer)
     appellation: wine?.appellation ?? "",
@@ -189,6 +223,15 @@ export default function WineForm({ wine, producers, isProducerView = false, init
       classification: wine.classification ?? "",
       tasting_notes: wine.tasting_notes ?? "",
       alcohol_percentage: wine.alcohol_percentage ?? null,
+      farming: wine.farming ?? null,
+      serving_temp_c: wine.serving_temp_c ?? "",
+      food_pairing_text: formatCommaList(wine.food_pairing),
+      winemaker_notes: wine.winemaker_notes ?? "",
+      awards_text: formatCommaList(wine.awards),
+      ageing: wine.ageing ?? "",
+      soil_type: wine.soil_type ?? "",
+      elevation_masl: wine.elevation_masl ?? null,
+      yield_hl_ha: wine.yield_hl_ha ?? null,
       volume_liters: wine.volume_liters ?? 0.75,
       appellation: wine.appellation ?? "",
       terroir: wine.terroir ?? "",
@@ -361,9 +404,13 @@ export default function WineForm({ wine, producers, isProducerView = false, init
           ? Math.round((formData.cost_amount ?? 0) * exchangeRate * 100) / 100
           : null;
 
+      const { food_pairing_text, awards_text, ...formRest } = formData;
+
       // Use first uploaded image as main image if available, otherwise keep existing
       const wineData = {
-        ...formData,
+        ...formRest,
+        food_pairing: parseCommaList(food_pairing_text),
+        awards: parseCommaList(awards_text),
         handle: generatedHandle,
         label_image_path:
           imagePaths.length > 0 ? imagePaths[0] : formData.label_image_path,
@@ -416,7 +463,7 @@ export default function WineForm({ wine, producers, isProducerView = false, init
   };
 
   const handleChange = (
-    field: keyof CreateWineData,
+    field: keyof WineFormData,
     value: string | number | boolean | null,
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -683,6 +730,163 @@ export default function WineForm({ wine, producers, isProducerView = false, init
                     }}
                   />
                   <p className="text-xs text-muted-foreground">e.g. 0.75 for standard bottle</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="p-4 bg-muted/30 border border-gray-200 rounded-xl">
+            <CardHeader className="p-0 pb-3">
+              <CardTitle className="text-base font-medium">Vindetaljer</CardTitle>
+              <CardDescription className="text-sm">
+                Enrichment-fält för MCP och produktcopy (valfritt).
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0 space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="farming">Odlingsfilosofi</Label>
+                <Select
+                  value={formData.farming ?? "none"}
+                  onValueChange={(value) =>
+                    handleChange("farming", value === "none" ? null : value)
+                  }
+                >
+                  <SelectTrigger id="farming">
+                    <SelectValue placeholder="Välj odlingsfilosofi" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">—</SelectItem>
+                    {FARMING_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="serving_temp_c">Serveringstemperatur (°C)</Label>
+                <Input
+                  id="serving_temp_c"
+                  value={formData.serving_temp_c ?? ""}
+                  onChange={(e) =>
+                    handleChange("serving_temp_c", e.target.value || null)
+                  }
+                  placeholder="t.ex. 14–16"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="food_pairing_text">Matparning</Label>
+                <Textarea
+                  id="food_pairing_text"
+                  value={formData.food_pairing_text}
+                  onChange={(e) =>
+                    handleChange("food_pairing_text", e.target.value)
+                  }
+                  placeholder="grillat lamm, hårdost"
+                  rows={2}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Separera med komma, t.ex. grillat lamm, hårdost
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="winemaker_notes">Producentens egna noteringar</Label>
+                <Textarea
+                  id="winemaker_notes"
+                  value={formData.winemaker_notes ?? ""}
+                  onChange={(e) =>
+                    handleChange("winemaker_notes", e.target.value)
+                  }
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="awards_text">Utmärkelser</Label>
+                <Textarea
+                  id="awards_text"
+                  value={formData.awards_text}
+                  onChange={(e) => handleChange("awards_text", e.target.value)}
+                  rows={2}
+                />
+                <p className="text-sm text-muted-foreground">Separera med komma</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="ageing">Lagring / elevage</Label>
+                  <Input
+                    id="ageing"
+                    value={formData.ageing ?? ""}
+                    onChange={(e) => handleChange("ageing", e.target.value || null)}
+                    placeholder="t.ex. 12 månader i betongägg"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="soil_type">Jordtyp</Label>
+                  <Input
+                    id="soil_type"
+                    value={formData.soil_type ?? ""}
+                    onChange={(e) =>
+                      handleChange("soil_type", e.target.value || null)
+                    }
+                    placeholder="t.ex. argilo-calcaire"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="elevation_masl">Höjd över havet (m)</Label>
+                  <Input
+                    id="elevation_masl"
+                    type="number"
+                    min={0}
+                    step={1}
+                    placeholder="350"
+                    value={
+                      formData.elevation_masl != null
+                        ? String(formData.elevation_masl)
+                        : ""
+                    }
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === "") {
+                        handleChange("elevation_masl", null);
+                        return;
+                      }
+                      const num = parseInt(v, 10);
+                      if (!Number.isNaN(num)) handleChange("elevation_masl", num);
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="yield_hl_ha">Skördemängd (hl/ha)</Label>
+                  <Input
+                    id="yield_hl_ha"
+                    type="number"
+                    min={0}
+                    step={0.1}
+                    placeholder="35"
+                    value={
+                      formData.yield_hl_ha != null
+                        ? String(formData.yield_hl_ha)
+                        : ""
+                    }
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === "") {
+                        handleChange("yield_hl_ha", null);
+                        return;
+                      }
+                      const num = parseFloat(v);
+                      if (!Number.isNaN(num)) handleChange("yield_hl_ha", num);
+                    }}
+                  />
                 </div>
               </div>
             </CardContent>

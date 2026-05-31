@@ -47,6 +47,17 @@ export interface Wine {
   tasting_profile_character?: string | null;
   classification?: string | null;
   tasting_notes?: string | null;
+  alcohol_percentage?: number | null;
+  // Enrichment
+  farming?: string | null;
+  serving_temp_c?: string | null;
+  food_pairing?: string[] | null;
+  winemaker_notes?: string | null;
+  awards?: string[] | null;
+  ageing?: string | null;
+  soil_type?: string | null;
+  elevation_masl?: number | null;
+  yield_hl_ha?: number | null;
   // Specs (PDP bullet list)
   appellation?: string | null;
   terroir?: string | null;
@@ -91,6 +102,16 @@ export interface CreateWineData {
   classification?: string | null;
   tasting_notes?: string | null;
   alcohol_percentage?: number | null;
+  // Enrichment
+  farming?: string | null;
+  serving_temp_c?: string | null;
+  food_pairing?: string[] | null;
+  winemaker_notes?: string | null;
+  awards?: string[] | null;
+  ageing?: string | null;
+  soil_type?: string | null;
+  elevation_masl?: number | null;
+  yield_hl_ha?: number | null;
   // Specs (PDP bullet list)
   appellation?: string | null;
   terroir?: string | null;
@@ -134,7 +155,15 @@ const WINES_SELECT_FULL = `
   classification,
   tasting_notes,
   alcohol_percentage,
-  volume_liters,
+  farming,
+  serving_temp_c,
+  food_pairing,
+  winemaker_notes,
+  awards,
+  ageing,
+  soil_type,
+  elevation_masl,
+  yield_hl_ha,
   appellation,
   terroir,
   vinification,
@@ -176,7 +205,15 @@ const WINES_SELECT_WITHOUT_B2B = `
   classification,
   tasting_notes,
   alcohol_percentage,
-  volume_liters,
+  farming,
+  serving_temp_c,
+  food_pairing,
+  winemaker_notes,
+  awards,
+  ageing,
+  soil_type,
+  elevation_masl,
+  yield_hl_ha,
   appellation,
   terroir,
   vinification,
@@ -553,6 +590,15 @@ export async function createWine(data: CreateWineData) {
     classification: data.classification ?? null,
     tasting_notes: data.tasting_notes ?? null,
     alcohol_percentage: data.alcohol_percentage ?? null,
+    farming: data.farming ?? null,
+    serving_temp_c: data.serving_temp_c ?? null,
+    food_pairing: data.food_pairing ?? null,
+    winemaker_notes: data.winemaker_notes ?? null,
+    awards: data.awards ?? null,
+    ageing: data.ageing ?? null,
+    soil_type: data.soil_type ?? null,
+    elevation_masl: data.elevation_masl ?? null,
+    yield_hl_ha: data.yield_hl_ha ?? null,
     appellation: data.appellation ?? null,
     terroir: data.terroir ?? null,
     vinification: data.vinification ?? null,
@@ -653,6 +699,19 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
     updateData.tasting_notes = data.tasting_notes;
   if (data.alcohol_percentage !== undefined)
     updateData.alcohol_percentage = data.alcohol_percentage;
+  if (data.farming !== undefined) updateData.farming = data.farming;
+  if (data.serving_temp_c !== undefined)
+    updateData.serving_temp_c = data.serving_temp_c;
+  if (data.food_pairing !== undefined)
+    updateData.food_pairing = data.food_pairing;
+  if (data.winemaker_notes !== undefined)
+    updateData.winemaker_notes = data.winemaker_notes;
+  if (data.awards !== undefined) updateData.awards = data.awards;
+  if (data.ageing !== undefined) updateData.ageing = data.ageing;
+  if (data.soil_type !== undefined) updateData.soil_type = data.soil_type;
+  if (data.elevation_masl !== undefined)
+    updateData.elevation_masl = data.elevation_masl;
+  if (data.yield_hl_ha !== undefined) updateData.yield_hl_ha = data.yield_hl_ha;
   if (data.b2b_price_cents !== undefined)
     updateData.b2b_price_cents = data.b2b_price_cents;
   if (data.b2b_cost_sek !== undefined)
