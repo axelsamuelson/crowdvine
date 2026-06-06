@@ -5,7 +5,7 @@ import { getMemberDiscountPercentForUserId } from "@/lib/membership/server-membe
 import { resolvePalletEarlyBirdContext } from "@/lib/pallet-early-bird-context";
 import { applyPalletDiscount } from "@/lib/pallet-discount";
 import { memberDiscountedTotalInclVat } from "@/lib/price-breakdown";
-import { calculateCartShippingCost } from "@/lib/shipping-calculations";
+import { calculateCartShippingCost, resolveLastMileCostCentsPerBottle } from "@/lib/shipping-calculations";
 import { allocatePactRedemptionPoints } from "@/lib/membership/pact-points-redemption-math";
 
 type WineProducer = {
@@ -174,7 +174,7 @@ async function resolveReservationChargeAmountInOre(params: {
 
   const { data: palletRow, error: palletErr } = await sb
     .from("pallets")
-    .select("id, name, cost_cents, bottle_capacity")
+    .select("id, name, cost_cents, bottle_capacity, last_mile_cost_cents_per_bottle")
     .eq("id", palletId)
     .maybeSingle();
 
@@ -191,6 +191,9 @@ async function resolveReservationChargeAmountInOre(params: {
         bottleCapacity: Number(palletRow.bottle_capacity) || 0,
         currentBottles: 0,
         remainingBottles: 0,
+        lastMileCostCentsPerBottle: resolveLastMileCostCentsPerBottle(
+          Number(palletRow.last_mile_cost_cents_per_bottle) || 0,
+        ),
       },
     );
     shippingSek = shipping?.totalShippingCostSek ?? 0;

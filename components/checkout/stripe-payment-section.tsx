@@ -187,6 +187,7 @@ function StripeElementInner({
   palletId,
   userId,
   amountOre,
+  paymentFormLoadFailedLabel,
 }: {
   paymentMode: PaymentMode;
   clientSecret: string;
@@ -196,6 +197,7 @@ function StripeElementInner({
   palletId: string;
   userId?: string;
   amountOre?: number;
+  paymentFormLoadFailedLabel: string;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -401,8 +403,8 @@ function StripeElementInner({
           typeof err?.message === "string" && err.message.length > 0
             ? err.message
             : typeof err?.type === "string"
-              ? `Payment form failed to load (${err.type})`
-              : "Payment form failed to load";
+              ? `${paymentFormLoadFailedLabel} (${err.type})`
+              : paymentFormLoadFailedLabel;
         onPaymentElementLoadError(message);
       }}
     />
@@ -421,6 +423,7 @@ export function StripePaymentSection({
   usConditionalAck = false,
 }: Props) {
   const shoppingCtx = useShoppingContextOptional();
+  const t = shoppingCtx?.t ?? ((key: string) => key);
   const stripeLocale = stripeLocaleForAppLocale(
     shoppingCtx?.context.locale ?? "en",
   );
@@ -583,8 +586,7 @@ export function StripePaymentSection({
   ) {
     return (
       <p className="text-sm text-muted-foreground">
-        Confirm the checkboxes above to verify your card for this conditional
-        reservation.
+        {t("checkout.stripeConfirmCheckboxes")}
       </p>
     );
   }
@@ -604,7 +606,7 @@ export function StripePaymentSection({
       <div className="space-y-3 rounded-md border border-border bg-background p-4">
         <p className="text-sm text-destructive">{error}</p>
         <Button type="button" variant="outline" size="sm" onClick={requestRetry}>
-          Retry
+          {t("checkout.tryAgain")}
         </Button>
       </div>
     );
@@ -621,22 +623,20 @@ export function StripePaymentSection({
       {paymentMode === "setup_intent" ? (
         <p className="text-sm text-muted-foreground">
           {usConditionalPayment
-            ? "Your card will be verified and saved. You will not be charged now."
-            : "Your card will be saved and charged only when the pallet ships."}
+            ? t("checkout.stripeCardVerifiedNotCharged")
+            : t("checkout.stripeCardSavedOnShip")}
         </p>
       ) : null}
       {paymentMode === "payment_intent" ? (
         <p className="text-sm text-muted-foreground">
-          Your bottles will ship within 7-14 days.
+          {t("checkout.stripeBottlesShip714")}
         </p>
       ) : null}
       {paymentElementLoadError ? (
         <div className="space-y-2 rounded-md border border-border bg-background p-4">
           <p className="text-sm text-destructive">{paymentElementLoadError}</p>
           <p className="text-xs text-muted-foreground">
-            Often caused by a mismatch between test/live keys, an expired client
-            secret, or a blocked network. Try again after verifying your Stripe
-            publishable key matches the account that created the intent.
+            {t("checkout.stripePaymentFormLoadHint")}
           </p>
           <Button type="button" variant="outline" size="sm" onClick={requestRetry}>
             Retry
@@ -667,6 +667,7 @@ export function StripePaymentSection({
             palletId={palletId}
             userId={userId}
             amountOre={amountOreHint}
+            paymentFormLoadFailedLabel={t("checkout.stripePaymentFormLoadFailed")}
           />
         </Elements>
       )}

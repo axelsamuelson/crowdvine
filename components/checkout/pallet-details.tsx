@@ -15,8 +15,9 @@ import {
   DollarSign,
 } from "lucide-react";
 import {
-  calculateShippingCostPerBottle,
+  calculateShippingCostBreakdown,
   formatShippingCost,
+  resolveLastMileCostCentsPerBottle,
 } from "@/lib/shipping-calculations";
 
 interface PalletDetailsProps {
@@ -29,6 +30,7 @@ interface PalletDetailsProps {
     pickupZoneName: string;
     deliveryZoneName: string;
     costCents: number;
+    lastMileCostCentsPerBottle?: number;
   };
 }
 
@@ -39,9 +41,14 @@ export function PalletDetails({ pallet }: PalletDetailsProps) {
     (pallet.currentBottles / pallet.maxBottles) * 100,
   );
   const isAvailable = pallet.remainingBottles > 0;
-  const shippingCostPerBottle = calculateShippingCostPerBottle(
+  const lastMilePerBottle = resolveLastMileCostCentsPerBottle(
+    pallet.lastMileCostCentsPerBottle,
+  );
+  const shippingBreakdown = calculateShippingCostBreakdown(
     pallet.costCents,
     pallet.maxBottles,
+    1,
+    lastMilePerBottle,
   );
 
   const getCapacityColor = (percentage: number) => {
@@ -147,11 +154,12 @@ export function PalletDetails({ pallet }: PalletDetailsProps) {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Per flaska:</span>
                   <span className="text-gray-900 font-medium">
-                    {formatShippingCost(shippingCostPerBottle)}
+                    {formatShippingCost(shippingBreakdown.costPerBottleCents)}
                   </span>
                 </div>
                 <div className="text-xs text-gray-500 mt-1">
-                  Kostnad delat på {pallet.maxBottles} flaskor kapacitet
+                  Pall + hemleverans, delat på {pallet.maxBottles} flaskor
+                  kapacitet
                 </div>
               </div>
             </div>

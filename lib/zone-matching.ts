@@ -1,6 +1,7 @@
 import { getSupabaseAdmin } from "./supabase-admin";
 import { sumReservedBottlesOnPallet } from "@/lib/pallet-fill-count";
 import { findOrCreatePalletForRegion } from "@/lib/pallet-auto-management";
+import { resolveLastMileCostCentsPerBottle } from "@/lib/shipping-calculations";
 import {
   geocodeAddress,
   createFullAddress,
@@ -112,7 +113,7 @@ async function buildPalletInfosForDeliveryPair(
       );
       const { data: pRow, error: pe } = await sb
         .from("pallets")
-        .select("id, name, bottle_capacity, cost_cents, status")
+        .select("id, name, bottle_capacity, cost_cents, last_mile_cost_cents_per_bottle, status")
         .eq("id", palletId)
         .maybeSingle();
       if (pe || !pRow) {
@@ -135,6 +136,9 @@ async function buildPalletInfosForDeliveryPair(
         pickupZoneName: pickupZoneDisplayName || "Shipping region",
         deliveryZoneName,
         costCents: Number(pRow.cost_cents) || 0,
+        lastMileCostCentsPerBottle: resolveLastMileCostCentsPerBottle(
+          Number(pRow.last_mile_cost_cents_per_bottle) || 0,
+        ),
         status,
         shipping_region_id: shippingRegionId,
         delivery_zone_id: deliveryZoneId,
@@ -157,6 +161,7 @@ async function buildPalletInfosForDeliveryPair(
       name,
       bottle_capacity,
       cost_cents,
+      last_mile_cost_cents_per_bottle,
       pickup_zone_id,
       delivery_zone_id,
       status
@@ -211,6 +216,9 @@ async function buildPalletInfosForDeliveryPair(
         pickupZoneName: pickupZoneDisplayName || "",
         deliveryZoneName,
         costCents: Number(pallet.cost_cents) || 0,
+        lastMileCostCentsPerBottle: resolveLastMileCostCentsPerBottle(
+          Number(pallet.last_mile_cost_cents_per_bottle) || 0,
+        ),
         status: typeof st === "string" ? st : null,
         delivery_zone_id:
           typeof pallet.delivery_zone_id === "string"
@@ -262,6 +270,8 @@ export interface PalletInfo {
   pickupZoneName: string;
   deliveryZoneName: string;
   costCents: number;
+  /** Resolved last-mile rate in öre per bottle (pallet override or env). */
+  lastMileCostCentsPerBottle?: number;
   /** DB pallet lifecycle (e.g. shipping_ordered → direct charge at checkout). */
   status?: string | null;
   /** Present when enriched by checkout zones API (region pallets). */
@@ -295,6 +305,7 @@ type PalletRowConditional = {
   name?: string | null;
   bottle_capacity?: number | null;
   cost_cents?: number | null;
+  last_mile_cost_cents_per_bottle?: number | null;
   status?: string | null;
   delivery_zone_id?: string | null;
   delivery_zone?:
@@ -332,6 +343,9 @@ async function palletInfosFromRows(
       pickupZoneName: pickupLabel || "Shipping region",
       deliveryZoneName: dzName,
       costCents: Number(pallet.cost_cents) || 0,
+      lastMileCostCentsPerBottle: resolveLastMileCostCentsPerBottle(
+        Number(pallet.last_mile_cost_cents_per_bottle) || 0,
+      ),
       status: typeof st === "string" ? st : null,
       shipping_region_id: shippingRegionId,
       delivery_zone_id:
@@ -371,6 +385,7 @@ async function buildConditionalUsZoneResult(
         name,
         bottle_capacity,
         cost_cents,
+        last_mile_cost_cents_per_bottle,
         status,
         delivery_zone_id,
         delivery_zone:pallet_zones!delivery_zone_id ( id, name )
@@ -434,6 +449,7 @@ async function buildConditionalUsZoneResult(
         name,
         bottle_capacity,
         cost_cents,
+        last_mile_cost_cents_per_bottle,
         status,
         delivery_zone_id,
         delivery_zone:pallet_zones!delivery_zone_id ( id, name )

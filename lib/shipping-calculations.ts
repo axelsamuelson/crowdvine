@@ -1,5 +1,5 @@
 /**
- * Shipping cost calculations for pallets and bottles
+ * Shipping cost calculations: pallet linehaul + last-mile (Budbee home delivery).
  */
 
 export interface PalletShippingInfo {
@@ -9,23 +9,44 @@ export interface PalletShippingInfo {
   bottleCapacity: number;
   currentBottles: number;
   remainingBottles: number;
+  /** Öre per bottle for last mile; 0 falls back to env default at calculation time. */
+  lastMileCostCentsPerBottle?: number;
 }
 
 export interface ShippingCostBreakdown {
+  /** Total pallet linehaul cost in DB (whole pallet). */
   palletCostCents: number;
   palletCostSek: number;
+  /** Combined cost per bottle (linehaul + last mile). */
   costPerBottleCents: number;
   costPerBottleSek: number;
+  /** This order's share of pallet linehaul. */
+  palletShippingCostCents: number;
+  /** Budbee / home delivery for this order. */
+  lastMileCostCents: number;
+  lastMileCostCentsPerBottle: number;
   totalShippingCostCents: number;
   totalShippingCostSek: number;
   bottlesInPallet: number;
 }
 
+/** Env default when pallet.last_mile_cost_cents_per_bottle is 0. */
+export function resolveLastMileCostCentsPerBottle(
+  palletOverride?: number | null,
+): number {
+  const fromPallet = Number(palletOverride);
+  if (Number.isFinite(fromPallet) && fromPallet > 0) {
+    return Math.round(fromPallet);
+  }
+  const fromEnv = Number(process.env.LAST_MILE_COST_CENTS_PER_BOTTLE ?? "");
+  if (Number.isFinite(fromEnv) && fromEnv > 0) {
+    return Math.round(fromEnv);
+  }
+  return 0;
+}
+
 /**
- * Calculate shipping cost per bottle based on pallet cost and capacity
- * @param palletCostCents - Cost of the entire pallet in cents
- * @param bottleCapacity - Maximum number of bottles the pallet can hold
- * @returns Cost per bottle in cents
+ * Calculate shipping cost per bottle based on pallet cost and capacity (linehaul only).
  */
 export function calculateShippingCostPerBottle(
   palletCostCents: number,
@@ -35,50 +56,41 @@ export function calculateShippingCostPerBottle(
   return Math.round(palletCostCents / bottleCapacity);
 }
 
-/**
- * Calculate total shipping cost for a specific number of bottles
- * @param palletCostCents - Cost of the entire pallet in cents
- * @param bottleCapacity - Maximum number of bottles the pallet can hold
- * @param bottlesInPallet - Number of bottles currently in the pallet
- * @returns Shipping cost breakdown
- */
 export function calculateShippingCostBreakdown(
   palletCostCents: number,
   bottleCapacity: number,
-  bottlesInPallet: number,
+  bottlesInOrder: number,
+  lastMileCostCentsPerBottle: number = 0,
 ): ShippingCostBreakdown {
-  const costPerBottleCents = calculateShippingCostPerBottle(
+  const palletCostPerBottleCents = calculateShippingCostPerBottle(
     palletCostCents,
     bottleCapacity,
   );
-  const totalShippingCostCents = costPerBottleCents * bottlesInPallet;
+  const palletShippingCostCents = palletCostPerBottleCents * bottlesInOrder;
+  const lastMileCostCents = lastMileCostCentsPerBottle * bottlesInOrder;
+  const totalShippingCostCents =
+    palletShippingCostCents + lastMileCostCents;
+  const costPerBottleCents =
+    palletCostPerBottleCents + lastMileCostCentsPerBottle;
 
   return {
     palletCostCents,
     palletCostSek: palletCostCents / 100,
     costPerBottleCents,
     costPerBottleSek: costPerBottleCents / 100,
+    palletShippingCostCents,
+    lastMileCostCents,
+    lastMileCostCentsPerBottle,
     totalShippingCostCents,
     totalShippingCostSek: totalShippingCostCents / 100,
-    bottlesInPallet,
+    bottlesInPallet: bottlesInOrder,
   };
 }
 
-/**
- * Format shipping cost for display
- * @param costCents - Cost in cents
- * @returns Formatted cost string
- */
 export function formatShippingCost(costCents: number): string {
   return `${Math.round(costCents / 100)} SEK`;
 }
 
-/**
- * Calculate shipping cost for cart items based on selected pallet
- * @param cartItems - Array of cart items with quantities
- * @param selectedPallet - Selected pallet information
- * @returns Shipping cost breakdown or null if no pallet selected
- */
 export function calculateCartShippingCost(
   cartItems: Array<{ quantity: number }>,
   selectedPallet: PalletShippingInfo | null,
@@ -88,10 +100,14 @@ export function calculateCartShippingCost(
   }
 
   const totalBottles = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const lastMilePerBottle = resolveLastMileCostCentsPerBottle(
+    selectedPallet.lastMileCostCentsPerBottle,
+  );
 
   return calculateShippingCostBreakdown(
     selectedPallet.costCents,
     selectedPallet.bottleCapacity,
     totalBottles,
+    lastMilePerBottle,
   );
 }

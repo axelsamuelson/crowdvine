@@ -467,13 +467,13 @@ export function buildPaymentConfirmedHtml(
   data: PaymentConfirmedEmailBody,
 ): string {
   const safePallet = escapeHtmlBasic(data.palletName);
-  return `<p>Great news! Your payment of <strong>${data.amountSek} kr</strong> has been confirmed for reservation <strong>${escapeHtmlBasic(data.reservationId)}</strong>.</p><p>Your wines will be delivered via Bring Home Delivery once the pallet ships.</p><p>Pallet: <strong>${safePallet}</strong></p>`;
+  return `<p>Great news! Your payment of <strong>${data.amountSek} kr</strong> has been confirmed for reservation <strong>${escapeHtmlBasic(data.reservationId)}</strong>.</p><p>Your wines will be delivered via Budbee Home Delivery once the pallet ships.</p><p>Pallet: <strong>${safePallet}</strong></p>`;
 }
 
 export function buildPaymentConfirmedText(
   data: PaymentConfirmedEmailBody,
 ): string {
-  return `Great news! Your payment of ${data.amountSek} kr has been confirmed for reservation ${data.reservationId}. Your wines will be delivered via Bring Home Delivery once the pallet ships.\n\nPallet: ${data.palletName}`;
+  return `Great news! Your payment of ${data.amountSek} kr has been confirmed for reservation ${data.reservationId}. Your wines will be delivered via Budbee Home Delivery once the pallet ships.\n\nPallet: ${data.palletName}`;
 }
 
 export type PaymentFailedEmailBody = {

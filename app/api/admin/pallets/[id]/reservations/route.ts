@@ -34,17 +34,13 @@ export async function GET(
       return NextResponse.json({ error: "Pallet not found" }, { status: 404 });
     }
 
-    // Data-driven mapping:
-    // We consider active reservations that deliver to this pallet's delivery zone,
-    // then derive pickup_zone_id from the wines inside the reservation (via producers.pickup_zone_id).
-    // This stays correct even if producers are re-linked later.
     const { data: reservations, error: reservationsError } = await supabase
       .from("order_reservations")
       .select(
-        "id, user_id, status, created_at, delivery_zone_id",
+        "id, user_id, status, created_at, delivery_zone_id, pallet_id",
       )
       .in("status", [...PALLET_FILL_STATUSES])
-      .eq("delivery_zone_id", pallet.delivery_zone_id)
+      .eq("pallet_id", pallet.id)
       .order("created_at", { ascending: false });
 
     if (reservationsError) {
@@ -128,21 +124,9 @@ export async function GET(
       itemsByReservationId.set(it.reservation_id, arr);
     }
 
-    // Filter reservations to only those that map to THIS pallet's pickup zone
     const reservationsWithItems = reservations
       .map((reservation) => {
         const resItems = itemsByReservationId.get(reservation.id) || [];
-
-        const pickupZones = new Set<string>();
-        for (const it of resItems) {
-          const pz = it.wines?.producers?.pickup_zone_id;
-          if (typeof pz === "string" && pz.length > 0) pickupZones.add(pz);
-        }
-
-        // Only include if we can derive exactly one pickup zone and it matches this pallet.
-        if (pickupZones.size !== 1) return null;
-        const derivedPickupZoneId = Array.from(pickupZones)[0];
-        if (derivedPickupZoneId !== pallet.pickup_zone_id) return null;
 
         const itemsData =
           resItems.map((item) => ({

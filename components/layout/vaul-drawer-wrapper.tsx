@@ -44,15 +44,15 @@ export function VaulDrawerWrapper({
   ssrPathname: string;
 }) {
   const pathname = usePathname();
-  const [needsVaulWrapper, setNeedsVaulWrapper] = useState(() =>
-    pathnameNeedsVaulDrawerWrapper(ssrPathname),
-  );
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setNeedsVaulWrapper(
-      pathnameNeedsVaulDrawerWrapper(pathname || ssrPathname),
-    );
-  }, [pathname, ssrPathname]);
+    setMounted(true);
+  }, []);
+
+  // Until mount, always use ssrPathname so SSR HTML matches the first client paint.
+  const pathForWrapper = mounted ? (pathname ?? ssrPathname) : ssrPathname;
+  const needsVaulWrapper = pathnameNeedsVaulDrawerWrapper(pathForWrapper);
 
   if (needsVaulWrapper) {
     return <div data-vaul-drawer-wrapper="true">{children}</div>;

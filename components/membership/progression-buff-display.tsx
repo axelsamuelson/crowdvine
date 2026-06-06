@@ -2,6 +2,7 @@
 
 import { Sparkles, TrendingUp, Gift } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useShoppingContextOptional } from "@/lib/context/shopping-context-provider";
 
 interface ProgressionBuffDisplayProps {
   totalBuffPercentage: number;
@@ -26,6 +27,9 @@ export function ProgressionBuffDisplay({
   className,
   compact = false,
 }: ProgressionBuffDisplayProps) {
+  const shoppingCtx = useShoppingContextOptional();
+  const t = shoppingCtx?.t ?? ((key: string) => key);
+
   // Don't show if no buffs
   if (totalBuffPercentage <= 0) {
     return null;
@@ -37,10 +41,14 @@ export function ProgressionBuffDisplay({
       <div className={cn("flex items-center gap-2 text-sm", className)}>
         <Sparkles className="w-4 h-4 text-amber-500" />
         <span className="font-medium text-amber-700">
-          Progress bonus: +{totalBuffPercentage.toFixed(1)}%
+          {t("checkout.progressBonusCompact", {
+            percent: totalBuffPercentage.toFixed(1),
+          })}
         </span>
         {expiresOnUse && (
-          <span className="text-xs text-gray-500">(expires on use)</span>
+          <span className="text-xs text-gray-500">
+            {t("checkout.progressBonusExpiresOnUse")}
+          </span>
         )}
       </div>
     );
@@ -61,9 +69,11 @@ export function ProgressionBuffDisplay({
           </div>
           <div>
             <h3 className="text-sm font-semibold text-gray-900">
-              Active Progress Bonus
+              {t("checkout.progressBonusActiveTitle")}
             </h3>
-            <p className="text-xs text-gray-600">Applied to your next order</p>
+            <p className="text-xs text-gray-600">
+              {t("checkout.progressBonusAppliedNext")}
+            </p>
           </div>
         </div>
 
@@ -71,7 +81,9 @@ export function ProgressionBuffDisplay({
           <div className="text-2xl font-bold text-amber-600">
             +{totalBuffPercentage.toFixed(1)}%
           </div>
-          <div className="text-xs text-gray-500">discount</div>
+          <div className="text-xs text-gray-500">
+            {t("checkout.progressBonusDiscountLabel")}
+          </div>
         </div>
       </div>
 
@@ -79,7 +91,7 @@ export function ProgressionBuffDisplay({
         <div className="space-y-2 mt-3 pt-3 border-t border-amber-200">
           <div className="flex items-center gap-1.5 text-xs font-medium text-gray-700 mb-2">
             <Gift className="w-3.5 h-3.5" />
-            <span>Earned Bonuses:</span>
+            <span>{t("checkout.progressBonusEarned")}</span>
           </div>
           {buffDetails.map((buff, index) => (
             <div
@@ -99,8 +111,7 @@ export function ProgressionBuffDisplay({
         <div className="mt-3 pt-3 border-t border-amber-200">
           <p className="text-xs text-gray-600 flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            This bonus will be automatically applied to your next reservation
-            and then expire.
+            {t("checkout.progressBonusExpiresNote")}
           </p>
         </div>
       )}

@@ -5,7 +5,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { stripe } from "@/lib/stripe";
 import { CartService } from "@/src/lib/cart-service";
 import { determineZones, type DeliveryAddress } from "@/lib/zone-matching";
-import { calculateCartShippingCost } from "@/lib/shipping-calculations";
+import { calculateCartShippingCost, resolveLastMileCostCentsPerBottle } from "@/lib/shipping-calculations";
 import {
   allocatePactRedemptionPoints,
   calculateBoostAwareMaxRedemption,
@@ -372,7 +372,7 @@ export async function POST(request: Request) {
     // Shipping cost uses pallet attributes.
     const { data: palletRow } = await sbAdmin
       .from("pallets")
-      .select("id, name, cost_cents, bottle_capacity")
+      .select("id, name, cost_cents, bottle_capacity, last_mile_cost_cents_per_bottle")
       .eq("id", palletId)
       .maybeSingle();
     if (!palletRow) {
@@ -391,6 +391,9 @@ export async function POST(request: Request) {
         bottleCapacity: Number(palletRow.bottle_capacity) || 0,
         currentBottles: 0,
         remainingBottles: 0,
+        lastMileCostCentsPerBottle: resolveLastMileCostCentsPerBottle(
+          Number(palletRow.last_mile_cost_cents_per_bottle) || 0,
+        ),
       },
     );
     const shippingSek = shipping?.totalShippingCostSek ?? 0;

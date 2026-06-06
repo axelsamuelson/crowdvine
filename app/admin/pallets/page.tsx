@@ -5,10 +5,12 @@ import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Plus,
   Package,
-  ChevronDown,
+  CheckCircle,
+  Wine,
   AlertCircle,
+  Plus,
+  ChevronDown,
   Truck,
 } from "lucide-react";
 import Link from "next/link";
@@ -404,26 +406,32 @@ export default function PalletsPage() {
 
   const stats = [
     {
-      label: "Total Pallets",
-      value: String(pallets.length),
+      label: "TOTAL PALLETS",
+      value: pallets.length,
       bar: "border-l-zinc-400",
+      icon: Package,
+      description: "Aktiva pallar",
     },
     {
-      label: "Complete",
-      value: String(pallets.filter((p) => p.is_complete).length),
+      label: "COMPLETE",
+      value: pallets.filter((p) => p.is_complete).length,
       bar: "border-l-emerald-500",
+      icon: CheckCircle,
+      description: "Klara att skicka",
     },
     {
-      label: "Total Bottles",
-      value: String(
-        pallets.reduce((sum, p) => sum + p.total_booked_bottles, 0),
-      ),
+      label: "TOTAL BOTTLES",
+      value: pallets.reduce((s, p) => s + (p.total_booked_bottles ?? 0), 0),
       bar: "border-l-violet-500",
+      icon: Wine,
+      description: "Reserverade flaskor",
     },
     {
-      label: "Needs Ordering",
-      value: String(pallets.filter((p) => p.needs_ordering).length),
+      label: "NEEDS ORDERING",
+      value: pallets.filter((p) => p.needs_ordering).length,
       bar: "border-l-amber-500",
+      icon: AlertCircle,
+      description: "Inväntar beställning",
     },
   ];
 
@@ -441,12 +449,12 @@ export default function PalletsPage() {
             är fraktregion eller upphämtningszon.
           </p>
         </div>
-        <Link
-          href="/admin/pallets/new"
-          className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors shrink-0 pt-1"
-        >
-          + Ny pall
-        </Link>
+        <Button asChild size="sm" variant="outline">
+          <Link href="/admin/pallets/new">
+            <Plus className="h-4 w-4 mr-1.5" />
+            Ny pall
+          </Link>
+        </Button>
       </div>
 
       <Tabs value={initialTab} onValueChange={handleTabChange}>
@@ -470,14 +478,20 @@ export default function PalletsPage() {
             {stats.map((stat) => (
               <div
                 key={stat.label}
-                className={`bg-[#0F0F12] rounded-lg p-5 border border-[#1F1F23] border-l-[3px] ${stat.bar}`}
+                className={`bg-[#0F0F12] rounded-xl p-5 border border-[#1F1F23] border-l-[3px] ${stat.bar}`}
               >
-                <p className="text-xs uppercase tracking-widest text-zinc-500 mb-2">
-                  {stat.label}
-                </p>
-                <p className="text-3xl font-semibold tabular-nums text-zinc-100">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="rounded-lg bg-zinc-800 p-2">
+                    <stat.icon className="h-4 w-4 text-zinc-400" />
+                  </div>
+                  <p className="text-xs uppercase tracking-widest text-zinc-500">
+                    {stat.label}
+                  </p>
+                </div>
+                <p className="text-3xl font-semibold tabular-nums text-zinc-100 mb-1">
                   {stat.value}
                 </p>
+                <p className="text-xs text-zinc-500">{stat.description}</p>
               </div>
             ))}
           </div>
@@ -809,7 +823,7 @@ export default function PalletsPage() {
               return (
                 <div
                   key={pallet.id}
-                  className="bg-[#0F0F12] rounded-lg border border-[#1F1F23] p-5"
+                  className="bg-[#0F0F12] rounded-xl border border-[#1F1F23] p-5"
                 >
                   {cardInner}
                 </div>

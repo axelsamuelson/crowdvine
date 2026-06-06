@@ -265,12 +265,12 @@ export function ShareBottlesDialog({
                             ) : null}
                           </div>
                           <Avatar className="h-8 w-8">
-                            <AvatarImage src={avatarUrl} alt={f.full_name || "User"} />
+                            <AvatarImage src={avatarUrl} alt={f.full_name || t("checkout.defaultUserName")} />
                             <AvatarFallback>{formatInitials(f.full_name)}</AvatarFallback>
                           </Avatar>
                           <div className="min-w-0 flex-1">
                             <div className="text-sm font-medium text-gray-900 truncate">
-                              {f.full_name || "User"}
+                              {f.full_name || t("checkout.defaultUserName")}
                             </div>
                             {f.description ? (
                               <div className="text-xs text-gray-500 truncate">
@@ -338,7 +338,7 @@ export function ShareBottlesDialog({
                   return (
                     <div key={f.id} className="flex items-center justify-between text-sm">
                       <span className="text-gray-700 truncate pr-4">
-                        {f.full_name || "User"}
+                        {f.full_name || t("checkout.defaultUserName")}
                       </span>
                       <span className="font-medium text-gray-900">
                         {formatDisplay(t.net)}
@@ -362,12 +362,12 @@ export function ShareBottlesDialog({
                     <div key={friend.id} className="space-y-3">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-9 w-9">
-                          <AvatarImage src={friend.avatar_image_path || ""} alt={friend.full_name || "User"} />
+                          <AvatarImage src={friend.avatar_image_path || ""} alt={friend.full_name || t("checkout.defaultUserName")} />
                           <AvatarFallback>{formatInitials(friend.full_name)}</AvatarFallback>
                         </Avatar>
                         <div className="min-w-0">
                           <div className="text-sm font-medium text-gray-900 truncate">
-                            {friend.full_name || "User"}
+                            {friend.full_name || t("checkout.defaultUserName")}
                           </div>
                           <div className="text-xs text-gray-500">
                             {formatDisplay(

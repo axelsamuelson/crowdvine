@@ -31,6 +31,7 @@ interface CreatePalletData {
   pickup_zone_id: string;
   cost_cents: number;
   bottle_capacity: number;
+  last_mile_cost_cents_per_bottle: number;
 }
 
 interface Pallet {
@@ -41,6 +42,7 @@ interface Pallet {
   pickup_zone_id: string;
   cost_cents: number;
   bottle_capacity: number;
+  last_mile_cost_cents_per_bottle?: number;
   created_at: string;
   updated_at: string;
   delivery_zone?: PalletZone;
@@ -68,6 +70,8 @@ export default function PalletForm({ pallet }: PalletFormProps) {
     pickup_zone_id: pallet?.pickup_zone_id || "",
     cost_cents: pallet?.cost_cents || 0,
     bottle_capacity: pallet?.bottle_capacity || 0,
+    last_mile_cost_cents_per_bottle:
+      pallet?.last_mile_cost_cents_per_bottle ?? 0,
   });
 
   const [deliveryZones, setDeliveryZones] = useState<PalletZone[]>([]);
@@ -325,6 +329,35 @@ export default function PalletForm({ pallet }: PalletFormProps) {
               }
               placeholder="72"
               required
+            />
+          </div>
+
+          <div className="space-y-2 md:col-span-2">
+            <Label
+              htmlFor="last_mile_cost_cents_per_bottle"
+              className="text-sm text-zinc-300"
+            >
+              Last mile per bottle (SEK)
+            </Label>
+            <Input
+              id="last_mile_cost_cents_per_bottle"
+              type="number"
+              step="0.01"
+              className={inputDarkClass}
+              value={
+                formData.last_mile_cost_cents_per_bottle > 0
+                  ? (formData.last_mile_cost_cents_per_bottle / 100).toFixed(2)
+                  : ""
+              }
+              onChange={(e) =>
+                handleChange(
+                  "last_mile_cost_cents_per_bottle",
+                  e.target.value.trim() === ""
+                    ? 0
+                    : Math.round(parseFloat(e.target.value) * 100) || 0,
+                )
+              }
+              placeholder="Leave empty for env default (LAST_MILE_COST_CENTS_PER_BOTTLE)"
             />
           </div>
         </div>

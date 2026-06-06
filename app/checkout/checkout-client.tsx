@@ -32,7 +32,6 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { clearZoneCache } from "@/lib/zone-matching";
-import { deliveryEstimateLabelFromFillPercent } from "@/lib/pallet-delivery-estimate-label";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { calculateCartShippingCost } from "@/lib/shipping-calculations";
 import type { PalletInfo } from "@/lib/zone-matching";
@@ -1311,6 +1310,7 @@ function CheckoutContent() {
       bottleCapacity: selectedPallet.maxBottles,
       currentBottles: selectedPallet.currentBottles,
       remainingBottles: selectedPallet.remainingBottles,
+      lastMileCostCentsPerBottle: selectedPallet.lastMileCostCentsPerBottle,
           },
         )
       : null;
@@ -1550,12 +1550,18 @@ function CheckoutContent() {
 
   const { filledBottles, totalCapacity, fillPercent, deliveryEstimateLabel } =
     useMemo(() => {
+      const estimateFromFill = (fp: number) => {
+        if (fp < 50) return t("checkout.deliveryEstimate2to4Weeks");
+        if (fp < 80) return t("checkout.deliveryEstimate1to2Weeks");
+        return t("checkout.deliveryEstimateWithin1Week");
+      };
+
       if (!selectedPallet) {
         return {
           filledBottles: 0,
           totalCapacity: 0,
           fillPercent: 0,
-          deliveryEstimateLabel: "2-4 weeks" as const,
+          deliveryEstimateLabel: t("checkout.deliveryEstimate2to4Weeks"),
         };
       }
       const f = selectedPallet.currentBottles;
@@ -1565,7 +1571,7 @@ function CheckoutContent() {
           filledBottles: 0,
           totalCapacity: 0,
           fillPercent: 0,
-          deliveryEstimateLabel: "2-4 weeks" as const,
+          deliveryEstimateLabel: t("checkout.deliveryEstimate2to4Weeks"),
         };
       }
       const fp = (f / cap) * 100;
@@ -1575,17 +1581,16 @@ function CheckoutContent() {
           filledBottles: f,
           totalCapacity: cap,
           fillPercent: fp,
-          deliveryEstimateLabel:
-            "Shipping ordered · Estimated delivery 7-14 days" as const,
+          deliveryEstimateLabel: t("checkout.deliveryEstimateShippingOrdered"),
         };
       }
       return {
         filledBottles: f,
         totalCapacity: cap,
         fillPercent: fp,
-        deliveryEstimateLabel: deliveryEstimateLabelFromFillPercent(fp),
+        deliveryEstimateLabel: estimateFromFill(fp),
       };
-    }, [selectedPallet]);
+    }, [selectedPallet, t]);
 
   const handleSelectPallet = useCallback(
     (palletId: string) => {
@@ -2263,11 +2268,11 @@ function CheckoutContent() {
                                 </span>
                                 {/* eslint-disable-next-line @next/next/no-img-element -- static brand asset from /public */}
                                 <img
-                                  src="/bring-logo.svg"
-                                  alt=""
+                                  src="/budbee-logo.png"
+                                  alt="Budbee"
                                   width={96}
                                   height={36}
-                                  className="h-5 w-auto max-w-[100px] shrink-0 object-contain object-right"
+                                  className="h-5 w-auto max-w-[100px] shrink-0 object-contain object-right mix-blend-multiply"
                                   aria-hidden
                                 />
                               </div>

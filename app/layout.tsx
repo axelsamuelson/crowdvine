@@ -42,6 +42,7 @@ import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
 import { isPublicAppPath } from "@/lib/auth/public-paths";
 import { SiteLogoProvider } from "@/lib/context/site-logo-provider";
 import { resolveSiteLogosFromRequest } from "@/lib/site-logos-server";
+import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
 
 export async function generateMetadata(): Promise<Metadata> {
   try {

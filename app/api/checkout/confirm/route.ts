@@ -43,7 +43,7 @@ import { checkAndMintMilestoneVouchers } from "@/lib/membership/milestone-vouche
 import { tryActivateReferralOnFirstOrder } from "@/lib/referral/activate-referral-on-first-order";
 import { stripe } from "@/lib/stripe";
 import { resolvePaymentMethodDetailsFromId } from "@/lib/stripe/resolve-payment-method-details";
-import { calculateCartShippingCost } from "@/lib/shipping-calculations";
+import { calculateCartShippingCost, resolveLastMileCostCentsPerBottle } from "@/lib/shipping-calculations";
 import {
   CHECKOUT_UNSUPPORTED_COUNTRY_USER_MESSAGE,
   US_CHARGE_BLOCKED_REASON,
@@ -810,7 +810,7 @@ export async function POST(request: Request) {
       if (palletId) {
         const { data: palletRow, error: palletErr } = await sbAdmin
           .from("pallets")
-          .select("id, name, cost_cents, bottle_capacity")
+          .select("id, name, cost_cents, bottle_capacity, last_mile_cost_cents_per_bottle")
           .eq("id", palletId)
           .maybeSingle();
         if (palletErr) throw palletErr;
@@ -824,6 +824,9 @@ export async function POST(request: Request) {
               bottleCapacity: Number(palletRow.bottle_capacity) || 0,
               currentBottles: 0,
               remainingBottles: 0,
+              lastMileCostCentsPerBottle: resolveLastMileCostCentsPerBottle(
+                Number(palletRow.last_mile_cost_cents_per_bottle) || 0,
+              ),
             },
           );
           shippingSek = shipping?.totalShippingCostSek ?? 0;
