@@ -362,6 +362,7 @@
     "deliveryOptions": "Leveransalternativ",
     "homeDeliveryBring": "Hemleverans via Bring",
     "deliveryBringHint": "{estimate} · Signatur och ålderskontroll krävs",
+    "budbeeUnavailable": "Hemleverans är inte tillgänglig för ditt postnummer. Kontakta oss för alternativ.",
     "deliveryOptionAria": "Leveransalternativ: hemleverans via Bring",
     "palletProgress": "Pallstatus",
     "palletProgressCount": "{filled} av {total} flaskor",

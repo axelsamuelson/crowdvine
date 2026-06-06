@@ -3,6 +3,11 @@ import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { resolvePaymentMethodDetailsFromId } from "@/lib/stripe/resolve-payment-method-details";
+import {
+  confirmInstabeePacking,
+  createInstabeeOrder,
+} from "@/lib/instabee/home-delivery";
+import { sendLabelsEmail } from "@/lib/email/instabee-labels";
 
 function paymentIntentLatestChargeId(
   paymentIntent: Stripe.PaymentIntent,
@@ -113,6 +118,117 @@ async function handlePaymentIntentSucceededWebhook(
       `[Stripe Webhook] reservation_id=${reservationId} confirmPendingRedemption:`,
       confirmResult.error,
     );
+  }
+
+  // Instabee — triggas garanterat efter bekräftad betalning
+  if (process.env.INSTABEE_AUTO_CREATE_ORDERS === "true") {
+    try {
+      const palletIdFromMeta = paymentIntent.metadata?.pallet_id;
+
+      // Hämta adress för denna reservation
+      const sbAdmin = getSupabaseAdmin();
+      const { data: resData } = await sbAdmin
+        .from("order_reservations")
+        .select(
+          `
+          id,
+          bottles,
+          total_sek,
+          producer_id,
+          user_addresses!inner (
+            full_name,
+            email,
+            phone,
+            address_street,
+            address_postcode,
+            address_city,
+            country_code
+          )
+        `,
+        )
+        .eq("id", reservationId)
+        .maybeSingle();
+
+      if (resData) {
+        const addrRaw = resData.user_addresses;
+        const addr = Array.isArray(addrRaw) ? addrRaw[0] : addrRaw;
+        if (addr) {
+          const bottles = Number(resData.bottles) || 0;
+          const orderParams = {
+            orderId: String(resData.id),
+            recipientName: String(addr.full_name ?? ""),
+            recipientEmail: String(addr.email ?? ""),
+            recipientPhone: String(addr.phone ?? ""),
+            street: String(addr.address_street ?? ""),
+            postalCode: String(addr.address_postcode ?? ""),
+            city: String(addr.address_city ?? ""),
+            countryCode: String(addr.country_code ?? "SE"),
+            totalBottles: bottles,
+          };
+
+          // Post Purchase
+          await createInstabeeOrder(orderParams);
+
+          // Post Packing — generera fraktsedel
+          const packing = await confirmInstabeePacking({
+            ...orderParams,
+            totalWeightGram: bottles * 1500,
+          });
+
+          if (packing) {
+            // Spara label på reservationen
+            await sbAdmin
+              .from("order_reservations")
+              .update({
+                instabee_parcel_id: packing.parcelId,
+                instabee_label_url: packing.labelUrl,
+                instabee_tracking_url: packing.trackingUrl,
+                instabee_label_created_at: new Date().toISOString(),
+              })
+              .eq("id", resData.id);
+
+            // Skicka label-mail till producent
+            if (packing.labelUrl && resData.producer_id) {
+              const { data: producerProfile } = await sbAdmin
+                .from("profiles")
+                .select("email")
+                .eq("producer_id", resData.producer_id)
+                .eq("role", "producer")
+                .maybeSingle();
+
+              const { data: producer } = await sbAdmin
+                .from("producers")
+                .select("name")
+                .eq("id", resData.producer_id)
+                .maybeSingle();
+
+              if (producerProfile?.email) {
+                await sendLabelsEmail({
+                  producerEmail: producerProfile.email,
+                  producerName: producer?.name ?? "Producent",
+                  palletId: palletIdFromMeta ?? String(resData.id),
+                  labels: [
+                    {
+                      reservationId: String(resData.id),
+                      recipientName: String(addr.full_name ?? ""),
+                      bottles,
+                      labelUrl: packing.labelUrl,
+                    },
+                  ],
+                });
+              }
+            }
+          }
+        }
+      }
+    } catch (instabeeErr) {
+      console.error(
+        "[Instabee] Webhook handler failed for reservation:",
+        reservationId,
+        instabeeErr,
+      );
+      // Logga men kasta inte — betalningen är bekräftad
+    }
   }
 
   const { data: resRow } = await supabase

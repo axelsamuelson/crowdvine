@@ -134,6 +134,9 @@ function CheckoutContent() {
   const zoneInfoFetchInProgressRef = useRef(false);
   const [discountCodeInput, setDiscountCodeInput] = useState("");
   const [postalCodeDraft, setPostalCodeDraft] = useState("");
+  const [budbeeAvailable, setBudbeeAvailable] = useState<boolean | null>(
+    null,
+  );
   const postalModalTriggerRef = useRef<HTMLButtonElement | null>(null);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [shareAllocation, setShareAllocation] = useState<ShareAllocation | null>(
@@ -825,6 +828,9 @@ function CheckoutContent() {
       setDeliveryDraft(null);
       toast.success(t("checkout.deliverySaved"));
       await updateZoneInfo();
+      if (eff?.postal && eff?.countryCode) {
+        void checkBudbeeAvailability(eff.postal, eff.countryCode);
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("checkout.saveFailed"));
     } finally {
@@ -1506,11 +1512,36 @@ function CheckoutContent() {
     postalModalTriggerRef.current?.click();
   }, []);
 
+  const checkBudbeeAvailability = useCallback(
+    async (postalCode: string, countryCode: string = "SE") => {
+      if (!/^\d{5}$/.test(postalCode)) return;
+      try {
+        const res = await fetch(
+          `/api/checkout/validate-delivery` +
+            `?postalCode=${encodeURIComponent(postalCode)}` +
+            `&countryCode=${encodeURIComponent(countryCode)}`,
+        );
+        if (!res.ok) return;
+        const data = (await res.json()) as { available?: unknown };
+        setBudbeeAvailable(data.available === true);
+      } catch {
+        // Vid nätverksfel: visa inget — blockera inte checkout
+        setBudbeeAvailable(null);
+      }
+    },
+    [],
+  );
+
   const handlePostalDraftCommit = useCallback(() => {
     const v = postalCodeDraft.trim();
     if (!/^\d{5}$/.test(v)) return;
+    void checkBudbeeAvailability(v);
     openProfileModalForPostalCode();
-  }, [openProfileModalForPostalCode, postalCodeDraft]);
+  }, [
+    openProfileModalForPostalCode,
+    postalCodeDraft,
+    checkBudbeeAvailability,
+  ]);
 
   const showPalletPicker = useMemo(
     () => (zoneInfo.pallets?.length ?? 0) > 1,
@@ -2219,6 +2250,11 @@ function CheckoutContent() {
                                       estimate: deliveryEstimateLabel,
                                     })}
                                   </p>
+                                  {budbeeAvailable === false && (
+                                    <p className="mt-1 text-xs text-amber-500">
+                                      {t("checkout.budbeeUnavailable")}
+                                    </p>
+                                  )}
                                 </div>
                               </div>
                               <div className="flex shrink-0 items-center gap-2">

@@ -362,6 +362,7 @@
     "deliveryOptions": "Delivery options",
     "homeDeliveryBring": "Home delivery via Bring",
     "deliveryBringHint": "{estimate} · Signature and age verification required",
+    "budbeeUnavailable": "Home delivery is not available for your postal code. Contact us for alternatives.",
     "deliveryOptionAria": "Delivery option: home delivery via Bring",
     "palletProgress": "Pallet progress",
     "palletProgressCount": "{filled} of {total} bottles",
