@@ -8,6 +8,13 @@ import {
   getSekToDisplayRate,
   resolveDisplayCurrency,
 } from "@/lib/shopping-context/display-currency";
+import {
+  roundAmountForDisplay,
+} from "@/lib/shopping-context/format";
+import {
+  aggregateB2BPalletStock,
+  B2B_PALLET_ITEM_STOCK_SELECT,
+} from "@/lib/b2b-pallet-stock";
 
 async function resolveProductDisplayCurrency(params?: {
   displayCurrencyCode?: string;
@@ -37,7 +44,7 @@ function displayPriceFromSek(
   round: "ceil" | "round" = "ceil",
 ) {
   const v = convertSekForDisplay(amountSek, displayCurrencyCode, sekToDisplayRate);
-  const n = round === "ceil" ? Math.ceil(v) : Math.round(v);
+  const n = roundAmountForDisplay(v, displayCurrencyCode, round);
   return { amount: n.toString(), currencyCode: displayCurrencyCode };
 }
 
@@ -70,59 +77,29 @@ async function fetchB2BStockAndShippingFromPallets(
   sb: Awaited<ReturnType<typeof getSupabaseAdmin>>,
   wineIds: string[],
 ): Promise<{ stockMap: Map<string, number>; shippingMap: Map<string, number> }> {
-  const stockMap = new Map<string, number>();
-  const shippingMap = new Map<string, number>();
-  if (wineIds.length === 0) return { stockMap, shippingMap };
+  if (wineIds.length === 0) {
+    return { stockMap: new Map(), shippingMap: new Map() };
+  }
   try {
     const { data: palletItems, error } = await sb
       .from("b2b_pallet_shipment_items")
-      .select("wine_id, quantity, quantity_sold, shipment_id, b2b_pallet_shipments!inner(cost_cents)")
-      .in("wine_id", wineIds);
+      .select(B2B_PALLET_ITEM_STOCK_SELECT)
+      .in("wine_id", wineIds)
+      .eq("b2b_pallet_shipments.is_active", true);
     if (error) {
       const fallback = await sb
         .from("b2b_pallet_shipment_items")
-        .select("wine_id, quantity")
+        .select("wine_id, quantity, quantity_sold, shipment_id, b2b_pallet_shipments!inner(is_active)")
         .in("wine_id", wineIds);
-      (fallback.data || []).forEach((row: any) => {
-        stockMap.set(row.wine_id, (stockMap.get(row.wine_id) ?? 0) + (row.quantity ?? 0));
-      });
-      return { stockMap, shippingMap };
+      const sellable = (fallback.data || []).filter((row: any) =>
+        row.b2b_pallet_shipments?.is_active !== false,
+      );
+      return aggregateB2BPalletStock(sellable, { sellableOnly: true });
     }
-    const items = (palletItems || []) as any[];
-    const shipmentIds = [...new Set(items.map((r: any) => r.shipment_id).filter(Boolean))];
-    let totalBottlesByShipment = new Map<string, number>();
-    if (shipmentIds.length > 0) {
-      const { data: allItems } = await sb
-        .from("b2b_pallet_shipment_items")
-        .select("shipment_id, quantity")
-        .in("shipment_id", shipmentIds);
-      (allItems || []).forEach((row: any) => {
-        const sid = row.shipment_id;
-        totalBottlesByShipment.set(sid, (totalBottlesByShipment.get(sid) ?? 0) + (row.quantity ?? 0));
-      });
-    }
-    const byWine = new Map<string, { remaining: number; shippingSum: number }>();
-    items.forEach((row: any) => {
-      const remaining = Math.max(0, (row.quantity ?? 0) - (row.quantity_sold ?? 0));
-      const costCents = row.b2b_pallet_shipments?.cost_cents ?? 0;
-      const totalBottles = totalBottlesByShipment.get(row.shipment_id) ?? 1;
-      const shippingPerBottle = totalBottles > 0 ? costCents / 100 / totalBottles : 0;
-      const wid = row.wine_id;
-      const curr = byWine.get(wid) ?? { remaining: 0, shippingSum: 0 };
-      curr.remaining += remaining;
-      curr.shippingSum += shippingPerBottle * remaining;
-      byWine.set(wid, curr);
-      stockMap.set(wid, (stockMap.get(wid) ?? 0) + remaining);
-    });
-    byWine.forEach((v, wid) => {
-      if (v.remaining > 0) {
-        shippingMap.set(wid, v.shippingSum / v.remaining);
-      }
-    });
+    return aggregateB2BPalletStock(palletItems || [], { sellableOnly: true });
   } catch {
-    /* table may not exist */
+    return { stockMap: new Map(), shippingMap: new Map() };
   }
-  return { stockMap, shippingMap };
 }
 
 /** Escape `%`, `_`, `\` for use inside PostgreSQL ILIKE patterns (PostgREST). */
@@ -614,6 +591,7 @@ export async function fetchProductsData(params?: {
         exchangeRate: rateMap[(i.cost_currency || "EUR") as string] ?? i.exchange_rate ?? 1,
         alcoholTaxCents: i.alcohol_tax_cents || 0,
         marginPercentage: i.margin_percentage || 0,
+        basePriceCents: i.base_price_cents,
         b2bMarginPercentage: i.b2b_margin_percentage ?? undefined,
         b2bShippingPerBottleSek: b2bShippingMap.get(i.id) ?? undefined,
         b2bPriceExclVat:

@@ -27,7 +27,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Trash2, ChevronsUpDown } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import {
   collectCurrenciesNeedingRates,
@@ -43,6 +45,7 @@ import {
 } from "@/lib/wine-color";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { ADMIN_ACTIVE_SWITCH_CLASS } from "@/lib/admin-form-styles";
 
 const inputClass =
   "h-10 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500";
@@ -89,6 +92,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
   const [shippedAt, setShippedAt] = useState("");
   const [deliveredAt, setDeliveredAt] = useState("");
   const [palletCostCents, setPalletCostCents] = useState<number | "">("");
+  const [isActive, setIsActive] = useState(false);
   const [items, setItems] = useState<PalletItem[]>([]);
   const [wines, setWines] = useState<Wine[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,6 +101,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
   const [wineSearchQuery, setWineSearchQuery] = useState("");
   const [wineProducerFilter, setWineProducerFilter] = useState("");
   const [wineColorFilter, setWineColorFilter] = useState("");
+  const [showProducerSummary, setShowProducerSummary] = useState(false);
   const [fxRates, setFxRates] = useState<Record<string, number>>({ SEK: 1 });
 
   useEffect(() => {
@@ -145,6 +150,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
             setPalletCostCents(
               data.cost_cents != null ? data.cost_cents : "",
             );
+            setIsActive(data.is_active === true);
             const mapped = (data.b2b_pallet_shipment_items || []).map(
               (it: {
                 wine_id: string;
@@ -218,6 +224,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
         shipped_at: shippedAt || null,
         delivered_at: deliveredAt || null,
         cost_cents: palletCostCents !== "" ? palletCostCents : null,
+        is_active: isActive,
         items: items.map((i) => ({
           wine_id: i.wine_id,
           quantity: i.quantity,
@@ -333,6 +340,26 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
     [items, wines],
   );
 
+  const producerSummary = useMemo(() => {
+    const map = new Map<string, { bottles: number; wineCount: number }>();
+    for (const item of items) {
+      const wineForCost =
+        wines.find((w) => w.id === item.wine_id) ?? item.wine;
+      const producer =
+        wineForCost?.producers?.name?.trim() || "Okänd producent";
+      const curr = map.get(producer) ?? { bottles: 0, wineCount: 0 };
+      curr.bottles += item.quantity;
+      curr.wineCount += 1;
+      map.set(producer, curr);
+    }
+    return Array.from(map.entries())
+      .map(([name, stats]) => ({ name, ...stats }))
+      .sort(
+        (a, b) =>
+          b.bottles - a.bottles || a.name.localeCompare(b.name, "sv"),
+      );
+  }, [items, wines]);
+
   if (loading && !isEdit) {
     return (
       <div className="max-w-6xl space-y-6">
@@ -442,6 +469,23 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                 Transport, frakt och övriga kostnader för pallen i SEK
               </p>
             </div>
+            <div className="flex items-start justify-between gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/70">
+              <div className="space-y-1">
+                <Label htmlFor="is_active" className={labelClass}>
+                  Aktiv i lager
+                </Label>
+                <p className={hintClass}>
+                  När pallen är aktiv räknas vinet in i B2B-lager på dirtywine.se.
+                  Nya pallar är inaktiva tills du aktiverar dem.
+                </p>
+              </div>
+              <Switch
+                id="is_active"
+                checked={isActive}
+                onCheckedChange={setIsActive}
+                className={ADMIN_ACTIVE_SWITCH_CLASS}
+              />
+            </div>
           </div>
         </section>
 
@@ -456,31 +500,32 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
             </p>
           </div>
           <div className="space-y-4">
-            <Popover
-              open={wineComboboxOpen}
-              onOpenChange={(open) => {
-                setWineComboboxOpen(open);
-                if (!open) {
-                  setWineSearchQuery("");
-                  setWineProducerFilter("");
-                  setWineColorFilter("");
-                }
-              }}
-            >
-              <PopoverTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={wineComboboxOpen}
-                  className="h-11 w-full justify-between border-gray-200 bg-white font-normal text-gray-900 hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700/80"
-                >
-                  <span className="truncate text-gray-500 dark:text-zinc-400">
-                    Sök vin att lägga till...
-                  </span>
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
+              <Popover
+                open={wineComboboxOpen}
+                onOpenChange={(open) => {
+                  setWineComboboxOpen(open);
+                  if (!open) {
+                    setWineSearchQuery("");
+                    setWineProducerFilter("");
+                    setWineColorFilter("");
+                  }
+                }}
+              >
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={wineComboboxOpen}
+                    className="h-11 w-full justify-between border-gray-200 bg-white font-normal text-gray-900 hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700/80 sm:flex-1"
+                  >
+                    <span className="truncate text-gray-500 dark:text-zinc-400">
+                      Sök vin att lägga till...
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
               <PopoverContent
                 className="w-[var(--radix-popover-trigger-width)] border-gray-200 bg-white p-0 dark:border-zinc-700 dark:bg-zinc-900"
                 align="start"
@@ -614,10 +659,71 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
               </PopoverContent>
             </Popover>
 
+              {items.length > 0 && (
+                <Tabs
+                  value={showProducerSummary ? "producers" : "wines"}
+                  onValueChange={(v) =>
+                    setShowProducerSummary(v === "producers")
+                  }
+                  className="shrink-0"
+                >
+                  <TabsList className="h-auto rounded-lg border border-zinc-800 bg-zinc-900/70 p-1">
+                    <TabsTrigger
+                      value="wines"
+                      className="rounded-md px-3 py-1.5 text-xs font-medium text-zinc-500 data-[state=active]:bg-[#0F0F12] data-[state=active]:text-zinc-100"
+                    >
+                      Viner
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="producers"
+                      className="rounded-md px-3 py-1.5 text-xs font-medium text-zinc-500 data-[state=active]:bg-[#0F0F12] data-[state=active]:text-zinc-100"
+                    >
+                      Producenter
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              )}
+            </div>
+
             {items.length > 0 && (
               <>
                 <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-zinc-800">
                   <ScrollArea className="h-[min(400px,50vh)]">
+                    {showProducerSummary ? (
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="border-gray-200 hover:bg-transparent dark:border-zinc-800">
+                            <TableHead className="min-w-[200px] text-gray-600 dark:text-zinc-400">
+                              Producent
+                            </TableHead>
+                            <TableHead className="w-28 text-right text-gray-600 dark:text-zinc-400">
+                              Viner
+                            </TableHead>
+                            <TableHead className="w-32 text-right text-gray-600 dark:text-zinc-400">
+                              Flaskor
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {producerSummary.map((row) => (
+                            <TableRow
+                              key={row.name}
+                              className="border-gray-100 hover:bg-gray-50/80 dark:border-zinc-800/80 dark:hover:bg-zinc-900/50"
+                            >
+                              <TableCell className="font-medium text-gray-900 dark:text-zinc-100">
+                                {row.name}
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums text-sm text-gray-600 dark:text-zinc-400">
+                                {row.wineCount}
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums text-sm font-semibold text-gray-900 dark:text-zinc-100">
+                                {row.bottles}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    ) : (
                     <Table>
                       <TableHeader>
                         <TableRow className="border-gray-200 hover:bg-transparent dark:border-zinc-800">
@@ -752,6 +858,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                         })}
                       </TableBody>
                     </Table>
+                    )}
                   </ScrollArea>
                 </div>
 

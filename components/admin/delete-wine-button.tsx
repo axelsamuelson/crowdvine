@@ -42,8 +42,9 @@ export function DeleteWineButton({ wineId, wineName }: DeleteWineButtonProps) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="destructive" size="sm">
-          <Trash2 className="h-4 w-4" />
+        <Button variant="outline" size="sm" className="rounded-lg border-red-200 text-xs font-medium text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-950/30">
+          <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+          Ta bort
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>

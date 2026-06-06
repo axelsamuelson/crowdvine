@@ -4,6 +4,10 @@ import { getCurrentUser } from "@/lib/auth";
 import { getCurrentAdmin } from "@/lib/admin-auth-server";
 import { getAppUrl } from "@/lib/app-url";
 import { calculateB2BPriceExclVat } from "@/lib/price-breakdown";
+import {
+  aggregateB2BPalletStock,
+  B2B_PALLET_ITEM_STOCK_SELECT,
+} from "@/lib/b2b-pallet-stock";
 
 /**
  * GET /api/admin/wines
@@ -102,40 +106,19 @@ export async function GET(request: NextRequest) {
     }
 
     const wineIds = rawWines.map((w: any) => w.id);
+    const b2bStockMap = new Map<string, number>();
     const b2bShippingMap = new Map<string, number>();
     try {
       const { data: palletItems } = await sb
         .from("b2b_pallet_shipment_items")
-        .select("wine_id, quantity, quantity_sold, shipment_id, b2b_pallet_shipments!inner(cost_cents)")
-        .in("wine_id", wineIds);
-      const items = (palletItems ?? []) as { wine_id: string; quantity: number; quantity_sold?: number; shipment_id: string; b2b_pallet_shipments: { cost_cents?: number } }[];
-      const shipmentIds = [...new Set(items.map((r) => r.shipment_id).filter(Boolean))];
-      const totalBottlesByShipment = new Map<string, number>();
-      if (shipmentIds.length > 0) {
-        const { data: allItems } = await sb
-          .from("b2b_pallet_shipment_items")
-          .select("shipment_id, quantity")
-          .in("shipment_id", shipmentIds);
-        (allItems ?? []).forEach((row: { shipment_id: string; quantity: number }) => {
-          const sid = row.shipment_id;
-          totalBottlesByShipment.set(sid, (totalBottlesByShipment.get(sid) ?? 0) + (row.quantity ?? 0));
-        });
-      }
-      const byWine = new Map<string, { remaining: number; shippingSum: number }>();
-      items.forEach((row) => {
-        const remaining = Math.max(0, (row.quantity ?? 0) - (row.quantity_sold ?? 0));
-        const costCents = row.b2b_pallet_shipments?.cost_cents ?? 0;
-        const totalBottles = totalBottlesByShipment.get(row.shipment_id) ?? 1;
-        const shippingPerBottle = totalBottles > 0 ? costCents / 100 / totalBottles : 0;
-        const wid = row.wine_id;
-        const curr = byWine.get(wid) ?? { remaining: 0, shippingSum: 0 };
-        curr.remaining += remaining;
-        curr.shippingSum += shippingPerBottle * remaining;
-        byWine.set(wid, curr);
+        .select(B2B_PALLET_ITEM_STOCK_SELECT)
+        .in("wine_id", wineIds)
+        .eq("b2b_pallet_shipments.is_active", true);
+      const aggregated = aggregateB2BPalletStock(palletItems ?? [], {
+        sellableOnly: true,
       });
-      byWine.forEach((v, wid) => {
-        if (v.remaining > 0) b2bShippingMap.set(wid, v.shippingSum / v.remaining);
-      });
+      aggregated.stockMap.forEach((v, k) => b2bStockMap.set(k, v));
+      aggregated.shippingMap.forEach((v, k) => b2bShippingMap.set(k, v));
     } catch {
       /* table may not exist */
     }
@@ -144,7 +127,7 @@ export async function GET(request: NextRequest) {
       rawWines = rawWines.filter((w: any) => {
         const stock = w.b2b_stock;
         const fromColumn = typeof stock === "number" ? stock > 0 : Number(stock) > 0;
-        const fromPallet = b2bShippingMap.has(w.id);
+        const fromPallet = (b2bStockMap.get(w.id) ?? 0) > 0;
         return fromColumn || fromPallet;
       });
     }

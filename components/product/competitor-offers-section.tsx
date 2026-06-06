@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { ExternalLink } from "lucide-react";
+import { WineEnrichmentCollapsible } from "@/components/product/wine-enrichment-collapsible";
+import { useTranslations } from "@/lib/hooks/use-translations";
+import { useDisplayMoney } from "@/lib/hooks/use-display-money";
 
 export interface CompetitorOffer {
   price_source_name: string | null;
@@ -29,38 +32,27 @@ function getFaviconUrl(pdpUrl: string): string | null {
   }
 }
 
-function formatSek(amount: number | null): string {
-  if (amount == null) return "—";
-  return new Intl.NumberFormat("sv-SE", {
-    style: "currency",
-    currency: "SEK",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(Math.round(amount));
-}
-
 /**
- * Section on PDP that lists competitor sites where the wine is available, with price and link.
- * Matches the design of ProductPriceInfoBox (same box style and typography).
+ * Collapsible list of competitor sites where the wine is available, with price and link.
  */
 export function CompetitorOffersSection({ offers }: CompetitorOffersSectionProps) {
+  const { t } = useTranslations();
   if (!offers || offers.length === 0) return null;
 
   return (
-    <div className="flex flex-col gap-4 overflow-clip px-3 py-2 rounded-md bg-popover md:gap-x-4 md:gap-y-4">
-      <h2 className="text-lg font-semibold text-foreground lg:text-xl 2xl:text-2xl shrink-0">
-        Also available at
-      </h2>
-      <ul className="flex flex-col gap-3">
+    <WineEnrichmentCollapsible title={t("product.pdp.alsoAvailableAt")}>
+      <ul className="flex flex-col gap-1">
         {offers.map((offer, index) => (
           <CompetitorOfferRow key={index} offer={offer} />
         ))}
       </ul>
-    </div>
+    </WineEnrichmentCollapsible>
   );
 }
 
 function CompetitorOfferRow({ offer }: { offer: CompetitorOffer }) {
+  const { t } = useTranslations();
+  const { formatSek } = useDisplayMoney();
   const faviconUrl = getFaviconUrl(offer.pdp_url);
   const [faviconError, setFaviconError] = useState(false);
   const showFavicon = faviconUrl && !faviconError;
@@ -82,16 +74,21 @@ function CompetitorOfferRow({ offer }: { offer: CompetitorOffer }) {
             />
           </span>
         ) : null}
-        {offer.price_source_name ?? "Other store"}
+        {offer.price_source_name ?? t("product.pdp.otherStore")}
       </span>
       <div className="flex items-center gap-3">
         {offer.rating != null ? (
-          <span className="text-sm text-muted-foreground" title="Rating from source">
+          <span
+            className="text-sm text-muted-foreground"
+            title={t("product.pdp.ratingFromSource")}
+          >
             {Number(offer.rating).toFixed(1)}
           </span>
         ) : null}
         <span className="text-sm font-semibold text-foreground tabular-nums">
-          {formatSek(offer.price_amount_sek)}
+          {offer.price_amount_sek != null
+            ? formatSek(offer.price_amount_sek)
+            : "—"}
           {year ? (
             <span className="ml-1.5 font-normal text-muted-foreground">
               ({year})
@@ -104,7 +101,7 @@ function CompetitorOfferRow({ offer }: { offer: CompetitorOffer }) {
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
         >
-          View
+          {t("product.pdp.viewOffer")}
           <ExternalLink className="h-3.5 w-3.5 shrink-0" />
         </a>
       </div>

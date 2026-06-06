@@ -7,6 +7,7 @@ import {
 } from "@/lib/catalog-mappers";
 import {
   isCatalogCertification,
+  isCatalogWineColor,
   isCatalogWineType,
   isUuid,
 } from "@/lib/catalog-types";
@@ -101,6 +102,13 @@ export async function PATCH(
     }
     if (body.type !== undefined && !isCatalogWineType(body.type)) {
       return NextResponse.json({ error: "Invalid type value" }, { status: 400 });
+    }
+    if (
+      body.color !== undefined &&
+      body.color !== null &&
+      !isCatalogWineColor(body.color)
+    ) {
+      return NextResponse.json({ error: "Invalid color value" }, { status: 400 });
     }
 
     const sb = getSupabaseAdmin();

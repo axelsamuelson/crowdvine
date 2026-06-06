@@ -9,7 +9,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useShoppingContext } from "@/lib/context/shopping-context-provider";
+import { useTranslations } from "@/lib/hooks/use-translations";
 import type { ResolvedActiveGeoZone } from "@/lib/market/resolve-active-geo-zone";
 import { cn } from "@/lib/utils";
 
@@ -82,7 +82,7 @@ function SwedenZonePopover({
   currency?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const { context: shopping, setLocale, t } = useShoppingContext();
+  const { context: shopping, setLocale, t } = useTranslations();
   const appLocale = shopping.locale;
   const localeOptions = shopping.availableLocales;
 
@@ -188,7 +188,7 @@ function ZoneNavLink({
   showCurrency?: boolean;
   currency?: string;
 }) {
-  const { t } = useShoppingContext();
+  const { t } = useTranslations();
 
   return (
     <Link
@@ -219,7 +219,7 @@ export function HeaderShoppingContext({
   variant = "header",
 }: HeaderShoppingContextProps) {
   const isFooter = variant === "footer";
-  const { context: shopping, t } = useShoppingContext();
+  const { context: shopping, t } = useTranslations();
   const uiLocale = shopping.locale === "sv" ? "sv" : "en";
   const zone = shopping.activeZone;
   const displayFull = zone.displayName?.trim() || "";
@@ -266,7 +266,7 @@ export function HeaderShoppingContextMobile({
   className,
   onNavigate,
 }: HeaderShoppingContextProps & { onNavigate?: () => void }) {
-  const { context: shopping, t } = useShoppingContext();
+  const { context: shopping, t } = useTranslations();
   const uiLocale = shopping.locale === "sv" ? "sv" : "en";
   const zone = shopping.activeZone;
   const label = locationLabelFromZone(

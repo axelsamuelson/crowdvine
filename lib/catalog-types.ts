@@ -10,8 +10,46 @@ export const CATALOG_WINE_TYPE_VALUES = [
   "red",
   "white",
   "rosé",
+  "rose",
   "sparkling",
+  "orange",
 ] as const;
+
+/** Admin/PDP color labels (also accepted via MCP `color` field). */
+export const CATALOG_WINE_COLOR_LABELS = [
+  "Red",
+  "White",
+  "Rose",
+  "Orange",
+  "Red & Orange",
+  "Red & White",
+  "Orange & White",
+] as const;
+
+const WINE_COLOR_ALIASES: Record<string, string> = {
+  red: "Red",
+  white: "White",
+  rosé: "Rose",
+  rose: "Rose",
+  sparkling: "Sparkling",
+  orange: "Orange",
+};
+
+/** Normalize MCP/catalog color input to DB/PDP color label. */
+export function normalizeCatalogWineColor(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return trimmed;
+  return WINE_COLOR_ALIASES[trimmed.toLowerCase()] ?? trimmed;
+}
+
+export function isCatalogWineColor(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  const normalized = normalizeCatalogWineColor(value);
+  return (
+    isCatalogWineType(value) ||
+    (CATALOG_WINE_COLOR_LABELS as readonly string[]).includes(normalized)
+  );
+}
 
 export type CatalogCertification =
   (typeof CATALOG_CERTIFICATION_VALUES)[number];

@@ -6,10 +6,13 @@ import { Product } from "@/lib/shopify/types";
 import { formatPrice } from "@/lib/shopify/utils";
 import { useCartSource } from "@/components/cart/cart-source-context";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 interface ProductPriceDisplayProps {
   product: Product;
   className?: string;
+  /** When false, membership badge renders in hero tabs instead of under the price. */
+  showMembershipBadge?: boolean;
 }
 
 /**
@@ -18,7 +21,12 @@ interface ProductPriceDisplayProps {
  * and the total price in the breakdown.
  * Price updates based on selected source: producer = B2C (inkl. moms), warehouse = B2B (exkl. moms)
  */
-export function ProductPriceDisplay({ product, className }: ProductPriceDisplayProps) {
+export function ProductPriceDisplay({
+  product,
+  className,
+  showMembershipBadge = true,
+}: ProductPriceDisplayProps) {
+  const { t } = useTranslations();
   const { selectedSource } = useCartSource();
   const isB2B = useB2BPriceMode();
   const breakdown = useProductPrice(product, selectedSource);
@@ -44,12 +52,12 @@ export function ProductPriceDisplay({ product, className }: ProductPriceDisplayP
           amount={product.priceRange.minVariantPrice.amount}
           currencyCode={product.priceRange.minVariantPrice.currencyCode}
           className={className}
-          showBadge={true}
+          showBadge={showMembershipBadge}
           priceExclVatOverride={priceExclVat}
           b2bMarginPercentage={product.priceBreakdown?.b2bMarginPercentage}
           calculatedTotalPrice={priceExclVat}
           forceShowExclVat={true}
-          vatExcludedShortLabel="excl. VAT"
+          vatExcludedShortLabel={t("common.exclVat")}
         />
       );
     } else {
@@ -59,10 +67,10 @@ export function ProductPriceDisplay({ product, className }: ProductPriceDisplayP
           amount={product.priceRange.minVariantPrice.amount}
           currencyCode={product.priceRange.minVariantPrice.currencyCode}
           className={className}
-          showBadge={true}
+          showBadge={showMembershipBadge}
           calculatedTotalPrice={breakdown.total}
           forceShowExclVat={false}
-          vatExcludedShortLabel="excl. VAT"
+          vatExcludedShortLabel={t("common.exclVat")}
         />
       );
     }
@@ -76,7 +84,7 @@ export function ProductPriceDisplay({ product, className }: ProductPriceDisplayP
       amount={product.priceRange.minVariantPrice.amount}
       currencyCode={product.priceRange.minVariantPrice.currencyCode}
       className={className}
-      showBadge={true}
+      showBadge={showMembershipBadge}
       priceExclVatOverride={
         isB2B
           ? (product.priceBreakdown?.b2bPriceExclVat ??
@@ -85,7 +93,7 @@ export function ProductPriceDisplay({ product, className }: ProductPriceDisplayP
       }
       b2bMarginPercentage={product.priceBreakdown?.b2bMarginPercentage}
       forceShowExclVat={isB2B}
-      vatExcludedShortLabel="excl. VAT"
+      vatExcludedShortLabel={t("common.exclVat")}
     />
   );
 }

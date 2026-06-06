@@ -117,20 +117,34 @@ export async function resolveDefaultGeoZone(): Promise<ResolvedActiveGeoZone> {
 
 /**
  * Active shopping geo for a logged-in user.
- * A) user_zone_preferences.active_geo_zone_id when row is active and not disabled
+ * A) user_zone_preferences.active_geo_zone_id when active, not disabled, and matches profile country
  * B) resolveGeoZone from profile country/region/city
  * C) default Stockholm / Sweden geo
+ *
+ * Saved preferences in another country than the profile are ignored (and repaired) so a
+ * stale US zone does not override a Swedish profile.
  */
 export async function resolveActiveGeoZoneForUser(
   userId: string,
 ): Promise<ResolvedActiveGeoZone> {
   const sb = getSupabaseAdmin();
 
-  const { data: pref } = await sb
-    .from("user_zone_preferences")
-    .select("active_geo_zone_id")
-    .eq("user_id", userId)
-    .maybeSingle();
+  const [{ data: pref }, { data: prof, error: profErr }] = await Promise.all([
+    sb
+      .from("user_zone_preferences")
+      .select("active_geo_zone_id")
+      .eq("user_id", userId)
+      .maybeSingle(),
+    sb
+      .from("profiles")
+      .select("country, region, city")
+      .eq("id", userId)
+      .maybeSingle(),
+  ]);
+
+  const profileCc = getCountryCodeFromProfileCountry(
+    typeof prof?.country === "string" ? prof.country : "",
+  );
 
   const prefRaw = (pref as { active_geo_zone_id?: unknown } | null)
     ?.active_geo_zone_id;
@@ -138,6 +152,8 @@ export async function resolveActiveGeoZoneForUser(
     prefRaw != null && String(prefRaw).trim() !== ""
       ? String(prefRaw).trim()
       : null;
+
+  let ignoredPrefDueToCountryMismatch = false;
 
   if (prefId) {
     const { data: gz } = await sb
@@ -153,21 +169,55 @@ export async function resolveActiveGeoZoneForUser(
         const isActive = Boolean(row.is_active);
         const elig = String(row.eligibility_status ?? "").toLowerCase();
         if (isActive && elig !== "disabled") {
-          const prefCity = String(row.city ?? "").trim();
-          if (prefCity) {
-            return dbRowToActive(row, "preference");
+          const prefZone = dbRowToActive(row, "preference");
+          const prefCc = prefZone.countryCode.trim().toUpperCase();
+          const profileCcUpper = profileCc?.trim().toUpperCase() ?? "";
+          const profileCountryMismatch =
+            profileCcUpper.length === 2 && prefCc !== profileCcUpper;
+          if (!profileCountryMismatch) {
+            return prefZone;
           }
+          ignoredPrefDueToCountryMismatch = true;
         }
       }
     }
   }
 
-  const { data: prof, error: profErr } = await sb
-    .from("profiles")
-    .select("country, region, city")
-    .eq("id", userId)
-    .maybeSingle();
+  const fromProfile = await resolveActiveGeoZoneFromProfile(
+    sb,
+    prof,
+    profErr,
+  );
 
+  if (
+    ignoredPrefDueToCountryMismatch &&
+    fromProfile.geoZoneId &&
+    fromProfile.source !== "default"
+  ) {
+    const { error: repairErr } = await sb.from("user_zone_preferences").upsert(
+      {
+        user_id: userId,
+        active_geo_zone_id: fromProfile.geoZoneId,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" },
+    );
+    if (repairErr) {
+      console.warn(
+        "[resolveActiveGeoZoneForUser] preference repair:",
+        repairErr.message,
+      );
+    }
+  }
+
+  return fromProfile;
+}
+
+async function resolveActiveGeoZoneFromProfile(
+  sb: ReturnType<typeof getSupabaseAdmin>,
+  prof: { country?: string | null; region?: string | null; city?: string | null } | null,
+  profErr: { message: string } | null,
+): Promise<ResolvedActiveGeoZone> {
   if (profErr) {
     console.error("[resolveActiveGeoZoneForUser] profile:", profErr.message);
     return resolveDefaultGeoZone();
@@ -234,6 +284,7 @@ export async function resolveActiveGeoZoneForUser(
         countryCode: resolvedMarket.countryCode,
         marketCode: resolvedMarket.marketCode,
       }),
+      defaultDeliveryZoneId: null,
       source: "profile",
       canStartCampaign: geo.canStartCampaign,
       canReserveConditionally: geo.canReserveConditionally,

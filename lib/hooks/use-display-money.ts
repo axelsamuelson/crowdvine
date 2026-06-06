@@ -26,7 +26,7 @@ export function useDisplayMoney() {
   const formatDisplay = useCallback(
     (
       amount: number,
-      options?: { decimals?: 0 | 2; round?: "ceil" | "round" },
+      options?: { decimals?: 0 | 1 | 2; round?: "ceil" | "round" },
     ) => formatDisplayMoney(amount, moneyCtx, options),
     [moneyCtx],
   );
@@ -34,7 +34,7 @@ export function useDisplayMoney() {
   const formatSek = useCallback(
     (
       amountSek: number,
-      options?: { decimals?: 0 | 2; round?: "ceil" | "round" },
+      options?: { decimals?: 0 | 1 | 2; round?: "ceil" | "round" },
     ) => formatSekAsDisplayMoney(amountSek, moneyCtx, options),
     [moneyCtx],
   );

@@ -3,6 +3,11 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getAppUrl, getInternalFetchHeaders } from "@/lib/app-url";
 import { calculateB2BPriceExclVat } from "@/lib/price-breakdown";
 import { isB2BHost } from "@/lib/b2b-site";
+import { resolveWineAbv } from "@/lib/product/wine-enrichment";
+import {
+  aggregateB2BPalletStock,
+  B2B_PALLET_ITEM_STOCK_SELECT,
+} from "@/lib/b2b-pallet-stock";
 
 export async function GET(
   request: Request,
@@ -186,6 +191,53 @@ export async function GET(
         terroir,
         vinification,
         abv,
+        alcohol_percentage,
+        tasting_notes,
+        farming,
+        additives,
+        serving_temp_c,
+        food_pairing,
+        elevation_masl,
+        winemaker_notes,
+        awards,
+        ageing,
+        soil_type,
+        producers!inner(name, region, boost_active)
+      `;
+
+  const wineSelectWithoutExtendedEnrichment = `
+        id,
+        wine_name,
+        vintage,
+        grape_varieties,
+        color,
+        handle,
+        base_price_cents,
+        cost_amount,
+        cost_currency,
+        exchange_rate,
+        alcohol_tax_cents,
+        margin_percentage,
+        b2b_margin_percentage,
+        b2b_stock,
+        label_image_path,
+        producer_id,
+        description,
+        description_html,
+        summary,
+        appellation,
+        terroir,
+        vinification,
+        abv,
+        alcohol_percentage,
+        tasting_notes,
+        farming,
+        additives,
+        serving_temp_c,
+        food_pairing,
+        elevation_masl,
+        winemaker_notes,
+        awards,
         producers!inner(name, region, boost_active)
       `;
 
@@ -196,7 +248,24 @@ export async function GET(
     .eq("id", wineIdData.id)
     .single();
 
-  if (result.error && /is_live|column.*does not exist|summary|appellation|terroir|vinification|abv/i.test(result.error.message ?? "")) {
+  if (
+    result.error &&
+    /ageing|soil_type|additives|column.*does not exist/i.test(result.error.message ?? "")
+  ) {
+    result = await sb
+      .from("wines")
+      .select(wineSelectWithoutExtendedEnrichment)
+      .eq("is_live", true)
+      .eq("id", wineIdData.id)
+      .single();
+    if (result.data) {
+      (result.data as Record<string, unknown>).ageing = null;
+      (result.data as Record<string, unknown>).soil_type = null;
+      (result.data as Record<string, unknown>).additives = null;
+    }
+  }
+
+  if (result.error && /is_live|column.*does not exist|summary|appellation|terroir|vinification|abv|tasting_notes|farming|serving_temp_c|food_pairing|elevation_masl|winemaker_notes|awards/i.test(result.error.message ?? "")) {
     const wineSelectWithoutSummary = `
         id, wine_name, vintage, grape_varieties, color, handle,
         base_price_cents, cost_amount, cost_currency, exchange_rate,
@@ -217,7 +286,20 @@ export async function GET(
         .eq("id", wineIdData.id)
         .single();
     }
-    if (result.data) (result.data as Record<string, unknown>).summary = null;
+    if (result.data) {
+      const row = result.data as Record<string, unknown>;
+      row.summary = null;
+      row.tasting_notes = null;
+      row.farming = null;
+      row.additives = null;
+      row.serving_temp_c = null;
+      row.food_pairing = null;
+      row.elevation_masl = null;
+      row.winemaker_notes = null;
+      row.awards = null;
+      row.ageing = null;
+      row.soil_type = null;
+    }
   }
 
   const data = result.data;
@@ -332,49 +414,30 @@ export async function GET(
   try {
     const { data: palletItems, error } = await sb
       .from("b2b_pallet_shipment_items")
-      .select("quantity, quantity_sold, shipment_id, b2b_pallet_shipments!inner(cost_cents)")
-      .eq("wine_id", wineIdData.id);
+      .select(B2B_PALLET_ITEM_STOCK_SELECT)
+      .eq("wine_id", wineIdData.id)
+      .eq("b2b_pallet_shipments.is_active", true);
     if (error) throw error;
     if (palletItems && palletItems.length > 0) {
-      const shipmentIds = [...new Set((palletItems as any[]).map((r: any) => r.shipment_id).filter(Boolean))];
-      let totalBottlesByShipment = new Map<string, number>();
-      if (shipmentIds.length > 0) {
-        const { data: allItems } = await sb
-          .from("b2b_pallet_shipment_items")
-          .select("shipment_id, quantity")
-          .in("shipment_id", shipmentIds);
-        (allItems || []).forEach((row: any) => {
-          const sid = row.shipment_id;
-          totalBottlesByShipment.set(sid, (totalBottlesByShipment.get(sid) ?? 0) + (row.quantity ?? 0));
-        });
-      }
-      let totalRemaining = 0;
-      let weightedShippingSum = 0;
-      (palletItems as any[]).forEach((row: any) => {
-        const remaining = Math.max(0, (row.quantity ?? 0) - (row.quantity_sold ?? 0));
-        totalRemaining += remaining;
-        b2bStock = (b2bStock ?? 0) + remaining;
-        const costCents = row.b2b_pallet_shipments?.cost_cents ?? 0;
-        const totalBottles = totalBottlesByShipment.get(row.shipment_id) ?? 1;
-        const shippingPerBottle = totalBottles > 0 ? costCents / 100 / totalBottles : 0;
-        weightedShippingSum += shippingPerBottle * remaining;
+      const { stockMap, shippingMap } = aggregateB2BPalletStock(palletItems, {
+        sellableOnly: true,
       });
-      if (totalRemaining > 0) {
-        shippingPerBottleSek = weightedShippingSum / totalRemaining;
-      }
+      b2bStock = stockMap.get(wineIdData.id) ?? 0;
+      shippingPerBottleSek = shippingMap.get(wineIdData.id) ?? 0;
     }
   } catch {
-    /* cost_cents or b2b_pallet_shipments may not exist - fallback to stock only */
+    /* cost_cents, is_active or b2b_pallet_shipments may not exist - fallback to stock only */
     try {
       const { data: fallback } = await sb
         .from("b2b_pallet_shipment_items")
-        .select("quantity, quantity_sold")
-        .eq("wine_id", wineIdData.id);
+        .select("quantity, quantity_sold, b2b_pallet_shipments!inner(is_active)")
+        .eq("wine_id", wineIdData.id)
+        .eq("b2b_pallet_shipments.is_active", true);
       if (fallback?.length) {
-        b2bStock = (fallback as any[]).reduce(
-          (s, r) => s + Math.max(0, (r.quantity ?? 0) - (r.quantity_sold ?? 0)),
-          0,
-        );
+        const { stockMap } = aggregateB2BPalletStock(fallback, {
+          sellableOnly: true,
+        });
+        b2bStock = stockMap.get(wineIdData.id) ?? 0;
       }
     } catch {
       /* ignore */
@@ -400,7 +463,36 @@ export async function GET(
   if (i.appellation?.trim()) specs["Appellation"] = i.appellation.trim();
   if (i.terroir?.trim()) specs["Terroir"] = i.terroir.trim();
   if (i.vinification?.trim()) specs["Vinification"] = i.vinification.trim();
-  if (i.abv?.trim()) specs["ABV"] = i.abv.trim();
+  const resolvedAbv = resolveWineAbv(i.abv, i.alcohol_percentage);
+  if (resolvedAbv) specs["ABV"] = resolvedAbv;
+
+  const wineEnrichment = {
+    tasting_notes: i.tasting_notes?.trim() ? i.tasting_notes.trim() : null,
+    appellation: i.appellation?.trim() ? i.appellation.trim() : null,
+    farming: i.farming?.trim() ? i.farming.trim() : null,
+    additives: i.additives?.trim() ? i.additives.trim() : null,
+    serving_temp_c: i.serving_temp_c?.trim() ? i.serving_temp_c.trim() : null,
+    abv: resolvedAbv,
+    alcohol_percentage:
+      i.alcohol_percentage != null && Number.isFinite(Number(i.alcohol_percentage))
+        ? Number(i.alcohol_percentage)
+        : null,
+    food_pairing: Array.isArray(i.food_pairing)
+      ? i.food_pairing.filter((item: string) => item?.trim())
+      : null,
+    soil_type: i.soil_type?.trim() ? i.soil_type.trim() : null,
+    elevation_masl:
+      i.elevation_masl != null && Number.isFinite(Number(i.elevation_masl))
+        ? Number(i.elevation_masl)
+        : null,
+    ageing: i.ageing?.trim() ? i.ageing.trim() : null,
+    winemaker_notes: i.winemaker_notes?.trim() ? i.winemaker_notes.trim() : null,
+    awards: Array.isArray(i.awards)
+      ? i.awards.filter((item: string) => item?.trim())
+      : null,
+    grapeVarieties: grapeVarieties.length > 0 ? grapeVarieties : null,
+    color: colorName?.trim() ? colorName.trim() : null,
+  };
 
   const product = {
     id: i.id,
@@ -411,6 +503,8 @@ export async function GET(
     summary: i.summary ?? null,
     /** Wine specs for bullet list under description (Region, Appellation, Terroir, Vinification, ABV). */
     specs: Object.keys(specs).length > 0 ? specs : null,
+    /** Enrichment fields for PDP sections (tasting notes, farming, food pairing, etc.). */
+    wineEnrichment,
     handle: i.handle,
     productType: "wine",
     categoryId: i.producer_id,
@@ -497,6 +591,7 @@ export async function GET(
       exchangeRate,
       alcoholTaxCents: i.alcohol_tax_cents || 0,
       marginPercentage: i.margin_percentage || 0,
+      basePriceCents: i.base_price_cents,
       b2bMarginPercentage: i.b2b_margin_percentage ?? undefined,
       b2bShippingPerBottleSek: shippingPerBottleSek,
       b2bPriceExclVat:

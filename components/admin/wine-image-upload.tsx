@@ -19,6 +19,8 @@ interface WineImageUploadProps {
   onImagesChange?: (images: File[]) => void;
   onExistingImagesChange?: (images: WineImage[]) => void;
   images?: File[];
+  /** Render without outer Card (e.g. inside AdminFormSection) */
+  embedded?: boolean;
 }
 
 export function WineImageUpload({
@@ -27,6 +29,7 @@ export function WineImageUpload({
   onImagesChange,
   onExistingImagesChange,
   images = [],
+  embedded = false,
 }: WineImageUploadProps) {
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState("");
@@ -185,16 +188,8 @@ export function WineImageUpload({
     })),
   ];
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Product Images</CardTitle>
-        <CardDescription>
-          Upload multiple images for this wine. Drag and drop to reorder. The
-          first image will be the main product image.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+  const uploadContent = (
+    <div className="space-y-4">
         {error && (
           <Alert variant="destructive">
             <AlertDescription>{error}</AlertDescription>
@@ -203,30 +198,31 @@ export function WineImageUpload({
 
         {/* Upload Area */}
         <div
-          className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+          className={`rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
             dragActive
-              ? "border-primary bg-primary/5"
-              : "border-gray-300 hover:border-gray-400"
+              ? "border-primary bg-primary/5 dark:bg-zinc-800/80"
+              : "border-gray-300 bg-white hover:border-gray-400 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-zinc-500"
           }`}
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
           onDrop={handleDrop}
         >
-          <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-          <p className="text-lg font-medium text-gray-900 mb-2">
-            Drop images here or click to upload
+          <Upload className="mx-auto mb-4 h-12 w-12 text-gray-400" />
+          <p className="mb-2 text-lg font-medium text-gray-900 dark:text-zinc-100">
+            Släpp bilder här eller klicka för att ladda upp
           </p>
-          <p className="text-sm text-gray-500 mb-4">
-            Supports JPG, PNG, GIF up to 10MB each
+          <p className="mb-4 text-sm text-gray-500 dark:text-zinc-400">
+            JPG, PNG, GIF upp till 10 MB per fil
           </p>
           <Button
             onClick={openFileDialog}
             variant="outline"
             type="button"
             disabled={loading}
+            className="rounded-lg border-gray-200 bg-white text-xs text-gray-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
           >
-            Choose Files
+            Välj filer
           </Button>
           <input
             ref={fileInputRef}
@@ -241,8 +237,8 @@ export function WineImageUpload({
         {/* Image List */}
         {allImages.length > 0 && (
           <div className="space-y-4">
-            <h3 className="text-sm font-medium text-gray-900">
-              Images ({allImages.length})
+            <h3 className="text-sm font-medium text-gray-900 dark:text-zinc-100">
+              Bilder ({allImages.length})
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {allImages.map((image, index) => {
@@ -251,7 +247,7 @@ export function WineImageUpload({
 
                 return (
                   <div key={image.id} className="relative group">
-                    <div className="w-20 h-20 rounded-lg border overflow-hidden bg-gray-100">
+                    <div className="w-20 h-20 rounded-lg border overflow-hidden bg-white dark:bg-zinc-800">
                       <img
                         src={image.image_path}
                         alt={image.alt_text || `Product image ${index + 1}`}
@@ -377,17 +373,29 @@ export function WineImageUpload({
               })}
             </div>
 
-            <div className="text-xs text-gray-500">
-              <p>
-                • First image will be the main product image (marked with ★)
-              </p>
-              <p>• Drag and drop or use arrow buttons to reorder</p>
-              <p>• Click the eye icon to preview full size</p>
-              <p>• Click the star icon to set as primary image</p>
+            <div className="text-xs text-gray-500 dark:text-zinc-400">
+              <p>• Första bilden blir huvudbild (★)</p>
+              <p>• Använd pilarna för att ändra ordning</p>
+              <p>• Klicka på ögat för att förhandsgranska</p>
             </div>
           </div>
         )}
-      </CardContent>
+    </div>
+  );
+
+  if (embedded) {
+    return uploadContent;
+  }
+
+  return (
+    <Card className="dark:border-zinc-800 dark:bg-[#0F0F12]">
+      <CardHeader>
+        <CardTitle>Produktbilder</CardTitle>
+        <CardDescription>
+          Ladda upp etikett och galleribilder. Första bilden blir huvudbild.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>{uploadContent}</CardContent>
     </Card>
   );
 }

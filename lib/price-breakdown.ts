@@ -1,9 +1,26 @@
+import {
+  displayFractionDigits,
+  roundAmountForDisplay,
+} from "@/lib/shopping-context/format";
+
 export interface WinePricingData {
   cost_amount: number;
   exchange_rate: number;
   alcohol_tax_cents: number;
   margin_percentage: number;
   base_price_cents: number;
+}
+
+/** SEK list price in öre for breakdown; prefer stored value over display-currency amount. */
+export function getProductBasePriceCents(product: {
+  priceBreakdown?: { basePriceCents?: number };
+  priceRange?: { minVariantPrice?: { amount: string | number } };
+}): number {
+  const fromBreakdown = product.priceBreakdown?.basePriceCents;
+  if (fromBreakdown != null && fromBreakdown > 0) {
+    return fromBreakdown;
+  }
+  return Math.round(Number(product.priceRange?.minVariantPrice?.amount ?? 0) * 100);
 }
 
 /** B2B price exkl moms: (costInSek + shippingPerBottleSek) / (1 - b2b_margin/100) */
@@ -301,12 +318,13 @@ export function formatCurrency(
 ): string {
   const currencyCode = options.currencyCode ?? "SEK";
   const intlLocale = options.intlLocale ?? "sv-SE";
-  const roundedAmount = Math.ceil(amount);
+  const decimals = displayFractionDigits(currencyCode);
+  const roundedAmount = roundAmountForDisplay(amount, currencyCode, "ceil");
   return new Intl.NumberFormat(intlLocale, {
     style: "currency",
     currency: currencyCode,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
   }).format(roundedAmount);
 }
 

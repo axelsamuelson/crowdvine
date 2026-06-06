@@ -1,8 +1,19 @@
 import { VariantOptionSelector } from "@/components/products/variant-selector";
 import { Product } from "@/lib/shopify/types";
 
+function isDisplayOnlyPdpOption(name: string): boolean {
+  const lower = name.toLowerCase();
+  return (
+    lower === "color" ||
+    lower === "grape variety" ||
+    lower === "grape varieties"
+  );
+}
+
 export function VariantSelectorSlots({ product }: { product: Product }) {
-  const { options } = product;
+  const options = product.options.filter(
+    (option) => !isDisplayOnlyPdpOption(option.name),
+  );
 
   const hasNoOptionsOrJustOneOption =
     !options.length ||

@@ -15,10 +15,14 @@ import { Badge } from "@/components/ui/badge";
 import { MemberPrice } from "@/components/ui/member-price";
 import { StockBadge } from "@/components/product/stock-badge";
 import { BoostBadge } from "@/components/producer/boost-badge";
-import { useCart } from "@/components/cart/cart-context";
+import { ProductCardMembershipTab } from "@/components/product/product-card-membership-tab";
+import { ProductCardRecommendationTab } from "@/components/product/product-card-recommendation-tab";
+import { PeekTabAnchor } from "@/components/pdp/peek-tab-anchor";
+import type { RecommendationReason } from "@/lib/product/recommendations";
+import { useCartOptional } from "@/components/cart/cart-context";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { ColorSwatch } from "@/components/ui/color-picker";
-import { getColorHex } from "@/lib/utils";
+import { getColorHex, cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/hooks/use-translations";
 
 // ============================================================================
@@ -115,11 +119,17 @@ export const ProductCard = memo(
     product,
     index = 0,
     listSearchQuery,
+    showMembershipTab = false,
+    recommendationReason,
   }: {
     product: Product;
     index?: number;
     /** When set (shop search active), PDP clicks log search_result_clicked. */
     listSearchQuery?: string;
+    /** Recommended wines: membership tab peeking above top-left of card. */
+    showMembershipTab?: boolean;
+    /** Recommended wines: same producer / similar wine tab beside membership tab. */
+    recommendationReason?: RecommendationReason;
   }) => {
   const { t } = useTranslations();
   const hasNoOptions = product.options.length === 0;
@@ -137,7 +147,9 @@ export const ProductCard = memo(
   const isWineBox = productType === "wine-box";
   const discountInfo = (product as any).discountInfo;
 
-  const { addItem } = useCart();
+  const cart = useCartOptional();
+  const isPdpRecommendation = recommendationReason != null;
+  const showCartActions = !isPdpRecommendation && Boolean(cart);
   const showExclVat = useB2BPriceMode();
   const [isTouched, setIsTouched] = useState(false);
 
@@ -146,6 +158,9 @@ export const ProductCard = memo(
     !isWineBox &&
     productType === "wine" &&
     Boolean(product.producerId);
+
+  const showMembershipBadge = !showMembershipTab;
+  const showTopTabs = showMembershipTab || recommendationReason != null;
 
   // Keep overlay visible until another product card is activated
   useEffect(() => {
@@ -236,9 +251,10 @@ export const ProductCard = memo(
   };
 
   const handleAddToCart = () => {
+    if (!cart) return;
     const variant = getBaseProductVariant();
     if (variant) {
-      addItem(variant, product);
+      cart.addItem(variant, product);
       // Track add to cart event
       AnalyticsTracker.trackAddToCart(
         product.id,
@@ -655,7 +671,21 @@ export const ProductCard = memo(
     <>
       {DEBUG_SCROLL && <ScrollProbe />}
       <div
-        className="relative w-full aspect-[3/4] md:aspect-square bg-muted group"
+        className={cn(
+          "relative w-full overflow-visible",
+          showTopTabs && "mt-5",
+        )}
+      >
+        {showTopTabs ? (
+          <PeekTabAnchor className="left-2 md:left-3">
+            {recommendationReason ? (
+              <ProductCardRecommendationTab reason={recommendationReason} />
+            ) : null}
+            {showMembershipTab ? <ProductCardMembershipTab /> : null}
+          </PeekTabAnchor>
+        ) : null}
+      <div
+        className="relative z-10 w-full aspect-[3/4] md:aspect-square bg-muted group"
         style={{ clipPath: 'inset(0)' }}
         onTouchStart={() => {
           setIsTouched(true);
@@ -738,7 +768,7 @@ export const ProductCard = memo(
               amount={product.priceRange.minVariantPrice.amount}
               currencyCode={product.priceRange.minVariantPrice.currencyCode}
               className="text-[9px] md:text-sm uppercase 2xl:text-base"
-              showBadge={true}
+              showBadge={showMembershipBadge}
               compactOnMobile={true}
               priceExclVatOverride={
                 (product as any).b2bPriceExclVat ??
@@ -759,7 +789,7 @@ export const ProductCard = memo(
         </div>
 
         {/* Mobile: Premium bottom overlay with Add to Cart button (visible on touch/hover) */}
-        {renderInCardAddToCart && (
+        {showCartActions && renderInCardAddToCart && (
           <div
             className={`md:hidden absolute inset-x-2 bottom-2 px-2.5 py-2 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg transition-opacity duration-200 ${
               isTouched ? "opacity-100" : "opacity-0"
@@ -790,7 +820,7 @@ export const ProductCard = memo(
                     amount={product.priceRange.minVariantPrice.amount}
                     currencyCode={product.priceRange.minVariantPrice.currencyCode}
                     className="text-xs font-semibold sm:text-sm"
-                    showBadge={true}
+                    showBadge={showMembershipBadge}
                     badgeRightOnMobile={true}
                     priceExclVatOverride={
                       (product as any).b2bPriceExclVat ??
@@ -836,7 +866,7 @@ export const ProductCard = memo(
         )}
 
         {/* Mobile: Add to Cart button for products with variants (visible on touch/hover) */}
-        {!renderInCardAddToCart && (
+        {showCartActions && !renderInCardAddToCart && (
           <div
             className={`md:hidden absolute inset-x-2 bottom-2 px-2.5 py-2 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg transition-opacity duration-200 ${
               isTouched ? "opacity-100" : "opacity-0"
@@ -867,7 +897,7 @@ export const ProductCard = memo(
                     amount={product.priceRange.minVariantPrice.amount}
                     currencyCode={product.priceRange.minVariantPrice.currencyCode}
                     className="text-xs font-semibold sm:text-sm"
-                    showBadge={true}
+                    showBadge={showMembershipBadge}
                     badgeRightOnMobile={true}
                     priceExclVatOverride={
                       (product as any).b2bPriceExclVat ??
@@ -963,7 +993,7 @@ export const ProductCard = memo(
                 amount={product.priceRange.minVariantPrice.amount}
                 currencyCode={product.priceRange.minVariantPrice.currencyCode}
                 className="text-lg font-semibold"
-                showBadge={true}
+                showBadge={showMembershipBadge}
                 priceExclVatOverride={
                   (product as any).b2bPriceExclVat ??
                   product.priceBreakdown?.b2bPriceExclVat
@@ -983,6 +1013,7 @@ export const ProductCard = memo(
           </div>
           
           {/* Buttons inside white box - equal width for symmetry */}
+          {showCartActions ? (
           <div className="grid grid-cols-2 gap-3 items-center mt-2 pointer-events-auto">
             {renderInCardAddToCart ? (
               <>
@@ -1055,9 +1086,11 @@ export const ProductCard = memo(
               </>
             )}
           </div>
+          ) : null}
         </div>
       </div>
-    </div>
+      </div>
+      </div>
     </>
   );
 });

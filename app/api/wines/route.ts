@@ -8,8 +8,8 @@ import {
 } from "@/lib/catalog-mappers";
 import {
   isCatalogCertification,
+  isCatalogWineColor,
   isCatalogWineType,
-  isUuid,
 } from "@/lib/catalog-types";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
     const appellation =
       typeof body.appellation === "string" ? body.appellation.trim() : "";
     const type = body.type;
+    const color = body.color;
     const priceSek = body.price_sek;
 
     if (!producerId || !isUuid(producerId)) {
@@ -96,8 +97,14 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
-    if (!isCatalogWineType(type)) {
-      return NextResponse.json({ error: "Valid type is required" }, { status: 400 });
+    if (
+      !isCatalogWineType(type) &&
+      !(typeof color === "string" && isCatalogWineColor(color))
+    ) {
+      return NextResponse.json(
+        { error: "Valid type or color is required" },
+        { status: 400 },
+      );
     }
     if (typeof priceSek !== "number" || !Number.isInteger(priceSek) || priceSek < 0) {
       return NextResponse.json(

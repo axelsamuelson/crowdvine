@@ -115,6 +115,7 @@ interface B2BShipment {
   shipped_at: string | null;
   delivered_at: string | null;
   cost_cents: number | null;
+  is_active?: boolean;
   created_at: string;
   b2b_pallet_shipment_items?: B2BShipmentItem[];
 }
@@ -888,10 +889,20 @@ export default function PalletsPage() {
                     key={shipment.id}
                     className="bg-white dark:bg-[#0F0F12] rounded-xl p-4 border border-gray-200 dark:border-[#1F1F23] hover:border-gray-200 dark:hover:border-zinc-700 transition-all"
                   >
-                    <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-start justify-between mb-3 gap-2">
                       <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100 truncate">
                         {shipment.name}
                       </h3>
+                      <span
+                        className={cn(
+                          "shrink-0 inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
+                          shipment.is_active
+                            ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                            : "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400",
+                        )}
+                      >
+                        {shipment.is_active ? "Aktiv" : "Inaktiv"}
+                      </span>
                     </div>
                     <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-gray-500 dark:text-zinc-400 mb-3">
                       {shipment.shipped_at && (

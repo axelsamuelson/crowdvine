@@ -1,6 +1,10 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { COLOR_MAP } from "./constants";
+import {
+  displayFractionDigits,
+  roundAmountForDisplay,
+} from "@/lib/shopping-context/format";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -12,16 +16,15 @@ export function formatPrice(
   intlLocale = "sv-SE",
 ) {
   const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
-
-  // Round up to nearest whole number
-  const roundedAmount = Math.ceil(numAmount);
+  const decimals = displayFractionDigits(currencyCode);
+  const roundedAmount = roundAmountForDisplay(numAmount, currencyCode, "ceil");
 
   return new Intl.NumberFormat(intlLocale, {
     style: "currency",
     currency: currencyCode,
     currencyDisplay: "narrowSymbol",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
   }).format(roundedAmount);
 }
 

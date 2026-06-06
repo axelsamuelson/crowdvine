@@ -10,6 +10,53 @@ import {
   getCountryCodeFromProfileCountry,
   isSupportedCheckoutCountry,
 } from "@/lib/countries";
+import {
+  resolveActiveGeoZoneAnonymous,
+  resolveActiveGeoZoneForUser,
+  type ResolvedActiveGeoZone,
+} from "@/lib/market/resolve-active-geo-zone";
+
+function deliveryAddressFromActiveGeoZone(
+  activeGeo: ResolvedActiveGeoZone,
+): DeliveryAddress | null {
+  const cc = activeGeo.countryCode.trim().toUpperCase();
+  if (cc === "SE") {
+    const city = activeGeo.city?.trim() || "Stockholm";
+    return {
+      ...STOCKHOLM_FALLBACK_GEO_ADDRESS,
+      city,
+    };
+  }
+  if (cc === "US") {
+    const city =
+      activeGeo.city?.trim() ||
+      activeGeo.displayName.split(",")[0]?.trim() ||
+      "";
+    if (!city) return null;
+    return {
+      postcode: "00000",
+      city,
+      countryCode: "US",
+    };
+  }
+  return null;
+}
+
+/** Prefer the saved wine zone over profile address when they disagree. */
+function deliveryAddressForWineZoneMatching(
+  activeGeo: ResolvedActiveGeoZone,
+  profileAddress: DeliveryAddress,
+): DeliveryAddress {
+  if (activeGeo.source === "preference") {
+    return deliveryAddressFromActiveGeoZone(activeGeo) ?? profileAddress;
+  }
+  const activeCc = activeGeo.countryCode.trim().toUpperCase();
+  const profileCc = profileAddress.countryCode.trim().toUpperCase();
+  if (activeCc !== profileCc) {
+    return deliveryAddressFromActiveGeoZone(activeGeo) ?? profileAddress;
+  }
+  return profileAddress;
+}
 
 async function resolveWineIdsByHandles(handles: string[]): Promise<string[]> {
   if (handles.length === 0) return [];
@@ -153,19 +200,30 @@ export async function resolvePalletEarlyBirdContext(
     return empty;
   }
 
-  const deliveryAddress = await resolveDeliveryAddressForUser(userId);
+  const activeGeo = userId
+    ? await resolveActiveGeoZoneForUser(userId)
+    : await resolveActiveGeoZoneAnonymous();
+  const profileAddress = await resolveDeliveryAddressForUser(userId);
+  const deliveryAddress = deliveryAddressForWineZoneMatching(
+    activeGeo,
+    profileAddress,
+  );
   const zoneCart = uniqueWineIds.map((id) => ({
     merchandise: { id },
     quantity: 1,
   }));
 
-  let zones = await determineZones(zoneCart, deliveryAddress);
+  let zones = await determineZones(zoneCart, deliveryAddress, {
+    preferredDeliveryZoneId: activeGeo.defaultDeliveryZoneId,
+  });
 
   if (
     !zones.deliveryZoneId ||
     (!zones.pickupZoneId && !zones.shippingRegionIdForRouting)
   ) {
-    zones = await determineZones(zoneCart, STOCKHOLM_FALLBACK_GEO_ADDRESS);
+    zones = await determineZones(zoneCart, STOCKHOLM_FALLBACK_GEO_ADDRESS, {
+      preferredDeliveryZoneId: activeGeo.defaultDeliveryZoneId,
+    });
   }
 
   const pickupZoneId = zones.pickupZoneId;

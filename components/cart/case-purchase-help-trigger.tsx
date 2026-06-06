@@ -8,7 +8,13 @@ import {
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/hooks/use-translations";
 
-export function CasePurchaseHelpTrigger({ className }: { className?: string }) {
+export function CasePurchaseHelpTrigger({
+  className,
+  variant = "default",
+}: {
+  className?: string;
+  variant?: "default" | "plain";
+}) {
   const { t } = useTranslations();
   return (
     <Popover>
@@ -16,13 +22,19 @@ export function CasePurchaseHelpTrigger({ className }: { className?: string }) {
         <button
           type="button"
           className={cn(
-            "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-[0.5px] border-black/15 text-xs font-semibold text-[color:var(--color-text-secondary,hsl(var(--muted-foreground)))] transition-colors hover:bg-black/5 hover:text-foreground",
+            variant === "plain"
+              ? "shrink-0 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              : "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-[0.5px] border-black/15 text-xs font-semibold text-[color:var(--color-text-secondary,hsl(var(--muted-foreground)))] transition-colors hover:bg-black/5 hover:text-foreground",
             className,
           )}
-          style={{
-            background:
-              "var(--color-background-secondary, hsl(var(--secondary)))",
-          }}
+          style={
+            variant === "plain"
+              ? undefined
+              : {
+                  background:
+                    "var(--color-background-secondary, hsl(var(--secondary)))",
+                }
+          }
           aria-label={t("cart.caseHelpAria")}
         >
           ?

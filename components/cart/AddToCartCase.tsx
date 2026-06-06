@@ -27,7 +27,6 @@ import {
 } from "@/components/ui/sheet";
 import { AddToCart } from "./add-to-cart";
 import { CaseModeSelector } from "./case-mode-selector";
-import { CasePurchaseHelpTrigger } from "./case-purchase-help-trigger";
 import { MixedCaseWineGallery } from "./mixed-case-wine-gallery";
 import { WineSpecsList } from "@/components/product/wine-specs-list";
 import Prose from "@/components/prose";
@@ -259,6 +258,8 @@ export interface AddToCartCaseProps {
   onMixedSheetOpenChange?: (open: boolean) => void;
   /** Only render the mixed-case sheet (no PDP segmented control) — shop handoff. */
   sheetOnly?: boolean;
+  /** Renders live UI but blocks cart mutations (dev PDP preview). */
+  previewDisabled?: boolean;
 }
 
 /**
@@ -270,9 +271,16 @@ export function AddToCartCase({
   initialMixedSheetOpen = false,
   onMixedSheetOpenChange,
   sheetOnly = false,
+  previewDisabled = false,
 }: AddToCartCaseProps) {
   if (!product.producerId || product.productType !== "wine") {
-    return <AddToCart product={product} className={className} />;
+    return (
+      <AddToCart
+        product={product}
+        className={className}
+        previewDisabled={previewDisabled}
+      />
+    );
   }
 
   const { t } = useTranslations();
@@ -405,6 +413,7 @@ export function AddToCartCase({
   };
 
   const handleMainCta = () => {
+    if (previewDisabled) return;
     if (!resolvedVariant) return;
     if (mode === "mixed") {
       setSheetOpen(true);
@@ -433,6 +442,7 @@ export function AddToCartCase({
   };
 
   const handleConfirmMixed = () => {
+    if (previewDisabled) return;
     if (totalSelected !== 6) return;
     setBatchAddError(null);
     startBatchTransition(async () => {
@@ -658,9 +668,6 @@ export function AddToCartCase({
 
   return (
     <div className={cn("w-full", className)}>
-      <div className="mb-2 flex justify-end">
-        <CasePurchaseHelpTrigger />
-      </div>
       <CaseModeSelector
         mode={mode}
         onModeChange={setMode}

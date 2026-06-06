@@ -8,6 +8,8 @@ import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 interface AddToCartConditionalProps {
   product: Product;
   className?: string;
+  /** Renders live UI but blocks cart mutations (dev PDP preview). */
+  previewDisabled?: boolean;
 }
 
 /**
@@ -17,12 +19,25 @@ interface AddToCartConditionalProps {
 export function AddToCartConditional({
   product,
   className,
+  previewDisabled = false,
 }: AddToCartConditionalProps) {
   const isB2B = useB2BPriceMode();
 
   if (isB2B) {
-    return <AddToCartWithSource product={product} className={className} />;
+    return (
+      <AddToCartWithSource
+        product={product}
+        className={className}
+        previewDisabled={previewDisabled}
+      />
+    );
   }
 
-  return <AddToCartCase product={product} className={className} />;
+  return (
+    <AddToCartCase
+      product={product}
+      className={className}
+      previewDisabled={previewDisabled}
+    />
+  );
 }

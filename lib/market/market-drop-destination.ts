@@ -32,6 +32,19 @@ export function formatVirtualDropReadyFromDisplayName(
   return `${place} pallet · Ready to start`;
 }
 
+/** PDP pallet row label, e.g. "SE, Stockholm" from country code + destination name. */
+export function formatPalletDestinationShort(
+  countryCode: string,
+  displayDestination: string,
+): string {
+  const cc = countryCode.trim().toUpperCase();
+  const dest = displayDestination.trim();
+  const city = dest ? dest.split(",")[0]?.trim() || dest : "";
+  if (cc && city) return `${cc}, ${city}`;
+  if (cc) return cc;
+  return city;
+}
+
 /** First line for virtual PDP: "New York pallet · Ready to start". */
 export function formatVirtualDropReadyStatusPrimary(
   resolved: ResolvedMarket,

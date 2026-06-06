@@ -11,6 +11,7 @@ import { sumFillBottlesOnMarketDrop } from "@/lib/market/market-drop-counts";
 import {
   resolveActiveGeoZoneAnonymous,
   resolveActiveGeoZoneForUser,
+  type ResolvedActiveGeoZone,
 } from "@/lib/market/resolve-active-geo-zone";
 import {
   resolveMarketForCountry,
@@ -21,15 +22,18 @@ import {
   resolveMarketDropForPallet,
 } from "@/lib/market/resolve-market-drop";
 import { isVirtualCampaignFromGeoZone } from "@/lib/market/market-drop-eligibility";
-import { formatVirtualDropReadyFromDisplayName } from "@/lib/market/market-drop-destination";
+import {
+  formatPalletDestinationShort,
+  formatVirtualDropReadyFromDisplayName,
+} from "@/lib/market/market-drop-destination";
 import {
   getGeoZoneById,
   resolveGeoZone,
 } from "@/lib/market/resolve-geo-zone";
 import type { MarketDropRow } from "@/lib/market/market-drop-types";
 
-/** Pallzon = `resolveDeliveryAddressForUser` → `profiles.postal_code`, `city`, `country` (samma som `/profile/edit`). */
-const SETTINGS_URL = "/profile/edit" as const;
+/** Shopping zone settings (PDP pallet destination link). */
+const SETTINGS_URL = "/settings/zone" as const;
 
 const MEANINGFUL_FILL_RATE_BOTTLES_PER_HOUR = 0.25;
 const MIN_PALLET_AGE_HOURS_FOR_ETA = 2;
@@ -96,7 +100,25 @@ function statusPrimaryForExistingConditionalDrop(drop: MarketDropRow): string {
   return `${place} pallet · In review`;
 }
 
-function emptyOk(body: { userZoneName: string }): Response {
+function shoppingZoneDisplayDestination(
+  activeGeo: ResolvedActiveGeoZone,
+): string {
+  return formatPalletDestinationShort(
+    activeGeo.countryCode,
+    activeGeo.displayName,
+  );
+}
+
+function emptyOk(body: {
+  userZoneName: string;
+  countryCode?: string;
+}): Response {
+  const rawDestination = body.userZoneName;
+  const countryCode = body.countryCode?.trim().toUpperCase() || "SE";
+  const displayDestination = formatPalletDestinationShort(
+    countryCode,
+    rawDestination,
+  );
   const payload: ZoneStatusBody = {
     bottlesFilled: 0,
     bottleCapacity: 0,
@@ -106,14 +128,14 @@ function emptyOk(body: { userZoneName: string }): Response {
     discountTier: 0,
     estimatedDays: null,
     estimatedDelivery: deliveryEstimateLabelFromFillPercent(0),
-    userZoneName: body.userZoneName,
+    userZoneName: rawDestination,
     settingsUrl: SETTINGS_URL,
     statusPrimary: "Pallet status",
     bottlesVerb: "ordered",
     logisticsFootnote: null,
     dropState: "existing",
     marketDropId: null,
-    displayDestination: body.userZoneName,
+    displayDestination,
     canStartMarketDrop: true,
     campaignTagline: null,
     showProgressBar: true,
@@ -131,9 +153,16 @@ export async function GET(request: NextRequest) {
     }
 
     const user = await getCurrentUser();
+    const activeGeoSlice = user?.id
+      ? await resolveActiveGeoZoneForUser(user.id)
+      : await resolveActiveGeoZoneAnonymous();
+
     const wineId = await resolveWineIdForProductHandle(productHandle);
     if (!wineId) {
-      return emptyOk({ userZoneName: "Stockholm, Sweden" });
+      return emptyOk({
+        userZoneName: activeGeoSlice.displayName,
+        countryCode: activeGeoSlice.countryCode,
+      });
     }
 
     const ctx = await resolvePalletEarlyBirdContext(
@@ -145,8 +174,7 @@ export async function GET(request: NextRequest) {
     let bottleCapacity = ctx.bottleCapacity;
     let discountTier = ctx.discountTier;
 
-    let userZoneName =
-      ctx.deliveryZoneName?.trim() || "Stockholm, Sweden";
+    let userZoneName = activeGeoSlice.displayName.trim() || "Stockholm, Sweden";
     let statusPrimary = "Pallet status";
     let bottlesVerb: "ordered" | "requested" = "ordered";
     let logisticsFootnote: string | null = null;
@@ -154,7 +182,6 @@ export async function GET(request: NextRequest) {
 
     let dropState: DropState = "existing";
     let marketDropId: string | null = null;
-    let displayDestination = userZoneName;
     let canStartMarketDrop = true;
     let campaignTagline: string | null = null;
     let showProgressBar = true;
@@ -163,10 +190,6 @@ export async function GET(request: NextRequest) {
 
     const palletId = ctx.activePalletId;
     if (palletId && typeof palletId === "string") {
-      const activeGeoSlice = user?.id
-        ? await resolveActiveGeoZoneForUser(user.id)
-        : await resolveActiveGeoZoneAnonymous();
-
       const resolvedMarket: ResolvedMarket = await resolveMarketForCountry({
         countryCode: activeGeoSlice.countryCode,
         regionCode: activeGeoSlice.regionCode,
@@ -201,8 +224,6 @@ export async function GET(request: NextRequest) {
         if (drop && !dropBlockedByGeo) {
           dropState = "existing";
           marketDropId = drop.id;
-          displayDestination = drop.display_destination.trim();
-          userZoneName = drop.display_destination.trim();
           const cap =
             drop.capacity_bottles != null && drop.capacity_bottles > 0
               ? drop.capacity_bottles
@@ -214,7 +235,6 @@ export async function GET(request: NextRequest) {
           showEarlyBird = true;
           if (isCustomerConditionalDrop(drop)) {
             statusPrimary = statusPrimaryForExistingConditionalDrop(drop);
-            userZoneName = "";
             bottlesVerb = "requested";
             if (
               typeof drop.logistics_status === "string" &&
@@ -229,9 +249,7 @@ export async function GET(request: NextRequest) {
         } else if (drop && dropBlockedByGeo) {
           dropState = "unavailable";
           marketDropId = null;
-          displayDestination = "";
           statusPrimary = "Not available in your shopping zone yet";
-          userZoneName = "";
           unavailableMessage =
             "This wine is not currently available for reservations for your shopping zone.";
           bottlesVerb = "ordered";
@@ -246,9 +264,7 @@ export async function GET(request: NextRequest) {
         } else if (geo && isVirtualCampaignFromGeoZone(resolvedMarket, geo)) {
           dropState = "virtual_available";
           marketDropId = null;
-          displayDestination = geo.displayName;
           statusPrimary = formatVirtualDropReadyFromDisplayName(geo.displayName);
-          userZoneName = "";
           const virtualConditionalCopy =
             geo.eligibilityStatus === "conditional_reservation";
           if (virtualConditionalCopy) {
@@ -269,9 +285,7 @@ export async function GET(request: NextRequest) {
         } else {
           dropState = "unavailable";
           marketDropId = null;
-          displayDestination = "";
           statusPrimary = "Not available in your shopping zone yet";
-          userZoneName = "";
           unavailableMessage =
             "This wine is not currently available for reservations for your shopping zone.";
           bottlesVerb =
@@ -303,6 +317,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const displayDestination =
+      dropState === "unavailable"
+        ? ""
+        : shoppingZoneDisplayDestination(activeGeoSlice);
+
     const payload: ZoneStatusBody = {
       bottlesFilled,
       bottleCapacity,
@@ -329,6 +348,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(payload);
   } catch {
-    return emptyOk({ userZoneName: "Stockholm, Sweden" });
+    return emptyOk({ userZoneName: "Stockholm, Sweden", countryCode: "SE" });
   }
 }

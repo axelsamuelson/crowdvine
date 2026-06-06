@@ -1,21 +1,23 @@
 "use client";
 
 import { PriceBreakdown } from "./price-breakdown";
+import { WineEnrichmentCollapsible } from "@/components/product/wine-enrichment-collapsible";
 import { useProductPrice } from "@/lib/hooks/use-product-price";
 import { useMembershipDiscountPercent } from "@/lib/hooks/use-membership-discount-percent";
 import { Product } from "@/lib/shopify/types";
 import { useCartSource } from "@/components/cart/cart-source-context";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 interface ProductPriceInfoBoxProps {
   product: Product;
 }
 
 /**
- * White box placed under grape varieties / color on the product page.
- * Shows price and full breakdown (when priceBreakdown exists). Matches design of other white boxes.
+ * Collapsible price breakdown under grape varieties / color on the product page.
  */
 export function ProductPriceInfoBox({ product }: ProductPriceInfoBoxProps) {
+  const { t } = useTranslations();
   const discountPercentage = useMembershipDiscountPercent();
   const { selectedSource } = useCartSource();
   const isB2B = useB2BPriceMode();
@@ -37,10 +39,7 @@ export function ProductPriceInfoBox({ product }: ProductPriceInfoBoxProps) {
     : breakdown.total; // B2C: inkl. moms, B2B warehouse: exkl. moms
 
   return (
-    <div className="flex flex-col gap-4 overflow-clip px-3 py-2 rounded-md bg-popover md:gap-x-4 md:gap-y-4">
-      <h2 className="text-lg font-semibold text-foreground lg:text-xl 2xl:text-2xl shrink-0">
-        Price breakdown
-      </h2>
+    <WineEnrichmentCollapsible title={t("product.pdp.priceBreakdown")}>
       <PriceBreakdown
         costAmount={breakdown.cost}
         alcoholTax={breakdown.alcoholTax}
@@ -56,6 +55,6 @@ export function ProductPriceInfoBox({ product }: ProductPriceInfoBoxProps) {
         listTotalInclVat={breakdown.listTotalInclVat}
         variant="inline"
       />
-    </div>
+    </WineEnrichmentCollapsible>
   );
 }

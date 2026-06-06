@@ -44,11 +44,12 @@ export async function POST(request: NextRequest) {
     const sb = getSupabaseAdmin();
     const body = await request.json();
 
-    const { name, shipped_at, delivered_at, cost_cents, items } = body as {
+    const { name, shipped_at, delivered_at, cost_cents, is_active, items } = body as {
       name: string;
       shipped_at?: string | null;
       delivered_at?: string | null;
       cost_cents?: number | null;
+      is_active?: boolean;
       items: Array<{
         wine_id: string;
         quantity: number;
@@ -70,6 +71,7 @@ export async function POST(request: NextRequest) {
         shipped_at: shipped_at || null,
         delivered_at: delivered_at || null,
         cost_cents: cost_cents != null ? cost_cents : null,
+        is_active: is_active === true,
       })
       .select()
       .single();

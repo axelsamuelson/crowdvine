@@ -10,12 +10,14 @@ import { motion, AnimatePresence } from "motion/react";
 import { Loader } from "../ui/loader";
 import { cn } from "@/lib/utils";
 import { useCartSource } from "./cart-source-context";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 export type CartSource = "producer" | "warehouse";
 
 interface AddToCartWithSourceProps {
   product: Product;
   className?: string;
+  previewDisabled?: boolean;
 }
 
 const getBaseProductVariant = (product: Product): ProductVariant => {
@@ -31,7 +33,9 @@ const getBaseProductVariant = (product: Product): ProductVariant => {
 export function AddToCartWithSource({
   product,
   className,
+  previewDisabled = false,
 }: AddToCartWithSourceProps) {
+  const { t } = useTranslations();
   const [quantity, setQuantity] = useState(1);
   const { selectedSource, setSelectedSource } = useCartSource();
   const [isLoading, startTransition] = useTransition();
@@ -79,6 +83,7 @@ export function AddToCartWithSource({
 
   const handleAddToCart = (e: React.FormEvent, source: CartSource) => {
     e.preventDefault();
+    if (previewDisabled) return;
 
     if (resolvedVariant) {
       startTransition(async () => {
@@ -134,6 +139,18 @@ export function AddToCartWithSource({
   // Producer is never disabled due to stock
   const isAddToCartDisabled = !resolvedVariant || isLoading || (selectedSource === "warehouse" && isWarehouseDisabled);
 
+  const addToCartLabel = !resolvedVariant
+    ? t("product.selectOne")
+    : selectedSource === "warehouse" && isWarehouseDisabled
+      ? t("product.outOfStock")
+      : quantity === 1
+        ? selectedSource === "producer"
+          ? t("product.pdp.addToCartProducer")
+          : t("product.pdp.addToCartWarehouse")
+        : selectedSource === "producer"
+          ? t("product.pdp.addQuantityToCartProducer", { count: quantity })
+          : t("product.pdp.addQuantityToCartWarehouse", { count: quantity });
+
   return (
     <div className={cn("w-full space-y-3", className)}>
       {/* Source Selection - Two buttons side by side */}
@@ -149,7 +166,7 @@ export function AddToCartWithSource({
           )}
         >
           <Factory className="w-4 h-4" />
-          <span className="text-sm font-medium">Producer</span>
+          <span className="text-sm font-medium">{t("product.producer")}</span>
         </button>
         <button
           type="button"
@@ -168,7 +185,9 @@ export function AddToCartWithSource({
         >
           <Warehouse className={cn("w-4 h-4", isWarehouseDisabled && "opacity-50")} />
           <span className="text-sm font-medium">
-            {isWarehouseDisabled ? "Warehouse | Out of stock" : "Warehouse"}
+            {isWarehouseDisabled
+              ? t("product.warehouseOutOfStock")
+              : t("product.warehouse")}
           </span>
         </button>
       </div>
@@ -238,15 +257,7 @@ export function AddToCartWithSource({
                   </div>
                 ) : (
                   <>
-                    <span>
-                      {!resolvedVariant
-                        ? "Select one"
-                        : selectedSource === "warehouse" && isWarehouseDisabled
-                          ? "Out Of Stock"
-                          : quantity === 1
-                            ? `Add To Cart (${selectedSource === "producer" ? "Producer" : "Warehouse"})`
-                            : `Add ${quantity} To Cart (${selectedSource === "producer" ? "Producer" : "Warehouse"})`}
-                    </span>
+                    <span>{addToCartLabel}</span>
                     <CirclePlus className="text-white" />
                   </>
                 )}

@@ -1,5 +1,9 @@
 import { thumbHashToDataURL } from "thumbhash";
 import { ProductCollectionSortKey, ProductSortKey } from "./types";
+import {
+  displayFractionDigits,
+  roundAmountForDisplay,
+} from "@/lib/shopping-context/format";
 
 // Format price utility - consistent across server and client
 export const formatPrice = (
@@ -8,16 +12,15 @@ export const formatPrice = (
   intlLocale = "sv-SE",
 ): string => {
   const amount = typeof price === "string" ? parseFloat(price) : price;
-
-  // Round up to nearest whole number
-  const roundedAmount = Math.ceil(amount);
+  const decimals = displayFractionDigits(currencyCode);
+  const roundedAmount = roundAmountForDisplay(amount, currencyCode, "ceil");
 
   return new Intl.NumberFormat(intlLocale, {
     style: "currency",
     currency: currencyCode,
     currencyDisplay: "narrowSymbol",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
   }).format(roundedAmount);
 };
 

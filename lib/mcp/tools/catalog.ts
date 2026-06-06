@@ -12,6 +12,65 @@ import { mcpWriteTool } from "../utils/write-tool";
 const certificationSchema = z.enum(CATALOG_CERTIFICATION_VALUES);
 const wineTypeSchema = z.enum(CATALOG_WINE_TYPE_VALUES);
 
+/** Fields that map to PDP content (hero, specs grid, enrichment dropdowns). */
+const winePdpContentFields = {
+  summary: z
+    .string()
+    .optional()
+    .describe("PDP hero — kort sammanfattning i vit box."),
+  description: z
+    .string()
+    .optional()
+    .describe("PDP hero — fallback om summary saknas."),
+  color: z
+    .string()
+    .optional()
+    .describe(
+      "PDP specs Färg. Admin-värden: Red, White, Rose, Orange, Red & Orange, … (eller type: red/white/rosé).",
+    ),
+  grape_varieties: z
+    .array(z.string())
+    .optional()
+    .describe("PDP specs Druvsort."),
+  appellation: z.string().optional().describe("PDP specs Appellation."),
+  farming: certificationSchema
+    .optional()
+    .describe("PDP specs Odling (organic_certified, natural, …)."),
+  additives: z
+    .string()
+    .optional()
+    .describe("PDP specs Tillsatser — visas med farming."),
+  alcohol_pct: z.number().optional().describe("PDP specs Alkohol (%)."),
+  abv: z
+    .string()
+    .optional()
+    .describe('PDP specs Alkohol som text, t.ex. "13.5 %".'),
+  serving_temp_c: z
+    .string()
+    .optional()
+    .describe("PDP specs Serveringstemperatur."),
+  elevation_masl: z
+    .number()
+    .int()
+    .optional()
+    .describe("PDP specs Höjd (m ö.h.)."),
+  soil_type: z.string().optional().describe("PDP specs Jordtyp."),
+  tasting_notes: z
+    .string()
+    .optional()
+    .describe("PDP dropdown Smaknoter."),
+  food_pairing: z
+    .array(z.string())
+    .optional()
+    .describe("PDP dropdown Passar till."),
+  ageing: z.string().optional().describe("PDP dropdown Lagring / elevage."),
+  winemaker_notes: z
+    .string()
+    .optional()
+    .describe("PDP dropdown Producentens noteringar."),
+  awards: z.array(z.string()).optional().describe("PDP dropdown Utmärkelser."),
+} as const;
+
 async function catalogGet<T>(
   path: string,
   tool: string,
@@ -207,29 +266,20 @@ export function registerCatalogTools(server: McpServer, sb: SupabaseClient) {
   server.registerTool(
     "create_wine",
     {
-      description: "Skapa catalog-vin. Kräver producer_id, name, appellation, type, price_sek.",
+      description:
+        "Skapa vin i catalog (public.wines). Stödjer alla PDP-innehållsfält: summary, specs-rutor, smaknoter och expanderbara sektioner. Kräver producer_id, name, appellation, type eller color, price_sek.",
       inputSchema: {
         producer_id: z.string(),
         name: z.string(),
         appellation: z.string(),
-        type: wineTypeSchema,
+        type: wineTypeSchema.optional(),
         price_sek: z.number().int().nonnegative(),
         vintage: z.number().int().nullable().optional(),
-        grape_varieties: z.array(z.string()).optional(),
         bottle_size_ml: z.number().int().optional(),
-        tasting_notes: z.string().optional(),
-        alcohol_pct: z.number().optional(),
-        farming: certificationSchema.optional(),
-        serving_temp_c: z.string().optional(),
-        food_pairing: z.array(z.string()).optional(),
-        awards: z.array(z.string()).optional(),
         import_price_eur: z.number().optional(),
-        winemaker_notes: z.string().optional(),
-        soil_type: z.string().optional(),
-        elevation_masl: z.number().int().optional(),
         yield_hl_ha: z.number().optional(),
-        ageing: z.string().optional(),
         is_published: z.boolean().optional(),
+        ...winePdpContentFields,
       },
     },
     async (args) => {
@@ -252,30 +302,36 @@ export function registerCatalogTools(server: McpServer, sb: SupabaseClient) {
   server.registerTool(
     "update_wine",
     {
-      description: "Uppdatera catalog-vin (partial update).",
+      description:
+        "Uppdatera vin (partial). Alla PDP-innehållsfält kan sättas — se create_wine för fältbeskrivningar.",
       inputSchema: {
         id: z.string(),
         producer_id: z.string().optional(),
         name: z.string().optional(),
         vintage: z.number().int().nullable().optional(),
-        appellation: z.string().optional(),
-        grape_varieties: z.array(z.string()).optional(),
         type: wineTypeSchema.optional(),
         price_sek: z.number().int().optional(),
         bottle_size_ml: z.number().int().optional(),
-        tasting_notes: z.string().nullable().optional(),
-        alcohol_pct: z.number().optional(),
-        farming: certificationSchema.nullable().optional(),
-        serving_temp_c: z.string().nullable().optional(),
-        food_pairing: z.array(z.string()).optional(),
-        awards: z.array(z.string()).optional(),
         import_price_eur: z.number().nullable().optional(),
-        winemaker_notes: z.string().nullable().optional(),
-        soil_type: z.string().nullable().optional(),
-        elevation_masl: z.number().int().nullable().optional(),
         yield_hl_ha: z.number().nullable().optional(),
-        ageing: z.string().nullable().optional(),
         is_published: z.boolean().optional(),
+        summary: winePdpContentFields.summary.nullable().optional(),
+        description: winePdpContentFields.description.nullable().optional(),
+        color: winePdpContentFields.color.nullable().optional(),
+        grape_varieties: winePdpContentFields.grape_varieties.optional(),
+        appellation: winePdpContentFields.appellation.optional(),
+        farming: certificationSchema.nullable().optional(),
+        additives: winePdpContentFields.additives.nullable().optional(),
+        alcohol_pct: z.number().nullable().optional(),
+        abv: winePdpContentFields.abv.nullable().optional(),
+        serving_temp_c: winePdpContentFields.serving_temp_c.nullable().optional(),
+        elevation_masl: winePdpContentFields.elevation_masl.nullable().optional(),
+        soil_type: winePdpContentFields.soil_type.nullable().optional(),
+        tasting_notes: winePdpContentFields.tasting_notes.nullable().optional(),
+        food_pairing: winePdpContentFields.food_pairing.optional(),
+        ageing: winePdpContentFields.ageing.nullable().optional(),
+        winemaker_notes: winePdpContentFields.winemaker_notes.nullable().optional(),
+        awards: winePdpContentFields.awards.optional(),
       },
     },
     async (args) => {

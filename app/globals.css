@@ -23,6 +23,78 @@
   }
 }
 
+@layer components {
+  .admin-form-fields label {
+    @apply text-gray-700 dark:text-zinc-300;
+  }
+
+  .admin-form-fields [data-slot="select-trigger"] {
+    @apply w-full;
+  }
+
+  .admin-form-fields .admin-toggle-row {
+    @apply rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/70;
+  }
+
+  .admin-form-fields .admin-help-text {
+    @apply text-xs text-gray-500 dark:text-zinc-400;
+  }
+}
+
+@layer utilities {
+  /* Admin form fields: utilities layer + ! so we beat bg-background on Textarea etc. */
+  .admin-form-fields
+    input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(
+      [type="hidden"]
+    ),
+  .admin-form-fields textarea,
+  .admin-form-fields [data-slot="select-trigger"],
+  .admin-form-fields button[role="combobox"] {
+    @apply border-gray-200 bg-white text-gray-900 shadow-none dark:!border-zinc-700 dark:!bg-zinc-800 dark:!text-zinc-100;
+  }
+
+  .admin-form-fields
+    input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(
+      [type="hidden"]
+    )::placeholder,
+  .admin-form-fields textarea::placeholder {
+    @apply text-gray-400 dark:!text-zinc-500;
+  }
+
+  .admin-form-fields [data-slot="badge"] {
+    @apply border-gray-200 bg-white text-gray-900 dark:!border-zinc-700 dark:!bg-zinc-800 dark:!text-zinc-100;
+  }
+
+  .admin-form-fields [data-slot="badge"] button {
+    @apply text-gray-500 hover:!text-gray-900 dark:!text-zinc-300 dark:hover:!text-zinc-100;
+  }
+
+  /* Semantic tokens stay light-theme in :root — force readable text in admin dark mode */
+  .admin-form-fields .text-foreground {
+    @apply !text-gray-900 dark:!text-zinc-100;
+  }
+
+  .admin-form-fields .text-muted-foreground {
+    @apply !text-gray-500 dark:!text-zinc-400;
+  }
+
+  .admin-form-fields [data-slot="collapsible-trigger"] {
+    @apply text-gray-900 dark:!text-zinc-100;
+  }
+
+  .admin-form-fields [data-slot="collapsible-trigger"] svg {
+    @apply text-gray-500 dark:!text-zinc-400;
+  }
+
+  .admin-form-fields [data-slot="collapsible-content"] {
+    @apply text-gray-900 dark:!text-zinc-100;
+  }
+
+  .admin-form-fields [data-slot="collapsible"] {
+    @apply border-gray-200 dark:!border-zinc-700;
+  }
+}
+
 @layer utilities {
   .base-grid {
     display: grid;
@@ -96,6 +168,7 @@
     -moz-appearance: textfield;
     appearance: textfield;
   }
+
 }
 
 :root {

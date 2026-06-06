@@ -118,6 +118,29 @@ export interface ShopifyCart {
 }
 
 // Clean types for the new Shopify-only structure
+/** Wine enrichment fields for PDP (from public.wines). */
+export type WineEnrichment = {
+  tasting_notes?: string | null;
+  appellation?: string | null;
+  farming?: string | null;
+  /** Free-text additives note (tillsatser) shown with farming on PDP. */
+  additives?: string | null;
+  serving_temp_c?: string | null;
+  /** Alcohol by volume (e.g. "13.5" or "13.5%"). */
+  abv?: string | null;
+  /** Numeric ABV from admin (fallback when abv text is empty). */
+  alcohol_percentage?: number | null;
+  food_pairing?: string[] | null;
+  soil_type?: string | null;
+  elevation_masl?: number | null;
+  ageing?: string | null;
+  winemaker_notes?: string | null;
+  awards?: string[] | null;
+  grapeVarieties?: string[] | null;
+  /** Wine color (e.g. Red, White) for Om vinet specs. */
+  color?: string | null;
+};
+
 export type Collection = {
   id: string;
   handle: string;
@@ -144,6 +167,8 @@ export type Product = {
   summary?: string | null;
   /** Wine specs for bullet list under description (e.g. Region, Appellation, Terroir, Vinification, ABV). */
   specs?: Record<string, string> | null;
+  /** Enrichment fields for PDP sections (tasting notes, farming, food pairing, etc.). */
+  wineEnrichment?: WineEnrichment | null;
   featuredImage: Image;
   currencyCode: string;
   priceRange: {
@@ -165,6 +190,8 @@ export type Product = {
     exchangeRate: number;
     alcoholTaxCents: number;
     marginPercentage: number;
+    /** List price in öre (SEK); used for breakdown — not display currency. */
+    basePriceCents?: number;
     b2bMarginPercentage?: number;
     b2bShippingPerBottleSek?: number;
     b2bPriceExclVat?: number;

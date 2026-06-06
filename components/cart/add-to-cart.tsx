@@ -17,6 +17,7 @@ interface AddToCartProps extends ButtonProps {
   product: Product;
   iconOnly?: boolean;
   icon?: ReactNode;
+  previewDisabled?: boolean;
 }
 
 interface AddToCartButtonProps extends ButtonProps {
@@ -25,6 +26,7 @@ interface AddToCartButtonProps extends ButtonProps {
   iconOnly?: boolean;
   icon?: ReactNode;
   className?: string;
+  previewDisabled?: boolean;
 }
 
 const getBaseProductVariant = (product: Product): ProductVariant => {
@@ -43,6 +45,7 @@ export function AddToCartButton({
   className,
   iconOnly = false,
   icon = <CirclePlus />,
+  previewDisabled = false,
   ...buttonProps
 }: AddToCartButtonProps) {
   const { t } = useTranslations();
@@ -82,6 +85,7 @@ export function AddToCartButton({
     <form
       onSubmit={(e) => {
         e.preventDefault();
+        if (previewDisabled) return;
 
         if (resolvedVariant) {
           startTransition(async () => {
@@ -156,6 +160,7 @@ export function AddToCart({
   className,
   iconOnly = false,
   icon = <CirclePlus />,
+  previewDisabled = false,
   ...buttonProps
 }: AddToCartProps) {
   const { variants } = product;
@@ -189,6 +194,7 @@ export function AddToCart({
       className={className}
       iconOnly={iconOnly}
       icon={icon}
+      previewDisabled={previewDisabled}
       {...buttonProps}
     />
   );

@@ -13,13 +13,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AdminFormSection } from "@/components/admin/admin-form-section";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  ADMIN_FORM_FIELDS_CLASS,
+  ADMIN_ACTIVE_SWITCH_CLASS,
+  ADMIN_HELP_TEXT_CLASS,
+  ADMIN_TOGGLE_ROW_CLASS,
+} from "@/lib/admin-form-styles";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   CreateWineData,
@@ -39,6 +39,10 @@ import {
 } from "@/lib/actions/grape-varieties";
 import { calculateB2BPriceExclVat } from "@/lib/price-breakdown";
 import { WineB2BPalletStockTable } from "@/components/admin/wine-b2b-pallet-stock-table";
+import {
+  WineEnrichmentCollapsible,
+  WINE_ENRICHMENT_DROPDOWN_LIST_CLASS,
+} from "@/components/product/wine-enrichment-collapsible";
 
 const DEFAULT_PRODUCER_MARGIN = 10;
 
@@ -106,6 +110,7 @@ export default function WineForm({ wine, producers, isProducerView = false, init
     tasting_notes: wine?.tasting_notes ?? "",
     alcohol_percentage: wine?.alcohol_percentage ?? null,
     farming: wine?.farming ?? null,
+    additives: wine?.additives ?? "",
     serving_temp_c: wine?.serving_temp_c ?? "",
     food_pairing_text: formatCommaList(wine?.food_pairing),
     winemaker_notes: wine?.winemaker_notes ?? "",
@@ -224,6 +229,7 @@ export default function WineForm({ wine, producers, isProducerView = false, init
       tasting_notes: wine.tasting_notes ?? "",
       alcohol_percentage: wine.alcohol_percentage ?? null,
       farming: wine.farming ?? null,
+      additives: wine.additives ?? "",
       serving_temp_c: wine.serving_temp_c ?? "",
       food_pairing_text: formatCommaList(wine.food_pairing),
       winemaker_notes: wine.winemaker_notes ?? "",
@@ -406,9 +412,15 @@ export default function WineForm({ wine, producers, isProducerView = false, init
 
       const { food_pairing_text, awards_text, ...formRest } = formData;
 
+      const abvFromAlcohol =
+        formRest.alcohol_percentage != null
+          ? String(formRest.alcohol_percentage)
+          : formRest.abv || null;
+
       // Use first uploaded image as main image if available, otherwise keep existing
       const wineData = {
         ...formRest,
+        abv: abvFromAlcohol,
         food_pairing: parseCommaList(food_pairing_text),
         awards: parseCommaList(awards_text),
         handle: generatedHandle,
@@ -470,27 +482,21 @@ export default function WineForm({ wine, producers, isProducerView = false, init
   };
 
   return (
-    <Card className="p-0 bg-white border border-gray-200 rounded-2xl">
-      <CardHeader>
-        <CardTitle className="text-xl font-medium text-gray-900">
-          {wine ? "Edit Wine" : "Add Wine"}
-        </CardTitle>
-        <CardDescription className="text-gray-500">
-          {wine ? "Update wine information" : "Create a new wine product"}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+    <div className="space-y-6">
+      <form onSubmit={handleSubmit} className={`space-y-6 ${ADMIN_FORM_FIELDS_CLASS}`}>
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-          {/* Basics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <AdminFormSection
+          title="Grundinfo"
+          description="Namn, producent, färg och synlighet i shop."
+        >
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="wine_name">Wine Name *</Label>
+              <Label htmlFor="wine_name">Vinnamn *</Label>
               <Input
                 id="wine_name"
                 value={formData.wine_name}
@@ -505,22 +511,22 @@ export default function WineForm({ wine, producers, isProducerView = false, init
                 id="vintage"
                 value={formData.vintage}
                 onChange={(e) => handleChange("vintage", e.target.value)}
-                placeholder="2020"
+                placeholder="2024"
                 required
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="producer_id">Producer *</Label>
+              <Label htmlFor="producer_id">Producent *</Label>
               <Select
                 value={formData.producer_id}
                 onValueChange={(value) => handleChange("producer_id", value)}
                 required
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a producer" />
+                  <SelectValue placeholder="Välj producent" />
                 </SelectTrigger>
                 <SelectContent>
                   {producers.map((producer) => (
@@ -533,7 +539,7 @@ export default function WineForm({ wine, producers, isProducerView = false, init
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="color">Color *</Label>
+              <Label htmlFor="color">Färg *</Label>
               <Select
                 value={formData.color}
                 onValueChange={(value) => handleChange("color", value)}
@@ -542,45 +548,49 @@ export default function WineForm({ wine, producers, isProducerView = false, init
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Red">Red</SelectItem>
-                  <SelectItem value="White">White</SelectItem>
+                  <SelectItem value="Red">Rött</SelectItem>
+                  <SelectItem value="White">Vitt</SelectItem>
                   <SelectItem value="Rose">Rosé</SelectItem>
                   <SelectItem value="Orange">Orange</SelectItem>
-                  <SelectItem value="Red & Orange">
-                    Red & Orange (Blend)
-                  </SelectItem>
-                  <SelectItem value="Red & White">
-                    Red & White (Blend)
-                  </SelectItem>
-                  <SelectItem value="Orange & White">
-                    Orange & White (Blend)
-                  </SelectItem>
+                  <SelectItem value="Red & Orange">Rött &amp; orange (blandning)</SelectItem>
+                  <SelectItem value="Red & White">Rött &amp; vitt (blandning)</SelectItem>
+                  <SelectItem value="Orange & White">Orange &amp; vitt (blandning)</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
-                Blend colors will show as split swatches in the shop filter
+              <p className={ADMIN_HELP_TEXT_CLASS}>
+                Visas som Färg i specs-rutorna på PDP.
               </p>
             </div>
           </div>
 
-          {/* Live in shop (edit only) */}
-          {wine && (
-            <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-4">
-              <div>
-                <Label className="text-base font-medium">Synlig i shop</Label>
-                <p className="text-sm text-muted-foreground">
-                  När av är vinet dolt för kunder i shopen och sök.
-                </p>
-              </div>
-              <Switch
-                checked={formData.is_live ?? true}
-                onCheckedChange={(checked) => handleChange("is_live", checked)}
-                aria-label="Vin synligt i shop"
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="volume_liters">Volym (liter)</Label>
+              <Input
+                id="volume_liters"
+                type="number"
+                min={0.1}
+                max={30}
+                step={0.01}
+                placeholder="0.75"
+                value={
+                  formData.volume_liters != null
+                    ? String(formData.volume_liters)
+                    : ""
+                }
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "") {
+                    handleChange("volume_liters", 0.75);
+                    return;
+                  }
+                  const num = parseFloat(v);
+                  if (!Number.isNaN(num)) handleChange("volume_liters", num);
+                }}
               />
             </div>
-          )}
+          </div>
 
-          {/* New Grape Varieties Selector */}
           <GrapeVarietiesSelector
             selectedVarieties={selectedGrapeVarietyIds}
             onVarietiesChange={handleGrapeVarietiesChange}
@@ -589,196 +599,233 @@ export default function WineForm({ wine, producers, isProducerView = false, init
             disabled={loading}
           />
 
-          {/* Summary: short text shown in PDP white box */}
+          {wine ? (
+            <div className={ADMIN_TOGGLE_ROW_CLASS}>
+              <div>
+                <Label className="text-sm font-medium text-gray-900 dark:text-zinc-100">
+                  Synlig i shop
+                </Label>
+                <p className={ADMIN_HELP_TEXT_CLASS}>
+                  Av = dolt för kunder i shop och sök.
+                </p>
+              </div>
+              <Switch
+                checked={formData.is_live ?? true}
+                onCheckedChange={(checked) => handleChange("is_live", checked)}
+                aria-label="Vin synligt i shop"
+                className={ADMIN_ACTIVE_SWITCH_CLASS}
+              />
+            </div>
+          ) : null}
+        </AdminFormSection>
+
+        <AdminFormSection
+          title="Bilder"
+          description="Etikett och produktbilder i galleriet."
+        >
+          <WineImageUpload
+            wineId={wine?.id}
+            existingImages={existingImages}
+            images={images}
+            onImagesChange={setImages}
+            onExistingImagesChange={setExistingImages}
+            embedded
+          />
+        </AdminFormSection>
+
+        <AdminFormSection
+          title="Produktsida — hero"
+          description="Text i den vita boxen högst upp på PDP."
+        >
           <div className="space-y-2">
-            <Label htmlFor="summary">Summary</Label>
+            <Label htmlFor="summary">Kort text (summary)</Label>
             <Textarea
               id="summary"
               value={formData.summary}
               onChange={(e) => handleChange("summary", e.target.value)}
-              placeholder="Short summary shown in the product page white box..."
-              rows={2}
+              placeholder="Kort sammanfattning som visas i hero-boxen..."
+              rows={3}
             />
-            <p className="text-sm text-muted-foreground">
-              Shown in the white box on the product page. Leave empty to show
-              nothing there.
+            <p className={ADMIN_HELP_TEXT_CLASS}>
+              Primär text i hero. Lämna tom för att använda reservtexten nedan
+              eller auto-genererad beskrivning.
             </p>
           </div>
 
-          {/* Description: long text shown above Price breakdown */}
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">Reservtext i hero</Label>
             <Textarea
               id="description"
               value={formData.description}
               onChange={(e) => handleChange("description", e.target.value)}
-              placeholder="Enter a custom description for this wine..."
-              rows={6}
+              placeholder="Visas bara om kort text saknas..."
+              rows={4}
             />
-            <p className="text-sm text-muted-foreground">
-              Shown above Price breakdown. Leave empty to use auto-generated
-              description based on wine properties.
-            </p>
           </div>
+        </AdminFormSection>
 
-          {/* Extra wine info: Terroir, Production, Tasting, Classification, Alcohol, Volume */}
-          <Card className="p-4 bg-muted/30 border border-gray-200 rounded-xl">
-            <CardHeader className="p-0 pb-3">
-              <CardTitle className="text-base font-medium">Extra information</CardTitle>
-              <CardDescription className="text-sm">
-                Terroir, production method, tasting profile, classification, alcohol and volume (optional).
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0 space-y-4">
+        <AdminFormSection
+          title="Produktsida — specs"
+          description="Rutorna under Lägg till låda (Färg, Druvsort, Appellation m.fl.). Region hämtas från producenten."
+        >
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="appellation">Appellation</Label>
+              <Input
+                id="appellation"
+                value={formData.appellation}
+                onChange={(e) => handleChange("appellation", e.target.value)}
+                placeholder="t.ex. Vin de France"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="alcohol_percentage">Alkohol (%)</Label>
+              <Input
+                id="alcohol_percentage"
+                type="number"
+                min={0}
+                max={25}
+                step={0.1}
+                placeholder="t.ex. 13.5"
+                value={
+                  formData.alcohol_percentage != null
+                    ? String(formData.alcohol_percentage)
+                    : ""
+                }
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "") {
+                    handleChange("alcohol_percentage", null);
+                    return;
+                  }
+                  const num = parseFloat(v);
+                  if (!Number.isNaN(num)) handleChange("alcohol_percentage", num);
+                }}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="farming">Odling</Label>
+              <Select
+                value={formData.farming ?? "none"}
+                onValueChange={(value) =>
+                  handleChange("farming", value === "none" ? null : value)
+                }
+              >
+                <SelectTrigger id="farming">
+                  <SelectValue placeholder="Välj odlingsfilosofi" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">—</SelectItem>
+                  {FARMING_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="additives">Tillsatser</Label>
+              <Input
+                id="additives"
+                value={formData.additives ?? ""}
+                onChange={(e) =>
+                  handleChange("additives", e.target.value || null)
+                }
+                placeholder="t.ex. inga tillsatta sulfiter"
+              />
+              <p className={ADMIN_HELP_TEXT_CLASS}>
+                Visas tillsammans med odling som &quot;Odling &amp; Tillsatser&quot;.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="serving_temp_c">Serveringstemperatur (°C)</Label>
+              <Input
+                id="serving_temp_c"
+                value={formData.serving_temp_c ?? ""}
+                onChange={(e) =>
+                  handleChange("serving_temp_c", e.target.value || null)
+                }
+                placeholder="t.ex. 13–15"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="elevation_masl">Höjd över havet (m)</Label>
+              <Input
+                id="elevation_masl"
+                type="number"
+                min={0}
+                step={1}
+                placeholder="350"
+                value={
+                  formData.elevation_masl != null
+                    ? String(formData.elevation_masl)
+                    : ""
+                }
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "") {
+                    handleChange("elevation_masl", null);
+                    return;
+                  }
+                  const num = parseInt(v, 10);
+                  if (!Number.isNaN(num)) handleChange("elevation_masl", num);
+                }}
+              />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="soil_type">Jordtyp</Label>
+              <Input
+                id="soil_type"
+                value={formData.soil_type ?? ""}
+                onChange={(e) =>
+                  handleChange("soil_type", e.target.value || null)
+                }
+                placeholder="t.ex. galets roulés"
+              />
+            </div>
+          </div>
+        </AdminFormSection>
+
+        <AdminFormSection
+          title="Produktsida — dropdowns"
+          description="Expanderbara sektioner under specs på PDP — samma layout som på produktsidan."
+        >
+          <div className={WINE_ENRICHMENT_DROPDOWN_LIST_CLASS}>
+            <WineEnrichmentCollapsible
+              title="Smaknoter"
+              defaultOpen={Boolean(formData.tasting_notes?.trim())}
+            >
               <div className="space-y-2">
-                <Label htmlFor="terroir_soil">Terroir &amp; Soil</Label>
-                <Textarea
-                  id="terroir_soil"
-                  value={formData.terroir_soil ?? ""}
-                  onChange={(e) => handleChange("terroir_soil", e.target.value)}
-                  placeholder="Terroir and soil description..."
-                  rows={2}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="production_method">Production Method</Label>
-                <Textarea
-                  id="production_method"
-                  value={formData.production_method ?? ""}
-                  onChange={(e) => handleChange("production_method", e.target.value)}
-                  placeholder="Production method..."
-                  rows={2}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="tasting_profile_character">Tasting Profile &amp; Character</Label>
-                <Textarea
-                  id="tasting_profile_character"
-                  value={formData.tasting_profile_character ?? ""}
-                  onChange={(e) => handleChange("tasting_profile_character", e.target.value)}
-                  placeholder="Tasting profile and character..."
-                  rows={2}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="classification">Classification</Label>
-                <Input
-                  id="classification"
-                  value={formData.classification ?? ""}
-                  onChange={(e) => handleChange("classification", e.target.value)}
-                  placeholder="e.g. AOP, IGP"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="tasting_notes">Tasting Notes</Label>
+                <Label htmlFor="tasting_notes" className="sr-only">
+                  Smaknoter
+                </Label>
                 <Textarea
                   id="tasting_notes"
                   value={formData.tasting_notes ?? ""}
-                  onChange={(e) => handleChange("tasting_notes", e.target.value)}
-                  placeholder="Tasting notes..."
-                  rows={3}
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="alcohol_percentage">Alcohol (%)</Label>
-                  <Input
-                    id="alcohol_percentage"
-                    type="number"
-                    min={0}
-                    max={25}
-                    step={0.1}
-                    placeholder="e.g. 13.5"
-                    value={
-                      formData.alcohol_percentage != null
-                        ? String(formData.alcohol_percentage)
-                        : ""
-                    }
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      if (v === "") {
-                        handleChange("alcohol_percentage", null);
-                        return;
-                      }
-                      const num = parseFloat(v);
-                      if (!Number.isNaN(num)) handleChange("alcohol_percentage", num);
-                    }}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="volume_liters">Volume (liters)</Label>
-                  <Input
-                    id="volume_liters"
-                    type="number"
-                    min={0.1}
-                    max={30}
-                    step={0.01}
-                    placeholder="0.75"
-                    value={
-                      formData.volume_liters != null
-                        ? String(formData.volume_liters)
-                        : ""
-                    }
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      if (v === "") {
-                        handleChange("volume_liters", 0.75);
-                        return;
-                      }
-                      const num = parseFloat(v);
-                      if (!Number.isNaN(num)) handleChange("volume_liters", num);
-                    }}
-                  />
-                  <p className="text-xs text-muted-foreground">e.g. 0.75 for standard bottle</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="p-4 bg-muted/30 border border-gray-200 rounded-xl">
-            <CardHeader className="p-0 pb-3">
-              <CardTitle className="text-base font-medium">Vindetaljer</CardTitle>
-              <CardDescription className="text-sm">
-                Enrichment-fält för MCP och produktcopy (valfritt).
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0 space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="farming">Odlingsfilosofi</Label>
-                <Select
-                  value={formData.farming ?? "none"}
-                  onValueChange={(value) =>
-                    handleChange("farming", value === "none" ? null : value)
-                  }
-                >
-                  <SelectTrigger id="farming">
-                    <SelectValue placeholder="Välj odlingsfilosofi" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">—</SelectItem>
-                    {FARMING_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="serving_temp_c">Serveringstemperatur (°C)</Label>
-                <Input
-                  id="serving_temp_c"
-                  value={formData.serving_temp_c ?? ""}
                   onChange={(e) =>
-                    handleChange("serving_temp_c", e.target.value || null)
+                    handleChange("tasting_notes", e.target.value)
                   }
-                  placeholder="t.ex. 14–16"
+                  placeholder="Smakbeskrivning..."
+                  rows={4}
                 />
               </div>
+            </WineEnrichmentCollapsible>
 
+            <WineEnrichmentCollapsible
+              title="Passar till"
+              defaultOpen={Boolean(formData.food_pairing_text?.trim())}
+            >
               <div className="space-y-2">
-                <Label htmlFor="food_pairing_text">Matparning</Label>
+                <Label htmlFor="food_pairing_text" className="sr-only">
+                  Passar till
+                </Label>
                 <Textarea
                   id="food_pairing_text"
                   value={formData.food_pairing_text}
@@ -788,13 +835,38 @@ export default function WineForm({ wine, producers, isProducerView = false, init
                   placeholder="grillat lamm, hårdost"
                   rows={2}
                 />
-                <p className="text-sm text-muted-foreground">
-                  Separera med komma, t.ex. grillat lamm, hårdost
-                </p>
+                <p className={ADMIN_HELP_TEXT_CLASS}>Separera med komma.</p>
               </div>
+            </WineEnrichmentCollapsible>
 
+            <WineEnrichmentCollapsible
+              title="Lagring / elevage"
+              defaultOpen={Boolean(formData.ageing?.trim())}
+            >
               <div className="space-y-2">
-                <Label htmlFor="winemaker_notes">Producentens egna noteringar</Label>
+                <Label htmlFor="ageing" className="sr-only">
+                  Lagring / elevage
+                </Label>
+                <Textarea
+                  id="ageing"
+                  value={formData.ageing ?? ""}
+                  onChange={(e) =>
+                    handleChange("ageing", e.target.value || null)
+                  }
+                  placeholder="t.ex. 12 månader på tank"
+                  rows={2}
+                />
+              </div>
+            </WineEnrichmentCollapsible>
+
+            <WineEnrichmentCollapsible
+              title="Producentens noteringar"
+              defaultOpen={Boolean(formData.winemaker_notes?.trim())}
+            >
+              <div className="space-y-2">
+                <Label htmlFor="winemaker_notes" className="sr-only">
+                  Producentens noteringar
+                </Label>
                 <Textarea
                   id="winemaker_notes"
                   value={formData.winemaker_notes ?? ""}
@@ -804,145 +876,41 @@ export default function WineForm({ wine, producers, isProducerView = false, init
                   rows={3}
                 />
               </div>
+            </WineEnrichmentCollapsible>
 
+            <WineEnrichmentCollapsible
+              title="Utmärkelser"
+              defaultOpen={Boolean(formData.awards_text?.trim())}
+            >
               <div className="space-y-2">
-                <Label htmlFor="awards_text">Utmärkelser</Label>
+                <Label htmlFor="awards_text" className="sr-only">
+                  Utmärkelser
+                </Label>
                 <Textarea
                   id="awards_text"
                   value={formData.awards_text}
                   onChange={(e) => handleChange("awards_text", e.target.value)}
                   rows={2}
                 />
-                <p className="text-sm text-muted-foreground">Separera med komma</p>
+                <p className={ADMIN_HELP_TEXT_CLASS}>Separera med komma.</p>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="ageing">Lagring / elevage</Label>
-                  <Input
-                    id="ageing"
-                    value={formData.ageing ?? ""}
-                    onChange={(e) => handleChange("ageing", e.target.value || null)}
-                    placeholder="t.ex. 12 månader i betongägg"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="soil_type">Jordtyp</Label>
-                  <Input
-                    id="soil_type"
-                    value={formData.soil_type ?? ""}
-                    onChange={(e) =>
-                      handleChange("soil_type", e.target.value || null)
-                    }
-                    placeholder="t.ex. argilo-calcaire"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="elevation_masl">Höjd över havet (m)</Label>
-                  <Input
-                    id="elevation_masl"
-                    type="number"
-                    min={0}
-                    step={1}
-                    placeholder="350"
-                    value={
-                      formData.elevation_masl != null
-                        ? String(formData.elevation_masl)
-                        : ""
-                    }
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      if (v === "") {
-                        handleChange("elevation_masl", null);
-                        return;
-                      }
-                      const num = parseInt(v, 10);
-                      if (!Number.isNaN(num)) handleChange("elevation_masl", num);
-                    }}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="yield_hl_ha">Skördemängd (hl/ha)</Label>
-                  <Input
-                    id="yield_hl_ha"
-                    type="number"
-                    min={0}
-                    step={0.1}
-                    placeholder="35"
-                    value={
-                      formData.yield_hl_ha != null
-                        ? String(formData.yield_hl_ha)
-                        : ""
-                    }
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      if (v === "") {
-                        handleChange("yield_hl_ha", null);
-                        return;
-                      }
-                      const num = parseFloat(v);
-                      if (!Number.isNaN(num)) handleChange("yield_hl_ha", num);
-                    }}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Specs: bullet list under description on PDP (Region from Producer; Appellation, Terroir, Vinification, ABV per wine) */}
-          <div className="space-y-4 rounded-lg border border-border p-4 bg-muted/20">
-            <h3 className="text-sm font-medium">Specifikationer (punktlistan under beskrivning)</h3>
-            <p className="text-sm text-muted-foreground">Region hämtas från producenten.</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="appellation">Appellation</Label>
-                <Input
-                  id="appellation"
-                  value={formData.appellation}
-                  onChange={(e) => handleChange("appellation", e.target.value)}
-                  placeholder="e.g. Vin de France"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="terroir">Terroir</Label>
-                <Input
-                  id="terroir"
-                  value={formData.terroir}
-                  onChange={(e) => handleChange("terroir", e.target.value)}
-                  placeholder="e.g. Schist"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="vinification">Vinification</Label>
-                <Input
-                  id="vinification"
-                  value={formData.vinification}
-                  onChange={(e) => handleChange("vinification", e.target.value)}
-                  placeholder="e.g. 60 days skin contact"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="abv">ABV</Label>
-                <Input
-                  id="abv"
-                  value={formData.abv}
-                  onChange={(e) => handleChange("abv", e.target.value)}
-                  placeholder="e.g. 13%"
-                />
-              </div>
-            </div>
+            </WineEnrichmentCollapsible>
           </div>
+        </AdminFormSection>
 
-          {/* Pricing: producer only sets cost; margin is fixed. Admin can set margin. */}
+        <AdminFormSection
+          title="Prissättning"
+          description="Kostnad och marginal styr kundpris och price breakdown på PDP."
+        >
           <PricingCalculator
+            embedded
             pricingData={{
               cost_currency: formData.cost_currency,
               cost_amount: formData.cost_amount,
               price_includes_vat: formData.price_includes_vat,
-              margin_percentage: isProducerView ? DEFAULT_PRODUCER_MARGIN : formData.margin_percentage,
+              margin_percentage: isProducerView
+                ? DEFAULT_PRODUCER_MARGIN
+                : formData.margin_percentage,
               calculated_price_cents: formData.base_price_cents ?? 0,
             }}
             onPricingChange={(pricingData) => {
@@ -951,182 +919,115 @@ export default function WineForm({ wine, producers, isProducerView = false, init
                 cost_currency: pricingData.cost_currency,
                 cost_amount: pricingData.cost_amount,
                 price_includes_vat: pricingData.price_includes_vat,
-                margin_percentage: isProducerView ? DEFAULT_PRODUCER_MARGIN : pricingData.margin_percentage,
+                margin_percentage: isProducerView
+                  ? DEFAULT_PRODUCER_MARGIN
+                  : pricingData.margin_percentage,
                 base_price_cents: pricingData.calculated_price_cents,
               }));
             }}
             showMargin={!isProducerView}
           />
+        </AdminFormSection>
 
-          {/* B2B: margin and stock for B2B customers (admin only; producer cannot set margins) */}
-          {!isProducerView && (
-          <Card className="p-4 bg-muted/30 border border-gray-200 rounded-xl">
-            <CardHeader className="p-0 pb-3">
-              <CardTitle className="text-base font-medium">B2B</CardTitle>
-              <CardDescription className="text-sm">
-                Marginal och lager för B2B-kunder (valfritt)
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="b2b_margin_percentage">
-                    B2B-marginal (%)
-                  </Label>
-                  <Input
-                    id="b2b_margin_percentage"
-                    type="number"
-                    min={0}
-                    max={100}
-                    step={0.5}
-                    placeholder="t.ex. 15"
-                    value={
-                      formData.b2b_margin_percentage != null
-                        ? String(formData.b2b_margin_percentage)
-                        : ""
+        {!isProducerView ? (
+          <AdminFormSection
+            title="B2B"
+            description="Marginal och lager för B2B-kunder."
+          >
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="b2b_margin_percentage">B2B-marginal (%)</Label>
+                <Input
+                  id="b2b_margin_percentage"
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={0.5}
+                  placeholder="t.ex. 15"
+                  value={
+                    formData.b2b_margin_percentage != null
+                      ? String(formData.b2b_margin_percentage)
+                      : ""
+                  }
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "") {
+                      handleChange("b2b_margin_percentage", null);
+                      return;
                     }
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      if (v === "") {
-                        handleChange("b2b_margin_percentage", null);
-                        return;
-                      }
-                      const num = parseFloat(v);
-                      if (
-                        !Number.isNaN(num) &&
-                        num >= 0 &&
-                        num <= 100
-                      )
-                        handleChange("b2b_margin_percentage", num);
-                    }}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Marginal i % för B2B-pris: (kostnad + alkoholskatt + frakt) ÷
-                    (1 − marginal)
-                  </p>
-                  {formData.b2b_margin_percentage != null &&
-                  formData.b2b_margin_percentage >= 0 &&
-                  formData.b2b_margin_percentage < 100 &&
-                  (formData.cost_amount ?? 0) > 0 && (
-                    <div className="pt-3 text-sm space-y-2">
-                      <div className="font-medium text-gray-900">
-                        B2B-pris:{" "}
-                        {Math.round(
-                          calculateB2BPriceExclVat(
-                            formData.cost_amount ?? 0,
-                            exchangeRate,
-                            2219,
-                            formData.b2b_margin_percentage,
-                            shippingPerBottleSek,
-                          ),
-                        )}{" "}
-                        SEK exkl. moms
-                      </div>
-                      <div className="text-gray-500 font-normal">
-                        {Math.round(
-                          calculateB2BPriceExclVat(
-                            formData.cost_amount ?? 0,
-                            exchangeRate,
-                            2219,
-                            formData.b2b_margin_percentage,
-                            shippingPerBottleSek,
-                          ) * 1.25,
-                        )}{" "}
-                        SEK inkl. moms
-                      </div>
-                      <div className="pt-2 border-t border-gray-200 text-xs text-muted-foreground space-y-1">
-                        <div>
-                          Kostnad (SEK):{" "}
-                          {((formData.cost_amount ?? 0) * exchangeRate).toFixed(
-                            2,
-                          )}{" "}
-                          kr
-                        </div>
-                        <div>
-                          Alkoholskatt: 22,19 kr
-                        </div>
-                        <div>
-                          Frakt/flaska:{" "}
-                          {shippingPerBottleSek > 0
-                            ? `${shippingPerBottleSek.toFixed(2)} kr`
-                            : "0 kr"}
-                        </div>
-                        <div className="font-medium text-gray-700">
-                          Summering:{" "}
-                          {(
-                            (formData.cost_amount ?? 0) * exchangeRate +
-                            22.19 +
-                            shippingPerBottleSek
-                          ).toFixed(2)}{" "}
-                          kr + marginal (
-                          {formData.b2b_margin_percentage}%) → B2B-pris
-                        </div>
-                        {(() => {
-                          const b2bPrice = calculateB2BPriceExclVat(
-                            formData.cost_amount ?? 0,
-                            exchangeRate,
-                            2219,
-                            formData.b2b_margin_percentage,
-                            shippingPerBottleSek,
-                          );
-                          const costBase =
-                            (formData.cost_amount ?? 0) * exchangeRate +
-                            22.19 +
-                            shippingPerBottleSek;
-                          const profitSek = b2bPrice - costBase;
-                          return (
-                            <div className="pt-1">
-                              <div>
-                                Vinst: {profitSek.toFixed(2)} kr (exkl. moms)
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </div>
+                    const num = parseFloat(v);
+                    if (!Number.isNaN(num) && num >= 0 && num <= 100) {
+                      handleChange("b2b_margin_percentage", num);
+                    }
+                  }}
+                />
+                <p className={ADMIN_HELP_TEXT_CLASS}>
+                  Marginal i % för B2B-pris: (kostnad + alkoholskatt + frakt) ÷
+                  (1 − marginal)
+                </p>
+                {formData.b2b_margin_percentage != null &&
+                formData.b2b_margin_percentage >= 0 &&
+                formData.b2b_margin_percentage < 100 &&
+                (formData.cost_amount ?? 0) > 0 ? (
+                  <div className="space-y-2 pt-3 text-sm">
+                    <div className="font-medium text-gray-900 dark:text-zinc-100">
+                      B2B-pris:{" "}
+                      {Math.round(
+                        calculateB2BPriceExclVat(
+                          formData.cost_amount ?? 0,
+                          exchangeRate,
+                          2219,
+                          formData.b2b_margin_percentage,
+                          shippingPerBottleSek,
+                        ),
+                      )}{" "}
+                      SEK exkl. moms
                     </div>
-                  )}
-                </div>
-                {wine?.id && (
-                  <div className="pt-4">
-                    <WineB2BPalletStockTable
-                      wineId={wine.id}
-                      onStockUpdated={fetchShippingFromPallets}
-                    />
+                    <div className="text-gray-500 dark:text-zinc-400">
+                      {Math.round(
+                        calculateB2BPriceExclVat(
+                          formData.cost_amount ?? 0,
+                          exchangeRate,
+                          2219,
+                          formData.b2b_margin_percentage,
+                          shippingPerBottleSek,
+                        ) * 1.25,
+                      )}{" "}
+                      SEK inkl. moms
+                    </div>
                   </div>
-                )}
+                ) : null}
               </div>
-            </CardContent>
-          </Card>
-          )}
+            </div>
 
-          {/* Images */}
-          <WineImageUpload
-            wineId={wine?.id}
-            existingImages={existingImages}
-            images={images}
-            onImagesChange={setImages}
-            onExistingImagesChange={setExistingImages}
-          />
+            {wine?.id ? (
+              <WineB2BPalletStockTable
+                wineId={wine.id}
+                onStockUpdated={fetchShippingFromPallets}
+                embedded
+              />
+            ) : null}
+          </AdminFormSection>
+        ) : null}
 
-          <div className="flex justify-end space-x-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.back()}
-              className="rounded-full"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={loading}
-              className="bg-black hover:bg-black/90 text-white rounded-full"
-            >
-              {loading ? "Saving..." : wine ? "Update Wine" : "Create Wine"}
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+        <div className="sticky bottom-0 z-10 -mx-1 flex justify-end gap-2 rounded-xl border border-gray-200 bg-white/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:border-zinc-800 dark:bg-[#0F0F12]/95">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.back()}
+            className="rounded-lg border-gray-200 text-xs font-medium dark:border-zinc-700"
+          >
+            Avbryt
+          </Button>
+          <Button
+            type="submit"
+            disabled={loading}
+            className="rounded-lg bg-gray-900 text-xs font-medium text-white hover:bg-gray-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+          >
+            {loading ? "Sparar..." : wine ? "Spara vin" : "Skapa vin"}
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 }

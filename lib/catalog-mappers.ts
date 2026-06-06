@@ -1,7 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   isCatalogCertification,
+  isCatalogWineColor,
   isCatalogWineType,
+  normalizeCatalogWineColor,
   type CatalogWineType,
 } from "@/lib/catalog-types";
 
@@ -11,7 +13,7 @@ export const PRODUCER_DB_SELECT =
 
 /** DB columns loaded for wine → API mapping. */
 export const WINE_DB_SELECT =
-  "id, producer_id, wine_name, vintage, appellation, region, grape_varieties, color, base_price_cents, volume_liters, tasting_notes, alcohol_percentage, farming, serving_temp_c, food_pairing, awards, cost_amount, cost_currency, winemaker_notes, elevation_masl, yield_hl_ha, is_live, created_at, updated_at";
+  "id, producer_id, wine_name, vintage, appellation, region, grape_varieties, color, base_price_cents, volume_liters, summary, description, tasting_notes, alcohol_percentage, abv, farming, additives, serving_temp_c, food_pairing, awards, cost_amount, cost_currency, winemaker_notes, elevation_masl, soil_type, ageing, yield_hl_ha, is_live, created_at, updated_at";
 
 export type ProducerApiRow = {
   id: string;
@@ -36,18 +38,30 @@ export type WineApiRow = {
   appellation: string | null;
   region: string | null;
   grape_varieties: string | null;
+  /** Same as `color` — wine type shown on PDP specs. */
   type: string | null;
+  color: string | null;
   price_sek: number;
   bottle_size_ml: number;
+  /** Short hero text on PDP white box. */
+  summary: string | null;
+  /** Fallback hero text when summary is empty. */
+  description: string | null;
   tasting_notes: string | null;
   alcohol_pct: number | null;
+  /** ABV text on PDP (e.g. "13.5 %"); falls back to alcohol_pct. */
+  abv: string | null;
   farming: string | null;
+  /** Shown with farming on PDP specs (Odling & tillsatser). */
+  additives: string | null;
   serving_temp_c: string | null;
   food_pairing: string[] | null;
   awards: string[] | null;
   import_price_eur: number | null;
   winemaker_notes: string | null;
   elevation_masl: number | null;
+  soil_type: string | null;
+  ageing: string | null;
   yield_hl_ha: number | null;
   is_published: boolean;
   created_at: string | null;
@@ -99,13 +113,18 @@ export function wineRowToApi(row: WineDbRow): WineApiRow {
     region: (row.region as string | null) ?? null,
     grape_varieties: (row.grape_varieties as string | null) ?? null,
     type: (row.color as string | null) ?? null,
+    color: (row.color as string | null) ?? null,
     price_sek:
       basePriceCents != null ? Math.round(basePriceCents / 100) : 0,
     bottle_size_ml:
       volumeLiters != null ? Math.round(volumeLiters * 1000) : 750,
+    summary: (row.summary as string | null) ?? null,
+    description: (row.description as string | null) ?? null,
     tasting_notes: (row.tasting_notes as string | null) ?? null,
     alcohol_pct: parseAlcoholPct(row.alcohol_percentage),
+    abv: (row.abv as string | null) ?? null,
     farming: (row.farming as string | null) ?? null,
+    additives: (row.additives as string | null) ?? null,
     serving_temp_c: (row.serving_temp_c as string | null) ?? null,
     food_pairing: (row.food_pairing as string[] | null) ?? null,
     awards: (row.awards as string[] | null) ?? null,
@@ -113,6 +132,8 @@ export function wineRowToApi(row: WineDbRow): WineApiRow {
       costCurrency === "EUR" && costAmount != null ? Number(costAmount) : null,
     winemaker_notes: (row.winemaker_notes as string | null) ?? null,
     elevation_masl: (row.elevation_masl as number | null) ?? null,
+    soil_type: (row.soil_type as string | null) ?? null,
+    ageing: (row.ageing as string | null) ?? null,
     yield_hl_ha:
       row.yield_hl_ha != null ? Number(row.yield_hl_ha) : null,
     is_published: row.is_live === true,
@@ -244,7 +265,18 @@ export function buildWinePatch(
   if (body.grape_varieties !== undefined) {
     patch.grape_varieties = grapeVarietiesToDb(body.grape_varieties);
   }
-  if (isCatalogWineType(body.type)) patch.color = body.type;
+  if (body.color === null) patch.color = null;
+  else if (typeof body.color === "string" && isCatalogWineColor(body.color)) {
+    patch.color = normalizeCatalogWineColor(body.color);
+  } else if (isCatalogWineType(body.type)) {
+    patch.color = normalizeCatalogWineColor(body.type);
+  }
+  if (body.summary === null) patch.summary = null;
+  else if (typeof body.summary === "string") patch.summary = body.summary;
+  if (body.description === null) patch.description = null;
+  else if (typeof body.description === "string") {
+    patch.description = body.description;
+  }
   if (typeof body.price_sek === "number" && Number.isInteger(body.price_sek)) {
     patch.base_price_cents = body.price_sek * 100;
   }
@@ -262,8 +294,14 @@ export function buildWinePatch(
   else if (typeof body.alcohol_pct === "number") {
     patch.alcohol_percentage = String(body.alcohol_pct);
   }
+  if (body.abv === null) patch.abv = null;
+  else if (typeof body.abv === "string") patch.abv = body.abv.trim() || null;
   if (body.farming === null) patch.farming = null;
   else if (isCatalogCertification(body.farming)) patch.farming = body.farming;
+  if (body.additives === null) patch.additives = null;
+  else if (typeof body.additives === "string") {
+    patch.additives = body.additives.trim() || null;
+  }
   if (body.serving_temp_c === null) patch.serving_temp_c = null;
   else if (typeof body.serving_temp_c === "string") {
     patch.serving_temp_c = body.serving_temp_c;
@@ -297,6 +335,12 @@ export function buildWinePatch(
   else if (typeof body.yield_hl_ha === "number") {
     patch.yield_hl_ha = body.yield_hl_ha;
   }
+  if (body.soil_type === null) patch.soil_type = null;
+  else if (typeof body.soil_type === "string") {
+    patch.soil_type = body.soil_type.trim() || null;
+  }
+  if (body.ageing === null) patch.ageing = null;
+  else if (typeof body.ageing === "string") patch.ageing = body.ageing;
   if (typeof body.is_published === "boolean") patch.is_live = body.is_published;
 
   return patch;
@@ -311,6 +355,10 @@ export function buildWineInsert(body: Record<string, unknown>): Record<string, u
   const type = body.type as CatalogWineType;
   const priceSek = body.price_sek as number;
   const vintage = vintageToDb(body.vintage ?? null);
+  const colorInput =
+    typeof body.color === "string" && isCatalogWineColor(body.color)
+      ? body.color
+      : type;
   const bottleSizeMl =
     typeof body.bottle_size_ml === "number" &&
     Number.isInteger(body.bottle_size_ml)
@@ -323,7 +371,7 @@ export function buildWineInsert(body: Record<string, unknown>): Record<string, u
     handle: generateWineHandle(wineName, vintage),
     vintage,
     appellation,
-    color: type,
+    color: normalizeCatalogWineColor(colorInput),
     base_price_cents: priceSek * 100,
     volume_liters: bottleSizeMl / 1000.0,
     is_live: body.is_published === true,

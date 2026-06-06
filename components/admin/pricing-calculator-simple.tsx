@@ -36,6 +36,8 @@ interface PricingCalculatorProps {
   onPricingChange: (data: PricingData) => void;
   /** When false, hide margin input; producer only sets cost, margin is fixed by platform */
   showMargin?: boolean;
+  /** Render without outer Card (e.g. inside AdminFormSection) */
+  embedded?: boolean;
 }
 
 const DEFAULT_PRODUCER_MARGIN = 10;
@@ -44,6 +46,7 @@ export function PricingCalculator({
   pricingData,
   onPricingChange,
   showMargin = true,
+  embedded = false,
 }: PricingCalculatorProps) {
   const [currentRate, setCurrentRate] = useState<number | null>(null);
   const [loadingRate, setLoadingRate] = useState(false);
@@ -149,19 +152,12 @@ export function PricingCalculator({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [breakdown.finalPriceCents, breakdown.isValid]);
 
-  return (
-    <Card className="p-0 bg-white border border-gray-200 rounded-2xl">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-xl font-medium text-gray-900">
-          <Calculator className="h-5 w-5 text-gray-500" />
-          Pricing
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
+  const formBody = (
+    <>
         {/* Inputs */}
         <div className={`grid grid-cols-1 gap-4 ${showMargin ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
           <div className="space-y-2 md:col-span-1">
-            <Label htmlFor="cost_currency">Cost currency</Label>
+            <Label htmlFor="cost_currency">Kostnadsvaluta</Label>
             <Select
               value={pricingData.cost_currency}
               onValueChange={(value) => {
@@ -169,7 +165,7 @@ export function PricingCalculator({
                 fetchCurrentRate(value);
               }}
             >
-              <SelectTrigger className="bg-white">
+              <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -183,12 +179,12 @@ export function PricingCalculator({
           </div>
 
           <div className="space-y-2 md:col-span-1">
-            <Label htmlFor="cost_amount">Cost per bottle</Label>
+            <Label htmlFor="cost_amount">Kostnad per flaska</Label>
             <Input
               id="cost_amount"
               type="number"
               step="0.01"
-              className="no-spinner bg-white"
+              className="no-spinner"
               value={pricingData.cost_amount}
               onChange={(e) =>
                 updatePricingData(
@@ -202,12 +198,12 @@ export function PricingCalculator({
 
           {showMargin && (
             <div className="space-y-2 md:col-span-1">
-              <Label htmlFor="margin_percentage">Margin %</Label>
+              <Label htmlFor="margin_percentage">Marginal %</Label>
               <Input
                 id="margin_percentage"
                 type="number"
                 step="0.1"
-                className="no-spinner bg-white"
+                className="no-spinner"
                 value={pricingData.margin_percentage}
                 onChange={(e) =>
                   updatePricingData(
@@ -221,7 +217,7 @@ export function PricingCalculator({
           )}
 
           <div className="flex items-end gap-2 md:col-span-1">
-            <div className="flex items-center gap-2 h-10">
+            <div className="flex h-10 items-center gap-2">
               <Switch
                 id="price_includes_vat"
                 checked={pricingData.price_includes_vat}
@@ -230,56 +226,64 @@ export function PricingCalculator({
                 }
               />
               <Label htmlFor="price_includes_vat" className="text-sm">
-                VAT (25%)
+                Moms (25%)
               </Label>
             </div>
           </div>
         </div>
 
         {/* Summary */}
-        <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+        <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <div className="text-sm text-gray-500">Final price</div>
-              <div className="text-2xl font-semibold text-gray-900">
+              <div className="text-sm text-gray-500 dark:text-zinc-400">
+                Slutpris
+              </div>
+              <div className="text-2xl font-semibold text-gray-900 dark:text-white">
                 {(breakdown.finalPriceCents / 100).toFixed(2)} SEK
               </div>
               {!breakdown.isValid && (
-                <div className="text-sm text-red-600 mt-1">
-                  Margin must be less than 100%.
+                <div className="mt-1 text-sm text-red-600">
+                  Marginalen måste vara under 100%.
                 </div>
               )}
             </div>
             <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-              <div className="text-gray-500">Total cost</div>
-              <div className="text-right font-medium text-gray-900">
+              <div className="text-gray-500 dark:text-zinc-400">Total kostnad</div>
+              <div className="text-right font-medium text-gray-900 dark:text-zinc-100">
                 {breakdown.costInSek.toFixed(2)} SEK
               </div>
-              <div className="text-gray-500">VAT amount</div>
-              <div className="text-right font-medium text-gray-900">
+              <div className="text-gray-500 dark:text-zinc-400">Moms</div>
+              <div className="text-right font-medium text-gray-900 dark:text-zinc-100">
                 {pricingData.price_includes_vat
                   ? `${breakdown.vatAmountSek.toFixed(2)} SEK`
                   : "—"}
               </div>
-              <div className="text-gray-500">Net profit (ex VAT)</div>
-              <div className="text-right font-medium text-gray-900">
+              <div className="text-gray-500 dark:text-zinc-400">
+                Nettovinst (exkl. moms)
+              </div>
+              <div className="text-right font-medium text-gray-900 dark:text-zinc-100">
                 {breakdown.netProfitSek.toFixed(2)} SEK
               </div>
             </div>
           </div>
         </div>
 
-        <Separator className="bg-gray-200" />
+        <Separator className="bg-gray-200 dark:bg-zinc-800" />
 
         {/* Details */}
         <Collapsible open={showDetails} onOpenChange={setShowDetails}>
           <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-500">
-              Exchange rates, taxes & reference pricing
+            <div className="text-sm text-gray-500 dark:text-zinc-400">
+              Växelkurs, skatter och referenspriser
             </div>
             <CollapsibleTrigger asChild>
-              <Button variant="outline" className="rounded-full">
-                Details
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-lg border-gray-200 text-xs dark:border-zinc-700"
+              >
+                Detaljer
                 <ChevronDown
                   className={`ml-2 h-4 w-4 transition-transform ${
                     showDetails ? "rotate-180" : ""
@@ -290,60 +294,84 @@ export function PricingCalculator({
           </div>
 
           <CollapsibleContent className="mt-4">
-            <div className="rounded-2xl border border-gray-200 bg-white p-4 space-y-3 text-sm">
+            <div className="space-y-3 rounded-xl border border-gray-200 bg-white p-4 text-sm dark:border-zinc-700 dark:bg-zinc-800">
               {pricingData.cost_currency !== "SEK" && (
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-500">Exchange rate</span>
-                  <span className="font-medium text-gray-900">
+                  <span className="text-gray-500 dark:text-zinc-400">
+                    Växelkurs
+                  </span>
+                  <span className="font-medium text-gray-900 dark:text-zinc-100">
                     1 {pricingData.cost_currency} ={" "}
                     {breakdown.exchangeRate.toFixed(4)} SEK{" "}
                     {loadingRate ? (
-                      <span className="text-gray-400">(updating)</span>
+                      <span className="text-gray-400">(uppdaterar)</span>
                     ) : null}
                   </span>
                 </div>
               )}
 
               <div className="flex items-center justify-between">
-                <span className="text-gray-500">Wine cost (SEK)</span>
-                <span className="font-medium text-gray-900">
+                <span className="text-gray-500 dark:text-zinc-400">
+                  Vinkostnad (SEK)
+                </span>
+                <span className="font-medium text-gray-900 dark:text-zinc-100">
                   {breakdown.costAmountInSek.toFixed(2)} SEK
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-500">Alcohol tax</span>
-                <span className="font-medium text-gray-900">
+                <span className="text-gray-500 dark:text-zinc-400">
+                  Alkoholskatt
+                </span>
+                <span className="font-medium text-gray-900 dark:text-zinc-100">
                   {breakdown.alcoholTaxInSek.toFixed(2)} SEK
                 </span>
               </div>
 
-              <Separator className="bg-gray-200" />
+              <Separator className="bg-gray-200 dark:bg-zinc-800" />
 
               <div className="flex items-center justify-between">
-                <span className="text-gray-500">Price ex VAT</span>
-                <span className="font-medium text-gray-900">
+                <span className="text-gray-500 dark:text-zinc-400">
+                  Pris exkl. moms
+                </span>
+                <span className="font-medium text-gray-900 dark:text-zinc-100">
                   {breakdown.priceExVat.toFixed(2)} SEK
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-500">Net profit (ex VAT)</span>
-                <span className="font-medium text-gray-900">
+                <span className="text-gray-500 dark:text-zinc-400">
+                  Nettovinst (exkl. moms)
+                </span>
+                <span className="font-medium text-gray-900 dark:text-zinc-100">
                   {breakdown.netProfitSek.toFixed(2)} SEK
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-500">Systembolaget (reference)</span>
-                <Badge
-                  variant="secondary"
-                  className="bg-gray-100 text-gray-900"
-                >
+                <span className="text-gray-500 dark:text-zinc-400">
+                  Systembolaget (referens)
+                </span>
+                <Badge variant="secondary">
                   {Number(breakdown.sbPrice).toFixed(2)} SEK
                 </Badge>
               </div>
             </div>
           </CollapsibleContent>
         </Collapsible>
-      </CardContent>
+    </>
+  );
+
+  if (embedded) {
+    return <div className="space-y-6">{formBody}</div>;
+  }
+
+  return (
+    <Card className="rounded-2xl border border-gray-200 bg-white p-0 dark:border-zinc-800 dark:bg-[#0F0F12]">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-xl font-medium text-gray-900 dark:text-white">
+          <Calculator className="h-5 w-5 text-gray-500" />
+          Prissättning
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">{formBody}</CardContent>
     </Card>
   );
 }

@@ -40,11 +40,12 @@ export async function PUT(
   const sb = getSupabaseAdmin();
   const body = await request.json();
 
-  const { name, shipped_at, delivered_at, cost_cents, items } = body as {
+  const { name, shipped_at, delivered_at, cost_cents, is_active, items } = body as {
     name?: string;
     shipped_at?: string | null;
     delivered_at?: string | null;
     cost_cents?: number | null;
+    is_active?: boolean;
     items?: Array<{
       wine_id: string;
       quantity: number;
@@ -57,6 +58,7 @@ export async function PUT(
   if (shipped_at !== undefined) updateData.shipped_at = shipped_at || null;
   if (delivered_at !== undefined) updateData.delivered_at = delivered_at || null;
   if (cost_cents !== undefined) updateData.cost_cents = cost_cents != null ? cost_cents : null;
+  if (is_active !== undefined) updateData.is_active = is_active === true;
   updateData.updated_at = new Date().toISOString();
 
   if (Object.keys(updateData).length > 1) {

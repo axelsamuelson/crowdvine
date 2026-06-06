@@ -12,7 +12,7 @@ import { MemberPrice } from "@/components/ui/member-price";
 import { StockBadge } from "@/components/product/stock-badge";
 import { ArrowRightIcon } from "lucide-react";
 import { useProductPrice } from "@/lib/hooks/use-product-price";
-import { calculatePriceBreakdown, calculateB2BPriceBreakdown } from "@/lib/price-breakdown";
+import { calculatePriceBreakdown, calculateB2BPriceBreakdown, getProductBasePriceCents } from "@/lib/price-breakdown";
 import { useMembership } from "@/lib/context/membership-context";
 import { useMembershipDiscountPercent } from "@/lib/hooks/use-membership-discount-percent";
 import { useMemo } from "react";
@@ -58,7 +58,7 @@ export const BrowseProductCard = memo(
             exchange_rate: product.priceBreakdown.exchangeRate,
             alcohol_tax_cents: product.priceBreakdown.alcoholTaxCents,
             margin_percentage: product.priceBreakdown.marginPercentage,
-            base_price_cents: Number(product.priceRange.minVariantPrice.amount) * 100,
+            base_price_cents: getProductBasePriceCents(product),
           },
           membershipLoading ? 0 : discountPercentage,
         );

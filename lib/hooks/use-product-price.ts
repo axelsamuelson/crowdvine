@@ -8,6 +8,7 @@ import {
   calculatePriceBreakdown,
   calculateB2BPriceBreakdown,
   calculateB2BPriceWithDiscount,
+  getProductBasePriceCents,
   PriceBreakdownResult,
 } from "@/lib/price-breakdown";
 import { Product } from "@/lib/shopify/types";
@@ -68,8 +69,7 @@ export function useProductPrice(product: Product, source?: "producer" | "warehou
             exchange_rate: product.priceBreakdown.exchangeRate,
             alcohol_tax_cents: product.priceBreakdown.alcoholTaxCents,
             margin_percentage: product.priceBreakdown.marginPercentage,
-            base_price_cents:
-              Number(product.priceRange.minVariantPrice.amount) * 100,
+            base_price_cents: getProductBasePriceCents(product),
           },
           loading ? 0 : discountPercentage,
         );

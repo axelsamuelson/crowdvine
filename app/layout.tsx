@@ -40,7 +40,8 @@ import { B2BModeProvider } from "@/lib/context/b2b-mode-context";
 import { ShoppingContextProvider } from "@/lib/context/shopping-context-provider";
 import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
 import { isPublicAppPath } from "@/lib/auth/public-paths";
-import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
+import { SiteLogoProvider } from "@/lib/context/site-logo-provider";
+import { resolveSiteLogosFromRequest } from "@/lib/site-logos-server";
 
 export async function generateMetadata(): Promise<Metadata> {
   try {
@@ -52,6 +53,10 @@ export async function generateMetadata(): Promise<Metadata> {
         title: "CrowdVine",
         description: "Premium Wine Community",
         generator: "v0.app",
+        icons: {
+          icon: [{ url: "/favicon.png", type: "image/png" }],
+          apple: [{ url: "/apple-touch-icon.png", type: "image/png" }],
+        },
       };
     }
 
@@ -64,6 +69,10 @@ export async function generateMetadata(): Promise<Metadata> {
       title: siteTitle,
       description: siteDescription,
       generator: "v0.app",
+      icons: {
+        icon: [{ url: "/favicon.png", type: "image/png" }],
+        apple: [{ url: "/apple-touch-icon.png", type: "image/png" }],
+      },
     };
   } catch (error) {
     console.error("Error generating metadata:", error);
@@ -71,6 +80,10 @@ export async function generateMetadata(): Promise<Metadata> {
       title: "CrowdVine",
       description: "Premium Wine Community",
       generator: "v0.app",
+      icons: {
+        icon: [{ url: "/favicon.png", type: "image/png" }],
+        apple: [{ url: "/apple-touch-icon.png", type: "image/png" }],
+      },
     };
   }
 }
@@ -113,6 +126,15 @@ export default async function RootLayout({
     console.warn("Failed to resolve shopping context in layout:", error);
   }
 
+  const host =
+    requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+  let siteLogos = { headerLogo: null as string | null, footerLogo: null as string | null };
+  try {
+    siteLogos = await resolveSiteLogosFromRequest({ host });
+  } catch (error) {
+    console.warn("Failed to resolve site logos in layout:", error);
+  }
+
   return (
     <html lang={shoppingContext.locale}>
       <body
@@ -125,6 +147,7 @@ export default async function RootLayout({
         suppressHydrationWarning
       >
         <B2BModeProvider isB2B={isDirtywineSite}>
+          <SiteLogoProvider initialLogos={siteLogos}>
           <ShoppingContextProvider initialContext={shoppingContext}>
           <CartProvider>
             <OnboardingProvider>
@@ -150,6 +173,7 @@ export default async function RootLayout({
             </OnboardingProvider>
           </CartProvider>
           </ShoppingContextProvider>
+          </SiteLogoProvider>
         </B2BModeProvider>
       </body>
     </html>

@@ -5,6 +5,7 @@ import { MemberPrice } from "@/components/ui/member-price";
 import { PriceBreakdown } from "./price-breakdown";
 import {
   calculatePriceBreakdown,
+  getProductBasePriceCents,
   PriceBreakdownResult,
 } from "@/lib/price-breakdown";
 import { useMembership } from "@/lib/context/membership-context";
@@ -46,8 +47,7 @@ export function PriceWithBreakdown({ product }: PriceWithBreakdownProps) {
             exchange_rate: product.priceBreakdown!.exchangeRate,
             alcohol_tax_cents: product.priceBreakdown!.alcoholTaxCents,
             margin_percentage: product.priceBreakdown!.marginPercentage,
-            base_price_cents:
-              Number(product.priceRange.minVariantPrice.amount) * 100,
+            base_price_cents: getProductBasePriceCents(product),
           },
           loading ? 0 : discountPercentage,
         );

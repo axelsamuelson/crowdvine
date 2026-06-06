@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useState, useEffect } from "react";
 import {
   Table,
@@ -18,9 +19,11 @@ interface PalletStockRow {
   id: string;
   pallet_name: string;
   pallet_id: string;
+  is_active: boolean;
   inbound: number;
   sold: number;
   remaining: number;
+  sellable_remaining: number;
   shipping_per_bottle_cents: number;
   shipping_per_bottle_sek: number;
 }
@@ -35,9 +38,54 @@ interface PalletStockData {
 interface WineB2BPalletStockTableProps {
   wineId: string;
   onStockUpdated?: () => void;
+  embedded?: boolean;
 }
 
-export function WineB2BPalletStockTable({ wineId, onStockUpdated }: WineB2BPalletStockTableProps) {
+function PalletStockFrame({
+  embedded,
+  title,
+  description,
+  children,
+}: {
+  embedded?: boolean;
+  title: string;
+  description?: string;
+  children: ReactNode;
+}) {
+  if (embedded) {
+    return (
+      <div className="space-y-4 border-t border-gray-200 pt-6 dark:border-zinc-800">
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+            {title}
+          </h3>
+          {description ? (
+            <p className="mt-0.5 text-xs text-gray-500 dark:text-zinc-400">
+              {description}
+            </p>
+          ) : null}
+        </div>
+        {children}
+      </div>
+    );
+  }
+
+  return (
+    <Card className="dark:border-zinc-800 dark:bg-[#0F0F12]">
+      <CardHeader>
+        <CardTitle className="text-base">{title}</CardTitle>
+        {description ? <CardDescription>{description}</CardDescription> : null}
+      </CardHeader>
+      <CardContent>{children}</CardContent>
+    </Card>
+  );
+}
+
+export function WineB2BPalletStockTable({
+  wineId,
+  onStockUpdated,
+  embedded = false,
+}: WineB2BPalletStockTableProps) {
   const [data, setData] = useState<PalletStockData | null>(null);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -102,54 +150,44 @@ export function WineB2BPalletStockTable({ wineId, onStockUpdated }: WineB2BPalle
 
   if (loading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">B2B-lager (från pallar)</CardTitle>
-          <CardDescription>
-            Lager hämtas från Dirty Wine-pallar
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        </CardContent>
-      </Card>
+      <PalletStockFrame
+        embedded={embedded}
+        title="B2B-lager (från pallar)"
+        description="Lager hämtas från Dirty Wine-pallar"
+      >
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-gray-400 dark:text-zinc-500" />
+        </div>
+      </PalletStockFrame>
     );
   }
 
   if (!data || data.rows.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">B2B-lager (från pallar)</CardTitle>
-          <CardDescription>
-            Lager hämtas från Dirty Wine-pallar. Lägg till vinet på en pall under
-            Admin → Pallets → Dirty Wine.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground py-4">
-            Inga pallar med detta vin. Total tillgänglig: 0
-          </p>
-        </CardContent>
-      </Card>
+      <PalletStockFrame
+        embedded={embedded}
+        title="B2B-lager (från pallar)"
+        description="Lägg till vinet på en pall under Admin → Pallets → Dirty Wine."
+      >
+        <p className="py-2 text-sm text-gray-500 dark:text-zinc-400">
+          Inga pallar med detta vin. Total tillgänglig: 0
+        </p>
+      </PalletStockFrame>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">B2B-lager (från pallar)</CardTitle>
-        <CardDescription>
-          Inbound = mottaget på pallen. Uppdateras här och på pall-sidan.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+    <PalletStockFrame
+      embedded={embedded}
+      title="B2B-lager (från pallar)"
+      description="Inbound = mottaget på pallen. Uppdateras här och på pall-sidan."
+    >
+        <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-zinc-800">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Pall</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead className="text-right">Inbound</TableHead>
               <TableHead className="text-right">Sålt</TableHead>
               <TableHead className="text-right">Kvar</TableHead>
@@ -158,8 +196,22 @@ export function WineB2BPalletStockTable({ wineId, onStockUpdated }: WineB2BPalle
           </TableHeader>
           <TableBody>
             {data.rows.map((row) => (
-              <TableRow key={row.id}>
+              <TableRow
+                key={row.id}
+                className={row.is_active ? undefined : "opacity-60"}
+              >
                 <TableCell className="font-medium">{row.pallet_name}</TableCell>
+                <TableCell>
+                  <span
+                    className={
+                      row.is_active
+                        ? "inline-flex rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300"
+                        : "inline-flex rounded-full bg-zinc-500/10 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:text-zinc-400"
+                    }
+                  >
+                    {row.is_active ? "Aktiv" : "Inaktiv"}
+                  </span>
+                </TableCell>
                 <TableCell className="text-right">
                   <Input
                     type="number"
@@ -237,7 +289,7 @@ export function WineB2BPalletStockTable({ wineId, onStockUpdated }: WineB2BPalle
                 <TableCell className="text-right tabular-nums">
                   {row.remaining}
                 </TableCell>
-                <TableCell className="text-right tabular-nums text-muted-foreground">
+                <TableCell className="text-right tabular-nums text-gray-500 dark:text-zinc-400">
                   {(row.shipping_per_bottle_sek ?? 0) > 0
                     ? `${(row.shipping_per_bottle_sek ?? 0).toFixed(2)} kr`
                     : "—"}
@@ -246,12 +298,14 @@ export function WineB2BPalletStockTable({ wineId, onStockUpdated }: WineB2BPalle
             ))}
           </TableBody>
         </Table>
-        <div className="flex justify-end gap-6 mt-4 pt-4 border-t text-sm">
+        <div className="mt-4 flex flex-wrap justify-end gap-6 border-t pt-4 text-sm">
           <span>Totalt inbound: {data.total_inbound}</span>
           <span>Sålt: {data.total_sold}</span>
-          <span className="font-medium">Tillgängligt: {data.total_remaining}</span>
+          <span className="font-medium">
+            Tillgängligt (aktiva pallar): {data.total_remaining}
+          </span>
         </div>
-      </CardContent>
-    </Card>
+        </div>
+    </PalletStockFrame>
   );
 }

@@ -9,7 +9,7 @@ import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { useProductPrice } from "@/lib/hooks/use-product-price";
 import Prose from "@/components/prose";
 import { SimpleProductImage } from "./simple-product-image";
-import { calculatePriceBreakdown, formatCurrency } from "@/lib/price-breakdown";
+import { calculatePriceBreakdown, formatCurrency, getProductBasePriceCents } from "@/lib/price-breakdown";
 import type { Product } from "@/lib/shopify/types";
 
 interface InviteProductModalProps {
@@ -281,10 +281,7 @@ export function InviteProductModal({
                               exchange_rate: pb.exchangeRate,
                               alcohol_tax_cents: pb.alcoholTaxCents,
                               margin_percentage: pb.marginPercentage,
-                              base_price_cents:
-                                product.priceRange?.minVariantPrice?.amount
-                                  ? Number(product.priceRange.minVariantPrice.amount) * 100
-                                  : 0,
+                              base_price_cents: getProductBasePriceCents(product),
                             },
                             0
                           );

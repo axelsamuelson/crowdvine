@@ -35,17 +35,33 @@ export function CaseModeSelector({
   const { t } = useTranslations();
   const ctaLabel = label ?? t("shop.addCase");
   const segmentBase =
-    "flex-1 min-w-0 rounded-full px-2 py-2 text-center text-xs font-medium leading-none transition-colors sm:text-sm";
+    "flex-1 min-w-0 rounded-md px-2 py-2 text-center text-xs font-medium leading-none transition-colors sm:text-sm";
 
   return (
-    <div
-      className={cn(
-        "flex w-full flex-col gap-2 rounded-2xl border border-black/10 p-2",
-        className,
-      )}
-    >
+    <div className={cn("flex w-full flex-col gap-2", className)}>
+      <Button
+        type="button"
+        size="lg"
+        disabled={disabled || pending}
+        onClick={onConfirm}
+        className="h-11 w-full rounded-md bg-black text-white hover:bg-black/90 border-0"
+      >
+        <AnimatePresence initial={false} mode="wait">
+          <motion.span
+            key={pending ? "loading" : "label"}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.12 }}
+            className="flex items-center justify-center gap-2"
+          >
+            {pending ? <Loader size="default" /> : ctaLabel}
+          </motion.span>
+        </AnimatePresence>
+      </Button>
+
       <div
-        className="flex w-full rounded-full border-[0.5px] border-black/15 p-0.5"
+        className="flex w-full gap-1 rounded-md p-1"
         style={{
           background:
             "var(--color-background-secondary, hsl(var(--secondary)))",
@@ -76,27 +92,6 @@ export function CaseModeSelector({
           {t("cart.caseMixed")}
         </button>
       </div>
-
-      <Button
-        type="button"
-        size="lg"
-        disabled={disabled || pending}
-        onClick={onConfirm}
-        className="h-11 w-full rounded-xl bg-black text-white hover:bg-black/90 border-0"
-      >
-        <AnimatePresence initial={false} mode="wait">
-          <motion.span
-            key={pending ? "loading" : "label"}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.12 }}
-            className="flex items-center justify-center gap-2"
-          >
-            {pending ? <Loader size="default" /> : ctaLabel}
-          </motion.span>
-        </AnimatePresence>
-      </Button>
     </div>
   );
 }

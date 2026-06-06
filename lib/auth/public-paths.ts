@@ -18,6 +18,7 @@ const PUBLIC_PATH_PREFIXES = [
   "/auth/auth-code-error",
   "/forgot-password",
   "/tasting",
+  "/dev",
 ] as const;
 
 export function isPublicAppPath(pathname: string): boolean {

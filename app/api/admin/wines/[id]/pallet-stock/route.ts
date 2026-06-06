@@ -1,7 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentAdmin } from "@/lib/admin-auth-server";
 import { getCurrentUser } from "@/lib/auth";
+import {
+  isB2BPalletSellable,
+  itemRemaining,
+} from "@/lib/b2b-pallet-stock";
 
 /**
  * GET /api/admin/wines/[id]/pallet-stock
@@ -52,7 +55,7 @@ export async function GET(
         quantity,
         quantity_sold,
         shipment_id,
-        b2b_pallet_shipments!inner(id, name, created_at, cost_cents)
+        b2b_pallet_shipments!inner(id, name, created_at, cost_cents, is_active)
       `,
       )
       .eq("wine_id", wineId);
@@ -66,7 +69,7 @@ export async function GET(
           id,
           quantity,
           shipment_id,
-          b2b_pallet_shipments!inner(id, name, created_at)
+          b2b_pallet_shipments!inner(id, name, created_at, is_active)
         `,
         )
         .eq("wine_id", wineId);
@@ -82,6 +85,7 @@ export async function GET(
         b2b_pallet_shipments: {
           ...it.b2b_pallet_shipments,
           cost_cents: null,
+          is_active: true,
         },
       }));
     } else {
@@ -114,7 +118,8 @@ export async function GET(
       const shipment = it.b2b_pallet_shipments;
       const inbound = it.quantity ?? 0;
       const sold = it.quantity_sold ?? 0;
-      const remaining = Math.max(0, inbound - sold);
+      const remaining = itemRemaining(it);
+      const isActive = isB2BPalletSellable(shipment);
       const palletCostCents = shipment?.cost_cents ?? 0;
       const totalBottles = totalBottlesByShipment.get(it.shipment_id) ?? 1;
       const shippingPerBottleCents =
@@ -124,9 +129,11 @@ export async function GET(
         id: it.id,
         pallet_name: shipment?.name ?? "Okänd pall",
         pallet_id: shipment?.id,
+        is_active: isActive,
         inbound,
         sold,
         remaining,
+        sellable_remaining: isActive ? remaining : 0,
         shipping_per_bottle_cents: shippingPerBottleCents,
         shipping_per_bottle_sek: shippingPerBottleCents / 100,
       };
@@ -134,11 +141,11 @@ export async function GET(
 
     const totalInbound = rows.reduce((s, r) => s + r.inbound, 0);
     const totalSold = rows.reduce((s, r) => s + r.sold, 0);
-    const totalRemaining = rows.reduce((s, r) => s + r.remaining, 0);
+    const totalRemaining = rows.reduce((s, r) => s + r.sellable_remaining, 0);
 
     // Weighted average shipping per bottle (by remaining stock) for B2B price calc
     const weightedSum = rows.reduce(
-      (s, r) => s + (r.shipping_per_bottle_sek ?? 0) * r.remaining,
+      (s, r) => s + (r.shipping_per_bottle_sek ?? 0) * r.sellable_remaining,
       0,
     );
     const shipping_per_bottle_sek_weighted_avg =

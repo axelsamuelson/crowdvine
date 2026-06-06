@@ -19,6 +19,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Check, ChevronsUpDown, X, Plus } from "lucide-react";
+import { ADMIN_FIELD_CLASS, ADMIN_LABEL_CLASS } from "@/lib/admin-form-styles";
 import { cn } from "@/lib/utils";
 
 interface GrapeVariety {
@@ -85,7 +86,7 @@ export default function GrapeVarietiesSelector({
 
   return (
     <div className="space-y-3">
-      <Label>Grape Varieties</Label>
+      <Label className={ADMIN_LABEL_CLASS}>Druvsorter</Label>
 
       {/* Selected varieties display */}
       {selectedVarietyObjects.length > 0 && (
@@ -93,15 +94,18 @@ export default function GrapeVarietiesSelector({
           {selectedVarietyObjects.map((variety) => (
             <Badge
               key={variety.id}
-              variant="secondary"
-              className="flex items-center gap-1 px-3 py-1"
+              variant="outline"
+              className={cn(
+                "flex items-center gap-1 px-3 py-1 normal-case",
+                ADMIN_FIELD_CLASS,
+              )}
             >
               <span>{variety.name}</span>
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-auto p-0 ml-1 hover:bg-transparent"
+                className="ml-1 h-auto p-0 text-gray-500 hover:bg-transparent hover:text-gray-900 dark:text-zinc-300 dark:hover:text-zinc-100"
                 onClick={() => handleRemoveVariety(variety.id)}
                 disabled={disabled}
               >
@@ -119,10 +123,13 @@ export default function GrapeVarietiesSelector({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="w-full justify-between"
+            className={cn(
+              "w-full justify-between font-normal",
+              ADMIN_FIELD_CLASS,
+            )}
             disabled={disabled}
           >
-            {searchValue || "Select grape varieties..."}
+            {searchValue || "Välj druvsorter..."}
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
@@ -169,7 +176,7 @@ export default function GrapeVarietiesSelector({
                     />
                     {variety.name}
                     {variety.description && (
-                      <span className="ml-2 text-sm text-muted-foreground">
+                      <span className="ml-2 text-sm text-gray-500 dark:text-zinc-400">
                         ({variety.description})
                       </span>
                     )}
