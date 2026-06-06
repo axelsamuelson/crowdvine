@@ -16,7 +16,7 @@ interface WinePdpHeroBoxProps {
   className?: string;
 }
 
-/** White box: name + description + price only. */
+/** White box: title + price on top row, full-width description below. */
 export function WinePdpHeroBox({
   title,
   leadText,
@@ -40,22 +40,21 @@ export function WinePdpHeroBox({
       ) : null}
       <div
         className={cn(
-          "relative z-10 rounded-md bg-popover px-3 py-3 md:grid md:min-h-[9.5rem] md:grid-cols-2 md:gap-x-4 md:gap-y-10 md:px-4 md:py-5",
+          "relative z-10 rounded-md bg-popover px-3 py-3 md:grid md:min-h-[9.5rem] md:grid-cols-2 md:gap-x-4 md:gap-y-4 md:px-4 md:py-5",
           className,
         )}
       >
-        <div className="flex flex-col md:col-start-1 md:row-start-1 md:row-span-2 md:justify-between md:gap-8">
-          <h1 className="max-md:mb-1 text-balance text-lg font-semibold text-foreground lg:text-xl 2xl:text-2xl">
-            {title}
-          </h1>
-          <div className="flex flex-wrap items-center gap-3 max-md:mt-4">
-            {price}
-            {compareAtPrice}
-          </div>
+        <h1 className="max-md:mb-1 text-balance text-lg font-semibold text-foreground md:col-start-1 md:row-start-1 lg:text-xl 2xl:text-2xl">
+          {title}
+        </h1>
+
+        <div className="flex flex-wrap items-center gap-3 max-md:mt-4 md:col-start-2 md:row-start-1 md:justify-self-end md:self-start">
+          {price}
+          {compareAtPrice}
         </div>
 
         {lead ? (
-          <p className="text-sm font-medium max-md:mt-3 md:col-start-2 md:row-start-1 md:self-start md:pb-2">
+          <p className="text-sm font-medium max-md:mt-3 md:col-span-2 md:row-start-2 md:w-full md:pt-1">
             {lead}
           </p>
         ) : null}

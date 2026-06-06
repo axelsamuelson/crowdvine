@@ -188,6 +188,204 @@ export function WineImageUpload({
     })),
   ];
 
+  const isCompact = allImages.length > 0;
+
+  const dropZone = (
+    <div
+      className={`rounded-lg border-2 border-dashed text-center transition-colors ${
+        isCompact ? "p-4" : "p-5"
+      } ${
+        dragActive
+          ? "border-primary bg-primary/5 dark:bg-zinc-800/80"
+          : "border-gray-300 bg-white hover:border-gray-400 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-zinc-500"
+      }`}
+      onDragEnter={handleDrag}
+      onDragLeave={handleDrag}
+      onDragOver={handleDrag}
+      onDrop={handleDrop}
+    >
+      <Upload
+        className={`mx-auto text-gray-400 ${isCompact ? "h-6 w-6" : "mb-4 h-12 w-12"}`}
+      />
+      {!isCompact ? (
+        <>
+          <p className="mb-2 text-lg font-medium text-gray-900 dark:text-zinc-100">
+            Släpp bilder här eller klicka för att ladda upp
+          </p>
+          <p className="mb-4 text-sm text-gray-500 dark:text-zinc-400">
+            JPG, PNG, GIF upp till 10 MB per fil
+          </p>
+        </>
+      ) : null}
+      <Button
+        onClick={openFileDialog}
+        variant="outline"
+        type="button"
+        disabled={loading}
+        className="rounded-lg border-gray-200 bg-white text-xs text-gray-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+      >
+        Välj filer
+      </Button>
+      {isCompact ? (
+        <p className="mt-2 text-xs text-zinc-400">Lägg till bilder</p>
+      ) : null}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept="image/*"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+    </div>
+  );
+
+  const imageGallery = isCompact ? (
+    <div className="min-w-0 flex-1 space-y-4">
+      <h3 className="text-sm font-medium text-gray-900 dark:text-zinc-100">
+        Bilder ({allImages.length})
+      </h3>
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+        {allImages.map((image, index) => {
+          const isNewImage = "isNew" in image;
+          const isExistingImage = !isNewImage;
+
+          return (
+            <div key={image.id} className="relative group">
+              <div className="aspect-square w-full overflow-hidden rounded-lg border bg-white dark:bg-zinc-800">
+                <img
+                  src={image.image_path}
+                  alt={image.alt_text || `Product image ${index + 1}`}
+                  className="h-full w-full object-contain"
+                />
+              </div>
+
+              {/* Primary indicator */}
+              {image.is_primary && (
+                <div className="absolute top-1 left-1 bg-yellow-500 text-white text-xs px-1 py-0.5 rounded">
+                  ★
+                </div>
+              )}
+
+              {/* Position indicator */}
+              <div className="absolute top-1 right-1 bg-black/70 text-white text-xs px-1 py-0.5 rounded text-[10px]">
+                {index + 1}
+              </div>
+
+              {/* Overlay with actions */}
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center space-x-1">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  type="button"
+                  className="h-6 w-6 p-0"
+                  onClick={() => {
+                    const newWindow = window.open(image.image_path);
+                    if (newWindow) newWindow.focus();
+                  }}
+                >
+                  <Eye className="h-3 w-3" />
+                </Button>
+
+                {isExistingImage && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    type="button"
+                    className="h-6 w-6 p-0"
+                    onClick={() => setPrimaryImage(image.id)}
+                    disabled={loading || image.is_primary}
+                  >
+                    {image.is_primary ? (
+                      <Star className="h-3 w-3 text-yellow-500" />
+                    ) : (
+                      <StarOff className="h-3 w-3" />
+                    )}
+                  </Button>
+                )}
+
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  type="button"
+                  className="h-6 w-6 p-0"
+                  onClick={() => {
+                    if (isNewImage) {
+                      removeNewImage(index - existingImages.length);
+                    } else {
+                      removeExistingImage(image.id);
+                    }
+                  }}
+                  disabled={loading}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+
+              {/* Move buttons */}
+              <div className="absolute bottom-1 left-1 space-y-1">
+                {index > 0 && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="h-4 w-4 p-0 text-xs"
+                    type="button"
+                    onClick={() => {
+                      if (
+                        isExistingImage &&
+                        index < existingImages.length
+                      ) {
+                        moveExistingImage(index, index - 1);
+                      } else if (isNewImage) {
+                        moveNewImage(
+                          index - existingImages.length,
+                          index - existingImages.length - 1,
+                        );
+                      }
+                    }}
+                    disabled={loading}
+                  >
+                    ↑
+                  </Button>
+                )}
+                {index < allImages.length - 1 && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="h-4 w-4 p-0 text-xs"
+                    type="button"
+                    onClick={() => {
+                      if (
+                        isExistingImage &&
+                        index < existingImages.length - 1
+                      ) {
+                        moveExistingImage(index, index + 1);
+                      } else if (isNewImage) {
+                        moveNewImage(
+                          index - existingImages.length,
+                          index - existingImages.length + 1,
+                        );
+                      }
+                    }}
+                    disabled={loading}
+                  >
+                    ↓
+                  </Button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="text-xs text-gray-500 dark:text-zinc-400">
+        <p>• Första bilden blir huvudbild (★)</p>
+        <p>• Använd pilarna för att ändra ordning</p>
+        <p>• Klicka på ögat för att förhandsgranska</p>
+      </div>
+    </div>
+  ) : null;
+
   const uploadContent = (
     <div className="space-y-4">
         {error && (
@@ -196,189 +394,13 @@ export function WineImageUpload({
           </Alert>
         )}
 
-        {/* Upload Area */}
-        <div
-          className={`rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
-            dragActive
-              ? "border-primary bg-primary/5 dark:bg-zinc-800/80"
-              : "border-gray-300 bg-white hover:border-gray-400 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-zinc-500"
-          }`}
-          onDragEnter={handleDrag}
-          onDragLeave={handleDrag}
-          onDragOver={handleDrag}
-          onDrop={handleDrop}
-        >
-          <Upload className="mx-auto mb-4 h-12 w-12 text-gray-400" />
-          <p className="mb-2 text-lg font-medium text-gray-900 dark:text-zinc-100">
-            Släpp bilder här eller klicka för att ladda upp
-          </p>
-          <p className="mb-4 text-sm text-gray-500 dark:text-zinc-400">
-            JPG, PNG, GIF upp till 10 MB per fil
-          </p>
-          <Button
-            onClick={openFileDialog}
-            variant="outline"
-            type="button"
-            disabled={loading}
-            className="rounded-lg border-gray-200 bg-white text-xs text-gray-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-          >
-            Välj filer
-          </Button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
-        </div>
-
-        {/* Image List */}
-        {allImages.length > 0 && (
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium text-gray-900 dark:text-zinc-100">
-              Bilder ({allImages.length})
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {allImages.map((image, index) => {
-                const isNewImage = "isNew" in image;
-                const isExistingImage = !isNewImage;
-
-                return (
-                  <div key={image.id} className="relative group">
-                    <div className="w-20 h-20 rounded-lg border overflow-hidden bg-white dark:bg-zinc-800">
-                      <img
-                        src={image.image_path}
-                        alt={image.alt_text || `Product image ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-
-                    {/* Primary indicator */}
-                    {image.is_primary && (
-                      <div className="absolute top-1 left-1 bg-yellow-500 text-white text-xs px-1 py-0.5 rounded">
-                        ★
-                      </div>
-                    )}
-
-                    {/* Position indicator */}
-                    <div className="absolute top-1 right-1 bg-black/70 text-white text-xs px-1 py-0.5 rounded text-[10px]">
-                      {index + 1}
-                    </div>
-
-                    {/* Overlay with actions */}
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center space-x-1">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        type="button"
-                        className="h-6 w-6 p-0"
-                        onClick={() => {
-                          const newWindow = window.open(image.image_path);
-                          if (newWindow) newWindow.focus();
-                        }}
-                      >
-                        <Eye className="h-3 w-3" />
-                      </Button>
-
-                      {isExistingImage && (
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          type="button"
-                          className="h-6 w-6 p-0"
-                          onClick={() => setPrimaryImage(image.id)}
-                          disabled={loading || image.is_primary}
-                        >
-                          {image.is_primary ? (
-                            <Star className="h-3 w-3 text-yellow-500" />
-                          ) : (
-                            <StarOff className="h-3 w-3" />
-                          )}
-                        </Button>
-                      )}
-
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        type="button"
-                        className="h-6 w-6 p-0"
-                        onClick={() => {
-                          if (isNewImage) {
-                            removeNewImage(index - existingImages.length);
-                          } else {
-                            removeExistingImage(image.id);
-                          }
-                        }}
-                        disabled={loading}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-
-                    {/* Move buttons */}
-                    <div className="absolute bottom-1 left-1 space-y-1">
-                      {index > 0 && (
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          className="h-4 w-4 p-0 text-xs"
-                          type="button"
-                          onClick={() => {
-                            if (
-                              isExistingImage &&
-                              index < existingImages.length
-                            ) {
-                              moveExistingImage(index, index - 1);
-                            } else if (isNewImage) {
-                              moveNewImage(
-                                index - existingImages.length,
-                                index - existingImages.length - 1,
-                              );
-                            }
-                          }}
-                          disabled={loading}
-                        >
-                          ↑
-                        </Button>
-                      )}
-                      {index < allImages.length - 1 && (
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          className="h-4 w-4 p-0 text-xs"
-                          type="button"
-                          onClick={() => {
-                            if (
-                              isExistingImage &&
-                              index < existingImages.length - 1
-                            ) {
-                              moveExistingImage(index, index + 1);
-                            } else if (isNewImage) {
-                              moveNewImage(
-                                index - existingImages.length,
-                                index - existingImages.length + 1,
-                              );
-                            }
-                          }}
-                          disabled={loading}
-                        >
-                          ↓
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="text-xs text-gray-500 dark:text-zinc-400">
-              <p>• Första bilden blir huvudbild (★)</p>
-              <p>• Använd pilarna för att ändra ordning</p>
-              <p>• Klicka på ögat för att förhandsgranska</p>
-            </div>
+        {isCompact ? (
+          <div className="flex items-start gap-4">
+            {imageGallery}
+            <div className="w-48 shrink-0">{dropZone}</div>
           </div>
+        ) : (
+          dropZone
         )}
     </div>
   );

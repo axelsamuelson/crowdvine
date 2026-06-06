@@ -17,7 +17,7 @@ export function AdminFormSection({
   return (
     <section
       className={cn(
-        "space-y-4 rounded-xl border border-gray-200 bg-white p-6 dark:border-[#1F1F23] dark:bg-[#0F0F12]",
+        "space-y-3 rounded-xl border border-gray-200 border-white/10 bg-white p-6 shadow-sm dark:border-[#1F1F23] dark:bg-[#0F0F12]",
         className,
       )}
     >

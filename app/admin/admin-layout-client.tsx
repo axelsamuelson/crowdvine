@@ -193,7 +193,7 @@ export function AdminLayoutClient({
           }}
           className="min-h-0 flex-1 overflow-auto bg-white px-6 pb-6 pt-6 text-gray-900 [-webkit-overflow-scrolling:touch] dark:bg-[#0F0F12] dark:text-zinc-100"
         >
-          <div className="mx-auto min-h-0 max-w-7xl">{children}</div>
+          <div className="mx-auto min-h-0 max-w-5xl">{children}</div>
         </div>
       </div>
     </div>

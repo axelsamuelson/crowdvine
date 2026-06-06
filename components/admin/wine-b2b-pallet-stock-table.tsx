@@ -169,9 +169,12 @@ export function WineB2BPalletStockTable({
         title="B2B-lager (från pallar)"
         description="Lägg till vinet på en pall under Admin → Pallets → Dirty Wine."
       >
-        <p className="py-2 text-sm text-gray-500 dark:text-zinc-400">
-          Inga pallar med detta vin. Total tillgänglig: 0
-        </p>
+        <div className="flex items-center gap-2 py-2">
+          <span className="inline-flex h-2 w-2 rounded-full bg-red-500" />
+          <p className="text-sm text-zinc-400">
+            Inte i lager — lägg till pall under Admin → Pallets
+          </p>
+        </div>
       </PalletStockFrame>
     );
   }
@@ -302,7 +305,9 @@ export function WineB2BPalletStockTable({
           <span>Totalt inbound: {data.total_inbound}</span>
           <span>Sålt: {data.total_sold}</span>
           <span className="font-medium">
-            Tillgängligt (aktiva pallar): {data.total_remaining}
+            Tillgängligt (aktiva pallar):{" "}
+            <span className="mr-1 inline-flex h-2 w-2 rounded-full bg-green-500" />
+            {data.total_remaining}
           </span>
         </div>
         </div>

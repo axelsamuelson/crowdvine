@@ -29,7 +29,7 @@ export default async function EditWinePage({ params }: EditWinePageProps) {
           </Button>
         </Link>
 
-        <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/10 bg-[#0F0F12]/90 px-4 py-3 backdrop-blur-sm">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-gray-100 p-2 dark:bg-zinc-800">
               <Wine className="h-5 w-5 text-gray-900 dark:text-zinc-50" />
@@ -57,6 +57,15 @@ export default async function EditWinePage({ params }: EditWinePageProps) {
                 </Link>
               </Button>
             ) : null}
+            <Button
+              form="wine-edit-form"
+              type="submit"
+              size="sm"
+              variant="default"
+              className="bg-white text-stone-900 hover:bg-stone-100"
+            >
+              Spara vin
+            </Button>
             <DeleteWineButton wineId={wine.id} wineName={wine.wine_name} />
           </div>
         </div>

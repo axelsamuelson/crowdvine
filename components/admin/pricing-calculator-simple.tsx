@@ -10,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -21,6 +20,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calculator, ChevronDown } from "lucide-react";
+import { DEFAULT_VAT_RATE } from "@/lib/constants";
 import { calculateSystembolagetPrice } from "@/lib/systembolaget-pricing";
 
 interface PricingData {
@@ -104,7 +104,7 @@ export function PricingCalculator({
 
     const marginDecimal = (effectiveMargin || 0) / 100;
     const denom = 1 - marginDecimal;
-    const vatRate = pricingData.price_includes_vat ? 0.25 : 0;
+    const vatRate = DEFAULT_VAT_RATE;
 
     const isValid = denom > 0;
     const priceExVat = isValid ? costInSek / denom : 0;
@@ -155,8 +155,8 @@ export function PricingCalculator({
   const formBody = (
     <>
         {/* Inputs */}
-        <div className={`grid grid-cols-1 gap-4 ${showMargin ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
-          <div className="space-y-2 md:col-span-1">
+        <div className="grid grid-cols-1 gap-3">
+          <div className="w-fit space-y-2">
             <Label htmlFor="cost_currency">Kostnadsvaluta</Label>
             <Select
               value={pricingData.cost_currency}
@@ -178,7 +178,7 @@ export function PricingCalculator({
             </Select>
           </div>
 
-          <div className="space-y-2 md:col-span-1">
+          <div className="space-y-2">
             <Label htmlFor="cost_amount">Kostnad per flaska</Label>
             <Input
               id="cost_amount"
@@ -197,7 +197,7 @@ export function PricingCalculator({
           </div>
 
           {showMargin && (
-            <div className="space-y-2 md:col-span-1">
+            <div className="space-y-2">
               <Label htmlFor="margin_percentage">Marginal %</Label>
               <Input
                 id="margin_percentage"
@@ -215,26 +215,11 @@ export function PricingCalculator({
               />
             </div>
           )}
-
-          <div className="flex items-end gap-2 md:col-span-1">
-            <div className="flex h-10 items-center gap-2">
-              <Switch
-                id="price_includes_vat"
-                checked={pricingData.price_includes_vat}
-                onCheckedChange={(checked) =>
-                  updatePricingData("price_includes_vat", checked)
-                }
-              />
-              <Label htmlFor="price_includes_vat" className="text-sm">
-                Moms (25%)
-              </Label>
-            </div>
-          </div>
         </div>
 
         {/* Summary */}
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-3">
             <div>
               <div className="text-sm text-gray-500 dark:text-zinc-400">
                 Slutpris
@@ -248,23 +233,25 @@ export function PricingCalculator({
                 </div>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-              <div className="text-gray-500 dark:text-zinc-400">Total kostnad</div>
-              <div className="text-right font-medium text-gray-900 dark:text-zinc-100">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
+              <span className="text-zinc-400">Pris exkl. moms</span>
+              <span className="text-right font-medium text-zinc-100">
+                {breakdown.priceExVat.toFixed(2)} SEK
+              </span>
+              <span className="text-zinc-400">
+                Moms ({(DEFAULT_VAT_RATE * 100).toFixed(0)}%)
+              </span>
+              <span className="text-right font-medium text-zinc-100">
+                {breakdown.vatAmountSek.toFixed(2)} SEK
+              </span>
+              <span className="text-zinc-400">Total kostnad</span>
+              <span className="text-right font-medium text-zinc-100">
                 {breakdown.costInSek.toFixed(2)} SEK
-              </div>
-              <div className="text-gray-500 dark:text-zinc-400">Moms</div>
-              <div className="text-right font-medium text-gray-900 dark:text-zinc-100">
-                {pricingData.price_includes_vat
-                  ? `${breakdown.vatAmountSek.toFixed(2)} SEK`
-                  : "—"}
-              </div>
-              <div className="text-gray-500 dark:text-zinc-400">
-                Nettovinst (exkl. moms)
-              </div>
-              <div className="text-right font-medium text-gray-900 dark:text-zinc-100">
+              </span>
+              <span className="text-zinc-400">Nettovinst</span>
+              <span className="text-right font-medium text-zinc-100">
                 {breakdown.netProfitSek.toFixed(2)} SEK
-              </div>
+              </span>
             </div>
           </div>
         </div>

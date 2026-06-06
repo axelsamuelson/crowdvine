@@ -1,4 +1,5 @@
 import { thumbHashToDataURL } from "thumbhash";
+import { DEFAULT_VAT_RATE } from "@/lib/constants";
 import { ProductCollectionSortKey, ProductSortKey } from "./types";
 import {
   displayFractionDigits,
@@ -26,7 +27,7 @@ export const formatPrice = (
 
 /** Swedish VAT 25%. Convert price inkl moms → exkl moms. */
 export function priceExclVat(amountInclVat: number): number {
-  return amountInclVat / 1.25;
+  return amountInclVat / (1 + DEFAULT_VAT_RATE);
 }
 
 // Helper for returning the expected error state to actions instead of throwing.

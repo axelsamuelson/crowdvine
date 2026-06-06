@@ -125,3 +125,8 @@ export const COLOR_MAP: Record<string, string> = {
   "navy-blue": "#000080",
   wood: "#8D6E63",
 };
+
+// Moms — default-sats för prisestimering i admin.
+// Per EU OSS-regler beräknas faktisk sats per order
+// baserat på kundens leveransland vid checkout.
+export const DEFAULT_VAT_RATE = 0.25;
