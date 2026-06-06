@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { triggerPaymentNotifications } from "@/lib/email/pallet-complete";
 import { sumReservedBottlesOnPallet } from "@/lib/pallet-fill-count";
 
 export {
@@ -61,6 +62,25 @@ export async function checkPalletCompletion(
         console.log(
           `✅ [Pallet Completion] Successfully completed pallet ${palletId}`,
         );
+
+        if (process.env.PALLET_AUTO_NOTIFICATIONS === "true") {
+          try {
+            await triggerPaymentNotifications(palletId);
+            console.log(
+              `📧 [Pallet Completion] Payment notifications sent for pallet ${palletId}`,
+            );
+          } catch (emailError) {
+            console.error(
+              `⚠️ [Pallet Completion] Payment notifications failed for pallet ${palletId}:`,
+              emailError,
+            );
+          }
+        } else {
+          console.log(
+            `⏸️ [Pallet Completion] Auto-notifications disabled — trigger manually from admin for pallet ${palletId}`,
+          );
+        }
+
         return true;
       } catch (error) {
         console.error(

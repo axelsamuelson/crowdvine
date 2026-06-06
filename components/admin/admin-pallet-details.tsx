@@ -156,6 +156,7 @@ export default function AdminPalletDetails({
   const [error, setError] = useState("");
   const [orderingShipping, setOrderingShipping] = useState(false);
   const [revertingShipping, setRevertingShipping] = useState(false);
+  const [sendingNotifications, setSendingNotifications] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -496,6 +497,32 @@ export default function AdminPalletDetails({
     );
   };
 
+  const handleTriggerNotifications = async () => {
+    if (
+      !window.confirm(
+        "Send payment notifications to all customers on this pallet?",
+      )
+    )
+      return;
+    setSendingNotifications(true);
+    try {
+      const res = await fetch(
+        `/api/admin/pallets/${pallet.id}/trigger-notifications`,
+        { method: "POST" },
+      );
+      const data = await res.json();
+      if (data.success) {
+        alert("Payment notifications sent successfully.");
+      } else {
+        alert(`Failed: ${data.error}`);
+      }
+    } catch {
+      alert("Network error — notifications not sent.");
+    } finally {
+      setSendingNotifications(false);
+    }
+  };
+
   const handleOrderShipping = async () => {
     const confirmed = window.confirm(
       "Are you sure? This will charge all customers with saved cards on this pallet. This cannot be undone.",
@@ -655,17 +682,29 @@ export default function AdminPalletDetails({
               </p>
             ) : null}
           </div>
-          {palletStatusAllowsOrderShipping() ? (
+          <div className="flex shrink-0 items-center gap-2">
             <Button
-              type="button"
+              variant="outline"
               size="sm"
-              disabled={orderingShipping}
-              onClick={() => void handleOrderShipping()}
-              className="h-8 shrink-0 bg-amber-600 text-xs font-medium text-white hover:bg-amber-500"
+              onClick={() => void handleTriggerNotifications()}
+              disabled={sendingNotifications}
             >
-              {orderingShipping ? "Ordering…" : "Order Shipping"}
+              {sendingNotifications
+                ? "Sending..."
+                : "Send payment notifications"}
             </Button>
-          ) : null}
+            {palletStatusAllowsOrderShipping() ? (
+              <Button
+                type="button"
+                size="sm"
+                disabled={orderingShipping}
+                onClick={() => void handleOrderShipping()}
+                className="h-8 shrink-0 bg-amber-600 text-xs font-medium text-white hover:bg-amber-500"
+              >
+                {orderingShipping ? "Ordering…" : "Order Shipping"}
+              </Button>
+            ) : null}
+          </div>
         </div>
         <div className="h-1 w-full overflow-hidden rounded-full bg-[#1F1F23]">
           <div
