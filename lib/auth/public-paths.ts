@@ -12,6 +12,7 @@ const PUBLIC_PATH_PREFIXES = [
   "/producer",
   "/producers",
   "/about",
+  "/languedoc",
   "/how-it-works",
   "/i",
   "/ib",
