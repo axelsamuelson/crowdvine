@@ -505,14 +505,16 @@ export async function fetchProductsData(params?: {
         i.grape_varieties || "carefully selected grapes"
       }. Crafted with precision and passion.`;
 
+    const safeDescriptionHtml =
+      typeof i.description_html === "string" && i.description_html
+        ? i.description_html
+        : `<p>${wineDescription}</p>`;
+
     return {
       id: i.id,
       title: `${i.wine_name} ${i.vintage}`,
       description: wineDescription,
-      descriptionHtml:
-        (typeof i.description_html === "string"
-          ? i.description_html
-          : null) || `<p>${wineDescription}</p>`,
+      descriptionHtml: safeDescriptionHtml,
       handle: i.handle,
       productType: "wine",
       categoryId: i.producer_id,
@@ -759,6 +761,7 @@ export async function fetchCollectionProductsData(
       b2b_stock,
       label_image_path,
       producer_id,
+      description,
       producers(name, boost_active)
     `;
   let collQuery = applyWineCollectionSearch(
@@ -827,11 +830,16 @@ export async function fetchCollectionProductsData(
       ? b2bStock != null && b2bStock > 0
       : true;
 
+    const rawDesc = extractWineText(
+      i.description as Record<string, string> | string | null,
+      "sv",
+    );
+
     return {
       id: i.id,
       title: `${i.wine_name} ${i.vintage}`,
-      description: "",
-      descriptionHtml: "",
+      description: rawDesc || "",
+      descriptionHtml: rawDesc ? `<p>${rawDesc}</p>` : "",
       handle: i.handle,
       productType: "wine",
       categoryId: i.producer_id,
