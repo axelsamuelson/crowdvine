@@ -25,6 +25,16 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: translate(ctx.locale, "home.pageTitle"),
     description: translate(ctx.locale, "home.pageDescription"),
+    alternates: {
+      canonical: "https://pactwines.com",
+    },
+    openGraph: {
+      title: "PACT — Naturvin direkt från Languedoc",
+      description:
+        "Beställ naturvin direkt från producenter i Languedoc. 15–30% under Systembolagets pris. Hemleverans i Stockholm via Budbee.",
+      url: "https://pactwines.com",
+      type: "website",
+    },
   };
 }
 

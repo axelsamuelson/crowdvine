@@ -9,7 +9,7 @@ import { HiwPactSection } from "@/components/how-it-works/hiw-pact-section";
 import "./how-it-works.css";
 
 export const metadata: Metadata = {
-  title: "Så fungerar det | PACT",
+  title: "Så fungerar det",
   description:
     "Varför vin är mer än en dryck — och hur PACT löser logistikproblemet mellan producent och dig.",
 };

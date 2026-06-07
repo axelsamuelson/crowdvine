@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import { getCollection, getCollections } from "@/lib/shopify";
+import { generateProducerSlug } from "@/lib/producer-handle";
 import { notFound } from "next/navigation";
 import ProductList from "../components/product-list";
 
@@ -21,12 +22,26 @@ export async function generateMetadata(props: {
 
   if (!collection) return notFound();
 
+  const producerSlug = generateProducerSlug(collection.title);
+
   return {
-    title: `ACME Store | ${collection.seo?.title || collection.title}`,
+    title: collection.title,
     description:
       collection.seo?.description ||
       collection.description ||
       `${collection.title} products`,
+    alternates: {
+      canonical: `https://pactwines.com/producer/${producerSlug}`,
+    },
+    openGraph: {
+      title: `${collection.title} — Naturvin från Languedoc | PACT`,
+      url: `https://pactwines.com/producer/${producerSlug}`,
+      type: "website",
+    },
+    robots: {
+      index: collection.handle !== "wine-boxes",
+      follow: true,
+    },
   };
 }
 

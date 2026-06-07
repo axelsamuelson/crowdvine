@@ -14,6 +14,14 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: translate(ctx.locale, "shop.pageTitle"),
     description: translate(ctx.locale, "shop.pageDescription"),
+    alternates: {
+      canonical: "https://pactwines.com/shop",
+    },
+    openGraph: {
+      title: "Shop — Naturvin från Languedoc | PACT",
+      url: "https://pactwines.com/shop",
+      type: "website",
+    },
   };
 }
 
