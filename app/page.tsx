@@ -87,8 +87,48 @@ export default async function Home() {
 
   const [lastProduct, ...restProducts] = featuredProducts;
 
+  const organizationJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "PACT",
+    url: "https://pactwines.com",
+    logo: "https://pactwines.com/favicon.png",
+    description:
+      "Direktimport av naturvin från Languedoc till Stockholm. Inga mellanhänder, lägre pris, bättre vin.",
+    areaServed: "Stockholm, Sweden",
+    sameAs: ["https://www.instagram.com/pactwines"],
+  };
+
+  const websiteJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "PACT",
+    url: "https://pactwines.com",
+    description: "Naturvin direkt från Languedoc till Stockholm.",
+    potentialAction: {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: "https://pactwines.com/shop?q={search_term_string}",
+      },
+      "query-input": "required name=search_term_string",
+    },
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(organizationJsonLd),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(websiteJsonLd),
+        }}
+      />
       <main>
         <div className="contents md:grid md:grid-cols-12 md:gap-sides">
           <HomeSidebar collections={collections} />

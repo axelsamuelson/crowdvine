@@ -47,6 +47,20 @@ import { SiteLogoProvider } from "@/lib/context/site-logo-provider";
 import { resolveSiteLogosFromRequest } from "@/lib/site-logos-server";
 import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
 
+const defaultOpenGraph: Metadata["openGraph"] = {
+  siteName: "PACT",
+  locale: "sv_SE",
+  type: "website",
+  images: [
+    {
+      url: "https://pactwines.com/og-image.png",
+      width: 1200,
+      height: 630,
+      alt: "PACT — Naturvin direkt från Languedoc",
+    },
+  ],
+};
+
 export async function generateMetadata(): Promise<Metadata> {
   try {
     const hasAdminCreds =
@@ -62,6 +76,7 @@ export async function generateMetadata(): Promise<Metadata> {
         description:
           "Beställ naturvin direkt från producenter i Languedoc. Hemleverans i Stockholm via PACT.",
         generator: "v0.app",
+        openGraph: defaultOpenGraph,
         icons: {
           icon: [{ url: "/favicon.png", type: "image/png" }],
           apple: [{ url: "/apple-touch-icon.png", type: "image/png" }],
@@ -82,11 +97,7 @@ export async function generateMetadata(): Promise<Metadata> {
       },
       description: siteDescription,
       generator: "v0.app",
-      openGraph: {
-        siteName: "PACT",
-        locale: "sv_SE",
-        type: "website",
-      },
+      openGraph: defaultOpenGraph,
       icons: {
         icon: [{ url: "/favicon.png", type: "image/png" }],
         apple: [{ url: "/apple-touch-icon.png", type: "image/png" }],
@@ -103,6 +114,7 @@ export async function generateMetadata(): Promise<Metadata> {
       description:
         "Beställ naturvin direkt från producenter i Languedoc. Hemleverans i Stockholm via PACT.",
       generator: "v0.app",
+      openGraph: defaultOpenGraph,
       icons: {
         icon: [{ url: "/favicon.png", type: "image/png" }],
         apple: [{ url: "/apple-touch-icon.png", type: "image/png" }],
