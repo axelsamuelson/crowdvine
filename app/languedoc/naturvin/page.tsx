@@ -157,8 +157,10 @@ export default async function LanguedocNaturvinPage() {
           hem till Stockholm via Budbee.
         </p>
 
-        <section className="mt-12 space-y-4">
-          <h2 className="text-xl font-semibold">Vad är naturvin från Languedoc?</h2>
+        <section className="space-y-4">
+          <h2 className="mt-12 mb-4 border-b border-border pb-3 text-xl font-semibold">
+            Vad är naturvin från Languedoc?
+          </h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
             Naturvin i Languedoc handlar om ärligt jordbruk och tydlig
             ursprung. Druvor skördas för hand eller selektivt, jäser med
@@ -169,8 +171,10 @@ export default async function LanguedocNaturvinPage() {
           </p>
         </section>
 
-        <section className="mt-10 space-y-4">
-          <h2 className="text-xl font-semibold">Saint-Chinian och Faugères</h2>
+        <section className="space-y-4">
+          <h2 className="mt-12 mb-4 border-b border-border pb-3 text-xl font-semibold">
+            Saint-Chinian och Faugères
+          </h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
             Saint-Chinian erbjuder röda viner med balans mellan mörk frukt och
             frisk syra, ofta från grenache och syrah på kalk och lera.
@@ -181,8 +185,10 @@ export default async function LanguedocNaturvinPage() {
           </p>
         </section>
 
-        <section className="mt-10 space-y-4">
-          <h2 className="text-xl font-semibold">Köp direkt via PACT</h2>
+        <section className="space-y-4">
+          <h2 className="mt-12 mb-4 border-b border-border pb-3 text-xl font-semibold">
+            Köp direkt via PACT
+          </h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
             Vi samlar beställningar till gemensamma pallar från södra
             Frankrike. När en pall fylls skickas vinet direkt till Stockholm —
@@ -192,9 +198,11 @@ export default async function LanguedocNaturvinPage() {
           </p>
         </section>
 
-        <section className="mt-12">
-          <h2 className="mb-6 text-xl font-semibold">Producenter från Languedoc</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <section>
+          <h2 className="mt-12 mb-4 border-b border-border pb-3 text-xl font-semibold">
+            Producenter från Languedoc
+          </h2>
+          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
             {producers.map((producer) => {
               const slug = generateProducerSlug(producer.name);
               const bio = extractWineText(producer.short_description, locale);
@@ -231,19 +239,27 @@ export default async function LanguedocNaturvinPage() {
           </div>
         </section>
 
-        <div className="mt-12 flex flex-col gap-3 sm:flex-row">
-          <Link
-            href="/shop"
-            className="inline-flex items-center justify-center rounded-full bg-foreground px-8 py-3 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
-          >
-            Handla naturvin i shoppen
-          </Link>
-          <Link
-            href="/producers"
-            className="inline-flex items-center justify-center rounded-full border border-border px-8 py-3 text-sm font-medium text-foreground transition-colors hover:border-foreground/40"
-          >
-            Se alla producenter
-          </Link>
+        <div className="mt-16 rounded-xl bg-foreground p-8 text-center text-background">
+          <h2 className="mb-2 text-xl font-semibold">
+            Utforska naturvin från Languedoc
+          </h2>
+          <p className="mb-6 text-sm opacity-70">
+            Direktimporterat från producenter i Saint-Chinian och Faugères
+          </p>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Link
+              href="/shop"
+              className="rounded-full bg-background px-6 py-2.5 text-sm font-medium text-foreground transition-opacity hover:opacity-90"
+            >
+              Se alla viner
+            </Link>
+            <Link
+              href="/producers"
+              className="rounded-full border border-background/30 px-6 py-2.5 text-sm font-medium text-background transition-colors hover:border-background/60"
+            >
+              Möt producenterna
+            </Link>
+          </div>
         </div>
       </div>
 

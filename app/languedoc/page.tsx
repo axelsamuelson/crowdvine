@@ -33,7 +33,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 function SpecCell({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border bg-background px-4 py-3">
+    <div className="rounded-xl border border-border border-l-[3px] border-l-amber-500 bg-background px-4 py-3">
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
@@ -127,8 +127,10 @@ export default function LanguedocPage() {
           <SpecCell label="Stil" value="Naturvin, ekologiskt, terroir" />
         </div>
 
-        <section className="mt-12 space-y-4">
-          <h2 className="text-xl font-semibold">Var ligger Languedoc?</h2>
+        <section className="space-y-4">
+          <h2 className="mt-12 mb-4 border-b border-border pb-3 text-xl font-semibold">
+            Var ligger Languedoc?
+          </h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
             Regionen omfattar departementen längs södra Frankrikes kust —
             från Aude och Hérault till Gard och Pyrénées-Orientales. Inland
@@ -139,8 +141,10 @@ export default function LanguedocPage() {
           </p>
         </section>
 
-        <section className="mt-10 space-y-4">
-          <h2 className="text-xl font-semibold">Appellationer att känna till</h2>
+        <section className="space-y-4">
+          <h2 className="mt-12 mb-4 border-b border-border pb-3 text-xl font-semibold">
+            Appellationer att känna till
+          </h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
             Languedoc har både breda IGP-etiketter och mer strikta AOP:er.
             Saint-Chinian och Faugères i norr är kända för strukturerade röda
@@ -153,8 +157,10 @@ export default function LanguedocPage() {
           </p>
         </section>
 
-        <section className="mt-10 space-y-4">
-          <h2 className="text-xl font-semibold">Druvor och stilar</h2>
+        <section className="space-y-4">
+          <h2 className="mt-12 mb-4 border-b border-border pb-3 text-xl font-semibold">
+            Druvor och stilar
+          </h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
             Röda viner dominerar, med grenache, syrah, carignan och mourvèdre
             som ryggraden. Carignan från gamla stockar ger djup och syra;
@@ -166,8 +172,10 @@ export default function LanguedocPage() {
           </p>
         </section>
 
-        <section className="mt-10 space-y-4">
-          <h2 className="text-xl font-semibold">Terroir och klimat</h2>
+        <section className="space-y-4">
+          <h2 className="mt-12 mb-4 border-b border-border pb-3 text-xl font-semibold">
+            Terroir och klimat
+          </h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
             Jordmån varierar kraftigt: skiffer (schist) i Faugères och
             Saint-Chinian, kalksten i Minervois, grus nära kusten och
@@ -179,8 +187,10 @@ export default function LanguedocPage() {
           </p>
         </section>
 
-        <section className="mt-10 space-y-4">
-          <h2 className="text-xl font-semibold">Naturvin i Languedoc</h2>
+        <section className="space-y-4">
+          <h2 className="mt-12 mb-4 border-b border-border pb-3 text-xl font-semibold">
+            Naturvin i Languedoc
+          </h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
             Languedoc har blivit ett nav för Frankrikes naturvinsrörelse.
             Låga skördar, ekologisk odling utan kemiska bekämpningsmedel,
@@ -192,19 +202,27 @@ export default function LanguedocPage() {
           </p>
         </section>
 
-        <div className="mt-12 flex flex-col gap-3 sm:flex-row">
-          <Link
-            href="/languedoc/naturvin"
-            className="inline-flex items-center justify-center rounded-full bg-foreground px-8 py-3 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
-          >
-            Upptäck naturvin från Languedoc
-          </Link>
-          <Link
-            href="/shop"
-            className="inline-flex items-center justify-center rounded-full border border-border px-8 py-3 text-sm font-medium text-foreground transition-colors hover:border-foreground/40"
-          >
-            Handla vin i shoppen
-          </Link>
+        <div className="mt-16 rounded-xl bg-foreground p-8 text-center text-background">
+          <h2 className="mb-2 text-xl font-semibold">
+            Utforska naturvin från Languedoc
+          </h2>
+          <p className="mb-6 text-sm opacity-70">
+            Direktimporterat från producenter i Saint-Chinian och Faugères
+          </p>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Link
+              href="/languedoc/naturvin"
+              className="rounded-full bg-background px-6 py-2.5 text-sm font-medium text-foreground transition-opacity hover:opacity-90"
+            >
+              Naturvin från Languedoc
+            </Link>
+            <Link
+              href="/shop"
+              className="rounded-full border border-background/30 px-6 py-2.5 text-sm font-medium text-background transition-colors hover:border-background/60"
+            >
+              Se alla viner
+            </Link>
+          </div>
         </div>
       </div>
 
