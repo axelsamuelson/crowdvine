@@ -27,7 +27,7 @@ export function WineExpandableDetails({ enrichment }: WineExpandableDetailsProps
     <div className={WINE_ENRICHMENT_DROPDOWN_LIST_CLASS}>
       {ageing ? (
         <WineEnrichmentCollapsible title={t("product.pdp.ageing")}>
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
             {ageing}
           </p>
         </WineEnrichmentCollapsible>
@@ -35,12 +35,12 @@ export function WineExpandableDetails({ enrichment }: WineExpandableDetailsProps
 
       {winemakerNotes ? (
         <WineEnrichmentCollapsible title={t("product.pdp.winemakerNotes")}>
-          <figure className="relative rounded-md border border-border/50 px-4 py-4">
+          <figure className="relative rounded-md border border-border px-4 py-4">
             <Quote
-              className="absolute right-3 top-3 h-4 w-4 text-muted-foreground/40"
+              className="absolute right-3 top-3 h-4 w-4 text-foreground/45"
               aria-hidden
             />
-            <blockquote className="text-sm leading-relaxed text-foreground/90">
+            <blockquote className="text-sm leading-relaxed text-foreground">
               {winemakerNotes}
             </blockquote>
           </figure>
@@ -50,13 +50,13 @@ export function WineExpandableDetails({ enrichment }: WineExpandableDetailsProps
       {awards.length > 0 ? (
         <WineEnrichmentCollapsible title={t("product.pdp.awards")}>
           {awards.length <= 3 && awardsText ? (
-            <p className="text-sm leading-relaxed text-foreground/90">{awardsText}</p>
+            <p className="text-sm leading-relaxed text-foreground">{awardsText}</p>
           ) : (
             <ul className="flex flex-wrap gap-2">
               {awards.map((award) => (
                 <li
                   key={award}
-                  className="rounded-full border border-border/80 px-2.5 py-1 text-xs text-foreground/80"
+                  className="rounded-full border border-border px-2.5 py-1 text-xs text-foreground"
                 >
                   {award}
                 </li>

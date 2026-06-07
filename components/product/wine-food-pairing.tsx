@@ -18,7 +18,7 @@ export function WineFoodPairing({ items }: WineFoodPairingProps) {
         {pairing.map((item) => (
           <li
             key={item}
-            className="rounded-full border border-border/80 px-3.5 py-1.5 text-sm text-foreground/85"
+            className="rounded-full border border-border px-3.5 py-1.5 text-sm text-foreground"
           >
             {item}
           </li>

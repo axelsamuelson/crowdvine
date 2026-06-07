@@ -15,7 +15,7 @@ export function WineEnrichmentTextBlock({
   return (
     <div>
       <WineEnrichmentSectionLabel title={label} />
-      <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+      <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
         {trimmed}
       </p>
     </div>

@@ -10,7 +10,10 @@ import { Menu } from "lucide-react";
 interface AdminLayoutClientProps {
   children: React.ReactNode;
   userEmail: string;
-  onSignOut: () => void;
+}
+
+function handleSignOut() {
+  window.location.href = "/admin-auth/logout";
 }
 
 function debugScrollLog(payload: Record<string, unknown>) {
@@ -25,7 +28,6 @@ function debugScrollLog(payload: Record<string, unknown>) {
 export function AdminLayoutClient({
   children,
   userEmail,
-  onSignOut,
 }: AdminLayoutClientProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const mainRef = useRef<HTMLDivElement | null>(null);
@@ -166,7 +168,7 @@ export function AdminLayoutClient({
     <div className="flex h-dvh max-h-dvh min-h-0 w-full bg-white pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] dark:bg-[#0F0F12]">
       <Sidebar
         userEmail={userEmail}
-        onSignOut={onSignOut}
+        onSignOut={handleSignOut}
         mobileOpen={mobileOpen}
         onMobileClose={() => setMobileOpen(false)}
       />
@@ -183,7 +185,7 @@ export function AdminLayoutClient({
             <Menu className="h-5 w-5 text-gray-600 dark:text-gray-300" />
           </Button>
           <div className="flex-1 min-w-0">
-            <AdminTopNav userEmail={userEmail} onSignOut={onSignOut} />
+            <AdminTopNav userEmail={userEmail} onSignOut={handleSignOut} />
           </div>
         </header>
         {/* min-h-0: flex child must shrink so overflow-auto on main is the scroll container (fixes wheel over tables). */}

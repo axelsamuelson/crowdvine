@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentAdmin } from "@/lib/admin-auth-server";
 import { getCurrentUser } from "@/lib/auth";

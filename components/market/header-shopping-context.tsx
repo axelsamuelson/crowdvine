@@ -47,12 +47,18 @@ function ZoneTriggerLabel({
   isFooter,
   showCurrency,
   currency,
+  languageLabel,
 }: {
   label: string;
   isFooter: boolean;
   showCurrency?: boolean;
   currency?: string;
+  languageLabel?: string;
 }) {
+  const suffixClass = isFooter
+    ? "text-background/50"
+    : "text-muted-foreground tabular-nums";
+
   return (
     <>
       <Globe
@@ -62,7 +68,10 @@ function ZoneTriggerLabel({
       />
       <span>{label}</span>
       {showCurrency && currency ? (
-        <span className="text-muted-foreground tabular-nums">· {currency}</span>
+        <span className={suffixClass}>· {currency}</span>
+      ) : null}
+      {languageLabel ? (
+        <span className={suffixClass}>· {languageLabel}</span>
       ) : null}
     </>
   );
@@ -85,6 +94,8 @@ function SwedenZonePopover({
   const { context: shopping, setLocale, t } = useTranslations();
   const appLocale = shopping.locale;
   const localeOptions = shopping.availableLocales;
+  const activeLanguageLabel =
+    appLocale === "en" ? t("shopping.english") : t("shopping.swedish");
 
   const triggerClass = cn(
     "inline-flex shrink-0 items-center gap-2 transition-colors",
@@ -106,6 +117,7 @@ function SwedenZonePopover({
           aria-label={t("shopping.ariaContext", {
             country: label,
             currency: currency ?? shopping.currencyCode,
+            language: activeLanguageLabel,
           })}
         >
           <ZoneTriggerLabel
@@ -113,6 +125,7 @@ function SwedenZonePopover({
             isFooter={isFooter}
             showCurrency={showCurrency}
             currency={currency}
+            languageLabel={isFooter ? activeLanguageLabel : undefined}
           />
         </button>
       </PopoverTrigger>

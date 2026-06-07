@@ -279,10 +279,12 @@ export function registerCatalogTools(server: McpServer, sb: SupabaseClient) {
         import_price_eur: z.number().optional(),
         yield_hl_ha: z.number().optional(),
         is_published: z.boolean().optional(),
+        locale: z.enum(["sv", "en"]).default("sv").optional(),
         ...winePdpContentFields,
       },
     },
     async (args) => {
+      const { locale = "sv", ...wineArgs } = args;
       return mcpWriteTool(
         sb,
         "create_wine",
@@ -290,7 +292,10 @@ export function registerCatalogTools(server: McpServer, sb: SupabaseClient) {
         async () => {
           const res = await catalogApiJson("/api/wines", {
             method: "POST",
-            body: JSON.stringify(args),
+            body: JSON.stringify(wineArgs),
+            headers: {
+              "x-pact-locale": locale,
+            },
           });
           if (!res.ok) throw new Error(res.error);
           return res.data;
@@ -332,10 +337,11 @@ export function registerCatalogTools(server: McpServer, sb: SupabaseClient) {
         ageing: winePdpContentFields.ageing.nullable().optional(),
         winemaker_notes: winePdpContentFields.winemaker_notes.nullable().optional(),
         awards: winePdpContentFields.awards.optional(),
+        locale: z.enum(["sv", "en"]).default("sv").optional(),
       },
     },
     async (args) => {
-      const { id, ...body } = args;
+      const { id, locale = "sv", ...body } = args;
       return mcpWriteTool(
         sb,
         "update_wine",
@@ -344,6 +350,9 @@ export function registerCatalogTools(server: McpServer, sb: SupabaseClient) {
           const res = await catalogApiJson(`/api/wines/${encodeURIComponent(id)}`, {
             method: "PATCH",
             body: JSON.stringify(body),
+            headers: {
+              "x-pact-locale": locale,
+            },
           });
           if (!res.ok) throw new Error(res.error);
           return res.data;

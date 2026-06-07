@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { getAppUrlForRequest, getInternalFetchHeaders } from "@/lib/app-url";
 import { fetchCollectionsData } from "@/lib/crowdvine/collections-data";
 import {
@@ -59,7 +60,16 @@ export async function getProducts(params?: {
 export async function getProduct(handle: string): Promise<Product | null> {
   try {
     const base = await getAppUrlForRequest();
-    return await j(await fetch(apiUrls(base).product(handle), fetchInit()));
+    const cookieStore = await cookies();
+    const locale = cookieStore.get("pact_locale")?.value ?? "sv";
+    return await j(
+      await fetch(
+        apiUrls(base).product(handle),
+        fetchInit({
+          headers: { "x-pact-locale": locale },
+        }),
+      ),
+    );
   } catch {
     return null;
   }

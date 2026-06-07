@@ -79,7 +79,7 @@ function CompetitorOfferRow({ offer }: { offer: CompetitorOffer }) {
       <div className="flex items-center gap-3">
         {offer.rating != null ? (
           <span
-            className="text-sm text-muted-foreground"
+            className="text-sm text-foreground/65"
             title={t("product.pdp.ratingFromSource")}
           >
             {Number(offer.rating).toFixed(1)}
@@ -90,7 +90,7 @@ function CompetitorOfferRow({ offer }: { offer: CompetitorOffer }) {
             ? formatSek(offer.price_amount_sek)
             : "—"}
           {year ? (
-            <span className="ml-1.5 font-normal text-muted-foreground">
+            <span className="ml-1.5 font-normal text-foreground/65">
               ({year})
             </span>
           ) : null}

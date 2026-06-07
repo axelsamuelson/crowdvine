@@ -1,4 +1,12 @@
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 const nextConfig = {
+  turbopack: {
+    root: __dirname,
+  },
   /** Bundled Chromium (@sparticuz/chromium) must not be webpack-bundled into serverless chunks. */
   serverExternalPackages: ["@sparticuz/chromium", "playwright-core"],
   async redirects() {

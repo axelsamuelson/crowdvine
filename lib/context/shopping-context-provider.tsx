@@ -10,6 +10,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
 import {
   LOCALE_COOKIE,
   intlLocaleForAppLocale,
@@ -58,6 +59,7 @@ export function ShoppingContextProvider({
 }) {
   const [context, setContext] = useState(initialContext);
   const refreshAbortRef = useRef<AbortController | null>(null);
+  const router = useRouter();
 
   const serverZoneKey = `${initialContext.activeZone.geoZoneId ?? ""}:${initialContext.currencyCode}`;
 
@@ -96,10 +98,12 @@ export function ShoppingContextProvider({
     setContext((prev) => {
       if (!prev.availableLocales.includes(locale)) return prev;
       applied = true;
-      setLocaleCookie(locale);
       return applyLocalePolicyToContext({ ...prev, locale });
     });
     if (!applied) return;
+
+    setLocaleCookie(locale);
+    router.refresh();
 
     try {
       await fetch("/api/user/preferred-locale", {
@@ -113,7 +117,7 @@ export function ShoppingContextProvider({
 
     // Locale is already applied client-side; refresh only re-syncs zone/currency.
     await refresh();
-  }, [refresh]);
+  }, [refresh, router]);
 
   useEffect(() => {
     if (typeof document !== "undefined") {

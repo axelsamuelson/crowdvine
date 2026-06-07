@@ -25,15 +25,7 @@ export default async function AdminLayout({
     redirect("/admin-auth/login");
   }
 
-  async function handleSignOut() {
-    "use server";
-    // Clear admin cookie by redirecting to logout
-    redirect("/admin-auth/logout");
-  }
-
   return (
-    <AdminLayoutClient userEmail={admin.email} onSignOut={handleSignOut}>
-      {children}
-    </AdminLayoutClient>
+    <AdminLayoutClient userEmail={admin.email}>{children}</AdminLayoutClient>
   );
 }

@@ -17,7 +17,7 @@ export function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="p-sides">
+    <footer className="bg-background p-sides">
       <div className="w-full md:min-h-[420px] p-sides md:p-11 text-background bg-foreground rounded-[12px] flex flex-col justify-between gap-10 max-md:gap-8">
         <div className="flex flex-col gap-8">
           <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between md:gap-10 lg:gap-16">

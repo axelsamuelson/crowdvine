@@ -6,6 +6,13 @@ import {
   normalizeCatalogWineColor,
   type CatalogWineType,
 } from "@/lib/catalog-types";
+import {
+  buildWineArrayJsonb,
+  buildWineJsonb,
+  extractWineArray,
+  extractWineText,
+  type WineLocale,
+} from "@/lib/i18n/wine-locale";
 
 /** DB columns loaded for producer → API mapping. */
 export const PRODUCER_DB_SELECT =
@@ -98,7 +105,10 @@ function parseAlcoholPct(value: unknown): number | null {
   return null;
 }
 
-export function wineRowToApi(row: WineDbRow): WineApiRow {
+export function wineRowToApi(
+  row: Record<string, unknown>,
+  locale: WineLocale = "sv",
+): WineApiRow {
   const basePriceCents = row.base_price_cents as number | null;
   const volumeLiters = row.volume_liters as number | null;
   const costCurrency = row.cost_currency as string | null;
@@ -118,22 +128,49 @@ export function wineRowToApi(row: WineDbRow): WineApiRow {
       basePriceCents != null ? Math.round(basePriceCents / 100) : 0,
     bottle_size_ml:
       volumeLiters != null ? Math.round(volumeLiters * 1000) : 750,
-    summary: (row.summary as string | null) ?? null,
-    description: (row.description as string | null) ?? null,
-    tasting_notes: (row.tasting_notes as string | null) ?? null,
+    summary: extractWineText(
+      row.summary as Record<string, string> | string | null,
+      locale,
+    ),
+    description: extractWineText(
+      row.description as Record<string, string> | string | null,
+      locale,
+    ),
+    tasting_notes: extractWineText(
+      row.tasting_notes as Record<string, string> | string | null,
+      locale,
+    ),
     alcohol_pct: parseAlcoholPct(row.alcohol_percentage),
     abv: (row.abv as string | null) ?? null,
     farming: (row.farming as string | null) ?? null,
-    additives: (row.additives as string | null) ?? null,
+    additives: extractWineText(
+      row.additives as Record<string, string> | string | null,
+      locale,
+    ),
     serving_temp_c: (row.serving_temp_c as string | null) ?? null,
-    food_pairing: (row.food_pairing as string[] | null) ?? null,
-    awards: (row.awards as string[] | null) ?? null,
+    food_pairing: extractWineArray(
+      row.food_pairing as Record<string, string[]> | string[] | null,
+      locale,
+    ),
+    awards: extractWineArray(
+      row.awards as Record<string, string[]> | string[] | null,
+      locale,
+    ),
     import_price_eur:
       costCurrency === "EUR" && costAmount != null ? Number(costAmount) : null,
-    winemaker_notes: (row.winemaker_notes as string | null) ?? null,
+    winemaker_notes: extractWineText(
+      row.winemaker_notes as Record<string, string> | string | null,
+      locale,
+    ),
     elevation_masl: (row.elevation_masl as number | null) ?? null,
-    soil_type: (row.soil_type as string | null) ?? null,
-    ageing: (row.ageing as string | null) ?? null,
+    soil_type: extractWineText(
+      row.soil_type as Record<string, string> | string | null,
+      locale,
+    ),
+    ageing: extractWineText(
+      row.ageing as Record<string, string> | string | null,
+      locale,
+    ),
     yield_hl_ha:
       row.yield_hl_ha != null ? Number(row.yield_hl_ha) : null,
     is_published: row.is_live === true,
@@ -242,6 +279,8 @@ function generateWineHandle(wineName: string, vintage: string): string {
 
 export function buildWinePatch(
   body: Record<string, unknown>,
+  locale: WineLocale = "sv",
+  existingRow?: Record<string, unknown>,
 ): Record<string, unknown> {
   const patch: Record<string, unknown> = {};
 
@@ -271,11 +310,19 @@ export function buildWinePatch(
   } else if (isCatalogWineType(body.type)) {
     patch.color = normalizeCatalogWineColor(body.type);
   }
-  if (body.summary === null) patch.summary = null;
-  else if (typeof body.summary === "string") patch.summary = body.summary;
-  if (body.description === null) patch.description = null;
-  else if (typeof body.description === "string") {
-    patch.description = body.description;
+  if (body.summary !== undefined) {
+    patch.summary = buildWineJsonb(
+      body.summary as string | null,
+      locale,
+      existingRow?.summary as Record<string, string> | string | null,
+    );
+  }
+  if (body.description !== undefined) {
+    patch.description = buildWineJsonb(
+      body.description as string | null,
+      locale,
+      existingRow?.description as Record<string, string> | string | null,
+    );
   }
   if (typeof body.price_sek === "number" && Number.isInteger(body.price_sek)) {
     patch.base_price_cents = body.price_sek * 100;
@@ -286,9 +333,12 @@ export function buildWinePatch(
   ) {
     patch.volume_liters = body.bottle_size_ml / 1000.0;
   }
-  if (body.tasting_notes === null) patch.tasting_notes = null;
-  else if (typeof body.tasting_notes === "string") {
-    patch.tasting_notes = body.tasting_notes;
+  if (body.tasting_notes !== undefined) {
+    patch.tasting_notes = buildWineJsonb(
+      body.tasting_notes as string | null,
+      locale,
+      existingRow?.tasting_notes as Record<string, string> | string | null,
+    );
   }
   if (body.alcohol_pct === null) patch.alcohol_percentage = null;
   else if (typeof body.alcohol_pct === "number") {
@@ -298,21 +348,30 @@ export function buildWinePatch(
   else if (typeof body.abv === "string") patch.abv = body.abv.trim() || null;
   if (body.farming === null) patch.farming = null;
   else if (isCatalogCertification(body.farming)) patch.farming = body.farming;
-  if (body.additives === null) patch.additives = null;
-  else if (typeof body.additives === "string") {
-    patch.additives = body.additives.trim() || null;
+  if (body.additives !== undefined) {
+    patch.additives = buildWineJsonb(
+      body.additives as string | null,
+      locale,
+      existingRow?.additives as Record<string, string> | string | null,
+    );
   }
   if (body.serving_temp_c === null) patch.serving_temp_c = null;
   else if (typeof body.serving_temp_c === "string") {
     patch.serving_temp_c = body.serving_temp_c;
   }
-  if (Array.isArray(body.food_pairing)) {
-    patch.food_pairing = body.food_pairing.filter(
-      (x): x is string => typeof x === "string",
+  if (body.food_pairing !== undefined && Array.isArray(body.food_pairing)) {
+    patch.food_pairing = buildWineArrayJsonb(
+      body.food_pairing.filter((x): x is string => typeof x === "string"),
+      locale,
+      existingRow?.food_pairing as Record<string, string[]> | string[] | null,
     );
   }
-  if (Array.isArray(body.awards)) {
-    patch.awards = body.awards.filter((x): x is string => typeof x === "string");
+  if (body.awards !== undefined && Array.isArray(body.awards)) {
+    patch.awards = buildWineArrayJsonb(
+      body.awards.filter((x): x is string => typeof x === "string"),
+      locale,
+      existingRow?.awards as Record<string, string[]> | string[] | null,
+    );
   }
   if (body.import_price_eur === null) {
     patch.cost_amount = null;
@@ -320,9 +379,12 @@ export function buildWinePatch(
     patch.cost_amount = body.import_price_eur;
     patch.cost_currency = "EUR";
   }
-  if (body.winemaker_notes === null) patch.winemaker_notes = null;
-  else if (typeof body.winemaker_notes === "string") {
-    patch.winemaker_notes = body.winemaker_notes;
+  if (body.winemaker_notes !== undefined) {
+    patch.winemaker_notes = buildWineJsonb(
+      body.winemaker_notes as string | null,
+      locale,
+      existingRow?.winemaker_notes as Record<string, string> | string | null,
+    );
   }
   if (body.elevation_masl === null) patch.elevation_masl = null;
   else if (
@@ -335,12 +397,20 @@ export function buildWinePatch(
   else if (typeof body.yield_hl_ha === "number") {
     patch.yield_hl_ha = body.yield_hl_ha;
   }
-  if (body.soil_type === null) patch.soil_type = null;
-  else if (typeof body.soil_type === "string") {
-    patch.soil_type = body.soil_type.trim() || null;
+  if (body.soil_type !== undefined) {
+    patch.soil_type = buildWineJsonb(
+      body.soil_type as string | null,
+      locale,
+      existingRow?.soil_type as Record<string, string> | string | null,
+    );
   }
-  if (body.ageing === null) patch.ageing = null;
-  else if (typeof body.ageing === "string") patch.ageing = body.ageing;
+  if (body.ageing !== undefined) {
+    patch.ageing = buildWineJsonb(
+      body.ageing as string | null,
+      locale,
+      existingRow?.ageing as Record<string, string> | string | null,
+    );
+  }
   if (typeof body.is_published === "boolean") patch.is_live = body.is_published;
 
   return patch;

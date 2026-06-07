@@ -1,4 +1,5 @@
 import { Footer } from "./footer";
+import { cn } from "@/lib/utils";
 
 export const PageLayout = ({
   children,
@@ -11,9 +12,7 @@ export const PageLayout = ({
 }) => {
   return (
     <>
-      <div
-        className={`${noPadding ? "" : "pt-top-spacing"} ${className || ""}`}
-      >
+      <div className={cn(!noPadding && "pt-top-spacing", className)}>
         {children}
       </div>
       <Footer />

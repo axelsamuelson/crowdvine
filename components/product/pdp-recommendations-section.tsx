@@ -1,7 +1,6 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { SidebarLinks } from "@/components/layout/sidebar/product-sidebar-links";
 import { ProductCard } from "@/app/shop/components/product-card";
 import { ProductGrid } from "@/app/shop/components/product-grid";
 import type { PdpRecommendationsResult } from "@/lib/product/recommendations";
@@ -46,7 +45,7 @@ export function PdpRecommendationsSection({
   return (
     <section
       className={cn(
-        "col-span-full w-full border-t border-border/60 bg-muted py-10 md:py-14",
+        "col-span-full w-full bg-muted",
         className,
       )}
       aria-label={t("product.pdp.recommendationsTitle")}
@@ -56,10 +55,6 @@ export function PdpRecommendationsSection({
           <>
             <div className="px-sides">{header}</div>
             {grid}
-            <SidebarLinks
-              className="mt-8 flex-wrap gap-x-4 gap-y-2 border-t border-border/40 px-sides pt-6 max-md:flex-col max-md:items-start md:justify-start"
-              size="base"
-            />
           </>
         ) : (
           <motion.div
@@ -70,10 +65,6 @@ export function PdpRecommendationsSection({
           >
             <div className="px-sides">{header}</div>
             {grid}
-            <SidebarLinks
-              className="mt-8 flex-wrap gap-x-4 gap-y-2 border-t border-border/40 px-sides pt-6 max-md:flex-col max-md:items-start md:justify-start"
-              size="base"
-            />
           </motion.div>
         )}
       </div>

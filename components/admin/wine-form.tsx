@@ -20,6 +20,7 @@ import {
   ADMIN_TOGGLE_ROW_CLASS,
 } from "@/lib/admin-form-styles";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import {
   CreateWineData,
   Wine,
@@ -27,6 +28,7 @@ import {
   updateWine,
 } from "@/lib/actions/wines";
 import { Producer } from "@/lib/actions/producers";
+import { extractWineArray, extractWineText } from "@/lib/i18n/wine-locale";
 import { WineImageUpload } from "@/components/admin/wine-image-upload";
 import { WineImage } from "@/lib/types/wine-images";
 import { PricingCalculator } from "@/components/admin/pricing-calculator-simple";
@@ -64,11 +66,11 @@ function formatCommaList(values: string[] | null | undefined): string {
 }
 
 /** Hero copy: prefer summary, fall back to legacy description column. */
-function heroDescriptionFromWine(w: Wine | undefined): string {
+function heroDescriptionFromWine(w: Wine | undefined, locale: "sv" | "en"): string {
   if (!w) return "";
-  const summary = w.summary?.trim();
+  const summary = copyTextFromWine(w.summary as WineCopyField, locale);
   if (summary) return summary;
-  return w.description?.trim() || "";
+  return copyTextFromWine(w.description as WineCopyField, locale);
 }
 
 function parseCommaList(value: string): string[] | null {
@@ -77,6 +79,23 @@ function parseCommaList(value: string): string[] | null {
     .map((item) => item.trim())
     .filter(Boolean);
   return items.length > 0 ? items : null;
+}
+
+type WineCopyField = Record<string, string> | string | null | undefined;
+type WineArrayField = Record<string, string[]> | string[] | null | undefined;
+
+function copyTextFromWine(
+  value: WineCopyField,
+  locale: "sv" | "en",
+): string {
+  return extractWineText(value, locale) ?? "";
+}
+
+function copyArrayTextFromWine(
+  value: WineArrayField,
+  locale: "sv" | "en",
+): string {
+  return formatCommaList(extractWineArray(value, locale) ?? []);
 }
 
 interface WineFormProps {
@@ -89,6 +108,8 @@ interface WineFormProps {
 }
 
 export default function WineForm({ wine, producers, isProducerView = false, initialProducerId }: WineFormProps) {
+  const [editLocale, setEditLocale] = useState<"sv" | "en">("sv");
+
   const [formData, setFormData] = useState<WineFormData>({
     handle: wine?.handle || "",
     wine_name: wine?.wine_name === "" ? "" : (wine?.wine_name ?? ""),
@@ -107,16 +128,19 @@ export default function WineForm({ wine, producers, isProducerView = false, init
     base_price_cents: wine?.base_price_cents ?? 0,
     // Set the existing label_image_path if editing
     label_image_path: wine?.label_image_path || "",
-    summary: heroDescriptionFromWine(wine),
-    tasting_notes: wine?.tasting_notes ?? "",
+    summary: copyTextFromWine(wine?.summary as WineCopyField, "sv"),
+    tasting_notes: copyTextFromWine(wine?.tasting_notes as WineCopyField, "sv"),
     alcohol_percentage: wine?.alcohol_percentage ?? null,
     farming: wine?.farming ?? null,
     additives: wine?.additives ?? "",
     serving_temp_c: wine?.serving_temp_c ?? "",
-    food_pairing_text: formatCommaList(wine?.food_pairing),
-    winemaker_notes: wine?.winemaker_notes ?? "",
-    awards_text: formatCommaList(wine?.awards),
-    ageing: wine?.ageing ?? "",
+    food_pairing_text: copyArrayTextFromWine(
+      wine?.food_pairing as WineArrayField,
+      "sv",
+    ),
+    winemaker_notes: copyTextFromWine(wine?.winemaker_notes as WineCopyField, "sv"),
+    awards_text: copyArrayTextFromWine(wine?.awards as WineArrayField, "sv"),
+    ageing: copyTextFromWine(wine?.ageing as WineCopyField, "sv"),
     soil_type: wine?.soil_type ?? "",
     elevation_masl: wine?.elevation_masl ?? null,
     volume_liters: wine?.volume_liters ?? 0.75,
@@ -216,16 +240,19 @@ export default function WineForm({ wine, producers, isProducerView = false, init
       margin_percentage: isProducerView ? DEFAULT_PRODUCER_MARGIN : (wine.margin_percentage ?? 10.0),
       base_price_cents: wine.base_price_cents ?? 0,
       label_image_path: wine.label_image_path || "",
-      summary: heroDescriptionFromWine(wine),
-      tasting_notes: wine.tasting_notes ?? "",
+      summary: heroDescriptionFromWine(wine, editLocale),
+      tasting_notes: copyTextFromWine(wine.tasting_notes as WineCopyField, editLocale),
       alcohol_percentage: wine.alcohol_percentage ?? null,
       farming: wine.farming ?? null,
       additives: wine.additives ?? "",
       serving_temp_c: wine.serving_temp_c ?? "",
-      food_pairing_text: formatCommaList(wine.food_pairing),
-      winemaker_notes: wine.winemaker_notes ?? "",
-      awards_text: formatCommaList(wine.awards),
-      ageing: wine.ageing ?? "",
+      food_pairing_text: copyArrayTextFromWine(
+        wine.food_pairing as WineArrayField,
+        editLocale,
+      ),
+      winemaker_notes: copyTextFromWine(wine.winemaker_notes as WineCopyField, editLocale),
+      awards_text: copyArrayTextFromWine(wine.awards as WineArrayField, editLocale),
+      ageing: copyTextFromWine(wine.ageing as WineCopyField, editLocale),
       soil_type: wine.soil_type ?? "",
       elevation_masl: wine.elevation_masl ?? null,
       volume_liters: wine.volume_liters ?? 0.75,
@@ -233,7 +260,29 @@ export default function WineForm({ wine, producers, isProducerView = false, init
       b2b_margin_percentage: wine.b2b_margin_percentage ?? null,
       b2b_stock: wine.b2b_stock ?? null,
     }));
-  }, [wine?.id, isProducerView]);
+  }, [wine?.id, isProducerView, editLocale]);
+
+  useEffect(() => {
+    if (!wine) return;
+    setFormData((prev) => ({
+      ...prev,
+      summary: extractWineText(wine.summary as WineCopyField, editLocale) ?? "",
+      tasting_notes:
+        extractWineText(wine.tasting_notes as WineCopyField, editLocale) ?? "",
+      ageing: extractWineText(wine.ageing as WineCopyField, editLocale) ?? "",
+      winemaker_notes:
+        extractWineText(wine.winemaker_notes as WineCopyField, editLocale) ??
+        "",
+      description:
+        extractWineText(wine.description as WineCopyField, editLocale) ?? "",
+      food_pairing_text: formatCommaList(
+        extractWineArray(wine.food_pairing as WineArrayField, editLocale) ?? [],
+      ),
+      awards_text: formatCommaList(
+        extractWineArray(wine.awards as WineArrayField, editLocale) ?? [],
+      ),
+    }));
+  }, [editLocale, wine]);
 
   // Load grape varieties on component mount
   useEffect(() => {
@@ -421,9 +470,9 @@ export default function WineForm({ wine, producers, isProducerView = false, init
 
       let savedWine;
       if (wine) {
-        savedWine = await updateWine(wine.id, wineData);
+        savedWine = await updateWine(wine.id, wineData, editLocale);
       } else {
-        savedWine = await createWine(wineData);
+        savedWine = await createWine(wineData, editLocale);
       }
 
       // Save new images to wine_images table
@@ -485,6 +534,24 @@ export default function WineForm({ wine, producers, isProducerView = false, init
         )}
 
           <div className="min-w-0 space-y-4">
+        <div className="flex gap-2 mb-4">
+          <Button
+            type="button"
+            size="sm"
+            variant={editLocale === "sv" ? "default" : "outline"}
+            onClick={() => setEditLocale("sv")}
+          >
+            Svenska
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={editLocale === "en" ? "default" : "outline"}
+            onClick={() => setEditLocale("en")}
+          >
+            English
+          </Button>
+        </div>
         <AdminFormSection
           title="Grundinfo"
           description="Namn, producent, färg och volym."

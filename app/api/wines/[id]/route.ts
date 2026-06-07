@@ -5,6 +5,7 @@ import {
   WINE_DB_SELECT,
   wineRowToApi,
 } from "@/lib/catalog-mappers";
+import type { WineLocale } from "@/lib/i18n/wine-locale";
 import {
   isCatalogCertification,
   isCatalogWineColor,
@@ -84,7 +85,19 @@ export async function PATCH(
 
   try {
     const body = (await request.json()) as Record<string, unknown>;
-    const patch = buildWinePatch(body);
+
+    const sb = getSupabaseAdmin();
+
+    const { data: existing } = await sb
+      .from("wines")
+      .select(
+        "summary, description, tasting_notes, ageing, winemaker_notes, food_pairing, awards, soil_type, additives",
+      )
+      .eq("id", id)
+      .single();
+
+    const locale = (request.headers.get("x-pact-locale") ?? "sv") as WineLocale;
+    const patch = buildWinePatch(body, locale, existing ?? undefined);
 
     if (Object.keys(patch).length === 0) {
       return NextResponse.json(
@@ -110,8 +123,6 @@ export async function PATCH(
     ) {
       return NextResponse.json({ error: "Invalid color value" }, { status: 400 });
     }
-
-    const sb = getSupabaseAdmin();
 
     if (typeof patch.producer_id === "string") {
       const { data: producer, error: producerErr } = await sb

@@ -5,6 +5,11 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { revalidatePath } from "next/cache";
 import { calculateSystembolagetPrice } from "@/lib/systembolaget-pricing";
 import { getAppUrl } from "@/lib/app-url";
+import {
+  buildWineArrayJsonb,
+  buildWineJsonb,
+  type WineLocale,
+} from "@/lib/i18n/wine-locale";
 
 export interface Wine {
   id: string;
@@ -651,7 +656,7 @@ export async function getWine(id: string) {
   return wineWithProducer;
 }
 
-export async function createWine(data: CreateWineData) {
+export async function createWine(data: CreateWineData, locale: WineLocale = "sv") {
   const sb = await supabaseServer();
 
   // Calculate price if pricing data is provided
@@ -737,22 +742,22 @@ export async function createWine(data: CreateWineData) {
     supplier_price: data.supplier_price,
     sb_price: calculatedSbPrice,
     volume_liters: data.volume_liters,
-    description: data.description,
+    description: buildWineJsonb(data.description ?? null, locale),
     description_html: data.description_html,
-    summary: data.summary ?? null,
+    summary: buildWineJsonb(data.summary ?? null, locale),
     terroir_soil: data.terroir_soil ?? null,
     production_method: data.production_method ?? null,
     tasting_profile_character: data.tasting_profile_character ?? null,
     classification: data.classification ?? null,
-    tasting_notes: data.tasting_notes ?? null,
+    tasting_notes: buildWineJsonb(data.tasting_notes ?? null, locale),
     alcohol_percentage: data.alcohol_percentage ?? null,
     farming: data.farming ?? null,
     additives: data.additives ?? null,
     serving_temp_c: data.serving_temp_c ?? null,
-    food_pairing: data.food_pairing ?? null,
-    winemaker_notes: data.winemaker_notes ?? null,
-    awards: data.awards ?? null,
-    ageing: data.ageing ?? null,
+    food_pairing: buildWineArrayJsonb(data.food_pairing ?? null, locale),
+    winemaker_notes: buildWineJsonb(data.winemaker_notes ?? null, locale),
+    awards: buildWineArrayJsonb(data.awards ?? null, locale),
+    ageing: buildWineJsonb(data.ageing ?? null, locale),
     soil_type: data.soil_type ?? null,
     elevation_masl: data.elevation_masl ?? null,
     yield_hl_ha: data.yield_hl_ha ?? null,
@@ -853,11 +858,23 @@ export async function createWine(data: CreateWineData) {
   return wineWithProducer;
 }
 
-export async function updateWine(id: string, data: Partial<CreateWineData>) {
+export async function updateWine(
+  id: string,
+  data: Partial<CreateWineData>,
+  locale: WineLocale = "sv",
+) {
   const sb = getSupabaseAdmin();
 
+  const { data: existing } = await sb
+    .from("wines")
+    .select(
+      "summary, description, tasting_notes, ageing, winemaker_notes, food_pairing, awards, soil_type, additives",
+    )
+    .eq("id", id)
+    .single();
+
   // Build update data object, excluding undefined values
-  const updateData: any = {};
+  const updateData: Record<string, unknown> = {};
 
   if (data.handle !== undefined) updateData.handle = data.handle;
   if (data.wine_name !== undefined) updateData.wine_name = data.wine_name;
@@ -877,10 +894,22 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
     updateData.price_includes_vat = data.price_includes_vat;
   if (data.margin_percentage !== undefined)
     updateData.margin_percentage = data.margin_percentage;
-  if (data.description !== undefined) updateData.description = data.description;
+  if (data.description !== undefined) {
+    updateData.description = buildWineJsonb(
+      data.description,
+      locale,
+      existing?.description as Record<string, string> | null,
+    );
+  }
   if (data.description_html !== undefined)
     updateData.description_html = data.description_html;
-  if (data.summary !== undefined) updateData.summary = data.summary;
+  if (data.summary !== undefined) {
+    updateData.summary = buildWineJsonb(
+      data.summary,
+      locale,
+      existing?.summary as Record<string, string> | null,
+    );
+  }
   if (data.appellation !== undefined) updateData.appellation = data.appellation;
   if (data.terroir !== undefined) updateData.terroir = data.terroir;
   if (data.vinification !== undefined) updateData.vinification = data.vinification;
@@ -901,21 +930,60 @@ export async function updateWine(id: string, data: Partial<CreateWineData>) {
     updateData.tasting_profile_character = data.tasting_profile_character;
   if (data.classification !== undefined)
     updateData.classification = data.classification;
-  if (data.tasting_notes !== undefined)
-    updateData.tasting_notes = data.tasting_notes;
+  if (data.tasting_notes !== undefined) {
+    updateData.tasting_notes = buildWineJsonb(
+      data.tasting_notes,
+      locale,
+      existing?.tasting_notes as Record<string, string> | null,
+    );
+  }
   if (data.alcohol_percentage !== undefined)
     updateData.alcohol_percentage = data.alcohol_percentage;
   if (data.farming !== undefined) updateData.farming = data.farming;
-  if (data.additives !== undefined) updateData.additives = data.additives;
+  if (data.additives !== undefined) {
+    updateData.additives = buildWineJsonb(
+      data.additives,
+      locale,
+      existing?.additives as Record<string, string> | string | null,
+    );
+  }
   if (data.serving_temp_c !== undefined)
     updateData.serving_temp_c = data.serving_temp_c;
-  if (data.food_pairing !== undefined)
-    updateData.food_pairing = data.food_pairing;
-  if (data.winemaker_notes !== undefined)
-    updateData.winemaker_notes = data.winemaker_notes;
-  if (data.awards !== undefined) updateData.awards = data.awards;
-  if (data.ageing !== undefined) updateData.ageing = data.ageing;
-  if (data.soil_type !== undefined) updateData.soil_type = data.soil_type;
+  if (data.food_pairing !== undefined) {
+    updateData.food_pairing = buildWineArrayJsonb(
+      data.food_pairing,
+      locale,
+      existing?.food_pairing as Record<string, string[]> | null,
+    );
+  }
+  if (data.winemaker_notes !== undefined) {
+    updateData.winemaker_notes = buildWineJsonb(
+      data.winemaker_notes,
+      locale,
+      existing?.winemaker_notes as Record<string, string> | null,
+    );
+  }
+  if (data.awards !== undefined) {
+    updateData.awards = buildWineArrayJsonb(
+      data.awards,
+      locale,
+      existing?.awards as Record<string, string[]> | null,
+    );
+  }
+  if (data.ageing !== undefined) {
+    updateData.ageing = buildWineJsonb(
+      data.ageing,
+      locale,
+      existing?.ageing as Record<string, string> | null,
+    );
+  }
+  if (data.soil_type !== undefined) {
+    updateData.soil_type = buildWineJsonb(
+      data.soil_type,
+      locale,
+      existing?.soil_type as Record<string, string> | string | null,
+    );
+  }
   if (data.elevation_masl !== undefined)
     updateData.elevation_masl = data.elevation_masl;
   if (data.yield_hl_ha !== undefined) updateData.yield_hl_ha = data.yield_hl_ha;

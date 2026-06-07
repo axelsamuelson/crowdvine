@@ -11,7 +11,7 @@
     "noReservations": "No reservations yet.",
     "changeZone": "Change country",
     "viewAllReservations": "View all reservations",
-    "ariaContext": "Shopping context: {country}, currency {currency}",
+    "ariaContext": "Shopping context: {country}, currency {currency}, language {language}",
     "mobileContext": "Shopping context",
     "footerRegion": "Region & currency",
     "selectRegion": "Select region",

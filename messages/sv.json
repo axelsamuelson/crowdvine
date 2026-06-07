@@ -11,7 +11,7 @@
     "noReservations": "Inga reservationer ännu.",
     "changeZone": "Byt land",
     "viewAllReservations": "Visa alla reservationer",
-    "ariaContext": "Handelskontext: {country}, valuta {currency}",
+    "ariaContext": "Handelskontext: {country}, valuta {currency}, språk {language}",
     "mobileContext": "Handelskontext",
     "footerRegion": "Region & valuta",
     "selectRegion": "Välj region",

@@ -58,7 +58,7 @@ export function WineEnrichmentCollapsible({
         </span>
         <ChevronDown
           className={cn(
-            "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-300",
+            "h-4 w-4 shrink-0 text-foreground/55 transition-transform duration-300",
             open && "rotate-180",
           )}
         />
@@ -67,7 +67,7 @@ export function WineEnrichmentCollapsible({
         <motion.div
           initial={false}
           animate={reduceMotion ? undefined : { opacity: open ? 1 : 0.96 }}
-          className="border-t border-border/60 px-4 py-4 md:px-5"
+          className="border-t border-border px-4 py-4 md:px-5"
         >
           {children}
         </motion.div>

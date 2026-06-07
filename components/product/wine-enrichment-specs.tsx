@@ -62,7 +62,7 @@ function SpecItem({
         WINE_ENRICHMENT_LINE_FRAME_CLASS,
       )}
     >
-      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border/70 text-muted-foreground">
+      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border text-foreground/60">
         {specKey === "color" && enrichment?.color ? (
           <span
             className={cn(
@@ -79,7 +79,7 @@ function SpecItem({
         <dt className={WINE_ENRICHMENT_SPEC_LABEL_CLASS}>
           {label}
         </dt>
-        <dd className="mt-0.5 text-sm leading-snug text-foreground/90">{value}</dd>
+        <dd className="mt-0.5 text-sm leading-snug text-foreground">{value}</dd>
       </div>
     </div>
   );

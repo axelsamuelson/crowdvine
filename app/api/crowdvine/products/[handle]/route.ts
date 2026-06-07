@@ -5,6 +5,10 @@ import { calculateB2BPriceExclVat } from "@/lib/price-breakdown";
 import { isB2BHost } from "@/lib/b2b-site";
 import { resolveWineAbv } from "@/lib/product/wine-enrichment";
 import {
+  extractWineArray,
+  extractWineText,
+} from "@/lib/i18n/wine-locale";
+import {
   aggregateB2BPalletStock,
   B2B_PALLET_ITEM_STOCK_SELECT,
 } from "@/lib/b2b-pallet-stock";
@@ -401,9 +405,13 @@ export async function GET(
     height: 600,
   };
 
-  // Use custom description or generate default one
+  const locale = (request.headers.get("x-pact-locale") ?? "sv") as
+    | "sv"
+    | "en";
+
+  const rawDescription = extractWineText(i.description, locale);
   const wineDescription =
-    i.description ||
+    rawDescription ||
     `This exceptional ${i.color || "wine"} wine from ${i.vintage} showcases the unique characteristics of ${i.grape_varieties || "carefully selected grapes"}. Crafted with precision and passion, this wine offers a perfect balance of flavors and aromas that will delight your palate.`;
 
   const wineDescriptionHtml = i.description_html || `<p>${wineDescription}</p>`;
@@ -467,29 +475,30 @@ export async function GET(
   if (resolvedAbv) specs["ABV"] = resolvedAbv;
 
   const wineEnrichment = {
-    tasting_notes: i.tasting_notes?.trim() ? i.tasting_notes.trim() : null,
+    tasting_notes: extractWineText(i.tasting_notes, locale),
     appellation: i.appellation?.trim() ? i.appellation.trim() : null,
     farming: i.farming?.trim() ? i.farming.trim() : null,
-    additives: i.additives?.trim() ? i.additives.trim() : null,
+    additives: extractWineText(i.additives, locale),
     serving_temp_c: i.serving_temp_c?.trim() ? i.serving_temp_c.trim() : null,
     abv: resolvedAbv,
     alcohol_percentage:
       i.alcohol_percentage != null && Number.isFinite(Number(i.alcohol_percentage))
         ? Number(i.alcohol_percentage)
         : null,
-    food_pairing: Array.isArray(i.food_pairing)
-      ? i.food_pairing.filter((item: string) => item?.trim())
-      : null,
-    soil_type: i.soil_type?.trim() ? i.soil_type.trim() : null,
+    food_pairing:
+      extractWineArray(i.food_pairing, locale)?.filter((s: string) =>
+        s?.trim(),
+      ) ?? null,
+    soil_type: extractWineText(i.soil_type, locale),
     elevation_masl:
       i.elevation_masl != null && Number.isFinite(Number(i.elevation_masl))
         ? Number(i.elevation_masl)
         : null,
-    ageing: i.ageing?.trim() ? i.ageing.trim() : null,
-    winemaker_notes: i.winemaker_notes?.trim() ? i.winemaker_notes.trim() : null,
-    awards: Array.isArray(i.awards)
-      ? i.awards.filter((item: string) => item?.trim())
-      : null,
+    ageing: extractWineText(i.ageing, locale),
+    winemaker_notes: extractWineText(i.winemaker_notes, locale),
+    awards:
+      extractWineArray(i.awards, locale)?.filter((s: string) => s?.trim()) ??
+      null,
     grapeVarieties: grapeVarieties.length > 0 ? grapeVarieties : null,
     color: colorName?.trim() ? colorName.trim() : null,
   };
@@ -500,7 +509,7 @@ export async function GET(
     description: wineDescription,
     descriptionHtml: wineDescriptionHtml,
     /** Short summary for PDP white box; null if not set. */
-    summary: i.summary ?? null,
+    summary: extractWineText(i.summary, locale),
     /** Wine specs for bullet list under description (Region, Appellation, Terroir, Vinification, ABV). */
     specs: Object.keys(specs).length > 0 ? specs : null,
     /** Enrichment fields for PDP sections (tasting notes, farming, food pairing, etc.). */
