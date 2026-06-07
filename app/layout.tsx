@@ -53,7 +53,7 @@ const defaultOpenGraph: Metadata["openGraph"] = {
   type: "website",
   images: [
     {
-      url: "https://pactwines.com/og-image.png",
+      url: "https://pactwines.com/pact-og-uploaded.jpg",
       width: 1200,
       height: 630,
       alt: "PACT — Naturvin direkt från Languedoc",
