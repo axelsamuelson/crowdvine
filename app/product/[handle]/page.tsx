@@ -88,21 +88,66 @@ export default async function ProductPage(props: {
   const headerList = await headers();
   const host = headerList.get("x-forwarded-host") ?? headerList.get("host");
 
+  const handle = params.handle;
+
   const productJsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.title,
-    description: product.description,
-    image: product.featuredImage.url,
+    description: product.seo?.description || product.description || "",
+    image: product.featuredImage?.url,
+    url: `https://pactwines.com/product/${handle}`,
+    brand: {
+      "@type": "Brand",
+      name: product.producerName || "PACT",
+    },
     offers: {
-      "@type": "AggregateOffer",
+      "@type": "Offer",
       availability: product.availableForSale
         ? "https://schema.org/InStock"
         : "https://schema.org/OutOfStock",
       priceCurrency: product.currencyCode,
-      highPrice: product.priceRange.maxVariantPrice.amount,
-      lowPrice: product.priceRange.minVariantPrice.amount,
+      price: product.priceRange.minVariantPrice.amount,
+      url: `https://pactwines.com/product/${handle}`,
+      seller: {
+        "@type": "Organization",
+        name: "PACT",
+      },
     },
+    ...(product.wineEnrichment && {
+      additionalProperty: [
+        product.wineEnrichment.grapeVarieties?.length
+          ? {
+              "@type": "PropertyValue",
+              name: "Grape variety",
+              value: product.wineEnrichment.grapeVarieties.join(", "),
+            }
+          : null,
+        product.wineEnrichment.appellation
+          ? {
+              "@type": "PropertyValue",
+              name: "Appellation",
+              value: product.wineEnrichment.appellation,
+            }
+          : null,
+        product.wineEnrichment.abv
+          ? {
+              "@type": "PropertyValue",
+              name: "Alcohol",
+              value: product.wineEnrichment.abv,
+            }
+          : null,
+        product.wineEnrichment.farming
+          ? {
+              "@type": "PropertyValue",
+              name: "Farming",
+              value: product.wineEnrichment.farming,
+            }
+          : null,
+      ].filter((item): item is { "@type": "PropertyValue"; name: string; value: string } =>
+        item != null,
+      ),
+    }),
   };
 
   let competitorOffers: Array<{
