@@ -96,7 +96,9 @@ export default async function ProductPage(props: {
     "@type": "Product",
     name: product.title,
     description: product.seo?.description || product.description || "",
-    image: product.featuredImage?.url,
+    image:
+      product.featuredImage?.url ??
+      "https://pactwines.com/pact-og-uploaded.jpg",
     url: `https://pactwines.com/product/${handle}`,
     brand: {
       "@type": "Brand",
