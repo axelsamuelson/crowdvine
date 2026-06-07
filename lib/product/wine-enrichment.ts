@@ -51,6 +51,36 @@ export function formatFarmingLabel(
   return translated !== msgKey ? translated : trimmed;
 }
 
+const PRODUCER_CERTIFICATION_LABELS: Record<
+  string,
+  Record<AppLocale, string>
+> = {
+  organic_certified: {
+    sv: "Ekologisk certifierad",
+    en: "Organic Certified",
+  },
+  biodynamic_certified: {
+    sv: "Biodynamisk",
+    en: "Biodynamic",
+  },
+  natural: {
+    sv: "Naturvin",
+    en: "Natural",
+  },
+};
+
+/** Locale-aware labels for producer profile certification enum. */
+export function formatProducerCertification(
+  value: string | null | undefined,
+  locale: AppLocale = "en",
+): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  const known = PRODUCER_CERTIFICATION_LABELS[trimmed]?.[locale];
+  if (known) return known;
+  return formatFarmingLabel(trimmed, locale);
+}
+
 export function formatFarmingAndAdditivesSpec(
   farming: string | null | undefined,
   additives: string | null | undefined,

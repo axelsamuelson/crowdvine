@@ -1,0 +1,118 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { cookies } from "next/headers";
+
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import {
+  extractWineText,
+  type WineLocale,
+} from "@/lib/i18n/wine-locale";
+import { generateProducerSlug } from "@/lib/producer-handle";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
+
+export const metadata: Metadata = {
+  title: "Producers | PACT",
+  description:
+    "Natural wine producers from Languedoc — imported directly to Stockholm.",
+};
+
+export const dynamic = "force-dynamic";
+
+type ProducerListRow = {
+  id: string;
+  name: string;
+  region: string | null;
+  subregion: string | null;
+  certification: string | null;
+  short_description: Record<string, string> | string | null;
+};
+
+function producerInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((w) => w[0] ?? "")
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+export default async function ProducersPage() {
+  const cookieStore = await cookies();
+  const rawLocale = cookieStore.get("pact_locale")?.value ?? "sv";
+  const locale: WineLocale = rawLocale === "en" ? "en" : "sv";
+
+  const sb = getSupabaseAdmin();
+  const { data: producersRaw } = await sb
+    .from("producers")
+    .select("id, name, region, subregion, certification, short_description")
+    .order("name");
+
+  const producers = (producersRaw ?? []) as ProducerListRow[];
+
+  return (
+    <div className="mx-auto max-w-5xl px-6 py-12">
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/shop">Shop</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Producers</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
+      <h1 className="mb-2 mt-6 text-3xl font-bold">Producers</h1>
+      <p className="mb-10 text-muted-foreground">
+        {producers.length} producers från Languedoc
+      </p>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {producers.map((producer) => {
+          const slug = generateProducerSlug(producer.name);
+          const bio = extractWineText(producer.short_description, locale);
+          const initials = producerInitials(producer.name);
+
+          return (
+            <Link
+              key={producer.id}
+              href={`/producer/${slug}`}
+              className="group overflow-hidden rounded-xl border bg-white transition-colors hover:border-zinc-400"
+            >
+              <div className="flex h-24 items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-950">
+                <span className="text-2xl font-bold text-white opacity-30">
+                  {initials}
+                </span>
+              </div>
+
+              <div className="p-4">
+                <h2 className="text-base font-semibold group-hover:underline">
+                  {producer.name}
+                </h2>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {producer.region}
+                  {producer.subregion ? ` · ${producer.subregion}` : ""}
+                </p>
+                {bio ? (
+                  <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                    {bio}
+                  </p>
+                ) : null}
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

@@ -58,7 +58,7 @@ export function ProductBreadcrumbs({
             <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link href={`/shop/${producerHandle}`} prefetch>
+                <Link href={`/producer/${producerHandle}`} prefetch>
                   {producer}
                 </Link>
               </BreadcrumbLink>

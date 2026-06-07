@@ -1,0 +1,2 @@
+-- Producer URL slugs are derived at runtime via generateProducerSlug(name).
+-- No dedicated slug column on producers.

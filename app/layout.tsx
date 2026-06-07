@@ -147,6 +147,7 @@ export default async function RootLayout({
         )}
         suppressHydrationWarning
       >
+        <NuqsAdapter>
         <B2BModeProvider isB2B={isDirtywineSite}>
           <SiteLogoProvider initialLogos={siteLogos}>
           <ShoppingContextProvider initialContext={shoppingContext}>
@@ -156,7 +157,6 @@ export default async function RootLayout({
                 <MobileMenuProvider>
                   <PortalProvider>
                     <MembershipProvider>
-                      <NuqsAdapter>
                       <main>
                         <VaulDrawerWrapper ssrPathname={ssrPathname}>
                           <ConditionalHeaderServer collections={collections} />
@@ -165,7 +165,6 @@ export default async function RootLayout({
                       </main>
                       {isDevelopment && <DebugGrid />}
                       <Toaster closeButton position="bottom-right" />
-                      </NuqsAdapter>
                     </MembershipProvider>
                   </PortalProvider>
                 </MobileMenuProvider>
@@ -176,6 +175,7 @@ export default async function RootLayout({
           </ShoppingContextProvider>
           </SiteLogoProvider>
         </B2BModeProvider>
+        </NuqsAdapter>
       </body>
     </html>
   );

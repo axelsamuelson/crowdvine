@@ -7,8 +7,7 @@ import { ProductsProvider } from "./providers/products-provider";
 import { CompleteOrderRail } from "@/components/cart/complete-order-rail";
 import { listPriceSources } from "@/lib/external-prices/db";
 
-// Enable ISR with 1 minute revalidation for the layout
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export default async function ShopLayout({
   children,

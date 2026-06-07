@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   Circle,
   Grape,
@@ -20,6 +21,7 @@ import {
   type EnrichmentSpecKey,
 } from "@/lib/product/wine-enrichment";
 import type { WineEnrichment } from "@/lib/shopify/types";
+import { generateProducerSlug } from "@/lib/producer-handle";
 import { wineColorDotClass } from "@/lib/wine-color";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { cn } from "@/lib/utils";
@@ -79,7 +81,18 @@ function SpecItem({
         <dt className={WINE_ENRICHMENT_SPEC_LABEL_CLASS}>
           {label}
         </dt>
-        <dd className="mt-0.5 text-sm leading-snug text-foreground">{value}</dd>
+        <dd className="mt-0.5 text-sm leading-snug text-foreground">
+          {specKey === "producer" ? (
+            <Link
+              href={`/producer/${generateProducerSlug(value)}`}
+              className="underline underline-offset-2"
+            >
+              {value}
+            </Link>
+          ) : (
+            value
+          )}
+        </dd>
       </div>
     </div>
   );
