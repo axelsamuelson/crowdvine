@@ -1,7 +1,7 @@
 import { Suspense, type ReactNode } from "react";
 import { CartSourceProviderConditional } from "@/components/cart/cart-source-provider-conditional";
 import { AddToCartConditional } from "@/components/cart/add-to-cart-conditional";
-import { PageLayout } from "@/components/layout/page-layout";
+import { PageLayoutServer } from "@/components/layout/page-layout-server";
 import { PalletStatusBar } from "@/components/pdp/pallet-status-bar";
 import { PalletZoneStatusProvider } from "@/components/pdp/pallet-zone-status-provider";
 import Prose from "@/components/prose";
@@ -51,7 +51,7 @@ export function ProductPdpLayout({
 }: ProductPdpLayoutProps) {
   return (
     <CartSourceProviderConditional>
-      <PageLayout className="bg-muted" noPadding>
+      <PageLayoutServer className="bg-muted" noPadding>
         {devPreview}
 
         <div className="flex min-h-max flex-col md:grid md:grid-cols-12 md:gap-sides">
@@ -147,7 +147,7 @@ export function ProductPdpLayout({
         {recommendations && recommendations.items.length > 0 ? (
           <PdpRecommendationsSection recommendations={recommendations} />
         ) : null}
-      </PageLayout>
+      </PageLayoutServer>
     </CartSourceProviderConditional>
   );
 }

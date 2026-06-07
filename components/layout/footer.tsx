@@ -7,11 +7,12 @@ import Link from "next/link";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { FooterShoppingContext } from "@/components/market/header-shopping-context";
 import { useB2BModeServerHint } from "@/lib/context/b2b-mode-context";
+import type { SiteLogos } from "@/lib/context/site-logo-provider";
 
 const footerLogoClass =
   "h-[5.5rem] w-auto max-w-[360px] text-background sm:h-28 sm:max-w-[440px] md:h-32 md:max-w-[520px]";
 
-export function Footer() {
+export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
   const { t } = useTranslations();
   const isDirtywineSite = useB2BModeServerHint();
   const year = new Date().getFullYear();
@@ -21,7 +22,7 @@ export function Footer() {
       <div className="w-full md:min-h-[420px] p-sides md:p-11 text-background bg-foreground rounded-[12px] flex flex-col justify-between gap-10 max-md:gap-8">
         <div className="flex flex-col gap-8">
           <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between md:gap-10 lg:gap-16">
-            <FooterLogoSvg className={footerLogoClass} />
+            <FooterLogoSvg className={footerLogoClass} initialLogos={initialLogos} />
 
             <div className="flex min-w-0 flex-col gap-6 sm:flex-row sm:items-start sm:gap-10 lg:gap-14 md:pt-0.5">
               <nav className="min-w-0">

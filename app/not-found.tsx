@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { PageLayout } from "@/components/layout/page-layout";
+import { PageLayoutServer } from "@/components/layout/page-layout-server";
 
 export default function NotFound() {
   return (
-    <PageLayout>
+    <PageLayoutServer>
       <div className="min-h-[90vh] flex items-center justify-center px-4">
         <div className="text-center max-w-md mx-auto">
           <div className="mb-8">
@@ -21,6 +21,6 @@ export default function NotFound() {
           </div>
         </div>
       </div>
-    </PageLayout>
+    </PageLayoutServer>
   );
 }

@@ -5,6 +5,7 @@ export const storeCatalog = {
 };
 
 export const sortOptions = [
+  { label: "Most-Popular", value: "most-popular" },
   { label: "Price-Low", value: "price-asc" },
   { label: "Price-High", value: "price-desc" },
   { label: "Newest", value: "newest" },
@@ -17,6 +18,10 @@ export const stockSortOptions = [
   { label: "Out of stock", value: "out-of-stock" },
 ];
 
-export const DEFAULT_PAGE_SIZE = 24;
+/** Default PLP sort when `?sort=` is absent (B2C pactwines.com). */
+export const DEFAULT_B2C_SHOP_SORT = "most-popular";
+
+/** Default PLP sort when `?sort=` is absent (B2B dirtywine.se). */
+export const DEFAULT_B2B_SHOP_SORT = "in-stock";
 
 export const DEFAULT_SORT_KEY = "RELEVANCE";

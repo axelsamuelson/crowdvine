@@ -80,3 +80,31 @@ export function sekToDisplayAmount(
     ctx.sekToDisplayRate,
   );
 }
+
+/** Format a product list price, preferring canonical SEK storage over pre-converted amounts. */
+export function formatProductListPrice(
+  params: {
+    amount: number;
+    listCurrencyCode: string;
+    basePriceSek?: number | null;
+  },
+  ctx: FormatMoneyContext,
+  options?: { decimals?: DisplayMoneyDecimals; round?: "ceil" | "round" },
+): string {
+  if (params.basePriceSek != null && Number.isFinite(params.basePriceSek)) {
+    return formatSekAsDisplayMoney(params.basePriceSek, ctx, options);
+  }
+
+  const listCode = params.listCurrencyCode.trim().toUpperCase();
+  const ctxCode = ctx.currencyCode.trim().toUpperCase();
+
+  if (listCode === "SEK") {
+    return formatSekAsDisplayMoney(params.amount, ctx, options);
+  }
+  if (listCode === ctxCode) {
+    return formatDisplayMoney(params.amount, ctx, options);
+  }
+
+  // Amount is in a foreign currency — format with that currency, not the shopper context.
+  return formatMoney(params.amount, listCode, ctx.locale, options);
+}

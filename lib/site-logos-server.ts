@@ -1,5 +1,6 @@
 import { getSiteContentByKey } from "@/lib/actions/content";
 import { resolveLogoKeyByHost } from "@/lib/content-logo-utils";
+import { headers } from "next/headers";
 
 type LogoSearchParams = { get: (key: string) => string | null } | null;
 
@@ -29,4 +30,14 @@ export async function resolveSiteLogosFromRequest(options: {
   ]);
 
   return { headerLogo, footerLogo };
+}
+
+export async function resolveSiteLogosFromHeaders(): Promise<{
+  headerLogo: string | null;
+  footerLogo: string | null;
+}> {
+  const requestHeaders = await headers();
+  const host =
+    requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+  return resolveSiteLogosFromRequest({ host });
 }

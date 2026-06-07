@@ -1,4 +1,5 @@
 const SORT_KEYS: Record<string, string> = {
+  "most-popular": "shop.sortMostPopular",
   "price-asc": "shop.sortPriceLow",
   "price-desc": "shop.sortPriceHigh",
   newest: "shop.sortNewest",

@@ -12,7 +12,17 @@ import { ProductListContent } from "./product-list-content";
 import { mapSortKeys } from "@/lib/shopify/utils";
 import { headers } from "next/headers";
 import { isB2BHost } from "@/lib/b2b-site";
+import {
+  DEFAULT_B2B_SHOP_SORT,
+  DEFAULT_B2C_SHOP_SORT,
+} from "@/lib/shopify/constants";
 import { getSourceSlugsByWineIds } from "@/lib/external-prices/db";
+import {
+  getProductViewStatsByWineId,
+  sortProductsByPopularity,
+} from "@/lib/analytics/product-view-stats";
+import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
+import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
 
 function sortProductsByStock(products: Product[], inStockFirst: boolean): Product[] {
   return [...products].sort((a, b) => {
@@ -44,7 +54,16 @@ export default async function ProductList({
       : undefined;
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host");
-  if (isB2BHost(host) && !sort) sort = "in-stock";
+  const shoppingContext = await getShoppingContextFromRequest().catch(() =>
+    fallbackShoppingContext(),
+  );
+  const productCurrencyParams = {
+    displayCurrencyCode: shoppingContext.currencyCode,
+    sekToDisplayRate: shoppingContext.sekToDisplayRate,
+  };
+  if (!sort) {
+    sort = isB2BHost(host) ? DEFAULT_B2B_SHOP_SORT : DEFAULT_B2C_SHOP_SORT;
+  }
   const producers =
     typeof (await searchParams)?.producers === "string"
       ? (await searchParams).producers.split(",").filter(Boolean)
@@ -56,7 +75,8 @@ export default async function ProductList({
     !collection;
 
   const isStockSort = sort === "in-stock" || sort === "out-of-stock";
-  const effectiveSort = isStockSort ? undefined : sort;
+  const isPopularSort = sort === "most-popular";
+  const effectiveSort = isStockSort || isPopularSort ? undefined : sort;
   const { sortKey, reverse } = isRootCollection
     ? mapSortKeys(effectiveSort, "product")
     : mapSortKeys(effectiveSort, "collection");
@@ -76,6 +96,7 @@ export default async function ProductList({
             sortKey: sortKey as ProductCollectionSortKey,
             reverse,
             host,
+            ...productCurrencyParams,
           });
           allProducts.push(...producerProducts);
         } catch (error) {
@@ -93,6 +114,7 @@ export default async function ProductList({
         query,
         reverse,
         host,
+        ...productCurrencyParams,
       });
     } else {
       products = await getCollectionProducts({
@@ -101,6 +123,7 @@ export default async function ProductList({
         sortKey: sortKey as ProductCollectionSortKey,
         reverse,
         host,
+        ...productCurrencyParams,
       });
     }
   } catch (error) {
@@ -113,6 +136,15 @@ export default async function ProductList({
       products,
       sort === "in-stock",
     );
+  }
+
+  if (isPopularSort) {
+    try {
+      const viewStats = await getProductViewStatsByWineId();
+      products = sortProductsByPopularity(products, viewStats);
+    } catch (error) {
+      console.warn("Error sorting products by popularity:", error);
+    }
   }
 
   let collections: Awaited<ReturnType<typeof getCollections>> = [];

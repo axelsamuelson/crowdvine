@@ -17,6 +17,8 @@ import { cn } from "@/lib/utils";
 interface MemberPriceProps {
   amount: string | number;
   currencyCode: string;
+  /** Canonical SEK list price inkl. moms — avoids display-currency mismatch on shop cards. */
+  basePriceSek?: number | null;
   className?: string;
   showBadge?: boolean;
   /** When set and in B2B mode, use this exkl moms price instead of deriving from amount */
@@ -33,15 +35,6 @@ interface MemberPriceProps {
   badgeRightOnMobile?: boolean;
   /** Shown under price when excl. VAT applies (B2B). Default "exkl. moms"; set e.g. "excl. VAT" on English PDP. */
   vatExcludedShortLabel?: string;
-}
-
-function isListPriceStoredInSek(
-  currencyCode: string,
-  showExclVat: boolean,
-  priceExclVatOverride?: number,
-): boolean {
-  if (showExclVat && priceExclVatOverride != null) return true;
-  return currencyCode.trim().toUpperCase() === "SEK";
 }
 
 interface DiscountPriceLayoutProps {
@@ -140,6 +133,7 @@ function DiscountPriceLayout({
 export function MemberPrice({
   amount,
   currencyCode,
+  basePriceSek,
   className = "",
   showBadge = false,
   priceExclVatOverride,
@@ -151,7 +145,7 @@ export function MemberPrice({
   vatExcludedShortLabel,
 }: MemberPriceProps) {
   const { t } = useTranslations();
-  const { formatDisplay, formatSek } = useDisplayMoney();
+  const { formatSek, formatProductPrice } = useDisplayMoney();
   const { level, loading } = useMembership();
   const discountPercentage = useMembershipDiscountPercent();
   const isB2BMode = useB2BPriceMode();
@@ -189,6 +183,25 @@ export function MemberPrice({
     badgeText,
   });
 
+  const parsedAmount =
+    typeof amount === "string" ? parseFloat(amount) : amount;
+
+  const listPriceSek =
+    basePriceSek != null && Number.isFinite(basePriceSek)
+      ? basePriceSek
+      : currencyCode.trim().toUpperCase() === "SEK"
+        ? parsedAmount
+        : null;
+
+  const formatListPrice = (value: number) =>
+    listPriceSek != null
+      ? formatSek(value)
+      : formatProductPrice({
+          amount: value,
+          listCurrencyCode: currencyCode,
+          basePriceSek: listPriceSek,
+        });
+
   if (calculatedTotalPrice != null) {
     const displayPrice = calculatedTotalPrice;
     const hasDiscount = discountPercentage > 0;
@@ -211,40 +224,25 @@ export function MemberPrice({
     const originalPrice =
       showExclVat && priceExclVatOverride != null
         ? priceExclVatOverride
-        : typeof amount === "string"
-          ? parseFloat(amount)
-          : amount;
-
-    const formatOriginalPrice = isListPriceStoredInSek(
-      currencyCode,
-      showExclVat,
-      priceExclVatOverride,
-    )
-      ? formatSek
-      : formatDisplay;
+        : listPriceSek ?? parsedAmount;
 
     return (
       <DiscountPriceLayout
         {...discountLayoutProps(
           formatSek(displayPrice),
-          formatOriginalPrice(originalPrice),
+          listPriceSek != null || showExclVat
+            ? formatSek(originalPrice)
+            : formatListPrice(originalPrice),
         )}
       />
     );
   }
 
-  const originalPrice =
-    typeof amount === "string" ? parseFloat(amount) : amount;
   const displayPrice =
     showExclVat
-      ? (priceExclVatOverride ?? priceExclVat(originalPrice))
-      : originalPrice;
-  const displayPriceIsSek = isListPriceStoredInSek(
-    currencyCode,
-    showExclVat,
-    priceExclVatOverride,
-  );
-  const formatDisplayPrice = displayPriceIsSek ? formatSek : formatDisplay;
+      ? (priceExclVatOverride ?? (listPriceSek != null ? priceExclVat(listPriceSek) : priceExclVat(parsedAmount)))
+      : (listPriceSek ?? parsedAmount);
+
   const hasDiscount = discountPercentage > 0;
 
   const discountedPrice = hasDiscount
@@ -261,7 +259,7 @@ export function MemberPrice({
     return (
       <span className={className}>
         <span className="flex flex-col">
-          <span>{formatDisplayPrice(displayPrice)}</span>
+          <span>{formatListPrice(displayPrice)}</span>
           {showVatLabel ? (
             <span className="text-[8px] font-normal text-muted-foreground md:text-[10px]">
               {vatLabel}
@@ -275,8 +273,8 @@ export function MemberPrice({
   return (
     <DiscountPriceLayout
       {...discountLayoutProps(
-        formatDisplayPrice(discountedPrice),
-        formatDisplayPrice(displayPrice),
+        formatListPrice(discountedPrice),
+        formatListPrice(displayPrice),
       )}
     />
   );

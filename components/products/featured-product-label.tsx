@@ -9,6 +9,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { formatPrice } from "@/lib/shopify/utils";
 import { MemberPrice } from "@/components/ui/member-price";
+import { getProductListPriceSek } from "@/lib/price-breakdown";
 
 export function FeaturedProductLabel({
   product,
@@ -20,6 +21,7 @@ export function FeaturedProductLabel({
   className?: string;
 }) {
   const { t } = useTranslations();
+  const listPriceSek = getProductListPriceSek(product);
 
   if (principal) {
     return (
@@ -59,6 +61,7 @@ export function FeaturedProductLabel({
           <MemberPrice
             amount={product.priceRange.minVariantPrice.amount}
             currencyCode={product.priceRange.minVariantPrice.currencyCode}
+            basePriceSek={listPriceSek ?? undefined}
             className="text-2xl font-semibold"
             showBadge={true}
           />
@@ -113,6 +116,7 @@ export function FeaturedProductLabel({
           <MemberPrice
             amount={product.priceRange.minVariantPrice.amount}
             currencyCode={product.priceRange.minVariantPrice.currencyCode}
+            basePriceSek={listPriceSek ?? undefined}
             className="text-base font-semibold"
             showBadge={true}
           />

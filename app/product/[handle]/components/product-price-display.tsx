@@ -7,6 +7,7 @@ import { formatPrice } from "@/lib/shopify/utils";
 import { useCartSource } from "@/components/cart/cart-source-context";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { getProductListPriceSek } from "@/lib/price-breakdown";
 
 interface ProductPriceDisplayProps {
   product: Product;
@@ -30,6 +31,7 @@ export function ProductPriceDisplay({
   const { selectedSource } = useCartSource();
   const isB2B = useB2BPriceMode();
   const breakdown = useProductPrice(product, selectedSource);
+  const listPriceSek = getProductListPriceSek(product);
 
   // On B2C sites (pactwines.com), show price inkl. moms
   // On B2B sites (dirtywine.se), show price exkl. moms
@@ -51,6 +53,7 @@ export function ProductPriceDisplay({
         <MemberPrice
           amount={product.priceRange.minVariantPrice.amount}
           currencyCode={product.priceRange.minVariantPrice.currencyCode}
+          basePriceSek={listPriceSek ?? undefined}
           className={className}
           showBadge={showMembershipBadge}
           priceExclVatOverride={priceExclVat}
@@ -66,6 +69,7 @@ export function ProductPriceDisplay({
         <MemberPrice
           amount={product.priceRange.minVariantPrice.amount}
           currencyCode={product.priceRange.minVariantPrice.currencyCode}
+          basePriceSek={listPriceSek ?? undefined}
           className={className}
           showBadge={showMembershipBadge}
           calculatedTotalPrice={breakdown.total}
@@ -83,6 +87,7 @@ export function ProductPriceDisplay({
     <MemberPrice
       amount={product.priceRange.minVariantPrice.amount}
       currencyCode={product.priceRange.minVariantPrice.currencyCode}
+      basePriceSek={listPriceSek ?? undefined}
       className={className}
       showBadge={showMembershipBadge}
       priceExclVatOverride={

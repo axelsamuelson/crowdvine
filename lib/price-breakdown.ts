@@ -23,6 +23,15 @@ export function getProductBasePriceCents(product: {
   return Math.round(Number(product.priceRange?.minVariantPrice?.amount ?? 0) * 100);
 }
 
+/** SEK list price in whole units for display; null when only a foreign-currency amount exists. */
+export function getProductListPriceSek(product: {
+  priceBreakdown?: { basePriceCents?: number };
+  priceRange?: { minVariantPrice?: { amount: string | number } };
+}): number | null {
+  const cents = getProductBasePriceCents(product);
+  return cents > 0 ? cents / 100 : null;
+}
+
 /** B2B price exkl moms: (costInSek + shippingPerBottleSek) / (1 - b2b_margin/100) */
 export function calculateB2BPriceExclVat(
   costAmount: number,

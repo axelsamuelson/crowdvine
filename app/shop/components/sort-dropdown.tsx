@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useQueryState, parseAsString } from "nuqs";
 import { cn } from "@/lib/utils";
-import { sortOptions, stockSortOptions } from "@/lib/shopify/constants";
+import { sortOptions, stockSortOptions, DEFAULT_B2C_SHOP_SORT, DEFAULT_B2B_SHOP_SORT } from "@/lib/shopify/constants";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { sortOptionMessageKey } from "@/lib/i18n/sort-labels";
@@ -59,7 +59,8 @@ export function SortDropdown({ className }: SortDropdownProps) {
   }, []);
 
   const safeIsB2B = isMounted ? isB2B : false;
-  const displayValue = sort ?? (safeIsB2B ? "in-stock" : undefined);
+  const displayValue =
+    sort ?? (safeIsB2B ? DEFAULT_B2B_SHOP_SORT : DEFAULT_B2C_SHOP_SORT);
   const allOptions = safeIsB2B
     ? [...stockSortOptions, ...sortOptions]
     : sortOptions;

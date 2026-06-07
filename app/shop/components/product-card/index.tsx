@@ -24,6 +24,7 @@ import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { ColorSwatch } from "@/components/ui/color-picker";
 import { getColorHex, cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { getProductListPriceSek } from "@/lib/price-breakdown";
 
 // ============================================================================
 // DEBUG: Scroll isolation flags
@@ -160,6 +161,7 @@ export const ProductCard = memo(
     Boolean(product.producerId);
 
   const showMembershipBadge = !showMembershipTab;
+  const listPriceSek = getProductListPriceSek(product);
   const showTopTabs = showMembershipTab || recommendationReason != null;
 
   // Keep overlay visible until another product card is activated
@@ -767,6 +769,7 @@ export const ProductCard = memo(
             <MemberPrice
               amount={product.priceRange.minVariantPrice.amount}
               currencyCode={product.priceRange.minVariantPrice.currencyCode}
+              basePriceSek={listPriceSek ?? undefined}
               className="text-[9px] md:text-sm uppercase 2xl:text-base"
               showBadge={showMembershipBadge}
               compactOnMobile={true}
@@ -819,6 +822,7 @@ export const ProductCard = memo(
                   <MemberPrice
                     amount={product.priceRange.minVariantPrice.amount}
                     currencyCode={product.priceRange.minVariantPrice.currencyCode}
+              basePriceSek={listPriceSek ?? undefined}
                     className="text-xs font-semibold sm:text-sm"
                     showBadge={showMembershipBadge}
                     badgeRightOnMobile={true}
@@ -896,6 +900,7 @@ export const ProductCard = memo(
                   <MemberPrice
                     amount={product.priceRange.minVariantPrice.amount}
                     currencyCode={product.priceRange.minVariantPrice.currencyCode}
+              basePriceSek={listPriceSek ?? undefined}
                     className="text-xs font-semibold sm:text-sm"
                     showBadge={showMembershipBadge}
                     badgeRightOnMobile={true}
@@ -992,6 +997,7 @@ export const ProductCard = memo(
               <MemberPrice
                 amount={product.priceRange.minVariantPrice.amount}
                 currencyCode={product.priceRange.minVariantPrice.currencyCode}
+              basePriceSek={listPriceSek ?? undefined}
                 className="text-lg font-semibold"
                 showBadge={showMembershipBadge}
                 priceExclVatOverride={

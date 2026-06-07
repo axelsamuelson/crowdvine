@@ -1,7 +1,10 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useSiteLogosOptional } from "@/lib/context/site-logo-provider";
+import {
+  useSiteLogosOptional,
+  type SiteLogos,
+} from "@/lib/context/site-logo-provider";
 import { logoUrlWithVersion } from "@/lib/site-logos-utils";
 
 export function clearLogoCache() {
@@ -42,9 +45,16 @@ function LogoImage({
   );
 }
 
-export function LogoSvg({ className }: { className?: string }) {
+export function LogoSvg({
+  className,
+  initialLogos,
+}: {
+  className?: string;
+  initialLogos?: SiteLogos;
+}) {
   const logos = useSiteLogosOptional();
-  const headerLogo = logos?.headerLogo ?? null;
+  const headerLogo =
+    logos?.headerLogo ?? initialLogos?.headerLogo ?? null;
 
   if (headerLogo) {
     return (

@@ -6,6 +6,7 @@ import { PriceBreakdown } from "./price-breakdown";
 import {
   calculatePriceBreakdown,
   getProductBasePriceCents,
+  getProductListPriceSek,
   PriceBreakdownResult,
 } from "@/lib/price-breakdown";
 import { useMembership } from "@/lib/context/membership-context";
@@ -20,6 +21,7 @@ interface PriceWithBreakdownProps {
 export function PriceWithBreakdown({ product }: PriceWithBreakdownProps) {
   const { loading } = useMembership();
   const discountPercentage = useMembershipDiscountPercent();
+  const listPriceSek = getProductListPriceSek(product);
   const [breakdown, setBreakdown] = useState<PriceBreakdownResult | null>(null);
   const [breakdownLoading, setBreakdownLoading] = useState(false);
 
@@ -29,6 +31,7 @@ export function PriceWithBreakdown({ product }: PriceWithBreakdownProps) {
       <MemberPrice
         amount={product.priceRange.minVariantPrice.amount}
         currencyCode={product.priceRange.minVariantPrice.currencyCode}
+        basePriceSek={listPriceSek ?? undefined}
         className="text-lg font-semibold lg:text-xl 2xl:text-2xl"
         showBadge={true}
         priceExclVatOverride={(product as any).b2bPriceExclVat}
@@ -74,6 +77,7 @@ export function PriceWithBreakdown({ product }: PriceWithBreakdownProps) {
       <MemberPrice
         amount={product.priceRange.minVariantPrice.amount}
         currencyCode={product.priceRange.minVariantPrice.currencyCode}
+        basePriceSek={listPriceSek ?? undefined}
         className="text-lg font-semibold lg:text-xl 2xl:text-2xl"
         showBadge={true}
         calculatedTotalPrice={breakdown?.total}

@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
 /** Routes that use vaul Drawer and need the scale-background wrapper. */
@@ -44,22 +43,12 @@ export function VaulDrawerWrapper({
   ssrPathname: string;
 }) {
   const pathname = usePathname();
-  const [needsVaulWrapper, setNeedsVaulWrapper] = useState(() =>
-    pathnameNeedsVaulDrawerWrapper(ssrPathname),
-  );
+  const activePathname = pathname || ssrPathname;
+  const needsVaulWrapper = pathnameNeedsVaulDrawerWrapper(activePathname);
 
-  useEffect(() => {
-    setNeedsVaulWrapper(
-      pathnameNeedsVaulDrawerWrapper(pathname ?? ssrPathname),
-    );
-  }, [pathname, ssrPathname]);
+  if (!needsVaulWrapper) {
+    return <>{children}</>;
+  }
 
-  return (
-    <div
-      data-vaul-drawer-wrapper={needsVaulWrapper ? "true" : undefined}
-      className={needsVaulWrapper ? undefined : "contents"}
-    >
-      {children}
-    </div>
-  );
+  return <div data-vaul-drawer-wrapper="true">{children}</div>;
 }

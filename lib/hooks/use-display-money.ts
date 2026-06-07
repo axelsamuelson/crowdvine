@@ -5,6 +5,7 @@ import { useShoppingContextOptional } from "@/lib/context/shopping-context-provi
 import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
 import {
   formatDisplayMoney,
+  formatProductListPrice,
   formatSekAsDisplayMoney,
   sekToDisplayAmount,
   type FormatMoneyContext,
@@ -44,12 +45,25 @@ export function useDisplayMoney() {
     [moneyCtx],
   );
 
+  const formatProductPrice = useCallback(
+    (
+      params: {
+        amount: number;
+        listCurrencyCode: string;
+        basePriceSek?: number | null;
+      },
+      options?: { decimals?: 0 | 1 | 2; round?: "ceil" | "round" },
+    ) => formatProductListPrice(params, moneyCtx, options),
+    [moneyCtx],
+  );
+
   return {
     currencyCode: ctx.currencyCode,
     locale: ctx.locale,
     sekToDisplayRate: ctx.sekToDisplayRate,
     formatDisplay,
     formatSek,
+    formatProductPrice,
     toDisplay,
   };
 }

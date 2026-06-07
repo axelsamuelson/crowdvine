@@ -117,12 +117,12 @@ export async function resolveDefaultGeoZone(): Promise<ResolvedActiveGeoZone> {
 
 /**
  * Active shopping geo for a logged-in user.
- * A) user_zone_preferences.active_geo_zone_id when active, not disabled, and matches profile country
+ * A) user_zone_preferences.active_geo_zone_id when active and not disabled
  * B) resolveGeoZone from profile country/region/city
  * C) default Stockholm / Sweden geo
  *
- * Saved preferences in another country than the profile are ignored (and repaired) so a
- * stale US zone does not override a Swedish profile.
+ * Explicit zone preferences always win when valid so shoppers can pick e.g. Los Angeles
+ * without changing their profile country.
  */
 export async function resolveActiveGeoZoneForUser(
   userId: string,
@@ -142,18 +142,12 @@ export async function resolveActiveGeoZoneForUser(
       .maybeSingle(),
   ]);
 
-  const profileCc = getCountryCodeFromProfileCountry(
-    typeof prof?.country === "string" ? prof.country : "",
-  );
-
   const prefRaw = (pref as { active_geo_zone_id?: unknown } | null)
     ?.active_geo_zone_id;
   const prefId =
     prefRaw != null && String(prefRaw).trim() !== ""
       ? String(prefRaw).trim()
       : null;
-
-  let ignoredPrefDueToCountryMismatch = false;
 
   if (prefId) {
     const { data: gz } = await sb
@@ -169,48 +163,13 @@ export async function resolveActiveGeoZoneForUser(
         const isActive = Boolean(row.is_active);
         const elig = String(row.eligibility_status ?? "").toLowerCase();
         if (isActive && elig !== "disabled") {
-          const prefZone = dbRowToActive(row, "preference");
-          const prefCc = prefZone.countryCode.trim().toUpperCase();
-          const profileCcUpper = profileCc?.trim().toUpperCase() ?? "";
-          const profileCountryMismatch =
-            profileCcUpper.length === 2 && prefCc !== profileCcUpper;
-          if (!profileCountryMismatch) {
-            return prefZone;
-          }
-          ignoredPrefDueToCountryMismatch = true;
+          return dbRowToActive(row, "preference");
         }
       }
     }
   }
 
-  const fromProfile = await resolveActiveGeoZoneFromProfile(
-    sb,
-    prof,
-    profErr,
-  );
-
-  if (
-    ignoredPrefDueToCountryMismatch &&
-    fromProfile.geoZoneId &&
-    fromProfile.source !== "default"
-  ) {
-    const { error: repairErr } = await sb.from("user_zone_preferences").upsert(
-      {
-        user_id: userId,
-        active_geo_zone_id: fromProfile.geoZoneId,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id" },
-    );
-    if (repairErr) {
-      console.warn(
-        "[resolveActiveGeoZoneForUser] preference repair:",
-        repairErr.message,
-      );
-    }
-  }
-
-  return fromProfile;
+  return resolveActiveGeoZoneFromProfile(sb, prof, profErr);
 }
 
 async function resolveActiveGeoZoneFromProfile(

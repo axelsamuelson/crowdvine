@@ -39,7 +39,10 @@ import { getIsDirtywineSiteFromHeaders } from "@/lib/b2b-site-server";
 import { B2BModeProvider } from "@/lib/context/b2b-mode-context";
 import { ShoppingContextProvider } from "@/lib/context/shopping-context-provider";
 import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
-import { isPublicAppPath } from "@/lib/auth/public-paths";
+import {
+  isPublicAppPath,
+  publicPathUsesUserShoppingContext,
+} from "@/lib/auth/public-paths";
 import { SiteLogoProvider } from "@/lib/context/site-logo-provider";
 import { resolveSiteLogosFromRequest } from "@/lib/site-logos-server";
 import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
@@ -140,7 +143,9 @@ export default async function RootLayout({
   let shoppingContext = fallbackShoppingContext();
   try {
     shoppingContext = await getShoppingContextFromRequest({
-      skipUser: isPublicAppPath(ssrPathname),
+      skipUser:
+        isPublicAppPath(ssrPathname) &&
+        !publicPathUsesUserShoppingContext(ssrPathname),
     });
   } catch (error) {
     console.warn("Failed to resolve shopping context in layout:", error);
@@ -178,7 +183,10 @@ export default async function RootLayout({
                     <MembershipProvider>
                       <main>
                         <VaulDrawerWrapper ssrPathname={ssrPathname}>
-                          <ConditionalHeaderServer collections={collections} />
+                          <ConditionalHeaderServer
+                            collections={collections}
+                            ssrPathname={ssrPathname}
+                          />
                           {children}
                         </VaulDrawerWrapper>
                       </main>

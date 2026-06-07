@@ -31,6 +31,13 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function Home() {
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host");
+  const shoppingContext = await getShoppingContextFromRequest().catch(() =>
+    fallbackShoppingContext(),
+  );
+  const productCurrencyParams = {
+    displayCurrencyCode: shoppingContext.currencyCode,
+    sekToDisplayRate: shoppingContext.sekToDisplayRate,
+  };
 
   let collections = [];
   try {
@@ -50,16 +57,17 @@ export default async function Home() {
         sortKey: "CREATED_AT",
         reverse: true,
         host,
+        ...productCurrencyParams,
       });
     } else {
-      const allProducts = await getProducts({ host });
+      const allProducts = await getProducts({ host, ...productCurrencyParams });
       featuredProducts = allProducts.slice(0, 8);
     }
   } catch (error) {
     console.error("Error fetching featured products:", error);
     // Fallback to all products if collection products fail
     try {
-      const allProducts = await getProducts({ host });
+      const allProducts = await getProducts({ host, ...productCurrencyParams });
       featuredProducts = allProducts.slice(0, 8);
     } catch (fallbackError) {
       console.error("Error fetching fallback products:", fallbackError);

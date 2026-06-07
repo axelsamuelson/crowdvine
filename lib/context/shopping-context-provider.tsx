@@ -22,6 +22,7 @@ import {
   activeZoneFromChangedEvent,
 } from "@/lib/events/active-zone-changed";
 import { applyLocalePolicyToContext } from "@/lib/shopping-context/apply-locale-policy";
+import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
 import {
   fallbackSekToDisplayRate,
   resolveDisplayCurrencyCode,
@@ -48,6 +49,17 @@ function isFetchAbortError(error: unknown): boolean {
 function setLocaleCookie(locale: AppLocale) {
   const maxAge = 60 * 60 * 24 * 365;
   document.cookie = `${LOCALE_COOKIE}=${locale};path=/;max-age=${maxAge};SameSite=Lax`;
+}
+
+function createFallbackShoppingContextValue(
+  context: ShoppingContext = fallbackShoppingContext(),
+): ShoppingContextValue {
+  return {
+    context,
+    setLocale: async () => {},
+    refresh: async () => {},
+    t: (key, params) => translate(context.locale, key, params),
+  };
 }
 
 export function ShoppingContextProvider({
@@ -181,10 +193,9 @@ export function ShoppingContextProvider({
 
 export function useShoppingContext(): ShoppingContextValue {
   const ctx = useContext(ShoppingContextReact);
-  if (!ctx) {
-    throw new Error("useShoppingContext must be used within ShoppingContextProvider");
-  }
-  return ctx;
+  if (ctx) return ctx;
+  // Client pages can SSR before the provider client boundary is active (Next.js 16).
+  return createFallbackShoppingContextValue();
 }
 
 /** Safe when provider is absent (e.g. admin-only subtrees). */

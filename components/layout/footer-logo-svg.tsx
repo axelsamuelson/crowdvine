@@ -2,7 +2,10 @@
 
 import { cn } from "@/lib/utils";
 import { logoUrlWithVersion } from "@/lib/site-logos-utils";
-import { useSiteLogosOptional } from "@/lib/context/site-logo-provider";
+import {
+  useSiteLogosOptional,
+  type SiteLogos,
+} from "@/lib/context/site-logo-provider";
 
 export function clearFooterLogoCache() {
   window.dispatchEvent(new CustomEvent("footerLogoCacheCleared"));
@@ -42,10 +45,18 @@ function LogoImage({
   );
 }
 
-export function FooterLogoSvg({ className }: { className?: string }) {
+export function FooterLogoSvg({
+  className,
+  initialLogos,
+}: {
+  className?: string;
+  initialLogos?: SiteLogos;
+}) {
   const logos = useSiteLogosOptional();
-  const footerLogo = logos?.footerLogo ?? null;
-  const headerLogo = logos?.headerLogo ?? null;
+  const footerLogo =
+    logos?.footerLogo ?? initialLogos?.footerLogo ?? null;
+  const headerLogo =
+    logos?.headerLogo ?? initialLogos?.headerLogo ?? null;
   const logoUrl = footerLogo ?? headerLogo;
 
   if (logoUrl) {

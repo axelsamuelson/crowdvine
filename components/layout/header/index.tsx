@@ -16,13 +16,19 @@ import { useUserRole } from "@/lib/hooks/use-user-role";
 import { usePortalAccess } from "@/lib/hooks/use-portal-access";
 import { useAdminStatus } from "@/lib/hooks/use-admin-status";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import type { SiteLogos } from "@/lib/context/site-logo-provider";
 
 interface HeaderProps {
   collections: Collection[];
   isDirtywineSite: boolean;
+  initialLogos?: SiteLogos;
 }
 
-export function Header({ collections, isDirtywineSite }: HeaderProps) {
+export function Header({
+  collections,
+  isDirtywineSite,
+  initialLogos,
+}: HeaderProps) {
   const { t } = useTranslations();
   const pathname = usePathname();
   const navItems: NavItem[] = [
@@ -55,7 +61,7 @@ export function Header({ collections, isDirtywineSite }: HeaderProps) {
         className="md:col-span-3 xl:col-span-2 flex justify-center md:justify-start"
         prefetch
       >
-        <LogoSvg className="h-8 md:h-12 w-auto" />
+        <LogoSvg className="h-8 md:h-12 w-auto" initialLogos={initialLogos} />
       </Link>
       <nav className="flex gap-2 justify-end items-center md:col-span-9 xl:col-span-10">
         <div className="items-center gap-5 py-0.5 pr-3 bg-transparent hidden md:flex min-w-0">

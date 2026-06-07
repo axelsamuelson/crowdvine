@@ -32,3 +32,17 @@ export function isPublicAppPath(pathname: string): boolean {
     (p) => pathname === p || pathname.startsWith(`${p}/`),
   );
 }
+
+/** Public routes that still need the signed-in user's geo zone for correct prices. */
+export function publicPathUsesUserShoppingContext(pathname: string): boolean {
+  if (
+    pathname === "/" ||
+    pathname === "/shop" ||
+    pathname.startsWith("/shop/")
+  ) {
+    return true;
+  }
+  if (pathname.startsWith("/product/")) return true;
+  if (pathname.startsWith("/checkout")) return true;
+  return false;
+}

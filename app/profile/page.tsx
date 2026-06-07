@@ -32,8 +32,8 @@ import { getLevelDisplayName, MembershipLevel } from "@/lib/membership/points-en
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { useFormatPrice } from "@/lib/hooks/use-format-price";
+import { useTranslations } from "@/lib/hooks/use-translations";
 import { cn } from "@/lib/utils";
-import { useShoppingContext } from "@/lib/context/shopping-context-provider";
 import type { AppLocale } from "@/lib/i18n/locale";
 
 interface UserProfile {
@@ -91,7 +91,7 @@ interface MembershipData {
 }
 
 function ProfilePageContent() {
-  const { t, context: shopping } = useShoppingContext();
+  const { t, context: shopping } = useTranslations();
   const formatPrice = useFormatPrice();
   const appLocale = shopping.locale as AppLocale;
   const intlLocale = shopping.intlLocale;

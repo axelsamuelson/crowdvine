@@ -1,7 +1,7 @@
 import { DesktopFilters } from "./components/shop-filters";
 import { Suspense } from "react";
 import { getCollections } from "@/lib/shopify";
-import { PageLayout } from "@/components/layout/page-layout";
+import { PageLayoutServer } from "@/components/layout/page-layout-server";
 import { MobileFilters } from "./components/mobile-filters";
 import { ProductsProvider } from "./providers/products-provider";
 import { CompleteOrderRail } from "@/components/cart/complete-order-rail";
@@ -31,7 +31,7 @@ export default async function ShopLayout({
   }
 
   return (
-    <PageLayout>
+    <PageLayoutServer>
       <ProductsProvider>
         <div className="flex flex-col md:grid grid-cols-12 md:gap-4">
           <Suspense fallback={null}>
@@ -56,6 +56,6 @@ export default async function ShopLayout({
           </div>
         </div>
       </ProductsProvider>
-    </PageLayout>
+    </PageLayoutServer>
   );
 }
