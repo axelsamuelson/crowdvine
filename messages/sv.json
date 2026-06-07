@@ -218,6 +218,9 @@
     },
     "pdp": {
       "wineCharacterAria": "Vinets karaktär",
+      "styleScale": "Vinets stil",
+      "styleScaleLow": "Rent",
+      "styleScaleHigh": "Livfullt",
       "tastingNotes": "Smaknoter",
       "foodPairing": "Passar till",
       "ageing": "Lagring / elevage",

@@ -59,6 +59,7 @@ const FARMING_OPTIONS = [
 type WineFormData = CreateWineData & {
   food_pairing_text: string;
   awards_text: string;
+  style_scale?: number | null;
 };
 
 function formatCommaList(values: string[] | null | undefined): string {
@@ -143,6 +144,10 @@ export default function WineForm({ wine, producers, isProducerView = false, init
     ageing: copyTextFromWine(wine?.ageing as WineCopyField, "sv"),
     soil_type: wine?.soil_type ?? "",
     elevation_masl: wine?.elevation_masl ?? null,
+    style_scale:
+      wine && "style_scale" in wine
+        ? ((wine as Wine & { style_scale?: number | null }).style_scale ?? null)
+        : null,
     volume_liters: wine?.volume_liters ?? 0.75,
     appellation: wine?.appellation ?? "",
     // B2B
@@ -255,6 +260,10 @@ export default function WineForm({ wine, producers, isProducerView = false, init
       ageing: copyTextFromWine(wine.ageing as WineCopyField, editLocale),
       soil_type: wine.soil_type ?? "",
       elevation_masl: wine.elevation_masl ?? null,
+      style_scale:
+        "style_scale" in wine
+          ? ((wine as Wine & { style_scale?: number | null }).style_scale ?? null)
+          : null,
       volume_liters: wine.volume_liters ?? 0.75,
       appellation: wine.appellation ?? "",
       b2b_margin_percentage: wine.b2b_margin_percentage ?? null,
@@ -831,6 +840,41 @@ export default function WineForm({ wine, producers, isProducerView = false, init
                   if (!Number.isNaN(num)) handleChange("elevation_masl", num);
                 }}
               />
+            </div>
+
+            <div className="grid grid-cols-[180px_1fr] items-center gap-x-4">
+              <Label htmlFor="style_scale" className="text-right text-sm">
+                Stil (1–5)
+              </Label>
+              <div>
+                <Input
+                  id="style_scale"
+                  type="number"
+                  min={1}
+                  max={5}
+                  step={1}
+                  placeholder="1 = Rent, 5 = Livfullt"
+                  value={
+                    formData.style_scale != null
+                      ? String(formData.style_scale)
+                      : ""
+                  }
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "") {
+                      handleChange("style_scale", null);
+                      return;
+                    }
+                    const num = parseInt(v, 10);
+                    if (!Number.isNaN(num)) {
+                      handleChange("style_scale", Math.min(5, Math.max(1, num)));
+                    }
+                  }}
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Vinets stil på skalan Rent → Livfullt. Lämna tomt om okänt.
+                </p>
+              </div>
             </div>
 
             <div className="grid grid-cols-[180px_1fr] items-center gap-x-4">

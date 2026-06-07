@@ -202,6 +202,7 @@ export async function GET(
         serving_temp_c,
         food_pairing,
         elevation_masl,
+        style_scale,
         winemaker_notes,
         awards,
         ageing,
@@ -254,7 +255,7 @@ export async function GET(
 
   if (
     result.error &&
-    /ageing|soil_type|additives|column.*does not exist/i.test(result.error.message ?? "")
+    /ageing|soil_type|additives|style_scale|column.*does not exist/i.test(result.error.message ?? "")
   ) {
     result = await sb
       .from("wines")
@@ -266,6 +267,7 @@ export async function GET(
       (result.data as Record<string, unknown>).ageing = null;
       (result.data as Record<string, unknown>).soil_type = null;
       (result.data as Record<string, unknown>).additives = null;
+      (result.data as Record<string, unknown>).style_scale = null;
     }
   }
 
@@ -299,6 +301,7 @@ export async function GET(
       row.serving_temp_c = null;
       row.food_pairing = null;
       row.elevation_masl = null;
+      row.style_scale = null;
       row.winemaker_notes = null;
       row.awards = null;
       row.ageing = null;
@@ -493,6 +496,13 @@ export async function GET(
     elevation_masl:
       i.elevation_masl != null && Number.isFinite(Number(i.elevation_masl))
         ? Number(i.elevation_masl)
+        : null,
+    style_scale:
+      i.style_scale != null &&
+      Number.isFinite(Number(i.style_scale)) &&
+      Number(i.style_scale) >= 1 &&
+      Number(i.style_scale) <= 5
+        ? Number(i.style_scale)
         : null,
     ageing: extractWineText(i.ageing, locale),
     winemaker_notes: extractWineText(i.winemaker_notes, locale),

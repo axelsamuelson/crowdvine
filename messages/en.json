@@ -218,6 +218,9 @@
     },
     "pdp": {
       "wineCharacterAria": "Wine character",
+      "styleScale": "Wine style",
+      "styleScaleLow": "Clean",
+      "styleScaleHigh": "Alive",
       "tastingNotes": "Tasting notes",
       "foodPairing": "Pairs with",
       "ageing": "Ageing / elevage",

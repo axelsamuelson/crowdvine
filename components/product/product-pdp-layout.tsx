@@ -9,6 +9,7 @@ import { ProductBreadcrumbs } from "@/components/product/product-breadcrumbs";
 import { ProductPriceInfoBox } from "@/components/product/product-price-info-box";
 import { StockBadge } from "@/components/product/stock-badge";
 import { WineEnrichmentSpecs } from "@/components/product/wine-enrichment-specs";
+import { WineStyleScale } from "@/components/product/wine-style-scale";
 import { hasEnrichmentSpecs } from "@/lib/product/wine-enrichment";
 import { WinePdpEnrichment } from "@/components/product/wine-pdp-enrichment";
 import { WINE_ENRICHMENT_DROPDOWN_LIST_CLASS } from "@/components/product/wine-enrichment-collapsible";
@@ -102,6 +103,11 @@ export function ProductPdpLayout({
                         enrichment={product.wineEnrichment}
                         producerName={product.producerName}
                       />
+                    ) : null}
+                    {product.wineEnrichment?.style_scale != null &&
+                    product.wineEnrichment.style_scale >= 1 &&
+                    product.wineEnrichment.style_scale <= 5 ? (
+                      <WineStyleScale value={product.wineEnrichment.style_scale} />
                     ) : null}
                     <StockBadge
                       b2bStock={product.b2bStock}

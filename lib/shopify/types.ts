@@ -139,6 +139,8 @@ export type WineEnrichment = {
   grapeVarieties?: string[] | null;
   /** Wine color (e.g. Red, White) for Om vinet specs. */
   color?: string | null;
+  /** Style scale 1–5. 1 = rent/clean, 5 = livfullt/alive. */
+  style_scale?: number | null;
 };
 
 export type Collection = {
