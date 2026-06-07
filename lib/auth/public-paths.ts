@@ -12,6 +12,7 @@ const PUBLIC_PATH_PREFIXES = [
   "/producer",
   "/producers",
   "/about",
+  "/how-it-works",
   "/i",
   "/ib",
   "/b",
@@ -24,6 +25,7 @@ const PUBLIC_PATH_PREFIXES = [
   "/auth/auth-code-error",
   "/forgot-password",
   "/tasting",
+  "/taste-quiz",
   "/dev",
 ] as const;
 

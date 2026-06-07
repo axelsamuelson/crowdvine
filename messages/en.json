@@ -516,6 +516,98 @@
     "successStatusDelivered": "Delivered",
     "successStatusCancelled": "Cancelled"
   },
+  "tasteQuiz": {
+    "unknownProducer": "Unknown producer",
+    "unknownColor": "Unknown",
+    "intro": {
+      "title": "Find your wine",
+      "description": "Answer five quick questions and we'll match wines from our catalog to your taste — occasion, style, color, and budget.",
+      "start": "Start →"
+    },
+    "nav": {
+      "back": "Back",
+      "next": "Next",
+      "seeResults": "See results",
+      "restart": "Start over"
+    },
+    "questions": {
+      "occasion": {
+        "label": "Occasion",
+        "title": "What is the wine for?",
+        "options": {
+          "aperitif": { "label": "Aperitif", "desc": "Chilled, light, appetite-whetting" },
+          "casual": { "label": "Everyday evening", "desc": "Something to look forward to" },
+          "dinner": { "label": "Dinner", "desc": "Food first — wine follows" },
+          "special": { "label": "Something special", "desc": "A bottle with a story" }
+        }
+      },
+      "style": {
+        "label": "Taste style",
+        "title": "How do you like your wine?",
+        "options": {
+          "fresh_fruity": { "label": "Fresh and fruity", "desc": "Light, juicy, immediate" },
+          "mineral_dry": { "label": "Mineral and dry", "desc": "Terroir, salinity, precision" },
+          "rich_complex": { "label": "Rich and complex", "desc": "Depth, structure, long finish" },
+          "aromatic_floral": { "label": "Aromatic and floral", "desc": "Fragrance first, playful" }
+        }
+      },
+      "color": {
+        "label": "Color",
+        "title": "Which color appeals to you?",
+        "options": {
+          "red": { "label": "Red", "desc": "Carignan, Grenache, Syrah..." },
+          "white": { "label": "White", "desc": "Chardonnay, Vermentino, Terret..." },
+          "orange": { "label": "Orange", "desc": "Skin contact, texture, depth" },
+          "any": { "label": "Surprise me", "desc": "Best match wins" }
+        }
+      },
+      "adventure": {
+        "label": "Natural wine character",
+        "title": "How adventurous are you?",
+        "sub": "Clean and classic, or wild and unexpected?",
+        "left": "Clean & familiar",
+        "right": "Wild & unexpected"
+      },
+      "budget": {
+        "label": "Budget",
+        "title": "Approximate budget per bottle?",
+        "options": {
+          "low": { "label": "Under 150 SEK", "desc": "Keeping it simple" },
+          "mid": { "label": "150–200 SEK", "desc": "Good balance" },
+          "high": { "label": "200+ SEK", "desc": "Want the best" }
+        }
+      }
+    },
+    "results": {
+      "title": "Your top 5 wines",
+      "subtitle": "Based on your answers — sorted by match.",
+      "summaryTitle": "Your answers",
+      "adventureAnswer": "{value} of 5 ({left} – {right})",
+      "match": "{percent}% match",
+      "priceKr": "{price} kr",
+      "noResults": "No matching wines found in the catalog right now.",
+      "profileSaved": "✓ Profile saved. Matching wines will be highlighted in the shop.",
+      "saveTitle": "Save your taste profile?",
+      "saveDescription": "We'll highlight matching wines in the shop for you.",
+      "saveButton": "Save profile",
+      "saving": "Saving...",
+      "skip": "Skip"
+    },
+    "reasons": {
+      "mineralSoil": "{soil} gives you the minerality you're looking for",
+      "freshFruity": "Fresh and fruity easy drinker",
+      "collectorsItem": "Limited production — a memorable choice",
+      "funkyWild": "Matches your openness to natural wine character",
+      "classicStyle": "Clean and classic winemaking style",
+      "terroirShowcase": "{producer} lets the place speak",
+      "unusualBlend": "Unusual blend of {count} grape varieties",
+      "fallback": "Strong overall match to your profile"
+    },
+    "toast": {
+      "saved": "Taste profile saved",
+      "error": "Something went wrong — please try again"
+    }
+  },
   "profile": {
     "signInTitle": "Sign in to view your profile",
     "signInSubtitle": "You need to be signed in to view your profile page.",

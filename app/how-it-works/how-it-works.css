@@ -1,0 +1,108 @@
+@keyframes hiw-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hiw-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes hiw-reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(60px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hiw-animate-slide-up {
+  animation: hiw-slide-up 0.8s ease-out forwards;
+}
+
+.hiw-animate-fade-in {
+  animation: hiw-fade-in 0.7s ease-out forwards;
+}
+
+.hiw-animate-reveal-up {
+  animation: hiw-reveal-up 0.8s ease-out forwards;
+}
+
+.hiw-animation-delay-100 {
+  animation-delay: 100ms;
+}
+.hiw-animation-delay-200 {
+  animation-delay: 200ms;
+}
+.hiw-animation-delay-300 {
+  animation-delay: 300ms;
+}
+.hiw-animation-delay-400 {
+  animation-delay: 400ms;
+}
+.hiw-animation-delay-500 {
+  animation-delay: 500ms;
+}
+.hiw-animation-delay-600 {
+  animation-delay: 600ms;
+}
+
+.hiw-fade-image {
+  transition:
+    opacity 700ms ease-out,
+    transform 700ms ease-out;
+}
+
+.hiw-fade-image--hidden {
+  opacity: 0;
+  transform: scale(1.02);
+}
+
+.hiw-fade-image--visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Dedicated scroll port — immune to body scroll-lock and vaul transforms. */
+html.hiw-scroll-active,
+body.hiw-scroll-active {
+  overflow: hidden !important;
+  height: 100%;
+  scroll-behavior: auto !important;
+}
+
+.hiw-scroll-root {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.hiw-scroll-root,
+.hiw-scroll-root * {
+  scroll-behavior: auto !important;
+}
+
+/* Legacy fallback if scroll port is unavailable */
+html:has(.hiw-page):not(.hiw-scroll-active),
+html:has(.hiw-page):not(.hiw-scroll-active) * {
+  scroll-behavior: auto !important;
+}

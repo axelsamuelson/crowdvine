@@ -1,6 +1,7 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getAppUrl, getInternalFetchHeaders } from "@/lib/app-url";
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
+import { extractWineText } from "@/lib/i18n/wine-locale";
 import { getAllWineBoxCalculations } from "@/lib/wine-box-calculations";
 import { calculateB2BPriceExclVat } from "@/lib/price-breakdown";
 import { convertSekForDisplay } from "@/lib/shopping-context/currency-convert";
@@ -492,15 +493,26 @@ export async function fetchProductsData(params?: {
             },
           ];
 
+    const rawDescription = extractWineText(
+      i.description as Record<string, string> | string | null,
+      "sv",
+    );
     const wineDescription =
-      i.description ||
-      `This exceptional ${i.color || "wine"} wine from ${i.vintage} showcases the unique characteristics of ${i.grape_varieties || "carefully selected grapes"}. Crafted with precision and passion.`;
+      rawDescription ||
+      `This exceptional ${i.color || "wine"} wine from ${
+        i.vintage
+      } showcases the unique characteristics of ${
+        i.grape_varieties || "carefully selected grapes"
+      }. Crafted with precision and passion.`;
 
     return {
       id: i.id,
       title: `${i.wine_name} ${i.vintage}`,
       description: wineDescription,
-      descriptionHtml: i.description_html || `<p>${wineDescription}</p>`,
+      descriptionHtml:
+        (typeof i.description_html === "string"
+          ? i.description_html
+          : null) || `<p>${wineDescription}</p>`,
       handle: i.handle,
       productType: "wine",
       categoryId: i.producer_id,

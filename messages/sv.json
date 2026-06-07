@@ -516,6 +516,98 @@
     "successStatusDelivered": "Levererad",
     "successStatusCancelled": "Avbruten"
   },
+  "tasteQuiz": {
+    "unknownProducer": "Okänd producent",
+    "unknownColor": "Okänd",
+    "intro": {
+      "title": "Hitta ditt vin",
+      "description": "Svara på fem snabba frågor så matchar vi viner från katalogen mot din smak — tillfälle, stil, färg och budget.",
+      "start": "Starta →"
+    },
+    "nav": {
+      "back": "Tillbaka",
+      "next": "Nästa",
+      "seeResults": "Se resultat",
+      "restart": "Börja om"
+    },
+    "questions": {
+      "occasion": {
+        "label": "Tillfälle",
+        "title": "Vad ska vinet passa till?",
+        "options": {
+          "aperitif": { "label": "Aperitif", "desc": "Kylt, lätt, väcker aptit" },
+          "casual": { "label": "Vardagskväll", "desc": "Något att sträcka sig efter" },
+          "dinner": { "label": "Middag", "desc": "Mat i fokus — vinet följer med" },
+          "special": { "label": "Något speciellt", "desc": "En flaska som berättar något" }
+        }
+      },
+      "style": {
+        "label": "Smakstil",
+        "title": "Hur gillar du ditt vin?",
+        "options": {
+          "fresh_fruity": { "label": "Friskt och fruktig", "desc": "Lätt, saftigt, direkt" },
+          "mineral_dry": { "label": "Mineraliskt och torrt", "desc": "Terroir, salt, precision" },
+          "rich_complex": { "label": "Rikt och komplext", "desc": "Djup, struktur, lång finish" },
+          "aromatic_floral": { "label": "Aromatiskt och blommigt", "desc": "Doft i fokus, lekfullt" }
+        }
+      },
+      "color": {
+        "label": "Färg",
+        "title": "Vilken färg lockar?",
+        "options": {
+          "red": { "label": "Rött", "desc": "Carignan, Grenache, Syrah..." },
+          "white": { "label": "Vitt", "desc": "Chardonnay, Vermentino, Terret..." },
+          "orange": { "label": "Orange", "desc": "Skalkontakt, textur, djup" },
+          "any": { "label": "Överraska mig", "desc": "Bästa matchning vinner" }
+        }
+      },
+      "adventure": {
+        "label": "Naturvinskaraktär",
+        "title": "Hur äventyrlig är du?",
+        "sub": "Rent och klassiskt eller vilt och oväntat?",
+        "left": "Rent & igenkännbart",
+        "right": "Vilt & oväntat"
+      },
+      "budget": {
+        "label": "Budget",
+        "title": "Ungefärlig budget per flaska?",
+        "options": {
+          "low": { "label": "Under 150 kr", "desc": "Håller det enkelt" },
+          "mid": { "label": "150–200 kr", "desc": "Bra balans" },
+          "high": { "label": "200+ kr", "desc": "Vill ha det bästa" }
+        }
+      }
+    },
+    "results": {
+      "title": "Dina topp 5 viner",
+      "subtitle": "Baserat på dina svar — sorterat efter matchning.",
+      "summaryTitle": "Dina svar",
+      "adventureAnswer": "{value} av 5 ({left} – {right})",
+      "match": "{percent}% match",
+      "priceKr": "{price} kr",
+      "noResults": "Inga matchande viner hittades i katalogen just nu.",
+      "profileSaved": "✓ Profil sparad. Matchande viner markeras i katalogen.",
+      "saveTitle": "Spara din smakprofil?",
+      "saveDescription": "Vi markerar matchande viner i katalogen åt dig.",
+      "saveButton": "Spara profil",
+      "saving": "Sparar...",
+      "skip": "Hoppa över"
+    },
+    "reasons": {
+      "mineralSoil": "{soil} ger den mineralitet du söker",
+      "freshFruity": "Frisk och fruktig direktdrickare",
+      "collectorsItem": "Begränsad produktion — ett minnesvärt val",
+      "funkyWild": "Matchar din öppenhet för naturvinskaraktär",
+      "classicStyle": "Ren och klassisk vinifieringsstil",
+      "terroirShowcase": "{producer} låter platsen tala",
+      "unusualBlend": "Ovanlig blend av {count} druvsort",
+      "fallback": "Stark helhetsmatchning mot din profil"
+    },
+    "toast": {
+      "saved": "Smakprofil sparad",
+      "error": "Något gick fel — försök igen"
+    }
+  },
   "profile": {
     "signInTitle": "Logga in för att se din profil",
     "signInSubtitle": "Du behöver vara inloggad för att visa din profilsida.",
