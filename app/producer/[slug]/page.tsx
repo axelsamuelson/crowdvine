@@ -195,8 +195,52 @@ export default async function ProducerPage(props: {
     Boolean(entry.value?.trim()),
   );
 
+  const producerJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: producer.name,
+    jobTitle: "Vigneron",
+    worksFor: {
+      "@type": "Organization",
+      name: producer.name,
+      address: {
+        "@type": "PostalAddress",
+        addressRegion: producer.region ?? "Languedoc",
+        addressCountry: "FR",
+      },
+    },
+    knowsAbout: [
+      "Natural wine",
+      "Languedoc",
+      producer.subregion,
+      "Organic viticulture",
+    ].filter((item): item is string => Boolean(item)),
+    ...(producer.bio_short && { description: producer.bio_short }),
+  };
+
+  const pactJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "PACT",
+    url: "https://pactwines.com",
+    description: "Direktimport av naturvin från Languedoc till Stockholm.",
+    areaServed: "Stockholm, Sweden",
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(producerJsonLd),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(pactJsonLd),
+        }}
+      />
       <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,35%)]">
         <div className="max-w-2xl px-6 py-12">
           <Breadcrumb>
