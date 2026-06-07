@@ -39,6 +39,19 @@ export async function generateMetadata(props: {
 
   const { url, width, height, altText: alt } = product.featuredImage || {};
   const indexable = !product.tags.includes(HIDDEN_PRODUCT_TAG);
+  const handle = params.handle;
+  const existingOpenGraph = url
+    ? {
+        images: [
+          {
+            url,
+            width,
+            height,
+            alt,
+          },
+        ],
+      }
+    : {};
 
   return {
     title: product.seo.title || product.title,
@@ -51,18 +64,16 @@ export async function generateMetadata(props: {
         follow: indexable,
       },
     },
-    openGraph: url
-      ? {
-          images: [
-            {
-              url,
-              width,
-              height,
-              alt,
-            },
-          ],
-        }
-      : null,
+    alternates: {
+      canonical: `https://pactwines.com/product/${handle}`,
+    },
+    openGraph: {
+      ...existingOpenGraph,
+      title: product.seo.title || product.title,
+      description: product.seo.description || product.description || "",
+      url: `https://pactwines.com/product/${handle}`,
+      type: "website",
+    },
   };
 }
 

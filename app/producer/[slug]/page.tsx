@@ -144,6 +144,15 @@ export async function generateMetadata(props: {
   return {
     title: `${name} — Naturvin direkt från ${regionLabel} | PACT`,
     description: bio_short?.slice(0, 155) ?? undefined,
+    alternates: {
+      canonical: `https://pactwines.com/producer/${slug}`,
+    },
+    openGraph: {
+      title: `${name} — Naturvin direkt från ${region} | PACT`,
+      description: bio_short?.slice(0, 155) ?? "",
+      url: `https://pactwines.com/producer/${slug}`,
+      type: "website",
+    },
   };
 }
 

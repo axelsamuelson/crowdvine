@@ -51,8 +51,13 @@ export async function generateMetadata(): Promise<Metadata> {
       !!process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!hasAdminCreds) {
       return {
-        title: "CrowdVine",
-        description: "Premium Wine Community",
+        metadataBase: new URL("https://pactwines.com"),
+        title: {
+          default: "PACT — Naturvin direkt från Languedoc",
+          template: "%s | PACT",
+        },
+        description:
+          "Beställ naturvin direkt från producenter i Languedoc. Hemleverans i Stockholm via PACT.",
         generator: "v0.app",
         icons: {
           icon: [{ url: "/favicon.png", type: "image/png" }],
@@ -67,9 +72,18 @@ export async function generateMetadata(): Promise<Metadata> {
       "Premium Wine Community";
 
     return {
-      title: siteTitle,
+      metadataBase: new URL("https://pactwines.com"),
+      title: {
+        default: siteTitle,
+        template: `%s | PACT`,
+      },
       description: siteDescription,
       generator: "v0.app",
+      openGraph: {
+        siteName: "PACT",
+        locale: "sv_SE",
+        type: "website",
+      },
       icons: {
         icon: [{ url: "/favicon.png", type: "image/png" }],
         apple: [{ url: "/apple-touch-icon.png", type: "image/png" }],
@@ -78,8 +92,13 @@ export async function generateMetadata(): Promise<Metadata> {
   } catch (error) {
     console.error("Error generating metadata:", error);
     return {
-      title: "CrowdVine",
-      description: "Premium Wine Community",
+      metadataBase: new URL("https://pactwines.com"),
+      title: {
+        default: "PACT — Naturvin direkt från Languedoc",
+        template: "%s | PACT",
+      },
+      description:
+        "Beställ naturvin direkt från producenter i Languedoc. Hemleverans i Stockholm via PACT.",
       generator: "v0.app",
       icons: {
         icon: [{ url: "/favicon.png", type: "image/png" }],

@@ -18,9 +18,19 @@ import { generateProducerSlug } from "@/lib/producer-handle";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export const metadata: Metadata = {
-  title: "Producers | PACT",
+  title: "Producenter",
   description:
-    "Natural wine producers from Languedoc — imported directly to Stockholm.",
+    "Naturvinsproducenter från Languedoc — importerade direkt till Stockholm via PACT.",
+  alternates: {
+    canonical: "https://pactwines.com/producers",
+  },
+  openGraph: {
+    title: "Producenter | PACT",
+    description:
+      "Naturvinsproducenter från Languedoc — importerade direkt till Stockholm via PACT.",
+    url: "https://pactwines.com/producers",
+    type: "website",
+  },
 };
 
 export const dynamic = "force-dynamic";
