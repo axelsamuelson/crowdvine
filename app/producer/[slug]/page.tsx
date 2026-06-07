@@ -142,7 +142,7 @@ export async function generateMetadata(props: {
   const regionLabel = region?.trim() || "producenten";
 
   return {
-    title: `${name} — Naturvin direkt från ${regionLabel} | PACT`,
+    title: `${name} — Naturvin direkt från ${regionLabel}`,
     description: bio_short?.slice(0, 155) ?? undefined,
     alternates: {
       canonical: `https://pactwines.com/producer/${slug}`,
