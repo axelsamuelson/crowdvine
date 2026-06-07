@@ -227,6 +227,31 @@ export default async function ProducerPage(props: {
     areaServed: "Stockholm, Sweden",
   };
 
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Shop",
+        item: "https://pactwines.com/shop",
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Producers",
+        item: "https://pactwines.com/producers",
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: producer.name,
+        item: `https://pactwines.com/producer/${slug}`,
+      },
+    ],
+  };
+
   return (
     <>
       <script
@@ -239,6 +264,12 @@ export default async function ProducerPage(props: {
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(pactJsonLd),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbJsonLd),
         }}
       />
       <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,35%)]">

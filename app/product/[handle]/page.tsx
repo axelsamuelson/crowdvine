@@ -10,6 +10,7 @@ import { ProductViewTracker } from "./components/product-view-tracker";
 import { getOffersByWineId } from "@/lib/external-prices/db";
 import { getAppUrl, getInternalFetchHeaders } from "@/lib/app-url";
 import { fetchPdpRecommendationsForWine } from "@/lib/crowdvine/pdp-recommendations-data";
+import { generateProducerSlug } from "@/lib/producer-handle";
 import { headers } from "next/headers";
 
 // Generate static params for all products at build time
@@ -150,6 +151,31 @@ export default async function ProductPage(props: {
     }),
   };
 
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Shop",
+        item: "https://pactwines.com/shop",
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: product.producerName,
+        item: `https://pactwines.com/producer/${generateProducerSlug(product.producerName ?? "")}`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: product.title,
+        item: `https://pactwines.com/product/${handle}`,
+      },
+    ],
+  };
+
   let competitorOffers: Array<{
     price_source_name: string | null;
     pdp_url: string;
@@ -221,6 +247,12 @@ export default async function ProductPage(props: {
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(productJsonLd),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbJsonLd),
         }}
       />
 

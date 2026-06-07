@@ -66,7 +66,33 @@ export default async function ProducersPage() {
 
   const producers = (producersRaw ?? []) as ProducerListRow[];
 
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Shop",
+        item: "https://pactwines.com/shop",
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Producers",
+        item: "https://pactwines.com/producers",
+      },
+    ],
+  };
+
   return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbJsonLd),
+        }}
+      />
     <div className="mx-auto max-w-5xl px-6 py-12">
       <Breadcrumb>
         <BreadcrumbList>
@@ -124,5 +150,6 @@ export default async function ProducersPage() {
         })}
       </div>
     </div>
+    </>
   );
 }
