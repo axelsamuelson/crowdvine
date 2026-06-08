@@ -94,10 +94,13 @@ export function ProductPdpLayout({
                       previewDisabled={addToCartPreviewDisabled}
                     />
                     {product.productType === "wine" &&
-                    hasEnrichmentSpecs(
-                      product.wineEnrichment,
-                      undefined,
-                      product.producerName,
+                    (
+                      hasEnrichmentSpecs(
+                        product.wineEnrichment,
+                        undefined,
+                        product.producerName,
+                      ) ||
+                      (product.wineEnrichment?.taste_tags?.length ?? 0) > 0
                     ) ? (
                       <WineEnrichmentSpecs
                         enrichment={product.wineEnrichment}

@@ -38,10 +38,32 @@ const SPEC_ICONS: Record<EnrichmentSpecKey, LucideIcon> = {
   soilType: Layers,
 };
 
+const HIDDEN_TASTE_TAGS = new Set([
+  "gateway_natural",
+  "classic",
+  "everyday",
+  "collectors_item",
+  "winemaker_signature",
+]);
+
+const MAX_VISIBLE_TASTE_TAGS = 5;
+
+function formatTasteTagLabel(tag: string): string {
+  const withSpaces = tag.replace(/_/g, " ");
+  if (!withSpaces) return withSpaces;
+  return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
+}
+
+function resolveVisibleTasteTags(tags: string[] | null | undefined): string[] {
+  if (!tags?.length) return [];
+  return tags.filter((tag) => !HIDDEN_TASTE_TAGS.has(tag));
+}
+
 interface WineEnrichmentSpecsProps {
   enrichment: WineEnrichment | null | undefined;
   producerName?: string | null;
   className?: string;
+  tasteTags?: string[];
 }
 
 function SpecItem({
@@ -98,10 +120,40 @@ function SpecItem({
   );
 }
 
+function TasteTagsBlock({ tags }: { tags: string[] }) {
+  const visible = resolveVisibleTasteTags(tags);
+  if (visible.length === 0) return null;
+
+  const displayed = visible.slice(0, MAX_VISIBLE_TASTE_TAGS);
+  const overflow = visible.length - displayed.length;
+
+  return (
+    <div className="px-4 py-3 md:px-5">
+      <p className={WINE_ENRICHMENT_SPEC_LABEL_CLASS}>Karaktär</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {displayed.map((tag) => (
+          <span
+            key={tag}
+            className="rounded-full border border-stone-200 bg-stone-100 px-3 py-1 text-xs text-stone-700"
+          >
+            {formatTasteTagLabel(tag)}
+          </span>
+        ))}
+        {overflow > 0 ? (
+          <span className="rounded-full border border-stone-200 bg-stone-100 px-3 py-1 text-xs text-stone-700">
+            +{overflow}
+          </span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export function WineEnrichmentSpecs({
   enrichment,
   producerName,
   className = "",
+  tasteTags,
 }: WineEnrichmentSpecsProps) {
   const { t, context } = useTranslations();
   const specs = buildPdpSpecs(enrichment, context.locale, producerName);
@@ -110,19 +162,28 @@ export function WineEnrichmentSpecs({
     return value ? ([[key, value] as const] as const) : [];
   });
 
-  if (entries.length === 0) return null;
+  const resolvedTasteTags = tasteTags ?? enrichment?.taste_tags ?? [];
+
+  if (entries.length === 0 && resolvedTasteTags.length === 0) return null;
 
   return (
-    <dl className={cn("grid grid-cols-2 gap-2", className)}>
-      {entries.map(([key, value]) => (
-        <SpecItem
-          key={key}
-          specKey={key}
-          label={t(enrichmentSpecLabelKey(key))}
-          value={value}
-          enrichment={enrichment}
-        />
-      ))}
-    </dl>
+    <div className={cn("space-y-2", className)}>
+      {entries.length > 0 ? (
+        <dl className="grid grid-cols-2 gap-2">
+          {entries.map(([key, value]) => (
+            <SpecItem
+              key={key}
+              specKey={key}
+              label={t(enrichmentSpecLabelKey(key))}
+              value={value}
+              enrichment={enrichment}
+            />
+          ))}
+        </dl>
+      ) : null}
+      {resolvedTasteTags.length > 0 ? (
+        <TasteTagsBlock tags={resolvedTasteTags} />
+      ) : null}
+    </div>
   );
 }

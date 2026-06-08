@@ -141,6 +141,8 @@ export type WineEnrichment = {
   color?: string | null;
   /** Style scale 1–5. 1 = rent/clean, 5 = livfullt/alive. */
   style_scale?: number | null;
+  /** Taste/character tags from wines.tags (passed via enrichment on PDP). */
+  taste_tags?: string[];
 };
 
 export type Collection = {
@@ -171,6 +173,8 @@ export type Product = {
   specs?: Record<string, string> | null;
   /** Enrichment fields for PDP sections (tasting notes, farming, food pairing, etc.). */
   wineEnrichment?: WineEnrichment | null;
+  /** Taste/character tags from wines.tags (DB), separate from synthetic product.tags. */
+  taste_tags?: string[];
   featuredImage: Image;
   currencyCode: string;
   priceRange: {

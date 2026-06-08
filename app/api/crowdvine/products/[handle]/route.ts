@@ -13,6 +13,13 @@ import {
   B2B_PALLET_ITEM_STOCK_SELECT,
 } from "@/lib/b2b-pallet-stock";
 
+function parseWineTasteTags(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (tag): tag is string => typeof tag === "string" && tag.trim().length > 0,
+  );
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ handle: string }> },
@@ -207,6 +214,7 @@ export async function GET(
         awards,
         ageing,
         soil_type,
+        tags,
         producers!inner(name, region, boost_active)
       `;
 
@@ -243,6 +251,7 @@ export async function GET(
         elevation_masl,
         winemaker_notes,
         awards,
+        tags,
         producers!inner(name, region, boost_active)
       `;
 
@@ -268,10 +277,11 @@ export async function GET(
       (result.data as Record<string, unknown>).soil_type = null;
       (result.data as Record<string, unknown>).additives = null;
       (result.data as Record<string, unknown>).style_scale = null;
+      (result.data as Record<string, unknown>).tags = null;
     }
   }
 
-  if (result.error && /is_live|column.*does not exist|summary|appellation|terroir|vinification|abv|tasting_notes|farming|serving_temp_c|food_pairing|elevation_masl|winemaker_notes|awards/i.test(result.error.message ?? "")) {
+  if (result.error && /is_live|column.*does not exist|summary|appellation|terroir|vinification|abv|tasting_notes|farming|serving_temp_c|food_pairing|elevation_masl|winemaker_notes|awards|tags/i.test(result.error.message ?? "")) {
     const wineSelectWithoutSummary = `
         id, wine_name, vintage, grape_varieties, color, handle,
         base_price_cents, cost_amount, cost_currency, exchange_rate,
@@ -306,6 +316,7 @@ export async function GET(
       row.awards = null;
       row.ageing = null;
       row.soil_type = null;
+      row.tags = null;
     }
   }
 
@@ -477,6 +488,8 @@ export async function GET(
   const resolvedAbv = resolveWineAbv(i.abv, i.alcohol_percentage);
   if (resolvedAbv) specs["ABV"] = resolvedAbv;
 
+  const tasteTags = parseWineTasteTags(i.tags);
+
   const wineEnrichment = {
     tasting_notes: extractWineText(i.tasting_notes, locale),
     appellation: i.appellation?.trim() ? i.appellation.trim() : null,
@@ -511,6 +524,7 @@ export async function GET(
       null,
     grapeVarieties: grapeVarieties.length > 0 ? grapeVarieties : null,
     color: colorName?.trim() ? colorName.trim() : null,
+    taste_tags: tasteTags,
   };
 
   const product = {
@@ -524,6 +538,7 @@ export async function GET(
     specs: Object.keys(specs).length > 0 ? specs : null,
     /** Enrichment fields for PDP sections (tasting notes, farming, food pairing, etc.). */
     wineEnrichment,
+    taste_tags: tasteTags,
     handle: i.handle,
     productType: "wine",
     categoryId: i.producer_id,
