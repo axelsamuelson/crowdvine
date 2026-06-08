@@ -16,22 +16,27 @@ import {
 } from "@/lib/i18n/wine-locale";
 import { generateProducerSlug } from "@/lib/producer-handle";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { getSiteConfig } from "@/lib/site-config";
 
-export const metadata: Metadata = {
-  title: "Producenter",
-  description:
-    "Naturvinsproducenter från Languedoc — importerade direkt till Stockholm via PACT.",
-  alternates: {
-    canonical: "https://pactwines.com/producers",
-  },
-  openGraph: {
-    title: "Producenter | PACT",
+export async function generateMetadata(): Promise<Metadata> {
+  const config = await getSiteConfig();
+  const producersUrl = `${config.baseUrl}/producers`;
+  return {
+    title: "Producenter",
     description:
       "Naturvinsproducenter från Languedoc — importerade direkt till Stockholm via PACT.",
-    url: "https://pactwines.com/producers",
-    type: "website",
-  },
-};
+    alternates: {
+      canonical: producersUrl,
+    },
+    openGraph: {
+      title: `Producenter | ${config.name}`,
+      description:
+        "Naturvinsproducenter från Languedoc — importerade direkt till Stockholm via PACT.",
+      url: producersUrl,
+      type: "website",
+    },
+  };
+}
 
 export const dynamic = "force-dynamic";
 

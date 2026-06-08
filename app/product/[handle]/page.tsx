@@ -11,6 +11,7 @@ import { getOffersByWineId } from "@/lib/external-prices/db";
 import { getAppUrl, getInternalFetchHeaders } from "@/lib/app-url";
 import { fetchPdpRecommendationsForWine } from "@/lib/crowdvine/pdp-recommendations-data";
 import { generateProducerSlug } from "@/lib/producer-handle";
+import { getSiteConfig } from "@/lib/site-config";
 import { headers } from "next/headers";
 
 // Generate static params for all products at build time
@@ -34,13 +35,17 @@ export async function generateMetadata(props: {
   params: Promise<{ handle: string }>;
 }): Promise<Metadata> {
   const params = await props.params;
-  const product = await getProduct(params.handle);
+  const [product, config] = await Promise.all([
+    getProduct(params.handle),
+    getSiteConfig(),
+  ]);
 
   if (!product) return notFound();
 
   const { url, width, height, altText: alt } = product.featuredImage || {};
   const indexable = !product.tags.includes(HIDDEN_PRODUCT_TAG);
   const handle = params.handle;
+  const productUrl = `${config.baseUrl}/product/${handle}`;
   const existingOpenGraph = url
     ? {
         images: [
@@ -66,13 +71,13 @@ export async function generateMetadata(props: {
       },
     },
     alternates: {
-      canonical: `https://pactwines.com/product/${handle}`,
+      canonical: productUrl,
     },
     openGraph: {
       ...existingOpenGraph,
       title: product.seo.title || product.title,
       description: product.seo.description || product.description || "",
-      url: `https://pactwines.com/product/${handle}`,
+      url: productUrl,
       type: "website",
     },
   };
@@ -82,7 +87,10 @@ export default async function ProductPage(props: {
   params: Promise<{ handle: string }>;
 }) {
   const params = await props.params;
-  const product = await getProduct(params.handle);
+  const [product, config] = await Promise.all([
+    getProduct(params.handle),
+    getSiteConfig(),
+  ]);
 
   if (!product) return notFound();
 
@@ -90,6 +98,7 @@ export default async function ProductPage(props: {
   const host = headerList.get("x-forwarded-host") ?? headerList.get("host");
 
   const handle = params.handle;
+  const productUrl = `${config.baseUrl}/product/${handle}`;
 
   const productJsonLd = {
     "@context": "https://schema.org",
@@ -99,10 +108,10 @@ export default async function ProductPage(props: {
     image:
       product.featuredImage?.url ??
       "https://pactwines.com/pact-og-uploaded.jpg",
-    url: `https://pactwines.com/product/${handle}`,
+    url: productUrl,
     brand: {
       "@type": "Brand",
-      name: product.producerName || "PACT",
+      name: product.producerName || config.name,
     },
     offers: {
       "@type": "Offer",
@@ -111,10 +120,10 @@ export default async function ProductPage(props: {
         : "https://schema.org/OutOfStock",
       priceCurrency: product.currencyCode,
       price: product.priceRange.minVariantPrice.amount,
-      url: `https://pactwines.com/product/${handle}`,
+      url: productUrl,
       seller: {
         "@type": "Organization",
-        name: "PACT",
+        name: config.name,
       },
     },
     ...(product.wineEnrichment && {

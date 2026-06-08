@@ -14,32 +14,34 @@ import {
 import { getLabelPosition } from "../lib/utils";
 import { Product } from "../lib/shopify/types";
 import { headers } from "next/headers";
+import { getSiteConfig } from "@/lib/site-config";
 
 // Disable static generation for now - make it dynamic
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const ctx = await getShoppingContextFromRequest().catch(() =>
-    fallbackShoppingContext(),
-  );
+  const [ctx, config] = await Promise.all([
+    getShoppingContextFromRequest().catch(() => fallbackShoppingContext()),
+    getSiteConfig(),
+  ]);
   return {
     title: translate(ctx.locale, "home.pageTitle"),
     description: translate(ctx.locale, "home.pageDescription"),
     alternates: {
-      canonical: "https://pactwines.com",
+      canonical: config.baseUrl,
     },
     openGraph: {
       title: "PACT — Naturvin direkt från Languedoc",
       description:
         "Beställ naturvin direkt från producenter i Languedoc. 15–30% under Systembolagets pris. Hemleverans i Stockholm via Budbee.",
-      url: "https://pactwines.com",
+      url: config.baseUrl,
       type: "website",
     },
   };
 }
 
 export default async function Home() {
-  const h = await headers();
+  const [h, config] = await Promise.all([headers(), getSiteConfig()]);
   const host = h.get("x-forwarded-host") ?? h.get("host");
   const shoppingContext = await getShoppingContextFromRequest().catch(() =>
     fallbackShoppingContext(),
@@ -90,9 +92,9 @@ export default async function Home() {
   const organizationJsonLd = {
     "@context": "https://schema.org",
     "@type": "Organization",
-    name: "PACT",
-    url: "https://pactwines.com",
-    logo: "https://pactwines.com/favicon.png",
+    name: config.name,
+    url: config.baseUrl,
+    logo: `${config.baseUrl}/favicon.png`,
     description:
       "Direktimport av naturvin från Languedoc till Stockholm. Inga mellanhänder, lägre pris, bättre vin.",
     areaServed: "Stockholm, Sweden",
@@ -102,14 +104,14 @@ export default async function Home() {
   const websiteJsonLd = {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    name: "PACT",
-    url: "https://pactwines.com",
+    name: config.name,
+    url: config.baseUrl,
     description: "Naturvin direkt från Languedoc till Stockholm.",
     potentialAction: {
       "@type": "SearchAction",
       target: {
         "@type": "EntryPoint",
-        urlTemplate: "https://pactwines.com/shop?q={search_term_string}",
+        urlTemplate: `${config.baseUrl}/shop?q={search_term_string}`,
       },
       "query-input": "required name=search_term_string",
     },

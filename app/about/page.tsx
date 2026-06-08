@@ -1,19 +1,22 @@
 import type { Metadata } from "next";
 import { Footer } from "@/components/layout/footer";
+import { getSiteConfig } from "@/lib/site-config";
 
 export async function generateMetadata(): Promise<Metadata> {
+  const config = await getSiteConfig();
+  const aboutUrl = `${config.baseUrl}/about`;
   return {
     title: "Om PACT",
     description:
       "PACT importerar naturvin direkt från Languedoc till Stockholm. Inga mellanhänder, lägre pris, bättre vin.",
     alternates: {
-      canonical: "https://pactwines.com/about",
+      canonical: aboutUrl,
     },
     openGraph: {
       title: "Om PACT — Direktimport av naturvin",
       description:
         "PACT importerar naturvin direkt från Languedoc till Stockholm. Inga mellanhänder, lägre pris, bättre vin.",
-      url: "https://pactwines.com/about",
+      url: aboutUrl,
       type: "website",
     },
   };

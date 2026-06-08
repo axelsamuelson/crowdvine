@@ -17,22 +17,25 @@ import {
 } from "@/lib/i18n/wine-locale";
 import { generateProducerSlug } from "@/lib/producer-handle";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { getSiteConfig } from "@/lib/site-config";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
+  const config = await getSiteConfig();
+  const pageUrl = `${config.baseUrl}/languedoc/naturvin`;
   return {
     title: "Naturvin från Languedoc — köp direkt från producenten",
     description:
       "Languedoc är hjärtat i den franska naturvinsrörelsen. Köp naturvin direkt från små producenter i Saint-Chinian och Faugères. Hemleverans i Stockholm.",
     alternates: {
-      canonical: "https://pactwines.com/languedoc/naturvin",
+      canonical: pageUrl,
     },
     openGraph: {
       title: "Naturvin från Languedoc — köp direkt från producenten | PACT",
       description:
         "Languedoc är hjärtat i den franska naturvinsrörelsen. Köp naturvin direkt från små producenter i Saint-Chinian och Faugères.",
-      url: "https://pactwines.com/languedoc/naturvin",
+      url: pageUrl,
       type: "article",
     },
   };

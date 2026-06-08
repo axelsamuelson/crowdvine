@@ -1,5 +1,8 @@
 import { MetadataRoute } from "next";
 
+// TODO: robots.ts är statisk och kan inte differentiera per domän. För dirtywine.se-specifik
+// robots: implementera en middleware-baserad lösning eller en separat /robots.txt-route.
+
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [

@@ -6,20 +6,23 @@ import { ProductCardSkeleton } from "./components/product-card-skeleton";
 import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
 import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
 import { translate } from "@/lib/i18n/messages";
+import { getSiteConfig } from "@/lib/site-config";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const ctx = await getShoppingContextFromRequest().catch(() =>
-    fallbackShoppingContext(),
-  );
+  const [ctx, config] = await Promise.all([
+    getShoppingContextFromRequest().catch(() => fallbackShoppingContext()),
+    getSiteConfig(),
+  ]);
+  const shopUrl = `${config.baseUrl}/shop`;
   return {
     title: translate(ctx.locale, "shop.pageTitle"),
     description: translate(ctx.locale, "shop.pageDescription"),
     alternates: {
-      canonical: "https://pactwines.com/shop",
+      canonical: shopUrl,
     },
     openGraph: {
       title: "Shop — Naturvin från Languedoc | PACT",
-      url: "https://pactwines.com/shop",
+      url: shopUrl,
       type: "website",
     },
   };

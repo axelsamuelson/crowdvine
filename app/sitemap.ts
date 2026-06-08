@@ -3,6 +3,10 @@ import { MetadataRoute } from "next";
 import { generateProducerSlug } from "@/lib/producer-handle";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
+// dirtywine.se använder samma sitemap via robots.txt som pekar till pactwines.com/sitemap.xml
+// En separat sitemap för dirtywine.se kan implementeras via en dedikerad route om Google
+// Search Console kräver det.
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const sb = getSupabaseAdmin();
   const baseUrl = "https://pactwines.com";

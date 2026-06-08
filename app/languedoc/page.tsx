@@ -10,22 +10,25 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Footer } from "@/components/layout/footer";
+import { getSiteConfig } from "@/lib/site-config";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
+  const config = await getSiteConfig();
+  const pageUrl = `${config.baseUrl}/languedoc`;
   return {
     title: "Languedoc — Frankrikes mest spännande vinregion",
     description:
       "Languedoc är Frankrikes största vinregion med 240 000 hektar vingårdar. Lär dig om appellationer, druvor, klimat och varför regionen producerar några av Frankrikes bästa naturviner.",
     alternates: {
-      canonical: "https://pactwines.com/languedoc",
+      canonical: pageUrl,
     },
     openGraph: {
       title: "Languedoc — Frankrikes mest spännande vinregion | PACT",
       description:
         "Languedoc är Frankrikes största vinregion. Lär dig om appellationer, druvor, klimat och naturvin.",
-      url: "https://pactwines.com/languedoc",
+      url: pageUrl,
       type: "article",
     },
   };

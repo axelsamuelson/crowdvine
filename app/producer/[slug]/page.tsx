@@ -16,6 +16,7 @@ import { getAppUrlForRequest, getInternalFetchHeaders } from "@/lib/app-url";
 import { ProducerWineCard } from "@/components/producer/producer-wine-card";
 import { translate } from "@/lib/i18n/messages";
 import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
+import { getSiteConfig } from "@/lib/site-config";
 
 export const dynamic = "force-dynamic";
 
@@ -133,24 +134,28 @@ export async function generateMetadata(props: {
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await props.params;
-  const data = await fetchProducerBySlug(slug);
+  const [data, config] = await Promise.all([
+    fetchProducerBySlug(slug),
+    getSiteConfig(),
+  ]);
   if (!data?.producer) {
-    return { title: "Producer | PACT" };
+    return { title: `Producer | ${config.name}` };
   }
 
   const { name, region, bio_short } = data.producer;
   const regionLabel = region?.trim() || "producenten";
+  const producerUrl = `${config.baseUrl}/producer/${slug}`;
 
   return {
     title: `${name} — Naturvin direkt från ${regionLabel}`,
     description: bio_short?.slice(0, 155) ?? undefined,
     alternates: {
-      canonical: `https://pactwines.com/producer/${slug}`,
+      canonical: producerUrl,
     },
     openGraph: {
-      title: `${name} — Naturvin direkt från ${region} | PACT`,
+      title: `${name} — Naturvin direkt från ${region} | ${config.name}`,
       description: bio_short?.slice(0, 155) ?? "",
-      url: `https://pactwines.com/producer/${slug}`,
+      url: producerUrl,
       type: "website",
     },
   };
@@ -160,7 +165,10 @@ export default async function ProducerPage(props: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await props.params;
-  const data = await fetchProducerBySlug(slug);
+  const [data, config] = await Promise.all([
+    fetchProducerBySlug(slug),
+    getSiteConfig(),
+  ]);
   if (!data?.producer) notFound();
 
   const { producer, wines } = data;
@@ -221,8 +229,8 @@ export default async function ProducerPage(props: {
   const pactJsonLd = {
     "@context": "https://schema.org",
     "@type": "Organization",
-    name: "PACT",
-    url: "https://pactwines.com",
+    name: config.name,
+    url: config.baseUrl,
     description: "Direktimport av naturvin från Languedoc till Stockholm.",
     areaServed: "Stockholm, Sweden",
   };

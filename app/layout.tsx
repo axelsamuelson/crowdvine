@@ -46,80 +46,75 @@ import {
 import { SiteLogoProvider } from "@/lib/context/site-logo-provider";
 import { resolveSiteLogosFromRequest } from "@/lib/site-logos-server";
 import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
+import { getSiteConfig, type SiteConfig } from "@/lib/site-config";
 
-const defaultOpenGraph: Metadata["openGraph"] = {
-  siteName: "PACT",
-  locale: "sv_SE",
-  type: "website",
-  images: [
-    {
-      url: "https://pactwines.com/pact-og-uploaded.jpg",
-      width: 1200,
-      height: 630,
-      alt: "PACT — Naturvin direkt från Languedoc",
-    },
-  ],
+const defaultOpenGraphImages: NonNullable<
+  Metadata["openGraph"]
+>["images"] = [
+  {
+    url: "https://pactwines.com/pact-og-uploaded.jpg",
+    width: 1200,
+    height: 630,
+    alt: "PACT — Naturvin direkt från Languedoc",
+  },
+];
+
+function buildRootOpenGraph(config: SiteConfig): Metadata["openGraph"] {
+  return {
+    siteName: config.siteName,
+    locale: "sv_SE",
+    type: "website",
+    images: defaultOpenGraphImages,
+  };
+}
+
+const rootIcons: Metadata["icons"] = {
+  icon: [{ url: "/favicon.png", type: "image/png" }],
+  apple: [{ url: "/apple-touch-icon.png", type: "image/png" }],
 };
 
+function buildRootMetadata(
+  config: SiteConfig,
+  overrides?: { title?: string; description?: string },
+): Metadata {
+  return {
+    metadataBase: new URL(config.baseUrl),
+    title: {
+      default: overrides?.title ?? config.defaultTitle,
+      template: `%s | ${config.name}`,
+    },
+    description: overrides?.description ?? config.defaultDescription,
+    generator: "v0.app",
+    alternates: { canonical: config.baseUrl },
+    openGraph: buildRootOpenGraph(config),
+    icons: rootIcons,
+  };
+}
+
 export async function generateMetadata(): Promise<Metadata> {
+  const config = await getSiteConfig();
+
   try {
     const hasAdminCreds =
       !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
       !!process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!hasAdminCreds) {
-      return {
-        metadataBase: new URL("https://pactwines.com"),
-        title: {
-          default: "PACT — Naturvin direkt från Languedoc",
-          template: "%s | PACT",
-        },
-        description:
-          "Beställ naturvin direkt från producenter i Languedoc. Hemleverans i Stockholm via PACT.",
-        generator: "v0.app",
-        openGraph: defaultOpenGraph,
-        icons: {
-          icon: [{ url: "/favicon.png", type: "image/png" }],
-          apple: [{ url: "/apple-touch-icon.png", type: "image/png" }],
-        },
-      };
+      return buildRootMetadata(config);
     }
 
-    const siteTitle = (await getSiteContentByKey("site_title")) || "CrowdVine";
+    const siteTitle =
+      (await getSiteContentByKey("site_title")) || config.defaultTitle;
     const siteDescription =
       (await getSiteContentByKey("site_description")) ||
-      "Premium Wine Community";
+      config.defaultDescription;
 
-    return {
-      metadataBase: new URL("https://pactwines.com"),
-      title: {
-        default: siteTitle,
-        template: `%s | PACT`,
-      },
+    return buildRootMetadata(config, {
+      title: siteTitle,
       description: siteDescription,
-      generator: "v0.app",
-      openGraph: defaultOpenGraph,
-      icons: {
-        icon: [{ url: "/favicon.png", type: "image/png" }],
-        apple: [{ url: "/apple-touch-icon.png", type: "image/png" }],
-      },
-    };
+    });
   } catch (error) {
     console.error("Error generating metadata:", error);
-    return {
-      metadataBase: new URL("https://pactwines.com"),
-      title: {
-        default: "PACT — Naturvin direkt från Languedoc",
-        template: "%s | PACT",
-      },
-      description:
-        "Beställ naturvin direkt från producenter i Languedoc. Hemleverans i Stockholm via PACT.",
-      generator: "v0.app",
-      openGraph: defaultOpenGraph,
-      icons: {
-        icon: [{ url: "/favicon.png", type: "image/png" }],
-        apple: [{ url: "/apple-touch-icon.png", type: "image/png" }],
-      },
-    };
+    return buildRootMetadata(config);
   }
 }
 
