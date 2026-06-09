@@ -37,9 +37,10 @@ export function LatestProductCard({
               priority
               src={product.featuredImage.url}
               alt={product.featuredImage.altText || product.title}
-              width={1000}
-              height={100}
-              quality={100}
+              width={600}
+              height={800}
+              sizes="(max-width: 768px) 100vw, 50vw"
+              quality={85}
               className="object-cover size-full flex-1"
             />
           ) : (
