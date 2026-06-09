@@ -15,7 +15,7 @@ type TopWineRow = {
 export async function generateMetadata(): Promise<Metadata> {
   const config = await getSiteConfig();
   const pageUrl = `${config.baseUrl}/vin`;
-  const title = "Naturvin online — köp direkt från Languedoc | PACT";
+  const title = "Naturvin online — köp direkt från Languedoc | PACT Wines";
   const description =
     "Bläddra bland 60+ naturviner direktimporterade från Languedoc. Ekologiskt, biodynamiskt och utan tillsatser. Hemleverans i Stockholm.";
 

@@ -10,7 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     title: {
-      absolute: "Hitta ditt vin — Smakprofil & vinrekommendationer | PACT",
+      absolute: "Hitta ditt vin — Smakprofil & vinrekommendationer | PACT Wines",
     },
     description:
       "Svara på 5 frågor om tillfälle, smak och budget — vi matchar dig mot rätt naturvin från Languedoc.",
@@ -18,7 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
       canonical: pageUrl,
     },
     openGraph: {
-      title: "Hitta ditt vin på 2 minuter | PACT",
+      title: "Hitta ditt vin på 2 minuter | PACT Wines",
       description:
         "5 frågor. Personliga vinrekommendationer från Languedoc.",
       url: pageUrl,

@@ -15,7 +15,7 @@ type TopWineRow = {
 export async function generateMetadata(): Promise<Metadata> {
   const config = await getSiteConfig();
   const pageUrl = `${config.baseUrl}/wine`;
-  const title = "Natural Wine Online — Buy Direct from Languedoc | PACT";
+  const title = "Natural Wine Online — Buy Direct from Languedoc | PACT Wines";
   const description =
     "Browse 60+ natural wines directly imported from Languedoc. Organic, biodynamic and without additives. Home delivery in Stockholm.";
 

@@ -77,7 +77,7 @@ export async function generateMetadata(props: {
       },
     },
     openGraph: {
-      title: `${collection.title} — Naturvin från Languedoc | PACT`,
+      title: `${collection.title} — Naturvin från Languedoc | PACT Wines`,
       url: producerUrl,
       type: "website",
     },

@@ -6,7 +6,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const config = await getSiteConfig();
   const aboutUrl = `${config.baseUrl}/about`;
   const title =
-    "Om PACT — Direktimport av naturvin från Languedoc till Stockholm";
+    "Om PACT Wines — Direktimport av naturvin från Languedoc till Stockholm";
   const description =
     "PACT är en direktimportör av naturvin från småproducenter i Languedoc. Vi samlar beställningar tills en pall är full — sedan skickar producenten direkt till dig.";
   return {

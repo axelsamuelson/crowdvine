@@ -139,7 +139,7 @@ export async function generateMetadata(props: {
     getSiteConfig(),
   ]);
   if (!data?.producer) {
-    return { title: `Producer | ${config.name}` };
+    return { title: `Producer | ${config.siteName}` };
   }
 
   const { name, region, bio_short } = data.producer;
@@ -158,7 +158,7 @@ export async function generateMetadata(props: {
       },
     },
     openGraph: {
-      title: `${name} — Naturvin direkt från ${region} | ${config.name}`,
+      title: `${name} — Naturvin direkt från ${region} | ${config.siteName}`,
       description: bio_short?.slice(0, 155) ?? "",
       url: producerUrl,
       type: "website",

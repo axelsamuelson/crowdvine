@@ -23,7 +23,7 @@ export const WINE_CATEGORIES_SV: WineCategory[] = [
     slug: "naturvin",
     locale: "sv",
     h1: "Naturvin",
-    title: "Köpa naturvin online — direktimporterat från Languedoc | PACT",
+    title: "Köpa naturvin online — direktimporterat från Languedoc | PACT Wines",
     metaDescription:
       "Köp naturvin direkt från småproducenter i Languedoc. Hemleverans i Stockholm. Inga mellanhänder, inga tillsatser.",
     description:
@@ -36,7 +36,7 @@ export const WINE_CATEGORIES_SV: WineCategory[] = [
     slug: "rott-naturvin",
     locale: "sv",
     h1: "Rött naturvin",
-    title: "Köpa rött naturvin online | PACT",
+    title: "Köpa rött naturvin online | PACT Wines",
     metaDescription:
       "Rött naturvin direkt från Languedoc. Carignan, Grenache, Syrah och mer — hemleverans i Stockholm.",
     description:
@@ -49,7 +49,7 @@ export const WINE_CATEGORIES_SV: WineCategory[] = [
     slug: "vitt-naturvin",
     locale: "sv",
     h1: "Vitt naturvin",
-    title: "Köpa vitt naturvin online | PACT",
+    title: "Köpa vitt naturvin online | PACT Wines",
     metaDescription:
       "Vitt naturvin direkt från Languedoc. Vermentino, Chardonnay, Terret och mer — hemleverans i Stockholm.",
     description:
@@ -62,7 +62,7 @@ export const WINE_CATEGORIES_SV: WineCategory[] = [
     slug: "orange-naturvin",
     locale: "sv",
     h1: "Orange naturvin",
-    title: "Köpa orange naturvin online | PACT",
+    title: "Köpa orange naturvin online | PACT Wines",
     metaDescription:
       "Orange naturvin med skalkontakt direkt från Languedoc. Textur, djup och karaktär — hemleverans i Stockholm.",
     description:
@@ -75,7 +75,7 @@ export const WINE_CATEGORIES_SV: WineCategory[] = [
     slug: "rod-och-vit-naturvin",
     locale: "sv",
     h1: "Rött & vitt naturvin",
-    title: "Rött och vitt naturvin — assemblage | PACT",
+    title: "Rött och vitt naturvin — assemblage | PACT Wines",
     metaDescription:
       "Naturvin gjorda på både röda och vita druvor. Direktimporterat från Languedoc.",
     description:
@@ -88,7 +88,7 @@ export const WINE_CATEGORIES_SV: WineCategory[] = [
     slug: "rod-och-orange-naturvin",
     locale: "sv",
     h1: "Rött & orange naturvin",
-    title: "Rött och orange naturvin — assemblage | PACT",
+    title: "Rött och orange naturvin — assemblage | PACT Wines",
     metaDescription:
       "Naturvin gjorda på röda druvor med skalkontakt. Direktimporterat från Languedoc.",
     description:
@@ -101,7 +101,7 @@ export const WINE_CATEGORIES_SV: WineCategory[] = [
     slug: "naturvin-languedoc",
     locale: "sv",
     h1: "Naturvin från Languedoc",
-    title: "Naturvin från Languedoc — direktimport till Stockholm | PACT",
+    title: "Naturvin från Languedoc — direktimport till Stockholm | PACT Wines",
     metaDescription:
       "Naturvin direkt från småproducenter i Languedoc, Frankrike. Direktimporterat till Stockholm utan mellanhänder.",
     description:
@@ -114,7 +114,7 @@ export const WINE_CATEGORIES_SV: WineCategory[] = [
     slug: "naturvin-frankrike",
     locale: "sv",
     h1: "Naturvin från Frankrike",
-    title: "Köpa naturvin från Frankrike online | PACT",
+    title: "Köpa naturvin från Frankrike online | PACT Wines",
     metaDescription:
       "Franskt naturvin direktimporterat från Languedoc. Köp naturvin från Frankrike med hemleverans i Stockholm.",
     description:
@@ -127,7 +127,7 @@ export const WINE_CATEGORIES_SV: WineCategory[] = [
     slug: "rott-naturvin-languedoc",
     locale: "sv",
     h1: "Rött naturvin från Languedoc",
-    title: "Rött naturvin från Languedoc | PACT",
+    title: "Rött naturvin från Languedoc | PACT Wines",
     metaDescription:
       "Rött naturvin direkt från Languedoc, Frankrike. Carignan, Grenache, Syrah — hemleverans Stockholm.",
     description:
@@ -140,7 +140,7 @@ export const WINE_CATEGORIES_SV: WineCategory[] = [
     slug: "vitt-naturvin-languedoc",
     locale: "sv",
     h1: "Vitt naturvin från Languedoc",
-    title: "Vitt naturvin från Languedoc | PACT",
+    title: "Vitt naturvin från Languedoc | PACT Wines",
     metaDescription:
       "Vitt naturvin direkt från Languedoc, Frankrike. Vermentino, Chardonnay, Terret — hemleverans Stockholm.",
     description:
@@ -153,7 +153,7 @@ export const WINE_CATEGORIES_SV: WineCategory[] = [
     slug: "orange-naturvin-languedoc",
     locale: "sv",
     h1: "Orange naturvin från Languedoc",
-    title: "Orange naturvin från Languedoc | PACT",
+    title: "Orange naturvin från Languedoc | PACT Wines",
     metaDescription:
       "Orange naturvin med skalkontakt direkt från Languedoc, Frankrike. Hemleverans Stockholm.",
     description:
@@ -166,7 +166,7 @@ export const WINE_CATEGORIES_SV: WineCategory[] = [
     slug: "naturvin-hemleverans-stockholm",
     locale: "sv",
     h1: "Naturvin med hemleverans i Stockholm",
-    title: "Naturvin hemleverans Stockholm — direktimport | PACT",
+    title: "Naturvin hemleverans Stockholm — direktimport | PACT Wines",
     metaDescription:
       "Beställ naturvin online med hemleverans i Stockholm. Direktimporterat från Languedoc via PACT.",
     description:
@@ -179,7 +179,7 @@ export const WINE_CATEGORIES_SV: WineCategory[] = [
     slug: "direktimport-vin",
     locale: "sv",
     h1: "Direktimport av vin från Languedoc",
-    title: "Direktimport vin Sverige — köp direkt från producenten | PACT",
+    title: "Direktimport vin Sverige — köp direkt från producenten | PACT Wines",
     metaDescription:
       "Köp vin direktimporterat från Languedoc till Sverige. PACT samlar beställningar och skickar direkt från producenten.",
     description:
@@ -192,7 +192,7 @@ export const WINE_CATEGORIES_SV: WineCategory[] = [
     slug: "carignan",
     locale: "sv",
     h1: "Carignan — Languedocs rebelliska druvsort",
-    title: "Carignan naturvin från Languedoc | PACT",
+    title: "Carignan naturvin från Languedoc | PACT Wines",
     metaDescription:
       "Carignan är Languedocs mest missförstådda druvsort. Gamla stockar på skifferjord ger mörka frukter, hög syra och mineralisk karaktär. Direktimporterat till Stockholm.",
     description:
@@ -207,7 +207,7 @@ export const WINE_CATEGORIES_SV: WineCategory[] = [
     slug: "grenache",
     locale: "sv",
     h1: "Grenache — Languedocs hjärta",
-    title: "Grenache naturvin från Languedoc | PACT",
+    title: "Grenache naturvin från Languedoc | PACT Wines",
     metaDescription:
       "Grenache är Languedocs mest planterade röda druvsort. Fruktig, varm och versatil — från lättdruckna vardagsviner till komplexa fatlagrade cuvéer.",
     description:
@@ -221,7 +221,7 @@ export const WINE_CATEGORIES_SV: WineCategory[] = [
     slug: "syrah",
     locale: "sv",
     h1: "Syrah — mörk och kryddig från Languedoc",
-    title: "Syrah naturvin från Languedoc | PACT",
+    title: "Syrah naturvin från Languedoc | PACT Wines",
     metaDescription:
       "Syrah ger Languedocs djupaste, kryddigaste röda viner. På skifferjordarna i Saint-Chinian och Faugères uttrycker den mörka frukter, svartpeppar och mineralitet.",
     description:
@@ -235,7 +235,7 @@ export const WINE_CATEGORIES_SV: WineCategory[] = [
     slug: "cinsault",
     locale: "sv",
     h1: "Cinsault — lätt, friskt och underskattat",
-    title: "Cinsault naturvin från Languedoc | PACT",
+    title: "Cinsault naturvin från Languedoc | PACT Wines",
     metaDescription:
       "Cinsault är Languedocs mest underskattade druvsort. Låga tanniner, höga aromer och naturlig friskhet gör den perfekt för lättdruckna naturviner.",
     description:
@@ -252,7 +252,7 @@ export const WINE_CATEGORIES_EN: WineCategory[] = [
     slug: "natural-wine",
     locale: "en",
     h1: "Natural Wine",
-    title: "Buy Natural Wine Online — Direct from Languedoc | PACT",
+    title: "Buy Natural Wine Online — Direct from Languedoc | PACT Wines",
     metaDescription:
       "Buy natural wine directly from small producers in Languedoc. Home delivery in Stockholm. No middlemen, no additives.",
     description:
@@ -265,7 +265,7 @@ export const WINE_CATEGORIES_EN: WineCategory[] = [
     slug: "red-natural-wine",
     locale: "en",
     h1: "Red Natural Wine",
-    title: "Buy Red Natural Wine Online | PACT",
+    title: "Buy Red Natural Wine Online | PACT Wines",
     metaDescription:
       "Red natural wine direct from Languedoc. Carignan, Grenache, Syrah and more — home delivery in Stockholm.",
     description:
@@ -278,7 +278,7 @@ export const WINE_CATEGORIES_EN: WineCategory[] = [
     slug: "white-natural-wine",
     locale: "en",
     h1: "White Natural Wine",
-    title: "Buy White Natural Wine Online | PACT",
+    title: "Buy White Natural Wine Online | PACT Wines",
     metaDescription:
       "White natural wine direct from Languedoc. Vermentino, Chardonnay, Terret and more — home delivery in Stockholm.",
     description:
@@ -291,7 +291,7 @@ export const WINE_CATEGORIES_EN: WineCategory[] = [
     slug: "orange-natural-wine",
     locale: "en",
     h1: "Orange Natural Wine",
-    title: "Buy Orange Natural Wine Online | PACT",
+    title: "Buy Orange Natural Wine Online | PACT Wines",
     metaDescription:
       "Orange natural wine with skin contact direct from Languedoc. Texture, depth and character — home delivery in Stockholm.",
     description:
@@ -304,7 +304,7 @@ export const WINE_CATEGORIES_EN: WineCategory[] = [
     slug: "red-and-white-natural-wine",
     locale: "en",
     h1: "Red & White Natural Wine",
-    title: "Red and White Natural Wine — assemblage | PACT",
+    title: "Red and White Natural Wine — assemblage | PACT Wines",
     metaDescription:
       "Natural wines made from both red and white grapes. Direct import from Languedoc.",
     description:
@@ -317,7 +317,7 @@ export const WINE_CATEGORIES_EN: WineCategory[] = [
     slug: "red-and-orange-natural-wine",
     locale: "en",
     h1: "Red & Orange Natural Wine",
-    title: "Red and Orange Natural Wine | PACT",
+    title: "Red and Orange Natural Wine | PACT Wines",
     metaDescription:
       "Natural wines made from red grapes with skin contact. Direct import from Languedoc.",
     description:
@@ -330,7 +330,7 @@ export const WINE_CATEGORIES_EN: WineCategory[] = [
     slug: "natural-wine-languedoc",
     locale: "en",
     h1: "Natural Wine from Languedoc",
-    title: "Natural Wine from Languedoc — Direct Import to Stockholm | PACT",
+    title: "Natural Wine from Languedoc — Direct Import to Stockholm | PACT Wines",
     metaDescription:
       "Natural wine direct from small producers in Languedoc, France. Imported directly to Stockholm without middlemen.",
     description:
@@ -343,7 +343,7 @@ export const WINE_CATEGORIES_EN: WineCategory[] = [
     slug: "natural-wine-france",
     locale: "en",
     h1: "Natural Wine from France",
-    title: "Buy French Natural Wine Online | PACT",
+    title: "Buy French Natural Wine Online | PACT Wines",
     metaDescription:
       "French natural wine directly imported from Languedoc. Buy natural wine from France with home delivery in Stockholm.",
     description:
@@ -356,7 +356,7 @@ export const WINE_CATEGORIES_EN: WineCategory[] = [
     slug: "red-natural-wine-languedoc",
     locale: "en",
     h1: "Red Natural Wine from Languedoc",
-    title: "Red Natural Wine from Languedoc | PACT",
+    title: "Red Natural Wine from Languedoc | PACT Wines",
     metaDescription:
       "Red natural wine direct from Languedoc, France. Carignan, Grenache, Syrah — home delivery Stockholm.",
     description:
@@ -369,7 +369,7 @@ export const WINE_CATEGORIES_EN: WineCategory[] = [
     slug: "white-natural-wine-languedoc",
     locale: "en",
     h1: "White Natural Wine from Languedoc",
-    title: "White Natural Wine from Languedoc | PACT",
+    title: "White Natural Wine from Languedoc | PACT Wines",
     metaDescription:
       "White natural wine direct from Languedoc, France. Vermentino, Chardonnay, Terret — home delivery Stockholm.",
     description:
@@ -382,7 +382,7 @@ export const WINE_CATEGORIES_EN: WineCategory[] = [
     slug: "orange-natural-wine-languedoc",
     locale: "en",
     h1: "Orange Natural Wine from Languedoc",
-    title: "Orange Natural Wine from Languedoc | PACT",
+    title: "Orange Natural Wine from Languedoc | PACT Wines",
     metaDescription:
       "Orange natural wine with skin contact direct from Languedoc, France. Home delivery Stockholm.",
     description:
@@ -395,7 +395,7 @@ export const WINE_CATEGORIES_EN: WineCategory[] = [
     slug: "natural-wine-delivery-stockholm",
     locale: "en",
     h1: "Natural Wine Home Delivery Stockholm",
-    title: "Natural Wine Delivery Stockholm — Direct Import | PACT",
+    title: "Natural Wine Delivery Stockholm — Direct Import | PACT Wines",
     metaDescription:
       "Order natural wine online with home delivery in Stockholm. Directly imported from Languedoc via PACT.",
     description:
@@ -408,7 +408,7 @@ export const WINE_CATEGORIES_EN: WineCategory[] = [
     slug: "direct-import-wine",
     locale: "en",
     h1: "Direct Import Wine from Languedoc",
-    title: "Direct Import Wine Sweden — Buy Direct from Producer | PACT",
+    title: "Direct Import Wine Sweden — Buy Direct from Producer | PACT Wines",
     metaDescription:
       "Buy wine directly imported from Languedoc to Sweden. PACT aggregates orders and ships directly from the producer.",
     description:

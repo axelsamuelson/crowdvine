@@ -53,7 +53,7 @@ const defaultOpenGraphImages: NonNullable<
     url: "https://pactwines.com/pact-og-uploaded.jpg",
     width: 1200,
     height: 630,
-    alt: "PACT — Naturvin direkt från Languedoc",
+    alt: "PACT Wines — Naturvin direkt från Languedoc",
   },
 ];
 
@@ -79,7 +79,7 @@ function buildRootMetadata(
     metadataBase: new URL(config.baseUrl),
     title: {
       default: overrides?.title ?? config.defaultTitle,
-      template: `%s | ${config.name}`,
+      template: `%s | ${config.siteName}`,
     },
     description: overrides?.description ?? config.defaultDescription,
     generator: "v0.app",

@@ -22,7 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const config = await getSiteConfig();
   const producersUrl = `${config.baseUrl}/producers`;
   const title =
-    "Naturvinsproducenter i Languedoc — direktimport via PACT";
+    "Naturvinsproducenter i Languedoc — direktimport via PACT Wines";
   const description =
     "Möt producenterna bakom PACTs sortiment. Småskaliga vinmakare i Languedoc som odlar ekologiskt och vinifierar utan tillsatser.";
   return {

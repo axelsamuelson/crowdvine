@@ -16,11 +16,11 @@ export async function generateMetadata(props: {
   const params = await props.params;
 
   return {
-    title: "You're Invited to PACT!",
+    title: "You're Invited to PACT Wines!",
     description:
       "Congratulations! You've been invited to join PACT - an exclusive wine community where members share pallets and discover exceptional wines together.",
     openGraph: {
-      title: "You're Invited to PACT!",
+      title: "You're Invited to PACT Wines!",
       description:
         "Congratulations! You've been invited to join PACT - an exclusive wine community where members share pallets and discover exceptional wines together.",
       type: "website",
@@ -36,7 +36,7 @@ export async function generateMetadata(props: {
     },
     twitter: {
       card: "summary_large_image",
-      title: "You're Invited to PACT!",
+      title: "You're Invited to PACT Wines!",
       description:
         "Congratulations! You've been invited to join PACT - an exclusive wine community where members share pallets and discover exceptional wines together.",
       images: ["/pact-og-uploaded.jpg"],

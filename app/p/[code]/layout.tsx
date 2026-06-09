@@ -14,11 +14,11 @@ export async function generateMetadata(props: {
   params: Promise<{ code: string }>;
 }): Promise<Metadata> {
   return {
-    title: "Producer invitation – PACT",
+    title: "Producer invitation – PACT Wines",
     description:
       "You're invited to join PACT as a producer – connect with the community and share your wines.",
     openGraph: {
-      title: "Producer invitation – PACT",
+      title: "Producer invitation – PACT Wines",
       description:
         "You're invited to join PACT as a producer – connect with the community and share your wines.",
       type: "website",
@@ -26,7 +26,7 @@ export async function generateMetadata(props: {
     },
     twitter: {
       card: "summary_large_image",
-      title: "Producer invitation – PACT",
+      title: "Producer invitation – PACT Wines",
       description:
         "You're invited to join PACT as a producer – connect with the community and share your wines.",
     },

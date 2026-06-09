@@ -9,11 +9,11 @@ import { HiwPactSection } from "@/components/how-it-works/hiw-pact-section";
 import "./how-it-works.css";
 
 export const metadata: Metadata = {
-  title: "Hur fungerar PACT? Direktimport av vin från producent till konsument",
+  title: "Hur fungerar PACT Wines? Direktimport av vin från producent till konsument",
   description:
     "PACT samlar beställningar tills en pall är full. Producenten skickar direkt från Languedoc till Stockholm — utan importör, grossist eller Systembolaget.",
   openGraph: {
-    title: "Hur fungerar PACT? Direktimport av vin från producent till konsument",
+    title: "Hur fungerar PACT Wines? Direktimport av vin från producent till konsument",
     description:
       "PACT samlar beställningar tills en pall är full. Producenten skickar direkt från Languedoc till Stockholm — utan importör, grossist eller Systembolaget.",
     type: "website",

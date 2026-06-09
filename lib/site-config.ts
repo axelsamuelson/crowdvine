@@ -12,8 +12,8 @@ export type SiteConfig = {
 export const PACT_CONFIG: SiteConfig = {
   name: "PACT",
   baseUrl: "https://pactwines.com",
-  siteName: "PACT",
-  defaultTitle: "PACT — Naturvin direkt från Languedoc",
+  siteName: "PACT Wines",
+  defaultTitle: "PACT Wines — Naturvin direkt från Languedoc",
   defaultDescription:
     "Köp naturvin direkt från småproducenter i Languedoc. Hemleverans i Stockholm via PACT.",
 };

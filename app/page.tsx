@@ -28,7 +28,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const isDirtyWine = config.name === "Dirty Wine";
   const title = isDirtyWine
     ? "Dirty Wine — Naturvin från Languedoc, B2B import Stockholm"
-    : "PACT — Köp naturvin online direkt från Languedoc";
+    : "PACT Wines — Köp naturvin online direkt från Languedoc";
   const description = isDirtyWine
     ? "Naturvin från Languedoc för restauranger och sommelierer i Stockholm. Direktimport utan grossist. B2B-priser exkl. moms."
     : "Köp naturvin direktimporterat från småproducenter i Languedoc. Hemleverans i Stockholm. Inga mellanhänder — lägre pris, mer karaktär.";
