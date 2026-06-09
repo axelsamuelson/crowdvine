@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Package, Settings, TrendingUp } from "lucide-react";
+import { Package, Settings, TrendingUp, Wine } from "lucide-react";
 import Link from "next/link";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import Image from "next/image";
@@ -729,6 +729,12 @@ function ProfilePageContent() {
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2 self-start">
+              <Button variant="outline" size="sm" className="rounded-full" asChild>
+                <Link href="/profile/taste-profile" className="gap-2">
+                  <Wine className="h-4 w-4" />
+                  {t("profile.tasteProfile.link")}
+                </Link>
+              </Button>
               <Button variant="outline" size="sm" className="rounded-full" asChild>
                 <Link href="/profile/edit" className="gap-2">
                   <Settings className="h-4 w-4" />

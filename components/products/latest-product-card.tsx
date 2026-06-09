@@ -4,12 +4,14 @@ import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import Image from "next/image";
 import { FeaturedProductLabel } from "./featured-product-label";
+import { HomeLatestDropBadge } from "@/components/home/home-latest-drop-badge";
 import { Product } from "@/lib/shopify/types";
 import Link from "next/link";
 
 interface LatestProductCardProps {
   product: Product;
   principal?: boolean;
+  showLatestDrop?: boolean;
   className?: string;
   labelPosition?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
 }
@@ -17,6 +19,7 @@ interface LatestProductCardProps {
 export function LatestProductCard({
   product,
   principal = false,
+  showLatestDrop = false,
   className,
   labelPosition = "bottom-right",
 }: LatestProductCardProps) {
@@ -27,6 +30,11 @@ export function LatestProductCard({
   if (principal) {
     return (
       <div className={cn("min-h-fold flex flex-col relative", className)}>
+        {showLatestDrop && (
+          <div className="absolute top-0 left-0 z-10 p-sides pointer-events-auto">
+            <HomeLatestDropBadge />
+          </div>
+        )}
         <Link
           href={`/product/${product.handle}`}
           className="size-full flex-1 flex flex-col"
@@ -35,7 +43,6 @@ export function LatestProductCard({
           {hasImage ? (
             <Image
               priority
-              fetchPriority="high"
               src={product.featuredImage.url}
               alt={product.featuredImage.altText || product.title}
               width={1000}
@@ -56,6 +63,7 @@ export function LatestProductCard({
             <FeaturedProductLabel
               product={product}
               principal
+              showBadge={!showLatestDrop}
             />
           </div>
         </div>

@@ -108,6 +108,7 @@ export default async function VinCollectionPage(props: {
       filterColor: category.filter.color,
       filterTags: category.filter.tags,
       filterIsNatural: category.filter.isNatural,
+      filterGrape: category.filter.filterGrape,
       isB2BSite: false,
       displayCurrencyCode: shoppingContext.currencyCode,
       sekToDisplayRate: shoppingContext.sekToDisplayRate,
@@ -190,6 +191,12 @@ export default async function VinCollectionPage(props: {
               {category.description}
             </p>
           </div>
+
+          {category.longDescription && (
+            <div className="prose prose-stone mb-8 max-w-2xl text-sm">
+              <p>{category.longDescription}</p>
+            </div>
+          )}
 
           <ProductListContent
             products={mappedProducts}

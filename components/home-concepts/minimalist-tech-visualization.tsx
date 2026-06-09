@@ -165,11 +165,11 @@ export function MinimalistTechVisualization() {
           Producers And Consumers Together
           <br />
           <span className="text-lg text-muted-foreground">
-            Crowdsourcing directly from natural winemakers.
+            Crowdsourcing directly from winemakers.
           </span>
           <br />
           <span className="text-base text-muted-foreground">
-            A smarter way to buy wine — together.
+            A smarter way to buy wine together.
           </span>
         </motion.h1>
 

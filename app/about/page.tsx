@@ -41,7 +41,7 @@ export default function AboutPage() {
                 About
               </h1>
               <p className="text-xl md:text-2xl text-foreground font-light leading-relaxed">
-                A smarter way to buy wine — together.
+                A smarter way to buy wine together.
               </p>
 
               <div className="flex justify-center pt-4">

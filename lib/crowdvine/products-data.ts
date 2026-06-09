@@ -265,6 +265,7 @@ function applyWineCatalogFilters<Q extends WineCatalogQuery>(
     filterColor?: string[];
     filterTags?: string[];
     filterIsNatural?: boolean;
+    filterGrape?: string;
   },
 ): Q {
   let q = query;
@@ -278,6 +279,9 @@ function applyWineCatalogFilters<Q extends WineCatalogQuery>(
     for (const tag of filters.filterTags) {
       q = q.contains("tags", [tag]) as Q;
     }
+  }
+  if (filters?.filterGrape) {
+    q = q.ilike("grape_varieties", `%${filters.filterGrape}%`) as Q;
   }
   return q;
 }
@@ -298,6 +302,8 @@ export async function fetchProductsData(params?: {
   filterTags?: string[];
   /** When true, only wines with is_natural = true. */
   filterIsNatural?: boolean;
+  /** Case-insensitive match on grape_varieties. */
+  filterGrape?: string;
 }): Promise<ProductData[]> {
   const limit = params?.limit ?? 200;
   const sortKey = params?.sortKey || "RELEVANCE";
@@ -337,6 +343,7 @@ export async function fetchProductsData(params?: {
     filterColor: params?.filterColor,
     filterTags: params?.filterTags,
     filterIsNatural: params?.filterIsNatural,
+    filterGrape: params?.filterGrape,
   };
 
   const applySort = <Q extends { order: any }>(q: Q): Q => {

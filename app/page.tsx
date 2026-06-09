@@ -1,7 +1,12 @@
 import { HomeSidebar } from "@/components/layout/sidebar/home-sidebar";
 import { Footer } from "@/components/layout/footer";
 import { LatestProductCard } from "@/components/products/latest-product-card";
-import { HomeLatestDropBadge } from "@/components/home/home-latest-drop-badge";
+import { HomeHero } from "@/components/home/home-hero";
+import {
+  HomeTasteQuizCollapsible,
+  HomeTasteQuizProvider,
+} from "@/components/home/home-taste-quiz-panel";
+import { getQuizWines } from "@/lib/taste-quiz/get-quiz-wines";
 import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
 import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
 import type { Metadata } from "next";
@@ -68,6 +73,14 @@ export default async function Home() {
   }
 
   let featuredProducts: Product[] = [];
+  let quizWines: Awaited<ReturnType<typeof getQuizWines>> = [];
+
+  try {
+    quizWines = await getQuizWines(shoppingContext.locale);
+  } catch (error) {
+    console.warn("Failed to fetch taste quiz wines:", error);
+    quizWines = [];
+  }
 
   try {
     if (collections.length > 0) {
@@ -140,22 +153,24 @@ export default async function Home() {
         }}
       />
       <main>
-        <div className="contents md:grid md:grid-cols-12 md:gap-sides">
+        <HomeTasteQuizProvider enabled={quizWines.length > 0}>
+          {featuredProducts.length > 0 && <HomeHero />}
+          {quizWines.length > 0 && (
+            <HomeTasteQuizCollapsible
+              wines={quizWines}
+              locale={shoppingContext.locale}
+            />
+          )}
+          <div className="contents md:grid md:grid-cols-12 md:gap-sides">
           <HomeSidebar collections={collections} />
           <div className="flex relative flex-col grid-cols-2 col-span-8 w-full md:grid">
-            <div className="fixed top-0 left-0 z-10 w-full pointer-events-none base-grid py-sides">
-              <div className="col-span-8 col-start-5">
-                <div className="hidden px-6 lg:block">
-                  <HomeLatestDropBadge />
-                </div>
-              </div>
-            </div>
             {featuredProducts.length > 0 && (
               <>
                 <LatestProductCard
                   className="col-span-2"
                   product={lastProduct}
                   principal
+                  showLatestDrop
                 />
 
                 {restProducts.map((product: any, index: number) => (
@@ -170,6 +185,7 @@ export default async function Home() {
             )}
           </div>
         </div>
+        </HomeTasteQuizProvider>
       </main>
       <Footer />
     </>

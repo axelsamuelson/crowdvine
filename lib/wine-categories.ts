@@ -2,6 +2,7 @@ export type WineCategoryFilter = {
   color?: string[];
   tags?: string[];
   isNatural?: boolean;
+  filterGrape?: string;
 };
 
 export type WineCategory = {
@@ -11,6 +12,7 @@ export type WineCategory = {
   title: string;
   metaDescription: string;
   description: string;
+  longDescription?: string;
   filter: WineCategoryFilter;
   hreflang?: string;
   canonical: string;
@@ -185,6 +187,63 @@ export const WINE_CATEGORIES_SV: WineCategory[] = [
     filter: {},
     hreflang: "direct-import-wine",
     canonical: "/vin/direktimport-vin",
+  },
+  {
+    slug: "carignan",
+    locale: "sv",
+    h1: "Carignan — Languedocs rebelliska druvsort",
+    title: "Carignan naturvin från Languedoc | PACT",
+    metaDescription:
+      "Carignan är Languedocs mest missförstådda druvsort. Gamla stockar på skifferjord ger mörka frukter, hög syra och mineralisk karaktär. Direktimporterat till Stockholm.",
+    description:
+      "Carignan odlas i Languedoc sedan romartiden. Gamla stockar kräver handskörd och ger låga skördar — men vinerna är komplexa, strukturerade och mineral-drivna.",
+    longDescription:
+      "Carignan kommer ursprungligen från Aragonien i Spanien och har odlats i Languedoc sedan medeltiden. Under 1900-talets massproduktion fick druvsorten dåligt rykte för höga skördar och tunna viner — men det berättar bara halva sanningen. Gamla stockar med låga skördar på skiffer- och kalkstenjordar ger något helt annat: mörka frukter, fast syra, markerade tanniner och den karakteristiska doften av Languedocs garrigue. Naturvinsrörelsen har rehabiliterat Carignan. Producenter som Peira Levada, Thomas Chany och Clos Fantine visar vad hundra år gamla stockar kan åstadkomma när de hanteras med respekt och minimalt med intervention.",
+    filter: { filterGrape: "Carignan" },
+    hreflang: "carignan",
+    canonical: "/vin/carignan",
+  },
+  {
+    slug: "grenache",
+    locale: "sv",
+    h1: "Grenache — Languedocs hjärta",
+    title: "Grenache naturvin från Languedoc | PACT",
+    metaDescription:
+      "Grenache är Languedocs mest planterade röda druvsort. Fruktig, varm och versatil — från lättdruckna vardagsviner till komplexa fatlagrade cuvéer.",
+    description:
+      "Grenache trivs i Languedocs varma, torra klimat och producerar fruktfyllda viner med låga tanniner och hög alkohol. Gamla gobelets ger koncentration och djup.",
+    longDescription:
+      "Grenache är en av Medelhavsvärldens mest planterade druvssorter — med ursprung i Aragonien i Spanien och med anrika rötter i Languedoc sedan 1600-talet. Druvsorten trivs i värme och torka, producerar frukttäta viner med låga tanniner och naturligt hög alkohol. Gamla gobelet-stockar ger låga skördar och koncentrerad frukt. I Languedoc uttrycker Grenache sig annorlunda än i Châteauneuf-du-Pape — lättare, friskare, ofta med mer blomsterkaraktär på de kalkrika jordarna. Naturvinsproducenter som Gregory White och Mas d'Agalis arbetar med Grenache utan tillsatser och visar druvans genuina personlighet.",
+    filter: { filterGrape: "Grenache" },
+    canonical: "/vin/grenache",
+  },
+  {
+    slug: "syrah",
+    locale: "sv",
+    h1: "Syrah — mörk och kryddig från Languedoc",
+    title: "Syrah naturvin från Languedoc | PACT",
+    metaDescription:
+      "Syrah ger Languedocs djupaste, kryddigaste röda viner. På skifferjordarna i Saint-Chinian och Faugères uttrycker den mörka frukter, svartpeppar och mineralitet.",
+    description:
+      "Syrah introducerades i Languedoc under 1970-talet och har blivit regionens mest uppskattade förbättrardruvsort. På skifferterroir uttrycker den sin bästa sida.",
+    longDescription:
+      "Syrah introducerades i Languedoc under 1970-talet som en förbättrardruvsort och har sedan dess blivit regionens mest omskrivna röda druvsort. På skifferterroir i Saint-Chinian och Faugères uttrycker Syrah mörka frukter, svartpeppar, rökt kött och en mineralitet som påminner om norra Rhône men med mer medelhavskaraktär. Kallare lägen på höjd — som hos Meïgoon i Roquebrun eller Ugo Lestelle i Pardailhan — ger Syrah den friskhet och precision som gör den exceptionell. Utan tillsatser och med indigena jästsvampar kommer druvans terroir igenom utan filter.",
+    filter: { filterGrape: "Syrah" },
+    canonical: "/vin/syrah",
+  },
+  {
+    slug: "cinsault",
+    locale: "sv",
+    h1: "Cinsault — lätt, friskt och underskattat",
+    title: "Cinsault naturvin från Languedoc | PACT",
+    metaDescription:
+      "Cinsault är Languedocs mest underskattade druvsort. Låga tanniner, höga aromer och naturlig friskhet gör den perfekt för lättdruckna naturviner.",
+    description:
+      "Cinsault är en av Languedocs äldsta druvssorter med rötter i Hérault. Låga tanniner och blomsterrika aromer av jordgubb och körsbär gör den till en favorit bland naturvinsproducenter.",
+    longDescription:
+      "Cinsault har odlats i Languedoc och Provence sedan antiken — den äldsta dokumenterade nämnandet är från Hérault år 1600. Länge betraktad som en blandningsdruvsort för att mjuka upp kraftigare viner, håller Cinsault på att rehabiliteras av naturvinsrörelsen. Dess låga tanniner, naturliga friskhet och blomsterrika aromer av jordgubb, körsbär och violer gör den perfekt för minimal intervention. Producenter som Meïgoon och Extralucide visar att Cinsault kan stå på egna ben — lättdrucken, aromatisk och genomskinlig i sin expression av terroir.",
+    filter: { filterGrape: "Cinsault" },
+    canonical: "/vin/cinsault",
   },
 ];
 

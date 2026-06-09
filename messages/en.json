@@ -48,10 +48,14 @@
     "allRightsReserved": "{year}© — All rights reserved",
     "getStarted": "Get Started",
     "help": "Help",
-    "heroTitle": "Producers and consumers, together.",
-    "heroSubtitle": "Wine straight from the producer.",
-    "heroDescription1": "Shop together on pallets and get better prices.",
-    "heroDescription2": "Discover new producers every week."
+    "heroTitle": "Producers direct to consumers",
+    "heroTitleBefore": "Producers",
+    "heroTitleMiddle": "direct to",
+    "heroTitleAfter": "consumers",
+    "heroSubtitle": "Crowdsourcing directly from winemakers.",
+    "heroDescription1": "A smarter way to buy wine together.",
+    "heroDescription2": "Discover new producers every week.",
+    "collapseTasteQuiz": "Close"
   },
   "shop": {
     "pageTitle": "Shop",
@@ -521,8 +525,8 @@
     "unknownColor": "Unknown",
     "intro": {
       "title": "Find your wine",
-      "description": "Answer five quick questions and we'll match wines from our catalog to your taste — occasion, style, color, and budget.",
-      "start": "Start →"
+      "description": "Answer five quick questions and we'll match wines from our catalog to your taste, occasion, style, color, and budget.",
+      "start": "Start"
     },
     "nav": {
       "back": "Back",
@@ -564,9 +568,13 @@
       "adventure": {
         "label": "Natural wine character",
         "title": "How adventurous are you?",
-        "sub": "Clean and classic, or wild and unexpected?",
-        "left": "Clean & familiar",
-        "right": "Wild & unexpected"
+        "options": {
+          "1": { "label": "Clean & familiar", "desc": "Classic, approachable styles" },
+          "2": { "label": "Mostly classic", "desc": "Subtle character, easy drinking" },
+          "3": { "label": "Balanced", "desc": "Open to some natural character" },
+          "4": { "label": "Curious", "desc": "Distinctive and expressive" },
+          "5": { "label": "Wild & unexpected", "desc": "Bold, unconventional wines" }
+        }
       },
       "budget": {
         "label": "Budget",
@@ -623,6 +631,18 @@
     "foundingSpotsFull": "All 100 founding spots have been claimed",
     "recentlyGranted": "Recently granted",
     "settings": "Settings",
+    "tasteProfile": {
+      "link": "Taste profile",
+      "title": "Your taste profile",
+      "backToProfile": "Back to profile",
+      "updatedAt": "Last updated {date}",
+      "retakeQuiz": "Retake quiz",
+      "startQuiz": "Start taste quiz",
+      "emptyTitle": "No saved taste profile yet",
+      "emptyDescription": "Take the taste quiz on the homepage and save your profile — then you can come back here to see your wine matches.",
+      "signInTitle": "Sign in to view your taste profile",
+      "signInSubtitle": "You need to be signed in to view your saved taste profile."
+    },
     "bottlesOrdered": "Bottles ordered",
     "producers": "Producers",
     "pactPoints": "PACT Points",

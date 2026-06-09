@@ -100,7 +100,7 @@ const getSteps = (membershipLevel: WelcomeModalMembershipLevel) => {
     {
       id: 1,
       title: "Welcome to",
-      subtitle: "A smarter way to buy wine — together",
+      subtitle: "A smarter way to buy wine together",
       icon: Wine,
       content: (
         <div className="space-y-6 text-center h-[280px] flex flex-col justify-center">

@@ -14,10 +14,12 @@ import { getProductListPriceSek } from "@/lib/price-breakdown";
 export function FeaturedProductLabel({
   product,
   principal = false,
+  showBadge = true,
   className,
 }: {
   product: Product;
   principal?: boolean;
+  showBadge?: boolean;
   className?: string;
 }) {
   const { t } = useTranslations();
@@ -32,9 +34,11 @@ export function FeaturedProductLabel({
         )}
       >
         <div className="col-span-2">
-          <Badge className="font-black capitalize rounded-full">
-            {t("home.bestSeller")}
-          </Badge>
+          {showBadge && (
+            <Badge className="font-black capitalize rounded-full">
+              {t("home.bestSeller")}
+            </Badge>
+          )}
         </div>
         <Link
           href={`/product/${product.handle}`}

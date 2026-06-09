@@ -48,10 +48,14 @@
     "allRightsReserved": "{year}© — Alla rättigheter förbehållna",
     "getStarted": "Kom igång",
     "help": "Hjälp",
-    "heroTitle": "Producenter och konsumenter, tillsammans.",
+    "heroTitle": "producenter direkt till konsumenter",
+    "heroTitleBefore": "producenter",
+    "heroTitleMiddle": "direkt till",
+    "heroTitleAfter": "konsumenter",
     "heroSubtitle": "Vin direkt från producenten.",
     "heroDescription1": "Handla tillsammans i pallar och få bättre priser.",
-    "heroDescription2": "Upptäck nya producenter varje vecka."
+    "heroDescription2": "Upptäck nya producenter varje vecka.",
+    "collapseTasteQuiz": "Stäng"
   },
   "shop": {
     "pageTitle": "Butik",
@@ -521,8 +525,8 @@
     "unknownColor": "Okänd",
     "intro": {
       "title": "Hitta ditt vin",
-      "description": "Svara på fem snabba frågor så matchar vi viner från katalogen mot din smak — tillfälle, stil, färg och budget.",
-      "start": "Starta →"
+      "description": "Svara på fem snabba frågor så matchar vi viner från katalogen mot din smak, tillfälle, stil, färg och budget.",
+      "start": "Starta"
     },
     "nav": {
       "back": "Tillbaka",
@@ -564,9 +568,13 @@
       "adventure": {
         "label": "Naturvinskaraktär",
         "title": "Hur äventyrlig är du?",
-        "sub": "Rent och klassiskt eller vilt och oväntat?",
-        "left": "Rent & igenkännbart",
-        "right": "Vilt & oväntat"
+        "options": {
+          "1": { "label": "Rent & igenkännbart", "desc": "Klassiska, lättillgängliga stilar" },
+          "2": { "label": "Mest klassiskt", "desc": "Diskret karaktär, lättdrucket" },
+          "3": { "label": "Balanserat", "desc": "Öppen för lite naturvinskaraktär" },
+          "4": { "label": "Nyfiken", "desc": "Tydligt och uttrycksfullt" },
+          "5": { "label": "Vilt & oväntat", "desc": "Djärvt och okonventionellt" }
+        }
       },
       "budget": {
         "label": "Budget",
@@ -623,6 +631,18 @@
     "foundingSpotsFull": "Alla 100 grundarplatser är upptagna",
     "recentlyGranted": "Nyligen tilldelad",
     "settings": "Inställningar",
+    "tasteProfile": {
+      "link": "Smakprofil",
+      "title": "Din smakprofil",
+      "backToProfile": "Tillbaka till profil",
+      "updatedAt": "Senast uppdaterad {date}",
+      "retakeQuiz": "Gör om quizet",
+      "startQuiz": "Starta smakquiz",
+      "emptyTitle": "Ingen sparad smakprofil ännu",
+      "emptyDescription": "Gör smakquizet på startsidan och spara din profil — då kan du återkomma hit och se dina vinmatchningar.",
+      "signInTitle": "Logga in för att se din smakprofil",
+      "signInSubtitle": "Du behöver vara inloggad för att se din sparade smakprofil."
+    },
     "bottlesOrdered": "Beställda flaskor",
     "producers": "Producenter",
     "pactPoints": "PACT-poäng",
