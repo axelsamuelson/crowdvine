@@ -43,6 +43,11 @@ async function runMiddleware(req: NextRequest) {
     }
   }
 
+  // pactwines.com: sitemap och robots ska alltid vara tillgängliga för crawlers utan auth
+  if (pathname === "/sitemap.xml" || pathname === "/robots.txt") {
+    return NextResponse.next();
+  }
+
   if (pathname === "/wine-search" || pathname.startsWith("/wine-search/")) {
     const u = req.nextUrl.clone();
     u.pathname = "/admin/wine-search";

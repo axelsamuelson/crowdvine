@@ -18,6 +18,8 @@ const PUBLIC_PATH_PREFIXES = [
   "/how-it-works",
   "/sitemap-b2b",
   "/robots-b2b",
+  "/sitemap.xml",
+  "/robots.txt",
   "/i",
   "/ib",
   "/b",
