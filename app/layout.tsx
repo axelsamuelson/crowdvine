@@ -11,7 +11,6 @@ import { getCollections } from "@/lib/shopify";
 import { ConditionalHeaderServer } from "../components/layout/header/conditional-header-server";
 import { VaulDrawerWrapper } from "@/components/layout/vaul-drawer-wrapper";
 import { headers } from "next/headers";
-import dynamic from "next/dynamic";
 import { V0Provider } from "@/lib/context";
 import { MobileMenuProvider } from "../components/layout/header/mobile-menu-context";
 import { MembershipProvider } from "@/lib/context/membership-context";
@@ -19,8 +18,7 @@ import { PortalProvider } from "@/lib/context/portal-context";
 import { OnboardingProvider } from "@/components/onboarding/onboarding-provider";
 import { cn } from "../lib/utils";
 import { B2BThemeEffect } from "../components/layout/b2b-theme-effect";
-
-const V0Setup = dynamic(() => import("@/components/v0-setup"));
+import V0SetupLoader from "@/components/v0-setup-loader";
 
 const isV0 = process.env["VERCEL_URL"]?.includes("vusercontent.net") ?? false;
 
@@ -202,7 +200,7 @@ export default async function RootLayout({
                     </MembershipProvider>
                   </PortalProvider>
                 </MobileMenuProvider>
-                {isV0 && <V0Setup />}
+                {isV0 && <V0SetupLoader />}
               </V0Provider>
             </OnboardingProvider>
           </CartProvider>
