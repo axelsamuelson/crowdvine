@@ -506,7 +506,7 @@ export function LivingPalletVisualization({ palletId = null }: LivingPalletVisua
             </div>
             <div className="mt-4 pt-4 border-t border-border">
               <a
-                href={`/shop/${selectedProducerData.name.toLowerCase().replace(/\s+/g, "-")}`}
+                href={`/vin/${selectedProducerData.name.toLowerCase().replace(/\s+/g, "-")}`}
                 className="text-sm text-foreground hover:underline"
               >
                 Se viner från denna producent →

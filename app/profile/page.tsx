@@ -1089,7 +1089,7 @@ function ProfilePageContent() {
             <p className="font-medium text-foreground">{t("profile.tipTitle")}</p>
             <p className="mt-2 leading-snug">
               {t("profile.tipBodyIntro")}{" "}
-              <Link href="/shop" className="underline underline-offset-2">
+              <Link href="/vin" className="underline underline-offset-2">
                 {t("common.shop")}
               </Link>
               .

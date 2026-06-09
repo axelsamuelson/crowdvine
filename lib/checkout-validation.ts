@@ -16,7 +16,7 @@ export type CartItem = {
 export type ProducerValidation = {
   producerId: string;
   producerName: string;
-  producerHandle: string; // URL-friendly slug for /shop/[handle]
+  producerHandle: string; // URL-friendly slug for /vin/[handle]
   quantity: number;
   isValid: boolean;
   needed: number; // bottles needed to reach next multiple of 6

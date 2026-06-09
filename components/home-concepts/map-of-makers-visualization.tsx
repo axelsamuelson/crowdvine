@@ -935,7 +935,7 @@ export function MapOfMakersVisualization() {
                   <div className="flex-1">
                     <h2 className="text-xl font-semibold text-foreground mb-1">
                       <Link
-                        href={`/shop/${getProducerHandle(selectedProducer.name)}`}
+                        href={`/vin/${getProducerHandle(selectedProducer.name)}`}
                         className="hover:underline transition-colors"
                         onClick={() => setSelectedProducer(null)}
                       >

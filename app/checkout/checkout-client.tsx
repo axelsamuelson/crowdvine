@@ -2453,8 +2453,8 @@ function CheckoutContent() {
                             .filter((v) => !v.isValid)
                             .map((v, i) => {
                               const href = v.groupId
-                                ? `/shop/group/${v.groupId}`
-                                : `/shop/${v.producerHandle}`;
+                                ? `/vin/group/${v.groupId}`
+                                : `/vin/${v.producerHandle}`;
                               return (
                                 <Link key={i} href={href}>
                                   <div className="group w-full rounded-md border border-border bg-background p-4 transition-all hover:border-foreground/20">

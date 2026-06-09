@@ -4,7 +4,6 @@ import { LatestProductCard } from "@/components/products/latest-product-card";
 import { HomeLatestDropBadge } from "@/components/home/home-latest-drop-badge";
 import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
 import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
-import { translate } from "@/lib/i18n/messages";
 import type { Metadata } from "next";
 import {
   getCollectionProducts,
@@ -20,20 +19,29 @@ import { getSiteConfig } from "@/lib/site-config";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const [ctx, config] = await Promise.all([
-    getShoppingContextFromRequest().catch(() => fallbackShoppingContext()),
-    getSiteConfig(),
-  ]);
+  const config = await getSiteConfig();
+  const isDirtyWine = config.name === "Dirty Wine";
+  const title = isDirtyWine
+    ? "Dirty Wine — Naturvin från Languedoc, B2B import Stockholm"
+    : "PACT — Köp naturvin online direkt från Languedoc";
+  const description = isDirtyWine
+    ? "Naturvin från Languedoc för restauranger och sommelierer i Stockholm. Direktimport utan grossist. B2B-priser exkl. moms."
+    : "Köp naturvin direktimporterat från småproducenter i Languedoc. Hemleverans i Stockholm. Inga mellanhänder — lägre pris, mer karaktär.";
+
   return {
-    title: translate(ctx.locale, "home.pageTitle"),
-    description: translate(ctx.locale, "home.pageDescription"),
+    title: { absolute: title },
+    description,
     alternates: {
       canonical: config.baseUrl,
+      languages: {
+        sv: "https://pactwines.com",
+        en: "https://pactwines.com",
+        "x-default": "https://pactwines.com",
+      },
     },
     openGraph: {
-      title: "PACT — Naturvin direkt från Languedoc",
-      description:
-        "Beställ naturvin direkt från producenter i Languedoc. 15–30% under Systembolagets pris. Hemleverans i Stockholm via Budbee.",
+      title,
+      description,
       url: config.baseUrl,
       type: "website",
     },
@@ -111,7 +119,7 @@ export default async function Home() {
       "@type": "SearchAction",
       target: {
         "@type": "EntryPoint",
-        urlTemplate: `${config.baseUrl}/shop?q={search_term_string}`,
+        urlTemplate: `${config.baseUrl}/vin?q={search_term_string}`,
       },
       "query-input": "required name=search_term_string",
     },

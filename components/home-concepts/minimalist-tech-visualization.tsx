@@ -16,14 +16,14 @@ const zones: InteractiveZone[] = [
     id: "pallets",
     title: "Se pallar",
     description: "Utforska aktiva pallar och se deras progress i realtid",
-    link: "/shop",
+    link: "/vin",
     visualization: "pallets",
   },
   {
     id: "producers",
     title: "Utforska producenter",
     description: "Upptäck naturviner direkt från små producenter",
-    link: "/shop",
+    link: "/vin",
     visualization: "producers",
   },
   {

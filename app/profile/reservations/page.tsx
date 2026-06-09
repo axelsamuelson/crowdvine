@@ -1044,7 +1044,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                         .map(([producerName, wines]) => (
                           <div key={producerName} className="space-y-3">
                             <Link 
-                              href={`/shop/${getProducerHandle(producerName)}`}
+                              href={`/vin/${getProducerHandle(producerName)}`}
                               className="text-xs font-medium text-gray-500 hover:text-gray-900 hover:underline transition-colors inline-block"
                             >
                               {producerName}
@@ -1075,7 +1075,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                                 // Use handle if available, otherwise fallback to search
                                 const wineUrl = w.handle 
                                   ? `/product/${w.handle}`
-                                  : `/shop?search=${encodeURIComponent(`${w.wine_name} ${w.vintage}`)}`;
+                                  : `/vin?search=${encodeURIComponent(`${w.wine_name} ${w.vintage}`)}`;
 
                                 return (
                                   <div key={`${producerName}-${w.wine_name}-${w.vintage}-${idx}`}>
@@ -1564,7 +1564,7 @@ export default function ReservationsPage() {
                   {t("profile.noReservationsBody")}
                 </p>
                 <div className="flex gap-3 justify-center">
-                  <Link href="/shop">
+                  <Link href="/vin">
                     <Button className="bg-black hover:bg-black/90 text-white rounded-full px-8">
                       {t("profile.browseWines")}
                     </Button>

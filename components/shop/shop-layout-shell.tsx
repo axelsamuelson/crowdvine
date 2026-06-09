@@ -1,15 +1,14 @@
-import { DesktopFilters } from "./components/shop-filters";
 import { Suspense } from "react";
-import { getCollections } from "@/lib/shopify";
-import { PageLayoutServer } from "@/components/layout/page-layout-server";
-import { MobileFilters } from "./components/mobile-filters";
-import { ProductsProvider } from "./providers/products-provider";
+
 import { CompleteOrderRail } from "@/components/cart/complete-order-rail";
+import { PageLayoutServer } from "@/components/layout/page-layout-server";
 import { listPriceSources } from "@/lib/external-prices/db";
+import { getCollections } from "@/lib/shopify";
+import { DesktopFilters } from "@/app/vin/components/shop-filters";
+import { MobileFilters } from "@/app/vin/components/mobile-filters";
+import { ProductsProvider } from "@/app/vin/providers/products-provider";
 
-export const dynamic = "force-dynamic";
-
-export default async function ShopLayout({
+export async function ShopLayoutShell({
   children,
 }: {
   children: React.ReactNode;

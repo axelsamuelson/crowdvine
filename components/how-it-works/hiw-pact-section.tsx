@@ -113,7 +113,7 @@ export function HiwPactSection() {
 
         <div className="mx-auto mt-12 flex max-w-lg flex-col gap-4 sm:flex-row sm:justify-center">
           <Link
-            href="/shop"
+            href="/vin"
             className="inline-flex items-center justify-center rounded-full bg-stone-900 px-8 py-3.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
           >
             Utforska sortimentet

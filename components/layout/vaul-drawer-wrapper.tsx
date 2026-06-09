@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
 /** Routes that use vaul Drawer and need the scale-background wrapper. */
@@ -45,7 +46,14 @@ export function VaulDrawerWrapper({
   ssrPathname: string;
 }) {
   const pathname = usePathname();
-  const activePathname = pathname || ssrPathname;
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  // Use ssrPathname until mounted so SSR HTML matches the first client render.
+  const activePathname = hasMounted ? pathname || ssrPathname : ssrPathname;
   const needsVaulWrapper = pathnameNeedsVaulDrawerWrapper(activePathname);
 
   if (!needsVaulWrapper) {

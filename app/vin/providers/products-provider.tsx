@@ -1,7 +1,8 @@
 "use client";
 
 import { Product } from "@/lib/shopify/types";
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useLayoutEffect, useRef, useState, ReactNode } from "react";
+import { usePathname } from "next/navigation";
 
 interface ProductsContextType {
   products: Product[];
@@ -18,9 +19,19 @@ const ProductsContext = createContext<ProductsContextType | undefined>(
 );
 
 export function ProductsProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const prevPathnameRef = useRef(pathname);
   const [products, setProducts] = useState<Product[]>([]);
   const [originalProducts, setOriginalProducts] = useState<Product[]>([]);
   const [availableSourceSlugs, setAvailableSourceSlugs] = useState<string[]>([]);
+
+  useLayoutEffect(() => {
+    if (prevPathnameRef.current === pathname) return;
+    prevPathnameRef.current = pathname;
+    setProducts([]);
+    setOriginalProducts([]);
+    setAvailableSourceSlugs([]);
+  }, [pathname]);
 
   return (
     <ProductsContext.Provider

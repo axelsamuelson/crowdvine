@@ -10,13 +10,18 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LOCALE_COOKIE,
   intlLocaleForAppLocale,
   type AppLocale,
 } from "@/lib/i18n/locale";
 import { translate } from "@/lib/i18n/messages";
+import {
+  getHreflangPath,
+  WINE_CATEGORIES_EN,
+  WINE_CATEGORIES_SV,
+} from "@/lib/wine-categories";
 import {
   ACTIVE_ZONE_CHANGED_EVENT,
   activeZoneFromChangedEvent,
@@ -51,6 +56,35 @@ function setLocaleCookie(locale: AppLocale) {
   document.cookie = `${LOCALE_COOKIE}=${locale};path=/;max-age=${maxAge};SameSite=Lax`;
 }
 
+function getLocalizedPath(
+  pathname: string,
+  newLocale: AppLocale,
+): string | null {
+  // /vin → /wine och vice versa
+  if (pathname === "/vin" && newLocale === "en") return "/wine";
+  if (pathname === "/wine" && newLocale === "sv") return "/vin";
+
+  // /vin/[kategori] → /wine/[category]
+  if (pathname.startsWith("/vin/") && newLocale === "en") {
+    const slug = pathname.replace("/vin/", "");
+    const category = WINE_CATEGORIES_SV.find((c) => c.slug === slug);
+    if (category) return getHreflangPath(category);
+    // producer/collection slug — byt bara prefix
+    return `/wine/${slug}`;
+  }
+
+  // /wine/[category] → /vin/[kategori]
+  if (pathname.startsWith("/wine/") && newLocale === "sv") {
+    const slug = pathname.replace("/wine/", "");
+    const category = WINE_CATEGORIES_EN.find((c) => c.slug === slug);
+    if (category) return getHreflangPath(category);
+    // producer/collection slug — byt bara prefix
+    return `/vin/${slug}`;
+  }
+
+  return null;
+}
+
 function createFallbackShoppingContextValue(
   context: ShoppingContext = fallbackShoppingContext(),
 ): ShoppingContextValue {
@@ -72,6 +106,7 @@ export function ShoppingContextProvider({
   const [context, setContext] = useState(initialContext);
   const refreshAbortRef = useRef<AbortController | null>(null);
   const router = useRouter();
+  const pathname = usePathname();
 
   const serverZoneKey = `${initialContext.activeZone.geoZoneId ?? ""}:${initialContext.currencyCode}`;
 
@@ -115,7 +150,12 @@ export function ShoppingContextProvider({
     if (!applied) return;
 
     setLocaleCookie(locale);
-    router.refresh();
+    const localizedPath = getLocalizedPath(pathname, locale);
+    if (localizedPath) {
+      router.push(localizedPath);
+    } else {
+      router.refresh();
+    }
 
     try {
       await fetch("/api/user/preferred-locale", {
@@ -129,7 +169,7 @@ export function ShoppingContextProvider({
 
     // Locale is already applied client-side; refresh only re-syncs zone/currency.
     await refresh();
-  }, [refresh, router]);
+  }, [pathname, refresh, router]);
 
   useEffect(() => {
     if (typeof document !== "undefined") {

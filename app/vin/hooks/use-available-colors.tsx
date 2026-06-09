@@ -11,7 +11,6 @@ const allColors: (Color | [Color, Color])[] = [
   { name: "Red", value: COLOR_MAP["red"] },
   { name: "White", value: COLOR_MAP["white"] },
   { name: "Orange", value: COLOR_MAP["orange"] },
-  { name: "Rose", value: COLOR_MAP["rose"] },
   // Blend colors with dual display
   [
     { name: "Red", value: COLOR_MAP["red"] },
@@ -19,10 +18,6 @@ const allColors: (Color | [Color, Color])[] = [
   ],
   [
     { name: "Red", value: COLOR_MAP["red"] },
-    { name: "White", value: COLOR_MAP["white"] },
-  ],
-  [
-    { name: "Orange", value: COLOR_MAP["orange"] },
     { name: "White", value: COLOR_MAP["white"] },
   ],
 ];
@@ -35,7 +30,11 @@ const getColorName = (color: Color | [Color, Color]) => {
   return color.name;
 };
 
-export function useAvailableColors(products: Product[]) {
+export function useAvailableColors(
+  products: Product[],
+  showAllColors?: boolean,
+  activeColorName?: string,
+) {
   const [color, setColor] = useQueryState(
     "fcolor",
     parseAsArrayOf(parseAsString).withDefault([]),
@@ -131,13 +130,15 @@ export function useAvailableColors(products: Product[]) {
     );
   };
 
-  const selectedColors = availableColors.filter((c) => {
+  const allColorsList = showAllColors ? allColors : availableColors;
+
+  const selectedColors = allColorsList.filter((c) => {
     const colorName = getColorName(c);
-    return color.includes(colorName);
+    return color.includes(colorName) || colorName === activeColorName;
   });
 
   return {
-    availableColors,
+    availableColors: showAllColors ? allColors : availableColors,
     selectedColors,
     toggleColor,
     activeColorFilters: color,

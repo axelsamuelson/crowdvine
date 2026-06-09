@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import type { Product } from "@/lib/shopify/types";
 import { BrowseProductCard } from "@/components/invite-shop/browse-product-card";
 import { InviteProductModal } from "@/components/invite-shop/invite-product-modal";
-import { ProductGrid } from "@/app/shop/components/product-grid";
+import { ProductGrid } from "@/app/vin/components/product-grid";
 import { Loader2 } from "lucide-react";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 

@@ -72,6 +72,11 @@ export async function generateMetadata(props: {
     },
     alternates: {
       canonical: productUrl,
+      languages: {
+        sv: `https://pactwines.com/product/${handle}`,
+        en: `https://pactwines.com/product/${handle}`,
+        "x-default": `https://pactwines.com/product/${handle}`,
+      },
     },
     openGraph: {
       ...existingOpenGraph,
@@ -107,7 +112,7 @@ export default async function ProductPage(props: {
     description: product.seo?.description || product.description || "",
     image:
       product.featuredImage?.url ??
-      "https://pactwines.com/pact-og-uploaded.jpg",
+      `${config.baseUrl}/pact-og-uploaded.jpg`,
     url: productUrl,
     brand: {
       "@type": "Brand",
@@ -124,6 +129,7 @@ export default async function ProductPage(props: {
       seller: {
         "@type": "Organization",
         name: config.name,
+        sameAs: ["https://www.instagram.com/pactwines"],
       },
     },
     ...(product.wineEnrichment && {
@@ -162,6 +168,8 @@ export default async function ProductPage(props: {
     }),
   };
 
+  const producerSlug = generateProducerSlug(product.producerName ?? "");
+
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -170,19 +178,19 @@ export default async function ProductPage(props: {
         "@type": "ListItem",
         position: 1,
         name: "Shop",
-        item: "https://pactwines.com/shop",
+        item: `${config.baseUrl}/vin`,
       },
       {
         "@type": "ListItem",
         position: 2,
         name: product.producerName,
-        item: `https://pactwines.com/producer/${generateProducerSlug(product.producerName ?? "")}`,
+        item: `${config.baseUrl}/producer/${producerSlug}`,
       },
       {
         "@type": "ListItem",
         position: 3,
         name: product.title,
-        item: `https://pactwines.com/product/${handle}`,
+        item: productUrl,
       },
     ],
   };

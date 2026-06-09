@@ -26,7 +26,7 @@ export function MobileMenu({
   const { t } = useTranslations();
   const { isOpen, openMobileMenu, closeMobileMenu } = useMobileMenu();
   const navItems = [
-    { href: "/shop", label: t("common.shop") },
+    { href: "/vin", label: t("common.shop") },
     { href: "/profile", label: t("common.profile"), icon: User },
     { href: "/about", label: t("common.about") },
     { href: "/", label: t("common.home") },

@@ -230,7 +230,7 @@ export function B2BProfileLayout({
                           Gå till sortimentet och lägg viner på din pall. När du är klar kan du slutföra beställningen härifrån.
                         </p>
                         <Button asChild size="sm" className="min-h-[44px] sm:min-h-0">
-                          <Link href="/shop" className="inline-flex items-center gap-2">
+                          <Link href="/vin" className="inline-flex items-center gap-2">
                             <ShoppingCart className="h-4 w-4" />
                             Gå till sortiment
                           </Link>
@@ -406,7 +406,7 @@ export function B2BProfileLayout({
                         Gå till sortimentet och lägg viner på din pall.
                       </p>
                       <Button asChild size="sm" className="min-h-[44px] sm:min-h-0">
-                        <Link href="/shop" className="inline-flex items-center gap-2">
+                        <Link href="/vin" className="inline-flex items-center gap-2">
                           <ShoppingCart className="h-4 w-4" />
                           Gå till sortiment
                         </Link>

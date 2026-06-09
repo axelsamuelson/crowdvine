@@ -27,7 +27,7 @@ export default function AccessPending() {
       // TODO: Implement invite code redemption
       // This would validate the code and grant access
       toast.success("Invitation code redeemed! Welcome to PACT.");
-      router.push("/shop");
+      router.push("/vin");
     } catch (error) {
       toast.error("Invalid or expired invitation code");
     } finally {

@@ -26,7 +26,7 @@ export type TasteQuizWine = {
 
 function wineProductHref(wine: TasteQuizWine): string {
   if (wine.handle) return `/product/${wine.handle}`;
-  return `/shop?search=${encodeURIComponent(wine.name)}`;
+  return `/vin?search=${encodeURIComponent(wine.name)}`;
 }
 
 type AnswerKey = "occasion" | "style" | "color" | "adventure" | "budget";

@@ -21,7 +21,25 @@ import { ResultsCount } from "./results-count";
 import { SortDropdown } from "./sort-dropdown";
 import { ShopFilterSearch } from "./shop-filter-search";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { getCategoryUrlForColor } from "@/lib/wine-categories";
+
+function getActiveColorFromPathname(path: string): string | null {
+  const colorMap: Record<string, string> = {
+    "/vin/rott-naturvin": "Red",
+    "/vin/vitt-naturvin": "White",
+    "/vin/orange-naturvin": "Orange",
+    "/vin/rod-och-vit-naturvin": "Red/White",
+    "/vin/rod-och-orange-naturvin": "Red/Orange",
+    "/wine/red-natural-wine": "Red",
+    "/wine/white-natural-wine": "White",
+    "/wine/orange-natural-wine": "Orange",
+    "/wine/red-and-white-natural-wine": "Red/White",
+    "/wine/red-and-orange-natural-wine": "Red/Orange",
+  };
+  return colorMap[path] ?? null;
+}
 
 interface MobileFiltersProps {
   collections: Collection[];
@@ -34,6 +52,31 @@ export function MobileFilters({ collections, priceSources = [], className }: Mob
   const filterCount = useFilterCount();
   const { products, originalProducts } = useProducts();
   const [isMounted, setIsMounted] = React.useState(false);
+  const pathname = usePathname();
+  const router = useRouter();
+  const isColorCategoryPage =
+    pathname.startsWith("/vin/") || pathname.startsWith("/wine/");
+  const locale = pathname.startsWith("/wine") ? "en" : "sv";
+  const activeColorName = getActiveColorFromPathname(pathname);
+
+  const handleColorSelect = (colorName: string) => {
+    const url = getCategoryUrlForColor(colorName, locale);
+
+    const currentIsThisColor =
+      (pathname.startsWith("/vin/") &&
+        getCategoryUrlForColor(colorName, "sv") === pathname) ||
+      (pathname.startsWith("/wine/") &&
+        getCategoryUrlForColor(colorName, "en") === pathname);
+
+    if (currentIsThisColor) {
+      router.push(locale === "en" ? "/wine" : "/vin");
+      return;
+    }
+
+    if (url) {
+      router.push(url);
+    }
+  };
 
   React.useEffect(() => {
     setIsMounted(true);
@@ -88,7 +131,7 @@ export function MobileFilters({ collections, priceSources = [], className }: Mob
               disabled={safeFilterCount === 0}
               asChild={safeFilterCount > 0}
             >
-              <Link href="/shop" prefetch>
+              <Link href="/vin" prefetch>
                 {t("shop.clear")}
               </Link>
             </Button>
@@ -98,7 +141,12 @@ export function MobileFilters({ collections, priceSources = [], className }: Mob
             <CategoryFilter collections={collections} mode="drawer" />
             <CompetitorFilter sources={priceSources} mode="drawer" />
             <GrapesFilter products={originalProducts} mode="drawer" />
-            <ColorFilter products={originalProducts} />
+            <ColorFilter
+              products={originalProducts}
+              showAllColors={isColorCategoryPage}
+              activeColor={activeColorName ?? undefined}
+              onColorSelect={handleColorSelect}
+            />
           </div>
         </DrawerContent>
       </Drawer>

@@ -290,7 +290,7 @@ export default function CartModal() {
           
           <CartContainer className="flex w-full">
             <Link
-              href="/shop"
+              href="/vin"
               className="p-2 w-full rounded-lg border border-dashed bg-background border-border"
               onClick={closeCart}
             >
@@ -377,7 +377,7 @@ export default function CartModal() {
               <div className="flex flex-col py-3 w-full rounded bg-muted md:py-4">
                 <CartContainer className="flex justify-between items-center mb-10">
                   {/* Back to Shop Button */}
-                  <Link href="/shop" onClick={closeCart}>
+                  <Link href="/vin" onClick={closeCart}>
                     <Button
                       size="sm"
                       variant="ghost"
@@ -435,23 +435,23 @@ function CheckoutButton({
   const invalidValidations = validations.filter((v) => !v.isValid);
 
   // Determine redirect URL based on number of invalid producers
-  let redirectUrl = "/shop";
+  let redirectUrl = "/vin";
 
   if (invalidValidations.length === 1) {
     // Single producer - redirect to that specific producer/group
     const firstInvalidValidation = invalidValidations[0];
     redirectUrl = firstInvalidValidation?.groupId
-      ? `/shop/group/${firstInvalidValidation.groupId}`
+      ? `/vin/group/${firstInvalidValidation.groupId}`
       : firstInvalidValidation?.producerHandle
-        ? `/shop/${firstInvalidValidation.producerHandle}`
-        : "/shop";
+        ? `/vin/${firstInvalidValidation.producerHandle}`
+        : "/vin";
   } else if (invalidValidations.length > 1) {
     // Multiple producers - redirect to shop with multiple producer filters
     const producerHandles = invalidValidations
       .filter((v) => v.producerHandle)
       .map((v) => v.producerHandle)
       .join(",");
-    redirectUrl = `/shop?producers=${producerHandles}`;
+    redirectUrl = `/vin?producers=${producerHandles}`;
   }
 
   const isLoading = pending || isValidating;

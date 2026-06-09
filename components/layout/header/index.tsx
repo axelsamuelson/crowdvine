@@ -33,7 +33,7 @@ export function Header({
   const pathname = usePathname();
   const navItems: NavItem[] = [
     { label: t("nav.home"), href: "/" },
-    { label: t("nav.shopAll"), href: "/shop" },
+    { label: t("nav.shopAll"), href: "/vin" },
   ];
   const { role } = useUserRole();
   const { showPortalToggle, isB2BOnly, loading } = usePortalAccess();

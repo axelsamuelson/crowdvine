@@ -359,7 +359,7 @@ export async function getWelcomeEmailTemplate(data: {
             </div>
 
             <div style="text-align: center;">
-              <a href="${getAppUrl()}/shop" class="button">
+              <a href="${getAppUrl()}/vin" class="button">
                 Start Exploring Wines
               </a>
             </div>
@@ -400,7 +400,7 @@ What You Can Explore:
 Getting Started:
 Start by browsing our current collections and discover wines that match your taste preferences. Our pallet-sharing system makes premium wines accessible while building connections with like-minded enthusiasts.
 
-Visit our shop: ${getAppUrl()}/shop
+Visit our shop: ${getAppUrl()}/vin
 
 If you have any questions or need assistance, our support team is here to help. We're committed to making your wine journey exceptional.
 

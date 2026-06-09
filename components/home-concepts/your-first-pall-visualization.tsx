@@ -284,7 +284,7 @@ export function YourFirstPallVisualization() {
         className="mt-6 flex gap-4"
       >
         <a
-          href="/shop"
+          href="/vin"
           className="flex-1 px-6 py-4 bg-foreground text-background rounded-full font-medium hover:bg-foreground/90 transition-all text-center text-sm"
         >
           Utforska viner i denna pall

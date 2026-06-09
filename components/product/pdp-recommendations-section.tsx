@@ -1,8 +1,8 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { ProductCard } from "@/app/shop/components/product-card";
-import { ProductGrid } from "@/app/shop/components/product-grid";
+import { ProductCard } from "@/app/vin/components/product-card";
+import { ProductGrid } from "@/app/vin/components/product-grid";
 import type { PdpRecommendationsResult } from "@/lib/product/recommendations";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { cn } from "@/lib/utils";

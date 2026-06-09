@@ -5,17 +5,24 @@ import { getSiteConfig } from "@/lib/site-config";
 export async function generateMetadata(): Promise<Metadata> {
   const config = await getSiteConfig();
   const aboutUrl = `${config.baseUrl}/about`;
+  const title =
+    "Om PACT — Direktimport av naturvin från Languedoc till Stockholm";
+  const description =
+    "PACT är en direktimportör av naturvin från småproducenter i Languedoc. Vi samlar beställningar tills en pall är full — sedan skickar producenten direkt till dig.";
   return {
-    title: "Om PACT",
-    description:
-      "PACT importerar naturvin direkt från Languedoc till Stockholm. Inga mellanhänder, lägre pris, bättre vin.",
+    title,
+    description,
     alternates: {
       canonical: aboutUrl,
+      languages: {
+        sv: "https://pactwines.com/about",
+        en: "https://pactwines.com/about",
+        "x-default": "https://pactwines.com/about",
+      },
     },
     openGraph: {
-      title: "Om PACT — Direktimport av naturvin",
-      description:
-        "PACT importerar naturvin direkt från Languedoc till Stockholm. Inga mellanhänder, lägre pris, bättre vin.",
+      title,
+      description,
       url: aboutUrl,
       type: "website",
     },

@@ -78,8 +78,8 @@ export function CartValidationDisplay({
             {validations.map((validation, index) => {
               // If it's a group, link to group page; otherwise link to producer page
               const href = validation.groupId
-                ? `/shop/group/${validation.groupId}`
-                : `/shop/${validation.producerHandle}`;
+                ? `/vin/group/${validation.groupId}`
+                : `/vin/${validation.producerHandle}`;
 
               console.log(
                 "🔗 [Validation Display] Link for",

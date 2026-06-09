@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { useQueryState, parseAsArrayOf, parseAsString } from "nuqs";
 import { useCompetitorFilterCount } from "../hooks/use-filter-count";
+import { useClientMounted } from "../hooks/use-client-mounted";
 import { useProducts } from "../providers/products-provider";
 import { useTranslations } from "@/lib/hooks/use-translations";
 
@@ -27,6 +28,7 @@ export function CompetitorFilter({
   onSeeAll,
 }: CompetitorFilterProps) {
   const { t } = useTranslations();
+  const mounted = useClientMounted();
   const { availableSourceSlugs } = useProducts();
   const [selectedSlugs, setSelectedSlugs] = useQueryState(
     "fsource",
@@ -42,7 +44,7 @@ export function CompetitorFilter({
     return sources.filter((s) => set.has(s.slug));
   }, [sources, availableSourceSlugs]);
 
-  if (!sourcesWithWines.length) return null;
+  if (!mounted || !sourcesWithWines.length) return null;
 
   const toggle = (slug: string) => {
     setSelectedSlugs((prev) =>

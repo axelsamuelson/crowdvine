@@ -151,6 +151,11 @@ export async function generateMetadata(props: {
     description: bio_short?.slice(0, 155) ?? undefined,
     alternates: {
       canonical: producerUrl,
+      languages: {
+        sv: `https://pactwines.com/producer/${slug}`,
+        en: `https://pactwines.com/producer/${slug}`,
+        "x-default": `https://pactwines.com/producer/${slug}`,
+      },
     },
     openGraph: {
       title: `${name} — Naturvin direkt från ${region} | ${config.name}`,
@@ -233,6 +238,7 @@ export default async function ProducerPage(props: {
     url: config.baseUrl,
     description: "Direktimport av naturvin från Languedoc till Stockholm.",
     areaServed: "Stockholm, Sweden",
+    sameAs: ["https://www.instagram.com/pactwines"],
   };
 
   const breadcrumbJsonLd = {
@@ -243,19 +249,19 @@ export default async function ProducerPage(props: {
         "@type": "ListItem",
         position: 1,
         name: "Shop",
-        item: "https://pactwines.com/shop",
+        item: `${config.baseUrl}/vin`,
       },
       {
         "@type": "ListItem",
         position: 2,
         name: "Producers",
-        item: "https://pactwines.com/producers",
+        item: `${config.baseUrl}/producers`,
       },
       {
         "@type": "ListItem",
         position: 3,
         name: producer.name,
-        item: `https://pactwines.com/producer/${slug}`,
+        item: `${config.baseUrl}/producer/${slug}`,
       },
     ],
   };
@@ -286,7 +292,7 @@ export default async function ProducerPage(props: {
             <BreadcrumbList>
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link href="/shop">Shop</Link>
+                  <Link href="/vin">Shop</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />

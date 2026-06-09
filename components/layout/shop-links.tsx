@@ -39,7 +39,7 @@ export function ShopLinks({
         {filteredCollections.map((item, index) => (
           <li key={`${item.handle}-${index}`}>
             <Link
-              href={`/shop/${item.handle}`}
+              href={`/vin/${item.handle}`}
               prefetch
               onClick={onLinkClick}
               className="hover:underline text-gray-900"

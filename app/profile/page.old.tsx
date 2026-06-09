@@ -1575,7 +1575,7 @@ export default function ProfilePage() {
                       <span className="sm:hidden">View All</span>
                     </Button>
                   </Link>
-                  <Link href="/shop" className="flex-1">
+                  <Link href="/vin" className="flex-1">
                     <Button
                       variant="outline"
                       className="w-full rounded-full border-gray-200 hover:bg-gray-50 text-xs md:text-sm"
@@ -1598,7 +1598,7 @@ export default function ProfilePage() {
                   Start exploring our wine collection and make your first
                   reservation
                 </p>
-                <Link href="/shop">
+                <Link href="/vin">
                   <Button className="rounded-full px-6 md:px-8 bg-gray-900 hover:bg-gray-800 text-white text-sm">
                     <Wine className="w-3 h-3 md:w-4 md:h-4 mr-2" />
                     Browse Wines

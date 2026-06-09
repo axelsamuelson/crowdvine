@@ -86,9 +86,10 @@ export const ProductImage = memo(({ product, priority = false, index = 0 }: Prod
         alt={imageToShow?.altText || product.title}
         width={imageToShow?.width || 600}
         height={imageToShow?.height || 600}
-        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 30vw, 25vw"
         className="object-cover size-full block"
         quality={85}
+        priority={priority || index < 3}
         loading={priority || index < 6 ? "eager" : "lazy"}
         fetchPriority={priority || index < 3 ? "high" : "auto"}
         placeholder={imageToShow?.thumbhash ? "blur" : undefined}

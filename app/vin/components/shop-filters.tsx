@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Collection } from "@/lib/shopify/types";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { CategoryFilter } from "./category-filter";
 import { ColorFilter } from "./color-filter";
 import { GrapesFilter } from "./grapes-filter";
@@ -15,6 +16,23 @@ import { useFilterCount } from "../hooks/use-filter-count";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { X } from "lucide-react";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { getCategoryUrlForColor } from "@/lib/wine-categories";
+
+function getActiveColorFromPathname(path: string): string | null {
+  const colorMap: Record<string, string> = {
+    "/vin/rott-naturvin": "Red",
+    "/vin/vitt-naturvin": "White",
+    "/vin/orange-naturvin": "Orange",
+    "/vin/rod-och-vit-naturvin": "Red/White",
+    "/vin/rod-och-orange-naturvin": "Red/Orange",
+    "/wine/red-natural-wine": "Red",
+    "/wine/white-natural-wine": "White",
+    "/wine/orange-natural-wine": "Orange",
+    "/wine/red-and-white-natural-wine": "Red/White",
+    "/wine/red-and-orange-natural-wine": "Red/Orange",
+  };
+  return colorMap[path] ?? null;
+}
 
 export function DesktopFilters({
   collections,
@@ -30,6 +48,31 @@ export function DesktopFilters({
   const filterCount = useFilterCount();
   const [seeAllOpen, setSeeAllOpen] = useState(false);
   const openSeeAll = () => setSeeAllOpen(true);
+  const pathname = usePathname();
+  const router = useRouter();
+  const isColorCategoryPage =
+    pathname.startsWith("/vin/") || pathname.startsWith("/wine/");
+  const locale = pathname.startsWith("/wine") ? "en" : "sv";
+  const activeColorName = getActiveColorFromPathname(pathname);
+
+  const handleColorSelect = (colorName: string) => {
+    const url = getCategoryUrlForColor(colorName, locale);
+
+    const currentIsThisColor =
+      (pathname.startsWith("/vin/") &&
+        getCategoryUrlForColor(colorName, "sv") === pathname) ||
+      (pathname.startsWith("/wine/") &&
+        getCategoryUrlForColor(colorName, "en") === pathname);
+
+    if (currentIsThisColor) {
+      router.push(locale === "en" ? "/wine" : "/vin");
+      return;
+    }
+
+    if (url) {
+      router.push(url);
+    }
+  };
 
   return (
     <>
@@ -54,7 +97,7 @@ export function DesktopFilters({
               className="font-medium text-foreground/50 hover:text-foreground/60"
               asChild
             >
-              <Link href="/shop" prefetch>
+              <Link href="/vin" prefetch>
                 {t("shop.clear")}
               </Link>
             </Button>
@@ -76,7 +119,12 @@ export function DesktopFilters({
               mode="sidebar"
               onSeeAll={openSeeAll}
             />
-            <ColorFilter products={originalProducts} />
+            <ColorFilter
+              products={originalProducts}
+              showAllColors={isColorCategoryPage}
+              activeColor={activeColorName ?? undefined}
+              onColorSelect={handleColorSelect}
+            />
           </Suspense>
         </div>
       </aside>
@@ -103,7 +151,7 @@ export function DesktopFilters({
                   disabled={filterCount === 0}
                   asChild={filterCount > 0}
                 >
-                  <Link href="/shop" prefetch>
+                  <Link href="/vin" prefetch>
                     {t("shop.clear")}
                   </Link>
                 </Button>
@@ -125,7 +173,12 @@ export function DesktopFilters({
                   <CategoryFilter collections={collections} mode="overlay" />
                   <CompetitorFilter sources={priceSources} mode="overlay" />
                   <GrapesFilter products={originalProducts} mode="overlay" />
-                  <ColorFilter products={originalProducts} />
+                  <ColorFilter
+                    products={originalProducts}
+                    showAllColors={isColorCategoryPage}
+                    activeColor={activeColorName ?? undefined}
+                    onColorSelect={handleColorSelect}
+                  />
                 </div>
               </Suspense>
             </div>

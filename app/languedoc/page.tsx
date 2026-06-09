@@ -23,9 +23,14 @@ export async function generateMetadata(): Promise<Metadata> {
       "Languedoc är Frankrikes största vinregion med 240 000 hektar vingårdar. Lär dig om appellationer, druvor, klimat och varför regionen producerar några av Frankrikes bästa naturviner.",
     alternates: {
       canonical: pageUrl,
+      languages: {
+        sv: "https://pactwines.com/languedoc",
+        en: "https://pactwines.com/languedoc",
+        "x-default": "https://pactwines.com/languedoc",
+      },
     },
     openGraph: {
-      title: "Languedoc — Frankrikes mest spännande vinregion | PACT",
+      title: "Languedoc — Frankrikes mest spännande vinregion",
       description:
         "Languedoc är Frankrikes största vinregion. Lär dig om appellationer, druvor, klimat och naturvin.",
       url: pageUrl,
@@ -54,7 +59,7 @@ export default function LanguedocPage() {
         "@type": "ListItem",
         position: 1,
         name: "Shop",
-        item: "https://pactwines.com/shop",
+        item: "https://pactwines.com/vin",
       },
       {
         "@type": "ListItem",
@@ -75,7 +80,47 @@ export default function LanguedocPage() {
       "@type": "Organization",
       name: "PACT",
       url: "https://pactwines.com",
+      sameAs: ["https://www.instagram.com/pactwines"],
     },
+  };
+
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: "Vad är direktimport av vin?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Direktimport innebär att vinet skickas direkt från producenten i Languedoc till dig i Stockholm, utan importör eller grossist som mellanhand.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Varför är PACT billigare än Systembolaget?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "PACT samlar beställningar tills en pall är full och skickar direkt från producenten. Utan importör, grossist och Systembolagets marginal kan vi erbjuda lägre priser.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Vad är naturvin?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Naturvin görs på ekologiskt eller biodynamiskt odlade druvor med indigena jästsvampar och inga tillsatser. Max 30 mg/L sulfiter för röda och 40 mg/L för vita viner.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Hur fungerar leveransen?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Du beställer och reserverar din plats på pallen. När pallen är full skickar producenten direkt till Stockholm. Du får vinet hemlevererat.",
+        },
+      },
+    ],
   };
 
   return (
@@ -92,13 +137,19 @@ export default function LanguedocPage() {
           __html: JSON.stringify(articleJsonLd),
         }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(faqJsonLd),
+        }}
+      />
 
       <div className="mx-auto max-w-3xl px-6 py-16">
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link href="/shop">Shop</Link>
+                <Link href="/vin">Shop</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
@@ -220,10 +271,16 @@ export default function LanguedocPage() {
               Naturvin från Languedoc
             </Link>
             <Link
-              href="/shop"
+              href="/vin"
               className="rounded-full border border-background/30 px-6 py-2.5 text-sm font-medium text-background transition-colors hover:border-background/60"
             >
               Se alla viner
+            </Link>
+            <Link
+              href="/vin/naturvin-languedoc"
+              className="rounded-full border border-background/30 px-6 py-2.5 text-sm font-medium text-background transition-colors hover:border-background/60"
+            >
+              Se naturvin från Languedoc i butiken →
             </Link>
           </div>
         </div>

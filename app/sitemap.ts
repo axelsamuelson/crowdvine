@@ -2,6 +2,7 @@ import { MetadataRoute } from "next";
 
 import { generateProducerSlug } from "@/lib/producer-handle";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { WINE_CATEGORIES_EN, WINE_CATEGORIES_SV } from "@/lib/wine-categories";
 
 // dirtywine.se använder samma sitemap via robots.txt som pekar till pactwines.com/sitemap.xml
 // En separat sitemap för dirtywine.se kan implementeras via en dedikerad route om Google
@@ -19,9 +20,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 1.0,
     },
     {
-      url: `${baseUrl}/shop`,
+      url: `${baseUrl}/vin`,
       lastModified: new Date(),
       changeFrequency: "daily",
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/wine`,
+      lastModified: new Date(),
+      changeFrequency: "daily" as const,
       priority: 0.9,
     },
     {
@@ -82,5 +89,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     }));
 
-  return [...staticPages, ...winePages, ...producerPages];
+  const vinCategories: MetadataRoute.Sitemap = WINE_CATEGORIES_SV.map((c) => ({
+    url: `${baseUrl}/vin/${c.slug}`,
+    lastModified: new Date(),
+    changeFrequency: "weekly" as const,
+    priority: 0.8,
+  }));
+
+  const wineCategories: MetadataRoute.Sitemap = WINE_CATEGORIES_EN.map((c) => ({
+    url: `${baseUrl}/wine/${c.slug}`,
+    lastModified: new Date(),
+    changeFrequency: "weekly" as const,
+    priority: 0.7,
+  }));
+
+  return [...staticPages, ...vinCategories, ...wineCategories, ...winePages, ...producerPages];
 }

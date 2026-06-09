@@ -1,5 +1,5 @@
-import { ProductGrid } from "@/app/shop/components/product-grid";
-import { ProductCardSkeleton } from "@/app/shop/components/product-card-skeleton";
+import { ProductGrid } from "@/app/vin/components/product-grid";
+import { ProductCardSkeleton } from "@/app/vin/components/product-card-skeleton";
 import { Suspense } from "react";
 import type { Product } from "@/lib/shopify/types";
 

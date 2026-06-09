@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { Product } from "@/lib/shopify/types";
 import { useAvailableGrapes } from "../hooks/use-available-grapes";
+import { useClientMounted } from "../hooks/use-client-mounted";
 import { useQueryState, parseAsArrayOf, parseAsString } from "nuqs";
 import { useTranslations } from "@/lib/hooks/use-translations";
 
@@ -20,6 +21,7 @@ export function GrapesFilter({
   onSeeAll,
 }: GrapesFilterProps) {
   const { t } = useTranslations();
+  const mounted = useClientMounted();
   const { availableGrapes, toggleGrape } = useAvailableGrapes(products);
   const [active] = useQueryState(
     "fgrape",
@@ -34,7 +36,7 @@ export function GrapesFilter({
       : "max-h-24 lg:max-h-28 overflow-y-auto pr-1";
 
   // Only show if there are grapes to filter on
-  if (!availableGrapes || availableGrapes.length === 0) return null;
+  if (!mounted || !availableGrapes || availableGrapes.length === 0) return null;
 
   return (
     <div className={cn("px-2.5 py-2 rounded-md bg-muted", className)}>

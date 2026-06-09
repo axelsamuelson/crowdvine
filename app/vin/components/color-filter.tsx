@@ -1,6 +1,6 @@
 "use client";
 
-import { ColorPicker } from "@/components/ui/color-picker";
+import { ColorPicker, type Color } from "@/components/ui/color-picker";
 import { ColorSwatchSkeleton } from "@/components/ui/color-swatch-skeleton";
 import { Product } from "@/lib/shopify/types";
 import { cn } from "@/lib/utils";
@@ -14,12 +14,29 @@ import { formatWineColorDisplay } from "@/lib/i18n/wine-color-labels";
 interface ColorFilterProps {
   products?: Product[];
   className?: string;
+  onColorSelect?: (colorName: string) => void;
+  showAllColors?: boolean;
+  activeColor?: string;
 }
 
-export function ColorFilter({ products = [], className }: ColorFilterProps) {
+function getColorName(color: Color | [Color, Color]) {
+  if (Array.isArray(color)) {
+    const [color1, color2] = color;
+    return `${color1.name}/${color2.name}`;
+  }
+  return color.name;
+}
+
+export function ColorFilter({
+  products = [],
+  className,
+  onColorSelect,
+  showAllColors,
+  activeColor,
+}: ColorFilterProps) {
   const { t } = useTranslations();
   const { availableColors, selectedColors, toggleColor } =
-    useAvailableColors(products);
+    useAvailableColors(products, showAllColors, activeColor);
   const colorCount = useColorFilterCount();
   const [isClient, setIsClient] = useState(false);
 
@@ -31,16 +48,27 @@ export function ColorFilter({ products = [], className }: ColorFilterProps) {
   const isLoading = products.length === 0;
   const atLeastOneColor = availableColors.length > 0;
 
+  const handleColorChange = (colorInput: Color | [Color, Color]) => {
+    const colorName = getColorName(colorInput);
+    if (onColorSelect) {
+      onColorSelect(colorName);
+      return;
+    }
+    toggleColor(colorInput);
+  };
+
   // Don't render motion components during SSR
   if (!isClient) {
     return (
       <div className={cn("px-2.5 py-2 rounded-md bg-muted", className)}>
-        <h3 className="mb-2 font-semibold text-sm">
-          {t("shop.color")}{" "}
-          {colorCount > 0 && (
-            <span className="text-foreground/50">({colorCount})</span>
-          )}
-        </h3>
+        <div className="flex items-baseline justify-between gap-2 mb-2">
+          <h3 className="text-sm font-semibold">
+            {t("shop.color")}{" "}
+            {colorCount > 0 && (
+              <span className="text-foreground/50">({colorCount})</span>
+            )}
+          </h3>
+        </div>
         <ColorSwatchSkeleton count={4} />
       </div>
     );
@@ -57,19 +85,21 @@ export function ColorFilter({ products = [], className }: ColorFilterProps) {
           exit={{ opacity: 0 }}
           className={cn("px-2.5 py-2 rounded-md bg-muted", className)}
         >
-          <h3 className="mb-2 font-semibold text-sm">
-            {t("shop.color")}{" "}
-            {colorCount > 0 && (
-              <span className="text-foreground/50">({colorCount})</span>
-            )}
-          </h3>
+          <div className="flex items-baseline justify-between gap-2 mb-2">
+            <h3 className="text-sm font-semibold">
+              {t("shop.color")}{" "}
+              {colorCount > 0 && (
+                <span className="text-foreground/50">({colorCount})</span>
+              )}
+            </h3>
+          </div>
           {isLoading ? (
             <ColorSwatchSkeleton count={4} />
           ) : (
             <ColorPicker
               colors={availableColors}
               selectedColors={selectedColors}
-              onColorChange={toggleColor}
+              onColorChange={handleColorChange}
               formatDisplayName={(c) => formatWineColorDisplay(t, c)}
               selectColorAria={(name) =>
                 t("shop.selectColorAria", { name })

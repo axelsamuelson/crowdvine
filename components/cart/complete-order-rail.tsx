@@ -24,7 +24,11 @@ export function CompleteOrderRail({ showMobile = false }: { showMobile?: boolean
   const [isHidden, setIsHidden] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
 
-  const isShopRoute = pathname === "/shop" || pathname.startsWith("/shop/");
+  const isShopRoute =
+    pathname === "/vin" ||
+    pathname.startsWith("/vin/") ||
+    pathname === "/wine" ||
+    pathname.startsWith("/wine/");
   const cartSignature = useMemo(() => (cart ? serializeCart(cart) : ""), [cart]);
   const attemptRef = useRef(0);
 
@@ -93,7 +97,7 @@ export function CompleteOrderRail({ showMobile = false }: { showMobile?: boolean
   const goToProducer = () => {
     const handle = primary?.producerHandle;
     if (!handle) return;
-    router.push(`/shop/${handle}`);
+    router.push(`/vin/${handle}`);
   };
 
   // Inline header variant: should sit inside the top nav bar, left of HOME

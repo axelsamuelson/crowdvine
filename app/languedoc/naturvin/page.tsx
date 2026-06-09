@@ -30,9 +30,14 @@ export async function generateMetadata(): Promise<Metadata> {
       "Languedoc är hjärtat i den franska naturvinsrörelsen. Köp naturvin direkt från små producenter i Saint-Chinian och Faugères. Hemleverans i Stockholm.",
     alternates: {
       canonical: pageUrl,
+      languages: {
+        sv: "https://pactwines.com/languedoc/naturvin",
+        en: "https://pactwines.com/languedoc/naturvin",
+        "x-default": "https://pactwines.com/languedoc/naturvin",
+      },
     },
     openGraph: {
-      title: "Naturvin från Languedoc — köp direkt från producenten | PACT",
+      title: "Naturvin från Languedoc — köp direkt från producenten",
       description:
         "Languedoc är hjärtat i den franska naturvinsrörelsen. Köp naturvin direkt från små producenter i Saint-Chinian och Faugères.",
       url: pageUrl,
@@ -80,7 +85,7 @@ export default async function LanguedocNaturvinPage() {
         "@type": "ListItem",
         position: 1,
         name: "Shop",
-        item: "https://pactwines.com/shop",
+        item: "https://pactwines.com/vin",
       },
       {
         "@type": "ListItem",
@@ -107,7 +112,39 @@ export default async function LanguedocNaturvinPage() {
       "@type": "Organization",
       name: "PACT",
       url: "https://pactwines.com",
+      sameAs: ["https://www.instagram.com/pactwines"],
     },
+  };
+
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: "Vad är naturvin från Languedoc?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Naturvin från Languedoc görs av småproducenter i södra Frankrike med ekologisk eller biodynamisk odling, indigena jästsvampar och utan tillsatser.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Vilka druvor används i Languedoc?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "De vanligaste druvorna i Languedoc är Carignan, Grenache, Syrah, Cinsault och Mourvèdre för röda viner, samt Vermentino, Chardonnay och Terret för vita viner.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Hur köper jag naturvin från Languedoc?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Via PACT kan du beställa naturvin direktimporterat från Languedoc med hemleverans i Stockholm. Beställ online på pactwines.com.",
+        },
+      },
+    ],
   };
 
   return (
@@ -124,13 +161,19 @@ export default async function LanguedocNaturvinPage() {
           __html: JSON.stringify(articleJsonLd),
         }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(faqJsonLd),
+        }}
+      />
 
       <div className="mx-auto max-w-3xl px-6 py-16">
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link href="/shop">Shop</Link>
+                <Link href="/vin">Shop</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
@@ -251,7 +294,7 @@ export default async function LanguedocNaturvinPage() {
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Link
-              href="/shop"
+              href="/vin"
               className="rounded-full bg-background px-6 py-2.5 text-sm font-medium text-foreground transition-opacity hover:opacity-90"
             >
               Se alla viner
@@ -261,6 +304,12 @@ export default async function LanguedocNaturvinPage() {
               className="rounded-full border border-background/30 px-6 py-2.5 text-sm font-medium text-background transition-colors hover:border-background/60"
             >
               Möt producenterna
+            </Link>
+            <Link
+              href="/vin/naturvin-languedoc"
+              className="rounded-full border border-background/30 px-6 py-2.5 text-sm font-medium text-background transition-colors hover:border-background/60"
+            >
+              Se naturvin från Languedoc i butiken →
             </Link>
           </div>
         </div>

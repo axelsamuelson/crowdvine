@@ -299,7 +299,7 @@ export function WineGalaxyVisualization() {
               </div>
             </div>
             <a
-              href={`/shop/${selectedProducerData.name.toLowerCase().replace(/\s+/g, "-")}`}
+              href={`/vin/${selectedProducerData.name.toLowerCase().replace(/\s+/g, "-")}`}
               className="text-sm text-foreground hover:underline inline-block"
             >
               Se viner från denna producent →

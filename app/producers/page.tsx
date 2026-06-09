@@ -21,17 +21,24 @@ import { getSiteConfig } from "@/lib/site-config";
 export async function generateMetadata(): Promise<Metadata> {
   const config = await getSiteConfig();
   const producersUrl = `${config.baseUrl}/producers`;
+  const title =
+    "Naturvinsproducenter i Languedoc — direktimport via PACT";
+  const description =
+    "Möt producenterna bakom PACTs sortiment. Småskaliga vinmakare i Languedoc som odlar ekologiskt och vinifierar utan tillsatser.";
   return {
-    title: "Producenter",
-    description:
-      "Naturvinsproducenter från Languedoc — importerade direkt till Stockholm via PACT.",
+    title,
+    description,
     alternates: {
       canonical: producersUrl,
+      languages: {
+        sv: "https://pactwines.com/producers",
+        en: "https://pactwines.com/producers",
+        "x-default": "https://pactwines.com/producers",
+      },
     },
     openGraph: {
-      title: `Producenter | ${config.name}`,
-      description:
-        "Naturvinsproducenter från Languedoc — importerade direkt till Stockholm via PACT.",
+      title,
+      description,
       url: producersUrl,
       type: "website",
     },
@@ -79,7 +86,7 @@ export default async function ProducersPage() {
         "@type": "ListItem",
         position: 1,
         name: "Shop",
-        item: "https://pactwines.com/shop",
+        item: "https://pactwines.com/vin",
       },
       {
         "@type": "ListItem",
@@ -103,7 +110,7 @@ export default async function ProducersPage() {
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link href="/shop">Shop</Link>
+              <Link href="/vin">Shop</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />

@@ -133,7 +133,7 @@ export async function updateProducer(id: string, data: UpdateProducerData) {
 
   revalidatePath("/admin/producers");
   revalidatePath(`/admin/producers/${id}`);
-  revalidatePath("/shop");
+  revalidatePath("/vin");
   return producer;
 }
 

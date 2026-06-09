@@ -24,7 +24,7 @@ export default function OnboardingPage() {
       await fetch("/api/user/onboarding-seen", { method: "POST" }).catch(() => null);
     } finally {
       setBusy(false);
-      router.push("/shop");
+      router.push("/vin");
     }
   };
 

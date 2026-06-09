@@ -38,7 +38,7 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
                       {t("common.home")}
                     </Link>
                     <Link
-                      href="/shop"
+                      href="/vin"
                       className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
                     >
                       {t("common.shop")}

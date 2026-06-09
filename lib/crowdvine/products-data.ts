@@ -255,6 +255,33 @@ export interface ProductData {
 /**
  * Fetch all products directly from DB. Use for SSR to avoid HTTP 401.
  */
+type WineCatalogQuery = ReturnType<
+  ReturnType<Awaited<ReturnType<typeof getSupabaseAdmin>>["from"]>
+>;
+
+function applyWineCatalogFilters<Q extends WineCatalogQuery>(
+  query: Q,
+  filters?: {
+    filterColor?: string[];
+    filterTags?: string[];
+    filterIsNatural?: boolean;
+  },
+): Q {
+  let q = query;
+  if (filters?.filterColor?.length) {
+    q = q.in("color", filters.filterColor) as Q;
+  }
+  if (filters?.filterIsNatural === true) {
+    q = q.eq("is_natural", true) as Q;
+  }
+  if (filters?.filterTags?.length) {
+    for (const tag of filters.filterTags) {
+      q = q.contains("tags", [tag]) as Q;
+    }
+  }
+  return q;
+}
+
 export async function fetchProductsData(params?: {
   limit?: number;
   sortKey?: string;
@@ -265,6 +292,12 @@ export async function fetchProductsData(params?: {
   isB2BSite?: boolean;
   displayCurrencyCode?: string;
   sekToDisplayRate?: number;
+  /** Match wines.color exactly, e.g. ["Red"], ["White"]. */
+  filterColor?: string[];
+  /** Each tag must exist in wines.tags (array contains). */
+  filterTags?: string[];
+  /** When true, only wines with is_natural = true. */
+  filterIsNatural?: boolean;
 }): Promise<ProductData[]> {
   const limit = params?.limit ?? 200;
   const sortKey = params?.sortKey || "RELEVANCE";
@@ -294,9 +327,17 @@ export async function fetchProductsData(params?: {
       producer_id,
       description,
       description_html,
+      tags,
+      is_natural,
       created_at,
       producers!inner(name, is_live, boost_active)
     `;
+
+  const categoryFilters = {
+    filterColor: params?.filterColor,
+    filterTags: params?.filterTags,
+    filterIsNatural: params?.filterIsNatural,
+  };
 
   const applySort = <Q extends { order: any }>(q: Q): Q => {
     switch (sortKey) {
@@ -311,11 +352,14 @@ export async function fetchProductsData(params?: {
   };
 
   const baseQuery = () =>
-    sb
-      .from("wines")
-      .select(winesSelect)
-      .eq("is_live", true)
-      .eq("producers.is_live", true);
+    applyWineCatalogFilters(
+      sb
+        .from("wines")
+        .select(winesSelect)
+        .eq("is_live", true)
+        .eq("producers.is_live", true),
+      categoryFilters,
+    );
 
   const hasSearch = Boolean(normalizeShopSearchInput(params?.searchQuery ?? ""));
 
@@ -356,10 +400,14 @@ export async function fetchProductsData(params?: {
       id, wine_name, vintage, grape_varieties, color, handle, base_price_cents,
       cost_amount, cost_currency, exchange_rate, alcohol_tax_cents, margin_percentage,
       b2b_margin_percentage, b2b_stock, label_image_path, producer_id, description,
-      description_html, created_at, producers!inner(name, boost_active)
+      description_html, tags, created_at, producers!inner(name, boost_active)
     `;
     if (/is_live|column.*does not exist|producers\.is_live/i.test(msg)) {
-      const fbBase = () => sb.from("wines").select(fallbackSelect).eq("is_live", true);
+      const fbBase = () =>
+        applyWineCatalogFilters(
+          sb.from("wines").select(fallbackSelect).eq("is_live", true),
+          categoryFilters,
+        );
       const fbHasSearch = hasSearch;
       if (!fbHasSearch) {
         result = await applySort(fbBase()).limit(limit);
@@ -392,7 +440,8 @@ export async function fetchProductsData(params?: {
     if (result.error) {
       const msg2 = result.error.message ?? "";
       if (/is_live|column.*does not exist/i.test(msg2)) {
-        const fbBase = () => sb.from("wines").select(fallbackSelect);
+        const fbBase = () =>
+          applyWineCatalogFilters(sb.from("wines").select(fallbackSelect), categoryFilters);
         if (!hasSearch) {
           result = await applySort(fbBase()).limit(limit);
         } else {

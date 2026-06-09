@@ -8,10 +8,12 @@ export default function ResultsControls({
   collections,
   products,
   className,
+  breadcrumbLabel,
 }: {
   collections: Pick<Collection, "handle" | "title">[];
   products: Product[];
   className?: string;
+  breadcrumbLabel?: string;
 }) {
   return (
     <div
@@ -21,7 +23,11 @@ export default function ResultsControls({
       )}
     >
       {/* Breadcrumb */}
-      <ShopBreadcrumb collections={collections} className="ml-1" />
+      <ShopBreadcrumb
+        collections={collections}
+        className="ml-1"
+        breadcrumbLabel={breadcrumbLabel}
+      />
 
       {/* Results count */}
       <ResultsCount count={products.length} />

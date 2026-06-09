@@ -81,7 +81,7 @@ export function CategoryFilter({
                           ? "opacity-50"
                           : "",
                     )}
-                    href={`/shop/${collection.handle}`}
+                    href={`/vin/${collection.handle}`}
                     aria-pressed={isSelected}
                     aria-label={t("shop.filterByCategory", {
                       name: collection.title,

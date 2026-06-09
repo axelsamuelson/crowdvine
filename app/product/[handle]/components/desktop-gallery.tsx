@@ -37,6 +37,8 @@ export const DesktopGallery = ({ product }: { product: Product }) => {
             alt={image.altText || product.title}
             width={image.width || 600}
             height={image.height || 600}
+            sizes={idx === 0 ? "(max-width: 1200px) 50vw, 600px" : undefined}
+            priority={idx === 0}
             className="w-full object-cover cursor-zoom-in"
             quality={100}
             onClick={() => {

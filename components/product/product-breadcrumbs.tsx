@@ -36,8 +36,8 @@ export function ProductBreadcrumbs({
       <BreadcrumbList>
         <BreadcrumbItem>
           <BreadcrumbLink asChild>
-            <Link href="/shop" prefetch>
-              {t("common.shop")}
+            <Link href="/vin" prefetch>
+              {t("nav.shopAll")}
             </Link>
           </BreadcrumbLink>
         </BreadcrumbItem>
@@ -47,7 +47,7 @@ export function ProductBreadcrumbs({
             <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link href="/shop/wine-boxes" prefetch>
+                <Link href="/vin/wine-boxes" prefetch>
                   {t("product.wineBoxes")}
                 </Link>
               </BreadcrumbLink>
@@ -58,7 +58,7 @@ export function ProductBreadcrumbs({
             <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link href={`/producer/${producerHandle}`} prefetch>
+                <Link href={`/vin/${producerHandle}`} prefetch>
                   {producer}
                 </Link>
               </BreadcrumbLink>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { Product, Collection } from "@/lib/shopify/types";
 import { ProductCard } from "./product-card";
 import ResultsControls from "./results-controls";
@@ -20,6 +20,8 @@ interface ProductListContentProps {
   wineSourceSlugs?: Record<string, string[]>;
   /** Shop search query from URL (?q=), for analytics. */
   searchQuery?: string;
+  /** Override last breadcrumb segment (e.g. wine category h1). */
+  breadcrumbLabel?: string;
 }
 
 // Normalize color string for comparison: "Red & White", "Red/White", "red-&-white" → canonical form
@@ -144,13 +146,14 @@ export function ProductListContent({
   collectionHandle,
   wineSourceSlugs = {},
   searchQuery = "",
+  breadcrumbLabel,
 }: ProductListContentProps & { collectionHandle?: string }) {
   const { t } = useTranslations();
   const { setProducts, setOriginalProducts, setAvailableSourceSlugs } = useProducts();
   const lastSearchTracked = useRef<string | null>(null);
 
   // Tell the sidebar which "Buy at" sources have at least one wine in this list (hide empty options)
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (products.length === 0) {
       setAvailableSourceSlugs([]);
       return;
@@ -187,7 +190,7 @@ export function ProductListContent({
   }, [products, colorFilters, grapeFilters, sourceFilters, wineSourceSlugs]);
 
   // Set both original and filtered products in the provider whenever they change
-  useEffect(() => {
+  useLayoutEffect(() => {
     setOriginalProducts(products);
     setProducts(filteredProducts);
   }, [products, filteredProducts, setProducts, setOriginalProducts]);
@@ -274,6 +277,7 @@ export function ProductListContent({
         className="max-md:hidden"
         collections={collections}
         products={filteredProducts}
+        breadcrumbLabel={breadcrumbLabel}
       />
 
       {filteredProducts.length > 0 ? (

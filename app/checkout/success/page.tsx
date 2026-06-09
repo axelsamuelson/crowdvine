@@ -500,7 +500,7 @@ function CheckoutConfirmationContent() {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => router.push("/shop")}
+                  onClick={() => router.push("/vin")}
                   className="rounded-full"
                 >
                   {t("checkout.continueShopping")}
@@ -814,7 +814,7 @@ function CheckoutConfirmationContent() {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => router.push("/shop")}
+                  onClick={() => router.push("/vin")}
                   className="rounded-full flex-1"
                 >
                   {t("checkout.continueShopping")}

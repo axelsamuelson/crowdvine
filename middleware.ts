@@ -5,6 +5,10 @@ import { isStaleRefreshTokenError } from "@/lib/auth/session-errors";
 import { isPublicAppPath } from "@/lib/auth/public-paths";
 import { isDirtywineHost } from "@/lib/b2b-site";
 import { createClient as createSupabaseMiddlewareClient } from "@/utils/supabase/middleware";
+import {
+  WINE_CATEGORY_EN_ALIASES,
+  WINE_CATEGORY_SV_ALIASES,
+} from "@/lib/wine-categories";
 
 export async function middleware(req: NextRequest) {
   try {
@@ -23,11 +27,42 @@ function nextWithPathname(req: NextRequest): NextResponse {
 
 async function runMiddleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  const host = req.headers.get("host");
+  const onDirtywineSite = isDirtywineHost(host, req.nextUrl.searchParams);
+
+  if (onDirtywineSite) {
+    if (pathname === "/robots.txt") {
+      const u = req.nextUrl.clone();
+      u.pathname = "/robots-b2b";
+      return NextResponse.rewrite(u);
+    }
+    if (pathname === "/sitemap.xml") {
+      const u = req.nextUrl.clone();
+      u.pathname = "/sitemap-b2b";
+      return NextResponse.rewrite(u);
+    }
+  }
 
   if (pathname === "/wine-search" || pathname.startsWith("/wine-search/")) {
     const u = req.nextUrl.clone();
     u.pathname = "/admin/wine-search";
     return NextResponse.redirect(u);
+  }
+
+  const wineAliasRedirect = redirectWineCategoryAlias(req, pathname);
+  if (wineAliasRedirect) return wineAliasRedirect;
+
+  // /shop → /vin redirects (301 permanent)
+  if (pathname === "/shop") {
+    const u = req.nextUrl.clone();
+    u.pathname = "/vin";
+    return NextResponse.redirect(u, 301);
+  }
+
+  if (pathname.startsWith("/shop/")) {
+    const u = req.nextUrl.clone();
+    u.pathname = pathname.replace("/shop/", "/vin/");
+    return NextResponse.redirect(u, 301);
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -72,9 +107,6 @@ async function runMiddleware(req: NextRequest) {
   } else {
     user = userData.user;
   }
-
-  const host = req.nextUrl.hostname.toLowerCase();
-  const onDirtywineSite = isDirtywineHost(host, req.nextUrl.searchParams);
 
   const adminAuthCookie = req.cookies.get("admin-auth")?.value;
     const adminEmailCookie = req.cookies.get("admin-email")?.value?.trim();
@@ -187,6 +219,33 @@ async function runMiddleware(req: NextRequest) {
   );
 
   return res;
+}
+
+function redirectWineCategoryAlias(
+  req: NextRequest,
+  pathname: string,
+): NextResponse | null {
+  if (pathname.startsWith("/wine/")) {
+    const slug = pathname.slice("/wine/".length).split("/")[0] ?? "";
+    const target = WINE_CATEGORY_EN_ALIASES[slug];
+    if (target) {
+      const u = req.nextUrl.clone();
+      u.pathname = `/wine/${target}`;
+      return NextResponse.redirect(u, 308);
+    }
+  }
+
+  if (pathname.startsWith("/vin/")) {
+    const slug = pathname.slice("/vin/".length).split("/")[0] ?? "";
+    const target = WINE_CATEGORY_SV_ALIASES[slug];
+    if (target) {
+      const u = req.nextUrl.clone();
+      u.pathname = `/vin/${target}`;
+      return NextResponse.redirect(u, 308);
+    }
+  }
+
+  return null;
 }
 
 export const config = {
