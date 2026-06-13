@@ -11,7 +11,7 @@ const BATCH = 12;
 /**
  * Cron: batched Starwinelist crawl for Stockholm (PDF upload + menu_documents only).
  * Rotates oldest sources from DB so each run fits maxDuration; discovery registers new slugs only.
- * Uses @sparticuz/chromium on Vercel. Secured by CRON_SECRET.
+ * Uses Browserless /unblock when BROWSERLESS_API_KEY is set; else @sparticuz/chromium.
  * Schedule: 0 1,7,13,19 * * * (4× daily UTC)
  */
 export async function GET(request: NextRequest) {

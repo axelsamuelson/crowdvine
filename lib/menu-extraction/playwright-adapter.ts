@@ -1,16 +1,18 @@
 /**
  * Playwright adapter – Chromium via playwright-core.
- * On Vercel: @sparticuz/chromium (no API key, bundled binary for serverless).
- * Locally: playwright-core default launch (run `pnpm exec playwright install chromium` if needed).
+ * Fallback when BROWSERLESS_API_KEY is unset. Often blocked by Cloudflare on datacenter IPs.
  */
 
-import { chromium as playwrightChromium, type Browser } from "playwright-core";
+import { chromium as playwrightChromium, type Browser, type BrowserContext } from "playwright-core";
 import { BrowserAdapterError } from "./browser-adapter-error";
 
 const GOTO_TIMEOUT_MS = 30000;
-
-/** waitUntil: domcontentloaded – Starwinelist never reaches networkidle (ongoing requests). */
+const CLOUDFLARE_MAX_WAIT_MS = 45000;
+const CLOUDFLARE_POLL_MS = 2000;
 const WAIT_UNTIL = "domcontentloaded" as const;
+
+const CHROME_USER_AGENT =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 
 function delay(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
@@ -25,6 +27,14 @@ function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
   });
 }
 
+function isCloudflareChallenge(html: string): boolean {
+  return (
+    html.includes("Just a moment") ||
+    html.includes("cf-browser-verification") ||
+    html.includes("challenge-platform")
+  );
+}
+
 async function launchBrowser(): Promise<Browser> {
   if (process.env.VERCEL === "1") {
     const chromium = (await import("@sparticuz/chromium")).default;
@@ -37,28 +47,42 @@ async function launchBrowser(): Promise<Browser> {
   return playwrightChromium.launch({ headless: true });
 }
 
-/**
- * Fetch fully rendered HTML from URL via Chromium.
- * Cloudflare challenge takes ~3–5s to resolve; we wait 6s then check we got the real page.
- */
+async function newStealthContext(browser: Browser): Promise<BrowserContext> {
+  return browser.newContext({
+    userAgent: CHROME_USER_AGENT,
+    viewport: { width: 1366, height: 768 },
+    locale: "sv-SE",
+    timezoneId: "Europe/Stockholm",
+  });
+}
+
+async function waitForRealPage(page: import("playwright-core").Page): Promise<string> {
+  const deadline = Date.now() + CLOUDFLARE_MAX_WAIT_MS;
+  let content = await page.content();
+  while (isCloudflareChallenge(content) && Date.now() < deadline) {
+    await delay(CLOUDFLARE_POLL_MS);
+    content = await page.content();
+  }
+  if (isCloudflareChallenge(content)) {
+    throw new BrowserAdapterError(
+      "Cloudflare challenge not resolved – got challenge page",
+      403,
+      page.url(),
+    );
+  }
+  return content;
+}
+
 export async function fetchRenderedHtml(url: string): Promise<string> {
   const start = Date.now();
   let browser: Browser | null = null;
   try {
     browser = await launchBrowser();
-    const page = await browser.newPage();
+    const context = await newStealthContext(browser);
+    const page = await context.newPage();
     await page.goto(url, { waitUntil: WAIT_UNTIL, timeout: GOTO_TIMEOUT_MS });
-    await delay(6000);
-    const content = await page.content();
-    if (content.includes("Just a moment")) {
-      throw new BrowserAdapterError(
-        "Cloudflare challenge not resolved – got challenge page",
-        403,
-        url
-      );
-    }
-    const elapsed = Date.now() - start;
-    console.warn("[playwright-adapter] Fetching:", url, "(" + elapsed + "ms)");
+    const content = await waitForRealPage(page);
+    console.warn("[playwright-adapter] Fetching:", url, "(" + (Date.now() - start) + "ms)");
     return content;
   } catch (e) {
     if (e instanceof BrowserAdapterError) throw e;
@@ -70,25 +94,22 @@ export async function fetchRenderedHtml(url: string): Promise<string> {
   }
 }
 
-/**
- * Navigate to restaurant page (session/cookies), then trigger PDF download; capture via download-event and return Buffer.
- */
 export async function fetchPdfViaFunction(
   restaurantUrl: string,
-  pdfUrl: string
+  pdfUrl: string,
 ): Promise<Buffer> {
   let browser: Browser | null = null;
   try {
     browser = await launchBrowser();
-    const context = await browser.newContext({ acceptDownloads: true });
+    const context = await newStealthContext(browser);
+    await context.setExtraHTTPHeaders({ Accept: "application/pdf,*/*" });
     const page = await context.newPage();
-    await page.goto(restaurantUrl, { waitUntil: WAIT_UNTIL, timeout: 30000 });
+    await page.goto(restaurantUrl, { waitUntil: WAIT_UNTIL, timeout: GOTO_TIMEOUT_MS });
+    await waitForRealPage(page);
     await delay(2000);
 
     const downloadPromise = page.waitForEvent("download", { timeout: 30000 });
-    await page.goto(pdfUrl, { timeout: 30000 }).catch(() => {
-      // page.goto can throw when navigation is aborted by download – expected
-    });
+    await page.goto(pdfUrl, { timeout: 30000 }).catch(() => {});
 
     const download = await downloadPromise;
     const stream = await download.createReadStream();
@@ -96,12 +117,10 @@ export async function fetchPdfViaFunction(
       throw new BrowserAdapterError("Download createReadStream returned null", 500, pdfUrl);
     }
     const buffer = await streamToBuffer(stream);
-
-    if (!buffer || buffer.length === 0) {
+    if (!buffer.length) {
       throw new BrowserAdapterError("PDF download was empty for " + pdfUrl, 500, pdfUrl);
     }
-
-    console.warn("[playwright-adapter] PDF downloaded via download-event:", buffer.length, "bytes");
+    console.warn("[playwright-adapter] PDF downloaded:", buffer.length, "bytes");
     return buffer;
   } catch (e) {
     if (e instanceof BrowserAdapterError) throw e;

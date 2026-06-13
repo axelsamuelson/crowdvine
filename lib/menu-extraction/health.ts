@@ -155,6 +155,11 @@ export async function getMenuPipelineHealth(): Promise<MenuPipelineHealth> {
   } else if (total > 0) {
     issues.push("Ingen crawl har körts ännu");
   }
+  if (process.env.VERCEL === "1" && !process.env.BROWSERLESS_API_KEY?.trim()) {
+    issues.push(
+      "BROWSERLESS_API_KEY saknas i Vercel – Starwinelist/Cloudflare blockeras troligen",
+    );
+  }
 
   return {
     sources: {

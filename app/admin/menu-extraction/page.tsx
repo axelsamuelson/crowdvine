@@ -122,7 +122,7 @@ export default function MenuExtractionOverviewPage() {
   const [sourcesLoading, setSourcesLoading] = useState(false);
   const [crawlRunning, setCrawlRunning] = useState(false);
   const [crawlSummary, setCrawlSummary] = useState<CrawlSummary | null>(null);
-  const [browserAdapter, setBrowserAdapter] = useState<"chromium" | "local_fetch" | null>(null);
+  const [browserAdapter, setBrowserAdapter] = useState<"browserless" | "chromium" | "local_fetch" | null>(null);
 
   const [documents, setDocuments] = useState<MenuDocumentListRow[]>([]);
   const [documentsLoading, setDocumentsLoading] = useState(false);
@@ -444,6 +444,9 @@ export default function MenuExtractionOverviewPage() {
             <div className="w-full bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800 rounded-xl">
               <div className="p-4 flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 dark:border-zinc-800">
                 <div className="flex flex-wrap gap-2">
+                  {browserAdapter === "browserless" && (
+                    <Badge className="bg-blue-600 dark:bg-blue-700 text-white">Browserless (Cloudflare)</Badge>
+                  )}
                   {browserAdapter === "chromium" && (
                     <Badge className="bg-green-600 dark:bg-green-700 text-white">Chromium</Badge>
                   )}

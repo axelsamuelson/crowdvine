@@ -1,76 +1,84 @@
 /**
- * Browser adapter – Starwinelist scraping uses Chromium (playwright-adapter).
- * On Vercel, @sparticuz/chromium is used (no external API key).
- * Set USE_LOCAL_FETCH=true for plain fetch (dev only; Starwinelist often returns 403 without a browser).
+ * Browser adapter – routes Starwinelist requests to the best available transport:
+ * 1. USE_LOCAL_FETCH (dev plain fetch)
+ * 2. Browserless /unblock when BROWSERLESS_API_KEY is set (Cloudflare bypass)
+ * 3. Headless Chromium via playwright-core (fallback; often blocked on Vercel)
  */
 
 import { BrowserAdapterError } from "./browser-adapter-error";
 
 let loggedOnce = false;
 
+function useLocalFetch(): boolean {
+  return process.env.USE_LOCAL_FETCH === "true";
+}
+
+function useBrowserless(): boolean {
+  return Boolean(process.env.BROWSERLESS_API_KEY?.trim());
+}
+
 function logAdapterOnce(): void {
   if (loggedOnce) return;
   loggedOnce = true;
-  const mode = process.env.USE_LOCAL_FETCH === "true" ? "local_fetch" : "chromium";
+  const mode = useLocalFetch()
+    ? "local_fetch"
+    : useBrowserless()
+      ? "browserless"
+      : "chromium";
   console.warn("[browser-adapter] Using adapter:", mode);
 }
 
-/**
- * Fetch fully rendered HTML from URL (Chromium, or plain fetch when USE_LOCAL_FETCH).
- */
 export async function fetchRenderedHtml(url: string): Promise<string> {
   logAdapterOnce();
-  if (process.env.USE_LOCAL_FETCH === "true") {
+  if (useLocalFetch()) {
     const start = Date.now();
     const res = await fetch(url, { redirect: "follow" });
-    const elapsed = Date.now() - start;
-    console.warn("[browser-adapter] USE_LOCAL_FETCH HTML", url, res.status, elapsed + "ms");
+    console.warn("[browser-adapter] USE_LOCAL_FETCH HTML", url, res.status, Date.now() - start + "ms");
     if (!res.ok) {
       throw new BrowserAdapterError(`HTTP ${res.status}`, res.status, url);
     }
     return await res.text();
   }
+  if (useBrowserless()) {
+    const { fetchRenderedHtml: blFetch } = await import("./browserless-adapter");
+    return blFetch(url);
+  }
   const { fetchRenderedHtml: playFetch } = await import("./playwright-adapter");
   return playFetch(url);
 }
 
-/**
- * Fetch PDF via restaurant page then PDF URL in same browser context (or direct fetch when USE_LOCAL_FETCH).
- */
 export async function fetchPdfViaFunction(
   restaurantUrl: string,
-  pdfUrl: string
+  pdfUrl: string,
 ): Promise<Buffer> {
   logAdapterOnce();
-  if (process.env.USE_LOCAL_FETCH === "true") {
+  if (useLocalFetch()) {
     const res = await fetch(pdfUrl, { redirect: "follow" });
     if (!res.ok) {
       throw new BrowserAdapterError(`HTTP ${res.status}`, res.status, pdfUrl);
     }
-    const ab = await res.arrayBuffer();
-    return Buffer.from(ab);
+    return Buffer.from(await res.arrayBuffer());
+  }
+  if (useBrowserless()) {
+    const { fetchPdfViaFunction: blFetch } = await import("./browserless-adapter");
+    return blFetch(restaurantUrl, pdfUrl);
   }
   const { fetchPdfViaFunction: playFetch } = await import("./playwright-adapter");
   return playFetch(restaurantUrl, pdfUrl);
 }
 
-/**
- * Direct fetch of PDF URL (no browser). Same for all environments.
- */
 export async function fetchPdfDirect(pdfUrl: string): Promise<Buffer | null> {
   try {
     const res = await fetch(pdfUrl, { redirect: "follow" });
     if (!res.ok) return null;
-    const ab = await res.arrayBuffer();
-    return Buffer.from(ab);
+    return Buffer.from(await res.arrayBuffer());
   } catch {
     return null;
   }
 }
 
-/**
- * Which transport is active (for admin UI). Server only.
- */
-export function getBrowserAdapterKind(): "chromium" | "local_fetch" {
-  return process.env.USE_LOCAL_FETCH === "true" ? "local_fetch" : "chromium";
+export function getBrowserAdapterKind(): "browserless" | "chromium" | "local_fetch" {
+  if (useLocalFetch()) return "local_fetch";
+  if (useBrowserless()) return "browserless";
+  return "chromium";
 }
