@@ -6,6 +6,7 @@ import {
   listMenuDocumentsForExtractionRetry,
   updateMenuDocument,
 } from "@/lib/menu-extraction/db";
+import { skipExtractionIfDuplicateDocument } from "@/lib/menu-extraction/extract-guard";
 import { extractMenuFromDocument } from "@/lib/menu-extraction/service";
 
 export const maxDuration = 300;
@@ -24,8 +25,13 @@ export async function GET(request: NextRequest) {
   const docs = await listMenuDocumentsForExtractionRetry(BATCH);
   let now_completed = 0;
   let still_failing = 0;
+  let skipped_duplicate = 0;
 
   for (const doc of docs) {
+    if (await skipExtractionIfDuplicateDocument(doc.id)) {
+      skipped_duplicate += 1;
+      continue;
+    }
     const nextRetry = (doc.extraction_retry_count ?? 0) + 1;
     await updateMenuDocument(doc.id, {
       extraction_status: "pending",
@@ -54,6 +60,7 @@ export async function GET(request: NextRequest) {
     retried: docs.length,
     now_completed,
     still_failing,
+    skipped_duplicate,
     health,
     alerts_triggered: alerts,
   };

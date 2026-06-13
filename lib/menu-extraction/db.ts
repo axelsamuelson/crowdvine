@@ -152,6 +152,45 @@ export async function getLatestDocumentForSlug(slug: string): Promise<MenuDocume
   return data as MenuDocument | null;
 }
 
+/** Any document for slug+hash with extraction_status completed (for dedup). */
+export async function getCompletedMenuDocumentByContentHash(
+  sourceSlug: string,
+  contentHash: string,
+): Promise<MenuDocument | null> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("menu_documents")
+    .select(MENU_DOCUMENTS_SELECT)
+    .eq("source_slug", sourceSlug)
+    .eq("content_hash", contentHash)
+    .eq("extraction_status", "completed")
+    .order("extracted_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    throw new Error(`getCompletedMenuDocumentByContentHash: ${error.message}`);
+  }
+  return data as MenuDocument | null;
+}
+
+/** Newest stored document for slug+hash (any extraction status). */
+export async function getMenuDocumentByContentHash(
+  sourceSlug: string,
+  contentHash: string,
+): Promise<MenuDocument | null> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("menu_documents")
+    .select(MENU_DOCUMENTS_SELECT)
+    .eq("source_slug", sourceSlug)
+    .eq("content_hash", contentHash)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(`getMenuDocumentByContentHash: ${error.message}`);
+  return data as MenuDocument | null;
+}
+
 export async function updateMenuDocument(
   id: string,
   updates: Partial<MenuDocument>

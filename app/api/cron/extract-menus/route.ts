@@ -6,6 +6,7 @@ import {
   countMenuDocumentsPendingExtraction,
   listPendingMenuDocumentsForExtraction,
 } from "@/lib/menu-extraction/db";
+import { skipExtractionIfDuplicateDocument } from "@/lib/menu-extraction/extract-guard";
 import { extractMenuFromDocument } from "@/lib/menu-extraction/service";
 
 export const maxDuration = 300;
@@ -26,13 +27,22 @@ export async function GET(request: NextRequest) {
   const results: Array<{
     id: string;
     source_slug: string | null;
-    outcome: "completed" | "failed";
+    outcome: "completed" | "failed" | "skipped";
     duration_ms: number;
     error?: string;
   }> = [];
 
   for (const doc of docs) {
     const t0 = Date.now();
+    if (await skipExtractionIfDuplicateDocument(doc.id)) {
+      results.push({
+        id: doc.id,
+        source_slug: doc.source_slug,
+        outcome: "skipped",
+        duration_ms: Date.now() - t0,
+      });
+      continue;
+    }
     try {
       await extractMenuFromDocument(doc.id, { forceSyncOnly: true });
       results.push({
@@ -63,6 +73,7 @@ export async function GET(request: NextRequest) {
     processed: results.length,
     completed: results.filter((r) => r.outcome === "completed").length,
     failed: results.filter((r) => r.outcome === "failed").length,
+    skipped_duplicate: results.filter((r) => r.outcome === "skipped").length,
     remaining_pending,
     results,
     health,

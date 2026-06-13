@@ -10,6 +10,7 @@ import {
   fetchPdfDirect,
 } from "./browser-adapter";
 import { BrowserAdapterError } from "./browser-adapter-error";
+import { parseSwlLocationFromHtml, type SwlLocation } from "./swl-location";
 
 const BASE_URL = "https://starwinelist.com";
 const CRAWL_DELAY_MS = 4000;
@@ -71,8 +72,7 @@ export async function fetchRestaurantSlugsByCity(
   const urlsToTry = [
     `${BASE_URL}/map/${city}`,
     `${BASE_URL}/wine-guide/the-best-wine-restaurants-in-${city}`,
-    `${BASE_URL}/map`,
-    BASE_URL,
+    `${BASE_URL}/${city}`,
   ];
   for (let i = 0; i < urlsToTry.length; i++) {
     const url = urlsToTry[i];
@@ -83,7 +83,9 @@ export async function fetchRestaurantSlugsByCity(
       return slugs;
     }
   }
-  console.warn("[starwinelist-scraper] No slugs found from map/stockholm (403 or no matching wine-place links).");
+  console.warn(
+    `[starwinelist-scraper] No slugs found for city=${city} (403, SPA, or no wine-place links).`,
+  );
   return [];
 }
 
@@ -105,6 +107,7 @@ export async function fetchRestaurantPage(slug: string): Promise<{
   name: string | null;
   pdf_url: string | null;
   swl_updated_at: string | null;
+  swl_location: SwlLocation | null;
 } | null> {
   const url = `${BASE_URL}/wine-place/${slug}`;
   const html = await fetchHtml(url, { skipDelay: false });
@@ -133,7 +136,9 @@ export async function fetchRestaurantPage(slug: string): Promise<{
   const updatedMatch = html.match(/Updated\s+(\d{1,2}\s+\w+\s+\d{4})/i);
   if (updatedMatch) swl_updated_at = updatedMatch[0].trim();
 
-  return { name, pdf_url, swl_updated_at };
+  const swl_location = parseSwlLocationFromHtml(html);
+
+  return { name, pdf_url, swl_updated_at, swl_location };
 }
 
 /**

@@ -12,6 +12,7 @@ import {
   getStarwinelistSourceByDocumentId,
   type MenuExtractedRowForInsert,
 } from "./db";
+import { skipExtractionIfDuplicateDocument } from "./extract-guard";
 import { runAutoCorrection } from "./auto-correction";
 import { getPdfBufferFromStorage } from "./storage";
 import {
@@ -1201,6 +1202,12 @@ export async function extractMenuFromDocument(
   const doc = await getMenuDocumentById(documentId);
   if (!doc) {
     throw new Error(`Menu document not found: ${documentId}`);
+  }
+  if (doc.extraction_status === "completed" || doc.extraction_status === "skipped") {
+    return {};
+  }
+  if (await skipExtractionIfDuplicateDocument(documentId)) {
+    return {};
   }
   const filePath = doc.file_path?.trim();
   if (!filePath) {

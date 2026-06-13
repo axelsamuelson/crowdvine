@@ -35,7 +35,7 @@ import {
   type PipelineHealth,
 } from "@/components/admin/menu-pipeline-health-panel";
 
-type ExtractionStatus = "pending" | "processing" | "completed" | "failed";
+type ExtractionStatus = "pending" | "processing" | "completed" | "failed" | "skipped";
 type CrawlStatus = "pending" | "crawling" | "completed" | "failed" | "skipped" | "partial";
 
 interface StarwinelistSourceRow {
@@ -180,7 +180,7 @@ export default function MenuExtractionOverviewPage() {
   const loadSources = async () => {
     setSourcesLoading(true);
     try {
-      const res = await fetch("/api/admin/menu-extraction/crawl/sources");
+      const res = await fetch("/api/admin/menu-extraction/crawl/sources?city=stockholm");
       if (!res.ok) throw new Error("Kunde inte ladda källor");
       const data = await res.json();
       setSources(data.sources ?? []);
@@ -330,6 +330,7 @@ export default function MenuExtractionOverviewPage() {
       processing: { label: "Kör", variant: "secondary" as const },
       completed: { label: "Klar", variant: "default" as const },
       failed: { label: "Misslyckad", variant: "destructive" as const },
+      skipped: { label: "Redan extraherad", variant: "secondary" as const },
     };
     const { label, variant } = v[status] ?? v.pending;
     const className =
@@ -517,7 +518,7 @@ export default function MenuExtractionOverviewPage() {
         <div className="w-full bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800 rounded-xl">
           <div className="p-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100">
-              Restauranger
+              Restauranger (Stockholm)
               <span className="text-xs font-normal text-gray-500 dark:text-zinc-200 ml-1">
                 ({sources.length} st)
               </span>
@@ -576,6 +577,11 @@ export default function MenuExtractionOverviewPage() {
                             <p className="text-xs text-gray-500 dark:text-zinc-200 font-mono truncate" title={s.slug}>
                               {s.slug}
                             </p>
+                            {s.city && s.city !== "stockholm" && (
+                              <Badge variant="outline" className="mt-1 text-[10px] border-amber-500 text-amber-800 dark:text-amber-300">
+                                {s.city}
+                              </Badge>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className="py-2.5 align-top" title="Crawl: har PDF hämtats från Starwinelist?">

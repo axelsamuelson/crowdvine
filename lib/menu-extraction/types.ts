@@ -9,7 +9,8 @@ export type ExtractionStatus =
   | "pending"
   | "processing"
   | "completed"
-  | "failed";
+  | "failed"
+  | "skipped";
 
 export type UploadStatus = "uploaded" | "processing" | "failed";
 

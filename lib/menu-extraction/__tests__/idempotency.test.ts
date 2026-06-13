@@ -1,63 +1,73 @@
 import { describe, it, expect } from "vitest";
+import {
+  isPdfAlreadyExtracted,
+  isSamePdfAwaitingExtraction,
+  shouldSkipExtractionAsDuplicate,
+} from "../pdf-idempotency";
 
-/**
- * Idempotency decision: same content_hash + extraction_status === "completed" => unchanged.
- * Pure logic test (no DB).
- */
-function shouldSkipAsUnchanged(
-  latestDoc: { content_hash: string | null; extraction_status: string } | null,
-  currentHash: string
-): boolean {
-  if (!latestDoc?.content_hash) return false;
-  if (latestDoc.content_hash !== currentHash) return false;
-  if (latestDoc.extraction_status !== "completed") return false;
-  return true;
-}
-
-describe("idempotency decision (same hash => unchanged)", () => {
-  it("returns true when latest doc has same hash and extraction completed", () => {
+describe("isPdfAlreadyExtracted", () => {
+  it("returns true when same hash and extraction completed", () => {
     expect(
-      shouldSkipAsUnchanged(
+      isPdfAlreadyExtracted(
         { content_hash: "abc123", extraction_status: "completed" },
-        "abc123"
-      )
+        "abc123",
+      ),
     ).toBe(true);
   });
 
-  it("returns false when latest doc has different hash", () => {
+  it("returns false when hash differs or extraction incomplete", () => {
     expect(
-      shouldSkipAsUnchanged(
+      isPdfAlreadyExtracted(
         { content_hash: "old", extraction_status: "completed" },
-        "new"
-      )
+        "new",
+      ),
     ).toBe(false);
-  });
-
-  it("returns false when extraction not completed", () => {
     expect(
-      shouldSkipAsUnchanged(
+      isPdfAlreadyExtracted(
         { content_hash: "abc", extraction_status: "failed" },
-        "abc"
-      )
+        "abc",
+      ),
     ).toBe(false);
+    expect(isPdfAlreadyExtracted(null, "abc")).toBe(false);
+  });
+});
+
+describe("isSamePdfAwaitingExtraction", () => {
+  it("returns true for pending/failed with same hash", () => {
     expect(
-      shouldSkipAsUnchanged(
+      isSamePdfAwaitingExtraction(
         { content_hash: "abc", extraction_status: "pending" },
-        "abc"
-      )
+        "abc",
+      ),
+    ).toBe(true);
+  });
+
+  it("returns false when already completed", () => {
+    expect(
+      isSamePdfAwaitingExtraction(
+        { content_hash: "abc", extraction_status: "completed" },
+        "abc",
+      ),
     ).toBe(false);
   });
+});
 
-  it("returns false when latest doc is null", () => {
-    expect(shouldSkipAsUnchanged(null, "abc")).toBe(false);
+describe("shouldSkipExtractionAsDuplicate", () => {
+  it("skips when another doc with same hash is completed", () => {
+    expect(
+      shouldSkipExtractionAsDuplicate(
+        { id: "b", content_hash: "x", source_slug: "foo" },
+        { id: "a" },
+      ),
+    ).toBe(true);
   });
 
-  it("returns false when latest doc has null content_hash", () => {
+  it("does not skip the canonical completed doc", () => {
     expect(
-      shouldSkipAsUnchanged(
-        { content_hash: null, extraction_status: "completed" },
-        "abc"
-      )
+      shouldSkipExtractionAsDuplicate(
+        { id: "a", content_hash: "x", source_slug: "foo" },
+        { id: "a" },
+      ),
     ).toBe(false);
   });
 });
