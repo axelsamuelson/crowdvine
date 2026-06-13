@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyCronSecret } from "@/lib/menu-extraction/cron-auth";
 import { evaluateMenuPipelineAlerts } from "@/lib/menu-extraction/alerting";
 import { getMenuPipelineHealth } from "@/lib/menu-extraction/health";
-import { runBatchedCrawlSession } from "@/lib/menu-extraction/crawler";
+import {
+  CRON_CRAWL_BATCH_SIZE,
+  runBatchedCrawlSession,
+} from "@/lib/menu-extraction/crawler";
 
 export const maxDuration = 300;
-
-/** ~90s per source with BrowserQL PDF; keep within maxDuration=300. */
-const BATCH = 3;
 
 /**
  * Cron: batched Starwinelist crawl for Stockholm (PDF upload + menu_documents only).
@@ -20,7 +20,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   try {
-    const summary = await runBatchedCrawlSession("stockholm", false, BATCH);
+    const summary = await runBatchedCrawlSession(
+      "stockholm",
+      false,
+      CRON_CRAWL_BATCH_SIZE,
+    );
     const health = await getMenuPipelineHealth();
     const alerts = await evaluateMenuPipelineAlerts(health, {
       cronJob: "crawl-menus",

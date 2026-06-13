@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth-server";
-import { runCrawlSession, runCrawlForSlugs, crawlSingleRestaurant } from "@/lib/menu-extraction/crawler";
+import {
+  ADMIN_STALE_CRAWLING_MS,
+  CRON_CRAWL_BATCH_SIZE,
+  crawlSingleRestaurant,
+  runBatchedCrawlSession,
+  runCrawlForSlugs,
+} from "@/lib/menu-extraction/crawler";
+
+export const maxDuration = 300;
 
 /**
  * POST /api/admin/menu-extraction/crawl
  * Body: { city?: 'stockholm', slug?: string, slugs?: string[] }
  * - slug: crawl single restaurant.
  * - slugs: crawl only these slugs (e.g. smoke test).
- * - else: run full runCrawlSession(city).
+ * - else: batched crawl (same as cron – 3 sources, fits serverless timeout).
  */
 export async function POST(request: NextRequest) {
   try {
@@ -40,8 +48,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ summary });
     }
 
-    const summary = await runCrawlSession(
-      city === "stockholm" ? "stockholm" : "stockholm"
+    const summary = await runBatchedCrawlSession(
+      city === "stockholm" ? "stockholm" : "stockholm",
+      false,
+      CRON_CRAWL_BATCH_SIZE,
+      ADMIN_STALE_CRAWLING_MS,
     );
     return NextResponse.json({ summary });
   } catch (err) {

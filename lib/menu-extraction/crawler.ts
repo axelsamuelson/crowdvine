@@ -28,6 +28,10 @@ import type { StarwinelistSource, CrawlResult, CrawlSessionSummary } from "./typ
 const MAX_CRAWL_ATTEMPTS = 5;
 const STARWINELIST_BASE = "https://starwinelist.com";
 const STALE_CRAWLING_MS = 2 * 60 * 60 * 1000;
+/** Reset crawling faster on manual admin runs (serverless timeout). */
+export const ADMIN_STALE_CRAWLING_MS = 5 * 60 * 1000;
+/** ~90s per source with BrowserQL PDF; fits Vercel maxDuration=300. */
+export const CRON_CRAWL_BATCH_SIZE = 3;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
@@ -309,9 +313,10 @@ export async function runCrawlSession(
 export async function runBatchedCrawlSession(
   city: "stockholm",
   extractAfterCrawl: boolean = false,
-  batchSize: number = 12,
+  batchSize: number = CRON_CRAWL_BATCH_SIZE,
+  staleCrawlingMs: number = STALE_CRAWLING_MS,
 ): Promise<CrawlSessionSummary> {
-  const staleReset = await resetStaleCrawlingSources(STALE_CRAWLING_MS);
+  const staleReset = await resetStaleCrawlingSources(staleCrawlingMs);
   if (staleReset > 0) {
     console.warn("[crawler] Reset", staleReset, "stale crawling source(s)");
   }

@@ -108,6 +108,7 @@ interface CrawlSummary {
   partial?: number;
   rate_limit_429?: boolean;
   document_ids: string[];
+  batch_size?: number;
 }
 
 export default function MenuExtractionOverviewPage() {
@@ -248,7 +249,11 @@ export default function MenuExtractionOverviewPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Crawl misslyckades");
       setCrawlSummary(data.summary ?? null);
-      toast.success("Crawl klar");
+      toast.success(
+        data.summary?.batch_size
+          ? `Crawl klar (${data.summary.batch_size} restauranger)`
+          : "Crawl klar",
+      );
       loadSources();
       loadDocuments();
       loadHealth();
@@ -467,7 +472,7 @@ export default function MenuExtractionOverviewPage() {
                   ) : (
                     <>
                       <Play className="h-3.5 w-3.5 mr-2" />
-                      Kör crawl nu
+                      Kör crawl (3 st)
                     </>
                   )}
                 </Button>
@@ -479,6 +484,9 @@ export default function MenuExtractionOverviewPage() {
               )}
               {crawlSummary && (
                 <div className="p-3 text-xs flex flex-wrap gap-x-4 gap-y-1 text-gray-700 dark:text-zinc-200 border-b border-gray-100 dark:border-zinc-800">
+                  {typeof crawlSummary.batch_size === "number" && (
+                    <span>Batch: {crawlSummary.batch_size}</span>
+                  )}
                   <span>Totalt: {crawlSummary.total_found}</span>
                   <span className="text-green-700 dark:text-green-400">Nya PDF:er: {crawlSummary.new_pdfs}</span>
                   <span className="text-blue-700 dark:text-blue-400">Uppdaterade: {crawlSummary.updated_pdfs}</span>
@@ -491,7 +499,8 @@ export default function MenuExtractionOverviewPage() {
               )}
               <div className="p-4">
                 <p className="text-xs text-gray-600 dark:text-zinc-200">
-                  Hämtar PDF-menyer från Starwinelist Stockholm, skapar dokument och kör extraktion (Claude).
+                  Hämtar PDF-menyer från Starwinelist Stockholm (3 källor per körning, roterar äldst först).
+                  Cron kör automatiskt 4×/dag.
                 </p>
               </div>
             </div>
