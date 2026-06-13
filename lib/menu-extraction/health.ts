@@ -24,6 +24,8 @@ export type MenuPipelineHealth = {
     stuck_processing: number;
   };
   last_crawl_at: string | null;
+  /** Sources with last_crawled_at within the last 24 hours. */
+  crawled_last_24h: number;
   healthy: boolean;
   issues: string[];
 };
@@ -108,6 +110,15 @@ export async function getMenuPipelineHealth(): Promise<MenuPipelineHealth> {
     throw new Error(`last_crawl_at: ${lastCrawlErr.message}`);
   }
 
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { count: crawledLast24h, error: crawled24Err } = await sb
+    .from("starwinelist_sources")
+    .select("id", { count: "exact", head: true })
+    .gt("last_crawled_at", twentyFourHoursAgo);
+  if (crawled24Err) {
+    throw new Error(`crawled_last_24h: ${crawled24Err.message}`);
+  }
+
   const { count: totalRaw, error: totalErr } = await sb
     .from("starwinelist_sources")
     .select("id", { count: "exact", head: true });
@@ -164,6 +175,7 @@ export async function getMenuPipelineHealth(): Promise<MenuPipelineHealth> {
       stuck_processing: stuckProcessing ?? 0,
     },
     last_crawl_at: lastCrawlAt,
+    crawled_last_24h: crawledLast24h ?? 0,
     healthy: issues.length === 0,
     issues,
   };

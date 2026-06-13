@@ -23,6 +23,7 @@ export type PipelineHealth = {
     stuck_processing: number;
   };
   last_crawl_at: string | null;
+  crawled_last_24h: number;
   healthy: boolean;
   issues: string[];
 };
@@ -135,6 +136,11 @@ export function MenuPipelineHealthPanel({
               tone={health.extraction.failed_recent > 10 ? "bad" : "neutral"}
             />
             <StatCard
+              label="Crawlat senaste 24h"
+              value={health.crawled_last_24h}
+              tone={health.crawled_last_24h > 0 ? "good" : "warn"}
+            />
+            <StatCard
               label="Fastnat processing"
               value={health.extraction.stuck_processing}
               tone={health.extraction.stuck_processing > 0 ? "bad" : "neutral"}
@@ -144,7 +150,7 @@ export function MenuPipelineHealthPanel({
           <p className="mt-4 text-xs text-gray-500 dark:text-zinc-400">
             Senaste crawl: {formatDate(health.last_crawl_at)}
             {" · "}
-            Crons: crawl 03:00 UTC, retry-crawl 02/08/14/20, extract varje timme :30, retry-extract var 6:e h
+            Crons: crawl 01/07/13/19 UTC (12/batch), retry-crawl 02/08/14/20, extract varje timme :30, retry-extract var 6:e h
           </p>
         </>
       ) : null}

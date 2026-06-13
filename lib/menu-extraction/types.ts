@@ -371,6 +371,13 @@ export interface CrawlSessionSummary {
   updated_pdfs: number;
   skipped: number;
   failed: number;
+  /** Batched cron: how many sources were crawled this invocation. */
+  sources_attempted?: number;
+  batch_size?: number;
+  /** Slugs returned from Starwinelist map (0 if discovery failed). */
+  slug_discovery_count?: number;
+  new_sources_registered?: number;
+  crawl_mode?: "discovery_batch" | "db_rotation";
   /** Count of sources where page was fetched but PDF download failed (status partial). */
   partial?: number;
   /** True if any request failed with HTTP 429 from the browser layer. */

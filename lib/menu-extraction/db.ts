@@ -617,6 +617,49 @@ export async function listPendingCrawlSources(
   return list.filter((s) => !isStarwinelist404Slug(s.slug));
 }
 
+/** Oldest-first rotation for batched cron crawls (skips in-flight crawling). */
+export async function listStarwinelistSourcesForCrawlBatch(
+  limit: number,
+  city: string = "stockholm",
+): Promise<StarwinelistSource[]> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("starwinelist_sources")
+    .select(STARWINELIST_SOURCES_SELECT)
+    .eq("city", city)
+    .neq("crawl_status", "crawling")
+    .order("last_crawled_at", { ascending: true, nullsFirst: true })
+    .limit(Math.max(limit * 2, limit));
+  if (error) {
+    throw new Error(`listStarwinelistSourcesForCrawlBatch: ${error.message}`);
+  }
+  return ((data ?? []) as StarwinelistSource[])
+    .filter((s) => !isStarwinelist404Slug(s.slug))
+    .slice(0, limit);
+}
+
+/** Reset sources stuck in crawling (e.g. after a crashed serverless invocation). */
+export async function resetStaleCrawlingSources(
+  staleAfterMs: number,
+): Promise<number> {
+  const sb = getSupabaseAdmin();
+  const cutoff = new Date(Date.now() - staleAfterMs).toISOString();
+  const { data, error } = await sb
+    .from("starwinelist_sources")
+    .update({
+      crawl_status: "failed",
+      last_error: "Crawl timed out (stale crawling status reset)",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("crawl_status", "crawling")
+    .lt("updated_at", cutoff)
+    .select("id");
+  if (error) {
+    throw new Error(`resetStaleCrawlingSources: ${error.message}`);
+  }
+  return data?.length ?? 0;
+}
+
 // ---------------------------------------------------------------------------
 // Manual run tracking (menu_manual_runs)
 // ---------------------------------------------------------------------------

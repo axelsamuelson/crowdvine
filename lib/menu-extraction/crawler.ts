@@ -7,7 +7,8 @@ import {
   createMenuDocument,
   getStarwinelistSourceBySlug,
   isStarwinelist404Slug,
-  listStarwinelistSources,
+  listStarwinelistSourcesForCrawlBatch,
+  resetStaleCrawlingSources,
   updateStarwinelistSource,
   upsertStarwinelistSource,
 } from "./db";
@@ -26,9 +27,67 @@ import type { StarwinelistSource, CrawlResult, CrawlSessionSummary } from "./typ
 
 const MAX_CRAWL_ATTEMPTS = 5;
 const STARWINELIST_BASE = "https://starwinelist.com";
+const STALE_CRAWLING_MS = 2 * 60 * 60 * 1000;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+function emptyCrawlSummary(totalFound: number): CrawlSessionSummary {
+  return {
+    total_found: totalFound,
+    new_pdfs: 0,
+    updated_pdfs: 0,
+    skipped: 0,
+    failed: 0,
+    partial: 0,
+    rate_limit_429: false,
+    document_ids: [],
+    extracted: 0,
+    extraction_failed: 0,
+    auto_correction_attempted: 0,
+    auto_correction_improved: 0,
+    auto_correction_still_review: 0,
+  };
+}
+
+function applyCrawlResult(
+  summary: CrawlSessionSummary,
+  result: CrawlResult,
+): void {
+  if (result.skipped) {
+    summary.skipped += 1;
+    if (result.skip_reason === "no_update") summary.updated_pdfs += 1;
+    return;
+  }
+  if (result.partial) {
+    summary.partial = (summary.partial ?? 0) + 1;
+    return;
+  }
+  if (result.rate_limit_429) summary.rate_limit_429 = true;
+  if (result.error) {
+    summary.failed += 1;
+    return;
+  }
+  if (result.document_id) {
+    summary.document_ids.push(result.document_id);
+    summary.new_pdfs += 1;
+    if (result.extracted) summary.extracted = (summary.extracted ?? 0) + 1;
+    if (result.extraction_skipped_reason === "extraction_error") {
+      summary.extraction_failed = (summary.extraction_failed ?? 0) + 1;
+    }
+    if (result.auto_correction) {
+      summary.auto_correction_attempted =
+        (summary.auto_correction_attempted ?? 0) +
+        result.auto_correction.rowsAttempted;
+      summary.auto_correction_improved =
+        (summary.auto_correction_improved ?? 0) +
+        result.auto_correction.rowsImproved;
+      summary.auto_correction_still_review =
+        (summary.auto_correction_still_review ?? 0) +
+        result.auto_correction.rowsStillNeedsReview;
+    }
+  }
 }
 
 /**
@@ -223,21 +282,7 @@ export async function runCrawlSession(
   city: "stockholm",
   extractAfterCrawl: boolean = true
 ): Promise<CrawlSessionSummary> {
-  const summary: CrawlSessionSummary = {
-    total_found: 0,
-    new_pdfs: 0,
-    updated_pdfs: 0,
-    skipped: 0,
-    failed: 0,
-    partial: 0,
-    rate_limit_429: false,
-    document_ids: [],
-    extracted: 0,
-    extraction_failed: 0,
-    auto_correction_attempted: 0,
-    auto_correction_improved: 0,
-    auto_correction_still_review: 0,
-  };
+  const summary = emptyCrawlSummary(0);
 
   const allSlugs = await fetchRestaurantSlugsByCity(city);
   const slugs = allSlugs.filter((s) => !isStarwinelist404Slug(s));
@@ -251,33 +296,64 @@ export async function runCrawlSession(
       city,
     });
     const result = await crawlRestaurant(source, extractAfterCrawl);
-    if (result.skipped) {
-      summary.skipped += 1;
-      if (result.skip_reason === "no_update") summary.updated_pdfs += 1;
-      continue;
-    }
-    if (result.partial) {
-      summary.partial = (summary.partial ?? 0) + 1;
-      continue;
-    }
-    if (result.rate_limit_429) summary.rate_limit_429 = true;
-    if (result.error) {
-      summary.failed += 1;
-      continue;
-    }
-    if (result.document_id) {
-      summary.document_ids.push(result.document_id);
-      summary.new_pdfs += 1;
-      if (result.extracted) summary.extracted = (summary.extracted ?? 0) + 1;
-      if (result.extraction_skipped_reason === "extraction_error") {
-        summary.extraction_failed = (summary.extraction_failed ?? 0) + 1;
+    applyCrawlResult(summary, result);
+  }
+
+  return summary;
+}
+
+/**
+ * Batched crawl for serverless cron: register new slugs from discovery (best effort),
+ * then crawl the oldest N sources from DB so a run completes within maxDuration.
+ */
+export async function runBatchedCrawlSession(
+  city: "stockholm",
+  extractAfterCrawl: boolean = false,
+  batchSize: number = 12,
+): Promise<CrawlSessionSummary> {
+  const staleReset = await resetStaleCrawlingSources(STALE_CRAWLING_MS);
+  if (staleReset > 0) {
+    console.warn("[crawler] Reset", staleReset, "stale crawling source(s)");
+  }
+
+  let slugDiscoveryCount = 0;
+  let newSourcesRegistered = 0;
+  try {
+    const discovered = await fetchRestaurantSlugsByCity(city);
+    slugDiscoveryCount = discovered.length;
+    for (const slug of discovered) {
+      if (isStarwinelist404Slug(slug)) continue;
+      const existing = await getStarwinelistSourceBySlug(slug);
+      if (!existing) {
+        await upsertStarwinelistSource({
+          slug,
+          source_url: `${STARWINELIST_BASE}/wine-place/${slug}`,
+          city,
+        });
+        newSourcesRegistered += 1;
       }
-      if (result.auto_correction) {
-        summary.auto_correction_attempted = (summary.auto_correction_attempted ?? 0) + result.auto_correction.rowsAttempted;
-        summary.auto_correction_improved = (summary.auto_correction_improved ?? 0) + result.auto_correction.rowsImproved;
-        summary.auto_correction_still_review = (summary.auto_correction_still_review ?? 0) + result.auto_correction.rowsStillNeedsReview;
-      }
     }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(
+      "[crawler] Slug discovery failed, continuing with DB rotation:",
+      message,
+    );
+  }
+
+  const batch = await listStarwinelistSourcesForCrawlBatch(batchSize, city);
+  const summary = emptyCrawlSummary(batch.length);
+  summary.batch_size = batchSize;
+  summary.sources_attempted = batch.length;
+  summary.slug_discovery_count = slugDiscoveryCount;
+  summary.new_sources_registered = newSourcesRegistered;
+  summary.crawl_mode =
+    slugDiscoveryCount > 0 ? "discovery_batch" : "db_rotation";
+
+  for (const source of batch) {
+    await sleep(CRAWL_DELAY_MS);
+    const result = await crawlRestaurant(source, extractAfterCrawl);
+    applyCrawlResult(summary, result);
   }
 
   return summary;
@@ -290,21 +366,7 @@ export async function runCrawlForSlugs(
   slugs: string[],
   extractAfterCrawl: boolean = true
 ): Promise<CrawlSessionSummary> {
-  const summary: CrawlSessionSummary = {
-    total_found: slugs.length,
-    new_pdfs: 0,
-    updated_pdfs: 0,
-    skipped: 0,
-    failed: 0,
-    partial: 0,
-    rate_limit_429: false,
-    document_ids: [],
-    extracted: 0,
-    extraction_failed: 0,
-    auto_correction_attempted: 0,
-    auto_correction_improved: 0,
-    auto_correction_still_review: 0,
-  };
+  const summary = emptyCrawlSummary(slugs.length);
 
   for (const slug of slugs) {
     const trimmed = typeof slug === "string" ? slug.trim() : "";
@@ -319,33 +381,7 @@ export async function runCrawlForSlugs(
       });
     }
     const result = await crawlRestaurant(source, extractAfterCrawl);
-    if (result.skipped) {
-      summary.skipped += 1;
-      if (result.skip_reason === "no_update") summary.updated_pdfs += 1;
-      continue;
-    }
-    if (result.partial) {
-      summary.partial = (summary.partial ?? 0) + 1;
-      continue;
-    }
-    if (result.rate_limit_429) summary.rate_limit_429 = true;
-    if (result.error) {
-      summary.failed += 1;
-      continue;
-    }
-    if (result.document_id) {
-      summary.document_ids.push(result.document_id);
-      summary.new_pdfs += 1;
-      if (result.extracted) summary.extracted = (summary.extracted ?? 0) + 1;
-      if (result.extraction_skipped_reason === "extraction_error") {
-        summary.extraction_failed = (summary.extraction_failed ?? 0) + 1;
-      }
-      if (result.auto_correction) {
-        summary.auto_correction_attempted = (summary.auto_correction_attempted ?? 0) + result.auto_correction.rowsAttempted;
-        summary.auto_correction_improved = (summary.auto_correction_improved ?? 0) + result.auto_correction.rowsImproved;
-        summary.auto_correction_still_review = (summary.auto_correction_still_review ?? 0) + result.auto_correction.rowsStillNeedsReview;
-      }
-    }
+    applyCrawlResult(summary, result);
   }
 
   return summary;
