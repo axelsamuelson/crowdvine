@@ -94,6 +94,14 @@ function applyCrawlResult(
   }
 }
 
+function pdfCoversMenuUpdate(
+  source: StarwinelistSource,
+  parsedDate: Date | null,
+): boolean {
+  if (!parsedDate || !source.pdf_last_seen_at) return false;
+  return new Date(source.pdf_last_seen_at).getTime() >= parsedDate.getTime();
+}
+
 /**
  * Crawl a single restaurant: fetch page, optionally download PDF, create menu_document, optionally trigger extraction (Claude reads PDF from storage).
  * @param extractAfterCrawl When true (default), runs extractMenuFromDocument after upload. Cron crawl passes false.
@@ -143,7 +151,11 @@ export async function crawlRestaurant(
       source.swl_updated_at_parsed &&
       parsedDate &&
       new Date(source.swl_updated_at_parsed).getTime() === parsedDate.getTime();
-    if (sameUpdate && source.latest_document_id) {
+    if (
+      sameUpdate &&
+      source.latest_document_id &&
+      pdfCoversMenuUpdate(source, parsedDate)
+    ) {
       await updateStarwinelistSource(source.id, {
         crawl_status: "completed",
         last_crawled_at: new Date().toISOString(),
