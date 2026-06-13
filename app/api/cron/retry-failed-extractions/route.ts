@@ -14,7 +14,7 @@ const BATCH = 15;
 
 /**
  * Cron: retry failed or stale processing menu extractions.
- * Secured by CRON_SECRET. Schedule: 0 */6 * * * (every 6 hours)
+ * Secured by CRON_SECRET. Schedule: every 6 hours (see vercel.json).
  */
 export async function GET(request: NextRequest) {
   if (!verifyCronSecret(request)) {
