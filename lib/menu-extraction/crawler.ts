@@ -161,36 +161,34 @@ export async function crawlRestaurant(
 
     const resolvedCity = resolvedCityFromPage(page, source.city);
 
-    if (
-      expectedCity &&
-      page.swl_location &&
-      isWrongCityForScope(page.swl_location, expectedCity)
-    ) {
-      const label = page.swl_location.name ?? resolvedCity;
-      await updateStarwinelistSource(source.id, {
-        city: resolvedCity,
-        crawl_status: "skipped",
-        last_crawled_at: new Date().toISOString(),
-        name: page.name,
-        pdf_url: page.pdf_url,
-        swl_updated_at: page.swl_updated_at,
-        swl_updated_at_parsed: page.swl_updated_at
-          ? parseSwlUpdatedAt(page.swl_updated_at)?.toISOString() ?? null
-          : null,
-        last_error: `Restaurangen tillhör ${label}, inte ${expectedCity}`,
-        crawl_attempts: source.crawl_attempts + 1,
-      });
-      result.skipped = true;
-      result.skip_reason = "wrong_city";
-      console.log(
-        "[crawler] Skipped",
-        source.slug,
-        "– wrong city:",
-        resolvedCity,
-        "expected:",
-        expectedCity,
-      );
-      return result;
+    if (expectedCity && page.swl_location) {
+      if (isWrongCityForScope(page.swl_location, expectedCity)) {
+        const label = page.swl_location.name ?? resolvedCity;
+        await updateStarwinelistSource(source.id, {
+          city: resolvedCity,
+          crawl_status: "skipped",
+          last_crawled_at: new Date().toISOString(),
+          name: page.name,
+          pdf_url: page.pdf_url,
+          swl_updated_at: page.swl_updated_at,
+          swl_updated_at_parsed: page.swl_updated_at
+            ? parseSwlUpdatedAt(page.swl_updated_at)?.toISOString() ?? null
+            : null,
+          last_error: `Restaurangen tillhör ${label}, inte ${expectedCity}`,
+          crawl_attempts: source.crawl_attempts + 1,
+        });
+        result.skipped = true;
+        result.skip_reason = "wrong_city";
+        console.log(
+          "[crawler] Skipped",
+          source.slug,
+          "– wrong city:",
+          resolvedCity,
+          "expected:",
+          expectedCity,
+        );
+        return result;
+      }
     }
 
     const parsedDate = page.swl_updated_at
