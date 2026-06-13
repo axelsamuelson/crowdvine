@@ -215,6 +215,7 @@ export const WINE_CATEGORIES_SV: WineCategory[] = [
     longDescription:
       "Grenache är en av Medelhavsvärldens mest planterade druvssorter — med ursprung i Aragonien i Spanien och med anrika rötter i Languedoc sedan 1600-talet. Druvsorten trivs i värme och torka, producerar frukttäta viner med låga tanniner och naturligt hög alkohol. Gamla gobelet-stockar ger låga skördar och koncentrerad frukt. I Languedoc uttrycker Grenache sig annorlunda än i Châteauneuf-du-Pape — lättare, friskare, ofta med mer blomsterkaraktär på de kalkrika jordarna. Naturvinsproducenter som Gregory White och Mas d'Agalis arbetar med Grenache utan tillsatser och visar druvans genuina personlighet.",
     filter: { filterGrape: "Grenache" },
+    hreflang: "grenache",
     canonical: "/vin/grenache",
   },
   {
@@ -229,6 +230,7 @@ export const WINE_CATEGORIES_SV: WineCategory[] = [
     longDescription:
       "Syrah introducerades i Languedoc under 1970-talet som en förbättrardruvsort och har sedan dess blivit regionens mest omskrivna röda druvsort. På skifferterroir i Saint-Chinian och Faugères uttrycker Syrah mörka frukter, svartpeppar, rökt kött och en mineralitet som påminner om norra Rhône men med mer medelhavskaraktär. Kallare lägen på höjd — som hos Meïgoon i Roquebrun eller Ugo Lestelle i Pardailhan — ger Syrah den friskhet och precision som gör den exceptionell. Utan tillsatser och med indigena jästsvampar kommer druvans terroir igenom utan filter.",
     filter: { filterGrape: "Syrah" },
+    hreflang: "syrah",
     canonical: "/vin/syrah",
   },
   {
@@ -243,6 +245,7 @@ export const WINE_CATEGORIES_SV: WineCategory[] = [
     longDescription:
       "Cinsault har odlats i Languedoc och Provence sedan antiken — den äldsta dokumenterade nämnandet är från Hérault år 1600. Länge betraktad som en blandningsdruvsort för att mjuka upp kraftigare viner, håller Cinsault på att rehabiliteras av naturvinsrörelsen. Dess låga tanniner, naturliga friskhet och blomsterrika aromer av jordgubb, körsbär och violer gör den perfekt för minimal intervention. Producenter som Meïgoon och Extralucide visar att Cinsault kan stå på egna ben — lättdrucken, aromatisk och genomskinlig i sin expression av terroir.",
     filter: { filterGrape: "Cinsault" },
+    hreflang: "cinsault",
     canonical: "/vin/cinsault",
   },
 ];
@@ -417,6 +420,66 @@ export const WINE_CATEGORIES_EN: WineCategory[] = [
     hreflang: "direktimport-vin",
     canonical: "/wine/direct-import-wine",
   },
+  {
+    slug: "carignan",
+    locale: "en",
+    h1: "Carignan — Languedoc's rebellious grape",
+    title: "Carignan Natural Wine from Languedoc | PACT Wines",
+    metaDescription:
+      "Carignan is Languedoc's most misunderstood grape. Old vines on schist soil give dark fruit, high acidity and mineral character. Direct import to Stockholm.",
+    description:
+      "Carignan has been grown in Languedoc since Roman times. Old vines require hand harvesting and give low yields — but the wines are complex, structured and mineral-driven.",
+    longDescription:
+      "Carignan originates from Aragon in Spain and has been cultivated in Languedoc since the Middle Ages. During the era of mass production it gained a reputation for high yields and thin wines — but that tells only half the story. Old vines with low yields on schist and limestone soils produce something entirely different: dark fruit, firm acidity, marked tannins and the characteristic scent of Languedoc garrigue. The natural wine movement has rehabilitated Carignan. Producers like Peira Levada, Thomas Chany and Clos Fantine show what hundred-year-old vines can achieve when handled with respect and minimal intervention.",
+    filter: { filterGrape: "Carignan" },
+    hreflang: "carignan",
+    canonical: "/wine/carignan",
+  },
+  {
+    slug: "grenache",
+    locale: "en",
+    h1: "Grenache — the heart of Languedoc",
+    title: "Grenache Natural Wine from Languedoc | PACT Wines",
+    metaDescription:
+      "Grenache is Languedoc's most planted red grape. Fruity, warm and versatile — from easy everyday wines to complex barrel-aged cuvées.",
+    description:
+      "Grenache thrives in Languedoc's warm, dry climate and produces fruit-forward wines with low tannins and naturally high alcohol. Old bush vines give concentration and depth.",
+    longDescription:
+      "Grenache is one of the Mediterranean's most planted grapes — originating in Aragon, Spain, with deep roots in Languedoc since the 1600s. The variety loves heat and drought, producing fruit-dense wines with low tannins and naturally high alcohol. Old gobelet-trained vines give low yields and concentrated fruit. In Languedoc, Grenache expresses itself differently than in Châteauneuf-du-Pape — lighter, fresher, often with more floral character on the limestone soils. Natural wine producers like Gregory White and Mas d'Agalis work with Grenache without additives and show the grape's genuine personality.",
+    filter: { filterGrape: "Grenache" },
+    hreflang: "grenache",
+    canonical: "/wine/grenache",
+  },
+  {
+    slug: "syrah",
+    locale: "en",
+    h1: "Syrah — dark and spicy from Languedoc",
+    title: "Syrah Natural Wine from Languedoc | PACT Wines",
+    metaDescription:
+      "Syrah gives Languedoc's deepest, spiciest red wines. On schist soils in Saint-Chinian and Faugères it expresses dark fruit, black pepper and minerality.",
+    description:
+      "Syrah was introduced to Languedoc in the 1970s and has become the region's most prized blending grape. On schist terroir it shows its best side.",
+    longDescription:
+      "Syrah was introduced to Languedoc in the 1970s as a blending grape and has since become the region's most written-about red variety. On schist terroir in Saint-Chinian and Faugères, Syrah expresses dark fruit, black pepper, smoked meat and a minerality reminiscent of the northern Rhône but with more Mediterranean character. Cooler high-altitude sites — like Meïgoon in Roquebrun or Ugo Lestelle in Pardailhan — give Syrah the freshness and precision that makes it exceptional. Without additives and with indigenous yeasts, the grape's terroir comes through unfiltered.",
+    filter: { filterGrape: "Syrah" },
+    hreflang: "syrah",
+    canonical: "/wine/syrah",
+  },
+  {
+    slug: "cinsault",
+    locale: "en",
+    h1: "Cinsault — light, fresh and underrated",
+    title: "Cinsault Natural Wine from Languedoc | PACT Wines",
+    metaDescription:
+      "Cinsault is Languedoc's most underrated grape. Low tannins, high aromatics and natural freshness make it perfect for easy-drinking natural wines.",
+    description:
+      "Cinsault is one of Languedoc's oldest grape varieties with roots in Hérault. Low tannins and floral aromas of strawberry and cherry make it a favourite among natural wine producers.",
+    longDescription:
+      "Cinsault has been grown in Languedoc and Provence since antiquity — the earliest documented mention is from Hérault in 1600. Long regarded as a blending grape to soften more powerful wines, Cinsault is being rehabilitated by the natural wine movement. Its low tannins, natural freshness and floral aromas of strawberry, cherry and violet make it perfect for minimal intervention. Producers like Meïgoon and Extralucide show that Cinsault can stand on its own — easy-drinking, aromatic and transparent in its expression of terroir.",
+    filter: { filterGrape: "Cinsault" },
+    hreflang: "cinsault",
+    canonical: "/wine/cinsault",
+  },
 ];
 
 /** Short color slugs → canonical category slug (EN). */
@@ -459,10 +522,10 @@ export function getWineCategoryEn(slug: string): WineCategory | undefined {
 }
 
 export function getHreflangPath(category: WineCategory): string {
-  if (!category.hreflang) return category.canonical;
+  const counterpart = category.hreflang ?? category.slug;
   return category.locale === "sv"
-    ? `/wine/${category.hreflang}`
-    : `/vin/${category.hreflang}`;
+    ? `/wine/${counterpart}`
+    : `/vin/${counterpart}`;
 }
 
 export function getCategoryUrlForColor(
@@ -493,4 +556,35 @@ export function getCategoryUrlForColor(
   );
 
   return match ? match.canonical : null;
+}
+
+export function getCategoryUrlForGrape(
+  grapeName: string,
+  locale: "sv" | "en",
+): string | null {
+  const categories =
+    locale === "sv" ? WINE_CATEGORIES_SV : WINE_CATEGORIES_EN;
+
+  const match = categories.find(
+    (c) =>
+      c.filter.filterGrape?.toLowerCase() === grapeName.toLowerCase() &&
+      !c.filter.color?.length &&
+      !c.filter.tags?.length,
+  );
+
+  return match ? match.canonical : null;
+}
+
+export function getActiveGrapeFromPathname(path: string): string | null {
+  for (const c of WINE_CATEGORIES_SV) {
+    if (c.filter.filterGrape && c.canonical === path) {
+      return c.filter.filterGrape;
+    }
+  }
+  for (const c of WINE_CATEGORIES_EN) {
+    if (c.filter.filterGrape && c.canonical === path) {
+      return c.filter.filterGrape;
+    }
+  }
+  return null;
 }

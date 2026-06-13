@@ -86,6 +86,7 @@ export default async function WineCategoryPage(props: PageProps) {
     filterColor: category.filter.color,
     filterTags: category.filter.tags,
     filterIsNatural: category.filter.isNatural,
+    filterGrape: category.filter.filterGrape,
     isB2BSite: false,
     displayCurrencyCode: shoppingContext.currencyCode,
     sekToDisplayRate: shoppingContext.sekToDisplayRate,

@@ -9,15 +9,13 @@ import { getSourceSlugsByWineIds } from "@/lib/external-prices/db";
 import { mapProductDataToShopProducts } from "@/lib/map-product-data-to-shop-product";
 import { generateProducerSlug } from "@/lib/producer-handle";
 import { getCollection } from "@/lib/shopify";
-import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
-import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
 import { getSiteConfig } from "@/lib/site-config";
 import {
   getWineCategorySv,
   WINE_CATEGORIES_SV,
 } from "@/lib/wine-categories";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 export const dynamicParams = true;
 
 export async function generateStaticParams() {
@@ -97,22 +95,16 @@ export default async function VinCollectionPage(props: {
 
   const category = getWineCategorySv(slug);
   if (category) {
-    const [config, shoppingContext] = await Promise.all([
+    const [config, rawProducts] = await Promise.all([
       getSiteConfig(),
-      getShoppingContextFromRequest({ skipUser: true }).catch(() =>
-        fallbackShoppingContext(),
-      ),
+      fetchProductsData({
+        filterColor: category.filter.color,
+        filterTags: category.filter.tags,
+        filterIsNatural: category.filter.isNatural,
+        filterGrape: category.filter.filterGrape,
+        isB2BSite: false,
+      }),
     ]);
-
-    const rawProducts = await fetchProductsData({
-      filterColor: category.filter.color,
-      filterTags: category.filter.tags,
-      filterIsNatural: category.filter.isNatural,
-      filterGrape: category.filter.filterGrape,
-      isB2BSite: false,
-      displayCurrencyCode: shoppingContext.currencyCode,
-      sekToDisplayRate: shoppingContext.sekToDisplayRate,
-    });
 
     const mappedProducts = mapProductDataToShopProducts(rawProducts);
 

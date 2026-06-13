@@ -4,6 +4,15 @@ import { Product } from "@/lib/shopify/types";
 import { createContext, useContext, useLayoutEffect, useRef, useState, ReactNode } from "react";
 import { usePathname } from "next/navigation";
 
+function isShopPath(path: string): boolean {
+  return (
+    path === "/vin" ||
+    path.startsWith("/vin/") ||
+    path === "/wine" ||
+    path.startsWith("/wine/")
+  );
+}
+
 interface ProductsContextType {
   products: Product[];
   setProducts: (products: Product[]) => void;
@@ -27,7 +36,9 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
 
   useLayoutEffect(() => {
     if (prevPathnameRef.current === pathname) return;
+    const previousPath = prevPathnameRef.current;
     prevPathnameRef.current = pathname;
+    if (isShopPath(previousPath) && isShopPath(pathname)) return;
     setProducts([]);
     setOriginalProducts([]);
     setAvailableSourceSlugs([]);

@@ -30,6 +30,10 @@ import {
 import { Upload, Play, Globe, Sparkles, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import {
+  MenuPipelineHealthPanel,
+  type PipelineHealth,
+} from "@/components/admin/menu-pipeline-health-panel";
 
 type ExtractionStatus = "pending" | "processing" | "completed" | "failed";
 type CrawlStatus = "pending" | "crawling" | "completed" | "failed" | "skipped" | "partial";
@@ -127,6 +131,23 @@ export default function MenuExtractionOverviewPage() {
     desc: true,
   });
 
+  const [pipelineHealth, setPipelineHealth] = useState<PipelineHealth | null>(null);
+  const [healthLoading, setHealthLoading] = useState(false);
+
+  const loadHealth = useCallback(async () => {
+    setHealthLoading(true);
+    try {
+      const res = await fetch("/api/admin/menu-extraction/health");
+      if (!res.ok) throw new Error("Kunde inte ladda pipeline-status");
+      const data = await res.json();
+      setPipelineHealth(data.health ?? null);
+    } catch {
+      setPipelineHealth(null);
+    } finally {
+      setHealthLoading(false);
+    }
+  }, []);
+
   const loadDocuments = useCallback(async () => {
     setDocumentsLoading(true);
     try {
@@ -184,7 +205,8 @@ export default function MenuExtractionOverviewPage() {
     loadSources();
     loadCrawlConfig();
     loadDocuments();
-  }, [loadDocuments]);
+    loadHealth();
+  }, [loadDocuments, loadHealth]);
 
   const handleUploadSubmit = async () => {
     if (!uploadForm.file_path.trim() || !uploadForm.file_name.trim()) {
@@ -229,6 +251,7 @@ export default function MenuExtractionOverviewPage() {
       toast.success("Crawl klar");
       loadSources();
       loadDocuments();
+      loadHealth();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Crawl misslyckades");
     } finally {
@@ -290,6 +313,7 @@ export default function MenuExtractionOverviewPage() {
       toast.success(`Crawl för ${slug} klar`);
       loadSources();
       loadDocuments();
+      loadHealth();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Retry misslyckades");
     }
@@ -333,6 +357,12 @@ export default function MenuExtractionOverviewPage() {
           </p>
         </div>
       </div>
+
+      <MenuPipelineHealthPanel
+        health={pipelineHealth}
+        loading={healthLoading}
+        onRefresh={loadHealth}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Vänster: sammanfattning – samma stil som Platform overview */}

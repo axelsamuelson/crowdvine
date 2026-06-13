@@ -1,10 +1,12 @@
 import { storeCatalog } from "@/lib/shopify/constants";
 import ProductList from "@/app/vin/components/product-list";
 import { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { ProductCardSkeleton } from "@/app/vin/components/product-card-skeleton";
 import { getSiteConfig } from "@/lib/site-config";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { getCategoryUrlForGrape } from "@/lib/wine-categories";
 
 type TopWineRow = {
   wine_name: string;
@@ -47,6 +49,20 @@ export default async function VinPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const sp = await searchParams;
+  const fgrape = sp.fgrape;
+  if (fgrape) {
+    const grape = Array.isArray(fgrape) ? fgrape[0] : fgrape;
+    if (grape) {
+      const categoryUrl = getCategoryUrlForGrape(grape, "sv");
+      if (
+        categoryUrl &&
+        (!Array.isArray(fgrape) || fgrape.length === 1)
+      ) {
+        redirect(categoryUrl);
+      }
+    }
+  }
+
   const config = await getSiteConfig();
 
   const sb = getSupabaseAdmin();

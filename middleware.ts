@@ -86,6 +86,10 @@ async function runMiddleware(req: NextRequest) {
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api/") ||
     pathname.startsWith("/.well-known/") ||
+    pathname === "/icon" ||
+    pathname.startsWith("/icon?") ||
+    pathname === "/apple-icon" ||
+    pathname.startsWith("/apple-icon?") ||
     pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|ico)$/)
   )
     return nextWithPathname(req);

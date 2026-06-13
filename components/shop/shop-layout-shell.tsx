@@ -2,8 +2,10 @@ import { Suspense } from "react";
 
 import { CompleteOrderRail } from "@/components/cart/complete-order-rail";
 import { PageLayoutServer } from "@/components/layout/page-layout-server";
-import { listPriceSources } from "@/lib/external-prices/db";
-import { getCollections } from "@/lib/shopify";
+import {
+  getCachedPriceSources,
+  getCachedShopCollections,
+} from "@/lib/shop/cached-layout-data";
 import { DesktopFilters } from "@/app/vin/components/shop-filters";
 import { MobileFilters } from "@/app/vin/components/mobile-filters";
 import { ProductsProvider } from "@/app/vin/providers/products-provider";
@@ -15,7 +17,7 @@ export async function ShopLayoutShell({
 }) {
   let collections = [];
   try {
-    collections = await getCollections();
+    collections = await getCachedShopCollections();
   } catch (error) {
     console.warn("Failed to fetch collections in shop layout:", error);
     collections = [];
@@ -23,7 +25,7 @@ export async function ShopLayoutShell({
 
   let priceSources: { id: string; name: string; slug: string }[] = [];
   try {
-    const sources = await listPriceSources(true);
+    const sources = await getCachedPriceSources();
     priceSources = sources.map((s) => ({ id: s.id, name: s.name, slug: s.slug }));
   } catch (error) {
     console.warn("Failed to fetch price sources in shop layout:", error);

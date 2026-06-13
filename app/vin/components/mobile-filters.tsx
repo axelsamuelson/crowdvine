@@ -23,7 +23,8 @@ import { ShopFilterSearch } from "./shop-filter-search";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "@/lib/hooks/use-translations";
-import { getCategoryUrlForColor } from "@/lib/wine-categories";
+import { getCategoryUrlForColor, getCategoryUrlForGrape, getActiveGrapeFromPathname } from "@/lib/wine-categories";
+import { filterProductsByGrapes } from "@/lib/shop/filter-products-by-grape";
 
 function getActiveColorFromPathname(path: string): string | null {
   const colorMap: Record<string, string> = {
@@ -50,7 +51,7 @@ interface MobileFiltersProps {
 export function MobileFilters({ collections, priceSources = [], className }: MobileFiltersProps) {
   const { t } = useTranslations();
   const filterCount = useFilterCount();
-  const { products, originalProducts } = useProducts();
+  const { products, originalProducts, setProducts } = useProducts();
   const [isMounted, setIsMounted] = React.useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -58,6 +59,7 @@ export function MobileFilters({ collections, priceSources = [], className }: Mob
     pathname.startsWith("/vin/") || pathname.startsWith("/wine/");
   const locale = pathname.startsWith("/wine") ? "en" : "sv";
   const activeColorName = getActiveColorFromPathname(pathname);
+  const activeGrapeName = getActiveGrapeFromPathname(pathname);
 
   const handleColorSelect = (colorName: string) => {
     const url = getCategoryUrlForColor(colorName, locale);
@@ -76,6 +78,26 @@ export function MobileFilters({ collections, priceSources = [], className }: Mob
     if (url) {
       router.push(url);
     }
+  };
+
+  const handleGrapeSelect = (grapeName: string): boolean => {
+    const url = getCategoryUrlForGrape(grapeName, locale);
+
+    if (url && pathname === url) {
+      router.push(locale === "en" ? "/wine" : "/vin");
+      return true;
+    }
+
+    if (url) {
+      const isMainShop = pathname === "/vin" || pathname === "/wine";
+      if (isMainShop && originalProducts.length > 0) {
+        setProducts(filterProductsByGrapes(originalProducts, [grapeName]));
+      }
+      router.push(url);
+      return true;
+    }
+
+    return false;
   };
 
   React.useEffect(() => {
@@ -140,7 +162,12 @@ export function MobileFilters({ collections, priceSources = [], className }: Mob
             <ShopFilterSearch />
             <CategoryFilter collections={collections} mode="drawer" />
             <CompetitorFilter sources={priceSources} mode="drawer" />
-            <GrapesFilter products={originalProducts} mode="drawer" />
+            <GrapesFilter
+              products={originalProducts}
+              mode="drawer"
+              onGrapeSelect={handleGrapeSelect}
+              activeGrape={activeGrapeName ?? undefined}
+            />
             <ColorFilter
               products={originalProducts}
               showAllColors={isColorCategoryPage}

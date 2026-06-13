@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verifyCronSecret } from "@/lib/menu-extraction/cron-auth";
+import { evaluateMenuPipelineAlerts } from "@/lib/menu-extraction/alerting";
+import { getMenuPipelineHealth } from "@/lib/menu-extraction/health";
 import {
   countMenuDocumentsPendingExtraction,
   listPendingMenuDocumentsForExtraction,
@@ -7,16 +10,15 @@ import { extractMenuFromDocument } from "@/lib/menu-extraction/service";
 
 export const maxDuration = 300;
 
-const BATCH = 10;
+/** Process up to 15 pending documents per run (hourly cron). */
+const BATCH = 15;
 
 /**
  * Cron: extract pending menu_documents (after crawl-only job uploaded PDFs).
- * Secured by CRON_SECRET. Schedule: 0 4 * * * (daily 04:00 UTC)
+ * Secured by CRON_SECRET. Schedule: 30 * * * * (hourly at :30 UTC)
  */
 export async function GET(request: NextRequest) {
-  const auth = request.headers.get("authorization");
-  const secret = process.env.CRON_SECRET;
-  if (!secret || auth !== `Bearer ${secret}`) {
+  if (!verifyCronSecret(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -33,38 +35,38 @@ export async function GET(request: NextRequest) {
     const t0 = Date.now();
     try {
       await extractMenuFromDocument(doc.id, { forceSyncOnly: true });
-      const duration_ms = Date.now() - t0;
       results.push({
         id: doc.id,
         source_slug: doc.source_slug,
         outcome: "completed",
-        duration_ms,
+        duration_ms: Date.now() - t0,
       });
-      console.warn("[cron/extract-menus] success", doc.id, doc.source_slug, duration_ms + "ms");
     } catch (err) {
-      const duration_ms = Date.now() - t0;
       const message = err instanceof Error ? err.message : String(err);
       results.push({
         id: doc.id,
         source_slug: doc.source_slug,
         outcome: "failed",
-        duration_ms,
+        duration_ms: Date.now() - t0,
         error: message,
       });
-      console.warn("[cron/extract-menus] failed", doc.id, doc.source_slug, duration_ms + "ms", message);
     }
   }
 
   const remaining_pending = await countMenuDocumentsPendingExtraction();
-  const completed = results.filter((r) => r.outcome === "completed").length;
-  const failed = results.filter((r) => r.outcome === "failed").length;
+  const health = await getMenuPipelineHealth();
+  const alerts = await evaluateMenuPipelineAlerts(health, {
+    cronJob: "extract-menus",
+  });
 
   const summary = {
     processed: results.length,
-    completed,
-    failed,
+    completed: results.filter((r) => r.outcome === "completed").length,
+    failed: results.filter((r) => r.outcome === "failed").length,
     remaining_pending,
     results,
+    health,
+    alerts_triggered: alerts,
   };
   console.warn("[cron/extract-menus] Summary:", summary);
   return NextResponse.json({ ok: true, summary });

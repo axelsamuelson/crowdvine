@@ -16,7 +16,8 @@ import { useFilterCount } from "../hooks/use-filter-count";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { X } from "lucide-react";
 import { useTranslations } from "@/lib/hooks/use-translations";
-import { getCategoryUrlForColor } from "@/lib/wine-categories";
+import { getCategoryUrlForColor, getCategoryUrlForGrape, getActiveGrapeFromPathname } from "@/lib/wine-categories";
+import { filterProductsByGrapes } from "@/lib/shop/filter-products-by-grape";
 
 function getActiveColorFromPathname(path: string): string | null {
   const colorMap: Record<string, string> = {
@@ -44,7 +45,7 @@ export function DesktopFilters({
   className?: string;
 }) {
   const { t } = useTranslations();
-  const { originalProducts } = useProducts();
+  const { originalProducts, setProducts } = useProducts();
   const filterCount = useFilterCount();
   const [seeAllOpen, setSeeAllOpen] = useState(false);
   const openSeeAll = () => setSeeAllOpen(true);
@@ -54,6 +55,7 @@ export function DesktopFilters({
     pathname.startsWith("/vin/") || pathname.startsWith("/wine/");
   const locale = pathname.startsWith("/wine") ? "en" : "sv";
   const activeColorName = getActiveColorFromPathname(pathname);
+  const activeGrapeName = getActiveGrapeFromPathname(pathname);
 
   const handleColorSelect = (colorName: string) => {
     const url = getCategoryUrlForColor(colorName, locale);
@@ -72,6 +74,26 @@ export function DesktopFilters({
     if (url) {
       router.push(url);
     }
+  };
+
+  const handleGrapeSelect = (grapeName: string): boolean => {
+    const url = getCategoryUrlForGrape(grapeName, locale);
+
+    if (url && pathname === url) {
+      router.push(locale === "en" ? "/wine" : "/vin");
+      return true;
+    }
+
+    if (url) {
+      const isMainShop = pathname === "/vin" || pathname === "/wine";
+      if (isMainShop && originalProducts.length > 0) {
+        setProducts(filterProductsByGrapes(originalProducts, [grapeName]));
+      }
+      router.push(url);
+      return true;
+    }
+
+    return false;
   };
 
   return (
@@ -118,6 +140,8 @@ export function DesktopFilters({
               products={originalProducts}
               mode="sidebar"
               onSeeAll={openSeeAll}
+              onGrapeSelect={handleGrapeSelect}
+              activeGrape={activeGrapeName ?? undefined}
             />
             <ColorFilter
               products={originalProducts}
@@ -172,7 +196,12 @@ export function DesktopFilters({
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
                   <CategoryFilter collections={collections} mode="overlay" />
                   <CompetitorFilter sources={priceSources} mode="overlay" />
-                  <GrapesFilter products={originalProducts} mode="overlay" />
+                  <GrapesFilter
+                    products={originalProducts}
+                    mode="overlay"
+                    onGrapeSelect={handleGrapeSelect}
+                    activeGrape={activeGrapeName ?? undefined}
+                  />
                   <ColorFilter
                     products={originalProducts}
                     showAllColors={isColorCategoryPage}

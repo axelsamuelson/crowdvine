@@ -491,25 +491,31 @@ export async function fetchProductsData(params?: {
         .filter((c: string) => c),
     ),
   ] as string[];
-  const rateMap = await fetchExchangeRatesMap(currencies);
-
   const wineIds = rawData.map((wine: any) => wine.id) || [];
   const wineImagesMap = new Map<string, any[]>();
-  const { stockMap: b2bStockMap, shippingMap: b2bShippingMap } =
-    await fetchB2BStockAndShippingFromPallets(sb, wineIds);
 
-  if (wineIds.length > 0) {
-    const { data: wineImages } = await sb
-      .from("wine_images")
-      .select("wine_id, image_path, alt_text, sort_order, is_primary")
-      .in("wine_id", wineIds)
-      .order("sort_order", { ascending: true });
+  const [{ stockMap: b2bStockMap, shippingMap: b2bShippingMap }, rateMap, wineImagesResult] =
+    await Promise.all([
+      isB2BSite
+        ? fetchB2BStockAndShippingFromPallets(sb, wineIds)
+        : Promise.resolve({
+            stockMap: new Map<string, number>(),
+            shippingMap: new Map<string, number>(),
+          }),
+      fetchExchangeRatesMap(currencies),
+      wineIds.length > 0
+        ? sb
+            .from("wine_images")
+            .select("wine_id, image_path, alt_text, sort_order, is_primary")
+            .in("wine_id", wineIds)
+            .order("sort_order", { ascending: true })
+        : Promise.resolve({ data: [] as any[] }),
+    ]);
 
-    wineImages?.forEach((image: any) => {
-      if (!wineImagesMap.has(image.wine_id)) wineImagesMap.set(image.wine_id, []);
-      wineImagesMap.get(image.wine_id)!.push(image);
-    });
-  }
+  wineImagesResult.data?.forEach((image: any) => {
+    if (!wineImagesMap.has(image.wine_id)) wineImagesMap.set(image.wine_id, []);
+    wineImagesMap.get(image.wine_id)!.push(image);
+  });
 
   return rawData.map((i: any) => {
     const grapeVarieties = Array.isArray(i.grape_varieties)

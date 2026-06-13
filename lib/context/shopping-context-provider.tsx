@@ -19,8 +19,8 @@ import {
 import { translate } from "@/lib/i18n/messages";
 import {
   getHreflangPath,
-  WINE_CATEGORIES_EN,
-  WINE_CATEGORIES_SV,
+  getWineCategoryEn,
+  getWineCategorySv,
 } from "@/lib/wine-categories";
 import {
   ACTIVE_ZONE_CHANGED_EVENT,
@@ -66,8 +66,9 @@ function getLocalizedPath(
 
   // /vin/[kategori] → /wine/[category]
   if (pathname.startsWith("/vin/") && newLocale === "en") {
-    const slug = pathname.replace("/vin/", "");
-    const category = WINE_CATEGORIES_SV.find((c) => c.slug === slug);
+    const slug = pathname.slice("/vin/".length).split("/")[0];
+    if (!slug) return null;
+    const category = getWineCategorySv(slug);
     if (category) return getHreflangPath(category);
     // producer/collection slug — byt bara prefix
     return `/wine/${slug}`;
@@ -75,8 +76,9 @@ function getLocalizedPath(
 
   // /wine/[category] → /vin/[kategori]
   if (pathname.startsWith("/wine/") && newLocale === "sv") {
-    const slug = pathname.replace("/wine/", "");
-    const category = WINE_CATEGORIES_EN.find((c) => c.slug === slug);
+    const slug = pathname.slice("/wine/".length).split("/")[0];
+    if (!slug) return null;
+    const category = getWineCategoryEn(slug);
     if (category) return getHreflangPath(category);
     // producer/collection slug — byt bara prefix
     return `/vin/${slug}`;

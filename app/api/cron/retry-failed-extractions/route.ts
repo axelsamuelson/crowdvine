@@ -1,19 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listMenuDocumentsForExtractionRetry, updateMenuDocument } from "@/lib/menu-extraction/db";
+import { verifyCronSecret } from "@/lib/menu-extraction/cron-auth";
+import { evaluateMenuPipelineAlerts } from "@/lib/menu-extraction/alerting";
+import { getMenuPipelineHealth } from "@/lib/menu-extraction/health";
+import {
+  listMenuDocumentsForExtractionRetry,
+  updateMenuDocument,
+} from "@/lib/menu-extraction/db";
 import { extractMenuFromDocument } from "@/lib/menu-extraction/service";
 
 export const maxDuration = 300;
 
-const BATCH = 10;
+const BATCH = 15;
 
 /**
  * Cron: retry failed or stale processing menu extractions.
- * Secured by CRON_SECRET. Schedule: 0 6 * * * (daily 06:00 UTC)
+ * Secured by CRON_SECRET. Schedule: 0 */6 * * * (every 6 hours)
  */
 export async function GET(request: NextRequest) {
-  const auth = request.headers.get("authorization");
-  const secret = process.env.CRON_SECRET;
-  if (!secret || auth !== `Bearer ${secret}`) {
+  if (!verifyCronSecret(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -30,18 +34,28 @@ export async function GET(request: NextRequest) {
     try {
       await extractMenuFromDocument(doc.id, { forceSyncOnly: true });
       now_completed += 1;
-      console.warn("[cron/retry-failed-extractions] completed after retry", doc.id, doc.source_slug);
     } catch (err) {
       still_failing += 1;
-      const message = err instanceof Error ? err.message : String(err);
-      console.warn("[cron/retry-failed-extractions] still failing", doc.id, doc.source_slug, message);
+      console.warn(
+        "[cron/retry-failed-extractions] still failing",
+        doc.id,
+        doc.source_slug,
+        err instanceof Error ? err.message : err,
+      );
     }
   }
+
+  const health = await getMenuPipelineHealth();
+  const alerts = await evaluateMenuPipelineAlerts(health, {
+    cronJob: "retry-failed-extractions",
+  });
 
   const summary = {
     retried: docs.length,
     now_completed,
     still_failing,
+    health,
+    alerts_triggered: alerts,
   };
   console.warn("[cron/retry-failed-extractions] Summary:", summary);
   return NextResponse.json({ ok: true, summary });

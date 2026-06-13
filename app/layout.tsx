@@ -66,11 +66,6 @@ function buildRootOpenGraph(config: SiteConfig): Metadata["openGraph"] {
   };
 }
 
-const rootIcons: Metadata["icons"] = {
-  icon: [{ url: "/favicon.png", type: "image/png" }],
-  apple: [{ url: "/apple-touch-icon.png", type: "image/png" }],
-};
-
 function buildRootMetadata(
   config: SiteConfig,
   overrides?: { title?: string; description?: string },
@@ -85,7 +80,6 @@ function buildRootMetadata(
     generator: "v0.app",
     alternates: { canonical: config.baseUrl },
     openGraph: buildRootOpenGraph(config),
-    icons: rootIcons,
   };
 }
 

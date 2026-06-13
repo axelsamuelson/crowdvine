@@ -12,6 +12,8 @@ interface GrapesFilterProps {
   className?: string;
   mode?: "sidebar" | "drawer" | "overlay";
   onSeeAll?: () => void;
+  onGrapeSelect?: (grapeName: string) => boolean | void;
+  activeGrape?: string;
 }
 
 export function GrapesFilter({
@@ -19,6 +21,8 @@ export function GrapesFilter({
   className,
   mode = "sidebar",
   onSeeAll,
+  onGrapeSelect,
+  activeGrape,
 }: GrapesFilterProps) {
   const { t } = useTranslations();
   const mounted = useClientMounted();
@@ -28,7 +32,7 @@ export function GrapesFilter({
     parseAsArrayOf(parseAsString).withDefault([]),
   );
 
-  const count = active.length;
+  const count = active.length + (activeGrape ? 1 : 0);
 
   const listContainerClass =
     mode === "overlay"
@@ -60,17 +64,24 @@ export function GrapesFilter({
       <div className={listContainerClass}>
         <div className="flex flex-col gap-0.5">
           {availableGrapes.map((g) => {
-            const isOn = active.includes(g);
+            const isOn = active.includes(g) || activeGrape === g;
+            const handleClick = () => {
+              if (onGrapeSelect) {
+                const handled = onGrapeSelect(g);
+                if (handled !== false) return;
+              }
+              toggleGrape(g);
+            };
             return (
               <button
                 key={g}
                 type="button"
-                onClick={() => toggleGrape(g)}
+                onClick={handleClick}
                 className={cn(
                   "flex w-full text-left transition-all transform cursor-pointer text-sm md:hover:translate-x-1 md:hover:opacity-80",
                   isOn
                     ? "font-medium translate-x-1"
-                    : active.length > 0
+                    : active.length > 0 || activeGrape
                       ? "opacity-60"
                       : "",
                 )}

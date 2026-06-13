@@ -10,6 +10,7 @@ import { ProductGrid } from "./product-grid";
 import { Card } from "../../../components/ui/card";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { filterProductsByGrapes } from "@/lib/shop/filter-products-by-grape";
 
 interface ProductListContentProps {
   products: Product[];
@@ -99,43 +100,6 @@ function filterProductsBySource(
     const slugs = wineSourceSlugs[product.id];
     if (!slugs || slugs.length === 0) return false;
     return slugs.some((s) => wanted.has(s));
-  });
-}
-
-function filterProductsByGrapes(products: Product[], grapes: string[]): Product[] {
-  if (!grapes || grapes.length === 0) return products;
-
-  const wanted = new Set(grapes.map((g) => g.toLowerCase()));
-  return products.filter((product) => {
-    // Prefer explicit "Grape Varieties" option if present
-    const opt = product.options?.find((o: any) =>
-      String(o?.name || "").toLowerCase().includes("grape"),
-    );
-    if (opt?.values?.length) {
-      return opt.values.some((v: any) => {
-        const name = typeof v === "string" ? v : v?.name;
-        return name && wanted.has(String(name).toLowerCase());
-      });
-    }
-
-    // Fallback: variant selected options
-    if (product.variants?.length) {
-      return product.variants.some((variant: any) => {
-        return (variant?.selectedOptions || []).some((so: any) => {
-          const n = String(so?.name || "").toLowerCase();
-          if (!n.includes("grape")) return false;
-          const value = String(so?.value || "").toLowerCase();
-          return wanted.has(value);
-        });
-      });
-    }
-
-    // Last fallback: tags
-    if (product.tags?.length) {
-      return product.tags.some((t) => wanted.has(String(t || "").toLowerCase()));
-    }
-
-    return false;
   });
 }
 
