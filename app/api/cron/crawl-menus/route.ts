@@ -6,12 +6,13 @@ import { runBatchedCrawlSession } from "@/lib/menu-extraction/crawler";
 
 export const maxDuration = 300;
 
-const BATCH = 12;
+/** ~90s per source with BrowserQL PDF; keep within maxDuration=300. */
+const BATCH = 3;
 
 /**
  * Cron: batched Starwinelist crawl for Stockholm (PDF upload + menu_documents only).
  * Rotates oldest sources from DB so each run fits maxDuration; discovery registers new slugs only.
- * Uses Browserless /unblock when BROWSERLESS_API_KEY is set; else @sparticuz/chromium.
+ * Uses Browserless /unblock (HTML) + BrowserQL stealth (PDF) when BROWSERLESS_API_KEY is set.
  * Schedule: 0 1,7,13,19 * * * (4× daily UTC)
  */
 export async function GET(request: NextRequest) {
