@@ -13,3 +13,14 @@ export function isStaleRefreshTokenError(error: unknown): boolean {
     (/refresh token/i.test(msg) && /already used/i.test(msg))
   );
 }
+
+/** Browser fetch failures when Supabase auth is unreachable (offline, paused project). */
+export function isAuthNetworkError(error: unknown): boolean {
+  if (!(error instanceof TypeError)) return false;
+  const msg = error.message || "";
+  return (
+    msg === "Failed to fetch" ||
+    msg === "Load failed" ||
+    /networkerror|failed to fetch/i.test(msg)
+  );
+}

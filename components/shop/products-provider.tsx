@@ -1,7 +1,14 @@
 "use client";
 
 import { Product } from "@/lib/shopify/types";
-import { createContext, useContext, useLayoutEffect, useRef, useState, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { usePathname } from "next/navigation";
 
 function isShopPath(path: string): boolean {
@@ -18,7 +25,7 @@ interface ProductsContextType {
   setProducts: (products: Product[]) => void;
   originalProducts: Product[];
   setOriginalProducts: (products: Product[]) => void;
-  /** Slugs of price sources that have at least one wine in the current list. Used to hide empty "Buy at" options. */
+  /** Slugs of price sources that have at least one wine in the current list. */
   availableSourceSlugs: string[];
   setAvailableSourceSlugs: (slugs: string[]) => void;
 }
@@ -32,7 +39,9 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
   const prevPathnameRef = useRef(pathname);
   const [products, setProducts] = useState<Product[]>([]);
   const [originalProducts, setOriginalProducts] = useState<Product[]>([]);
-  const [availableSourceSlugs, setAvailableSourceSlugs] = useState<string[]>([]);
+  const [availableSourceSlugs, setAvailableSourceSlugs] = useState<string[]>(
+    [],
+  );
 
   useLayoutEffect(() => {
     if (prevPathnameRef.current === pathname) return;

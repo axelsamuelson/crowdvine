@@ -17,6 +17,10 @@ export function useFilterCount() {
     "fsource",
     parseAsArrayOf(parseAsString).withDefault([]),
   );
+  const [farming] = useQueryState(
+    "ffarming",
+    parseAsArrayOf(parseAsString).withDefault([]),
+  );
   const [searchQ] = useQueryState("q", parseAsString);
 
   // Count active filters
@@ -30,6 +34,11 @@ export function useFilterCount() {
   // Count grape filters
   if (grapes.length > 0) {
     count += grapes.length;
+  }
+
+  // Count farming filters
+  if (farming.length > 0) {
+    count += farming.length;
   }
 
   // Count competitor/source filters
@@ -80,4 +89,12 @@ export function useCompetitorFilterCount() {
     parseAsArrayOf(parseAsString).withDefault([]),
   );
   return sources.length;
+}
+
+export function useFarmingFilterCount() {
+  const [farming] = useQueryState(
+    "ffarming",
+    parseAsArrayOf(parseAsString).withDefault([]),
+  );
+  return farming.length;
 }

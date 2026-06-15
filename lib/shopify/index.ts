@@ -5,6 +5,10 @@ import {
   fetchProductsData,
   fetchCollectionProductsData,
 } from "@/lib/crowdvine/products-data";
+import {
+  generateProducerSlug,
+  normalizeProducerShopHandle,
+} from "@/lib/producer-handle";
 import type { Product, Collection, Cart } from "./types";
 
 function apiUrls(base: string) {
@@ -90,7 +94,17 @@ export async function getCollection(
 ): Promise<Collection | null> {
   try {
     const collections = await getCollections();
-    return collections.find((c) => c.handle === handle) || null;
+    const normalized = normalizeProducerShopHandle(handle);
+
+    return (
+      collections.find((collection) => {
+        if (collection.handle === handle) return true;
+        if (normalizeProducerShopHandle(collection.handle) === normalized) {
+          return true;
+        }
+        return generateProducerSlug(collection.title) === normalized;
+      }) ?? null
+    );
   } catch {
     return null;
   }

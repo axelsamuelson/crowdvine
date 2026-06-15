@@ -73,7 +73,7 @@ async function runMiddleware(req: NextRequest) {
 
   // pactwines.com: sitemap och robots ska alltid vara tillgängliga för crawlers utan auth
   if (pathname === "/sitemap.xml" || pathname === "/robots.txt") {
-    return NextResponse.next();
+    return nextWithPathname(req);
   }
 
   if (pathname === "/wine-search" || pathname.startsWith("/wine-search/")) {

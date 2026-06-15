@@ -4,7 +4,7 @@ import { useEffect, useMemo } from "react";
 import { useQueryState, parseAsArrayOf, parseAsString } from "nuqs";
 import { Product } from "@/lib/shopify/types";
 
-function extractGrapesFromProduct(product: Product): string[] {
+export function extractGrapesFromProduct(product: Product): string[] {
   const out = new Set<string>();
 
   // 1) Product options (API already adds "Grape Varieties")
@@ -39,6 +39,14 @@ function extractGrapesFromProduct(product: Product): string[] {
   ["Red", "White", "Orange", "Rose", "Rosé"].forEach((c) => out.delete(c));
 
   return Array.from(out).filter(Boolean);
+}
+
+export function extractGrapesFromProducts(products: Product[]): string[] {
+  const set = new Set<string>();
+  products.forEach((p) => {
+    extractGrapesFromProduct(p).forEach((g) => set.add(g));
+  });
+  return Array.from(set);
 }
 
 export function useAvailableGrapes(products: Product[]) {

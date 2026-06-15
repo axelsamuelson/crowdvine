@@ -1,4 +1,5 @@
 import type { AppLocale } from "@/lib/i18n/locale";
+import { getProducerHandle } from "@/lib/producer-handle";
 
 /** Canonical public origin for hreflang and sitemap (pactwines.com). */
 export const PACT_PUBLIC_ORIGIN = "https://pactwines.com" as const;
@@ -69,6 +70,14 @@ export function shopPathForLocale(locale: AppLocale): "/vin" | "/wine" {
 
 export function producerPublicPath(slug: string, locale: AppLocale): string {
   return producerPagePath(slug, locale === "sv" ? "producent" : "producer");
+}
+
+/** Producer-filtered shop PLP — /vin/{handle} or /wine/{handle}. */
+export function producerShopPathFromName(
+  producerName: string,
+  locale: AppLocale,
+): string {
+  return `${shopPathForLocale(locale)}/${getProducerHandle(producerName)}`;
 }
 
 export function productPublicPath(handle: string, locale: AppLocale): string {

@@ -1,19 +1,24 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import ProductList from "@/app/vin/components/product-list";
 import { ProductListContent } from "@/app/vin/components/product-list-content";
 import { fetchProductsData } from "@/lib/crowdvine/products-data";
 import { getSourceSlugsByWineIds } from "@/lib/external-prices/db";
 import { mapProductDataToShopProducts } from "@/lib/map-product-data-to-shop-product";
+import {
+  producerShopPageHeading,
+  producerShopPagePath,
+} from "@/lib/i18n/producer-shop-page";
 import { getCollection } from "@/lib/shopify";
 import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
 import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
 import { getSiteConfig } from "@/lib/site-config";
 import {
-  getWineCategoryEn,
   WINE_CATEGORIES_EN,
 } from "@/lib/wine-categories";
+import { resolveGrapeCategoryBySlug } from "@/lib/wine-grape-categories";
 
 export const dynamic = "force-dynamic";
 export const dynamicParams = true;
@@ -26,7 +31,7 @@ export async function generateMetadata(props: {
   params: Promise<{ category: string }>;
 }): Promise<Metadata> {
   const { category: slug } = await props.params;
-  const category = getWineCategoryEn(slug);
+  const category = await resolveGrapeCategoryBySlug(slug, "en");
   if (category) {
     const config = await getSiteConfig();
     const pageUrl = `${config.baseUrl}/wine/${slug}`;
@@ -54,10 +59,31 @@ export async function generateMetadata(props: {
   if (!collection) return {};
 
   const config = await getSiteConfig();
+  const shopHeading = producerShopPageHeading(collection.title, "en");
+  const shopUrl = `${config.baseUrl}${producerShopPagePath(collection.title, "en")}`;
+
   return {
-    title: collection.title,
+    title: shopHeading,
+    description:
+      collection.seo?.description ||
+      collection.description ||
+      `${shopHeading} — natural wine direct from Languedoc.`,
     alternates: {
-      canonical: `${config.baseUrl}/producer/${slug}`,
+      canonical: shopUrl,
+      languages: {
+        sv: `${config.baseUrl}${producerShopPagePath(collection.title, "sv")}`,
+        en: shopUrl,
+        "x-default": shopUrl,
+      },
+    },
+    openGraph: {
+      title: `${shopHeading} | PACT Wines`,
+      description:
+        collection.seo?.description ||
+        collection.description ||
+        `${shopHeading} — natural wine direct from Languedoc.`,
+      url: shopUrl,
+      type: "website",
     },
   };
 }
@@ -70,9 +96,33 @@ interface PageProps {
 export default async function WineCategoryPage(props: PageProps) {
   const { category: slug } = await props.params;
   const searchParams = await props.searchParams;
-  const category = getWineCategoryEn(slug);
+  const category = await resolveGrapeCategoryBySlug(slug, "en");
   if (!category) {
-    return <ProductList collection={slug} searchParams={searchParams} />;
+    const collection = await getCollection(slug);
+    if (!collection) {
+      return <ProductList collection={slug} searchParams={searchParams} />;
+    }
+
+    if (collection.handle !== slug) {
+      redirect(`/wine/${collection.handle}`);
+    }
+
+    const shopHeading = producerShopPageHeading(collection.title, "en");
+
+    return (
+      <>
+        <div className="p-sides pt-8">
+          <h1 className="mb-3 text-3xl font-medium text-stone-900">
+            {shopHeading}
+          </h1>
+        </div>
+        <ProductList
+          collection={slug}
+          searchParams={searchParams}
+          breadcrumbLabel={shopHeading}
+        />
+      </>
+    );
   }
 
   const [config, shoppingContext] = await Promise.all([
@@ -86,6 +136,7 @@ export default async function WineCategoryPage(props: PageProps) {
     filterColor: category.filter.color,
     filterTags: category.filter.tags,
     filterIsNatural: category.filter.isNatural,
+    filterFarming: category.filter.farming,
     filterGrape: category.filter.filterGrape,
     isB2BSite: false,
     displayCurrencyCode: shoppingContext.currencyCode,

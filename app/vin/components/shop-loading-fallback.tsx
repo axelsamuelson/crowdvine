@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 
 import { getWineCategoryEn, getWineCategorySv } from "@/lib/wine-categories";
-import { useProducts } from "../providers/products-provider";
+import { useProducts } from "@/components/shop/products-provider";
 import ResultsControls from "./results-controls";
 import { ProductGrid } from "./product-grid";
 import { ProductCard } from "./product-card";

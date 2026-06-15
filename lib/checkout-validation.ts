@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { generateProducerSlug } from "@/lib/producer-handle";
 
 export type CartItem = {
   id: string;
@@ -173,7 +174,7 @@ export async function validateSixBottleRule(
       const producerName = Array.from(entry.producerNames).join(" + ");
 
       // Generate handle from producer name (same as collections API)
-      const producerHandle = producerName.toLowerCase().replace(/\s+/g, "-");
+      const producerHandle = generateProducerSlug(producerName);
 
       const validation: ProducerValidation = {
         producerId: Array.from(entry.producerIds)[0],

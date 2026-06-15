@@ -65,52 +65,64 @@ export function OnboardingProvider({
     }
 
     const controller = new AbortController();
+    let cancelled = false;
 
     const checkOnboardingStatus = async () => {
+      if (cancelled || controller.signal.aborted) return;
+
       try {
-        console.log("🎓 [Onboarding] Checking onboarding status...");
         const response = await fetch("/api/user/onboarding-seen", {
           signal: controller.signal,
+          credentials: "same-origin",
         });
-        console.log("🎓 [Onboarding] Response status:", response.status);
+
+        if (cancelled || controller.signal.aborted) return;
 
         if (response.ok) {
-          const data = await response.json();
-          console.log("🎓 [Onboarding] Data:", data);
-        } else {
-          if (response.status === 401) {
-            console.log(
-              "🎓 [Onboarding] User is a guest (401), skipping onboarding check",
-            );
-            return;
-          }
-          console.error("🎓 [Onboarding] Response not OK:", response.status);
-          try {
-            const errorData = await response.json();
-            console.error("🎓 [Onboarding] Error details:", errorData);
-          } catch {
-            console.error("🎓 [Onboarding] Could not parse error response");
-          }
+          await response.json();
+          return;
+        }
+
+        if (response.status === 401) {
+          return;
+        }
+
+        if (process.env.NODE_ENV === "development") {
+          console.warn(
+            "[Onboarding] Unexpected status from onboarding-seen:",
+            response.status,
+          );
         }
       } catch (error: unknown) {
+        if (cancelled || controller.signal.aborted) return;
+
+        const isAbort =
+          error instanceof DOMException
+            ? error.name === "AbortError"
+            : error instanceof Error && error.name === "AbortError";
+        if (isAbort) return;
+
+        // Navigation/redirect often aborts in-flight fetches in dev (shows as TypeError).
         if (
-          error instanceof DOMException &&
-          error.name === "AbortError"
+          error instanceof TypeError &&
+          error.message === "Failed to fetch"
         ) {
           return;
         }
-        if (error instanceof Error && error.name === "AbortError") {
-          return;
-        }
-        console.error(
-          "🎓 [Onboarding] Error checking onboarding status:",
-          error,
-        );
+
+        console.error("[Onboarding] Error checking onboarding status:", error);
       }
     };
 
-    void checkOnboardingStatus();
-    return () => controller.abort();
+    const timeoutId = window.setTimeout(() => {
+      void checkOnboardingStatus();
+    }, 150);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, [pathname]);
 
   const showWelcome = useCallback(() => {

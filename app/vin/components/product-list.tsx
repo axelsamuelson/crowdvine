@@ -38,11 +38,13 @@ function sortProductsByStock(products: Product[], inStockFirst: boolean): Produc
 interface ProductListProps {
   collection: string;
   searchParams?: { [key: string]: string | string[] | undefined };
+  breadcrumbLabel?: string;
 }
 
 export default async function ProductList({
   collection,
   searchParams,
+  breadcrumbLabel,
 }: ProductListProps) {
   const query =
     typeof (await searchParams)?.q === "string"
@@ -172,6 +174,7 @@ export default async function ProductList({
       collectionHandle={collection}
       wineSourceSlugs={wineSourceSlugs}
       searchQuery={query ?? ""}
+      breadcrumbLabel={breadcrumbLabel}
     />
   );
 }

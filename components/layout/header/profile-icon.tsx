@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { User } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
+import { isAuthNetworkError } from "@/lib/auth/session-errors";
 
 interface ProfileIconProps {
   className?: string;
@@ -38,7 +39,12 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
       } = await supabase.auth.getUser();
       setIsAuthenticated(!!user);
     } catch (error) {
-      console.error("Error checking auth status:", error);
+      if (
+        !isAuthNetworkError(error) &&
+        process.env.NODE_ENV === "development"
+      ) {
+        console.error("Error checking auth status:", error);
+      }
       setIsAuthenticated(false);
     } finally {
       setLoading(false);

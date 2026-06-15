@@ -7,6 +7,7 @@ import {
 import {
   producerPublicPath,
   productPublicPath,
+  producerShopPathFromName,
   shopPathForLocale,
 } from "@/lib/i18n/localized-routes";
 
@@ -19,6 +20,7 @@ export type LocalizedPaths = {
   shopQuery: (params: Record<string, string>) => string;
   product: (handle: string) => string;
   producer: (slug: string) => string;
+  producerShopFromName: (producerName: string) => string;
 };
 
 export function shopCategoryPath(slug: string, locale: AppLocale): string {
@@ -54,5 +56,7 @@ export function localizedPathsForLocale(locale: AppLocale): LocalizedPaths {
     },
     product: (handle) => productPublicPath(handle, locale),
     producer: (slug) => producerPublicPath(slug, locale),
+    producerShopFromName: (producerName) =>
+      producerShopPathFromName(producerName, locale),
   };
 }

@@ -4,13 +4,14 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { Product, Collection } from "@/lib/shopify/types";
 import { ProductCard } from "./product-card";
 import ResultsControls from "./results-controls";
-import { useProducts } from "../providers/products-provider";
+import { useProducts } from "@/components/shop/products-provider";
 import { useQueryState, parseAsArrayOf, parseAsString } from "nuqs";
 import { ProductGrid } from "./product-grid";
 import { Card } from "../../../components/ui/card";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { filterProductsByGrapes } from "@/lib/shop/filter-products-by-grape";
+import { filterProductsByFarming } from "@/lib/shop/farming-filter";
 
 interface ProductListContentProps {
   products: Product[];
@@ -142,16 +143,21 @@ export function ProductListContent({
     "fsource",
     parseAsArrayOf(parseAsString).withDefault([]),
   );
+  const [farmingFilters] = useQueryState(
+    "ffarming",
+    parseAsArrayOf(parseAsString).withDefault([]),
+  );
 
   // Apply client-side filtering whenever products or filters change
   const filteredProducts = useMemo(() => {
     let out = products;
     if (colorFilters?.length) out = filterProductsByColors(out, colorFilters);
     if (grapeFilters?.length) out = filterProductsByGrapes(out, grapeFilters);
+    if (farmingFilters?.length) out = filterProductsByFarming(out, farmingFilters);
     if (sourceFilters?.length)
       out = filterProductsBySource(out, sourceFilters, wineSourceSlugs);
     return out;
-  }, [products, colorFilters, grapeFilters, sourceFilters, wineSourceSlugs]);
+  }, [products, colorFilters, grapeFilters, farmingFilters, sourceFilters, wineSourceSlugs]);
 
   // Set both original and filtered products in the provider whenever they change
   useLayoutEffect(() => {
@@ -174,6 +180,7 @@ export function ProductListContent({
     const parts: string[] = [];
     if (colorFilters.length) parts.push(`color:${colorFilters.length}`);
     if (grapeFilters.length) parts.push(`grape:${grapeFilters.length}`);
+    if (farmingFilters.length) parts.push(`farming:${farmingFilters.length}`);
     if (sourceFilters.length) parts.push(`source:${sourceFilters.length}`);
     if (selectedProducers.length)
       parts.push(`producer:${selectedProducers.length}`);
@@ -186,7 +193,7 @@ export function ProductListContent({
       });
     }, 800);
     return () => window.clearTimeout(t);
-  }, [colorFilters, grapeFilters, sourceFilters, selectedProducers]);
+  }, [colorFilters, grapeFilters, farmingFilters, sourceFilters, selectedProducers]);
 
   // Track product list viewed event
   useEffect(() => {
@@ -211,7 +218,7 @@ export function ProductListContent({
       metadata: { 
         productCount: filteredProducts.length,
         totalProducts: products.length,
-        hasFilters: colorFilters.length > 0 || grapeFilters.length > 0 || sourceFilters.length > 0 || selectedProducers.length > 0 || isCollectionPage,
+        hasFilters: colorFilters.length > 0 || grapeFilters.length > 0 || farmingFilters.length > 0 || sourceFilters.length > 0 || selectedProducers.length > 0 || isCollectionPage,
         collectionHandle: collectionHandle,
         isCollectionPage: isCollectionPage,
         productIds,
@@ -233,7 +240,7 @@ export function ProductListContent({
         metadata: { producerCount: selectedProducers.length },
       });
     }
-  }, [filteredProducts.length, products.length, colorFilters.length, grapeFilters.length, sourceFilters.length, selectedProducers.length, collectionHandle]);
+  }, [filteredProducts.length, products.length, colorFilters.length, grapeFilters.length, farmingFilters.length, sourceFilters.length, selectedProducers.length, collectionHandle]);
 
   return (
     <>

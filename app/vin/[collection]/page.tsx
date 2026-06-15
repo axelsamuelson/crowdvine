@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import ProductList from "../components/product-list";
 import { ProductListContent } from "../components/product-list-content";
@@ -9,12 +9,16 @@ import { getSourceSlugsByWineIds } from "@/lib/external-prices/db";
 import { mapProductDataToShopProducts } from "@/lib/map-product-data-to-shop-product";
 import { generateProducerSlug } from "@/lib/producer-handle";
 import { producerPageUrls } from "@/lib/i18n/localized-routes";
+import {
+  producerShopPageHeading,
+  producerShopPagePath,
+} from "@/lib/i18n/producer-shop-page";
 import { getCollection } from "@/lib/shopify";
 import { getSiteConfig } from "@/lib/site-config";
 import {
-  getWineCategorySv,
   WINE_CATEGORIES_SV,
 } from "@/lib/wine-categories";
+import { resolveGrapeCategoryBySlug } from "@/lib/wine-grape-categories";
 
 export const revalidate = 300;
 export const dynamicParams = true;
@@ -28,7 +32,7 @@ export async function generateMetadata(props: {
 }): Promise<Metadata> {
   const { collection: slug } = await props.params;
 
-  const category = getWineCategorySv(slug);
+  const category = await resolveGrapeCategoryBySlug(slug, "sv");
   if (category) {
     const config = await getSiteConfig();
     const pageUrl = `${config.baseUrl}/vin/${slug}`;
@@ -56,33 +60,35 @@ export async function generateMetadata(props: {
     getSiteConfig(),
     getCollection(slug),
   ]);
-  if (!collection) return notFound();
+  if (!collection) return {};
 
+  const shopHeading = producerShopPageHeading(collection.title, "sv");
+  const shopUrl = `${config.baseUrl}${producerShopPagePath(collection.title, "sv")}`;
   const producerSlug = generateProducerSlug(collection.title);
   const producerUrls = producerPageUrls(producerSlug);
 
   return {
-    title: collection.title,
+    title: shopHeading,
     description:
       collection.seo?.description ||
       collection.description ||
-      `${collection.title} products`,
+      `${shopHeading} — naturvin direkt från Languedoc.`,
     alternates: {
-      canonical: producerUrls.sv,
+      canonical: shopUrl,
       languages: {
-        sv: producerUrls.sv,
-        en: producerUrls.en,
-        "x-default": producerUrls.xDefault,
+        sv: shopUrl,
+        en: `${config.baseUrl}${producerShopPagePath(collection.title, "en")}`,
+        "x-default": shopUrl,
       },
     },
     openGraph: {
-      title: `${collection.title} — Naturvin från Languedoc | PACT Wines`,
-      url: producerUrls.sv,
+      title: `${shopHeading} | PACT Wines`,
+      description:
+        collection.seo?.description ||
+        collection.description ||
+        `${shopHeading} — naturvin direkt från Languedoc.`,
+      url: shopUrl,
       type: "website",
-    },
-    robots: {
-      index: collection.handle !== "wine-boxes",
-      follow: true,
     },
   };
 }
@@ -94,7 +100,7 @@ export default async function VinCollectionPage(props: {
   const { collection: slug } = await props.params;
   const searchParams = await props.searchParams;
 
-  const category = getWineCategorySv(slug);
+  const category = await resolveGrapeCategoryBySlug(slug, "sv");
   if (category) {
     const [config, rawProducts] = await Promise.all([
       getSiteConfig(),
@@ -102,6 +108,7 @@ export default async function VinCollectionPage(props: {
         filterColor: category.filter.color,
         filterTags: category.filter.tags,
         filterIsNatural: category.filter.isNatural,
+        filterFarming: category.filter.farming,
         filterGrape: category.filter.filterGrape,
         isB2BSite: false,
       }),
@@ -243,8 +250,15 @@ export default async function VinCollectionPage(props: {
   const collection = await getCollection(slug);
   if (!collection) return notFound();
 
+  if (collection.handle !== slug) {
+    redirect(`/vin/${collection.handle}`);
+  }
+
+  const config = await getSiteConfig();
   const producerSlug = generateProducerSlug(collection.title);
   const producerUrls = producerPageUrls(producerSlug);
+  const shopHeading = producerShopPageHeading(collection.title, "sv");
+  const shopUrl = `${config.baseUrl}${producerShopPagePath(collection.title, "sv")}`;
 
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
@@ -254,13 +268,19 @@ export default async function VinCollectionPage(props: {
         "@type": "ListItem",
         position: 1,
         name: "Alla viner",
-        item: "https://pactwines.com/vin",
+        item: `${config.baseUrl}/vin`,
       },
       {
         "@type": "ListItem",
         position: 2,
         name: collection.title,
         item: producerUrls.sv,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: shopHeading,
+        item: shopUrl,
       },
     ],
   };
@@ -273,7 +293,14 @@ export default async function VinCollectionPage(props: {
           __html: JSON.stringify(breadcrumbJsonLd),
         }}
       />
-      <ProductList collection={slug} searchParams={searchParams} />
+      <div className="p-sides pt-8">
+        <h1 className="mb-3 text-3xl font-medium text-stone-900">{shopHeading}</h1>
+      </div>
+      <ProductList
+        collection={slug}
+        searchParams={searchParams}
+        breadcrumbLabel={shopHeading}
+      />
     </>
   );
 }

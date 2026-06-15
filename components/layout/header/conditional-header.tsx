@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Header } from "./index";
 import { Collection } from "@/lib/shopify/types";
@@ -51,7 +52,13 @@ export function ConditionalHeader({
   ssrPathname,
 }: ConditionalHeaderProps) {
   const pathname = usePathname();
-  const activePathname = pathname || ssrPathname;
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  const activePathname = hasMounted ? pathname || ssrPathname : ssrPathname;
 
   if (shouldHideHeader(activePathname)) {
     return null;

@@ -51,8 +51,8 @@ export function ColorFilter({
   const handleColorChange = (colorInput: Color | [Color, Color]) => {
     const colorName = getColorName(colorInput);
     if (onColorSelect) {
-      onColorSelect(colorName);
-      return;
+      const handled = onColorSelect(colorName);
+      if (handled !== false) return;
     }
     toggleColor(colorInput);
   };

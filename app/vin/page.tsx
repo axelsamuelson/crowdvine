@@ -52,14 +52,8 @@ export default async function VinPage({
   const fgrape = sp.fgrape;
   if (fgrape) {
     const grape = Array.isArray(fgrape) ? fgrape[0] : fgrape;
-    if (grape) {
-      const categoryUrl = getCategoryUrlForGrape(grape, "sv");
-      if (
-        categoryUrl &&
-        (!Array.isArray(fgrape) || fgrape.length === 1)
-      ) {
-        redirect(categoryUrl);
-      }
+    if (grape && (!Array.isArray(fgrape) || fgrape.length === 1)) {
+      redirect(getCategoryUrlForGrape(grape, "sv"));
     }
   }
 

@@ -9,7 +9,11 @@ import { DebugGrid } from "@/components/debug-grid";
 import { isDevelopment } from "@/lib/constants";
 import { getCollections } from "@/lib/shopify";
 import { ConditionalHeaderServer } from "../components/layout/header/conditional-header-server";
-import { VaulDrawerWrapper } from "@/components/layout/vaul-drawer-wrapper";
+import { VaulDrawerAttributeSync } from "@/components/layout/vaul-drawer-attribute-sync";
+import {
+  pathnameNeedsVaulDrawerWrapper,
+  VAUL_DRAWER_WRAPPER_ID,
+} from "@/lib/vaul-drawer-routes";
 import { headers } from "next/headers";
 import { V0Provider } from "@/lib/context";
 import { MobileMenuProvider } from "../components/layout/header/mobile-menu-context";
@@ -139,6 +143,7 @@ export default async function RootLayout({
   const isDirtywineSite = await getIsDirtywineSiteFromHeaders();
   const requestHeaders = await headers();
   const ssrPathname = requestHeaders.get("x-pathname")?.trim() || "/";
+  const needsVaulDrawerWrapper = pathnameNeedsVaulDrawerWrapper(ssrPathname);
   let shoppingContext = fallbackShoppingContext();
   try {
     shoppingContext = await getShoppingContextFromRequest({
@@ -181,13 +186,19 @@ export default async function RootLayout({
                   <PortalProvider>
                     <MembershipProvider>
                       <main>
-                        <VaulDrawerWrapper ssrPathname={ssrPathname}>
+                        <div
+                          id={VAUL_DRAWER_WRAPPER_ID}
+                          {...(needsVaulDrawerWrapper
+                            ? { "data-vaul-drawer-wrapper": "true" }
+                            : {})}
+                        >
+                          <VaulDrawerAttributeSync ssrPathname={ssrPathname} />
                           <ConditionalHeaderServer
                             collections={collections}
                             ssrPathname={ssrPathname}
                           />
                           {children}
-                        </VaulDrawerWrapper>
+                        </div>
                       </main>
                       {isDevelopment && <DebugGrid />}
                       <Toaster closeButton position="bottom-right" />

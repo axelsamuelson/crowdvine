@@ -1,4 +1,4 @@
-import { isStaleRefreshTokenError } from "@/lib/auth/session-errors";
+import { isStaleRefreshTokenError, isAuthNetworkError } from "@/lib/auth/session-errors";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export type EventType =
@@ -75,16 +75,6 @@ interface TrackEventParams {
   referrer?: string;
 }
 
-function isLikelyNetworkFailure(e: unknown): boolean {
-  if (!(e instanceof TypeError)) return false;
-  const m = e.message || "";
-  return (
-    m === "Failed to fetch" ||
-    m === "Load failed" ||
-    /networkerror|failed to fetch/i.test(m)
-  );
-}
-
 export class AnalyticsTracker {
   private static getSessionId(): string {
     if (typeof window === "undefined") return "";
@@ -132,7 +122,7 @@ export class AnalyticsTracker {
       if (isStaleRefreshTokenError(e)) {
         await supabase.auth.signOut({ scope: "local" });
       } else if (
-        !isLikelyNetworkFailure(e) &&
+        !isAuthNetworkError(e) &&
         process.env.NODE_ENV === "development"
       ) {
         console.warn("[analytics] auth.getUser:", e);
@@ -163,7 +153,7 @@ export class AnalyticsTracker {
         }
       }
     } catch (e) {
-      if (isLikelyNetworkFailure(e)) return;
+      if (isAuthNetworkError(e)) return;
       if (process.env.NODE_ENV === "development") {
         console.warn("[analytics] user_events:", e);
       }

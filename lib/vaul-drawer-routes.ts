@@ -1,7 +1,4 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+export const VAUL_DRAWER_WRAPPER_ID = "vaul-drawer-wrapper";
 
 /** Routes that use vaul Drawer and need the scale-background wrapper. */
 export function pathnameNeedsVaulDrawerWrapper(pathname: string): boolean {
@@ -31,34 +28,4 @@ export function pathnameNeedsVaulDrawerWrapper(pathname: string): boolean {
     !isOnboardingRoute &&
     !isHowItWorksRoute
   );
-}
-
-/**
- * Wraps content in the vaul drawer wrapper only on routes that use Drawer.
- * {@link ssrPathname} must match the request path from middleware so SSR HTML
- * matches the client's first paint (avoids hydration mismatch).
- */
-export function VaulDrawerWrapper({
-  children,
-  ssrPathname,
-}: {
-  children: React.ReactNode;
-  ssrPathname: string;
-}) {
-  const pathname = usePathname();
-  const [hasMounted, setHasMounted] = useState(false);
-
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
-
-  // Use ssrPathname until mounted so SSR HTML matches the first client render.
-  const activePathname = hasMounted ? pathname || ssrPathname : ssrPathname;
-  const needsVaulWrapper = pathnameNeedsVaulDrawerWrapper(activePathname);
-
-  if (!needsVaulWrapper) {
-    return <>{children}</>;
-  }
-
-  return <div data-vaul-drawer-wrapper="true">{children}</div>;
 }

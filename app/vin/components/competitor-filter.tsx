@@ -5,8 +5,9 @@ import { cn } from "@/lib/utils";
 import { useQueryState, parseAsArrayOf, parseAsString } from "nuqs";
 import { useCompetitorFilterCount } from "../hooks/use-filter-count";
 import { useClientMounted } from "../hooks/use-client-mounted";
-import { useProducts } from "../providers/products-provider";
+import { useProducts } from "@/components/shop/products-provider";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { ShopFilterCollapsible } from "./shop-filter-collapsible";
 
 export interface PriceSourceForFilter {
   id: string;
@@ -35,11 +36,11 @@ export function CompetitorFilter({
     parseAsArrayOf(parseAsString).withDefault([]),
   );
   const count = useCompetitorFilterCount();
+  const collapsible = mode !== "overlay";
 
-  // Only show sources that have at least one wine in the current list
   const sourcesWithWines = useMemo(() => {
     if (!sources?.length) return [];
-    if (availableSourceSlugs.length === 0) return []; // no data yet or no wines have offers
+    if (availableSourceSlugs.length === 0) return [];
     const set = new Set(availableSourceSlugs);
     return sources.filter((s) => set.has(s.slug));
   }, [sources, availableSourceSlugs]);
@@ -53,30 +54,30 @@ export function CompetitorFilter({
   };
 
   const listContainerClass =
-    mode === "sidebar"
+    mode === "sidebar" || mode === "drawer"
       ? "max-h-24 lg:max-h-28 xl:max-h-32 overflow-y-auto pr-1"
       : "";
 
+  const seeAllButton =
+    mode === "sidebar" && onSeeAll ? (
+      <button
+        type="button"
+        onClick={onSeeAll}
+        className="text-xs font-medium text-foreground/60 hover:text-foreground/80 transition-colors"
+        aria-label={t("shop.seeAllFilters")}
+      >
+        {t("shop.seeAll")}
+      </button>
+    ) : null;
+
   return (
-    <div className={cn("px-2.5 py-2 rounded-md bg-muted", className)}>
-      <div className="flex items-baseline justify-between gap-2 mb-2">
-        <h3 className="text-sm font-semibold">
-          {t("shop.buyAt")}{" "}
-          {count > 0 && (
-            <span className="text-foreground/50">({count})</span>
-          )}
-        </h3>
-        {mode === "sidebar" && onSeeAll && (
-          <button
-            type="button"
-            onClick={onSeeAll}
-            className="text-xs font-medium text-foreground/60 hover:text-foreground/80 transition-colors"
-            aria-label={t("shop.seeAllFilters")}
-          >
-            {t("shop.seeAll")}
-          </button>
-        )}
-      </div>
+    <ShopFilterCollapsible
+      title={t("shop.buyAt")}
+      count={count}
+      collapsible={collapsible}
+      headerAction={seeAllButton}
+      className={className}
+    >
       <div className={listContainerClass}>
         <ul className="flex flex-col gap-0.5">
           {sourcesWithWines.map((source) => {
@@ -104,6 +105,6 @@ export function CompetitorFilter({
           })}
         </ul>
       </div>
-    </div>
+    </ShopFilterCollapsible>
   );
 }

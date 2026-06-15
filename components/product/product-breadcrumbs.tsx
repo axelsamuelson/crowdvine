@@ -9,9 +9,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { generateProducerSlug } from "@/lib/producer-handle";
 import {
-  producerPublicPath,
+  producerShopPathFromName,
   shopPathForLocale,
 } from "@/lib/i18n/localized-routes";
 import { useTranslations } from "@/lib/hooks/use-translations";
@@ -24,7 +23,7 @@ interface ProductBreadcrumbsProps {
   className?: string;
 }
 
-/** PDP breadcrumbs: Shop → Producer → Wine (wine boxes keep Wine Boxes segment). */
+/** PDP breadcrumbs: Shop → Producer wines → Wine (wine boxes keep Wine Boxes segment). */
 export function ProductBreadcrumbs({
   title,
   producerName,
@@ -33,7 +32,6 @@ export function ProductBreadcrumbs({
 }: ProductBreadcrumbsProps) {
   const { t, context } = useTranslations();
   const producer = producerName?.trim();
-  const producerSlug = producer ? generateProducerSlug(producer) : null;
   const shopPath = shopPathForLocale(context.locale);
 
   return (
@@ -58,16 +56,16 @@ export function ProductBreadcrumbs({
               </BreadcrumbLink>
             </BreadcrumbItem>
           </>
-        ) : producer && producerSlug ? (
+        ) : producer ? (
           <>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
                 <Link
-                  href={producerPublicPath(producerSlug, context.locale)}
+                  href={producerShopPathFromName(producer, context.locale)}
                   prefetch
                 >
-                  {producer}
+                  {t("product.pdp.breadcrumbProducerWines", { producer })}
                 </Link>
               </BreadcrumbLink>
             </BreadcrumbItem>

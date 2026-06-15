@@ -19,6 +19,7 @@ import {
   PACT_PUBLIC_ORIGIN,
   producerPagePath,
   producerPageUrls,
+  producerShopPathFromName,
   type ProducerPathSegment,
 } from "@/lib/i18n/localized-routes";
 import { localizedPathsForLocale } from "@/lib/i18n/localized-paths";
@@ -149,13 +150,11 @@ export async function buildProducerPublicMetadata(
   }
 
   const { name, region, bio_short } = data.producer;
-  const regionLabel =
-    region?.trim() || (locale === "sv" ? "producenten" : "the producer");
   const urls = producerPageUrls(slug);
   const canonical = `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, pathSegment)}`;
 
   return {
-    title: `${name} — Naturvin direkt från ${regionLabel}`,
+    title: name,
     description: bio_short?.slice(0, 155) ?? undefined,
     alternates: {
       canonical,
@@ -166,8 +165,12 @@ export async function buildProducerPublicMetadata(
       },
     },
     openGraph: {
-      title: `${name} — Naturvin direkt från ${region} | ${config.siteName}`,
-      description: bio_short?.slice(0, 155) ?? "",
+      title: name,
+      description:
+        bio_short?.slice(0, 155) ??
+        (locale === "sv"
+          ? `Naturvin direkt från ${region?.trim() || "Languedoc"}.`
+          : `Natural wine direct from ${region?.trim() || "Languedoc"}.`),
       url: canonical,
       type: "website",
     },
@@ -255,6 +258,12 @@ export async function renderProducerPublicPage(options: {
     sameAs: ["https://www.instagram.com/pactwines"],
   };
 
+  const producerWinesLabel =
+    locale === "sv"
+      ? `${producer.name} viner`
+      : `${producer.name} wines`;
+  const producerShopUrl = `${config.baseUrl}${producerShopPathFromName(producer.name, locale)}`;
+
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -262,13 +271,13 @@ export async function renderProducerPublicPage(options: {
       {
         "@type": "ListItem",
         position: 1,
-        name: "Shop",
+        name: locale === "sv" ? "Alla viner" : "Shop",
         item: `${config.baseUrl}${paths.shop}`,
       },
       {
         "@type": "ListItem",
         position: 2,
-        name: "Producers",
+        name: t("shop.producers"),
         item: `${config.baseUrl}/producers`,
       },
       {
@@ -276,6 +285,12 @@ export async function renderProducerPublicPage(options: {
         position: 3,
         name: producer.name,
         item: producerPageUrl,
+      },
+      {
+        "@type": "ListItem",
+        position: 4,
+        name: producerWinesLabel,
+        item: producerShopUrl,
       },
     ],
   };
@@ -310,7 +325,7 @@ export async function renderProducerPublicPage(options: {
         }}
       />
       <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,35%)]">
-        <div className="max-w-2xl px-6 py-12">
+        <div className="max-w-2xl px-6 pb-12 pt-top-spacing">
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
@@ -354,7 +369,15 @@ export async function renderProducerPublicPage(options: {
             </div>
           ) : null}
 
-          <h2 className="mb-4 mt-10 text-xl font-semibold">{winesHeading}</h2>
+          <div className="mb-4 mt-10 flex flex-wrap items-baseline justify-between gap-3">
+            <h2 className="text-xl font-semibold">{winesHeading}</h2>
+            <Link
+              href={producerShopPathFromName(producer.name, locale)}
+              className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+            >
+              {producerWinesLabel}
+            </Link>
+          </div>
           {wines.length > 0 ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {wines.map((wine) => (
@@ -383,7 +406,7 @@ export async function renderProducerPublicPage(options: {
           ) : null}
         </div>
 
-        <div className="sticky top-0 flex h-screen items-center justify-center bg-gradient-to-b from-zinc-800 to-zinc-950 max-lg:hidden">
+        <div className="sticky top-top-spacing flex h-[calc(100vh-var(--top-spacing))] items-center justify-center bg-gradient-to-b from-zinc-800 to-zinc-950 max-lg:hidden">
           <span className="text-6xl font-bold text-white opacity-20">
             {producerInitials(producer.name)}
           </span>

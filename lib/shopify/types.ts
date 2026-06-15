@@ -173,6 +173,8 @@ export type Product = {
   specs?: Record<string, string> | null;
   /** Enrichment fields for PDP sections (tasting notes, farming, food pairing, etc.). */
   wineEnrichment?: WineEnrichment | null;
+  /** wines.farming certification (shop filter). */
+  farming?: string | null;
   /** Taste/character tags from wines.tags (DB), separate from synthetic product.tags. */
   taste_tags?: string[];
   featuredImage: Image;

@@ -8,6 +8,7 @@ import { useCategoryFilterCount } from "../hooks/use-filter-count";
 import { useQueryState, parseAsString } from "nuqs";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
+import { ShopFilterCollapsible } from "./shop-filter-collapsible";
 
 interface CategoryFilterProps {
   collections: Collection[];
@@ -31,39 +32,37 @@ export function CategoryFilter({
   );
   const hasSelectedCategory = !!params.collection;
   const categoryCount = useCategoryFilterCount();
+  const collapsible = mode !== "overlay";
 
-  // Parse selected producers from URL parameter
   const selectedProducers = producersParam
     ? producersParam.split(",").filter(Boolean)
     : [];
 
   const listContainerClass =
-    mode === "sidebar"
+    mode === "sidebar" || mode === "drawer"
       ? "max-h-24 lg:max-h-28 xl:max-h-32 overflow-y-auto pr-1"
       : "";
 
+  const seeAllButton =
+    mode === "sidebar" && onSeeAll ? (
+      <button
+        type="button"
+        onClick={onSeeAll}
+        className="text-xs font-medium text-foreground/60 hover:text-foreground/80 transition-colors"
+        aria-label={t("shop.seeAllProducers")}
+      >
+        {t("shop.seeAll")}
+      </button>
+    ) : null;
+
   return (
-    <div className={cn("px-2.5 py-2 rounded-lg bg-muted", className)}>
-      <div className="flex items-baseline justify-between gap-2 mb-2">
-        <h3 className="text-sm font-semibold">
-          {t("shop.producers")}{" "}
-          {categoryCount > 0 && (
-            <span className="text-foreground/50">({categoryCount})</span>
-          )}
-        </h3>
-
-        {mode === "sidebar" && onSeeAll && (
-          <button
-            type="button"
-            onClick={onSeeAll}
-            className="text-xs font-medium text-foreground/60 hover:text-foreground/80 transition-colors"
-            aria-label={t("shop.seeAllProducers")}
-          >
-            {t("shop.seeAll")}
-          </button>
-        )}
-      </div>
-
+    <ShopFilterCollapsible
+      title={t("shop.producers")}
+      count={categoryCount}
+      collapsible={collapsible}
+      headerAction={seeAllButton}
+      className={className}
+    >
       <div className={listContainerClass}>
         <ul className="flex flex-col gap-0.5">
           {collections
@@ -97,6 +96,6 @@ export function CategoryFilter({
             })}
         </ul>
       </div>
-    </div>
+    </ShopFilterCollapsible>
   );
 }

@@ -243,6 +243,8 @@ export interface ProductData {
   images: Array<{ id: string; url: string; altText: string; width?: number; height?: number }>;
   seo: { title: string; description: string };
   tags: string[];
+  /** wines.farming certification (shop filter). */
+  farming?: string | null;
   availableForSale: boolean;
   currencyCode: string;
   updatedAt: string;
@@ -266,6 +268,7 @@ function applyWineCatalogFilters<Q extends WineCatalogQuery>(
     filterColor?: string[];
     filterTags?: string[];
     filterIsNatural?: boolean;
+    filterFarming?: string[];
     filterGrape?: string;
   },
 ): Q {
@@ -275,6 +278,9 @@ function applyWineCatalogFilters<Q extends WineCatalogQuery>(
   }
   if (filters?.filterIsNatural === true) {
     q = q.eq("is_natural", true) as Q;
+  }
+  if (filters?.filterFarming?.length) {
+    q = q.in("farming", filters.filterFarming) as Q;
   }
   if (filters?.filterTags?.length) {
     for (const tag of filters.filterTags) {
@@ -303,6 +309,8 @@ export async function fetchProductsData(params?: {
   filterTags?: string[];
   /** When true, only wines with is_natural = true. */
   filterIsNatural?: boolean;
+  /** Match wines.farming (e.g. natural, organic_certified). */
+  filterFarming?: string[];
   /** Case-insensitive match on grape_varieties. */
   filterGrape?: string;
 }): Promise<ProductData[]> {
@@ -335,6 +343,7 @@ export async function fetchProductsData(params?: {
       description,
       description_html,
       tags,
+      farming,
       is_natural,
       available_for_sale,
       created_at,
@@ -345,6 +354,7 @@ export async function fetchProductsData(params?: {
     filterColor: params?.filterColor,
     filterTags: params?.filterTags,
     filterIsNatural: params?.filterIsNatural,
+    filterFarming: params?.filterFarming,
     filterGrape: params?.filterGrape,
   };
 
@@ -642,6 +652,7 @@ export async function fetchProductsData(params?: {
       images,
       seo: { title: i.wine_name, description: "" },
       tags: [...grapeVarieties, ...(colorName ? [colorName] : [])],
+      farming: (i.farming as string | null | undefined) ?? null,
       availableForSale,
       currencyCode: displayCurrencyCode,
       updatedAt: new Date().toISOString(),
@@ -828,6 +839,7 @@ export async function fetchCollectionProductsData(
       label_image_path,
       producer_id,
       description,
+      farming,
       available_for_sale,
       producers(name, boost_active)
     `;
@@ -980,6 +992,7 @@ export async function fetchCollectionProductsData(
       ],
       seo: { title: i.wine_name, description: "" },
       tags: [...grapeVarieties, ...(colorName ? [colorName] : [])],
+      farming: (i.farming as string | null | undefined) ?? null,
       availableForSale,
       currencyCode: displayCurrencyCode,
       updatedAt: new Date().toISOString(),

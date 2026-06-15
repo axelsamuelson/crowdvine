@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { generateProducerSlug } from "@/lib/producer-handle";
 
 export interface CollectionData {
   id: string;
@@ -40,7 +41,7 @@ export async function fetchCollectionsData(): Promise<CollectionData[]> {
 function buildCollectionsFromProducers(producers: any[]): CollectionData[] {
   const producerCollections = producers.map((producer: any) => ({
     id: producer.id,
-    handle: producer.name.toLowerCase().replace(/\s+/g, "-"),
+    handle: generateProducerSlug(producer.name),
     title: producer.name,
     description: `Wines from ${producer.name} in ${producer.region}`,
     updatedAt: new Date().toISOString(),

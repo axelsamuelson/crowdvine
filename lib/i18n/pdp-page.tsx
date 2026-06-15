@@ -12,13 +12,13 @@ import { getAppUrl, getAppUrlForRequest, getInternalFetchHeaders } from "@/lib/a
 import type { AppLocale } from "@/lib/i18n/locale";
 import {
   PACT_PUBLIC_ORIGIN,
-  producerPublicPath,
+  producerShopPathFromName,
   productPagePath,
   productPageUrls,
   shopPathForLocale,
   type ProductPathSegment,
 } from "@/lib/i18n/localized-routes";
-import { generateProducerSlug } from "@/lib/producer-handle";
+import { translate } from "@/lib/i18n/messages";
 import { getSiteConfig } from "@/lib/site-config";
 import { formatPrice } from "@/lib/shopify/utils";
 import type { Product } from "@/lib/shopify/types";
@@ -188,7 +188,13 @@ export async function renderProductPdpPage(options: {
     }),
   };
 
-  const producerSlug = generateProducerSlug(product.producerName ?? "");
+  const producerName =
+    product.productType === "wine" ? (product.producerName?.trim() ?? "") : "";
+  const producerWinesLabel = producerName
+    ? translate(locale, "product.pdp.breadcrumbProducerWines", {
+        producer: producerName,
+      })
+    : null;
 
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
@@ -197,21 +203,32 @@ export async function renderProductPdpPage(options: {
       {
         "@type": "ListItem",
         position: 1,
-        name: "Shop",
+        name: locale === "sv" ? "Alla viner" : "Shop",
         item: `${config.baseUrl}${shopPathForLocale(locale)}`,
       },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: product.producerName,
-        item: `${PACT_PUBLIC_ORIGIN}${producerPublicPath(producerSlug, locale)}`,
-      },
-      {
-        "@type": "ListItem",
-        position: 3,
-        name: product.title,
-        item: productUrl,
-      },
+      ...(producerName
+        ? [
+            {
+              "@type": "ListItem",
+              position: 2,
+              name: producerWinesLabel ?? producerName,
+              item: `${config.baseUrl}${producerShopPathFromName(producerName, locale)}`,
+            },
+            {
+              "@type": "ListItem",
+              position: 3,
+              name: product.title,
+              item: productUrl,
+            },
+          ]
+        : [
+            {
+              "@type": "ListItem",
+              position: 2,
+              name: product.title,
+              item: productUrl,
+            },
+          ]),
     ],
   };
 
