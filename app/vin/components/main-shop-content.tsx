@@ -1,5 +1,6 @@
+import { Suspense } from "react";
+
 import ProductList from "@/app/vin/components/product-list";
-import { ProductCardSkeleton } from "@/app/vin/components/product-card-skeleton";
 import { storeCatalog } from "@/lib/shopify/constants";
 import { getSiteConfig } from "@/lib/site-config";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
@@ -10,22 +11,8 @@ type TopWineRow = {
   base_price_cents: number;
 };
 
-const shopSkeleton = (
-  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-    <ProductCardSkeleton />
-    <ProductCardSkeleton />
-    <ProductCardSkeleton />
-  </div>
-);
-
-export async function MainShopContent({
-  searchParams,
-  locale,
-}: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-  locale: "sv" | "en";
-}) {
-  const [sp, config] = await Promise.all([searchParams, getSiteConfig()]);
+async function ShopItemListJsonLd({ locale }: { locale: "sv" | "en" }) {
+  const config = await getSiteConfig();
   const sb = getSupabaseAdmin();
   const { data: topWinesRaw } = await sb
     .from("wines")
@@ -54,16 +41,32 @@ export async function MainShopContent({
   };
 
   return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{
+        __html: JSON.stringify(itemListJsonLd),
+      }}
+    />
+  );
+}
+
+export async function MainShopContent({
+  searchParams,
+  locale,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+  locale: "sv" | "en";
+}) {
+  const sp = await searchParams;
+
+  return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(itemListJsonLd),
-        }}
-      />
+      <Suspense fallback={null}>
+        <ShopItemListJsonLd locale={locale} />
+      </Suspense>
       <ProductList collection={storeCatalog.rootCategoryId} searchParams={sp} />
     </>
   );
 }
 
-export { shopSkeleton };
+export { shopSkeleton } from "./main-shop-content-skeleton";

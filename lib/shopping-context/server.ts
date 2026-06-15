@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { headers, cookies } from "next/headers";
 import { LOCALE_COOKIE } from "@/lib/i18n/locale";
 import { localeFromShopPath } from "@/lib/i18n/shop-path-locale";
@@ -24,3 +25,8 @@ export async function getShoppingContextFromRequest(options?: {
     pathLocale: localeFromShopPath(pathname),
   });
 }
+
+/** Dedupes shopping-context resolution within a single request. */
+export const getCachedShoppingContextFromRequest = cache(
+  getShoppingContextFromRequest,
+);

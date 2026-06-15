@@ -3,9 +3,12 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import ProductList from "../components/product-list";
-import { ProductListContent } from "../components/product-list-content";
+import { ProductListShell } from "../components/product-list-shell";
 import { fetchProductsData } from "@/lib/crowdvine/products-data";
-import { getSourceSlugsByWineIds } from "@/lib/external-prices/db";
+import {
+  getCachedAllWineSourceSlugs,
+  pickWineSourceSlugsForProducts,
+} from "@/lib/external-prices/cached-source-slugs";
 import { mapProductDataToShopProducts } from "@/lib/map-product-data-to-shop-product";
 import { generateProducerSlug } from "@/lib/producer-handle";
 import { producerPageUrls } from "@/lib/i18n/localized-routes";
@@ -126,17 +129,11 @@ export default async function VinCollectionPage(props: {
     const mappedProducts = mapProductDataToShopProducts(rawProducts);
 
     const wineIds = rawProducts.map((p) => p.id).filter(Boolean);
-    let wineSourceSlugs: Record<string, string[]> = {};
-    if (wineIds.length > 0) {
-      try {
-        wineSourceSlugs = await getSourceSlugsByWineIds(wineIds);
-      } catch (error) {
-        console.warn(
-          "Failed to fetch wine source slugs for category page:",
-          error,
-        );
-      }
-    }
+    const allSourceSlugs = await getCachedAllWineSourceSlugs();
+    const wineSourceSlugs = pickWineSourceSlugsForProducts(
+      allSourceSlugs,
+      wineIds,
+    );
 
     const canonical = `${config.baseUrl}/vin/${slug}`;
 
@@ -207,8 +204,9 @@ export default async function VinCollectionPage(props: {
             </div>
           )}
 
-          <ProductListContent
+          <ProductListShell
             products={mappedProducts}
+            locale="sv"
             collections={[]}
             wineSourceSlugs={wineSourceSlugs}
             breadcrumbLabel={category.h1}

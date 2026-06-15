@@ -38,6 +38,8 @@ function LogoImage({
       src={logoUrlWithVersion(url)}
       alt={alt}
       className={className}
+      width={140}
+      height={56}
       style={{ objectFit: "contain" }}
       loading="eager"
       fetchPriority="high"

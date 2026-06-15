@@ -1,13 +1,12 @@
 "use client";
 
 import React, { Suspense, memo, useEffect, useState, useRef } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Product } from "@/lib/shopify/types";
-import { AddToCart, AddToCartButton } from "@/components/cart/add-to-cart";
-import { ShopWineCasePicker } from "@/components/cart/shop-wine-case-sheet";
 import { formatPrice, priceExclVat } from "@/lib/shopify/utils";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
-import { VariantSelector } from "../variant-selector";
+import { ProductListImage } from "@/app/vin/components/product-list-image";
 import { ProductImage } from "./product-image";
 import { Button } from "@/components/ui/button";
 import { ArrowRightIcon, CirclePlus } from "lucide-react";
@@ -15,17 +14,49 @@ import { Badge } from "@/components/ui/badge";
 import { MemberPrice } from "@/components/ui/member-price";
 import { StockBadge } from "@/components/product/stock-badge";
 import { BoostBadge } from "@/components/producer/boost-badge";
-import { ProductCardMembershipTab } from "@/components/product/product-card-membership-tab";
-import { ProductCardRecommendationTab } from "@/components/product/product-card-recommendation-tab";
 import { PeekTabAnchor } from "@/components/pdp/peek-tab-anchor";
 import type { RecommendationReason } from "@/lib/product/recommendations";
 import { useCartOptional } from "@/components/cart/cart-context";
-import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { ColorSwatch } from "@/components/ui/color-picker";
 import { getColorHex, cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { getProductListPriceSek } from "@/lib/price-breakdown";
+import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
+
+const AddToCart = dynamic(
+  () => import("@/components/cart/add-to-cart").then((m) => m.AddToCart),
+  { loading: () => null },
+);
+const AddToCartButton = dynamic(
+  () => import("@/components/cart/add-to-cart").then((m) => m.AddToCartButton),
+  { loading: () => null },
+);
+const ShopWineCasePicker = dynamic(
+  () =>
+    import("@/components/cart/shop-wine-case-sheet").then(
+      (m) => m.ShopWineCasePicker,
+    ),
+  { loading: () => null },
+);
+const VariantSelector = dynamic(
+  () => import("../variant-selector").then((m) => m.VariantSelector),
+  { loading: () => null },
+);
+const ProductCardMembershipTab = dynamic(
+  () =>
+    import("@/components/product/product-card-membership-tab").then(
+      (m) => m.ProductCardMembershipTab,
+    ),
+  { loading: () => null },
+);
+const ProductCardRecommendationTab = dynamic(
+  () =>
+    import("@/components/product/product-card-recommendation-tab").then(
+      (m) => m.ProductCardRecommendationTab,
+    ),
+  { loading: () => null },
+);
 
 // ============================================================================
 // DEBUG: Scroll isolation flags
@@ -738,9 +769,7 @@ export const ProductCard = memo(
             });
           }}
         >
-          <Suspense fallback={null}>
-            <ProductImage product={product} priority={index < 3} index={index} />
-          </Suspense>
+            <ProductListImage product={product} priority={index < 3} index={index} />
         </Link>
       </div>
 

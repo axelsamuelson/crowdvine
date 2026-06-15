@@ -2,6 +2,12 @@
   "name": "my-v0-project",
   "version": "0.1.0",
   "private": true,
+  "browserslist": [
+    "chrome >= 111",
+    "edge >= 111",
+    "firefox >= 111",
+    "safari >= 16.4"
+  ],
   "scripts": {
     "build": "pnpm exec tsx scripts/check-env.ts && next build",
     "dev": "next dev",
@@ -19,6 +25,7 @@
     "crawl:batch": "tsx scripts/trigger-batched-crawl.ts",
     "crawl:local": "tsx scripts/crawl-local.ts",
     "crawl:local:warmup": "tsx scripts/crawl-local-warmup.ts",
+    "compress-wine-images": "tsx scripts/compress-wine-images.ts",
     "extraction:test-haiku": "tsx scripts/menu-extraction-test-haiku.ts",
     "seed:v3": "tsx scripts/seed-v3-framework.ts",
     "seed:v3:goals": "tsx scripts/seed-v3-goals.ts"

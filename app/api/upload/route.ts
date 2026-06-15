@@ -1,8 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { randomUUID } from "crypto";
-import { validateImage } from "@/lib/validation/image-validation";
+
+import { NextRequest, NextResponse } from "next/server";
+
 import { backupImage } from "@/lib/backup/image-backup";
+import { optimizeUploadImage } from "@/lib/images/optimize-upload";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { validateImage } from "@/lib/validation/image-validation";
+
+const UPLOAD_CACHE_CONTROL = "31536000";
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,29 +42,32 @@ export async function POST(request: NextRequest) {
           console.warn(`${file.name} warnings:`, validation.warnings);
         }
 
-        // Generate unique filename
-        const fileExtension = file.name.split(".").pop();
-        const fileName = `${randomUUID()}.${fileExtension}`;
-        const filePath = `/uploads/${fileName}`;
+        const fileExtension = file.name.split(".").pop() || "jpg";
+        const backupFileName = `${randomUUID()}.${fileExtension}`;
+        const filePath = `/uploads/${backupFileName}`;
 
         // Convert file to buffer
         const bytes = await file.arrayBuffer();
-        const buffer = Buffer.from(bytes);
+        const originalBuffer = Buffer.from(bytes);
 
-        // Create backup first
+        // Create backup first (original bytes)
         try {
           await backupImage(file, filePath);
-          console.log(`✅ Backup created for: ${fileName}`);
+          console.log(`✅ Backup created for: ${backupFileName}`);
         } catch (backupError) {
-          console.warn(`⚠️ Backup failed for ${fileName}:`, backupError);
+          console.warn(`⚠️ Backup failed for ${backupFileName}:`, backupError);
           // Continue with upload even if backup fails
         }
 
+        const optimized = await optimizeUploadImage(originalBuffer, file.type);
+        const uploadFileName = `${randomUUID()}.${optimized.extension}`;
+
         // Upload to Supabase Storage
-        const { data, error } = await supabase.storage
+        const { error } = await supabase.storage
           .from("uploads")
-          .upload(fileName, buffer, {
-            contentType: file.type,
+          .upload(uploadFileName, optimized.buffer, {
+            contentType: optimized.contentType,
+            cacheControl: UPLOAD_CACHE_CONTROL,
             upsert: false,
           });
 
@@ -72,11 +80,11 @@ export async function POST(request: NextRequest) {
         // Get public URL
         const { data: urlData } = supabase.storage
           .from("uploads")
-          .getPublicUrl(fileName);
+          .getPublicUrl(uploadFileName);
 
         if (urlData?.publicUrl) {
           uploadedFiles.push(urlData.publicUrl);
-          console.log(`✅ Successfully uploaded: ${fileName}`);
+          console.log(`✅ Successfully uploaded: ${uploadFileName}`);
         } else {
           uploadErrors.push(`${file.name}: Failed to get public URL`);
         }

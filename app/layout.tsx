@@ -7,7 +7,7 @@ import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { CartProvider } from "@/components/cart/cart-context";
 import { DebugGrid } from "@/components/debug-grid";
 import { isDevelopment } from "@/lib/constants";
-import { getCollections } from "@/lib/shopify";
+import { getCachedShopCollections } from "@/lib/shop/cached-layout-data";
 import { ConditionalHeaderServer } from "../components/layout/header/conditional-header-server";
 import { VaulDrawerAttributeSync } from "@/components/layout/vaul-drawer-attribute-sync";
 import {
@@ -47,7 +47,7 @@ import {
 } from "@/lib/auth/public-paths";
 import { SiteLogoProvider } from "@/lib/context/site-logo-provider";
 import { resolveSiteLogosFromRequest } from "@/lib/site-logos-server";
-import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
+import { getCachedShoppingContextFromRequest } from "@/lib/shopping-context/server";
 import { getSiteConfig, type SiteConfig } from "@/lib/site-config";
 
 const defaultOpenGraphImages: NonNullable<
@@ -132,7 +132,7 @@ export default async function RootLayout({
   // Fetch collections for header/navigation
   let collections = [];
   try {
-    collections = await getCollections();
+    collections = await getCachedShopCollections();
   } catch (error) {
     console.warn("Failed to fetch collections in root layout:", error);
     collections = [];
@@ -144,7 +144,7 @@ export default async function RootLayout({
   const needsVaulDrawerWrapper = pathnameNeedsVaulDrawerWrapper(ssrPathname);
   let shoppingContext = fallbackShoppingContext();
   try {
-    shoppingContext = await getShoppingContextFromRequest({
+    shoppingContext = await getCachedShoppingContextFromRequest({
       skipUser:
         isPublicAppPath(ssrPathname) &&
         !publicPathUsesUserShoppingContext(ssrPathname),

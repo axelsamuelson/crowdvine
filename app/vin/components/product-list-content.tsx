@@ -1,17 +1,28 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import dynamic from "next/dynamic";
 import { Product, Collection } from "@/lib/shopify/types";
-import { ProductCard } from "./product-card";
 import ResultsControls from "./results-controls";
 import { useProducts } from "@/components/shop/products-provider";
 import { useQueryState, parseAsArrayOf, parseAsString } from "nuqs";
 import { ProductGrid } from "./product-grid";
 import { Card } from "../../../components/ui/card";
-import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { filterProductsByGrapes } from "@/lib/shop/filter-products-by-grape";
 import { filterProductsByFarming } from "@/lib/shop/farming-filter";
+
+const ProductCard = dynamic(
+  () => import("./product-card").then((mod) => ({ default: mod.ProductCard })),
+  { loading: () => null },
+);
 
 interface ProductListContentProps {
   products: Product[];
@@ -24,6 +35,8 @@ interface ProductListContentProps {
   searchQuery?: string;
   /** Override last breadcrumb segment (e.g. wine category h1). */
   breadcrumbLabel?: string;
+  /** Server-rendered grid — shown until filters apply or idle enhancement. */
+  children?: ReactNode;
 }
 
 // Normalize color string for comparison: "Red & White", "Red/White", "red-&-white" → canonical form
@@ -112,10 +125,12 @@ export function ProductListContent({
   wineSourceSlugs = {},
   searchQuery = "",
   breadcrumbLabel,
+  children,
 }: ProductListContentProps & { collectionHandle?: string }) {
   const { t } = useTranslations();
   const { setProducts, setOriginalProducts, setAvailableSourceSlugs } = useProducts();
   const lastSearchTracked = useRef<string | null>(null);
+  const [interactiveReady, setInteractiveReady] = useState(false);
 
   // Tell the sidebar which "Buy at" sources have at least one wine in this list (hide empty options)
   useLayoutEffect(() => {
@@ -148,6 +163,36 @@ export function ProductListContent({
     parseAsArrayOf(parseAsString).withDefault([]),
   );
 
+  const hasActiveFilters =
+    (colorFilters?.length ?? 0) > 0 ||
+    (grapeFilters?.length ?? 0) > 0 ||
+    (farmingFilters?.length ?? 0) > 0 ||
+    (sourceFilters?.length ?? 0) > 0;
+
+  // After first paint, swap server grid for interactive cards (add-to-cart, etc.)
+  useEffect(() => {
+    if (hasActiveFilters) {
+      setInteractiveReady(true);
+      return;
+    }
+
+    const idle = window.requestIdleCallback
+      ? window.requestIdleCallback(() => setInteractiveReady(true), {
+          timeout: 2500,
+        })
+      : window.setTimeout(() => setInteractiveReady(true), 2500);
+
+    return () => {
+      if (window.requestIdleCallback) {
+        window.cancelIdleCallback(idle as number);
+      } else {
+        window.clearTimeout(idle as number);
+      }
+    };
+  }, [hasActiveFilters]);
+
+  const showInteractiveGrid = hasActiveFilters || interactiveReady || !children;
+
   // Apply client-side filtering whenever products or filters change
   const filteredProducts = useMemo(() => {
     let out = products;
@@ -169,11 +214,23 @@ export function ProductListContent({
     const q = searchQuery.trim();
     if (!q || lastSearchTracked.current === q) return;
     lastSearchTracked.current = q;
-    void AnalyticsTracker.trackEvent({
-      eventType: "search_submitted",
-      eventCategory: "search",
-      metadata: { queryLength: q.length },
-    });
+
+    const track = () => {
+      void import("@/lib/analytics/event-tracker").then(({ AnalyticsTracker }) =>
+        AnalyticsTracker.trackEvent({
+          eventType: "search_submitted",
+          eventCategory: "search",
+          metadata: { queryLength: q.length },
+        }),
+      );
+    };
+
+    if ("requestIdleCallback" in window) {
+      const id = window.requestIdleCallback(track, { timeout: 3000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const t = window.setTimeout(track, 500);
+    return () => window.clearTimeout(t);
   }, [searchQuery]);
 
   useEffect(() => {
@@ -185,62 +242,91 @@ export function ProductListContent({
     if (selectedProducers.length)
       parts.push(`producer:${selectedProducers.length}`);
     if (parts.length === 0) return;
+
     const t = window.setTimeout(() => {
-      void AnalyticsTracker.trackEvent({
-        eventType: "filter_used",
-        eventCategory: "navigation",
-        metadata: { summary: parts.join("|") },
-      });
+      void import("@/lib/analytics/event-tracker").then(({ AnalyticsTracker }) =>
+        AnalyticsTracker.trackEvent({
+          eventType: "filter_used",
+          eventCategory: "navigation",
+          metadata: { summary: parts.join("|") },
+        }),
+      );
     }, 800);
     return () => window.clearTimeout(t);
   }, [colorFilters, grapeFilters, farmingFilters, sourceFilters, selectedProducers]);
 
-  // Track product list viewed event
+  // Track product list viewed event (deferred — not on critical path)
   useEffect(() => {
-    // Check if viewing a collection (producer filter)
-    const isCollectionPage = !!collectionHandle && collectionHandle !== 'joyco-root' && collectionHandle !== 'all-wines';
+    const track = () => {
+      const isCollectionPage =
+        !!collectionHandle &&
+        collectionHandle !== "joyco-root" &&
+        collectionHandle !== "all-wines";
 
-    // For PLP/PDP analytics by dimension (wine/producer), we attach the products shown in this list view.
-    // Keep payload bounded to avoid huge JSON in `event_metadata`.
-    const shownProducts = filteredProducts.slice(0, 200);
-    const productIds = shownProducts.map((p) => p.id);
-    const producerIds = Array.from(
-      new Set(
-        shownProducts
-          .map((p: any) => p.producerId as string | undefined)
-          .filter(Boolean),
-      ),
-    );
-    
-    void AnalyticsTracker.trackEvent({
-      eventType: "product_list_viewed",
-      eventCategory: "navigation",
-      metadata: { 
-        productCount: filteredProducts.length,
-        totalProducts: products.length,
-        hasFilters: colorFilters.length > 0 || grapeFilters.length > 0 || farmingFilters.length > 0 || sourceFilters.length > 0 || selectedProducers.length > 0 || isCollectionPage,
-        collectionHandle: collectionHandle,
-        isCollectionPage: isCollectionPage,
-        productIds,
-        producerIds,
-      }
-    });
+      const shownProducts = filteredProducts.slice(0, 200);
+      const productIds = shownProducts.map((p) => p.id);
+      const producerIds = Array.from(
+        new Set(
+          shownProducts
+            .map((p: Product & { producerId?: string }) => p.producerId)
+            .filter(Boolean),
+        ),
+      ) as string[];
 
-    if (isCollectionPage && collectionHandle) {
-      void AnalyticsTracker.trackEvent({
-        eventType: "collection_viewed",
-        eventCategory: "navigation",
-        metadata: { collectionHandle },
+      void import("@/lib/analytics/event-tracker").then(({ AnalyticsTracker }) => {
+        void AnalyticsTracker.trackEvent({
+          eventType: "product_list_viewed",
+          eventCategory: "navigation",
+          metadata: {
+            productCount: filteredProducts.length,
+            totalProducts: products.length,
+            hasFilters:
+              colorFilters.length > 0 ||
+              grapeFilters.length > 0 ||
+              farmingFilters.length > 0 ||
+              sourceFilters.length > 0 ||
+              selectedProducers.length > 0 ||
+              isCollectionPage,
+            collectionHandle: collectionHandle,
+            isCollectionPage: isCollectionPage,
+            productIds,
+            producerIds,
+          },
+        });
+
+        if (isCollectionPage && collectionHandle) {
+          void AnalyticsTracker.trackEvent({
+            eventType: "collection_viewed",
+            eventCategory: "navigation",
+            metadata: { collectionHandle },
+          });
+        }
+        if (selectedProducers.length > 0) {
+          void AnalyticsTracker.trackEvent({
+            eventType: "producer_viewed",
+            eventCategory: "navigation",
+            metadata: { producerCount: selectedProducers.length },
+          });
+        }
       });
+    };
+
+    if ("requestIdleCallback" in window) {
+      const id = window.requestIdleCallback(track, { timeout: 4000 });
+      return () => window.cancelIdleCallback(id);
     }
-    if (selectedProducers.length > 0) {
-      void AnalyticsTracker.trackEvent({
-        eventType: "producer_viewed",
-        eventCategory: "navigation",
-        metadata: { producerCount: selectedProducers.length },
-      });
-    }
-  }, [filteredProducts.length, products.length, colorFilters.length, grapeFilters.length, farmingFilters.length, sourceFilters.length, selectedProducers.length, collectionHandle]);
+    const t = window.setTimeout(track, 1500);
+    return () => window.clearTimeout(t);
+  }, [
+    filteredProducts.length,
+    products.length,
+    colorFilters.length,
+    grapeFilters.length,
+    farmingFilters.length,
+    sourceFilters.length,
+    selectedProducers.length,
+    collectionHandle,
+  ]);
 
   return (
     <>
@@ -252,16 +338,20 @@ export function ProductListContent({
       />
 
       {filteredProducts.length > 0 ? (
-        <ProductGrid>
-          {filteredProducts.map((product, index) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              index={index}
-              listSearchQuery={searchQuery}
-            />
-          ))}
-        </ProductGrid>
+        showInteractiveGrid ? (
+          <ProductGrid>
+            {filteredProducts.map((product, index) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                index={index}
+                listSearchQuery={searchQuery}
+              />
+            ))}
+          </ProductGrid>
+        ) : (
+          children
+        )
       ) : (
         <Card className="flex mr-sides flex-1 items-center justify-center">
           <p className="text text-muted-foreground font-medium">

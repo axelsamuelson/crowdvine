@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { ProductListContent } from "../../components/product-list-content";
+import { ProductListShell } from "../../components/product-list-shell";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { notFound } from "next/navigation";
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
@@ -165,7 +165,7 @@ export default async function ProducerGroupPage({ params }: PageProps) {
 
       {/* Products Grid */}
       <Suspense fallback={<div>Loading wines...</div>}>
-        <ProductListContent products={products} collections={[]} />
+        <ProductListShell products={products} locale="sv" collections={[]} />
       </Suspense>
     </div>
   );

@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export type ProductViewStats = {
@@ -106,6 +107,22 @@ export const getProductViewStatsByWineId = cache(
     return aggregateWineViewStats(events ?? []);
   },
 );
+
+/** Cross-request cache for PLP popularity sort (default on B2C shop). */
+export const getCachedProductViewStatsByWineId = unstable_cache(
+  async () => {
+    const stats = await getProductViewStatsByWineId();
+    return Object.fromEntries(stats) as Record<string, ProductViewStats>;
+  },
+  ["product-view-stats-plp"],
+  { revalidate: 300 },
+);
+
+export function productViewStatsFromRecord(
+  record: Record<string, ProductViewStats>,
+): Map<string, ProductViewStats> {
+  return new Map(Object.entries(record));
+}
 
 export function sortProductsByPopularity<T extends { id: string }>(
   products: T[],

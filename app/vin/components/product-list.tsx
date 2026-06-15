@@ -1,6 +1,5 @@
 import {
   getCollectionProducts,
-  getCollections,
   getProducts,
 } from "@/lib/shopify";
 import type {
@@ -8,7 +7,7 @@ import type {
   ProductCollectionSortKey,
   ProductSortKey,
 } from "@/lib/shopify/types";
-import { ProductListContent } from "./product-list-content";
+import { ProductListShell } from "./product-list-shell";
 import { mapSortKeys } from "@/lib/shopify/utils";
 import { headers } from "next/headers";
 import { isB2BHost } from "@/lib/b2b-site";
@@ -16,13 +15,19 @@ import {
   DEFAULT_B2B_SHOP_SORT,
   DEFAULT_B2C_SHOP_SORT,
 } from "@/lib/shopify/constants";
-import { getSourceSlugsByWineIds } from "@/lib/external-prices/db";
 import {
-  getProductViewStatsByWineId,
+  getCachedProductViewStatsByWineId,
+  productViewStatsFromRecord,
   sortProductsByPopularity,
 } from "@/lib/analytics/product-view-stats";
-import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
+import {
+  getCachedAllWineSourceSlugs,
+  pickWineSourceSlugsForProducts,
+} from "@/lib/external-prices/cached-source-slugs";
+import { getCachedShoppingContextFromRequest } from "@/lib/shopping-context/server";
 import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
+import { getCachedShopCollections } from "@/lib/shop/cached-layout-data";
+import { getCachedShopProducts } from "@/lib/shop/cached-shop-products";
 
 function sortProductsByStock(products: Product[], inStockFirst: boolean): Product[] {
   return [...products].sort((a, b) => {
@@ -41,35 +46,122 @@ interface ProductListProps {
   breadcrumbLabel?: string;
 }
 
+async function fetchProductsForList(params: {
+  collection: string;
+  producers: string[];
+  isRootCollection: boolean;
+  query?: string;
+  sortKey: ProductSortKey | ProductCollectionSortKey;
+  reverse: boolean;
+  host: string | null;
+  displayCurrencyCode: string;
+  sekToDisplayRate: number;
+  canUseProductCache: boolean;
+}): Promise<Product[]> {
+  const {
+    collection,
+    producers,
+    isRootCollection,
+    query,
+    sortKey,
+    reverse,
+    host,
+    displayCurrencyCode,
+    sekToDisplayRate,
+    canUseProductCache,
+  } = params;
+
+  const currencyParams = { displayCurrencyCode, sekToDisplayRate };
+  const isB2BSite = host != null ? isB2BHost(host) : true;
+
+  if (producers.length > 0) {
+    const allProducts: Product[] = [];
+    for (const producerHandle of producers) {
+      try {
+        const producerProducts = await getCollectionProducts({
+          collection: producerHandle,
+          query,
+          sortKey: sortKey as ProductCollectionSortKey,
+          reverse,
+          host,
+          ...currencyParams,
+        });
+        allProducts.push(...producerProducts);
+      } catch (error) {
+        console.warn(
+          `Error fetching products for producer ${producerHandle}:`,
+          error,
+        );
+      }
+    }
+    return allProducts;
+  }
+
+  if (isRootCollection) {
+    if (canUseProductCache) {
+      const data = await getCachedShopProducts({
+        sortKey: sortKey as ProductSortKey,
+        reverse,
+        isB2BSite,
+        displayCurrencyCode,
+        sekToDisplayRate,
+      });
+      return data as Product[];
+    }
+
+    return getProducts({
+      sortKey: sortKey as ProductSortKey,
+      query,
+      reverse,
+      host,
+      ...currencyParams,
+    });
+  }
+
+  return getCollectionProducts({
+    collection,
+    query,
+    sortKey: sortKey as ProductCollectionSortKey,
+    reverse,
+    host,
+    ...currencyParams,
+  });
+}
+
 export default async function ProductList({
   collection,
   searchParams,
   breadcrumbLabel,
 }: ProductListProps) {
+  const resolvedSearchParams = searchParams ?? {};
   const query =
-    typeof (await searchParams)?.q === "string"
-      ? (await searchParams).q
+    typeof resolvedSearchParams.q === "string"
+      ? resolvedSearchParams.q
       : undefined;
   let sort =
-    typeof (await searchParams)?.sort === "string"
-      ? (await searchParams).sort
+    typeof resolvedSearchParams.sort === "string"
+      ? resolvedSearchParams.sort
       : undefined;
+
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host");
-  const shoppingContext = await getShoppingContextFromRequest().catch(() =>
+  const shoppingContext = await getCachedShoppingContextFromRequest().catch(() =>
     fallbackShoppingContext(),
   );
   const productCurrencyParams = {
     displayCurrencyCode: shoppingContext.currencyCode,
     sekToDisplayRate: shoppingContext.sekToDisplayRate,
   };
+
   if (!sort) {
     sort = isB2BHost(host) ? DEFAULT_B2B_SHOP_SORT : DEFAULT_B2C_SHOP_SORT;
   }
+
   const producers =
-    typeof (await searchParams)?.producers === "string"
-      ? (await searchParams).producers.split(",").filter(Boolean)
+    typeof resolvedSearchParams.producers === "string"
+      ? resolvedSearchParams.producers.split(",").filter(Boolean)
       : [];
+
   const isRootCollection =
     collection === "joyco-root" ||
     collection === "all-wines" ||
@@ -83,92 +175,59 @@ export default async function ProductList({
     ? mapSortKeys(effectiveSort, "product")
     : mapSortKeys(effectiveSort, "collection");
 
+  const canUseProductCache =
+    isRootCollection && producers.length === 0 && !query && !isStockSort;
+
   let products: Product[] = [];
+  let collections: Awaited<ReturnType<typeof getCachedShopCollections>> = [];
+  let wineSourceSlugs: Record<string, string[]> = {};
 
   try {
-    if (producers.length > 0) {
-      // Multi-producer filtering - get products from multiple collections
-      const allProducts: Product[] = [];
+    const [fetchedProducts, fetchedCollections, viewStatsRecord, allSourceSlugs] =
+      await Promise.all([
+        fetchProductsForList({
+          collection,
+          producers,
+          isRootCollection,
+          query,
+          sortKey,
+          reverse,
+          host,
+          ...productCurrencyParams,
+          canUseProductCache,
+        }),
+        getCachedShopCollections(),
+        isPopularSort
+          ? getCachedProductViewStatsByWineId()
+          : Promise.resolve(null),
+        getCachedAllWineSourceSlugs(),
+      ]);
 
-      for (const producerHandle of producers) {
-        try {
-          const producerProducts = await getCollectionProducts({
-            collection: producerHandle,
-            query,
-            sortKey: sortKey as ProductCollectionSortKey,
-            reverse,
-            host,
-            ...productCurrencyParams,
-          });
-          allProducts.push(...producerProducts);
-        } catch (error) {
-          console.warn(
-            `Error fetching products for producer ${producerHandle}:`,
-            error,
-          );
-        }
-      }
+    products = fetchedProducts;
+    collections = fetchedCollections;
 
-      products = allProducts;
-    } else if (isRootCollection) {
-      products = await getProducts({
-        sortKey: sortKey as ProductSortKey,
-        query,
-        reverse,
-        host,
-        ...productCurrencyParams,
-      });
-    } else {
-      products = await getCollectionProducts({
-        collection,
-        query,
-        sortKey: sortKey as ProductCollectionSortKey,
-        reverse,
-        host,
-        ...productCurrencyParams,
-      });
+    if (isStockSort) {
+      products = sortProductsByStock(products, sort === "in-stock");
     }
+
+    if (isPopularSort && viewStatsRecord) {
+      products = sortProductsByPopularity(
+        products,
+        productViewStatsFromRecord(viewStatsRecord),
+      );
+    }
+
+    const wineIds = products.map((p) => p.id).filter(Boolean);
+    wineSourceSlugs = pickWineSourceSlugsForProducts(allSourceSlugs, wineIds);
   } catch (error) {
-    console.error("Error fetching products:", error);
+    console.error("Error fetching product list data:", error);
     products = [];
   }
 
-  if (isStockSort) {
-    products = sortProductsByStock(
-      products,
-      sort === "in-stock",
-    );
-  }
-
-  if (isPopularSort) {
-    try {
-      const viewStats = await getProductViewStatsByWineId();
-      products = sortProductsByPopularity(products, viewStats);
-    } catch (error) {
-      console.warn("Error sorting products by popularity:", error);
-    }
-  }
-
-  let collections: Awaited<ReturnType<typeof getCollections>> = [];
-  try {
-    collections = await getCollections();
-  } catch (error) {
-    console.warn("Error fetching collections in ProductList:", error);
-  }
-
-  let wineSourceSlugs: Record<string, string[]> = {};
-  try {
-    const wineIds = products.map((p) => p.id).filter(Boolean);
-    if (wineIds.length > 0) {
-      wineSourceSlugs = await getSourceSlugsByWineIds(wineIds);
-    }
-  } catch (error) {
-    console.warn("Error fetching wine source slugs in ProductList:", error);
-  }
-
   return (
-    <ProductListContent
+    <ProductListShell
       products={products}
+      locale={shoppingContext.locale}
       collections={collections}
       selectedProducers={producers}
       collectionHandle={collection}
