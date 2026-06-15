@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Instrument_Serif } from "next/font/google";
 import { InvitationLinkOpenedTracker } from "@/components/analytics/invitation-link-opened-tracker";
+import { INVITE_PAGE_ROBOTS } from "@/lib/seo/invite-robots";
 import "../../i/[code]/invite-opus.css";
 
 const instrumentSerif = Instrument_Serif({
@@ -14,6 +15,7 @@ export async function generateMetadata(props: {
   params: Promise<{ code: string }>;
 }): Promise<Metadata> {
   return {
+    robots: INVITE_PAGE_ROBOTS,
     title: "You're Invited to PACT Wines!",
     description:
       "Congratulations! You've been invited to join PACT - an exclusive wine community where members share pallets and discover exceptional wines together.",

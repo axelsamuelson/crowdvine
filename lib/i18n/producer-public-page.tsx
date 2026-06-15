@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Footer } from "@/components/layout/footer";
 import { ProducerWineCard } from "@/components/producer/producer-wine-card";
-import { getAppUrlForRequest, getInternalFetchHeaders } from "@/lib/app-url";
+import { getProducerBySlugForLocale } from "@/lib/crowdvine/producer-by-slug-data";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { intlLocaleForAppLocale } from "@/lib/i18n/locale";
 import {
@@ -61,25 +61,7 @@ export async function fetchProducerBySlugForLocale(
   slug: string,
   locale: AppLocale,
 ): Promise<ProducerBySlugResponse | null> {
-  const base = await getAppUrlForRequest();
-  const internalHeaders = getInternalFetchHeaders();
-
-  try {
-    const res = await fetch(
-      `${base}/api/producers/by-slug/${encodeURIComponent(slug)}`,
-      {
-        cache: "no-store",
-        headers: {
-          ...internalHeaders,
-          "x-pact-locale": locale,
-        },
-      },
-    );
-    if (!res.ok) return null;
-    return (await res.json()) as ProducerBySlugResponse;
-  } catch {
-    return null;
-  }
+  return getProducerBySlugForLocale(slug, locale);
 }
 
 function producerInitials(name: string): string {

@@ -8,7 +8,7 @@ import { WineBoxDiscountInfo } from "@/components/products/wine-box-discount-inf
 import { HIDDEN_PRODUCT_TAG } from "@/lib/constants";
 import { fetchPdpRecommendationsForWine } from "@/lib/crowdvine/pdp-recommendations-data";
 import { getOffersByWineId } from "@/lib/external-prices/db";
-import { getAppUrl, getAppUrlForRequest, getInternalFetchHeaders } from "@/lib/app-url";
+import { getCrowdvineProductByHandle } from "@/lib/crowdvine/product-by-handle-data";
 import type { AppLocale } from "@/lib/i18n/locale";
 import {
   PACT_PUBLIC_ORIGIN,
@@ -33,21 +33,9 @@ export async function fetchProductForLocale(
   handle: string,
   locale: AppLocale,
 ): Promise<Product | null> {
-  try {
-    const base = await getAppUrlForRequest();
-    const internalHeaders = getInternalFetchHeaders();
-    const res = await fetch(`${base}/api/crowdvine/products/${handle}`, {
-      cache: "no-store",
-      headers: {
-        ...internalHeaders,
-        "x-pact-locale": locale,
-      },
-    });
-    if (!res.ok) return null;
-    return (await res.json()) as Product;
-  } catch {
-    return null;
-  }
+  const headerList = await headers();
+  const host = headerList.get("x-forwarded-host") ?? headerList.get("host");
+  return getCrowdvineProductByHandle({ handle, locale, host });
 }
 
 export async function buildProductPdpMetadata(

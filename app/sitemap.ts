@@ -1,24 +1,40 @@
 import { MetadataRoute } from "next";
 
 import { generateProducerSlug } from "@/lib/producer-handle";
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import {
+  dedupeSitemapEntries,
+  fetchDynamicGrapeSlugs,
+  fetchIndexableProducers,
+  fetchIndexableWines,
+  fetchProducerShopSlugs,
+  getKnownCategorySlugs,
+} from "@/lib/sitemap-urls";
 import { WINE_CATEGORIES_EN, WINE_CATEGORIES_SV } from "@/lib/wine-categories";
 
 // dirtywine.se använder samma sitemap via robots.txt som pekar till pactwines.com/sitemap.xml
 // En separat sitemap för dirtywine.se kan implementeras via en dedikerad route om Google
 // Search Console kräver det.
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const sb = getSupabaseAdmin();
-  const baseUrl = "https://pactwines.com";
+const baseUrl = "https://pactwines.com";
 
+type SitemapEntry = MetadataRoute.Sitemap[number];
+
+function weeklyEntry(
+  url: string,
+  priority: number,
+  lastModified = new Date(),
+): SitemapEntry {
+  return {
+    url,
+    lastModified,
+    changeFrequency: "weekly",
+    priority,
+  };
+}
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
-    {
-      url: baseUrl,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 1.0,
-    },
+    weeklyEntry(baseUrl, 1.0),
     {
       url: `${baseUrl}/vin`,
       lastModified: new Date(),
@@ -28,66 +44,37 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     {
       url: `${baseUrl}/wine`,
       lastModified: new Date(),
-      changeFrequency: "daily" as const,
+      changeFrequency: "daily",
       priority: 0.9,
     },
-    {
-      url: `${baseUrl}/producers`,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/about`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.5,
-    },
-    {
-      url: `${baseUrl}/languedoc`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/languedoc/naturvin`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.7,
-    },
+    weeklyEntry(`${baseUrl}/producers`, 0.8),
+    weeklyEntry(`${baseUrl}/about`, 0.5),
+    weeklyEntry(`${baseUrl}/how-it-works`, 0.7),
+    weeklyEntry(`${baseUrl}/languedoc`, 0.7),
+    weeklyEntry(`${baseUrl}/languedoc/naturvin`, 0.7),
+    weeklyEntry(`${baseUrl}/vin/wine-boxes`, 0.75),
+    weeklyEntry(`${baseUrl}/wine/wine-boxes`, 0.75),
   ];
 
-  const { data: wines } = await sb
-    .from("wines")
-    .select("handle, updated_at")
-    .eq("is_live", true);
+  const indexableWines = await fetchIndexableWines();
 
-  const winePages: MetadataRoute.Sitemap = (wines ?? [])
-    .filter((w): w is { handle: string; updated_at: string | null } =>
-      Boolean(w.handle?.trim()),
-    )
-    .flatMap((w) => {
-      const lastModified = w.updated_at ? new Date(w.updated_at) : new Date();
-      const entry = {
-        lastModified,
-        changeFrequency: "weekly" as const,
-        priority: 0.8,
-      };
-      return [
-        { url: `${baseUrl}/product/${w.handle}`, ...entry },
-        { url: `${baseUrl}/produkt/${w.handle}`, ...entry },
-      ];
-    });
+  const winePages: MetadataRoute.Sitemap = indexableWines.flatMap((w) => {
+    const lastModified = w.updated_at ? new Date(w.updated_at) : new Date();
+    const entry = {
+      lastModified,
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    };
+    return [
+      { url: `${baseUrl}/product/${w.handle}`, ...entry },
+      { url: `${baseUrl}/produkt/${w.handle}`, ...entry },
+    ];
+  });
 
-  const { data: producers } = await sb
-    .from("producers")
-    .select("name, created_at")
-    .eq("is_live", true);
+  const indexableProducers = await fetchIndexableProducers();
 
-  const producerPages: MetadataRoute.Sitemap = (producers ?? [])
-    .filter((p): p is { name: string; created_at: string | null } =>
-      Boolean(p.name?.trim()),
-    )
+  const producerProfilePages: MetadataRoute.Sitemap = indexableProducers
+    .filter((p) => Boolean(p.name?.trim()))
     .flatMap((p) => {
       const slug = generateProducerSlug(p.name);
       const lastModified = p.created_at ? new Date(p.created_at) : new Date();
@@ -102,19 +89,39 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ];
     });
 
-  const vinCategories: MetadataRoute.Sitemap = WINE_CATEGORIES_SV.map((c) => ({
-    url: `${baseUrl}/vin/${c.slug}`,
-    lastModified: new Date(),
-    changeFrequency: "weekly" as const,
-    priority: 0.8,
-  }));
+  const vinCategories: MetadataRoute.Sitemap = WINE_CATEGORIES_SV.map((c) =>
+    weeklyEntry(`${baseUrl}/vin/${c.slug}`, 0.8),
+  );
 
-  const wineCategories: MetadataRoute.Sitemap = WINE_CATEGORIES_EN.map((c) => ({
-    url: `${baseUrl}/wine/${c.slug}`,
-    lastModified: new Date(),
-    changeFrequency: "weekly" as const,
-    priority: 0.7,
-  }));
+  const wineCategories: MetadataRoute.Sitemap = WINE_CATEGORIES_EN.map((c) =>
+    weeklyEntry(`${baseUrl}/wine/${c.slug}`, 0.7),
+  );
 
-  return [...staticPages, ...vinCategories, ...wineCategories, ...winePages, ...producerPages];
+  const knownCategorySlugs = getKnownCategorySlugs();
+
+  const dynamicGrapeSlugs = await fetchDynamicGrapeSlugs(knownCategorySlugs);
+  const dynamicGrapePages: MetadataRoute.Sitemap = dynamicGrapeSlugs.flatMap(
+    (slug) => [
+      weeklyEntry(`${baseUrl}/vin/${slug}`, 0.75),
+      weeklyEntry(`${baseUrl}/wine/${slug}`, 0.75),
+    ],
+  );
+
+  const producerShopSlugs = await fetchProducerShopSlugs();
+  const producerShopPages: MetadataRoute.Sitemap = producerShopSlugs.flatMap(
+    (slug) => [
+      weeklyEntry(`${baseUrl}/vin/${slug}`, 0.75),
+      weeklyEntry(`${baseUrl}/wine/${slug}`, 0.75),
+    ],
+  );
+
+  return dedupeSitemapEntries([
+    ...staticPages,
+    ...vinCategories,
+    ...wineCategories,
+    ...dynamicGrapePages,
+    ...producerShopPages,
+    ...winePages,
+    ...producerProfilePages,
+  ]);
 }
