@@ -1,7 +1,7 @@
 const INSTABEE_BASE_URL =
-  process.env.NODE_ENV === "production"
-    ? "https://api.integration.instabee.com"
-    : "https://sandbox-api.integration.instabee.com";
+  process.env.INSTABEE_USE_SANDBOX === "true"
+    ? "https://sandbox-api.integration.instabee.com"
+    : "https://api.integration.instabee.com";
 
 export async function instabeeRequest<T>(
   path: string,
