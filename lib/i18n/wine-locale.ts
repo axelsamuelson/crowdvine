@@ -3,13 +3,31 @@ export type WineLocale = "sv" | "en";
 export const DEFAULT_WINE_LOCALE: WineLocale = "sv";
 export const SUPPORTED_WINE_LOCALES: WineLocale[] = ["sv", "en"];
 
+const MAX_WINE_TEXT_UNWRAP_DEPTH = 8;
+
+/** Unwrap locale JSONB (including accidentally double-nested `{ sv: { sv: "…" } }`). */
 export function extractWineText(
   field: Record<string, string> | string | null | undefined,
   locale: WineLocale = DEFAULT_WINE_LOCALE,
 ): string | null {
-  if (!field) return null;
-  if (typeof field === "string") return field || null;
-  return field[locale] ?? field[DEFAULT_WINE_LOCALE] ?? null;
+  if (field == null) return null;
+
+  let current: unknown = field;
+  for (let depth = 0; depth < MAX_WINE_TEXT_UNWRAP_DEPTH; depth++) {
+    if (current == null) return null;
+    if (typeof current === "string") {
+      const trimmed = current.trim();
+      return trimmed || null;
+    }
+    if (typeof current !== "object" || Array.isArray(current)) return null;
+
+    const obj = current as Record<string, unknown>;
+    const next = obj[locale] ?? obj[DEFAULT_WINE_LOCALE];
+    if (next === undefined) return null;
+    current = next;
+  }
+
+  return null;
 }
 
 export function extractWineArray(
@@ -27,17 +45,21 @@ export function buildWineJsonb(
   locale: WineLocale,
   existing?: Record<string, string> | string | null,
 ): Record<string, string> | null {
-  if (!value && !existing) return null;
+  const existingObj: Record<string, string> = {};
+  if (existing != null) {
+    for (const loc of SUPPORTED_WINE_LOCALES) {
+      const text = extractWineText(existing, loc);
+      if (text) existingObj[loc] = text;
+    }
+  }
 
-  // Normalisera existing — plain string → { sv: string }
-  const existingObj: Record<string, string> =
-    typeof existing === "string" && existing.length > 0
-      ? { [DEFAULT_WINE_LOCALE]: existing }
-      : typeof existing === "object" && existing !== null
-        ? existing
-        : {};
+  const trimmed = value?.trim();
+  const merged = {
+    ...existingObj,
+    ...(trimmed ? { [locale]: trimmed } : {}),
+  };
 
-  return { ...existingObj, ...(value ? { [locale]: value } : {}) };
+  return Object.keys(merged).length > 0 ? merged : null;
 }
 
 export function buildWineArrayJsonb(

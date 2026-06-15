@@ -257,9 +257,10 @@ export function AdminWinesContent({
         case "price":
           return dir * (a.base_price_cents - b.base_price_cents);
         case "created": {
-          const ta = new Date(a.created_at || 0).getTime();
-          const tb = new Date(b.created_at || 0).getTime();
-          return dir * (ta - tb);
+          const ta = Date.parse(a.created_at ?? "") || 0;
+          const tb = Date.parse(b.created_at ?? "") || 0;
+          if (ta !== tb) return dir * (ta - tb);
+          return dir * (a.wine_name || "").localeCompare(b.wine_name || "", "sv");
         }
         default:
           return 0;
@@ -529,7 +530,9 @@ export function AdminWinesContent({
             <Select
               value={`${sortBy}-${sortDir}`}
               onValueChange={(v) => {
-                const [s, d] = v.split("-") as [string, string];
+                const dash = v.lastIndexOf("-");
+                const s = dash === -1 ? v : v.slice(0, dash);
+                const d = dash === -1 ? "asc" : v.slice(dash + 1);
                 setSortBy(s);
                 setSortDir(d);
               }}

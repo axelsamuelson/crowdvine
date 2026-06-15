@@ -29,6 +29,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# local Starwinelist crawl browser profile (Cloudflare cookies)
+.starwinelist-browser-profile/
+
 # macOS
 .DS_Store
 

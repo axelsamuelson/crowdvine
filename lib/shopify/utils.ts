@@ -77,14 +77,14 @@ export function mapSortKeys(
       return { sortKey: "PRICE", reverse: true };
     case "newest":
       if (type === "collection") {
-        return { sortKey: "CREATED", reverse: false };
-      }
-      return { sortKey: "CREATED_AT", reverse: false };
-    case "oldest":
-      if (type === "collection") {
         return { sortKey: "CREATED", reverse: true };
       }
       return { sortKey: "CREATED_AT", reverse: true };
+    case "oldest":
+      if (type === "collection") {
+        return { sortKey: "CREATED", reverse: false };
+      }
+      return { sortKey: "CREATED_AT", reverse: false };
     default:
       return { sortKey: "RELEVANCE", reverse: false };
   }

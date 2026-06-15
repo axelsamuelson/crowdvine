@@ -1,4 +1,5 @@
 import type { AppLocale } from "@/lib/i18n/locale";
+import { extractWineText } from "@/lib/i18n/wine-locale";
 import { translate } from "@/lib/i18n/messages";
 import type { WineEnrichment } from "@/lib/shopify/types";
 
@@ -81,13 +82,34 @@ export function formatProducerCertification(
   return formatFarmingLabel(trimmed, locale);
 }
 
+function coerceEnrichmentText(
+  value: unknown,
+  locale: AppLocale,
+): string | null {
+  if (value == null) return null;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed || null;
+  }
+  if (typeof value === "object" && !Array.isArray(value)) {
+    return extractWineText(
+      value as Record<string, string>,
+      locale === "en" ? "en" : "sv",
+    );
+  }
+  return null;
+}
+
 export function formatFarmingAndAdditivesSpec(
   farming: string | null | undefined,
   additives: string | null | undefined,
   locale: AppLocale = "en",
 ): string | null {
-  const farmingLabel = formatFarmingLabel(farming, locale);
-  const additivesText = additives?.trim() || null;
+  const farmingLabel = formatFarmingLabel(
+    coerceEnrichmentText(farming, locale),
+    locale,
+  );
+  const additivesText = coerceEnrichmentText(additives, locale);
 
   if (farmingLabel && additivesText) {
     return `${farmingLabel} · ${additivesText}`;
@@ -151,8 +173,9 @@ export function formatStringList(
   return items.length > 0 ? items.join(", ") : null;
 }
 
-export function hasText(value: string | null | undefined): boolean {
-  return Boolean(value?.trim());
+export function hasText(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  return Boolean(value.trim());
 }
 
 export function hasStringList(values: string[] | null | undefined): boolean {
@@ -197,9 +220,8 @@ export function buildEnrichmentSpecs(
   const grapes = formatGrapeVarietiesText(enrichment.grapeVarieties);
   if (grapes) specs.grapeVariety = grapes;
 
-  if (hasText(enrichment.appellation)) {
-    specs.appellation = enrichment.appellation!.trim();
-  }
+  const appellation = coerceEnrichmentText(enrichment.appellation, locale);
+  if (appellation) specs.appellation = appellation;
 
   const farmingAndAdditives = formatFarmingAndAdditivesSpec(
     enrichment.farming,
@@ -217,9 +239,8 @@ export function buildEnrichmentSpecs(
   const elevation = formatElevation(enrichment.elevation_masl, locale);
   if (elevation) specs.elevation = elevation;
 
-  if (hasText(enrichment.soil_type)) {
-    specs.soilType = enrichment.soil_type!.trim();
-  }
+  const soilType = coerceEnrichmentText(enrichment.soil_type, locale);
+  if (soilType) specs.soilType = soilType;
 
   return specs;
 }

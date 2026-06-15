@@ -1,53 +1,66 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-
-import { getProduct } from "@/lib/shopify";
-import { HIDDEN_PRODUCT_TAG } from "@/lib/constants";
-import { formatPrice } from "@/lib/shopify/utils";
-import { ProductPdpLayout } from "@/components/product/product-pdp-layout";
-import { WineBoxDiscountInfo } from "@/components/products/wine-box-discount-info";
-import { ProductViewTracker } from "./components/product-view-tracker";
-import { getOffersByWineId } from "@/lib/external-prices/db";
-import { getAppUrl, getInternalFetchHeaders } from "@/lib/app-url";
-import { fetchPdpRecommendationsForWine } from "@/lib/crowdvine/pdp-recommendations-data";
-import { generateProducerSlug } from "@/lib/producer-handle";
-import { productPageUrls } from "@/lib/i18n/localized-routes";
-import { getSiteConfig } from "@/lib/site-config";
 import { headers } from "next/headers";
 
-// Generate static params for all products at build time
-export async function generateStaticParams() {
-  // Temporarily disabled for Vercel deployment
-  // TODO: Re-enable when Shopify API is accessible during build
-  return [];
-}
+import { ProductViewTracker } from "@/app/product/[handle]/components/product-view-tracker";
+import { ProductPdpLayout } from "@/components/product/product-pdp-layout";
+import { WineBoxDiscountInfo } from "@/components/products/wine-box-discount-info";
+import { HIDDEN_PRODUCT_TAG } from "@/lib/constants";
+import { fetchPdpRecommendationsForWine } from "@/lib/crowdvine/pdp-recommendations-data";
+import { getOffersByWineId } from "@/lib/external-prices/db";
+import { getAppUrl, getAppUrlForRequest, getInternalFetchHeaders } from "@/lib/app-url";
+import type { AppLocale } from "@/lib/i18n/locale";
+import {
+  PACT_PUBLIC_ORIGIN,
+  productPagePath,
+  productPageUrls,
+  type ProductPathSegment,
+} from "@/lib/i18n/localized-routes";
+import { generateProducerSlug } from "@/lib/producer-handle";
+import { getSiteConfig } from "@/lib/site-config";
+import { formatPrice } from "@/lib/shopify/utils";
+import type { Product } from "@/lib/shopify/types";
 
-// Disable static generation for now - make it dynamic
-export const dynamic = "force-dynamic";
-
-/** Extract vintage year from a title string (e.g. "Pachorra 2023" or competitor title → 2023). */
 function getVintageFromTitle(title: string | null | undefined): number | null {
   if (!title || typeof title !== "string") return null;
   const match = title.match(/\b(19\d{2}|20\d{2})\b/);
   return match ? parseInt(match[1], 10) : null;
 }
 
-export async function generateMetadata(props: {
-  params: Promise<{ handle: string }>;
-}): Promise<Metadata> {
-  const params = await props.params;
-  const [product, config] = await Promise.all([
-    getProduct(params.handle),
-    getSiteConfig(),
-  ]);
+export async function fetchProductForLocale(
+  handle: string,
+  locale: AppLocale,
+): Promise<Product | null> {
+  try {
+    const base = await getAppUrlForRequest();
+    const internalHeaders = getInternalFetchHeaders();
+    const res = await fetch(`${base}/api/crowdvine/products/${handle}`, {
+      cache: "no-store",
+      headers: {
+        ...internalHeaders,
+        "x-pact-locale": locale,
+      },
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as Product;
+  } catch {
+    return null;
+  }
+}
+
+export async function buildProductPdpMetadata(
+  handle: string,
+  locale: AppLocale,
+  pathSegment: ProductPathSegment,
+): Promise<Metadata> {
+  const product = await fetchProductForLocale(handle, locale);
 
   if (!product) return notFound();
 
   const { url, width, height, altText: alt } = product.featuredImage || {};
   const indexable = !product.tags.includes(HIDDEN_PRODUCT_TAG);
-  const handle = params.handle;
-  const productUrl = `${config.baseUrl}/product/${handle}`;
-  const hreflang = productPageUrls(handle);
+  const urls = productPageUrls(handle);
+  const canonical = `${PACT_PUBLIC_ORIGIN}${productPagePath(handle, pathSegment)}`;
   const existingOpenGraph = url
     ? {
         images: [
@@ -73,39 +86,39 @@ export async function generateMetadata(props: {
       },
     },
     alternates: {
-      canonical: productUrl,
+      canonical,
       languages: {
-        sv: hreflang.sv,
-        en: hreflang.en,
-        "x-default": hreflang.xDefault,
+        sv: urls.sv,
+        en: urls.en,
+        "x-default": urls.xDefault,
       },
     },
     openGraph: {
       ...existingOpenGraph,
       title: product.seo.title || product.title,
       description: product.seo.description || product.description || "",
-      url: productUrl,
+      url: canonical,
       type: "website",
     },
   };
 }
 
-export default async function ProductPage(props: {
-  params: Promise<{ handle: string }>;
+export async function renderProductPdpPage(options: {
+  handle: string;
+  locale: AppLocale;
+  pathSegment: ProductPathSegment;
 }) {
-  const params = await props.params;
+  const { handle, locale, pathSegment } = options;
   const [product, config] = await Promise.all([
-    getProduct(params.handle),
+    fetchProductForLocale(handle, locale),
     getSiteConfig(),
   ]);
 
-  if (!product) return notFound();
+  if (!product) notFound();
 
   const headerList = await headers();
   const host = headerList.get("x-forwarded-host") ?? headerList.get("host");
-
-  const handle = params.handle;
-  const productUrl = `${config.baseUrl}/product/${handle}`;
+  const productUrl = `${PACT_PUBLIC_ORIGIN}${productPagePath(handle, pathSegment)}`;
 
   const productJsonLd = {
     "@context": "https://schema.org",
@@ -164,8 +177,11 @@ export default async function ProductPage(props: {
               value: product.wineEnrichment.farming,
             }
           : null,
-      ].filter((item): item is { "@type": "PropertyValue"; name: string; value: string } =>
-        item != null,
+      ].filter(
+        (
+          item,
+        ): item is { "@type": "PropertyValue"; name: string; value: string } =>
+          item != null,
       ),
     }),
   };
@@ -186,7 +202,7 @@ export default async function ProductPage(props: {
         "@type": "ListItem",
         position: 2,
         name: product.producerName,
-        item: `${config.baseUrl}/producer/${producerSlug}`,
+        item: `${PACT_PUBLIC_ORIGIN}/producer/${producerSlug}`,
       },
       {
         "@type": "ListItem",
@@ -204,6 +220,7 @@ export default async function ProductPage(props: {
     vintage: number | null;
     rating: number | null;
   }> = [];
+
   if (product.productType === "wine" && product.id) {
     try {
       const offers = await getOffersByWineId(product.id);
@@ -218,16 +235,18 @@ export default async function ProductPage(props: {
       const rateMap: Record<string, number> = { SEK: 1 };
       if (currencies.length > 0) {
         const base = getAppUrl();
-        const headers = getInternalFetchHeaders();
+        const internalHeaders = getInternalFetchHeaders();
         await Promise.all(
           currencies.map(async (c) => {
             try {
               const res = await fetch(
                 `${base}/api/exchange-rates?from=${c}&to=SEK`,
-                { cache: "no-store", headers },
+                { cache: "no-store", headers: internalHeaders },
               );
               const data = res.ok ? await res.json() : null;
-              if (data?.rate && Number.isFinite(data.rate)) rateMap[c] = data.rate;
+              if (data?.rate && Number.isFinite(data.rate)) {
+                rateMap[c] = data.rate;
+              }
             } catch {
               /* ignore */
             }

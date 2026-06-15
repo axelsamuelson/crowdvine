@@ -11,7 +11,9 @@ const PUBLIC_PATH_PREFIXES = [
   "/vin",
   "/wine",
   "/product",
+  "/produkt",
   "/producer",
+  "/producent",
   "/producers",
   "/about",
   "/languedoc",
@@ -52,6 +54,7 @@ export function publicPathUsesUserShoppingContext(pathname: string): boolean {
     return true;
   }
   if (pathname.startsWith("/product/")) return true;
+  if (pathname.startsWith("/produkt/")) return true;
   if (pathname.startsWith("/checkout")) return true;
   return false;
 }

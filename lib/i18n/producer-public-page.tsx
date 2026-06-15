@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { cookies } from "next/headers";
 
 import {
   Breadcrumb,
@@ -12,14 +11,18 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Footer } from "@/components/layout/footer";
-import { getAppUrlForRequest, getInternalFetchHeaders } from "@/lib/app-url";
 import { ProducerWineCard } from "@/components/producer/producer-wine-card";
-import { producerPageUrls } from "@/lib/i18n/localized-routes";
+import { getAppUrlForRequest, getInternalFetchHeaders } from "@/lib/app-url";
+import type { AppLocale } from "@/lib/i18n/locale";
+import { intlLocaleForAppLocale } from "@/lib/i18n/locale";
+import {
+  PACT_PUBLIC_ORIGIN,
+  producerPagePath,
+  producerPageUrls,
+  type ProducerPathSegment,
+} from "@/lib/i18n/localized-routes";
 import { translate } from "@/lib/i18n/messages";
-import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
 import { getSiteConfig } from "@/lib/site-config";
-
-export const dynamic = "force-dynamic";
 
 type ProducerPayload = {
   id: string;
@@ -52,12 +55,11 @@ type ProducerBySlugResponse = {
   wines: WinePayload[];
 };
 
-async function fetchProducerBySlug(
+export async function fetchProducerBySlugForLocale(
   slug: string,
+  locale: AppLocale,
 ): Promise<ProducerBySlugResponse | null> {
   const base = await getAppUrlForRequest();
-  const cookieStore = await cookies();
-  const locale = cookieStore.get("pact_locale")?.value ?? "sv";
   const internalHeaders = getInternalFetchHeaders();
 
   try {
@@ -89,10 +91,10 @@ function producerInitials(name: string): string {
 
 function formatCertification(
   cert: string | null,
-  locale: string,
+  locale: AppLocale,
 ): string | null {
   if (!cert) return null;
-  const map: Record<string, Record<string, string>> = {
+  const map: Record<string, Record<AppLocale, string>> = {
     organic_certified: {
       sv: "Ekologisk certifierad",
       en: "Organic Certified",
@@ -110,7 +112,7 @@ function formatCertification(
 
 function heroMetaParts(
   producer: ProducerPayload,
-  locale: string,
+  locale: AppLocale,
 ): string[] {
   const parts: string[] = [];
   if (producer.region?.trim()) parts.push(producer.region.trim());
@@ -131,57 +133,62 @@ function SpecCell({ label, value }: { label: string; value: string }) {
   );
 }
 
-export async function generateMetadata(props: {
-  params: Promise<{ slug: string }>;
-}): Promise<Metadata> {
-  const { slug } = await props.params;
+export async function buildProducerPublicMetadata(
+  slug: string,
+  locale: AppLocale,
+  pathSegment: ProducerPathSegment,
+): Promise<Metadata> {
   const [data, config] = await Promise.all([
-    fetchProducerBySlug(slug),
+    fetchProducerBySlugForLocale(slug, locale),
     getSiteConfig(),
   ]);
+
   if (!data?.producer) {
     return { title: `Producer | ${config.siteName}` };
   }
 
   const { name, region, bio_short } = data.producer;
-  const regionLabel = region?.trim() || "producenten";
-  const producerUrl = `${config.baseUrl}/producer/${slug}`;
-  const hreflang = producerPageUrls(slug);
+  const regionLabel =
+    region?.trim() || (locale === "sv" ? "producenten" : "the producer");
+  const urls = producerPageUrls(slug);
+  const canonical = `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, pathSegment)}`;
 
   return {
     title: `${name} — Naturvin direkt från ${regionLabel}`,
     description: bio_short?.slice(0, 155) ?? undefined,
     alternates: {
-      canonical: producerUrl,
+      canonical,
       languages: {
-        sv: hreflang.sv,
-        en: hreflang.en,
-        "x-default": hreflang.xDefault,
+        sv: urls.sv,
+        en: urls.en,
+        "x-default": urls.xDefault,
       },
     },
     openGraph: {
       title: `${name} — Naturvin direkt från ${region} | ${config.siteName}`,
       description: bio_short?.slice(0, 155) ?? "",
-      url: producerUrl,
+      url: canonical,
       type: "website",
     },
   };
 }
 
-export default async function ProducerPage(props: {
-  params: Promise<{ slug: string }>;
+export async function renderProducerPublicPage(options: {
+  slug: string;
+  locale: AppLocale;
+  pathSegment: ProducerPathSegment;
 }) {
-  const { slug } = await props.params;
+  const { slug, locale, pathSegment } = options;
   const [data, config] = await Promise.all([
-    fetchProducerBySlug(slug),
+    fetchProducerBySlugForLocale(slug, locale),
     getSiteConfig(),
   ]);
+
   if (!data?.producer) notFound();
 
   const { producer, wines } = data;
-  const shopping = await getShoppingContextFromRequest({ skipUser: true });
-  const locale = shopping.locale;
   const t = (key: string) => translate(locale, key);
+  const intlLocale = intlLocaleForAppLocale(locale);
 
   const heroParts = heroMetaParts(producer, locale);
   const foundedLabel =
@@ -210,13 +217,13 @@ export default async function ProducerPage(props: {
     Boolean(entry.value?.trim()),
   );
 
-  const producerUrl = `${config.baseUrl}/producer/${slug}`;
+  const producerPageUrl = `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, pathSegment)}`;
 
   const producerJsonLd = {
     "@context": "https://schema.org",
     "@type": "Person",
     name: producer.name,
-    url: producerUrl,
+    url: producerPageUrl,
     jobTitle: "Vigneron",
     worksFor: {
       "@type": "Organization",
@@ -266,10 +273,19 @@ export default async function ProducerPage(props: {
         "@type": "ListItem",
         position: 3,
         name: producer.name,
-        item: `${config.baseUrl}/producer/${slug}`,
+        item: producerPageUrl,
       },
     ],
   };
+
+  const winesHeading =
+    locale === "sv"
+      ? `Viner från ${producer.name}`
+      : `Wines from ${producer.name}`;
+  const noWinesMessage =
+    locale === "sv"
+      ? "Inga publicerade viner just nu."
+      : "No published wines at the moment.";
 
   return (
     <>
@@ -336,23 +352,19 @@ export default async function ProducerPage(props: {
             </div>
           ) : null}
 
-          <h2 className="mb-4 mt-10 text-xl font-semibold">
-            Viner från {producer.name}
-          </h2>
+          <h2 className="mb-4 mt-10 text-xl font-semibold">{winesHeading}</h2>
           {wines.length > 0 ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {wines.map((wine) => (
                 <ProducerWineCard
                   key={wine.id}
                   wine={wine}
-                  intlLocale={shopping.intlLocale}
+                  intlLocale={intlLocale}
                 />
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">
-              Inga publicerade viner just nu.
-            </p>
+            <p className="text-sm text-muted-foreground">{noWinesMessage}</p>
           )}
 
           {producer.bio_long ? (

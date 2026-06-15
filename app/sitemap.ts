@@ -66,12 +66,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .filter((w): w is { handle: string; updated_at: string | null } =>
       Boolean(w.handle?.trim()),
     )
-    .map((w) => ({
-      url: `${baseUrl}/product/${w.handle}`,
-      lastModified: w.updated_at ? new Date(w.updated_at) : new Date(),
-      changeFrequency: "weekly" as const,
-      priority: 0.8,
-    }));
+    .flatMap((w) => {
+      const lastModified = w.updated_at ? new Date(w.updated_at) : new Date();
+      const entry = {
+        lastModified,
+        changeFrequency: "weekly" as const,
+        priority: 0.8,
+      };
+      return [
+        { url: `${baseUrl}/product/${w.handle}`, ...entry },
+        { url: `${baseUrl}/produkt/${w.handle}`, ...entry },
+      ];
+    });
 
   const { data: producers } = await sb
     .from("producers")
@@ -82,12 +88,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .filter((p): p is { name: string; created_at: string | null } =>
       Boolean(p.name?.trim()),
     )
-    .map((p) => ({
-      url: `${baseUrl}/producer/${generateProducerSlug(p.name)}`,
-      lastModified: p.created_at ? new Date(p.created_at) : new Date(),
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-    }));
+    .flatMap((p) => {
+      const slug = generateProducerSlug(p.name);
+      const lastModified = p.created_at ? new Date(p.created_at) : new Date();
+      const entry = {
+        lastModified,
+        changeFrequency: "weekly" as const,
+        priority: 0.7,
+      };
+      return [
+        { url: `${baseUrl}/producer/${slug}`, ...entry },
+        { url: `${baseUrl}/producent/${slug}`, ...entry },
+      ];
+    });
 
   const vinCategories: MetadataRoute.Sitemap = WINE_CATEGORIES_SV.map((c) => ({
     url: `${baseUrl}/vin/${c.slug}`,

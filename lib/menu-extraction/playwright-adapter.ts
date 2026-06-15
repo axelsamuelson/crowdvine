@@ -6,8 +6,9 @@
 import { chromium as playwrightChromium, type Browser, type BrowserContext } from "playwright-core";
 import { BrowserAdapterError } from "./browser-adapter-error";
 
-const GOTO_TIMEOUT_MS = 30000;
-const CLOUDFLARE_MAX_WAIT_MS = 45000;
+const GOTO_TIMEOUT_MS = process.env.VERCEL === "1" ? 30000 : 60000;
+const CLOUDFLARE_MAX_WAIT_MS =
+  process.env.VERCEL === "1" ? 45000 : 90000;
 const CLOUDFLARE_POLL_MS = 2000;
 const WAIT_UNTIL = "domcontentloaded" as const;
 
@@ -44,7 +45,65 @@ async function launchBrowser(): Promise<Browser> {
       headless: chromium.headless,
     });
   }
-  return playwrightChromium.launch({ headless: true });
+  const headed = process.env.LOCAL_PLAYWRIGHT_HEADED === "true";
+  const channel =
+    process.env.LOCAL_PLAYWRIGHT_CHANNEL?.trim() ||
+    (process.platform === "darwin" ? "chrome" : undefined);
+  try {
+    return await playwrightChromium.launch({
+      headless: !headed,
+      ...(channel ? { channel } : {}),
+    });
+  } catch (e) {
+    if (channel) {
+      console.warn(
+        "[playwright-adapter] channel",
+        channel,
+        "failed, falling back to bundled chromium:",
+        e instanceof Error ? e.message : e,
+      );
+      return playwrightChromium.launch({ headless: !headed });
+    }
+    throw e;
+  }
+}
+
+/** Persistent Chrome profile for local crawl – pass Cloudflare once, reuse cookies. */
+async function newLocalContext(): Promise<{
+  context: BrowserContext;
+  close: () => Promise<void>;
+}> {
+  const profileDir = process.env.LOCAL_PLAYWRIGHT_PROFILE?.trim();
+  if (profileDir && process.env.VERCEL !== "1") {
+    const headed = process.env.LOCAL_PLAYWRIGHT_HEADED === "true";
+    const channel =
+      process.env.LOCAL_PLAYWRIGHT_CHANNEL?.trim() ||
+      (process.platform === "darwin" ? "chrome" : undefined);
+    const context = await playwrightChromium.launchPersistentContext(profileDir, {
+      headless: !headed,
+      ...(channel ? { channel } : {}),
+      userAgent: CHROME_USER_AGENT,
+      viewport: { width: 1366, height: 768 },
+      locale: "sv-SE",
+      timezoneId: "Europe/Stockholm",
+    });
+    console.warn("[playwright-adapter] Using persistent profile:", profileDir);
+    return {
+      context,
+      close: async () => {
+        await context.close();
+      },
+    };
+  }
+  const browser = await launchBrowser();
+  const context = await newStealthContext(browser);
+  return {
+    context,
+    close: async () => {
+      await context.close();
+      await browser.close();
+    },
+  };
 }
 
 async function newStealthContext(browser: Browser): Promise<BrowserContext> {
@@ -75,12 +134,10 @@ async function waitForRealPage(page: import("playwright-core").Page): Promise<st
 
 export async function fetchRenderedHtml(url: string): Promise<string> {
   const start = Date.now();
-  let browser: Browser | null = null;
+  const { context, close } = await newLocalContext();
   try {
-    browser = await launchBrowser();
-    const context = await newStealthContext(browser);
     const page = await context.newPage();
-    await page.goto(url, { waitUntil: WAIT_UNTIL, timeout: GOTO_TIMEOUT_MS });
+    await page.goto(url, { waitUntil: "load", timeout: GOTO_TIMEOUT_MS });
     const content = await waitForRealPage(page);
     console.warn("[playwright-adapter] Fetching:", url, "(" + (Date.now() - start) + "ms)");
     return content;
@@ -90,7 +147,7 @@ export async function fetchRenderedHtml(url: string): Promise<string> {
     const status = message.includes("403") || message.includes("Forbidden") ? 403 : 500;
     throw new BrowserAdapterError(message, status, url);
   } finally {
-    if (browser) await browser.close();
+    await close();
   }
 }
 
@@ -98,10 +155,8 @@ export async function fetchPdfViaFunction(
   restaurantUrl: string,
   pdfUrl: string,
 ): Promise<Buffer> {
-  let browser: Browser | null = null;
+  const { context, close } = await newLocalContext();
   try {
-    browser = await launchBrowser();
-    const context = await newStealthContext(browser);
     await context.setExtraHTTPHeaders({ Accept: "application/pdf,*/*" });
     const page = await context.newPage();
     await page.goto(restaurantUrl, { waitUntil: WAIT_UNTIL, timeout: GOTO_TIMEOUT_MS });
@@ -128,6 +183,6 @@ export async function fetchPdfViaFunction(
     const status = message.includes("403") || message.includes("429") ? (message.includes("429") ? 429 : 403) : 500;
     throw new BrowserAdapterError(message, status, pdfUrl);
   } finally {
-    if (browser) await browser.close();
+    await close();
   }
 }
