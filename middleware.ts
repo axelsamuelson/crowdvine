@@ -102,6 +102,9 @@ async function runMiddleware(req: NextRequest) {
   const legacyGrapeRedirect = redirectLegacyShopGrapeFilter(req, pathname);
   if (legacyGrapeRedirect) return legacyGrapeRedirect;
 
+  const badSearchRedirect = redirectInvalidShopSearchQuery(req, pathname);
+  if (badSearchRedirect) return badSearchRedirect;
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !supabaseAnonKey) {
@@ -275,6 +278,21 @@ function redirectLegacyShopGrapeFilter(
   const locale = pathname === "/vin" ? "sv" : "en";
   const u = req.nextUrl.clone();
   u.pathname = getCategoryUrlForGrape(fgrape.trim(), locale);
+  u.search = "";
+  return NextResponse.redirect(u, 301);
+}
+
+/** Google sometimes crawls the literal SearchAction placeholder as a URL. */
+function redirectInvalidShopSearchQuery(
+  req: NextRequest,
+  pathname: string,
+): NextResponse | null {
+  if (pathname !== "/vin" && pathname !== "/wine") return null;
+
+  const q = req.nextUrl.searchParams.get("q");
+  if (!q?.includes("{search_term_string}")) return null;
+
+  const u = req.nextUrl.clone();
   u.search = "";
   return NextResponse.redirect(u, 301);
 }

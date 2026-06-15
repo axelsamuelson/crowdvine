@@ -5,11 +5,15 @@ import {
   MainShopContent,
   shopSkeleton,
 } from "@/app/vin/components/main-shop-content";
+import { shopSearchParamsRobots } from "@/lib/seo/shop-search-robots";
 import { getSiteConfig } from "@/lib/site-config";
 
 export const revalidate = 300;
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}): Promise<Metadata> {
+  const searchParams = await props.searchParams;
   const config = await getSiteConfig();
   const pageUrl = `${config.baseUrl}/wine`;
   const title = "Natural Wine Online — Buy Direct from Languedoc | PACT Wines";
@@ -19,6 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: { absolute: title },
     description,
+    robots: shopSearchParamsRobots(searchParams),
     alternates: {
       canonical: pageUrl,
       languages: {

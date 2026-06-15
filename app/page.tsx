@@ -128,14 +128,6 @@ export default async function Home() {
     name: config.name,
     url: config.baseUrl,
     description: "Naturvin direkt från Languedoc till Stockholm.",
-    potentialAction: {
-      "@type": "SearchAction",
-      target: {
-        "@type": "EntryPoint",
-        urlTemplate: `${config.baseUrl}/vin?q={search_term_string}`,
-      },
-      "query-input": "required name=search_term_string",
-    },
   };
 
   return (
