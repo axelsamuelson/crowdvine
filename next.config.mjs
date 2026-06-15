@@ -8,7 +8,7 @@ const nextConfig = {
     root: __dirname,
   },
   /** Bundled Chromium (@sparticuz/chromium) must not be webpack-bundled into serverless chunks. */
-  serverExternalPackages: ["@sparticuz/chromium", "playwright-core"],
+  serverExternalPackages: ["@sparticuz/chromium", "playwright-core", "sharp"],
   async redirects() {
     return [
       {
