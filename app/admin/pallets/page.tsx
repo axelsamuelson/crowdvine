@@ -124,7 +124,8 @@ interface B2BShipment {
 
 export default function PalletsPage() {
   const searchParams = useSearchParams();
-  const initialTab = searchParams.get("tab") === "b2b" ? "b2b" : "pact";
+  const tabFromUrl = searchParams.get("tab") === "b2b" ? "b2b" : "pact";
+  const [activeTab, setActiveTab] = useState<"pact" | "b2b">(tabFromUrl);
 
   const [pallets, setPallets] = useState<Pallet[]>([]);
   const [b2bShipments, setB2bShipments] = useState<B2BShipment[]>([]);
@@ -162,7 +163,11 @@ export default function PalletsPage() {
   }, []);
 
   useEffect(() => {
-    if (initialTab !== "b2b") return;
+    setActiveTab(tabFromUrl);
+  }, [tabFromUrl]);
+
+  useEffect(() => {
+    if (activeTab !== "b2b") return;
     const fetchB2b = async () => {
       setB2bLoading(true);
       try {
@@ -190,7 +195,7 @@ export default function PalletsPage() {
       }
     };
     fetchB2b();
-  }, [initialTab, searchParams.toString()]);
+  }, [activeTab, searchParams.toString()]);
 
   const formatPrice = (priceCents: number) => {
     return new Intl.NumberFormat("sv-SE", {
@@ -398,8 +403,10 @@ export default function PalletsPage() {
   }
 
   const handleTabChange = (value: string) => {
+    const tab = value === "b2b" ? "b2b" : "pact";
+    setActiveTab(tab);
     const url = new URL(window.location.href);
-    url.searchParams.set("tab", value);
+    url.searchParams.set("tab", tab);
     url.searchParams.delete("_");
     window.history.replaceState({}, "", url.toString());
   };
@@ -457,7 +464,7 @@ export default function PalletsPage() {
         </Button>
       </div>
 
-      <Tabs value={initialTab} onValueChange={handleTabChange}>
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="bg-zinc-900/70 border border-zinc-800 rounded-lg p-1 h-auto">
           <TabsTrigger
             value="pact"
@@ -901,121 +908,126 @@ export default function PalletsPage() {
                 return (
                   <div
                     key={shipment.id}
-                    className="bg-white dark:bg-[#0F0F12] rounded-xl p-4 border border-gray-200 dark:border-[#1F1F23] hover:border-gray-200 dark:hover:border-zinc-700 transition-all"
+                    className="bg-white dark:bg-[#0F0F12] rounded-xl border border-gray-200 dark:border-[#1F1F23] hover:border-gray-200 dark:hover:border-zinc-700 transition-all overflow-hidden"
                   >
-                    <div className="flex items-start justify-between mb-3 gap-2">
-                      <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100 truncate">
-                        {shipment.name}
-                      </h3>
-                      <span
-                        className={cn(
-                          "shrink-0 inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
-                          shipment.is_active
-                            ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                            : "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400",
+                    <Link
+                      href={`/admin/pallets/b2b/${shipment.id}/edit`}
+                      className="block p-4 pb-0 hover:bg-gray-50/80 dark:hover:bg-zinc-900/40 transition-colors"
+                    >
+                      <div className="flex items-start justify-between mb-3 gap-2">
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100 truncate">
+                          {shipment.name}
+                        </h3>
+                        <span
+                          className={cn(
+                            "shrink-0 inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
+                            shipment.is_active
+                              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                              : "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400",
+                          )}
+                        >
+                          {shipment.is_active ? "Aktiv" : "Inaktiv"}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-gray-500 dark:text-zinc-400 mb-3">
+                        {shipment.shipped_at && (
+                          <span>
+                            Skickad{" "}
+                            {format(
+                              new Date(shipment.shipped_at),
+                              "d MMM yyyy",
+                              { locale: sv },
+                            )}
+                          </span>
                         )}
-                      >
-                        {shipment.is_active ? "Aktiv" : "Inaktiv"}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-gray-500 dark:text-zinc-400 mb-3">
-                      {shipment.shipped_at && (
-                        <span>
-                          Skickad{" "}
-                          {format(
-                            new Date(shipment.shipped_at),
-                            "d MMM yyyy",
-                            { locale: sv },
-                          )}
-                        </span>
-                      )}
-                      {shipment.delivered_at && (
-                        <span>
-                          Ankommen{" "}
-                          {format(
-                            new Date(shipment.delivered_at),
-                            "d MMM yyyy",
-                            { locale: sv },
-                          )}
-                        </span>
-                      )}
-                    </div>
-                    <div className="space-y-1 text-xs mb-3">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-zinc-400">
-                          {summary.totalBottles} flaskor
-                        </span>
-                        <span className="font-semibold text-gray-900 dark:text-zinc-100 tabular-nums">
-                          {formatSekFromCents(summary.grandTotalCents)}
-                        </span>
+                        {shipment.delivered_at && (
+                          <span>
+                            Ankommen{" "}
+                            {format(
+                              new Date(shipment.delivered_at),
+                              "d MMM yyyy",
+                              { locale: sv },
+                            )}
+                          </span>
+                        )}
                       </div>
-                      <div className="flex justify-between text-[11px] text-gray-500 dark:text-zinc-500">
-                        <span>Inkl. alkoholskatt</span>
-                        <span className="tabular-nums">
-                          {formatSekFromCents(summary.wineTotalCents)}
-                        </span>
-                      </div>
-                      {summary.palletCostCents > 0 && (
-                        <div className="flex justify-between text-[11px] text-gray-500 dark:text-zinc-500">
-                          <span>+ palkostnad</span>
-                          <span className="tabular-nums">
-                            {formatSekFromCents(summary.palletCostCents)}
+                      <div className="space-y-1 text-xs mb-3">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-zinc-400">
+                            {summary.totalBottles} flaskor
+                          </span>
+                          <span className="font-semibold text-gray-900 dark:text-zinc-100 tabular-nums">
+                            {formatSekFromCents(summary.grandTotalCents)}
                           </span>
                         </div>
-                      )}
-                      {colorCounts.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 pt-1">
-                          {colorCounts.map(({ color, bottles }) => (
-                            <span
-                              key={color}
-                              className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] dark:border-zinc-700 dark:bg-zinc-900"
-                              title={color}
-                            >
-                              <span
-                                className={cn(
-                                  "inline-block h-2 w-2 shrink-0 rounded-full",
-                                  wineColorDotClass(color),
-                                )}
-                                aria-hidden
-                              />
-                              <span className="text-gray-600 dark:text-zinc-400 max-w-[72px] truncate">
-                                {color}
-                              </span>
-                              <span className="font-medium tabular-nums text-gray-800 dark:text-zinc-200">
-                                {bottles}
-                              </span>
+                        <div className="flex justify-between text-[11px] text-gray-500 dark:text-zinc-500">
+                          <span>Inkl. alkoholskatt</span>
+                          <span className="tabular-nums">
+                            {formatSekFromCents(summary.wineTotalCents)}
+                          </span>
+                        </div>
+                        {summary.palletCostCents > 0 && (
+                          <div className="flex justify-between text-[11px] text-gray-500 dark:text-zinc-500">
+                            <span>+ palkostnad</span>
+                            <span className="tabular-nums">
+                              {formatSekFromCents(summary.palletCostCents)}
                             </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    {items.length > 0 && (
-                      <ScrollArea className="h-[min(100px,30vh)] -mx-1 rounded-lg mb-3">
-                        <div className="space-y-1 pr-2">
-                          {items.map((item) => (
-                            <div
-                              key={item.id}
-                              className="flex justify-between items-center text-[11px] py-1.5 px-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800/50"
-                            >
-                              <span className="min-w-0 truncate text-gray-900 dark:text-zinc-100">
-                                <span className="block truncate">
-                                  {item.wines?.wine_name} {item.wines?.vintage}
+                          </div>
+                        )}
+                        {colorCounts.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 pt-1">
+                            {colorCounts.map(({ color, bottles }) => (
+                              <span
+                                key={color}
+                                className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] dark:border-zinc-700 dark:bg-zinc-900"
+                                title={color}
+                              >
+                                <span
+                                  className={cn(
+                                    "inline-block h-2 w-2 shrink-0 rounded-full",
+                                    wineColorDotClass(color),
+                                  )}
+                                  aria-hidden
+                                />
+                                <span className="text-gray-600 dark:text-zinc-400 max-w-[72px] truncate">
+                                  {color}
                                 </span>
-                                {item.wines?.producers?.name && (
-                                  <span className="block truncate text-[10px] text-gray-500 dark:text-zinc-500">
-                                    {item.wines.producers.name}
+                                <span className="font-medium tabular-nums text-gray-800 dark:text-zinc-200">
+                                  {bottles}
+                                </span>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      {items.length > 0 && (
+                        <ScrollArea className="h-[min(100px,30vh)] -mx-1 rounded-lg mb-3">
+                          <div className="space-y-1 pr-2">
+                            {items.map((item) => (
+                              <div
+                                key={item.id}
+                                className="flex justify-between items-center text-[11px] py-1.5 px-2 rounded-lg"
+                              >
+                                <span className="min-w-0 truncate text-gray-900 dark:text-zinc-100">
+                                  <span className="block truncate">
+                                    {item.wines?.wine_name} {item.wines?.vintage}
                                   </span>
-                                )}
-                              </span>
-                              <span className="text-gray-500 dark:text-zinc-400 shrink-0 ml-2 tabular-nums">
-                                {item.quantity} st
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    )}
-                    <div className="flex gap-2 pt-3 border-t border-gray-100 dark:border-zinc-800">
+                                  {item.wines?.producers?.name && (
+                                    <span className="block truncate text-[10px] text-gray-500 dark:text-zinc-500">
+                                      {item.wines.producers.name}
+                                    </span>
+                                  )}
+                                </span>
+                                <span className="text-gray-500 dark:text-zinc-400 shrink-0 ml-2 tabular-nums">
+                                  {item.quantity} st
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      )}
+                    </Link>
+                    <div className="flex gap-2 p-4 pt-3 border-t border-gray-100 dark:border-zinc-800">
                       <Button
                         asChild
                         variant="outline"

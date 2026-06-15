@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { B2B_PALLET_SHIPMENT_SELECT } from "@/lib/b2b-pallet-shipment-select";
+import { validateB2bPickupProducerId } from "@/lib/b2b-pallet-shipment-validation";
 
 export async function GET(
   _: NextRequest,
@@ -10,18 +12,7 @@ export async function GET(
 
   const { data, error } = await sb
     .from("b2b_pallet_shipments")
-    .select(
-      `
-      *,
-      b2b_pallet_shipment_items(
-        id,
-        wine_id,
-        quantity,
-        cost_cents_override,
-        wines(id, wine_name, vintage, color, cost_amount, cost_currency, exchange_rate, alcohol_tax_cents, producers(name))
-      )
-    `,
-    )
+    .select(B2B_PALLET_SHIPMENT_SELECT)
     .eq("id", id)
     .single();
 
@@ -40,12 +31,21 @@ export async function PUT(
   const sb = getSupabaseAdmin();
   const body = await request.json();
 
-  const { name, shipped_at, delivered_at, cost_cents, is_active, items } = body as {
+  const {
+    name,
+    shipped_at,
+    delivered_at,
+    cost_cents,
+    is_active,
+    pickup_producer_id,
+    items,
+  } = body as {
     name?: string;
     shipped_at?: string | null;
     delivered_at?: string | null;
     cost_cents?: number | null;
     is_active?: boolean;
+    pickup_producer_id?: string | null;
     items?: Array<{
       wine_id: string;
       quantity: number;
@@ -53,12 +53,40 @@ export async function PUT(
     }>;
   };
 
+  let wineIdsForPickup: string[] = [];
+  if (items && Array.isArray(items)) {
+    wineIdsForPickup = items
+      .filter((i) => i.wine_id && i.quantity > 0)
+      .map((i) => i.wine_id);
+  } else if (pickup_producer_id !== undefined) {
+    const { data: existingItems } = await sb
+      .from("b2b_pallet_shipment_items")
+      .select("wine_id")
+      .eq("shipment_id", id);
+    wineIdsForPickup = (existingItems ?? []).map((row) => row.wine_id as string);
+  }
+
+  if (pickup_producer_id !== undefined) {
+    const pickupCheck = await validateB2bPickupProducerId(
+      sb,
+      pickup_producer_id,
+      wineIdsForPickup,
+    );
+    if (!pickupCheck.ok) {
+      return NextResponse.json({ error: pickupCheck.error }, { status: 400 });
+    }
+  }
+
   const updateData: Record<string, unknown> = {};
   if (name !== undefined) updateData.name = name?.trim();
   if (shipped_at !== undefined) updateData.shipped_at = shipped_at || null;
   if (delivered_at !== undefined) updateData.delivered_at = delivered_at || null;
-  if (cost_cents !== undefined) updateData.cost_cents = cost_cents != null ? cost_cents : null;
+  if (cost_cents !== undefined)
+    updateData.cost_cents = cost_cents != null ? cost_cents : null;
   if (is_active !== undefined) updateData.is_active = is_active === true;
+  if (pickup_producer_id !== undefined) {
+    updateData.pickup_producer_id = pickup_producer_id || null;
+  }
   updateData.updated_at = new Date().toISOString();
 
   if (Object.keys(updateData).length > 1) {
@@ -82,7 +110,7 @@ export async function PUT(
         .from("b2b_pallet_shipment_items")
         .select("wine_id, quantity_sold")
         .eq("shipment_id", id);
-      (existingItems || []).forEach((it: any) => {
+      (existingItems || []).forEach((it: { wine_id: string; quantity_sold?: number }) => {
         soldByWineId.set(it.wine_id, it.quantity_sold ?? 0);
       });
     } catch {
@@ -91,9 +119,9 @@ export async function PUT(
 
     await sb.from("b2b_pallet_shipment_items").delete().eq("shipment_id", id);
 
-    const validItems = items.filter((i: any) => i.wine_id && i.quantity > 0);
+    const validItems = items.filter((i) => i.wine_id && i.quantity > 0);
     if (validItems.length > 0) {
-      const itemRows = validItems.map((i: any) => ({
+      const itemRows = validItems.map((i) => ({
         shipment_id: id,
         wine_id: i.wine_id,
         quantity: Math.max(1, Math.floor(i.quantity)),
@@ -113,22 +141,36 @@ export async function PUT(
         );
       }
     }
+
+    if (pickup_producer_id === undefined) {
+      const { data: shipmentRow } = await sb
+        .from("b2b_pallet_shipments")
+        .select("pickup_producer_id")
+        .eq("id", id)
+        .maybeSingle();
+      const currentPickup = shipmentRow?.pickup_producer_id as string | null;
+      if (currentPickup) {
+        const stillValid = await validateB2bPickupProducerId(
+          sb,
+          currentPickup,
+          wineIdsForPickup,
+        );
+        if (stillValid.ok && stillValid.pickupProducerId === null) {
+          await sb
+            .from("b2b_pallet_shipments")
+            .update({
+              pickup_producer_id: null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", id);
+        }
+      }
+    }
   }
 
   const { data: full } = await sb
     .from("b2b_pallet_shipments")
-    .select(
-      `
-      *,
-      b2b_pallet_shipment_items(
-        id,
-        wine_id,
-        quantity,
-        cost_cents_override,
-        wines(id, wine_name, vintage, color, cost_amount, cost_currency, exchange_rate, alcohol_tax_cents, producers(name))
-      )
-    `,
-    )
+    .select(B2B_PALLET_SHIPMENT_SELECT)
     .eq("id", id)
     .single();
 

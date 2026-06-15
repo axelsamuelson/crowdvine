@@ -28,8 +28,14 @@ import {
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Trash2, ChevronsUpDown, ChevronRight } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { ArrowLeft, Trash2, ChevronsUpDown, ChevronRight, Plus } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   collectCurrenciesNeedingRates,
@@ -45,7 +51,31 @@ import {
 } from "@/lib/wine-color";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import {
+  distanceKm,
+  estimateDrivingMinutes,
+  formatDistanceKm,
+  formatDistanceMeters,
+  formatDrivingTime,
+  formatDrivingTimeFromSeconds,
+  hasValidGeoCoords,
+} from "@/lib/geo-distance";
+import type {
+  DrivingRoutesResponse,
+  OptimalPickupResult,
+} from "@/lib/driving-routes";
 import { ADMIN_ACTIVE_SWITCH_CLASS } from "@/lib/admin-form-styles";
+import { B2bPalletProducersMap,
+  type B2bPalletMapProducerInput,
+} from "@/components/admin/b2b-pallet-producers-map";
+import { MapboxPreloader } from "@/components/map/mapbox-preloader";
+import {
+  collectProducersOnPallet,
+  formatProducerAddress,
+  resolveB2bPickupProducer,
+  resolveEffectiveB2bPickupProducer,
+  type B2bPickupProducerInfo,
+} from "@/lib/b2b-pallet-pickup";
 
 const inputClass =
   "h-10 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500";
@@ -67,7 +97,7 @@ interface Wine {
   cost_currency?: string;
   exchange_rate?: number;
   alcohol_tax_cents?: number;
-  producers?: { name: string } | null;
+  producers?: B2bPickupProducerInfo | null;
   costCentsExVat?: number;
 }
 
@@ -93,6 +123,8 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
   const [deliveredAt, setDeliveredAt] = useState("");
   const [palletCostCents, setPalletCostCents] = useState<number | "">("");
   const [isActive, setIsActive] = useState(false);
+  /** null = automatic (20% pallet-zone rule) */
+  const [pickupProducerId, setPickupProducerId] = useState<string | null>(null);
   const [items, setItems] = useState<PalletItem[]>([]);
   const [wines, setWines] = useState<Wine[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,6 +138,15 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
     new Set(),
   );
   const [fxRates, setFxRates] = useState<Record<string, number>>({ SEK: 1 });
+  const [drivingRoutes, setDrivingRoutes] = useState<DrivingRoutesResponse>({});
+  const [drivingRoutesLoading, setDrivingRoutesLoading] = useState(false);
+  const [drivingRoutesSource, setDrivingRoutesSource] = useState<
+    "mapbox" | "osrm" | "estimate" | null
+  >(null);
+  const [optimalPickup, setOptimalPickup] = useState<OptimalPickupResult | null>(
+    null,
+  );
+  const [optimalPickupLoading, setOptimalPickupLoading] = useState(false);
 
   useEffect(() => {
     const fetchWines = async () => {
@@ -154,6 +195,9 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
               data.cost_cents != null ? data.cost_cents : "",
             );
             setIsActive(data.is_active === true);
+            setPickupProducerId(
+              (data.pickup_producer_id as string | null | undefined) ?? null,
+            );
             const mapped = (data.b2b_pallet_shipment_items || []).map(
               (it: {
                 wine_id: string;
@@ -179,7 +223,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
     }
   }, [isEdit, shipmentId]);
 
-  const addWine = (wine: Wine) => {
+  const addWine = (wine: Wine, options?: { keepComboboxOpen?: boolean }) => {
     if (items.some((i) => i.wine_id === wine.id)) {
       toast.error("Vinet finns redan i listan");
       return;
@@ -193,11 +237,22 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
         cost_cents_override: null,
       },
     ]);
-    setWineComboboxOpen(false);
+    if (!options?.keepComboboxOpen) {
+      setWineComboboxOpen(false);
+    }
   };
 
   const removeItem = (wineId: string) => {
-    setItems(items.filter((i) => i.wine_id !== wineId));
+    const nextItems = items.filter((i) => i.wine_id !== wineId);
+    setItems(nextItems);
+    if (pickupProducerId) {
+      const stillOnPallet = nextItems.some((item) => {
+        const wineForCost =
+          wines.find((w) => w.id === item.wine_id) ?? item.wine;
+        return wineForCost?.producers?.id === pickupProducerId;
+      });
+      if (!stillOnPallet) setPickupProducerId(null);
+    }
   };
 
   const updateItem = (
@@ -228,6 +283,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
         delivered_at: deliveredAt || null,
         cost_cents: palletCostCents !== "" ? palletCostCents : null,
         is_active: isActive,
+        pickup_producer_id: pickupProducerId,
         items: items.map((i) => ({
           wine_id: i.wine_id,
           quantity: i.quantity,
@@ -347,6 +403,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
     const map = new Map<
       string,
       {
+        producerId: string | null;
         bottles: number;
         wines: Array<{
           wine_id: string;
@@ -360,7 +417,11 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
         wines.find((w) => w.id === item.wine_id) ?? item.wine;
       const producer =
         wineForCost?.producers?.name?.trim() || "Okänd producent";
-      const curr = map.get(producer) ?? { bottles: 0, wines: [] };
+      const curr = map.get(producer) ?? {
+        producerId: wineForCost?.producers?.id ?? null,
+        bottles: 0,
+        wines: [],
+      };
       curr.bottles += item.quantity;
       curr.wines.push({
         wine_id: item.wine_id,
@@ -372,6 +433,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
     return Array.from(map.entries())
       .map(([name, stats]) => ({
         name,
+        producerId: stats.producerId,
         bottles: stats.bottles,
         wineCount: stats.wines.length,
         wines: [...stats.wines].sort((a, b) => {
@@ -389,6 +451,274 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
           b.bottles - a.bottles || a.name.localeCompare(b.name, "sv"),
       );
   }, [items, wines]);
+
+  const pickupResolution = useMemo(() => {
+    return resolveB2bPickupProducer(
+      items.map((item) => {
+        const wineForCost =
+          wines.find((w) => w.id === item.wine_id) ?? item.wine;
+        return {
+          quantity: item.quantity,
+          producer: wineForCost?.producers ?? null,
+        };
+      }),
+    );
+  }, [items, wines]);
+
+  const producersOnPallet = useMemo(() => {
+    return collectProducersOnPallet(
+      items.map((item) => {
+        const wineForCost =
+          wines.find((w) => w.id === item.wine_id) ?? item.wine;
+        return {
+          quantity: item.quantity,
+          producer: wineForCost?.producers ?? null,
+        };
+      }),
+    );
+  }, [items, wines]);
+
+  const effectivePickup = useMemo(() => {
+    return resolveEffectiveB2bPickupProducer({
+      pickupProducerId,
+      producersOnPallet,
+      autoResolution: pickupResolution,
+    });
+  }, [pickupProducerId, producersOnPallet, pickupResolution]);
+
+  useEffect(() => {
+    if (
+      pickupProducerId &&
+      !producersOnPallet.some((p) => p.id === pickupProducerId)
+    ) {
+      setPickupProducerId(null);
+    }
+  }, [pickupProducerId, producersOnPallet]);
+
+  const palletMapData = useMemo(() => {
+    const pickupId = effectivePickup.producer?.id ?? null;
+
+    return producerSummary.map((row) => {
+      const producer =
+        row.wines[0]?.wine?.producers ??
+        producersOnPallet.find((p) => p.id === row.producerId);
+
+      return {
+        id: row.producerId ?? row.name,
+        name: row.name,
+        lat: producer?.lat ?? null,
+        lon: producer?.lon ?? null,
+        subregion: producer?.subregion ?? null,
+        region: producer?.region ?? null,
+        bottles: row.bottles,
+        isPickup: Boolean(pickupId && row.producerId === pickupId),
+      } satisfies B2bPalletMapProducerInput;
+    });
+  }, [producerSummary, producersOnPallet, effectivePickup.producer?.id]);
+
+  const producerDistanceByKey = useMemo(() => {
+    const pickup = effectivePickup.producer;
+    const map = new Map<string, number | null>();
+
+    if (!pickup || !hasValidGeoCoords(pickup.lat, pickup.lon)) {
+      return map;
+    }
+
+    for (const row of palletMapData) {
+      const key = row.id;
+      if (row.isPickup) {
+        map.set(key, 0);
+        continue;
+      }
+      if (!hasValidGeoCoords(row.lat, row.lon)) {
+        map.set(key, null);
+        continue;
+      }
+      map.set(
+        key,
+        distanceKm(pickup.lat!, pickup.lon!, row.lat!, row.lon!),
+      );
+    }
+
+    return map;
+  }, [palletMapData, effectivePickup.producer]);
+
+  const routingRequestKey = useMemo(() => {
+    const pickup = effectivePickup.producer;
+    if (!pickup?.id || !hasValidGeoCoords(pickup.lat, pickup.lon)) return null;
+
+    const destinations = palletMapData
+      .filter((row) => !row.isPickup && hasValidGeoCoords(row.lat, row.lon))
+      .map((row) => `${row.id}:${row.lat},${row.lon}`)
+      .sort()
+      .join("|");
+
+    return `${pickup.id}:${pickup.lat},${pickup.lon}|${destinations}`;
+  }, [effectivePickup.producer, palletMapData]);
+
+  const optimalPickupRequestKey = useMemo(() => {
+    return palletMapData
+      .filter((row) => hasValidGeoCoords(row.lat, row.lon))
+      .map((row) => `${row.id}:${row.lat},${row.lon}`)
+      .sort()
+      .join("|");
+  }, [palletMapData]);
+
+  useEffect(() => {
+    if (!showProducerSummary || !routingRequestKey) {
+      setDrivingRoutes({});
+      setDrivingRoutesSource(null);
+      return;
+    }
+
+    const pickup = effectivePickup.producer;
+    if (!pickup || !hasValidGeoCoords(pickup.lat, pickup.lon)) return;
+
+    const destinations = palletMapData
+      .filter((row) => !row.isPickup && hasValidGeoCoords(row.lat, row.lon))
+      .map((row) => ({
+        id: row.id,
+        lat: row.lat!,
+        lon: row.lon!,
+      }));
+
+    if (destinations.length === 0) {
+      setDrivingRoutes({});
+      setDrivingRoutesSource(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    setDrivingRoutesLoading(true);
+
+    fetch("/api/admin/b2b-pallet-routing", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        pickup: { lat: pickup.lat, lon: pickup.lon },
+        destinations,
+      }),
+      signal: controller.signal,
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Routing request failed");
+        return res.json() as Promise<{
+          routes?: DrivingRoutesResponse;
+          source?: "mapbox" | "osrm";
+        }>;
+      })
+      .then((data) => {
+        setDrivingRoutes(data.routes ?? {});
+        setDrivingRoutesSource(
+          data.routes && Object.keys(data.routes).length > 0
+            ? (data.source ?? "osrm")
+            : "estimate",
+        );
+      })
+      .catch((err) => {
+        if (err instanceof Error && err.name === "AbortError") return;
+        setDrivingRoutes({});
+        setDrivingRoutesSource("estimate");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setDrivingRoutesLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [
+    showProducerSummary,
+    routingRequestKey,
+    effectivePickup.producer,
+    palletMapData,
+  ]);
+
+  useEffect(() => {
+    if (!showProducerSummary || !optimalPickupRequestKey) {
+      setOptimalPickup(null);
+      return;
+    }
+
+    const producers = palletMapData
+      .filter((row) => hasValidGeoCoords(row.lat, row.lon))
+      .map((row) => ({
+        id: row.id,
+        lat: row.lat!,
+        lon: row.lon!,
+      }));
+
+    if (producers.length < 2) {
+      setOptimalPickup(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    setOptimalPickupLoading(true);
+
+    fetch("/api/admin/b2b-pallet-routing/optimal-pickup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ producers }),
+      signal: controller.signal,
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Optimal pickup request failed");
+        return res.json() as Promise<OptimalPickupResult>;
+      })
+      .then((data) => {
+        setOptimalPickup(data);
+      })
+      .catch((err) => {
+        if (err instanceof Error && err.name === "AbortError") return;
+        setOptimalPickup(null);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setOptimalPickupLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [showProducerSummary, optimalPickupRequestKey, palletMapData]);
+
+  const availableWinesByProducerKey = useMemo(() => {
+    const onPalletIds = new Set(items.map((item) => item.wine_id));
+    const map = new Map<string, Wine[]>();
+
+    for (const wine of wines) {
+      if (onPalletIds.has(wine.id)) continue;
+      const producerId = wine.producers?.id;
+      const key =
+        producerId ?? `name:${wine.producers?.name?.trim() || "Okänd producent"}`;
+      const list = map.get(key) ?? [];
+      list.push(wine);
+      map.set(key, list);
+    }
+
+    for (const list of map.values()) {
+      list.sort((a, b) =>
+        `${a.wine_name} ${a.vintage}`.localeCompare(
+          `${b.wine_name} ${b.vintage}`,
+          "sv",
+        ),
+      );
+    }
+
+    return map;
+  }, [wines, items]);
+
+  const getAvailableWinesForProducer = (
+    producerId: string | null,
+    producerName: string,
+  ) =>
+    availableWinesByProducerKey.get(
+      producerId ?? `name:${producerName}`,
+    ) ?? [];
+
+  const stopRowToggle = (e: React.MouseEvent | React.KeyboardEvent) => {
+    e.stopPropagation();
+  };
 
   const toggleProducerExpanded = (producerName: string) => {
     setExpandedProducers((prev) => {
@@ -410,6 +740,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
 
   return (
     <div className="max-w-6xl space-y-6">
+      <MapboxPreloader />
       <header className="flex items-center gap-4">
         <Button
           variant="ghost"
@@ -441,6 +772,80 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
               Namn och datum för leveransen
             </p>
           </div>
+          {items.length > 0 ? (
+            <div className="mb-5 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/70">
+              <div className="space-y-2">
+                <Label htmlFor="pickup_producer" className={labelClass}>
+                  Upphämtningsplats
+                </Label>
+                <Select
+                  value={pickupProducerId ?? "__auto__"}
+                  onValueChange={(v) =>
+                    setPickupProducerId(v === "__auto__" ? null : v)
+                  }
+                >
+                  <SelectTrigger id="pickup_producer" className={selectTriggerClass}>
+                    <SelectValue placeholder="Välj upphämtningsplats" />
+                  </SelectTrigger>
+                  <SelectContent className="border-gray-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+                    <SelectItem value="__auto__">
+                      Automatiskt (20%-regeln)
+                    </SelectItem>
+                    {producersOnPallet.map((producer) => (
+                      <SelectItem key={producer.id} value={producer.id}>
+                        {producer.name}
+                        {producer.is_pallet_zone ? " · Pallzon" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className={hintClass}>
+                  Välj producent manuellt eller låt systemet välja enligt
+                  pallzonsregeln (≥20% av flaskorna).
+                </p>
+              </div>
+              {effectivePickup.producer ? (
+                <div className="mt-3 space-y-1 border-t border-gray-200 pt-3 dark:border-zinc-700">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                    {effectivePickup.producer.name}
+                  </p>
+                  {formatProducerAddress(effectivePickup.producer) ? (
+                    <p className={hintClass}>
+                      {formatProducerAddress(effectivePickup.producer)}
+                    </p>
+                  ) : null}
+                  <p className={hintClass}>
+                    {effectivePickup.mode === "manual"
+                      ? "Manuellt vald upphämtningsplats"
+                      : effectivePickup.producer.is_pallet_zone
+                        ? `Pallzonsproducent · ${pickupResolution.leadingPalletZoneBottles} av ${pickupResolution.totalBottles} flaskor (${Math.round((pickupResolution.leadingPalletZoneBottles / pickupResolution.totalBottles) * 100)}%)`
+                        : "Automatiskt vald"}
+                  </p>
+                </div>
+              ) : pickupResolution.noPalletZoneOnPallet ? (
+                <p className={cn("mt-3 border-t border-gray-200 pt-3 dark:border-zinc-700", hintClass)}>
+                  {pickupProducerId
+                    ? "Den valda producenten finns inte längre på pallen."
+                    : "Ingen pallzonsproducent finns bland vinerna. Välj en producent manuellt eller markera producenten som pallzon i admin."}
+                </p>
+              ) : pickupResolution.belowThreshold &&
+                pickupResolution.leadingPalletZoneProducer ? (
+                <div className="mt-3 space-y-1 border-t border-gray-200 pt-3 dark:border-zinc-700">
+                  <p className="text-sm text-amber-700 dark:text-amber-400">
+                    Ingen producent uppfyller 20%-kravet automatiskt.
+                  </p>
+                  <p className={hintClass}>
+                    Närmast:{" "}
+                    <span className="font-medium text-gray-800 dark:text-zinc-200">
+                      {pickupResolution.leadingPalletZoneProducer.name}
+                    </span>{" "}
+                    ({pickupResolution.leadingPalletZoneBottles} av{" "}
+                    {pickupResolution.totalBottles} flaskor)
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name" className={labelClass}>
@@ -742,11 +1147,29 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                             <TableHead className="w-32 text-right text-gray-600 dark:text-zinc-400">
                               Flaskor
                             </TableHead>
+                            <TableHead className="w-28 text-right text-gray-600 dark:text-zinc-400">
+                              Distans
+                            </TableHead>
+                            <TableHead className="w-28 text-right text-gray-600 dark:text-zinc-400">
+                              Bil
+                            </TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {producerSummary.map((row) => {
                             const expanded = expandedProducers.has(row.name);
+                            const isPickupProducer =
+                              Boolean(effectivePickup.producer?.id) &&
+                              row.producerId === effectivePickup.producer?.id;
+                            const rowKey = row.producerId ?? row.name;
+                            const distance =
+                              producerDistanceByKey.get(rowKey) ?? null;
+                            const drivingRoute = drivingRoutes[rowKey];
+                            const isOptimalPickupProducer =
+                              Boolean(optimalPickup?.optimalProducerId) &&
+                              rowKey === optimalPickup?.optimalProducerId;
+                            const averageDriveSeconds =
+                              optimalPickup?.averageSecondsByProducer[rowKey];
                             return (
                               <Fragment key={row.name}>
                                 <TableRow
@@ -772,7 +1195,30 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                                     />
                                   </TableCell>
                                   <TableCell className="font-medium text-gray-900 dark:text-zinc-100">
-                                    {row.name}
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <span>{row.name}</span>
+                                      {isPickupProducer ? (
+                                        <Badge
+                                          variant="outline"
+                                          className="normal-case border-green-300 bg-green-50 font-medium text-green-700 dark:border-green-700 dark:bg-green-950/50 dark:text-green-400"
+                                        >
+                                          Upphämtningsplats
+                                        </Badge>
+                                      ) : null}
+                                      {isOptimalPickupProducer ? (
+                                        <Badge
+                                          variant="outline"
+                                          className="normal-case border-sky-300 bg-sky-50 font-medium text-sky-700 dark:border-sky-700 dark:bg-sky-950/50 dark:text-sky-400"
+                                          title={
+                                            averageDriveSeconds != null
+                                              ? `Lägst snittid till övriga producenter: ${formatDrivingTimeFromSeconds(averageDriveSeconds)}`
+                                              : undefined
+                                          }
+                                        >
+                                          Bästa plats
+                                        </Badge>
+                                      ) : null}
+                                    </div>
                                   </TableCell>
                                   <TableCell className="text-right tabular-nums text-sm text-gray-600 dark:text-zinc-400">
                                     {row.wineCount}
@@ -780,43 +1226,207 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                                   <TableCell className="text-right tabular-nums text-sm font-semibold text-gray-900 dark:text-zinc-100">
                                     {row.bottles}
                                   </TableCell>
+                                  <TableCell className="text-right tabular-nums text-sm text-gray-600 dark:text-zinc-400">
+                                    {isPickupProducer ? (
+                                      <span className="text-green-700 dark:text-green-400">
+                                        —
+                                      </span>
+                                    ) : drivingRoute ? (
+                                      formatDistanceMeters(
+                                        drivingRoute.distanceMeters,
+                                      )
+                                    ) : drivingRoutesLoading ? (
+                                      <span className="text-gray-400 dark:text-zinc-500">
+                                        …
+                                      </span>
+                                    ) : distance != null ? (
+                                      formatDistanceKm(distance)
+                                    ) : (
+                                      "—"
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums text-sm text-gray-600 dark:text-zinc-400">
+                                    {isPickupProducer ? (
+                                      <span className="text-green-700 dark:text-green-400">
+                                        —
+                                      </span>
+                                    ) : drivingRoute ? (
+                                      formatDrivingTimeFromSeconds(
+                                        drivingRoute.durationSeconds,
+                                      )
+                                    ) : drivingRoutesLoading ? (
+                                      <span className="text-gray-400 dark:text-zinc-500">
+                                        …
+                                      </span>
+                                    ) : distance != null ? (
+                                      formatDrivingTime(
+                                        estimateDrivingMinutes(distance),
+                                      )
+                                    ) : (
+                                      "—"
+                                    )}
+                                  </TableCell>
                                 </TableRow>
-                                {expanded &&
-                                  row.wines.map((entry) => (
-                                    <TableRow
-                                      key={`${row.name}-${entry.wine_id}`}
-                                      className="border-gray-100 bg-gray-50/60 hover:bg-gray-50 dark:border-zinc-800/80 dark:bg-zinc-900/40 dark:hover:bg-zinc-900/60"
-                                    >
+                                {expanded ? (
+                                  <>
+                                    <TableRow className="border-gray-100 bg-gray-50/40 hover:bg-gray-50/40 dark:border-zinc-800/80 dark:bg-zinc-900/30 dark:hover:bg-zinc-900/30">
                                       <TableCell />
                                       <TableCell
-                                        colSpan={2}
-                                        className="py-2 pl-8"
+                                        colSpan={5}
+                                        className="py-1.5 pl-8 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-zinc-500"
                                       >
-                                        <div className="flex min-w-0 items-center gap-2 text-sm">
-                                          <span
-                                            className={cn(
-                                              "inline-block h-2.5 w-2.5 shrink-0 rounded-full",
-                                              wineColorDotClass(entry.wine?.color),
-                                            )}
-                                            aria-hidden
-                                          />
-                                          <span className="truncate font-medium text-gray-800 dark:text-zinc-200">
-                                            {entry.wine
-                                              ? `${entry.wine.wine_name} ${entry.wine.vintage}`
-                                              : entry.wine_id}
-                                          </span>
-                                          {entry.wine?.color?.trim() && (
-                                            <span className="shrink-0 text-xs text-gray-500 dark:text-zinc-500">
-                                              {entry.wine.color}
-                                            </span>
-                                          )}
-                                        </div>
-                                      </TableCell>
-                                      <TableCell className="text-right tabular-nums text-sm text-gray-700 dark:text-zinc-300">
-                                        {entry.quantity} st
+                                        På pallen
                                       </TableCell>
                                     </TableRow>
-                                  ))}
+                                    {row.wines.map((entry) => (
+                                      <TableRow
+                                        key={`${row.name}-${entry.wine_id}`}
+                                        className="border-gray-100 bg-gray-50/60 hover:bg-gray-50 dark:border-zinc-800/80 dark:bg-zinc-900/40 dark:hover:bg-zinc-900/60"
+                                      >
+                                        <TableCell />
+                                        <TableCell
+                                          colSpan={2}
+                                          className="py-2 pl-8"
+                                        >
+                                          <div className="flex min-w-0 items-center gap-2 text-sm">
+                                            <span
+                                              className={cn(
+                                                "inline-block h-2.5 w-2.5 shrink-0 rounded-full",
+                                                wineColorDotClass(entry.wine?.color),
+                                              )}
+                                              aria-hidden
+                                            />
+                                            <span className="truncate font-medium text-gray-800 dark:text-zinc-200">
+                                              {entry.wine
+                                                ? `${entry.wine.wine_name} ${entry.wine.vintage}`
+                                                : entry.wine_id}
+                                            </span>
+                                            {entry.wine?.color?.trim() && (
+                                              <span className="shrink-0 text-xs text-gray-500 dark:text-zinc-500">
+                                                {entry.wine.color}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                          <div
+                                            className="ml-auto flex items-center justify-end gap-1"
+                                            onClick={stopRowToggle}
+                                            onKeyDown={stopRowToggle}
+                                          >
+                                            <Input
+                                              type="number"
+                                              min={1}
+                                              value={entry.quantity}
+                                              onChange={(e) =>
+                                                updateItem(entry.wine_id, {
+                                                  quantity: Math.max(
+                                                    1,
+                                                    parseInt(e.target.value, 10) ||
+                                                      0,
+                                                  ),
+                                                })
+                                              }
+                                              className={cn(
+                                                inputSmClass,
+                                                "w-16 text-right",
+                                              )}
+                                            />
+                                            <Button
+                                              type="button"
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-8 w-8 text-gray-500 hover:text-red-600 dark:text-zinc-400 dark:hover:text-red-400"
+                                              onClick={() =>
+                                                removeItem(entry.wine_id)
+                                              }
+                                              title="Ta bort från pallen"
+                                            >
+                                              <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                          </div>
+                                        </TableCell>
+                                        <TableCell />
+                                        <TableCell />
+                                      </TableRow>
+                                    ))}
+                                    <TableRow className="border-gray-100 bg-gray-50/40 hover:bg-gray-50/40 dark:border-zinc-800/80 dark:bg-zinc-900/30 dark:hover:bg-zinc-900/30">
+                                      <TableCell colSpan={6} className="p-0">
+                                        <Collapsible>
+                                          <CollapsibleTrigger className="flex w-full items-center gap-2 px-4 py-2.5 pl-12 text-left text-sm font-medium text-gray-700 hover:bg-gray-100/80 dark:text-zinc-300 dark:hover:bg-zinc-900/60 [&[data-state=open]>svg:first-child]:rotate-90">
+                                            <ChevronRight className="h-4 w-4 shrink-0 text-gray-500 transition-transform dark:text-zinc-400" />
+                                            <span>
+                                              Övriga viner från producenten
+                                            </span>
+                                            <span className="text-xs font-normal text-gray-500 dark:text-zinc-500">
+                                              (
+                                              {
+                                                getAvailableWinesForProducer(
+                                                  row.producerId,
+                                                  row.name,
+                                                ).length
+                                              }
+                                              )
+                                            </span>
+                                          </CollapsibleTrigger>
+                                          <CollapsibleContent>
+                                            {getAvailableWinesForProducer(
+                                              row.producerId,
+                                              row.name,
+                                            ).length === 0 ? (
+                                              <p className="px-4 py-3 pl-16 text-sm text-gray-500 dark:text-zinc-400">
+                                                Alla viner från producenten finns
+                                                redan på pallen.
+                                              </p>
+                                            ) : (
+                                              <div className="space-y-0 border-t border-gray-200 dark:border-zinc-800">
+                                                {getAvailableWinesForProducer(
+                                                  row.producerId,
+                                                  row.name,
+                                                ).map((wine) => (
+                                                  <div
+                                                    key={wine.id}
+                                                    className="flex items-center gap-3 border-b border-gray-100 px-4 py-2.5 pl-16 last:border-b-0 dark:border-zinc-800/80"
+                                                  >
+                                                    <span
+                                                      className={cn(
+                                                        "inline-block h-2.5 w-2.5 shrink-0 rounded-full",
+                                                        wineColorDotClass(wine.color),
+                                                      )}
+                                                      aria-hidden
+                                                    />
+                                                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-800 dark:text-zinc-200">
+                                                      {wine.wine_name} {wine.vintage}
+                                                      {wine.color?.trim() ? (
+                                                        <span className="ml-1.5 text-xs font-normal text-gray-500 dark:text-zinc-500">
+                                                          · {wine.color}
+                                                        </span>
+                                                      ) : null}
+                                                    </span>
+                                                    <Button
+                                                      type="button"
+                                                      variant="outline"
+                                                      size="sm"
+                                                      className="h-8 shrink-0 gap-1 border-gray-200 text-xs dark:border-zinc-700"
+                                                      onClick={() =>
+                                                        addWine(wine, {
+                                                          keepComboboxOpen: true,
+                                                        })
+                                                      }
+                                                    >
+                                                      <Plus className="h-3.5 w-3.5" />
+                                                      Lägg till
+                                                    </Button>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            )}
+                                          </CollapsibleContent>
+                                        </Collapsible>
+                                      </TableCell>
+                                    </TableRow>
+                                  </>
+                                ) : null}
                               </Fragment>
                             );
                           })}
@@ -959,6 +1569,22 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                     </Table>
                     )}
                   </ScrollArea>
+                  {showProducerSummary &&
+                  drivingRoutesSource &&
+                  drivingRoutesSource !== "estimate" ? (
+                    <p className={cn("mt-2 px-1", hintClass)}>
+                      Distans och körtid baseras på vägnät (
+                      {drivingRoutesSource === "mapbox" ? "Mapbox" : "OSRM"}).
+                      {optimalPickup
+                        ? " Taggen Bästa plats = lägst snittid till övriga producenter."
+                        : null}
+                    </p>
+                  ) : showProducerSummary && optimalPickup ? (
+                    <p className={cn("mt-2 px-1", hintClass)}>
+                      Taggen Bästa plats = lägst snittid till övriga producenter
+                      på pallen.
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className="rounded-xl border border-gray-200 bg-gray-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
@@ -1048,6 +1674,14 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                       </dd>
                     </div>
                   </dl>
+                  {producerSummary.length > 0 ? (
+                    <div className="mt-4 border-t border-gray-200 pt-4 dark:border-zinc-700">
+                      <h4 className="mb-3 text-sm font-medium text-gray-700 dark:text-zinc-300">
+                        Producentkarta
+                      </h4>
+                      <B2bPalletProducersMap producers={palletMapData} />
+                    </div>
+                  ) : null}
                 </div>
               </>
             )}

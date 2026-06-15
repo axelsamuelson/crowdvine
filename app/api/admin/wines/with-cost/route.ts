@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
         cost_currency,
         exchange_rate,
         alcohol_tax_cents,
-        producers(name)
+        producers(id, name, is_pallet_zone, address_street, address_city, address_postcode, region, subregion, lat, lon)
       `)
       .order("wine_name")
       .order("vintage", { ascending: false });

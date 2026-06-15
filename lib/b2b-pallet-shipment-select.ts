@@ -1,0 +1,44 @@
+/** Shared Supabase select for B2B pallet shipment admin APIs. */
+export const B2B_PALLET_SHIPMENT_SELECT = `
+  *,
+  pickup_producer:producers!pickup_producer_id(
+    id,
+    name,
+    is_pallet_zone,
+    address_street,
+    address_city,
+    address_postcode,
+    region,
+    subregion,
+    lat,
+    lon
+  ),
+  b2b_pallet_shipment_items(
+    id,
+    wine_id,
+    quantity,
+    cost_cents_override,
+    wines(
+      id,
+      wine_name,
+      vintage,
+      color,
+      cost_amount,
+      cost_currency,
+      exchange_rate,
+      alcohol_tax_cents,
+      producers(
+        id,
+        name,
+        is_pallet_zone,
+        address_street,
+        address_city,
+        address_postcode,
+        region,
+        subregion,
+        lat,
+        lon
+      )
+    )
+  )
+`;

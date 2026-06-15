@@ -133,7 +133,7 @@ export default function WineForm({ wine, producers, isProducerView = false, init
     tasting_notes: copyTextFromWine(wine?.tasting_notes as WineCopyField, "sv"),
     alcohol_percentage: wine?.alcohol_percentage ?? null,
     farming: wine?.farming ?? null,
-    additives: wine?.additives ?? "",
+    additives: copyTextFromWine(wine?.additives as WineCopyField, "sv"),
     serving_temp_c: wine?.serving_temp_c ?? "",
     food_pairing_text: copyArrayTextFromWine(
       wine?.food_pairing as WineArrayField,
@@ -142,7 +142,7 @@ export default function WineForm({ wine, producers, isProducerView = false, init
     winemaker_notes: copyTextFromWine(wine?.winemaker_notes as WineCopyField, "sv"),
     awards_text: copyArrayTextFromWine(wine?.awards as WineArrayField, "sv"),
     ageing: copyTextFromWine(wine?.ageing as WineCopyField, "sv"),
-    soil_type: wine?.soil_type ?? "",
+    soil_type: copyTextFromWine(wine?.soil_type as WineCopyField, "sv"),
     elevation_masl: wine?.elevation_masl ?? null,
     style_scale:
       wine && "style_scale" in wine
@@ -250,7 +250,7 @@ export default function WineForm({ wine, producers, isProducerView = false, init
       tasting_notes: copyTextFromWine(wine.tasting_notes as WineCopyField, editLocale),
       alcohol_percentage: wine.alcohol_percentage ?? null,
       farming: wine.farming ?? null,
-      additives: wine.additives ?? "",
+      additives: copyTextFromWine(wine.additives as WineCopyField, editLocale),
       serving_temp_c: wine.serving_temp_c ?? "",
       food_pairing_text: copyArrayTextFromWine(
         wine.food_pairing as WineArrayField,
@@ -259,7 +259,7 @@ export default function WineForm({ wine, producers, isProducerView = false, init
       winemaker_notes: copyTextFromWine(wine.winemaker_notes as WineCopyField, editLocale),
       awards_text: copyArrayTextFromWine(wine.awards as WineArrayField, editLocale),
       ageing: copyTextFromWine(wine.ageing as WineCopyField, editLocale),
-      soil_type: wine.soil_type ?? "",
+      soil_type: copyTextFromWine(wine.soil_type as WineCopyField, editLocale),
       elevation_masl: wine.elevation_masl ?? null,
       style_scale:
         "style_scale" in wine
@@ -291,6 +291,10 @@ export default function WineForm({ wine, producers, isProducerView = false, init
       awards_text: formatCommaList(
         extractWineArray(wine.awards as WineArrayField, editLocale) ?? [],
       ),
+      additives:
+        extractWineText(wine.additives as WineCopyField, editLocale) ?? "",
+      soil_type:
+        extractWineText(wine.soil_type as WineCopyField, editLocale) ?? "",
     }));
   }, [editLocale, wine]);
 

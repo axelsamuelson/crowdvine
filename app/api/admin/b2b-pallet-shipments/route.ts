@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { B2B_PALLET_SHIPMENT_SELECT } from "@/lib/b2b-pallet-shipment-select";
+import { validateB2bPickupProducerId } from "@/lib/b2b-pallet-shipment-validation";
 
 export async function GET() {
   try {
@@ -7,18 +9,7 @@ export async function GET() {
 
     const { data: shipments, error } = await sb
       .from("b2b_pallet_shipments")
-      .select(
-        `
-        *,
-        b2b_pallet_shipment_items(
-          id,
-          wine_id,
-          quantity,
-          cost_cents_override,
-          wines(id, wine_name, vintage, color, cost_amount, cost_currency, exchange_rate, alcohol_tax_cents, producers(name))
-        )
-      `,
-      )
+      .select(B2B_PALLET_SHIPMENT_SELECT)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -44,12 +35,21 @@ export async function POST(request: NextRequest) {
     const sb = getSupabaseAdmin();
     const body = await request.json();
 
-    const { name, shipped_at, delivered_at, cost_cents, is_active, items } = body as {
+    const {
+      name,
+      shipped_at,
+      delivered_at,
+      cost_cents,
+      is_active,
+      pickup_producer_id,
+      items,
+    } = body as {
       name: string;
       shipped_at?: string | null;
       delivered_at?: string | null;
       cost_cents?: number | null;
       is_active?: boolean;
+      pickup_producer_id?: string | null;
       items: Array<{
         wine_id: string;
         quantity: number;
@@ -64,6 +64,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const wineIds = (items ?? [])
+      .filter((i) => i.wine_id && i.quantity > 0)
+      .map((i) => i.wine_id);
+
+    const pickupCheck = await validateB2bPickupProducerId(
+      sb,
+      pickup_producer_id,
+      wineIds,
+    );
+    if (!pickupCheck.ok) {
+      return NextResponse.json({ error: pickupCheck.error }, { status: 400 });
+    }
+
     const { data: shipment, error: insertError } = await sb
       .from("b2b_pallet_shipments")
       .insert({
@@ -72,6 +85,7 @@ export async function POST(request: NextRequest) {
         delivered_at: delivered_at || null,
         cost_cents: cost_cents != null ? cost_cents : null,
         is_active: is_active === true,
+        pickup_producer_id: pickupCheck.pickupProducerId,
       })
       .select()
       .single();
@@ -85,8 +99,8 @@ export async function POST(request: NextRequest) {
 
     if (items && Array.isArray(items) && items.length > 0) {
       const itemRows = items
-        .filter((i: any) => i.wine_id && i.quantity > 0)
-        .map((i: any) => ({
+        .filter((i) => i.wine_id && i.quantity > 0)
+        .map((i) => ({
           shipment_id: shipment.id,
           wine_id: i.wine_id,
           quantity: Math.max(1, Math.floor(i.quantity)),
@@ -112,18 +126,7 @@ export async function POST(request: NextRequest) {
 
     const { data: full, error: fetchError } = await sb
       .from("b2b_pallet_shipments")
-      .select(
-        `
-        *,
-        b2b_pallet_shipment_items(
-          id,
-          wine_id,
-          quantity,
-          cost_cents_override,
-          wines(id, wine_name, vintage, color, cost_amount, cost_currency, exchange_rate, alcohol_tax_cents, producers(name))
-        )
-      `,
-      )
+      .select(B2B_PALLET_SHIPMENT_SELECT)
       .eq("id", shipment.id)
       .single();
 

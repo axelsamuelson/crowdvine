@@ -41,7 +41,7 @@ export function extractWineArray(
 }
 
 export function buildWineJsonb(
-  value: string | null | undefined,
+  value: string | Record<string, string> | null | undefined,
   locale: WineLocale,
   existing?: Record<string, string> | string | null,
 ): Record<string, string> | null {
@@ -53,7 +53,22 @@ export function buildWineJsonb(
     }
   }
 
-  const trimmed = value?.trim();
+  if (value != null && typeof value === "object" && !Array.isArray(value)) {
+    const fromValue: Record<string, string> = {};
+    for (const loc of SUPPORTED_WINE_LOCALES) {
+      const text = extractWineText(value, loc);
+      if (text) fromValue[loc] = text;
+    }
+    const merged = { ...existingObj, ...fromValue };
+    return Object.keys(merged).length > 0 ? merged : null;
+  }
+
+  const trimmed =
+    typeof value === "string"
+      ? value.trim()
+      : value == null
+        ? ""
+        : String(value).trim();
   const merged = {
     ...existingObj,
     ...(trimmed ? { [locale]: trimmed } : {}),

@@ -217,7 +217,7 @@ export async function GET(
         soil_type,
         tags,
         available_for_sale,
-        producers!inner(name, region, boost_active)
+        producers!inner(name, region, subregion, lat, lon, boost_active)
       `;
 
   const wineSelectWithoutExtendedEnrichment = `
@@ -255,7 +255,7 @@ export async function GET(
         awards,
         tags,
         available_for_sale,
-        producers!inner(name, region, boost_active)
+        producers!inner(name, region, subregion, lat, lon, boost_active)
       `;
 
   let result = await sb
@@ -483,6 +483,9 @@ export async function GET(
   const producerEmbed = i.producers as {
     name?: string;
     region?: string;
+    subregion?: string;
+    lat?: number | null;
+    lon?: number | null;
     boost_active?: boolean;
   } | null;
   const producerRegion = producerEmbed?.region;
@@ -549,6 +552,14 @@ export async function GET(
     categoryId: i.producer_id,
     producerId: i.producer_id,
     producerName: producerEmbed?.name || "Unknown Producer",
+    producerLocation: producerEmbed
+      ? {
+          lat: producerEmbed.lat ?? null,
+          lon: producerEmbed.lon ?? null,
+          subregion: producerEmbed.subregion ?? null,
+          region: producerEmbed.region ?? null,
+        }
+      : null,
     producerBoostActive: producerEmbed?.boost_active === true,
     options: [
       // Add grape varieties as an option

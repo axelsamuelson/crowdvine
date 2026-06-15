@@ -189,6 +189,13 @@ export type Product = {
   images: Image[];
   availableForSale: boolean;
   producerName?: string;
+  /** Producer coordinates for PDP map (from producers table). */
+  producerLocation?: {
+    lat?: number | null;
+    lon?: number | null;
+    subregion?: string | null;
+    region?: string | null;
+  } | null;
   /** When true, PACT Points redeem at higher SEK value against this wine's lines (see checkout). */
   producerBoostActive?: boolean;
   priceBreakdown?: {

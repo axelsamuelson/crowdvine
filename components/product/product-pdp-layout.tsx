@@ -24,6 +24,7 @@ import { DesktopGallery } from "@/app/product/[handle]/components/desktop-galler
 import { DesktopGalleryWrapper } from "@/app/product/[handle]/components/desktop-gallery-wrapper";
 import { ProductHeroPrice } from "@/app/product/[handle]/components/product-hero-price";
 import { PdpRecommendationsSection } from "@/components/product/pdp-recommendations-section";
+import { WineProducerMap } from "@/components/product/wine-producer-map";
 import type { PdpRecommendationsResult } from "@/lib/product/recommendations";
 import type { Product } from "@/lib/shopify/types";
 
@@ -49,16 +50,40 @@ export function ProductPdpLayout({
   devPreview,
   addToCartPreviewDisabled = false,
 }: ProductPdpLayoutProps) {
+  const showProducerMap =
+    product.productType === "wine" &&
+    Boolean(product.producerName) &&
+    Boolean(
+      product.producerLocation?.lat ||
+        product.producerLocation?.lon ||
+        product.producerLocation?.subregion ||
+        product.producerLocation?.region,
+    );
+
+  const producerMap = showProducerMap ? (
+    <WineProducerMap
+      producer={{
+        name: product.producerName ?? "Producent",
+        lat: product.producerLocation?.lat,
+        lon: product.producerLocation?.lon,
+        subregion: product.producerLocation?.subregion,
+        region: product.producerLocation?.region,
+      }}
+    />
+  ) : null;
+
   return (
     <CartSourceProviderConditional>
       <PageLayoutServer className="bg-muted" noPadding>
         {devPreview}
 
         <div className="flex min-h-max flex-col md:grid md:grid-cols-12 md:gap-sides">
-          <div className="col-span-full h-[60vh] min-h-[400px] md:hidden">
-            <Suspense fallback={null}>
-              <MobileGallerySlider product={product} />
-            </Suspense>
+          <div className="col-span-full md:hidden">
+            <div className="h-[60vh] min-h-[400px]">
+              <Suspense fallback={null}>
+                <MobileGallerySlider product={product} />
+              </Suspense>
+            </div>
           </div>
 
           <div className="sticky top-0 col-span-5 flex min-h-max flex-col max-md:static max-md:col-span-full max-md:p-sides md:h-screen md:pl-sides md:pt-top-spacing 2xl:col-span-4">
@@ -144,8 +169,17 @@ export function ProductPdpLayout({
             <Suspense fallback={null}>
               <DesktopGallery product={product} />
             </Suspense>
+            {producerMap ? (
+              <div className="pb-sides pt-4 max-md:hidden">
+                {producerMap}
+              </div>
+            ) : null}
           </DesktopGalleryWrapper>
         </div>
+
+        {producerMap ? (
+          <div className="md:hidden">{producerMap}</div>
+        ) : null}
 
         {recommendations && recommendations.items.length > 0 ? (
           <PdpRecommendationsSection recommendations={recommendations} />
