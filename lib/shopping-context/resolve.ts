@@ -27,6 +27,8 @@ export type ResolveShoppingContextInput = {
   searchParams?: { get: (key: string) => string | null } | null;
   cookieLocale?: string | null;
   acceptLanguage?: string | null;
+  /** Locale implied by /vin (sv) or /wine (en) shop paths — wins over cookie. */
+  pathLocale?: AppLocale | null;
 };
 
 async function loadUserPreferredLocale(
@@ -59,6 +61,7 @@ function resolveAppLocale(params: {
   acceptLanguage?: string | null;
   userPreferred?: AppLocale | null;
   activeZone: ResolvedActiveGeoZone;
+  pathLocale?: AppLocale | null;
 }): AppLocale {
   if (!params.uiLocalizationEnabled) return DEFAULT_APP_LOCALE;
   // Explicit browser choice (language switcher) wins over stored profile default.
@@ -66,6 +69,7 @@ function resolveAppLocale(params: {
   const fromPreferred = params.userPreferred;
   const fromAccept = localeFromAcceptLanguage(params.acceptLanguage);
   const picked =
+    params.pathLocale ??
     fromCookie ??
     fromPreferred ??
     fromAccept ??
@@ -106,6 +110,7 @@ export async function resolveShoppingContext(
     acceptLanguage: input.acceptLanguage,
     userPreferred,
     activeZone,
+    pathLocale: input.pathLocale ?? null,
   });
 
   const currencyCode = resolveDisplayCurrencyCode({

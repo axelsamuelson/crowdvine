@@ -22,8 +22,10 @@ import {
 } from "@/lib/product/wine-enrichment";
 import type { WineEnrichment } from "@/lib/shopify/types";
 import { generateProducerSlug } from "@/lib/producer-handle";
+import { producerPublicPath } from "@/lib/i18n/localized-routes";
 import { wineColorDotClass } from "@/lib/wine-color";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import type { AppLocale } from "@/lib/i18n/locale";
 import { cn } from "@/lib/utils";
 
 const SPEC_ICONS: Record<EnrichmentSpecKey, LucideIcon> = {
@@ -71,11 +73,13 @@ function SpecItem({
   label,
   value,
   enrichment,
+  locale,
 }: {
   specKey: EnrichmentSpecKey;
   label: string;
   value: string;
   enrichment: WineEnrichment | null | undefined;
+  locale: AppLocale;
 }) {
   const Icon = SPEC_ICONS[specKey] ?? MapPin;
 
@@ -106,7 +110,7 @@ function SpecItem({
         <dd className="mt-0.5 text-sm leading-snug text-foreground">
           {specKey === "producer" ? (
             <Link
-              href={`/producer/${generateProducerSlug(value)}`}
+              href={producerPublicPath(generateProducerSlug(value), locale)}
               className="underline underline-offset-2"
             >
               {value}
@@ -177,6 +181,7 @@ export function WineEnrichmentSpecs({
               label={t(enrichmentSpecLabelKey(key))}
               value={value}
               enrichment={enrichment}
+              locale={context.locale}
             />
           ))}
         </dl>

@@ -24,6 +24,7 @@ import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { ColorSwatch } from "@/components/ui/color-picker";
 import { getColorHex, cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { getProductListPriceSek } from "@/lib/price-breakdown";
 
 // ============================================================================
@@ -133,6 +134,8 @@ export const ProductCard = memo(
     recommendationReason?: RecommendationReason;
   }) => {
   const { t } = useTranslations();
+  const paths = useLocalizedPaths();
+  const productHref = paths.product(product.handle);
   const hasNoOptions = product.options.length === 0;
   const hasOneOptionWithOneValue =
     product.options.length === 1 && product.options[0].values.length === 1;
@@ -352,7 +355,7 @@ export const ProductCard = memo(
               onMouseLeave={() => {}}
             >
               <Link
-                href={`/product/${product.handle}`}
+                href={productHref}
                 className="absolute top-2 right-2 px-2 py-1 bg-blue-500 text-white text-xs rounded"
                 prefetch
               >
@@ -375,7 +378,7 @@ export const ProductCard = memo(
             >
               <div className="relative size-full" style={{ overflow: 'clip' }}>
                 <Link
-                  href={`/product/${product.handle}`}
+                  href={productHref}
                   className="block size-full focus-visible:outline-none"
                   style={{ touchAction: 'pan-y', overscrollBehavior: 'auto' }}
                   prefetch
@@ -402,7 +405,7 @@ export const ProductCard = memo(
             >
               <div className="relative size-full" style={{ overflow: 'clip' }}>
                 <Link
-                  href={`/product/${product.handle}`}
+                  href={productHref}
                   className="block size-full focus-visible:outline-none"
                   style={{ touchAction: 'pan-y', overscrollBehavior: 'auto' }}
                   prefetch
@@ -441,7 +444,7 @@ export const ProductCard = memo(
             >
               <div className="relative size-full" style={{ overflow: 'clip' }}>
                 <Link
-                  href={`/product/${product.handle}`}
+                  href={productHref}
                   className="block size-full focus-visible:outline-none"
                   style={{ touchAction: 'pan-y', overscrollBehavior: 'auto' }}
                   prefetch
@@ -483,7 +486,7 @@ export const ProductCard = memo(
             >
               <div className="relative size-full" style={{ overflow: 'clip' }}>
                 <Link
-                  href={`/product/${product.handle}`}
+                  href={productHref}
                   className="block size-full focus-visible:outline-none"
                   style={{ touchAction: 'pan-y', overscrollBehavior: 'auto' }}
                   prefetch
@@ -527,7 +530,7 @@ export const ProductCard = memo(
             >
               <div className="relative size-full" style={{ overflow: 'clip' }}>
                 <Link
-                  href={`/product/${product.handle}`}
+                  href={productHref}
                   className="block size-full focus-visible:outline-none"
                   style={{ touchAction: 'pan-y', overscrollBehavior: 'auto' }}
                   prefetch
@@ -571,7 +574,7 @@ export const ProductCard = memo(
             >
               <div className="relative size-full" style={{ overflow: 'clip' }}>
                 <Link
-                  href={`/product/${product.handle}`}
+                  href={productHref}
                   className="block size-full focus-visible:outline-none"
                   style={{ touchAction: 'pan-y', overscrollBehavior: 'auto' }}
                   prefetch
@@ -627,7 +630,7 @@ export const ProductCard = memo(
             >
               <div className="relative size-full" style={{ overflow: 'clip' }}>
                 <Link
-                  href={`/product/${product.handle}`}
+                  href={productHref}
                   className="block size-full focus-visible:outline-none"
                   style={{ touchAction: 'pan-y', overscrollBehavior: 'auto' }}
                   prefetch
@@ -713,7 +716,7 @@ export const ProductCard = memo(
         )}
 
         <Link
-          href={`/product/${product.handle}`}
+          href={productHref}
           className="block size-full focus-visible:outline-none"
           style={{ touchAction: 'pan-y', overscrollBehavior: 'auto' }}
           aria-label={t("shop.viewProductAria", {
@@ -1083,7 +1086,7 @@ export const ProductCard = memo(
                     size="sm"
                     asChild
                   >
-                    <Link href={`/product/${product.handle}`}>
+                    <Link href={productHref}>
                       <span>{t("shop.viewProduct")}</span>
                       <ArrowRightIcon className="shrink-0" />
                     </Link>

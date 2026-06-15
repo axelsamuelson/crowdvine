@@ -57,6 +57,7 @@ export async function HomeSidebar({ collections }: HomeSidebarProps) {
       </div>
       <ShopLinks
         collections={collections}
+        locale={locale}
         label={t("home.popularProducers")}
         emptyMessage={t("home.noProducersFound", {
           count: collections?.length ?? 0,

@@ -16,6 +16,7 @@ import { useFilterCount } from "../hooks/use-filter-count";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { X } from "lucide-react";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { getCategoryUrlForColor, getCategoryUrlForGrape, getActiveGrapeFromPathname } from "@/lib/wine-categories";
 import { filterProductsByGrapes } from "@/lib/shop/filter-products-by-grape";
 
@@ -45,6 +46,7 @@ export function DesktopFilters({
   className?: string;
 }) {
   const { t } = useTranslations();
+  const paths = useLocalizedPaths();
   const { originalProducts, setProducts } = useProducts();
   const filterCount = useFilterCount();
   const [seeAllOpen, setSeeAllOpen] = useState(false);
@@ -119,7 +121,7 @@ export function DesktopFilters({
               className="font-medium text-foreground/50 hover:text-foreground/60"
               asChild
             >
-              <Link href="/vin" prefetch>
+              <Link href={paths.shop} prefetch>
                 {t("shop.clear")}
               </Link>
             </Button>
@@ -175,7 +177,7 @@ export function DesktopFilters({
                   disabled={filterCount === 0}
                   asChild={filterCount > 0}
                 >
-                  <Link href="/vin" prefetch>
+                  <Link href={paths.shop} prefetch>
                     {t("shop.clear")}
                   </Link>
                 </Button>

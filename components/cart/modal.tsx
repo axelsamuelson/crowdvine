@@ -14,6 +14,7 @@ import { priceExclVat } from "@/lib/shopify/utils";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { useFormatPrice } from "@/lib/hooks/use-format-price";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { useBodyScrollLock } from "@/lib/hooks/use-body-scroll-lock";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -178,6 +179,7 @@ const serializeCart = (cart: Cart) => {
 
 export default function CartModal() {
   const { t } = useTranslations();
+  const paths = useLocalizedPaths();
   const { cart, isPending } = useCart();
   const [isOpen, setIsOpen] = useState(false);
   const [validations, setValidations] = useState<ProducerValidation[]>([]);
@@ -290,7 +292,7 @@ export default function CartModal() {
           
           <CartContainer className="flex w-full">
             <Link
-              href="/vin"
+              href={paths.shop}
               className="p-2 w-full rounded-lg border border-dashed bg-background border-border"
               onClick={closeCart}
             >
@@ -377,7 +379,7 @@ export default function CartModal() {
               <div className="flex flex-col py-3 w-full rounded bg-muted md:py-4">
                 <CartContainer className="flex justify-between items-center mb-10">
                   {/* Back to Shop Button */}
-                  <Link href="/vin" onClick={closeCart}>
+                  <Link href={paths.shop} onClick={closeCart}>
                     <Button
                       size="sm"
                       variant="ghost"
@@ -424,6 +426,7 @@ function CheckoutButton({
   isValidating?: boolean;
 }) {
   const { t } = useTranslations();
+  const paths = useLocalizedPaths();
   const { pending } = useFormStatus();
   const { cart, isPending } = useCart();
   const router = useRouter();
@@ -435,23 +438,23 @@ function CheckoutButton({
   const invalidValidations = validations.filter((v) => !v.isValid);
 
   // Determine redirect URL based on number of invalid producers
-  let redirectUrl = "/vin";
+  let redirectUrl = paths.shop;
 
   if (invalidValidations.length === 1) {
     // Single producer - redirect to that specific producer/group
     const firstInvalidValidation = invalidValidations[0];
     redirectUrl = firstInvalidValidation?.groupId
-      ? `/vin/group/${firstInvalidValidation.groupId}`
+      ? paths.shopGroup(firstInvalidValidation.groupId)
       : firstInvalidValidation?.producerHandle
-        ? `/vin/${firstInvalidValidation.producerHandle}`
-        : "/vin";
+        ? paths.shopCollection(firstInvalidValidation.producerHandle)
+        : paths.shop;
   } else if (invalidValidations.length > 1) {
     // Multiple producers - redirect to shop with multiple producer filters
     const producerHandles = invalidValidations
       .filter((v) => v.producerHandle)
       .map((v) => v.producerHandle)
       .join(",");
-    redirectUrl = `/vin?producers=${producerHandles}`;
+    redirectUrl = paths.shopQuery({ producers: producerHandles });
   }
 
   const isLoading = pending || isValidating;

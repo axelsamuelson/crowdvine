@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { cookies } from "next/headers";
 
 import {
   Breadcrumb,
@@ -16,6 +15,8 @@ import {
   type WineLocale,
 } from "@/lib/i18n/wine-locale";
 import { generateProducerSlug } from "@/lib/producer-handle";
+import { localizedPathsForLocale } from "@/lib/i18n/localized-paths";
+import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getSiteConfig } from "@/lib/site-config";
 
@@ -65,9 +66,9 @@ function producerInitials(name: string): string {
 }
 
 export default async function LanguedocNaturvinPage() {
-  const cookieStore = await cookies();
-  const rawLocale = cookieStore.get("pact_locale")?.value ?? "sv";
-  const locale: WineLocale = rawLocale === "en" ? "en" : "sv";
+  const shopping = await getShoppingContextFromRequest({ skipUser: true });
+  const locale: WineLocale = shopping.locale === "en" ? "en" : "sv";
+  const paths = localizedPathsForLocale(locale);
 
   const sb = getSupabaseAdmin();
   const { data: producersRaw } = await sb
@@ -85,7 +86,7 @@ export default async function LanguedocNaturvinPage() {
         "@type": "ListItem",
         position: 1,
         name: "Shop",
-        item: "https://pactwines.com/vin",
+        item: `https://pactwines.com${paths.shop}`,
       },
       {
         "@type": "ListItem",
@@ -173,7 +174,7 @@ export default async function LanguedocNaturvinPage() {
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link href="/vin">Shop</Link>
+                <Link href={paths.shop}>Shop</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
@@ -257,7 +258,7 @@ export default async function LanguedocNaturvinPage() {
               return (
                 <Link
                   key={producer.id}
-                  href={`/producer/${slug}`}
+                  href={paths.producer(slug)}
                   className="group overflow-hidden rounded-xl border bg-white transition-colors hover:border-zinc-400"
                 >
                   <div className="flex h-20 items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-950">
@@ -294,7 +295,7 @@ export default async function LanguedocNaturvinPage() {
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Link
-              href="/vin"
+              href={paths.shop}
               className="rounded-full bg-background px-6 py-2.5 text-sm font-medium text-foreground transition-opacity hover:opacity-90"
             >
               Se alla viner
@@ -306,7 +307,7 @@ export default async function LanguedocNaturvinPage() {
               Möt producenterna
             </Link>
             <Link
-              href="/vin/naturvin-languedoc"
+              href={paths.shopCategory("naturvin-languedoc")}
               className="rounded-full border border-background/30 px-6 py-2.5 text-sm font-medium text-background transition-colors hover:border-background/60"
             >
               Se naturvin från Languedoc i butiken →

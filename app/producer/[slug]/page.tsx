@@ -15,6 +15,7 @@ import { Footer } from "@/components/layout/footer";
 import { getAppUrlForRequest, getInternalFetchHeaders } from "@/lib/app-url";
 import { ProducerWineCard } from "@/components/producer/producer-wine-card";
 import { producerPageUrls } from "@/lib/i18n/localized-routes";
+import { localizedPathsForLocale } from "@/lib/i18n/localized-paths";
 import { translate } from "@/lib/i18n/messages";
 import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
 import { getSiteConfig } from "@/lib/site-config";
@@ -182,6 +183,7 @@ export default async function ProducerPage(props: {
   const shopping = await getShoppingContextFromRequest({ skipUser: true });
   const locale = shopping.locale;
   const t = (key: string) => translate(locale, key);
+  const paths = localizedPathsForLocale(locale);
 
   const heroParts = heroMetaParts(producer, locale);
   const foundedLabel =
@@ -254,7 +256,7 @@ export default async function ProducerPage(props: {
         "@type": "ListItem",
         position: 1,
         name: "Shop",
-        item: `${config.baseUrl}/vin`,
+        item: `${config.baseUrl}${paths.shop}`,
       },
       {
         "@type": "ListItem",
@@ -297,7 +299,7 @@ export default async function ProducerPage(props: {
             <BreadcrumbList>
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link href="/vin">Shop</Link>
+                  <Link href={paths.shop}>Shop</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />

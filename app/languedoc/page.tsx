@@ -10,6 +10,8 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Footer } from "@/components/layout/footer";
+import { localizedPathsForLocale } from "@/lib/i18n/localized-paths";
+import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
 import { getSiteConfig } from "@/lib/site-config";
 
 export const dynamic = "force-dynamic";
@@ -50,7 +52,10 @@ function SpecCell({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default function LanguedocPage() {
+export default async function LanguedocPage() {
+  const shopping = await getShoppingContextFromRequest({ skipUser: true });
+  const paths = localizedPathsForLocale(shopping.locale);
+
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -59,7 +64,7 @@ export default function LanguedocPage() {
         "@type": "ListItem",
         position: 1,
         name: "Shop",
-        item: "https://pactwines.com/vin",
+        item: `https://pactwines.com${paths.shop}`,
       },
       {
         "@type": "ListItem",
@@ -149,7 +154,7 @@ export default function LanguedocPage() {
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link href="/vin">Shop</Link>
+                <Link href={paths.shop}>Shop</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
@@ -271,13 +276,13 @@ export default function LanguedocPage() {
               Naturvin från Languedoc
             </Link>
             <Link
-              href="/vin"
+              href={paths.shop}
               className="rounded-full border border-background/30 px-6 py-2.5 text-sm font-medium text-background transition-colors hover:border-background/60"
             >
               Se alla viner
             </Link>
             <Link
-              href="/vin/naturvin-languedoc"
+              href={paths.shopCategory("naturvin-languedoc")}
               className="rounded-full border border-background/30 px-6 py-2.5 text-sm font-medium text-background transition-colors hover:border-background/60"
             >
               Se naturvin från Languedoc i butiken →

@@ -15,6 +15,7 @@ import { useAdminStatus } from "@/lib/hooks/use-admin-status";
 import { PortalToggle } from "./portal-toggle";
 import { Shield } from "lucide-react";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 
 export function MobileMenu({
   collections,
@@ -24,9 +25,10 @@ export function MobileMenu({
   isDirtywineSite: boolean;
 }) {
   const { t } = useTranslations();
+  const paths = useLocalizedPaths();
   const { isOpen, openMobileMenu, closeMobileMenu } = useMobileMenu();
   const navItems = [
-    { href: "/vin", label: t("common.shop") },
+    { href: paths.shop, label: t("common.shop") },
     { href: "/profile", label: t("common.profile"), icon: User },
     { href: "/about", label: t("common.about") },
     { href: "/", label: t("common.home") },
@@ -168,6 +170,7 @@ export function MobileMenu({
                     <div className="mb-10">
                       <ShopLinks
                         label={t("home.popularProducers")}
+                        locale={paths.locale}
                         emptyMessage={t("home.noProducersFound", {
                           count: collections?.length ?? 0,
                         })}

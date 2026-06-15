@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { PageLayout } from "@/components/layout/page-layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -60,6 +61,7 @@ export function B2BProfileLayout({
   ipEvents,
 }: B2BProfileLayoutProps) {
   const router = useRouter();
+  const paths = useLocalizedPaths();
   const [section, setSection] = useState<B2BSection>("overview");
 
   const userName = profile?.full_name || "Kontakt";
@@ -230,7 +232,7 @@ export function B2BProfileLayout({
                           Gå till sortimentet och lägg viner på din pall. När du är klar kan du slutföra beställningen härifrån.
                         </p>
                         <Button asChild size="sm" className="min-h-[44px] sm:min-h-0">
-                          <Link href="/vin" className="inline-flex items-center gap-2">
+                          <Link href={paths.shop} className="inline-flex items-center gap-2">
                             <ShoppingCart className="h-4 w-4" />
                             Gå till sortiment
                           </Link>
@@ -406,7 +408,7 @@ export function B2BProfileLayout({
                         Gå till sortimentet och lägg viner på din pall.
                       </p>
                       <Button asChild size="sm" className="min-h-[44px] sm:min-h-0">
-                        <Link href="/vin" className="inline-flex items-center gap-2">
+                        <Link href={paths.shop} className="inline-flex items-center gap-2">
                           <ShoppingCart className="h-4 w-4" />
                           Gå till sortiment
                         </Link>

@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useCategoryFilterCount } from "../hooks/use-filter-count";
 import { useQueryState, parseAsString } from "nuqs";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 
 interface CategoryFilterProps {
   collections: Collection[];
@@ -22,6 +23,7 @@ export function CategoryFilter({
   onSeeAll,
 }: CategoryFilterProps) {
   const { t } = useTranslations();
+  const paths = useLocalizedPaths();
   const params = useParams<{ collection: string }>();
   const [producersParam] = useQueryState(
     "producers",
@@ -81,7 +83,7 @@ export function CategoryFilter({
                           ? "opacity-50"
                           : "",
                     )}
-                    href={`/vin/${collection.handle}`}
+                    href={paths.shopCollection(collection.handle)}
                     aria-pressed={isSelected}
                     aria-label={t("shop.filterByCategory", {
                       name: collection.title,

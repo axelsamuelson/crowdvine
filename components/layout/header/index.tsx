@@ -16,6 +16,7 @@ import { useUserRole } from "@/lib/hooks/use-user-role";
 import { usePortalAccess } from "@/lib/hooks/use-portal-access";
 import { useAdminStatus } from "@/lib/hooks/use-admin-status";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import type { SiteLogos } from "@/lib/context/site-logo-provider";
 
 interface HeaderProps {
@@ -30,10 +31,11 @@ export function Header({
   initialLogos,
 }: HeaderProps) {
   const { t } = useTranslations();
+  const paths = useLocalizedPaths();
   const pathname = usePathname();
   const navItems: NavItem[] = [
     { label: t("nav.home"), href: "/" },
-    { label: t("nav.shopAll"), href: "/vin" },
+    { label: t("nav.shopAll"), href: paths.shop },
   ];
   const { role } = useUserRole();
   const { showPortalToggle, isB2BOnly, loading } = usePortalAccess();

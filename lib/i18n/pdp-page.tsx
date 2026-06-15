@@ -12,8 +12,10 @@ import { getAppUrl, getAppUrlForRequest, getInternalFetchHeaders } from "@/lib/a
 import type { AppLocale } from "@/lib/i18n/locale";
 import {
   PACT_PUBLIC_ORIGIN,
+  producerPublicPath,
   productPagePath,
   productPageUrls,
+  shopPathForLocale,
   type ProductPathSegment,
 } from "@/lib/i18n/localized-routes";
 import { generateProducerSlug } from "@/lib/producer-handle";
@@ -196,13 +198,13 @@ export async function renderProductPdpPage(options: {
         "@type": "ListItem",
         position: 1,
         name: "Shop",
-        item: `${config.baseUrl}/vin`,
+        item: `${config.baseUrl}${shopPathForLocale(locale)}`,
       },
       {
         "@type": "ListItem",
         position: 2,
         name: product.producerName,
-        item: `${PACT_PUBLIC_ORIGIN}/producer/${producerSlug}`,
+        item: `${PACT_PUBLIC_ORIGIN}${producerPublicPath(producerSlug, locale)}`,
       },
       {
         "@type": "ListItem",

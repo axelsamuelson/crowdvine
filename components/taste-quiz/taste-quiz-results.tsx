@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
+import type { LocalizedPaths } from "@/lib/i18n/localized-paths";
 import type { TasteQuizWine } from "@/lib/taste-quiz/get-quiz-wines";
 import type { TasteQuizAnswerKey } from "@/lib/taste-quiz/taste-profile";
 import type { RankedQuizWine } from "@/lib/taste-quiz/scoring";
@@ -17,9 +19,9 @@ export const HIDDEN_DISPLAY_TAGS = new Set([
   "everyday",
 ]);
 
-function wineProductHref(wine: TasteQuizWine): string {
-  if (wine.handle) return `/product/${wine.handle}`;
-  return `/vin?search=${encodeURIComponent(wine.name)}`;
+function wineProductHref(wine: TasteQuizWine, paths: LocalizedPaths): string {
+  if (wine.handle) return paths.product(wine.handle);
+  return paths.shopQuery({ search: wine.name });
 }
 
 type SaveState = "idle" | "loading" | "saved" | "skipped";
@@ -46,6 +48,7 @@ export function TasteQuizResults({
   showRestart = false,
 }: TasteQuizResultsProps) {
   const { t } = useTranslations();
+  const paths = useLocalizedPaths();
 
   return (
     <div className="space-y-8">
@@ -85,7 +88,7 @@ export function TasteQuizResults({
           return (
             <li key={wine.id}>
               <Link
-                href={wineProductHref(wine)}
+                href={wineProductHref(wine, paths)}
                 className="block rounded-xl border border-stone-200 bg-white p-4 shadow-sm transition-colors hover:border-stone-300 hover:bg-stone-50/80"
               >
                 <div className="flex items-start gap-4">

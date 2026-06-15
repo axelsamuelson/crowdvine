@@ -5,6 +5,7 @@ import { ProducerValidation } from "@/lib/checkout-validation";
 import { CheckCircle, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 
 interface CartValidationDisplayProps {
   validations: ProducerValidation[];
@@ -16,6 +17,7 @@ export function CartValidationDisplay({
   isLoading,
 }: CartValidationDisplayProps) {
   const { t } = useTranslations();
+  const paths = useLocalizedPaths();
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (isLoading) {
@@ -78,8 +80,8 @@ export function CartValidationDisplay({
             {validations.map((validation, index) => {
               // If it's a group, link to group page; otherwise link to producer page
               const href = validation.groupId
-                ? `/vin/group/${validation.groupId}`
-                : `/vin/${validation.producerHandle}`;
+                ? paths.shopGroup(validation.groupId)
+                : paths.shopCollection(validation.producerHandle ?? "");
 
               console.log(
                 "🔗 [Validation Display] Link for",

@@ -9,6 +9,10 @@ import {
   WINE_CATEGORY_EN_ALIASES,
   WINE_CATEGORY_SV_ALIASES,
 } from "@/lib/wine-categories";
+import { LOCALE_COOKIE, parseLocaleCookie } from "@/lib/i18n/locale";
+import { localeFromShopPath } from "@/lib/i18n/shop-path-locale";
+
+const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
 export async function middleware(req: NextRequest) {
   try {
@@ -20,9 +24,29 @@ export async function middleware(req: NextRequest) {
 }
 
 function nextWithPathname(req: NextRequest): NextResponse {
+  const pathname = req.nextUrl.pathname;
   const requestHeaders = new Headers(req.headers);
-  requestHeaders.set("x-pathname", req.nextUrl.pathname);
-  return NextResponse.next({ request: { headers: requestHeaders } });
+  requestHeaders.set("x-pathname", pathname);
+
+  const pathLocale = localeFromShopPath(pathname);
+  if (pathLocale) {
+    requestHeaders.set("x-pact-locale", pathLocale);
+  }
+
+  const res = NextResponse.next({ request: { headers: requestHeaders } });
+
+  if (pathLocale) {
+    const currentLocale = parseLocaleCookie(req.cookies.get(LOCALE_COOKIE)?.value);
+    if (currentLocale !== pathLocale) {
+      res.cookies.set(LOCALE_COOKIE, pathLocale, {
+        path: "/",
+        maxAge: LOCALE_COOKIE_MAX_AGE,
+        sameSite: "lax",
+      });
+    }
+  }
+
+  return res;
 }
 
 async function runMiddleware(req: NextRequest) {

@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import Image from "next/image";
 import { FeaturedProductLabel } from "./featured-product-label";
 import { HomeLatestDropBadge } from "@/components/home/home-latest-drop-badge";
@@ -24,6 +25,7 @@ export function LatestProductCard({
   labelPosition = "bottom-right",
 }: LatestProductCardProps) {
   const { t } = useTranslations();
+  const paths = useLocalizedPaths();
   const hasImage = product.featuredImage && product.featuredImage.url;
   const noImageLabel = t("home.noImage");
 
@@ -36,7 +38,7 @@ export function LatestProductCard({
           </div>
         )}
         <Link
-          href={`/product/${product.handle}`}
+          href={paths.product(product.handle)}
           className="size-full flex-1 flex flex-col"
           prefetch
         >
@@ -74,7 +76,7 @@ export function LatestProductCard({
   return (
     <div className={cn("relative", className)}>
       <Link
-        href={`/product/${product.handle}`}
+        href={paths.product(product.handle)}
         className="block w-full aspect-square"
         prefetch
       >

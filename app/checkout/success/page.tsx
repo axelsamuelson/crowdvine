@@ -22,6 +22,7 @@ import Link from "next/link";
 import { useShoppingContext } from "@/lib/context/shopping-context-provider";
 import { formatMoney } from "@/lib/shopping-context/format";
 import type { AppLocale } from "@/lib/i18n/locale";
+import { localizedPathsForLocale } from "@/lib/i18n/localized-paths";
 
 function translateReservationStatus(
   status: string,
@@ -133,6 +134,7 @@ function CheckoutSuccessStripeRelay() {
 function CheckoutConfirmationContent() {
   const { t, context: shopping } = useShoppingContext();
   const appLocale = shopping.locale as AppLocale;
+  const paths = localizedPathsForLocale(appLocale);
   const intlLocale = shopping.intlLocale;
   const currencyCode = shopping.currencyCode || "SEK";
   const searchParams = useSearchParams();
@@ -763,7 +765,7 @@ function CheckoutConfirmationContent() {
                           {item.product_handle && (
                             <div className="mt-3">
                               <Link
-                                href={`/product/${item.product_handle}`}
+                                href={paths.product(item.product_handle)}
                                 className="text-sm font-medium text-gray-900 underline underline-offset-4 hover:opacity-80"
                               >
                                 {t("checkout.successViewProduct")}

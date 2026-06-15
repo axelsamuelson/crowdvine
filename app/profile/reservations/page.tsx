@@ -40,6 +40,7 @@ import type { LucideIcon } from "lucide-react";
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import { normalizeUserReservationsResponse } from "@/lib/reservations/user-reservations-api";
 import { useShoppingContext } from "@/lib/context/shopping-context-provider";
+import { localizedPathsForLocale } from "@/lib/i18n/localized-paths";
 import { useDisplayMoney } from "@/lib/hooks/use-display-money";
 
 export type ResStatusKey =
@@ -385,6 +386,7 @@ function formatBottleSummary(
 
 function PalletDialog({ group }: { group: AddressPalletData }) {
   const { t, context: shopping } = useShoppingContext();
+  const paths = localizedPathsForLocale(shopping.locale);
   const { formatSek } = useDisplayMoney();
   const intlLocale = shopping.intlLocale;
   const formatPrice = (cents: number) => formatSek(cents / 100);
@@ -1044,7 +1046,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                         .map(([producerName, wines]) => (
                           <div key={producerName} className="space-y-3">
                             <Link 
-                              href={`/vin/${getProducerHandle(producerName)}`}
+                              href={paths.shopCollection(getProducerHandle(producerName))}
                               className="text-xs font-medium text-gray-500 hover:text-gray-900 hover:underline transition-colors inline-block"
                             >
                               {producerName}
@@ -1074,8 +1076,10 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
 
                                 // Use handle if available, otherwise fallback to search
                                 const wineUrl = w.handle 
-                                  ? `/product/${w.handle}`
-                                  : `/vin?search=${encodeURIComponent(`${w.wine_name} ${w.vintage}`)}`;
+                                  ? paths.product(w.handle)
+                                  : paths.shopQuery({
+                                      search: `${w.wine_name} ${w.vintage}`,
+                                    });
 
                                 return (
                                   <div key={`${producerName}-${w.wine_name}-${w.vintage}-${idx}`}>
@@ -1134,7 +1138,8 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
 }
 
 export default function ReservationsPage() {
-  const { t } = useShoppingContext();
+  const { t, context: shopping } = useShoppingContext();
+  const paths = localizedPathsForLocale(shopping.locale);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [addressPalletData, setAddressPalletData] = useState<
@@ -1564,7 +1569,7 @@ export default function ReservationsPage() {
                   {t("profile.noReservationsBody")}
                 </p>
                 <div className="flex gap-3 justify-center">
-                  <Link href="/vin">
+                  <Link href={paths.shop}>
                     <Button className="bg-black hover:bg-black/90 text-white rounded-full px-8">
                       {t("profile.browseWines")}
                     </Button>

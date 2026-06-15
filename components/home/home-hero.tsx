@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { useOptionalTasteQuizPanel } from "./home-taste-quiz-panel";
 
 const titleClasses =
@@ -37,6 +38,7 @@ function HeroFavicon() {
 
 export function HomeHero({ className }: { className?: string }) {
   const { t } = useTranslations();
+  const paths = useLocalizedPaths();
   const tasteQuizPanel = useOptionalTasteQuizPanel();
   const title = t("home.heroTitle");
 
@@ -89,7 +91,7 @@ export function HomeHero({ className }: { className?: string }) {
                 <span aria-hidden />
               )}
               <HeroFavicon />
-              <Link href="/vin" className={heroButtonClassName}>
+              <Link href={paths.shop} className={heroButtonClassName}>
                 {t("nav.shopAll")}
               </Link>
             </div>

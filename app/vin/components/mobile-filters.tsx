@@ -23,6 +23,7 @@ import { ShopFilterSearch } from "./shop-filter-search";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { getCategoryUrlForColor, getCategoryUrlForGrape, getActiveGrapeFromPathname } from "@/lib/wine-categories";
 import { filterProductsByGrapes } from "@/lib/shop/filter-products-by-grape";
 
@@ -50,6 +51,7 @@ interface MobileFiltersProps {
 
 export function MobileFilters({ collections, priceSources = [], className }: MobileFiltersProps) {
   const { t } = useTranslations();
+  const paths = useLocalizedPaths();
   const filterCount = useFilterCount();
   const { products, originalProducts, setProducts } = useProducts();
   const [isMounted, setIsMounted] = React.useState(false);
@@ -153,7 +155,7 @@ export function MobileFilters({ collections, priceSources = [], className }: Mob
               disabled={safeFilterCount === 0}
               asChild={safeFilterCount > 0}
             >
-              <Link href="/vin" prefetch>
+              <Link href={paths.shop} prefetch>
                 {t("shop.clear")}
               </Link>
             </Button>

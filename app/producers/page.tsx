@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { cookies } from "next/headers";
 
 import {
   Breadcrumb,
@@ -15,6 +14,8 @@ import {
   type WineLocale,
 } from "@/lib/i18n/wine-locale";
 import { generateProducerSlug } from "@/lib/producer-handle";
+import { localizedPathsForLocale } from "@/lib/i18n/localized-paths";
+import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getSiteConfig } from "@/lib/site-config";
 
@@ -66,9 +67,9 @@ function producerInitials(name: string): string {
 }
 
 export default async function ProducersPage() {
-  const cookieStore = await cookies();
-  const rawLocale = cookieStore.get("pact_locale")?.value ?? "sv";
-  const locale: WineLocale = rawLocale === "en" ? "en" : "sv";
+  const shopping = await getShoppingContextFromRequest({ skipUser: true });
+  const locale: WineLocale = shopping.locale === "en" ? "en" : "sv";
+  const paths = localizedPathsForLocale(locale);
 
   const sb = getSupabaseAdmin();
   const { data: producersRaw } = await sb
@@ -86,7 +87,7 @@ export default async function ProducersPage() {
         "@type": "ListItem",
         position: 1,
         name: "Shop",
-        item: "https://pactwines.com/vin",
+        item: `https://pactwines.com${paths.shop}`,
       },
       {
         "@type": "ListItem",
@@ -110,7 +111,7 @@ export default async function ProducersPage() {
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link href="/vin">Shop</Link>
+              <Link href={paths.shop}>Shop</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
@@ -134,7 +135,7 @@ export default async function ProducersPage() {
           return (
             <Link
               key={producer.id}
-              href={`/producer/${slug}`}
+              href={paths.producer(slug)}
               className="group overflow-hidden rounded-xl border bg-white transition-colors hover:border-zinc-400"
             >
               <div className="flex h-24 items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-950">

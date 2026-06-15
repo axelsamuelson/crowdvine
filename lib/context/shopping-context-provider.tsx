@@ -22,6 +22,7 @@ import {
   getWineCategoryEn,
   getWineCategorySv,
 } from "@/lib/wine-categories";
+import { switchProductOrProducerPath } from "@/lib/i18n/localized-routes";
 import {
   ACTIVE_ZONE_CHANGED_EVENT,
   activeZoneFromChangedEvent,
@@ -60,6 +61,9 @@ function getLocalizedPath(
   pathname: string,
   newLocale: AppLocale,
 ): string | null {
+  const productOrProducer = switchProductOrProducerPath(pathname, newLocale);
+  if (productOrProducer) return productOrProducer;
+
   // /vin → /wine och vice versa
   if (pathname === "/vin" && newLocale === "en") return "/wine";
   if (pathname === "/wine" && newLocale === "sv") return "/vin";
@@ -152,24 +156,24 @@ export function ShoppingContextProvider({
     if (!applied) return;
 
     setLocaleCookie(locale);
+
+    void fetch("/api/user/preferred-locale", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ locale }),
+      keepalive: true,
+    }).catch(() => {});
+
     const localizedPath = getLocalizedPath(pathname, locale);
-    if (localizedPath) {
-      router.push(localizedPath);
-    } else {
-      router.refresh();
+    if (localizedPath && localizedPath !== pathname) {
+      // Full navigation avoids flaky RSC soft-nav when cookie + URL both change.
+      const search =
+        typeof window !== "undefined" ? window.location.search : "";
+      window.location.assign(`${localizedPath}${search}`);
+      return;
     }
 
-    try {
-      await fetch("/api/user/preferred-locale", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ locale }),
-      });
-    } catch {
-      /* guest or offline — cookie is enough */
-    }
-
-    // Locale is already applied client-side; refresh only re-syncs zone/currency.
+    router.refresh();
     await refresh();
   }, [pathname, refresh, router]);
 

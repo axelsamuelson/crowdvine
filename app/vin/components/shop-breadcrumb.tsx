@@ -10,6 +10,7 @@ import {
 import { Collection } from "@/lib/shopify/types";
 import { useParams, usePathname } from "next/navigation";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 
 interface ShopBreadcrumbProps {
   collections: Pick<Collection, "handle" | "title">[];
@@ -23,6 +24,7 @@ export function ShopBreadcrumb({
   breadcrumbLabel,
 }: ShopBreadcrumbProps) {
   const { t } = useTranslations();
+  const paths = useLocalizedPaths();
   const pathname = usePathname();
   const params = useParams<{ collection: string }>();
   const currentCollection = params.collection;
@@ -53,7 +55,7 @@ export function ShopBreadcrumb({
     <Breadcrumb className={className}>
       <BreadcrumbList>
         <BreadcrumbItem className="cursor-pointer text-foreground/50 hover:text-foreground/70">
-          <BreadcrumbLink href="/vin" className="font-semibold">
+          <BreadcrumbLink href={paths.shop} className="font-semibold">
             {t("nav.shopAll")}
           </BreadcrumbLink>
         </BreadcrumbItem>

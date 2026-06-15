@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { useHiwScrollContainer } from "@/lib/hooks/use-hiw-scroll";
 
 const STEPS = [
@@ -62,6 +63,8 @@ function SequentialStep({
 }
 
 export function HiwPactSection() {
+  const paths = useLocalizedPaths();
+
   return (
     <section className="bg-white">
       <div className="border-b border-stone-200 px-6 py-20 md:px-12 md:py-28 lg:px-20">
@@ -113,7 +116,7 @@ export function HiwPactSection() {
 
         <div className="mx-auto mt-12 flex max-w-lg flex-col gap-4 sm:flex-row sm:justify-center">
           <Link
-            href="/vin"
+            href={paths.shop}
             className="inline-flex items-center justify-center rounded-full bg-stone-900 px-8 py-3.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
           >
             Utforska sortimentet

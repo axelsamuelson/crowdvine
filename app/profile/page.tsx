@@ -33,6 +33,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { useFormatPrice } from "@/lib/hooks/use-format-price";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { cn } from "@/lib/utils";
 import type { AppLocale } from "@/lib/i18n/locale";
 
@@ -92,6 +93,7 @@ interface MembershipData {
 
 function ProfilePageContent() {
   const { t, context: shopping } = useTranslations();
+  const paths = useLocalizedPaths();
   const formatPrice = useFormatPrice();
   const appLocale = shopping.locale as AppLocale;
   const intlLocale = shopping.intlLocale;
@@ -633,7 +635,7 @@ function ProfilePageContent() {
                   lastViewedProducts.slice(0, 5).map((p) => (
                     <Link
                       key={p.id}
-                      href={`/product/${p.handle}`}
+                      href={paths.product(p.handle)}
                       className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-muted/30"
                     >
                       <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-md border bg-muted">
@@ -1095,7 +1097,7 @@ function ProfilePageContent() {
             <p className="font-medium text-foreground">{t("profile.tipTitle")}</p>
             <p className="mt-2 leading-snug">
               {t("profile.tipBodyIntro")}{" "}
-              <Link href="/vin" className="underline underline-offset-2">
+              <Link href={paths.shop} className="underline underline-offset-2">
                 {t("common.shop")}
               </Link>
               .

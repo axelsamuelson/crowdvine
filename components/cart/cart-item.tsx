@@ -11,6 +11,7 @@ import { priceExclVat } from "@/lib/shopify/utils";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { useFormatPrice } from "@/lib/hooks/use-format-price";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { ColorSwatch } from "@/components/ui/color-picker";
 import { useProductImages } from "../products/variant-selector";
 import { Warehouse } from "lucide-react";
@@ -28,6 +29,7 @@ interface CartItemProps {
 export function CartItemCard({ item, onCloseCart }: CartItemProps) {
   const formatPrice = useFormatPrice();
   const { t } = useTranslations();
+  const paths = useLocalizedPaths();
   const showExclVat = useB2BPriceMode();
   const merchandiseSearchParams = {} as MerchandiseSearchParams;
   const amount = parseFloat(item.cost.totalAmount.amount);
@@ -40,7 +42,7 @@ export function CartItemCard({ item, onCloseCart }: CartItemProps) {
   });
 
   const merchandiseUrl = createUrl(
-    `/product/${item.merchandise.product.handle}`,
+    paths.product(item.merchandise.product.handle),
     new URLSearchParams(merchandiseSearchParams),
   );
 

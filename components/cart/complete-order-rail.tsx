@@ -6,6 +6,7 @@ import { X } from "lucide-react";
 import { useCartOptional } from "@/components/cart/cart-context";
 import type { ProducerValidation } from "@/lib/checkout-validation";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 
 const serializeCart = (cart: any) =>
   JSON.stringify(
@@ -17,6 +18,7 @@ const serializeCart = (cart: any) =>
 
 export function CompleteOrderRail({ showMobile = false }: { showMobile?: boolean }) {
   const { t } = useTranslations();
+  const paths = useLocalizedPaths();
   const pathname = usePathname();
   const router = useRouter();
   const cart = useCartOptional()?.cart;
@@ -97,7 +99,7 @@ export function CompleteOrderRail({ showMobile = false }: { showMobile?: boolean
   const goToProducer = () => {
     const handle = primary?.producerHandle;
     if (!handle) return;
-    router.push(`/vin/${handle}`);
+    router.push(paths.shopCollection(handle));
   };
 
   // Inline header variant: should sit inside the top nav bar, left of HOME

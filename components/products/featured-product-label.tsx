@@ -2,6 +2,7 @@
 
 import { Badge } from "../ui/badge";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { cn } from "@/lib/utils";
 import { Product } from "@/lib/shopify/types";
 import { AddToCart, AddToCartButton } from "../cart/add-to-cart";
@@ -23,6 +24,7 @@ export function FeaturedProductLabel({
   className?: string;
 }) {
   const { t } = useTranslations();
+  const paths = useLocalizedPaths();
   const listPriceSek = getProductListPriceSek(product);
 
   if (principal) {
@@ -41,7 +43,7 @@ export function FeaturedProductLabel({
           )}
         </div>
         <Link
-          href={`/product/${product.handle}`}
+          href={paths.product(product.handle)}
           className="col-span-1 self-start text-2xl font-semibold"
         >
           {product.title}
@@ -106,7 +108,7 @@ export function FeaturedProductLabel({
     >
       <div className="pr-6 leading-4 overflow-hidden">
         <Link
-          href={`/product/${product.handle}`}
+          href={paths.product(product.handle)}
           className="inline-block w-full truncate text-base font-semibold opacity-80 mb-1.5"
         >
           {product.title}

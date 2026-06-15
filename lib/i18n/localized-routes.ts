@@ -1,3 +1,5 @@
+import type { AppLocale } from "@/lib/i18n/locale";
+
 /** Canonical public origin for hreflang and sitemap (pactwines.com). */
 export const PACT_PUBLIC_ORIGIN = "https://pactwines.com" as const;
 
@@ -40,4 +42,35 @@ export function producerPageUrls(slug: string): {
     sv: `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, "producent")}`,
     xDefault: `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, "producer")}`,
   };
+}
+
+export function switchProductOrProducerPath(
+  pathname: string,
+  newLocale: AppLocale,
+): string | null {
+  const productMatch = pathname.match(/^\/(product|produkt)\/([^/?#]+)\/?$/);
+  if (productMatch) {
+    const handle = decodeURIComponent(productMatch[2]);
+    return productPagePath(handle, newLocale === "sv" ? "produkt" : "product");
+  }
+
+  const producerMatch = pathname.match(/^\/(producer|producent)\/([^/?#]+)\/?$/);
+  if (producerMatch) {
+    const slug = decodeURIComponent(producerMatch[2]);
+    return producerPagePath(slug, newLocale === "sv" ? "producent" : "producer");
+  }
+
+  return null;
+}
+
+export function shopPathForLocale(locale: AppLocale): "/vin" | "/wine" {
+  return locale === "sv" ? "/vin" : "/wine";
+}
+
+export function producerPublicPath(slug: string, locale: AppLocale): string {
+  return producerPagePath(slug, locale === "sv" ? "producent" : "producer");
+}
+
+export function productPublicPath(handle: string, locale: AppLocale): string {
+  return productPagePath(handle, locale === "sv" ? "produkt" : "product");
 }

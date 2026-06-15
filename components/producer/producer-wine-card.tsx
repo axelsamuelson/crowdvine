@@ -1,4 +1,6 @@
 import Link from "next/link";
+import type { AppLocale } from "@/lib/i18n/locale";
+import { productPublicPath } from "@/lib/i18n/localized-routes";
 
 import { wineColorDotClass } from "@/lib/wine-color";
 import { formatPrice } from "@/lib/shopify/utils";
@@ -21,13 +23,21 @@ type ProducerWineCardProps = {
   intlLocale: string;
 };
 
+function localeFromIntl(intlLocale: string): AppLocale {
+  return intlLocale.startsWith("sv") ? "sv" : "en";
+}
+
 export function ProducerWineCard({ wine, intlLocale }: ProducerWineCardProps) {
   const blurb = wine.summary ?? wine.description ?? null;
   const color = wine.color ?? wine.type ?? null;
+  const productHref = productPublicPath(
+    wine.handle,
+    localeFromIntl(intlLocale),
+  );
 
   return (
     <Link
-      href={`/product/${wine.handle}`}
+      href={productHref}
       className={cn(
         "block rounded-xl border bg-background p-4 transition-colors",
         "hover:border-foreground/30 hover:bg-muted/30",

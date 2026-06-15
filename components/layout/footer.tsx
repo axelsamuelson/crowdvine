@@ -5,6 +5,7 @@ import { FooterLogoSvg } from "./footer-logo-svg";
 import { OnboardingButton } from "./onboarding-button";
 import Link from "next/link";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { FooterShoppingContext } from "@/components/market/header-shopping-context";
 import { useB2BModeServerHint } from "@/lib/context/b2b-mode-context";
 import type { SiteLogos } from "@/lib/context/site-logo-provider";
@@ -14,6 +15,7 @@ const footerLogoClass =
 
 export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
   const { t } = useTranslations();
+  const paths = useLocalizedPaths();
   const isDirtywineSite = useB2BModeServerHint();
   const year = new Date().getFullYear();
 
@@ -38,7 +40,7 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
                       {t("common.home")}
                     </Link>
                     <Link
-                      href="/vin"
+                      href={paths.shop}
                       className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
                     >
                       {t("common.shop")}

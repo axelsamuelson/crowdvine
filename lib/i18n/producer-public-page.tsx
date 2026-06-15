@@ -21,6 +21,7 @@ import {
   producerPageUrls,
   type ProducerPathSegment,
 } from "@/lib/i18n/localized-routes";
+import { localizedPathsForLocale } from "@/lib/i18n/localized-paths";
 import { translate } from "@/lib/i18n/messages";
 import { getSiteConfig } from "@/lib/site-config";
 
@@ -189,6 +190,7 @@ export async function renderProducerPublicPage(options: {
   const { producer, wines } = data;
   const t = (key: string) => translate(locale, key);
   const intlLocale = intlLocaleForAppLocale(locale);
+  const paths = localizedPathsForLocale(locale);
 
   const heroParts = heroMetaParts(producer, locale);
   const foundedLabel =
@@ -261,7 +263,7 @@ export async function renderProducerPublicPage(options: {
         "@type": "ListItem",
         position: 1,
         name: "Shop",
-        item: `${config.baseUrl}/vin`,
+        item: `${config.baseUrl}${paths.shop}`,
       },
       {
         "@type": "ListItem",
@@ -313,7 +315,7 @@ export async function renderProducerPublicPage(options: {
             <BreadcrumbList>
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link href="/vin">Shop</Link>
+                  <Link href={paths.shop}>Shop</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />

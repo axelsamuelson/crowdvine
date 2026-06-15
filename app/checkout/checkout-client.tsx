@@ -56,6 +56,7 @@ import {
 } from "@/lib/countries";
 import { isUsConditionalReservationsEnabledClient } from "@/lib/market/feature-flags";
 import { useShoppingContext } from "@/lib/context/shopping-context-provider";
+import { localizedPathsForLocale } from "@/lib/i18n/localized-paths";
 import { useDisplayMoney } from "@/lib/hooks/use-display-money";
 import type { ResolvedActiveGeoZone } from "@/lib/market/resolve-active-geo-zone";
 import {
@@ -96,6 +97,7 @@ interface UserReward {
 
 function CheckoutContent() {
   const { t, context: shopping } = useShoppingContext();
+  const paths = localizedPathsForLocale(shopping.locale);
   const { formatDisplay, formatSek, toDisplay } = useDisplayMoney();
   const countryDisplayLocale = shopping.locale === "sv" ? "sv" : "en";
   const uiLocalizationEnabled = shopping.uiLocalizationEnabled;
@@ -2453,8 +2455,8 @@ function CheckoutContent() {
                             .filter((v) => !v.isValid)
                             .map((v, i) => {
                               const href = v.groupId
-                                ? `/vin/group/${v.groupId}`
-                                : `/vin/${v.producerHandle}`;
+                                ? paths.shopGroup(v.groupId)
+                                : paths.shopCollection(v.producerHandle ?? "");
                               return (
                                 <Link key={i} href={href}>
                                   <div className="group w-full rounded-md border border-border bg-background p-4 transition-all hover:border-foreground/20">
