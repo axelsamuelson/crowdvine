@@ -9,6 +9,7 @@ import {
   type ProducerPathSegment,
   type ProductPathSegment,
 } from "@/lib/i18n/localized-routes";
+import { localeFromShopPath } from "@/lib/i18n/shop-path-locale";
 
 /** Producer portal routes under /producer — not public slug pages. */
 const PRODUCER_PORTAL_SEGMENTS = new Set([
@@ -29,12 +30,25 @@ export function isPublicProducerSlugPath(pathname: string): boolean {
   return !PRODUCER_PORTAL_SEGMENTS.has(match[2]);
 }
 
-/** Redirect when URL path locale disagrees with the user's pact_locale cookie. */
+function preferredLocaleFromRequest(req: NextRequest): AppLocale | null {
+  const fromCookie = parseLocaleCookie(req.cookies.get(LOCALE_COOKIE)?.value);
+  if (fromCookie) return fromCookie;
+
+  const referer = req.headers.get("referer");
+  if (!referer) return null;
+  try {
+    return localeFromShopPath(new URL(referer).pathname);
+  } catch {
+    return null;
+  }
+}
+
+/** Redirect when URL path locale disagrees with cookie or shop referer locale. */
 export function redirectLocalePathMismatch(
   req: NextRequest,
 ): NextResponse | null {
-  const cookieLocale = parseLocaleCookie(req.cookies.get(LOCALE_COOKIE)?.value);
-  if (!cookieLocale) return null;
+  const preferredLocale = preferredLocaleFromRequest(req);
+  if (!preferredLocale) return null;
 
   const { pathname } = req.nextUrl;
 
@@ -43,10 +57,10 @@ export function redirectLocalePathMismatch(
     const [, segment, rawHandle] = productMatch;
     const handle = decodeURIComponent(rawHandle);
     const pathLocale: AppLocale = segment === "produkt" ? "sv" : "en";
-    if (pathLocale === cookieLocale) return null;
+    if (pathLocale === preferredLocale) return null;
 
     const targetSegment: ProductPathSegment =
-      cookieLocale === "sv" ? "produkt" : "product";
+      preferredLocale === "sv" ? "produkt" : "product";
     const u = req.nextUrl.clone();
     u.pathname = productPagePath(handle, targetSegment);
     return NextResponse.redirect(u, 308);
@@ -61,10 +75,10 @@ export function redirectLocalePathMismatch(
     const [, segment, rawSlug] = producerMatch;
     const slug = decodeURIComponent(rawSlug);
     const pathLocale: AppLocale = segment === "producent" ? "sv" : "en";
-    if (pathLocale === cookieLocale) return null;
+    if (pathLocale === preferredLocale) return null;
 
     const targetSegment: ProducerPathSegment =
-      cookieLocale === "sv" ? "producent" : "producer";
+      preferredLocale === "sv" ? "producent" : "producer";
     const u = req.nextUrl.clone();
     u.pathname = producerPagePath(slug, targetSegment);
     return NextResponse.redirect(u, 308);
