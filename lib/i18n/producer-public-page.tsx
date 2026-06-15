@@ -24,6 +24,7 @@ import {
 } from "@/lib/i18n/localized-routes";
 import { localizedPathsForLocale } from "@/lib/i18n/localized-paths";
 import { translate } from "@/lib/i18n/messages";
+import { buildProducerWineryJsonLd } from "@/lib/seo/producer-json-ld";
 import { getSiteConfig } from "@/lib/site-config";
 
 type ProducerPayload = {
@@ -122,13 +123,10 @@ export async function buildProducerPublicMetadata(
   locale: AppLocale,
   pathSegment: ProducerPathSegment,
 ): Promise<Metadata> {
-  const [data, config] = await Promise.all([
-    fetchProducerBySlugForLocale(slug, locale),
-    getSiteConfig(),
-  ]);
+  const data = await fetchProducerBySlugForLocale(slug, locale);
 
   if (!data?.producer) {
-    return { title: `Producer | ${config.siteName}` };
+    notFound();
   }
 
   const { name, region, bio_short } = data.producer;
@@ -205,40 +203,13 @@ export async function renderProducerPublicPage(options: {
   );
 
   const producerPageUrl = `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, pathSegment)}`;
+  const productPathSegment = pathSegment === "producer" ? "product" : "produkt";
 
-  const producerJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    name: producer.name,
-    url: producerPageUrl,
-    jobTitle: "Vigneron",
-    worksFor: {
-      "@type": "Organization",
-      name: producer.name,
-      address: {
-        "@type": "PostalAddress",
-        addressRegion: producer.region ?? "Languedoc",
-        addressCountry: "FR",
-      },
-    },
-    knowsAbout: [
-      "Natural wine",
-      "Languedoc",
-      producer.subregion,
-      "Organic viticulture",
-    ].filter((item): item is string => Boolean(item)),
-    ...(producer.bio_short && { description: producer.bio_short }),
-  };
-
-  const pactJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    name: config.name,
-    url: config.baseUrl,
-    description: "Direktimport av naturvin från Languedoc till Stockholm.",
-    areaServed: "Stockholm, Sweden",
-    sameAs: ["https://www.instagram.com/pactwines"],
-  };
+  const producerJsonLd = buildProducerWineryJsonLd(
+    { ...producer, pageUrl: producerPageUrl },
+    wines,
+    productPathSegment,
+  );
 
   const producerWinesLabel =
     locale === "sv"
@@ -292,12 +263,6 @@ export async function renderProducerPublicPage(options: {
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(producerJsonLd),
-        }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(pactJsonLd),
         }}
       />
       <script

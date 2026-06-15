@@ -1,4 +1,5 @@
 import { HIDDEN_PRODUCT_TAG } from "@/lib/constants";
+import { fetchIndexableProducersFromDb } from "@/lib/crowdvine/indexable-producers";
 import { generateProducerSlug } from "@/lib/producer-handle";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { grapeNameToSlug } from "@/lib/wine-grape-categories";
@@ -87,25 +88,8 @@ export async function fetchIndexableWines(): Promise<IndexableWineRow[]> {
 }
 
 export async function fetchIndexableProducers(): Promise<IndexableProducerRow[]> {
-  const sb = getSupabaseAdmin();
-
-  const { data, error } = await sb
-    .from("producers")
-    .select("name, created_at")
-    .eq("is_live", true)
-    .eq("status", "active")
-    .order("name");
-
-  if (error && /is_live|status/i.test(error.message)) {
-    const fallback = await sb
-      .from("producers")
-      .select("name, created_at")
-      .eq("status", "active")
-      .order("name");
-    return (fallback.data ?? []) as IndexableProducerRow[];
-  }
-
-  return (data ?? []) as IndexableProducerRow[];
+  const data = await fetchIndexableProducersFromDb("name, created_at");
+  return data as IndexableProducerRow[];
 }
 
 /** Distinct grape slugs from indexable wines not already covered by static categories. */

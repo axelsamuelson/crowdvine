@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { ProductViewTracker } from "@/app/product/[handle]/components/product-view-tracker";
 import { ProductPdpLayout } from "@/components/product/product-pdp-layout";
 import { WineBoxDiscountInfo } from "@/components/products/wine-box-discount-info";
-import { HIDDEN_PRODUCT_TAG } from "@/lib/constants";
+import { isProductPdpIndexable } from "@/lib/seo/product-indexable";
 import { fetchPdpRecommendationsForWine } from "@/lib/crowdvine/pdp-recommendations-data";
 import { getOffersByWineId } from "@/lib/external-prices/db";
 import { getCrowdvineProductByHandle } from "@/lib/crowdvine/product-by-handle-data";
@@ -48,7 +48,10 @@ export async function buildProductPdpMetadata(
   if (!product) return notFound();
 
   const { url, width, height, altText: alt } = product.featuredImage || {};
-  const indexable = !product.tags.includes(HIDDEN_PRODUCT_TAG);
+  const indexable = isProductPdpIndexable({
+    tags: product.tags,
+    catalogAvailableForSale: product.catalogAvailableForSale,
+  });
   const urls = productPageUrls(handle);
   const canonical = `${PACT_PUBLIC_ORIGIN}${productPagePath(handle, pathSegment)}`;
   const existingOpenGraph = url

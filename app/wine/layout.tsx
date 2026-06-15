@@ -1,6 +1,6 @@
 import { ShopLayoutShell } from "@/components/shop/shop-layout-shell";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export default async function WineLayout({
   children,

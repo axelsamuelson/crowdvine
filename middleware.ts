@@ -8,6 +8,7 @@ import { createClient as createSupabaseMiddlewareClient } from "@/utils/supabase
 import {
   WINE_CATEGORY_EN_ALIASES,
   WINE_CATEGORY_SV_ALIASES,
+  getCategoryUrlForGrape,
 } from "@/lib/wine-categories";
 import { LOCALE_COOKIE, parseLocaleCookie } from "@/lib/i18n/locale";
 import { redirectLocalePathMismatch } from "@/lib/i18n/locale-path-redirect";
@@ -97,6 +98,9 @@ async function runMiddleware(req: NextRequest) {
     u.pathname = pathname.replace("/shop/", "/vin/");
     return NextResponse.redirect(u, 301);
   }
+
+  const legacyGrapeRedirect = redirectLegacyShopGrapeFilter(req, pathname);
+  if (legacyGrapeRedirect) return legacyGrapeRedirect;
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -256,6 +260,23 @@ async function runMiddleware(req: NextRequest) {
   );
 
   return res;
+}
+
+/** Legacy ?fgrape= query on main shop → grape PLP (301). */
+function redirectLegacyShopGrapeFilter(
+  req: NextRequest,
+  pathname: string,
+): NextResponse | null {
+  if (pathname !== "/vin" && pathname !== "/wine") return null;
+
+  const fgrape = req.nextUrl.searchParams.get("fgrape");
+  if (!fgrape?.trim()) return null;
+
+  const locale = pathname === "/vin" ? "sv" : "en";
+  const u = req.nextUrl.clone();
+  u.pathname = getCategoryUrlForGrape(fgrape.trim(), locale);
+  u.search = "";
+  return NextResponse.redirect(u, 301);
 }
 
 function redirectWineCategoryAlias(

@@ -20,7 +20,7 @@ import {
 } from "@/lib/wine-categories";
 import { resolveGrapeCategoryBySlug } from "@/lib/wine-grape-categories";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 export const dynamicParams = true;
 
 export async function generateStaticParams() {
@@ -44,6 +44,7 @@ export async function generateMetadata(props: {
         languages: {
           en: pageUrl,
           sv: `${config.baseUrl}/vin/${category.hreflang ?? ""}`,
+          "x-default": `${config.baseUrl}/vin/${category.hreflang ?? slug}`,
         },
       },
       openGraph: {

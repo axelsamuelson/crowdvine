@@ -13,7 +13,10 @@ import {
   aggregateB2BPalletStock,
   B2B_PALLET_ITEM_STOCK_SELECT,
 } from "@/lib/b2b-pallet-stock";
-import { resolveProductAvailableForSale } from "@/lib/wine-availability";
+import {
+  isWineAvailableForSale,
+  resolveProductAvailableForSale,
+} from "@/lib/wine-availability";
 
 function parseWineTasteTags(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
@@ -472,10 +475,13 @@ export async function getCrowdvineProductByHandle(options: {
     b2bStock = Number(i.b2b_stock);
   }
   const isB2BSite = isB2BHost(host);
+  const catalogAvailableForSale = isWineAvailableForSale(
+    (i as { available_for_sale?: boolean }).available_for_sale,
+  );
   const availableForSale = resolveProductAvailableForSale({
     isB2BSite,
     b2bStock,
-    availableForSale: (i as { available_for_sale?: boolean }).available_for_sale,
+    availableForSale: catalogAvailableForSale,
   });
 
   const specs: Record<string, string> = {};
@@ -631,6 +637,7 @@ export async function getCrowdvineProductByHandle(options: {
       ...(colorName ? [colorName] : []),
     ],
     availableForSale,
+    catalogAvailableForSale,
     currencyCode: "SEK",
     updatedAt: new Date().toISOString(),
     createdAt: new Date().toISOString(),

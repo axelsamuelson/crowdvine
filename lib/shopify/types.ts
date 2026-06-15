@@ -190,6 +190,8 @@ export type Product = {
   variants: ProductVariant[];
   images: Image[];
   availableForSale: boolean;
+  /** B2C catalog flag from wines.available_for_sale (ignores B2B stock). */
+  catalogAvailableForSale?: boolean;
   producerName?: string;
   /** Producer coordinates for PDP map (from producers table). */
   producerLocation?: {

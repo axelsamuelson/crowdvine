@@ -45,6 +45,7 @@ export async function generateMetadata(props: {
         languages: {
           sv: pageUrl,
           en: `${config.baseUrl}/wine/${category.hreflang ?? ""}`,
+          "x-default": pageUrl,
         },
       },
       openGraph: {

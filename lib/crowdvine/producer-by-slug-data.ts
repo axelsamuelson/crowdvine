@@ -4,6 +4,7 @@ import {
   type WineLocale,
 } from "@/lib/i18n/wine-locale";
 import { generateProducerSlug } from "@/lib/producer-handle";
+import { fetchIndexableProducersFromDb } from "@/lib/crowdvine/indexable-producers";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import type { AppLocale } from "@/lib/i18n/locale";
 
@@ -98,14 +99,9 @@ export async function getProducerBySlugForLocale(
   const wineLocale: WineLocale = locale === "en" ? "en" : "sv";
   const sb = getSupabaseAdmin();
 
-  const { data: producers, error: producersError } = await sb
-    .from("producers")
-    .select(PRODUCER_DB_SELECT)
-    .eq("status", "active");
+  const producers = await fetchIndexableProducersFromDb(PRODUCER_DB_SELECT);
 
-  if (producersError) return null;
-
-  const producer = (producers ?? []).find(
+  const producer = producers.find(
     (row) => generateProducerSlug(String((row as ProducerRow).name)) === slug,
   ) as ProducerRow | undefined;
 

@@ -13,10 +13,10 @@ import {
   extractWineText,
   type WineLocale,
 } from "@/lib/i18n/wine-locale";
-import { generateProducerSlug } from "@/lib/producer-handle";
+import { fetchIndexableProducersFromDb } from "@/lib/crowdvine/indexable-producers";
 import { localizedPathsForLocale } from "@/lib/i18n/localized-paths";
+import { generateProducerSlug } from "@/lib/producer-handle";
 import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getSiteConfig } from "@/lib/site-config";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -71,13 +71,11 @@ export default async function ProducersPage() {
   const locale: WineLocale = shopping.locale === "en" ? "en" : "sv";
   const paths = localizedPathsForLocale(locale);
 
-  const sb = getSupabaseAdmin();
-  const { data: producersRaw } = await sb
-    .from("producers")
-    .select("id, name, region, subregion, certification, short_description")
-    .order("name");
+  const producersRaw = await fetchIndexableProducersFromDb(
+    "id, name, region, subregion, certification, short_description",
+  );
 
-  const producers = (producersRaw ?? []) as ProducerListRow[];
+  const producers = producersRaw as ProducerListRow[];
 
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
